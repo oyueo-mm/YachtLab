@@ -1,4 +1,136 @@
 @import "tailwindcss";
+.replay-modal {
+  width: min(1100px, 96vw);
+  max-height: 92dvh;
+  overflow: auto;
+  margin: auto;
+  padding: 24px;
+  border: 1px solid #ddd;
+  border-radius: 18px;
+  color: #202020;
+  background: #fff;
+}
+.game-tools { flex-wrap: wrap; }
+.analysis-comparison { margin-top: 18px; margin-bottom: 18px; }
+.replay-modal::backdrop {
+  background: #0007;
+}
+.replay-heading,
+.replay-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.replay-heading {
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.replay-tools {
+  margin: 15px 0;
+}
+.replay-tools input {
+  flex: 1;
+  min-width: 150px;
+}
+.replay-position {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  margin: 18px 0;
+  color: #666;
+}
+.replay-board-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 370px;
+  gap: 22px;
+  align-items: start;
+}
+.replay-board-grid .game-board {
+  min-height: 280px;
+}
+.replay-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 180px;
+  overflow: auto;
+  margin: 16px 0;
+}
+.replay-actions button {
+  text-align: left;
+  padding: 10px;
+  border-radius: 6px;
+  color: #666;
+  font-size: 11px;
+}
+.replay-actions .active {
+  background: #fff1ee;
+  color: #a92323;
+}
+.file-button {
+  cursor: pointer;
+}
+.file-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.replay-library {
+  padding: 15px;
+}
+.replay-library > div {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+.replay-library input {
+  max-width: 220px;
+  min-width: 130px;
+  font-size: 12px;
+}
+.replay-library span,
+.replay-library time {
+  font-size: 10px;
+  color: #737373;
+}
+.replay-library time {
+  margin-left: auto;
+}
+.replay-library .small-note {
+  margin-bottom: 10px;
+}
+@media (max-width: 760px) {
+  .replay-modal {
+    padding: 16px;
+    width: 96vw;
+  }
+  .replay-board-grid {
+    grid-template-columns: 1fr;
+  }
+  .replay-board-grid .game-board {
+    min-height: 220px;
+  }
+  .replay-position {
+    flex-direction: column;
+  }
+  .replay-tools .primary,
+  .replay-tools .secondary {
+    font-size: 11px;
+    padding-inline: 12px;
+  }
+  .replay-modal .dice-row {
+    margin-top: 40px;
+  }
+  .replay-heading h2 {
+    font-size: 18px;
+  }
+}
 .algorithm-field {
   position: relative;
   min-width: 0;
@@ -1850,6 +1982,8 @@ input[type="range"],
 [data-algorithm="DP Expert"] {
   --algorithm-color: #315878;
 }
+[data-algorithm="Distilled Policy"] { --algorithm-color: #b66b36; }
+[data-algorithm="Distilled PPO"] { --algorithm-color: #7a568f; }
 .chart-row i {
   background: var(--algorithm-color);
   border-radius: 3px;
@@ -2341,3 +2475,6 @@ input[type="range"],
     font-size: 10px;
   }
 }
+ .comparison-row { display: flex; flex-wrap: wrap; align-items:center; gap: 12px; padding:10px 0; border-bottom:1px solid #eee; font-size:13px; }
+ .comparison-row > span:first-child { min-width:130px; }
+ .comparison-row meter { flex:1; min-width:60px; accent-color:#e44628; }

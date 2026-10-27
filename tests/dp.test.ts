@@ -10,6 +10,8 @@ import {
   dpDecision,
   turnValues,
   chanceValues,
+  dpActionValues,
+  dpActionValue,
 } from "../src/dp";
 import {
   createGame,
@@ -32,6 +34,18 @@ beforeAll(() => {
   setDPTable(
     bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
   );
+});
+it('arbitrary legal actions use the same DP Bellman value, including symmetric holds',()=>{
+  let state=transition(createGame(123),{type:'roll'});
+  state={...state,dice:[1,1,3,4,6].map((value,id)=>({id,value,held:false}))};
+  for(const rolls of [1,2,3]){
+    const s={...state,rolls},d=dpDecision(s),q=dpActionValues(s);
+    expect(Math.max(...q)).toBeCloseTo(d.value,9);
+    expect(dpActionValue(s,d)).toBeCloseTo(d.value,9);
+    if(rolls<3)expect(dpActionValue(s,{type:'reroll',ids:[0]})).toBeCloseTo(dpActionValue(s,{type:'reroll',ids:[1]}),12);
+    else expect(()=>dpActionValue(s,{type:'reroll',ids:[]})).toThrow();
+  }
+  expect(()=>dpActionValue(state,{type:'reroll',ids:[0,0]})).toThrow();
 });
 it("DP 커널의 점수는 YachtLab 엔진과 일치", () => {
   kernel.states

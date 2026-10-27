@@ -138,7 +138,7 @@ test("분석은 실제 상태와 알고리즘별 결과 출력", async ({ page }
   await expect(page.locator(".analysis-answer")).toHaveCount(2, {
     timeout: 20000,
   });
-  await expect(page.locator(".analysis-answer").last()).toContainText(
+  await expect(page.locator('.analysis-answer[data-algorithm="Expectimax"]')).toContainText(
     "근사 효용",
   );
   await page.screenshot({

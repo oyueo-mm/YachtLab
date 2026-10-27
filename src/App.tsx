@@ -35,6 +35,16 @@ import { runJob, createDecisionSession } from "./client";
 import { Dice, DieIcon } from "./Dice";
 import { Scoreboard, CategoryIcon } from "./Scoreboard";
 import HomeDemo from "./HomeDemo";
+import ReplayViewer, { type AnalysisSource } from "./ReplayViewer";
+import {
+  newReplay,
+  appendFrame,
+  replayFromMatch,
+  branchReplay,
+  downloadReplay,
+  clone,
+  type Replay,
+} from "./replay";
 import AlgorithmSelect from "./AlgorithmDropdown";
 import { useHumanTurn } from "./human-turn";
 import benchmark from "./benchmark-summary.json";
@@ -119,6 +129,20 @@ export default function App() {
   const [page, setPage] = useState<Page>(currentPage),
     [open, setOpen] = useState(() => window.innerWidth > 760),
     [replay, setReplay] = useState<Match | null>(null);
+  const [arenaSource, setArenaSource] = useState<{
+      replay: Replay;
+      index: number;
+    } | null>(null),
+    [analysisSource, setAnalysisSource] = useState<AnalysisSource | null>(null);
+  const branch = (r: Replay, index: number) => {
+    setArenaSource({ replay: r, index });
+    setReplay(null);
+    navigate("watch");
+  };
+  const analyze = (source: AnalysisSource) => {
+    setAnalysisSource(source);
+    navigate("analysis");
+  };
   useEffect(() => {
     const fn = () => setPage(currentPage());
     window.addEventListener("hashchange", fn);
@@ -154,7 +178,14 @@ export default function App() {
             <a
               href={`#${id}`}
               key={id}
-              onClick={() => navigate(id)}
+              onClick={() => {
+                if (id === "watch") {
+                  setArenaSource(null);
+                  setReplay(null);
+                }
+                if (id === "analysis") setAnalysisSource(null);
+                navigate(id);
+              }}
               className={`nav-item ${page === id ? "active" : ""}`}
               aria-current={page === id ? "page" : undefined}
               title={name}
@@ -201,24 +232,37 @@ export default function App() {
             <HomeDemo />
           </section>
         )}
-        {page === "play" && <HumanGame />}
+        {page === "play" && <HumanGame onBranch={branch} onAnalyze={analyze} />}
         {page === "watch" && (
-          <Spectator initial={replay} clearInitial={() => setReplay(null)} />
+          <Spectator
+            initial={replay}
+            source={arenaSource}
+            onBranch={branch}
+            onAnalyze={analyze}
+            clearInitial={() => setReplay(null)}
+          />
         )}
         {page === "tournament" && (
           <Tournament
             openReplay={(match) => {
+              setArenaSource(null);
               setReplay(match);
               navigate("watch");
             }}
           />
         )}
-        {page === "analysis" && <Analysis />}
+        {page === "analysis" && <Analysis initial={analysisSource} />}
       </main>
     </div>
   );
 }
-function HumanGame() {
+function HumanGame({
+  onBranch,
+  onAnalyze,
+}: {
+  onBranch: (r: Replay, index: number) => void;
+  onAnalyze: (s: AnalysisSource) => void;
+}) {
   const [state, setState] = useState(() => createGame(newSeed())),
     [algorithm, setAlgorithm] = useState<Algorithm>(verifiedBest ?? "Greedy"),
     [busy, setBusy] = useState(false),
@@ -237,6 +281,27 @@ function HumanGame() {
     },
     [],
   );
+  const [viewReplay, setViewReplay] = useState<Replay | null>(null);
+  const pausedRef = useRef(false);
+  const record = useRef(
+    newReplay(state, [
+      { type: "human", name: "나" },
+      { type: "ai", name: algorithm, algorithm },
+    ]),
+  );
+  useEffect(() => {
+    if (state.actions === 0)
+      record.current = {
+        ...record.current,
+        metadata: {
+          ...record.current.metadata,
+          players: [
+            { type: "human", name: "나" },
+            { type: "ai", name: algorithm, algorithm },
+          ],
+        },
+      };
+  }, [algorithm]);
   const stateRef = useRef(state);
   stateRef.current = state;
   const [aiTurn, setAiTurn] = useState(0),
@@ -245,8 +310,10 @@ function HumanGame() {
     action: Parameters<typeof transition>[1],
     decision?: Decision,
   ) => {
-    const before = stateRef.current,
-      next = transition(before, action);
+    const before = stateRef.current;
+    const updated = appendFrame(record.current, action, decision);
+    record.current = updated;
+    const next = updated.finalState;
     stateRef.current = next;
     setState(next);
     if (before.player === 0 && next.player === 1) setAiTurn((n) => n + 1);
@@ -265,6 +332,8 @@ function HumanGame() {
     setError,
     setLast,
     setCaption,
+    paused: !!viewReplay,
+    pausedRef,
   });
   const act = (action: Parameters<typeof transition>[1]) => {
     try {
@@ -282,168 +351,194 @@ function HumanGame() {
     setError("");
     const fresh = createGame(newSeed());
     stateRef.current = fresh;
+    record.current = newReplay(fresh, [
+      { type: "human", name: "나" },
+      { type: "ai", name: algorithm, algorithm },
+    ]);
     setState(fresh);
     setAiTurn(0);
     setCaption("");
   };
   const can = state.player === 0 && !state.done && !busy;
   return (
-    <div className="game-grid">
-      <div className="game-left">
-        <div className="game-tools">
-          <div className="opponent-picker">
-            <AlgorithmSelect
-              label="상대 AI"
-              value={algorithm}
-              set={setAlgorithm}
-              disabled={state.actions > 0}
-            />
-            {algorithm === verifiedBest && (
-              <a
-                className="best-ai-label"
-                href="https://github.com/oyueo-mm/YachtLab/blob/main/benchmarks/REPORT.md"
-                target="_blank"
-                rel="noreferrer"
-                title={`${benchmark.gamesPerAlgorithm.toLocaleString("ko-KR")}경기 평균 총점 기준`}
-              >
-                최고 성능 · 벤치마크 기준
-              </a>
-            )}
-          </div>
-          <button className="text-button" onClick={restart}>
-            <RotateCcw size={15} />
-            재대결
-          </button>
-        </div>
-        <div className="score-summary">
-          <div className={state.player === 0 ? "selected" : ""}>
-            <span>나</span>
-            <strong>
-              {total(state.cards[0])}
-              <small>점</small>
-            </strong>
-          </div>
-          <div className={state.player === 1 ? "selected" : ""}>
-            <span>{algorithm}</span>
-            <strong>
-              {total(state.cards[1])}
-              <small>점</small>
-            </strong>
-          </div>
-          <div className="round">
-            <span>라운드</span>
-            <strong>
-              {state.round}
-              <small>/ 12</small>
-            </strong>
-          </div>
-        </div>
-        <section className="game-board" aria-label="게임 보드">
-          <div className="board-top">
-            <span className="turn-indicator">
-              <i />
-              {state.done
-                ? "경기 종료"
-                : can
-                  ? "나의 차례"
-                  : `${algorithm}의 차례`}
-            </span>
-            <span>
-              굴림 <b>{state.rolls}</b> / 3
-            </span>
-          </div>
-          <Dice
-            state={state}
-            interactive={can}
-            onToggle={(id) =>
-              act({
-                type: "hold",
-                ids: state.dice
-                  .filter((d) => (d.id === id ? !d.held : d.held))
-                  .map((d) => d.id),
-              })
-            }
-            onOrder={(ids) => act({ type: "order", ids })}
-          />
-          <div className="roll-area">
+    <>
+      <div className="game-grid">
+        <div className="game-left">
+          <div className="game-tools">
             <button
-              className="primary roll-button"
-              disabled={!can || state.rolls >= 3}
-              onClick={() => act({ type: "roll" })}
+              className="text-button"
+              onClick={() => {
+                pausedRef.current = true;
+                setViewReplay(clone(record.current));
+              }}
             >
-              <Dices size={20} />
-              {state.rolls === 0 ? "주사위 굴리기" : "다시 굴리기"}
-              <span>{3 - state.rolls}회 남음</span>
+              기보 보기
             </button>
-            <p>
-              {state.done
-                ? ""
-                : state.player === 1
-                  ? ""
-                  : !state.rolls
-                    ? "주사위를 굴려 시작하세요"
-                    : state.rolls === 3
-                      ? "점수판에서 기록할 점수를 선택하세요"
-                      : "클릭하여 고정 · 드래그하여 순서 변경"}
-            </p>
-          </div>
-          {caption && (
-            <p className="ai-action-status" role="status">
-              {caption}
-            </p>
-          )}
-          {busy && <Thinking />}
-          {state.done && (
-            <div className="game-result" role="status">
-              <Trophy size={25} />
-              <h2>
-                {state.winner === "draw"
-                  ? "무승부입니다"
-                  : state.winner === 0
-                    ? "승리했습니다!"
-                    : "AI가 승리했습니다"}
-              </h2>
-              <p>
-                {total(state.cards[0])} : {total(state.cards[1])}
-              </p>
-              <button className="primary" onClick={restart}>
-                한 번 더 플레이
-                <ArrowRight size={16} />
-              </button>
+            <div className="opponent-picker">
+              <AlgorithmSelect
+                label="상대 AI"
+                value={algorithm}
+                set={setAlgorithm}
+                disabled={state.actions > 0}
+              />
+              {algorithm === verifiedBest && (
+                <a
+                  className="best-ai-label"
+                  href="https://github.com/oyueo-mm/YachtLab/blob/main/benchmarks/REPORT.md"
+                  target="_blank"
+                  rel="noreferrer"
+                  title={`${benchmark.gamesPerAlgorithm.toLocaleString("ko-KR")}경기 평균 총점 기준`}
+                >
+                  최고 성능 · 벤치마크 기준
+                </a>
+              )}
             </div>
+            <button className="text-button" onClick={restart}>
+              <RotateCcw size={15} />
+              재대결
+            </button>
+          </div>
+          <div className="score-summary">
+            <div className={state.player === 0 ? "selected" : ""}>
+              <span>나</span>
+              <strong>
+                {total(state.cards[0])}
+                <small>점</small>
+              </strong>
+            </div>
+            <div className={state.player === 1 ? "selected" : ""}>
+              <span>{algorithm}</span>
+              <strong>
+                {total(state.cards[1])}
+                <small>점</small>
+              </strong>
+            </div>
+            <div className="round">
+              <span>라운드</span>
+              <strong>
+                {state.round}
+                <small>/ 12</small>
+              </strong>
+            </div>
+          </div>
+          <section className="game-board" aria-label="게임 보드">
+            <div className="board-top">
+              <span className="turn-indicator">
+                <i />
+                {state.done
+                  ? "경기 종료"
+                  : can
+                    ? "나의 차례"
+                    : `${algorithm}의 차례`}
+              </span>
+              <span>
+                굴림 <b>{state.rolls}</b> / 3
+              </span>
+            </div>
+            <Dice
+              state={state}
+              interactive={can}
+              onToggle={(id) =>
+                act({
+                  type: "hold",
+                  ids: state.dice
+                    .filter((d) => (d.id === id ? !d.held : d.held))
+                    .map((d) => d.id),
+                })
+              }
+              onOrder={(ids) => act({ type: "order", ids })}
+            />
+            <div className="roll-area">
+              <button
+                className="primary roll-button"
+                disabled={!can || state.rolls >= 3}
+                onClick={() => act({ type: "roll" })}
+              >
+                <Dices size={20} />
+                {state.rolls === 0 ? "주사위 굴리기" : "다시 굴리기"}
+                <span>{3 - state.rolls}회 남음</span>
+              </button>
+              <p>
+                {state.done
+                  ? ""
+                  : state.player === 1
+                    ? ""
+                    : !state.rolls
+                      ? "주사위를 굴려 시작하세요"
+                      : state.rolls === 3
+                        ? "점수판에서 기록할 점수를 선택하세요"
+                        : "클릭하여 고정 · 드래그하여 순서 변경"}
+              </p>
+            </div>
+            {caption && (
+              <p className="ai-action-status" role="status">
+                {caption}
+              </p>
+            )}
+            {busy && <Thinking />}
+            {state.done && (
+              <div className="game-result" role="status">
+                <Trophy size={25} />
+                <h2>
+                  {state.winner === "draw"
+                    ? "무승부입니다"
+                    : state.winner === 0
+                      ? "승리했습니다!"
+                      : "AI가 승리했습니다"}
+                </h2>
+                <p>
+                  {total(state.cards[0])} : {total(state.cards[1])}
+                </p>
+                <button className="primary" onClick={restart}>
+                  한 번 더 플레이
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            )}
+          </section>
+          <ErrorMessage message={error} />
+          {error && state.player === 1 && !state.done && (
+            <button
+              className="secondary"
+              onClick={() => {
+                job.current?.cancel();
+                setError("");
+                setRetry((n) => n + 1);
+              }}
+            >
+              AI 다시 계산
+            </button>
           )}
-        </section>
-        <ErrorMessage message={error} />
-        {error && state.player === 1 && !state.done && (
-          <button
-            className="secondary"
-            onClick={() => {
-              job.current?.cancel();
-              setError("");
-              setRetry((n) => n + 1);
-            }}
-          >
-            AI 다시 계산
-          </button>
-        )}
-        {last && (
-          <details className="decision-details">
-            <summary>
-              AI의 마지막 판단
-              <ChevronRight size={14} />
-            </summary>
-            <DecisionView decision={last} />
-          </details>
-        )}
-        <div className="keyboard-note">
-          키보드로 순서 변경: 주사위에 초점을 두고 Alt + 좌우 방향키
+          {last && (
+            <details className="decision-details">
+              <summary>
+                AI의 마지막 판단
+                <ChevronRight size={14} />
+              </summary>
+              <DecisionView decision={last} />
+            </details>
+          )}
+          <div className="keyboard-note">
+            키보드로 순서 변경: 주사위에 초점을 두고 Alt + 좌우 방향키
+          </div>
         </div>
+        <Scoreboard
+          state={state}
+          select={can ? (c) => act({ type: "score", category: c }) : undefined}
+        />
       </div>
-      <Scoreboard
-        state={state}
-        select={can ? (c) => act({ type: "score", category: c }) : undefined}
-      />
-    </div>
+      {viewReplay && (
+        <ReplayViewer
+          replay={viewReplay}
+          onClose={() => {
+            pausedRef.current = false;
+            setViewReplay(null);
+          }}
+          onBranch={onBranch}
+          onAnalyze={onAnalyze}
+        />
+      )}
+    </>
   );
 }
 function DecisionView({ decision: d }: { decision: Decision }) {
@@ -493,9 +588,15 @@ function DecisionView({ decision: d }: { decision: Decision }) {
 function Spectator({
   initial,
   clearInitial,
+  source,
+  onBranch,
+  onAnalyze,
 }: {
   initial: Match | null;
   clearInitial: () => void;
+  source: { replay: Replay; index: number } | null;
+  onBranch: (r: Replay, index: number) => void;
+  onAnalyze: (s: AnalysisSource) => void;
 }) {
   const [a, setA] = useState<Algorithm>(initial?.algorithms[0] ?? "Greedy"),
     [b, setB] = useState<Algorithm>(initial?.algorithms[1] ?? "Expectimax"),
@@ -507,7 +608,22 @@ function Spectator({
     [speed, setSpeed] = useState("1"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [fullReplay, setFullReplay] = useState<Replay | null>(() =>
+      initial ? replayFromMatch(initial) : null,
+    ),
+    [viewReplay, setViewReplay] = useState(false);
+  const branchState = source?.replay.frames[source.index].state;
   const task = useRef<ReturnType<typeof runJob<Match>> | null>(null);
+  useEffect(() => {
+    if (!source) return;
+    task.current?.cancel();
+    setMatch(null);
+    setFullReplay(null);
+    setIndex(0);
+    setPlaying(false);
+    setViewReplay(false);
+    setBusy(false);
+  }, [source]);
   useEffect(() => {
     clearInitial();
     return () => task.current?.cancel();
@@ -538,10 +654,20 @@ function Spectator({
         type: "match",
         algorithms: [a, b],
         seed,
+        initialState: branchState,
+        pendingRoll:
+          source?.replay.frames[source.index].action?.type === "hold" &&
+          !!branchState &&
+          branchState.rolls < 3,
         options: { iterations },
       });
       const m = await task.current.promise;
       setMatch(m);
+      setFullReplay(
+        source
+          ? branchReplay(source.replay, source.index, m)
+          : replayFromMatch(m),
+      );
       setIndex(0);
       setPlaying(true);
     } catch (e) {
@@ -550,7 +676,7 @@ function Spectator({
       setBusy(false);
     }
   };
-  const state = match?.frames[index].state ?? createGame(seed),
+  const state = match?.frames[index].state ?? branchState ?? createGame(seed),
     labels = match?.algorithms ?? [a, b],
     frame = match?.frames[index];
   return (
@@ -562,6 +688,11 @@ function Spectator({
         </div>
         <Bot size={25} />
       </div>
+      {source && (
+        <p className="small-note">
+          기보 {source.index}수 · {branchState?.round}라운드 상태에서 이어갑니다. 양쪽 AI를 선택하세요.
+        </p>
+      )}
       <div className="config-bar panel">
         <AlgorithmSelect label="AI 1" value={a} set={setA} />
         <span className="versus">vs</span>
@@ -578,7 +709,7 @@ function Spectator({
         )}
         <button className="primary" disabled={busy} onClick={start}>
           <Play size={16} />
-          {busy ? "경기 계산 중" : "새 경기 시작"}
+          {busy ? "경기 계산 중" : source ? "이 상태부터 시작" : "새 경기 시작"}
         </button>
         {busy && (
           <button
@@ -589,6 +720,15 @@ function Spectator({
           </button>
         )}
       </div>
+      <button
+        className="text-button"
+        onClick={() => {
+          setPlaying(false);
+          setViewReplay(true);
+        }}
+      >
+        기보 보기 · 저장 · 불러오기
+      </button>
       <ErrorMessage message={error} />
       <div className="game-grid spectator">
         <div className="game-left">
@@ -720,7 +860,7 @@ function Spectator({
               <button
                 className="text-button"
                 disabled={!match}
-                onClick={() => saveFile(match, "yachtlab-replay.json")}
+                onClick={() => fullReplay && downloadReplay(fullReplay)}
               >
                 <Download size={14} />
                 리플레이 저장
@@ -739,6 +879,26 @@ function Spectator({
         </div>
         <Scoreboard state={state} labels={labels as [string, string]} />
       </div>
+      {viewReplay && (
+        <ReplayViewer
+          replay={
+            fullReplay ??
+            source?.replay ??
+            newReplay(createGame(seed), [
+              { type: "ai", name: a, algorithm: a },
+              { type: "ai", name: b, algorithm: b },
+            ])
+          }
+          initialIndex={
+            fullReplay && source
+              ? source.index + index
+              : (source?.index ?? index)
+          }
+          onClose={() => setViewReplay(false)}
+          onBranch={onBranch}
+          onAnalyze={onAnalyze}
+        />
+      )}
     </>
   );
 }
@@ -1029,18 +1189,22 @@ function Tournament({ openReplay }: { openReplay: (m: Match) => void }) {
     </>
   );
 }
-function Analysis() {
-  const [values, setValues] = useState([1, 2, 3, 4, 5]),
-    [left, setLeft] = useState(2),
-    [card, setCard] = useState<Partial<Record<Category, number>>>({}),
+function Analysis({ initial }: { initial: AnalysisSource | null }) {
+  const [values, setValues] = useState(initial?.state.dice.map(d => d.value) ?? [1, 2, 3, 4, 5]),
+    [left, setLeft] = useState(initial ? 3-initial.state.rolls : 2),
+    [card, setCard] = useState<Partial<Record<Category, number>>>(initial ? clone(initial.state.cards[initial.state.player]) : {}),
     [selected, setSelected] = useState<Algorithm[]>(["Greedy", "Expectimax"]),
     [seed, setSeed] = useState(42),
     [iterations, setIterations] = useState(1000),
     [answers, setAnswers] = useState<
-      { algorithm: Algorithm; decision: Decision; ms: number }[]
+      import("./strategy").Comparison["rows"]
     >([]),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [comparison, setComparison] = useState<import("./strategy").Comparison | null>(null);
+  const [answerValues, setAnswerValues] = useState(values);
+  const choiceLabel = (d: import("./dp").Choice) => d.type === "score" ? `${names[d.category]} 기록` : `고정 ${d.ids.map(id=>answerValues[id]).join("·") || "없음"} 후 재굴림`;
+  const sourceUnchanged = !!initial && JSON.stringify(values) === JSON.stringify(initial.state.dice.map(d=>d.value)) && left === 3-initial.state.rolls && JSON.stringify(card) === JSON.stringify(initial.state.cards[initial.state.player]);
   const tasks = useRef<{ cancel: () => void }[]>([]),
     version = useRef(0);
   useEffect(
@@ -1055,29 +1219,21 @@ function Analysis() {
     setAnswers([]);
     setError("");
     const v = ++version.current;
-    const state = {
+    const state = sourceUnchanged ? clone(initial!.state) : {
       ...createGame(seed),
       rolls: 3 - left,
       cards: [card, {}] as Game["cards"],
       dice: values.map((value, id) => ({ id, value, held: false })),
     };
     try {
-      for (const algorithm of selected) {
-        const start = performance.now(),
-          job = runJob<Decision>({
-            type: "decide",
-            state,
-            algorithm,
-            options: { iterations, seed },
-          });
-        tasks.current.push(job);
-        const decision = await job.promise;
-        if (v !== version.current) return;
-        setAnswers((a) => [
-          ...a,
-          { algorithm, decision, ms: performance.now() - start },
-        ]);
-      }
+      setComparison(null);
+      const job = runJob<import("./strategy").Comparison>({type:"compare", state, algorithms:selected, options:{iterations,seed}, actual:sourceUnchanged ? initial?.actual : undefined});
+      tasks.current.push(job);
+      const result = await job.promise;
+      if (v !== version.current) return;
+      setAnswers(result.rows);
+      setComparison(result);
+      setAnswerValues([...values]);
     } catch (e) {
       if (v === version.current) setError(errorText(e));
     } finally {
@@ -1097,6 +1253,7 @@ function Analysis() {
       <div className="analysis-grid">
         <section className="panel analysis-input">
           <h2>분석할 상태</h2>
+          {initial && <p className="small-note">{sourceUnchanged ? `기보의 실제 선택 · ${initial.label}` : "기보 상태를 수정한 가상 분석입니다."}</p>}
           <div className="analysis-dice">
             {values.map((value, i) => (
               <label key={i}>
@@ -1234,7 +1391,16 @@ function Analysis() {
             </p>
           </section>
           <ErrorMessage message={error} />
-          {answers.map(({ algorithm, decision, ms }) => (
+          {comparison && <section className="panel analysis-comparison">
+            <h2>공통 DP 기준 비교</h2>
+            <p>최선의 기대 최종점수 {comparison.best.toFixed(3)}점. 선택 후에는 DP 최적 정책을 따른다는 가정입니다.</p>
+            <p>DP 최선: {choiceLabel(comparison.optimal)}</p>
+            {comparison.actual && <p>기보의 실제 선택: {choiceLabel(comparison.actual.choice)} · {comparison.actual.q.toFixed(3)}점 · 최선 대비 손실 {comparison.actual.loss.toFixed(3)}점 · {comparison.actual.sameChoice ? "DP와 같은 선택" : "DP와 다른 선택"}</p>}
+            <p className="small-note">단독 게임의 기대 총점 기준이며 상대 승률의 손실을 뜻하지 않습니다. 손실 0은 동가 최적 행동입니다. 아래 정책 확률·근사 효용은 AI 자체 지표입니다.</p>
+            {comparison.rows.map((r,i)=><div className="comparison-row" key={r.algorithm}><span>{i+1}. {r.algorithm}</span><span>{choiceLabel(r.decision)}</span><meter aria-label={`${r.algorithm} DP 가치 손실`} min={0} max={Math.max(1,...comparison.rows.map(x=>x.loss))} value={r.loss}/><strong>{r.q.toFixed(2)}점</strong><span>손실 {r.loss.toFixed(3)}{r.loss<1e-6 ? " · 최적" : ""}</span></div>)}
+            <details><summary>합법 행동의 DP 가치 순위</summary>{comparison.optimal.candidates.map((c,i)=><p key={i}>{i+1}. {names[c.label as Category] ?? c.label} · {c.value.toFixed(3)}점 · 손실 {Math.max(0,comparison.best-c.value).toFixed(3)}</p>)}</details>
+          </section>}
+          {answers.map(({ algorithm, decision, ms, q, loss }) => (
             <section
               className="panel analysis-answer"
               key={algorithm}
@@ -1242,10 +1408,11 @@ function Analysis() {
             >
               <div className="section-heading">
                 <h2>{algorithm}</h2>
-                <span>{ms.toFixed(0)}ms · 통신 포함</span>
+                <span>{ms.toFixed(1)}ms · 판단 연산</span>
               </div>
+              <p>DP 기대 최종점수 {q.toFixed(3)} · 최선 대비 손실 {loss.toFixed(3)}</p>
               <div className="recommended-dice">
-                {values.map((value, id) => (
+                {answerValues.map((value, id) => (
                   <div
                     key={id}
                     className={

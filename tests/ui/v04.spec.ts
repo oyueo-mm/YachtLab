@@ -25,7 +25,7 @@ test("커스텀 알고리즘 선택창의 난이도·키보드·외부 클릭·�
   await page.keyboard.press("Escape");
   await expect(page.getByRole("listbox")).toHaveCount(0);
   await box.click();
-  await page.locator(".score-summary").click();
+  await page.locator(".topbar").click({position:{x:280,y:20}});
   await expect(page.getByRole("listbox")).toHaveCount(0);
   await chooseAlgorithm(page, "상대 AI", "DP Expert");
   await page.getByRole("button", { name: "주사위 굴리기" }).click();

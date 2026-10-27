@@ -1,9 +1,13 @@
 /// <reference lib="webworker" />
 import { decide, type Algorithm, type Options } from "./ai";
-import { simulate, result, type Result } from "./match";
+import { simulate, simulateFromState, result, type Result } from "./match";
+import { validateGameShape } from "./replay";
 import type { Game } from "./engine";
 import { loadDP } from "./dp";
+import { compareStrategies } from "./strategy";
+import type { Choice } from "./dp";
 export type Request =
+  | {id: number; type: "compare"; state: Game; algorithms: Algorithm[]; options?: Options; actual?: Choice}
   | {
       id: number;
       type: "decide";
@@ -16,6 +20,8 @@ export type Request =
       type: "match";
       algorithms: [Algorithm, Algorithm];
       seed: number;
+      initialState?: Game;
+      pendingRoll?: boolean;
       options?: Options;
     }
   | {
@@ -28,22 +34,31 @@ export type Request =
     };
 self.onmessage = async ({ data: r }: MessageEvent<Request>) => {
   try {
-    const needsDP =
+    const needsDP = r.type === "compare" || (
       r.type === "decide"
         ? r.algorithm === "DP Expert"
-        : r.algorithms.includes("DP Expert");
+        : r.algorithms.includes("DP Expert"));
     if (needsDP) await loadDP();
-    if (r.type === "decide")
+    if (r.type === "compare") self.postMessage({id:r.id, result:compareStrategies(r.state,r.algorithms,r.options,r.actual)});
+    else if (r.type === "decide")
       self.postMessage({
         id: r.id,
         result: decide(r.state, r.algorithm, r.options),
       });
-    else if (r.type === "match")
+    else if (r.type === "match") {
+      if (r.initialState) validateGameShape(r.initialState);
       self.postMessage({
         id: r.id,
-        result: simulate(r.algorithms, r.seed, r.options),
+        result: r.initialState
+          ? simulateFromState(
+              r.initialState,
+              r.algorithms,
+              r.options,
+              r.pendingRoll,
+            )
+          : simulate(r.algorithms, r.seed, r.options),
       });
-    else {
+    } else {
       const results: Result[] = [],
         pairs: [Algorithm, Algorithm][] = [];
       for (let i = 0; i < r.algorithms.length; i++)

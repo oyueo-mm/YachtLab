@@ -13,6 +13,7 @@ export type Frame = {
   decision?: Decision;
   actor: 0 | 1;
   label: string;
+  actorName?: string;
 };
 export type Match = {
   seed: number;
@@ -25,9 +26,18 @@ export function simulate(
   seed: number,
   options: Options = {},
 ): Match {
-  let state = createGame(seed);
+  return simulateFromState(createGame(seed), algorithms, options);
+}
+export function simulateFromState(
+  initialState: Game,
+  algorithms: [Algorithm, Algorithm],
+  options: Options = {},
+  pendingRoll = false,
+): Match {
+  let state = structuredClone(initialState);
+  const seed = state.seed;
   const frames: Frame[] = [
-      { state, action: null, actor: 0, label: "경기 준비" },
+      { state, action: null, actor: state.player, label: "경기 준비" },
     ],
     elapsed: [number, number] = [0, 0];
   const push = (action: Action, label: string, decision?: Decision) => {
@@ -35,6 +45,11 @@ export function simulate(
     state = transition(state, action);
     frames.push({ state, action, actor, label, decision });
   };
+  if (pendingRoll && !state.done) {
+    if (state.rolls < 1 || state.rolls >= 3)
+      throw Error("이어갈 재굴림이 없습니다.");
+    push({ type: "roll" }, "고정 상태를 유지한 재굴림");
+  }
   while (!state.done) {
     if (!state.rolls) {
       push({ type: "roll" }, "첫 번째 굴림");

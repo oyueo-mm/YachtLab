@@ -1,4 +1,4 @@
-import { useEffect, type MutableRefObject } from "react";
+import { useEffect, useRef, type MutableRefObject } from "react";
 import { createDecisionSession, runJob } from "./client";
 import { names, score, type Action, type Game } from "./engine";
 import type { Algorithm, Decision } from "./ai";
@@ -16,6 +16,8 @@ export function useHumanTurn({
   setError,
   setLast,
   setCaption,
+  paused,
+  pausedRef,
 }: {
   stateRef: MutableRefObject<Game>;
   algorithm: Algorithm;
@@ -29,17 +31,37 @@ export function useHumanTurn({
   setError: (v: string) => void;
   setLast: (d: Decision) => void;
   setCaption: (v: string) => void;
+  paused: boolean;
+  pausedRef: MutableRefObject<boolean>;
 }) {
+  const pendingRoll = useRef(false),
+    previousGeneration = useRef(generation.current);
   useEffect(() => {
-    if (stateRef.current.player !== 1 || stateRef.current.done) return;
+    if (previousGeneration.current !== generation.current) {
+      previousGeneration.current = generation.current;
+      pendingRoll.current = false;
+    }
+    if (paused) return;
+    if (stateRef.current.player !== 1 || stateRef.current.done) {
+      setBusy(false);
+      return;
+    }
     const controller = new AbortController(),
       signal = controller.signal,
       gen = generation.current;
-    const valid = () => !signal.aborted && gen === generation.current;
+    const valid = () =>
+      !signal.aborted && !pausedRef.current && gen === generation.current;
     setBusy(true);
     (async () => {
       try {
         await playbackDelay(T.start, signal);
+        if (pendingRoll.current) {
+          if (!valid()) return;
+          commit({ type: "roll" });
+          pendingRoll.current = false;
+          setCaption("나머지 주사위를 다시 굴렸습니다");
+          await playbackDelay(T.reroll, signal);
+        }
         if (!stateRef.current.rolls) {
           commit({ type: "roll" });
           setCaption("주사위를 굴렸습니다");
@@ -60,10 +82,12 @@ export function useHumanTurn({
             },
           };
           const d = await job.current.promise;
+          await playbackDelay(1, signal);
           if (!valid()) return;
           setLast(d);
           if (d.type === "reroll") {
             commit({ type: "hold", ids: d.ids }, d);
+            pendingRoll.current = true;
             const values = d.ids.map(
               (id) => stateRef.current.dice.find((x) => x.id === id)!.value,
             );
@@ -73,7 +97,9 @@ export function useHumanTurn({
                 : "모든 주사위를 다시 굴립니다",
             );
             await playbackDelay(T.hold, signal);
+            if (!valid()) return;
             commit({ type: "roll" });
+            pendingRoll.current = false;
             setCaption("나머지 주사위를 다시 굴렸습니다");
             await playbackDelay(T.reroll, signal);
           } else {
@@ -94,5 +120,5 @@ export function useHumanTurn({
       }
     })();
     return () => controller.abort();
-  }, [trigger, retry, algorithm]);
+  }, [trigger, retry, algorithm, paused]);
 }
