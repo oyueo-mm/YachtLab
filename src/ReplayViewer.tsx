@@ -130,7 +130,9 @@ export default function ReplayViewer({
   }) as [string, string];
   const canAnalyze =
     index > 0 &&
-    (frame.action?.type === "score" || frame.action?.type === "hold") &&
+    (frame.action?.type === "score" ||
+      (frame.action?.type === "hold" &&
+        view.frames[index - 1].state.rolls < 3)) &&
     view.frames[index - 1].state.rolls > 0;
   return (
     <dialog

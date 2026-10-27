@@ -11,15 +11,22 @@ import {
 } from "./engine";
 import { ppoDecision } from "./ppo";
 import { dpDecision } from "./dp";
-export const algorithms = [
+import { distilledDecision } from "./distilled";
+import distilledStatus from "./distilled-status.json";
+const allAlgorithms = [
   "Random",
   "Greedy",
   "Expectimax",
   "MCTS",
   "PPO",
   "DP Expert",
+  "Distilled Policy",
+  "Distilled PPO",
 ] as const;
-export type Algorithm = (typeof algorithms)[number];
+export type Algorithm = (typeof allAlgorithms)[number];
+export const algorithms = allAlgorithms.filter((a) =>
+  a === "Distilled Policy" || a === "Distilled PPO" ? distilledStatus[a] : true,
+);
 export type Candidate = { label: string; value: number; visits?: number };
 export type Decision =
   | {
@@ -127,6 +134,8 @@ export function decide(
     throw Error("AI 판단에는 굴린 주사위가 필요합니다.");
   if (algorithm === "PPO") return ppoDecision(state);
   if (algorithm === "DP Expert") return dpDecision(state);
+  if (algorithm === "Distilled Policy" || algorithm === "Distilled PPO")
+    return distilledDecision(state, algorithm);
   const card = state.cards[state.player],
     values = state.dice.map((d) => d.value),
     left = 3 - state.rolls;

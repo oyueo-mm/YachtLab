@@ -6,6 +6,7 @@ playwright-report/
 __pycache__/
 .venv/
 training/checkpoints/
+training/data/
 *.local
 *.tsbuildinfo
 training/dp/solve.exe

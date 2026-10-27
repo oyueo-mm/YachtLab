@@ -9,6 +9,8 @@ export const difficulty: Record<string, { label: string; color: string }> = {
   Greedy: { label: "약간 어려움", color: "#a9560e" },
   Expectimax: { label: "어려움", color: "#b84326" },
   "DP Expert": { label: "매우 어려움", color: "#bd2525" },
+  "Distilled Policy": { label: "어려움", color: "#b84326" },
+  "Distilled PPO": { label: "어려움", color: "#b84326" },
 };
 export default function AlgorithmDropdown({
   value,

@@ -10,8 +10,13 @@
   color: #202020;
   background: #fff;
 }
-.game-tools { flex-wrap: wrap; }
-.analysis-comparison { margin-top: 18px; margin-bottom: 18px; }
+.game-tools {
+  flex-wrap: wrap;
+}
+.analysis-comparison {
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
 .replay-modal::backdrop {
   background: #0007;
 }
@@ -49,6 +54,13 @@
 }
 .replay-board-grid .game-board {
   min-height: 280px;
+}
+.replay-board-grid > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.replay-modal .die-wrap {
+  min-width: 0;
 }
 .replay-actions {
   display: flex;
@@ -111,10 +123,11 @@
     width: 96vw;
   }
   .replay-board-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .replay-board-grid .game-board {
     min-height: 220px;
+    padding: 18px 12px;
   }
   .replay-position {
     flex-direction: column;
@@ -1982,8 +1995,12 @@ input[type="range"],
 [data-algorithm="DP Expert"] {
   --algorithm-color: #315878;
 }
-[data-algorithm="Distilled Policy"] { --algorithm-color: #b66b36; }
-[data-algorithm="Distilled PPO"] { --algorithm-color: #7a568f; }
+[data-algorithm="Distilled Policy"] {
+  --algorithm-color: #b66b36;
+}
+[data-algorithm="Distilled PPO"] {
+  --algorithm-color: #7a568f;
+}
 .chart-row i {
   background: var(--algorithm-color);
   border-radius: 3px;
@@ -2475,6 +2492,61 @@ input[type="range"],
     font-size: 10px;
   }
 }
- .comparison-row { display: flex; flex-wrap: wrap; align-items:center; gap: 12px; padding:10px 0; border-bottom:1px solid #eee; font-size:13px; }
- .comparison-row > span:first-child { min-width:130px; }
- .comparison-row meter { flex:1; min-width:60px; accent-color:#e44628; }
+.comparison-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 13px;
+}
+.comparison-row > span:first-child {
+  min-width: 130px;
+}
+.comparison-row meter {
+  flex: 1;
+  min-width: 60px;
+  accent-color: #e44628;
+}
+.research-results {
+  margin-top: 20px;
+  padding: 20px;
+}
+.research-results summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.research-results p {
+  font-size: 12px;
+  line-height: 1.8;
+  margin-top: 14px;
+}
+.research-results table {
+  width: 100%;
+  margin-top: 16px;
+  font-size: 11px;
+}
+.research-results th,
+.research-results td {
+  padding: 9px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+.research-results caption {
+  text-align: left;
+  margin-bottom: 10px;
+  color: #737373;
+}
+.research-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 16px;
+  font-size: 12px;
+}
+.research-links a {
+  color: #a92323;
+  text-decoration: underline;
+}

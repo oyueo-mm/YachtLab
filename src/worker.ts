@@ -6,8 +6,16 @@ import type { Game } from "./engine";
 import { loadDP } from "./dp";
 import { compareStrategies } from "./strategy";
 import type { Choice } from "./dp";
+import { loadDistilled } from "./distilled";
 export type Request =
-  | {id: number; type: "compare"; state: Game; algorithms: Algorithm[]; options?: Options; actual?: Choice}
+  | {
+      id: number;
+      type: "compare";
+      state: Game;
+      algorithms: Algorithm[];
+      options?: Options;
+      actual?: Choice;
+    }
   | {
       id: number;
       type: "decide";
@@ -34,12 +42,25 @@ export type Request =
     };
 self.onmessage = async ({ data: r }: MessageEvent<Request>) => {
   try {
-    const needsDP = r.type === "compare" || (
-      r.type === "decide"
+    const needsDP =
+      r.type === "compare" ||
+      (r.type === "decide"
         ? r.algorithm === "DP Expert"
         : r.algorithms.includes("DP Expert"));
     if (needsDP) await loadDP();
-    if (r.type === "compare") self.postMessage({id:r.id, result:compareStrategies(r.state,r.algorithms,r.options,r.actual)});
+    const selected = r.type === "decide" ? [r.algorithm] : r.algorithms;
+    await Promise.all(
+      selected.map((a) =>
+        a === "Distilled Policy" || a === "Distilled PPO"
+          ? loadDistilled(a)
+          : undefined,
+      ),
+    );
+    if (r.type === "compare")
+      self.postMessage({
+        id: r.id,
+        result: compareStrategies(r.state, r.algorithms, r.options, r.actual),
+      });
     else if (r.type === "decide")
       self.postMessage({
         id: r.id,

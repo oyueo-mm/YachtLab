@@ -15,7 +15,7 @@ test("검증된 평균 총점 1위 DP를 기본 상대와 근거 링크로 표�
   );
   await expect(
     page.getByRole("link", { name: "최고 성능 · 벤치마크 기준" }),
-  ).toHaveAttribute("href", /benchmarks\/REPORT.md$/);
+  ).toHaveAttribute("href", /benchmarks\/v04\/REPORT.md$/);
 });
 test("DP는 필요할 때 로드하고 분석에서 전체 경기 기대값과 후보 차이를 표시", async ({
   page,

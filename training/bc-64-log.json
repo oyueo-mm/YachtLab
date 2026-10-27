@@ -1,0 +1,317 @@
+[
+  {
+    "states": 25503,
+    "top1Equivalent": 0.5152727130141552,
+    "top3Equivalent": 0.745559345959299,
+    "meanDPRegret": 2.060160756975895,
+    "epoch": 1,
+    "loss": 2.375291239476166,
+    "seconds": 4.478019899979699
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.6655295455436615,
+    "top3Equivalent": 0.8562522056228679,
+    "meanDPRegret": 1.207866912065186,
+    "epoch": 2,
+    "loss": 1.6828622890115628,
+    "seconds": 6.139815300004557
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.720581892326393,
+    "top3Equivalent": 0.8950319570246638,
+    "meanDPRegret": 0.8886670525932304,
+    "epoch": 3,
+    "loss": 1.4151187805462255,
+    "seconds": 7.825830199988559
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.7534407716739208,
+    "top3Equivalent": 0.9122848292357761,
+    "meanDPRegret": 0.6627564199325202,
+    "epoch": 4,
+    "loss": 1.2700185869872174,
+    "seconds": 9.180670799978543
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.7747323844253617,
+    "top3Equivalent": 0.9244010508567619,
+    "meanDPRegret": 0.5537841423527379,
+    "epoch": 5,
+    "loss": 1.1663428850420037,
+    "seconds": 10.408783600025345
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.7959063639571815,
+    "top3Equivalent": 0.9369878053562326,
+    "meanDPRegret": 0.44658089110380395,
+    "epoch": 6,
+    "loss": 1.0898564825222263,
+    "seconds": 11.703796499990858
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8088852291887229,
+    "top3Equivalent": 0.9455750303885817,
+    "meanDPRegret": 0.37906519556982265,
+    "epoch": 7,
+    "loss": 1.0309406823566616,
+    "seconds": 13.200545800034888
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8248441359840019,
+    "top3Equivalent": 0.953142767517547,
+    "meanDPRegret": 0.3110390189619236,
+    "epoch": 8,
+    "loss": 0.9835788601068217,
+    "seconds": 14.607587700011209
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8344116378465278,
+    "top3Equivalent": 0.9570246637650472,
+    "meanDPRegret": 0.2800292837121031,
+    "epoch": 9,
+    "loss": 0.9454488248373886,
+    "seconds": 15.97582799999509
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.844606516880367,
+    "top3Equivalent": 0.9607105046465122,
+    "meanDPRegret": 0.2494591018646244,
+    "epoch": 10,
+    "loss": 0.9146966888698014,
+    "seconds": 17.287699999986216
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8516645100576403,
+    "top3Equivalent": 0.9647100341136337,
+    "meanDPRegret": 0.22307069756977888,
+    "epoch": 11,
+    "loss": 0.8887620739230474,
+    "seconds": 18.54715880000731
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.856330627769282,
+    "top3Equivalent": 0.9674548092381289,
+    "meanDPRegret": 0.21684881040630483,
+    "epoch": 12,
+    "loss": 0.8678607717256638,
+    "seconds": 19.800468100002035
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8582911814296357,
+    "top3Equivalent": 0.9693369407520683,
+    "meanDPRegret": 0.20413568790849973,
+    "epoch": 13,
+    "loss": 0.8496933763770576,
+    "seconds": 20.9364250000217
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8645257420695605,
+    "top3Equivalent": 0.972316982315806,
+    "meanDPRegret": 0.1931316269681355,
+    "epoch": 14,
+    "loss": 0.8340227795017097,
+    "seconds": 22.246176599990577
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8689958044151669,
+    "top3Equivalent": 0.9725522487550484,
+    "meanDPRegret": 0.17351460274549502,
+    "epoch": 15,
+    "loss": 0.8201329106627592,
+    "seconds": 23.454755900020245
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8724071677841823,
+    "top3Equivalent": 0.9743167470493668,
+    "meanDPRegret": 0.15218056837063287,
+    "epoch": 16,
+    "loss": 0.8082013728598253,
+    "seconds": 24.627728999999817
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8737011332000156,
+    "top3Equivalent": 0.974434380268988,
+    "meanDPRegret": 0.1622896444627838,
+    "epoch": 17,
+    "loss": 0.7974368273940097,
+    "seconds": 25.924075499991886
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8752303650550916,
+    "top3Equivalent": 0.976042034270478,
+    "meanDPRegret": 0.14339779474377862,
+    "epoch": 18,
+    "loss": 0.7878435939072951,
+    "seconds": 27.16140839998843
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8783280398384504,
+    "top3Equivalent": 0.9770223111006548,
+    "meanDPRegret": 0.14587786341351078,
+    "epoch": 19,
+    "loss": 0.7791658804979349,
+    "seconds": 28.336972500022966
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8815825589146375,
+    "top3Equivalent": 0.9784339097361094,
+    "meanDPRegret": 0.14299339884071544,
+    "epoch": 20,
+    "loss": 0.7714052481205534,
+    "seconds": 29.57967100001406
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8827196800376427,
+    "top3Equivalent": 0.9788652315413873,
+    "meanDPRegret": 0.12766587043824731,
+    "epoch": 21,
+    "loss": 0.763630307931383,
+    "seconds": 30.74679780000588
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8845626004783751,
+    "top3Equivalent": 0.9799631415911854,
+    "meanDPRegret": 0.1324465705689994,
+    "epoch": 22,
+    "loss": 0.7573633773771438,
+    "seconds": 31.987497000023723
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.886131043406658,
+    "top3Equivalent": 0.9807081519821198,
+    "meanDPRegret": 0.12129911841474149,
+    "epoch": 23,
+    "loss": 0.7513063343541486,
+    "seconds": 33.24912819999736
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.887189742383249,
+    "top3Equivalent": 0.9802376191036348,
+    "meanDPRegret": 0.12934715678746742,
+    "epoch": 24,
+    "loss": 0.7455617199862294,
+    "seconds": 34.48429679998662
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.88824844135984,
+    "top3Equivalent": 0.9814923734462613,
+    "meanDPRegret": 0.11872769176167694,
+    "epoch": 25,
+    "loss": 0.740953062160845,
+    "seconds": 35.755233699979726
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.891973493314512,
+    "top3Equivalent": 0.9818452731051249,
+    "meanDPRegret": 0.11780584682573343,
+    "epoch": 26,
+    "loss": 0.7357702623317259,
+    "seconds": 36.9287239999976
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.889816884288123,
+    "top3Equivalent": 0.9811786848606047,
+    "meanDPRegret": 0.12104864045320265,
+    "epoch": 27,
+    "loss": 0.7314431787997114,
+    "seconds": 38.13468499999726
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8917774379484766,
+    "top3Equivalent": 0.9831000274477513,
+    "meanDPRegret": 0.1147391910072084,
+    "epoch": 28,
+    "loss": 0.7271366062736454,
+    "seconds": 39.39518450002652
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8935027251695878,
+    "top3Equivalent": 0.9832568717405795,
+    "meanDPRegret": 0.11456335504742242,
+    "epoch": 29,
+    "loss": 0.7233057259830193,
+    "seconds": 40.60014980001142
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8933066698035526,
+    "top3Equivalent": 0.982433439203231,
+    "meanDPRegret": 0.11201719367746717,
+    "epoch": 30,
+    "loss": 0.719773786296097,
+    "seconds": 41.78653530002339
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8955024899031486,
+    "top3Equivalent": 0.9832176606673725,
+    "meanDPRegret": 0.11895915053383732,
+    "epoch": 31,
+    "loss": 0.7162785442431236,
+    "seconds": 43.06329730001744
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8944830019997647,
+    "top3Equivalent": 0.9838058267654786,
+    "meanDPRegret": 0.1178530693166383,
+    "epoch": 32,
+    "loss": 0.7130787327666167,
+    "seconds": 44.475493200006895
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8952280123906992,
+    "top3Equivalent": 0.9845116260832059,
+    "meanDPRegret": 0.11447049619468788,
+    "epoch": 33,
+    "loss": 0.7099373070860762,
+    "seconds": 45.58027700003004
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8972277771242599,
+    "top3Equivalent": 0.9841979374975494,
+    "meanDPRegret": 0.11298465403426802,
+    "epoch": 34,
+    "loss": 0.7068029686507382,
+    "seconds": 46.837570999981835
+  },
+  {
+    "states": 25503,
+    "top1Equivalent": 0.8998941301023409,
+    "top3Equivalent": 0.984001882131514,
+    "meanDPRegret": 0.10383718978450451,
+    "epoch": 35,
+    "loss": 0.7042567284448472,
+    "seconds": 48.31345090002287
+  }
+]

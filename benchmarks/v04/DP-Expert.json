@@ -1,0 +1,7023 @@
+{
+  "algorithm": "DP Expert",
+  "games": 1000,
+  "seedScheme": "Murmur3 finalizer of 700000+i; reserved final-test set, unseen in training/validation/v0.3",
+  "teacherSha256": "cf1c1a4d65c00705b37331abda22e7bc3cb64099ab12e5f8c00595d5fa97f452",
+  "mean": 191.884,
+  "sd": 36.83513772705853,
+  "ci95": [
+    189.60093451038733,
+    194.16706548961264
+  ],
+  "median": 192,
+  "min": 78,
+  "max": 287,
+  "bonusRate": 0.697,
+  "yachtRate": 0.292,
+  "actions": 34302,
+  "decisionMs": 0.04155844265640524,
+  "maxDecisionMs": 1.513400000000047,
+  "seconds": 1.5750851000000003,
+  "results": [
+    {
+      "seed": 3150003507,
+      "side": 0,
+      "score": 177,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2561778822,
+      "side": 1,
+      "score": 214,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3627945301,
+      "side": 0,
+      "score": 252,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3008195731,
+      "side": 1,
+      "score": 162,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3740172477,
+      "side": 0,
+      "score": 157,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 955976013,
+      "side": 1,
+      "score": 262,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 490521512,
+      "side": 0,
+      "score": 210,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3708385657,
+      "side": 1,
+      "score": 186,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4157140731,
+      "side": 0,
+      "score": 189,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 777464754,
+      "side": 1,
+      "score": 268,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1741263184,
+      "side": 0,
+      "score": 213,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4232163961,
+      "side": 1,
+      "score": 159,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 657868779,
+      "side": 0,
+      "score": 223,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 650252310,
+      "side": 1,
+      "score": 235,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 217805041,
+      "side": 0,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2682696849,
+      "side": 1,
+      "score": 111,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 26872761,
+      "side": 0,
+      "score": 184,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1182047122,
+      "side": 1,
+      "score": 152,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 24703948,
+      "side": 0,
+      "score": 190,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3186103152,
+      "side": 1,
+      "score": 212,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2651136589,
+      "side": 0,
+      "score": 221,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4163476141,
+      "side": 1,
+      "score": 158,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2731570026,
+      "side": 0,
+      "score": 182,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1658566732,
+      "side": 1,
+      "score": 204,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1003032761,
+      "side": 0,
+      "score": 183,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2420125172,
+      "side": 1,
+      "score": 235,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3020433306,
+      "side": 0,
+      "score": 276,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3479138624,
+      "side": 1,
+      "score": 223,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 319019817,
+      "side": 0,
+      "score": 168,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1664346396,
+      "side": 1,
+      "score": 146,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1063734108,
+      "side": 0,
+      "score": 185,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 956432716,
+      "side": 1,
+      "score": 144,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2888703598,
+      "side": 0,
+      "score": 173,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2110001312,
+      "side": 1,
+      "score": 189,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1922923759,
+      "side": 0,
+      "score": 241,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2757538803,
+      "side": 1,
+      "score": 235,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3600087502,
+      "side": 0,
+      "score": 157,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 918041639,
+      "side": 1,
+      "score": 244,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3194144473,
+      "side": 0,
+      "score": 196,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3967717088,
+      "side": 1,
+      "score": 208,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 711000147,
+      "side": 0,
+      "score": 194,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1994909168,
+      "side": 1,
+      "score": 143,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3430420467,
+      "side": 0,
+      "score": 145,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 954985861,
+      "side": 1,
+      "score": 241,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4110948523,
+      "side": 0,
+      "score": 220,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3945726073,
+      "side": 1,
+      "score": 255,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 665862676,
+      "side": 0,
+      "score": 78,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2819485581,
+      "side": 1,
+      "score": 144,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 949110179,
+      "side": 0,
+      "score": 226,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2747941437,
+      "side": 1,
+      "score": 258,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4159603205,
+      "side": 0,
+      "score": 193,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3912010898,
+      "side": 1,
+      "score": 123,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1458568284,
+      "side": 0,
+      "score": 243,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 915865184,
+      "side": 1,
+      "score": 157,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3367184711,
+      "side": 0,
+      "score": 265,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1108445812,
+      "side": 1,
+      "score": 186,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1831792381,
+      "side": 0,
+      "score": 221,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1653648054,
+      "side": 1,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 154827806,
+      "side": 0,
+      "score": 224,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 723346917,
+      "side": 1,
+      "score": 153,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2134710325,
+      "side": 0,
+      "score": 216,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 597110462,
+      "side": 1,
+      "score": 235,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 848147704,
+      "side": 0,
+      "score": 195,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1057691324,
+      "side": 1,
+      "score": 212,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 701662001,
+      "side": 0,
+      "score": 217,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2227203846,
+      "side": 1,
+      "score": 178,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3549531141,
+      "side": 0,
+      "score": 144,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1480042170,
+      "side": 1,
+      "score": 215,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2138176857,
+      "side": 0,
+      "score": 189,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2104423447,
+      "side": 1,
+      "score": 257,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 226220414,
+      "side": 0,
+      "score": 214,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3116439510,
+      "side": 1,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2921749270,
+      "side": 0,
+      "score": 175,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 128973222,
+      "side": 1,
+      "score": 187,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1774337791,
+      "side": 0,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3696185456,
+      "side": 1,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3882969136,
+      "side": 0,
+      "score": 194,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 318382805,
+      "side": 1,
+      "score": 217,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3532035997,
+      "side": 0,
+      "score": 221,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 198711894,
+      "side": 1,
+      "score": 137,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1588607760,
+      "side": 0,
+      "score": 224,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 201657116,
+      "side": 1,
+      "score": 125,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2532858917,
+      "side": 0,
+      "score": 170,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3580735618,
+      "side": 1,
+      "score": 108,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3799923871,
+      "side": 0,
+      "score": 187,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2692764576,
+      "side": 1,
+      "score": 188,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4098259869,
+      "side": 0,
+      "score": 109,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 700475326,
+      "side": 1,
+      "score": 131,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2349462904,
+      "side": 0,
+      "score": 184,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 122492186,
+      "side": 1,
+      "score": 185,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 597314,
+      "side": 0,
+      "score": 184,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2528214559,
+      "side": 1,
+      "score": 231,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4122451924,
+      "side": 0,
+      "score": 129,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 986815559,
+      "side": 1,
+      "score": 140,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 717968559,
+      "side": 0,
+      "score": 199,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 989086945,
+      "side": 1,
+      "score": 213,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3314239130,
+      "side": 0,
+      "score": 267,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 61170493,
+      "side": 1,
+      "score": 168,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 430504158,
+      "side": 0,
+      "score": 218,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1739426163,
+      "side": 1,
+      "score": 217,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1267866892,
+      "side": 0,
+      "score": 207,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3942344717,
+      "side": 1,
+      "score": 189,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1169645411,
+      "side": 0,
+      "score": 187,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2480491260,
+      "side": 1,
+      "score": 148,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3804617083,
+      "side": 0,
+      "score": 241,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4182509706,
+      "side": 1,
+      "score": 279,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 652040825,
+      "side": 0,
+      "score": 113,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4031426023,
+      "side": 1,
+      "score": 198,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1498967856,
+      "side": 0,
+      "score": 126,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2601887836,
+      "side": 1,
+      "score": 208,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1269653496,
+      "side": 0,
+      "score": 256,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 834504337,
+      "side": 1,
+      "score": 146,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4044549244,
+      "side": 0,
+      "score": 111,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1314019956,
+      "side": 1,
+      "score": 145,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1990204052,
+      "side": 0,
+      "score": 238,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1832355450,
+      "side": 1,
+      "score": 202,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1534434365,
+      "side": 0,
+      "score": 220,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 976945154,
+      "side": 1,
+      "score": 170,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2756258572,
+      "side": 0,
+      "score": 192,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3134393695,
+      "side": 1,
+      "score": 211,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2128187049,
+      "side": 0,
+      "score": 226,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3721392294,
+      "side": 1,
+      "score": 120,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1069555933,
+      "side": 0,
+      "score": 146,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1518978613,
+      "side": 1,
+      "score": 156,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1952020440,
+      "side": 0,
+      "score": 174,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1156623392,
+      "side": 1,
+      "score": 213,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3249820594,
+      "side": 0,
+      "score": 135,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2976541796,
+      "side": 1,
+      "score": 245,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2292905653,
+      "side": 0,
+      "score": 185,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3899882410,
+      "side": 1,
+      "score": 176,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 951693316,
+      "side": 0,
+      "score": 217,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2907140795,
+      "side": 1,
+      "score": 171,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2699928524,
+      "side": 0,
+      "score": 168,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1441484331,
+      "side": 1,
+      "score": 194,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 321894953,
+      "side": 0,
+      "score": 254,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3421168057,
+      "side": 1,
+      "score": 241,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3322460249,
+      "side": 0,
+      "score": 215,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3057769593,
+      "side": 1,
+      "score": 225,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1032756824,
+      "side": 0,
+      "score": 176,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2643016295,
+      "side": 1,
+      "score": 171,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1030067595,
+      "side": 0,
+      "score": 213,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3686542570,
+      "side": 1,
+      "score": 275,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3199236820,
+      "side": 0,
+      "score": 203,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1224641291,
+      "side": 1,
+      "score": 241,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4105213761,
+      "side": 0,
+      "score": 254,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1278033909,
+      "side": 1,
+      "score": 155,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1198368411,
+      "side": 0,
+      "score": 187,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3668680088,
+      "side": 1,
+      "score": 243,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1904267582,
+      "side": 0,
+      "score": 200,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1248984986,
+      "side": 1,
+      "score": 166,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3658388409,
+      "side": 0,
+      "score": 247,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1502740340,
+      "side": 1,
+      "score": 173,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1073129704,
+      "side": 0,
+      "score": 237,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 95917996,
+      "side": 1,
+      "score": 215,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4036255035,
+      "side": 0,
+      "score": 187,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 232570033,
+      "side": 1,
+      "score": 133,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4270143650,
+      "side": 0,
+      "score": 182,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2740790772,
+      "side": 1,
+      "score": 222,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1245669386,
+      "side": 0,
+      "score": 177,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2566082975,
+      "side": 1,
+      "score": 114,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2434746161,
+      "side": 0,
+      "score": 237,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1607991971,
+      "side": 1,
+      "score": 156,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2014780808,
+      "side": 0,
+      "score": 190,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2620938037,
+      "side": 1,
+      "score": 226,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1618514687,
+      "side": 0,
+      "score": 162,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1474764190,
+      "side": 1,
+      "score": 121,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3755923611,
+      "side": 0,
+      "score": 217,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 904574694,
+      "side": 1,
+      "score": 190,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3686874510,
+      "side": 0,
+      "score": 101,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1883751566,
+      "side": 1,
+      "score": 228,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1536719653,
+      "side": 0,
+      "score": 190,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2104599277,
+      "side": 1,
+      "score": 174,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3005038620,
+      "side": 0,
+      "score": 166,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 73863479,
+      "side": 1,
+      "score": 245,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4085220441,
+      "side": 0,
+      "score": 141,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 449756877,
+      "side": 1,
+      "score": 191,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1590376436,
+      "side": 0,
+      "score": 184,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3046227243,
+      "side": 1,
+      "score": 215,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2333660144,
+      "side": 0,
+      "score": 204,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 320733890,
+      "side": 1,
+      "score": 216,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3387091406,
+      "side": 0,
+      "score": 231,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2886557101,
+      "side": 1,
+      "score": 160,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2784867611,
+      "side": 0,
+      "score": 218,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3044480260,
+      "side": 1,
+      "score": 139,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 855141065,
+      "side": 0,
+      "score": 236,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 384464786,
+      "side": 1,
+      "score": 166,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1794215783,
+      "side": 0,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1863271916,
+      "side": 1,
+      "score": 133,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3526442911,
+      "side": 0,
+      "score": 120,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3851521242,
+      "side": 1,
+      "score": 160,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 203903024,
+      "side": 0,
+      "score": 197,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1303914354,
+      "side": 1,
+      "score": 214,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 584382344,
+      "side": 0,
+      "score": 115,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4008632822,
+      "side": 1,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2474619337,
+      "side": 0,
+      "score": 266,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 637004644,
+      "side": 1,
+      "score": 226,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1743013882,
+      "side": 0,
+      "score": 189,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2716014984,
+      "side": 1,
+      "score": 159,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 391446435,
+      "side": 0,
+      "score": 171,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2206283739,
+      "side": 1,
+      "score": 164,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1405985331,
+      "side": 0,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2480203183,
+      "side": 1,
+      "score": 156,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1632107624,
+      "side": 0,
+      "score": 179,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1818986953,
+      "side": 1,
+      "score": 229,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1168203622,
+      "side": 0,
+      "score": 180,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1396360104,
+      "side": 1,
+      "score": 109,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2012748248,
+      "side": 0,
+      "score": 175,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3245502942,
+      "side": 1,
+      "score": 201,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1505856815,
+      "side": 0,
+      "score": 169,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 541887447,
+      "side": 1,
+      "score": 186,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2529231294,
+      "side": 0,
+      "score": 200,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1923275296,
+      "side": 1,
+      "score": 211,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2047783529,
+      "side": 0,
+      "score": 212,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1511530698,
+      "side": 1,
+      "score": 225,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 129907310,
+      "side": 0,
+      "score": 184,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 310969285,
+      "side": 1,
+      "score": 133,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3620646465,
+      "side": 0,
+      "score": 160,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 219158874,
+      "side": 1,
+      "score": 211,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3801974325,
+      "side": 0,
+      "score": 217,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3860092520,
+      "side": 1,
+      "score": 283,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1916875981,
+      "side": 0,
+      "score": 200,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2388973300,
+      "side": 1,
+      "score": 161,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 760109000,
+      "side": 0,
+      "score": 238,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3844514981,
+      "side": 1,
+      "score": 155,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 843602839,
+      "side": 0,
+      "score": 217,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1218318180,
+      "side": 1,
+      "score": 197,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2707505257,
+      "side": 0,
+      "score": 195,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 815091684,
+      "side": 1,
+      "score": 245,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1087828026,
+      "side": 0,
+      "score": 254,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4042602048,
+      "side": 1,
+      "score": 140,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2581131273,
+      "side": 0,
+      "score": 156,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4046367997,
+      "side": 1,
+      "score": 233,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2228997063,
+      "side": 0,
+      "score": 199,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4104081586,
+      "side": 1,
+      "score": 211,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 133929306,
+      "side": 0,
+      "score": 212,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1021520704,
+      "side": 1,
+      "score": 158,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1907161801,
+      "side": 0,
+      "score": 203,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3792289794,
+      "side": 1,
+      "score": 150,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1794448738,
+      "side": 0,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1840285402,
+      "side": 1,
+      "score": 117,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3872300466,
+      "side": 0,
+      "score": 169,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 725160884,
+      "side": 1,
+      "score": 201,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 317837296,
+      "side": 0,
+      "score": 154,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2915475125,
+      "side": 1,
+      "score": 184,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1932385112,
+      "side": 0,
+      "score": 231,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2016150023,
+      "side": 1,
+      "score": 217,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2123007421,
+      "side": 0,
+      "score": 139,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3927733638,
+      "side": 1,
+      "score": 233,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1233637482,
+      "side": 0,
+      "score": 145,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1610767449,
+      "side": 1,
+      "score": 209,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2826185499,
+      "side": 0,
+      "score": 249,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2761854076,
+      "side": 1,
+      "score": 145,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1289459836,
+      "side": 0,
+      "score": 191,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4261047112,
+      "side": 1,
+      "score": 216,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1335975905,
+      "side": 0,
+      "score": 180,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 372476050,
+      "side": 1,
+      "score": 202,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3263604555,
+      "side": 0,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3174063212,
+      "side": 1,
+      "score": 205,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1061858069,
+      "side": 0,
+      "score": 149,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3277708447,
+      "side": 1,
+      "score": 208,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3250829265,
+      "side": 0,
+      "score": 170,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2010036348,
+      "side": 1,
+      "score": 175,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2962984395,
+      "side": 0,
+      "score": 156,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2015802151,
+      "side": 1,
+      "score": 183,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3643430373,
+      "side": 0,
+      "score": 190,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1752556447,
+      "side": 1,
+      "score": 234,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 746083952,
+      "side": 0,
+      "score": 167,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 942844387,
+      "side": 1,
+      "score": 228,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4283683935,
+      "side": 0,
+      "score": 135,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2402210027,
+      "side": 1,
+      "score": 218,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2588778620,
+      "side": 0,
+      "score": 198,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 83908419,
+      "side": 1,
+      "score": 215,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 53617336,
+      "side": 0,
+      "score": 263,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3050007217,
+      "side": 1,
+      "score": 219,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 180069779,
+      "side": 0,
+      "score": 201,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2842590207,
+      "side": 1,
+      "score": 199,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2587190425,
+      "side": 0,
+      "score": 247,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2415828779,
+      "side": 1,
+      "score": 262,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1244560479,
+      "side": 0,
+      "score": 217,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2028839941,
+      "side": 1,
+      "score": 204,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 380831887,
+      "side": 0,
+      "score": 194,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 667933986,
+      "side": 1,
+      "score": 272,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 241959821,
+      "side": 0,
+      "score": 178,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 27787608,
+      "side": 1,
+      "score": 124,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 356768,
+      "side": 0,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 180344723,
+      "side": 1,
+      "score": 131,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1058061234,
+      "side": 0,
+      "score": 277,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2440030245,
+      "side": 1,
+      "score": 135,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4138663282,
+      "side": 0,
+      "score": 164,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 665900797,
+      "side": 1,
+      "score": 156,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3107416438,
+      "side": 0,
+      "score": 159,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2153509499,
+      "side": 1,
+      "score": 154,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4014542300,
+      "side": 0,
+      "score": 154,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 5933526,
+      "side": 1,
+      "score": 188,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 871905978,
+      "side": 0,
+      "score": 179,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1080163003,
+      "side": 1,
+      "score": 173,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2965183632,
+      "side": 0,
+      "score": 234,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 303279183,
+      "side": 1,
+      "score": 190,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 679627832,
+      "side": 0,
+      "score": 172,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 286463601,
+      "side": 1,
+      "score": 189,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2614800392,
+      "side": 0,
+      "score": 216,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3009678390,
+      "side": 1,
+      "score": 199,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2242843151,
+      "side": 0,
+      "score": 198,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2654348887,
+      "side": 1,
+      "score": 218,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 779157373,
+      "side": 0,
+      "score": 162,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2994411207,
+      "side": 1,
+      "score": 168,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 531033452,
+      "side": 0,
+      "score": 167,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 89160295,
+      "side": 1,
+      "score": 136,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1830239013,
+      "side": 0,
+      "score": 220,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1938107202,
+      "side": 1,
+      "score": 224,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2551167372,
+      "side": 0,
+      "score": 154,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3515271495,
+      "side": 1,
+      "score": 182,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1282709550,
+      "side": 0,
+      "score": 194,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3402018572,
+      "side": 1,
+      "score": 202,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 280022616,
+      "side": 0,
+      "score": 175,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3920418141,
+      "side": 1,
+      "score": 102,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 155994919,
+      "side": 0,
+      "score": 147,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 247245369,
+      "side": 1,
+      "score": 247,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4243431356,
+      "side": 0,
+      "score": 185,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1064507355,
+      "side": 1,
+      "score": 202,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2546542243,
+      "side": 0,
+      "score": 157,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 177726840,
+      "side": 1,
+      "score": 273,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4112220856,
+      "side": 0,
+      "score": 185,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2291721257,
+      "side": 1,
+      "score": 132,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 792513847,
+      "side": 0,
+      "score": 219,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 908080341,
+      "side": 1,
+      "score": 199,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2320731138,
+      "side": 0,
+      "score": 220,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2691167727,
+      "side": 1,
+      "score": 190,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3335941869,
+      "side": 0,
+      "score": 103,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 867854807,
+      "side": 1,
+      "score": 167,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1515001708,
+      "side": 0,
+      "score": 217,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1470530070,
+      "side": 1,
+      "score": 187,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3602484828,
+      "side": 0,
+      "score": 180,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3598506000,
+      "side": 1,
+      "score": 221,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2472645827,
+      "side": 0,
+      "score": 191,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4251131964,
+      "side": 1,
+      "score": 126,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1472742803,
+      "side": 0,
+      "score": 171,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2988042260,
+      "side": 1,
+      "score": 185,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2206769993,
+      "side": 0,
+      "score": 187,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 906004672,
+      "side": 1,
+      "score": 257,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 837563353,
+      "side": 0,
+      "score": 191,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3579908013,
+      "side": 1,
+      "score": 277,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2537359679,
+      "side": 0,
+      "score": 173,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 163575280,
+      "side": 1,
+      "score": 190,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1423921522,
+      "side": 0,
+      "score": 190,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1741280565,
+      "side": 1,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1285212896,
+      "side": 0,
+      "score": 147,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3902097474,
+      "side": 1,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4200148907,
+      "side": 0,
+      "score": 190,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3991426447,
+      "side": 1,
+      "score": 168,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2322005397,
+      "side": 0,
+      "score": 207,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2799490045,
+      "side": 1,
+      "score": 142,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 755959319,
+      "side": 0,
+      "score": 119,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1928809771,
+      "side": 1,
+      "score": 158,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 841045707,
+      "side": 0,
+      "score": 141,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3719861455,
+      "side": 1,
+      "score": 124,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2529594004,
+      "side": 0,
+      "score": 173,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1261285834,
+      "side": 1,
+      "score": 201,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2536815799,
+      "side": 0,
+      "score": 207,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1673225933,
+      "side": 1,
+      "score": 141,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3485686489,
+      "side": 0,
+      "score": 208,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3169093563,
+      "side": 1,
+      "score": 190,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3650952398,
+      "side": 0,
+      "score": 200,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1747703469,
+      "side": 1,
+      "score": 203,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 31002418,
+      "side": 0,
+      "score": 163,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1565630047,
+      "side": 1,
+      "score": 158,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1861911366,
+      "side": 0,
+      "score": 137,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2039818589,
+      "side": 1,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1995652473,
+      "side": 0,
+      "score": 165,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2537689901,
+      "side": 1,
+      "score": 223,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1587596611,
+      "side": 0,
+      "score": 233,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2824290065,
+      "side": 1,
+      "score": 185,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4101936053,
+      "side": 0,
+      "score": 157,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 433975427,
+      "side": 1,
+      "score": 241,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2528221005,
+      "side": 0,
+      "score": 204,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2398086599,
+      "side": 1,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3937542825,
+      "side": 0,
+      "score": 198,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2785198732,
+      "side": 1,
+      "score": 202,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1761570515,
+      "side": 0,
+      "score": 194,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1592643869,
+      "side": 1,
+      "score": 189,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1585289869,
+      "side": 0,
+      "score": 182,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3376236689,
+      "side": 1,
+      "score": 168,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1130169151,
+      "side": 0,
+      "score": 197,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2209575500,
+      "side": 1,
+      "score": 177,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3203148823,
+      "side": 0,
+      "score": 169,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3271632383,
+      "side": 1,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1147813286,
+      "side": 0,
+      "score": 217,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1760918357,
+      "side": 1,
+      "score": 160,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3448651886,
+      "side": 0,
+      "score": 242,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3116024891,
+      "side": 1,
+      "score": 224,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3259231182,
+      "side": 0,
+      "score": 247,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3061853583,
+      "side": 1,
+      "score": 147,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1692727900,
+      "side": 0,
+      "score": 238,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 794381189,
+      "side": 1,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3175519676,
+      "side": 0,
+      "score": 212,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4248561388,
+      "side": 1,
+      "score": 268,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1735673702,
+      "side": 0,
+      "score": 159,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2535700068,
+      "side": 1,
+      "score": 188,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2431556349,
+      "side": 0,
+      "score": 194,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4188534449,
+      "side": 1,
+      "score": 222,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 912410682,
+      "side": 0,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3447147462,
+      "side": 1,
+      "score": 199,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3228172671,
+      "side": 0,
+      "score": 219,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 370841645,
+      "side": 1,
+      "score": 189,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1980777481,
+      "side": 0,
+      "score": 207,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 629510018,
+      "side": 1,
+      "score": 245,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1768862893,
+      "side": 0,
+      "score": 207,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 790788372,
+      "side": 1,
+      "score": 191,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2837587291,
+      "side": 0,
+      "score": 179,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2632236187,
+      "side": 1,
+      "score": 155,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3903170134,
+      "side": 0,
+      "score": 140,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3393306151,
+      "side": 1,
+      "score": 230,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 339495447,
+      "side": 0,
+      "score": 168,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 679331763,
+      "side": 1,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 28949029,
+      "side": 0,
+      "score": 164,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1484806941,
+      "side": 1,
+      "score": 174,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1281997856,
+      "side": 0,
+      "score": 151,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3560653844,
+      "side": 1,
+      "score": 169,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 234262229,
+      "side": 0,
+      "score": 274,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4102111783,
+      "side": 1,
+      "score": 152,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 330448057,
+      "side": 0,
+      "score": 217,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3551106455,
+      "side": 1,
+      "score": 174,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2080381724,
+      "side": 0,
+      "score": 242,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 507918715,
+      "side": 1,
+      "score": 155,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 405360402,
+      "side": 0,
+      "score": 198,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3862437942,
+      "side": 1,
+      "score": 262,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 539205839,
+      "side": 0,
+      "score": 214,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3379952656,
+      "side": 1,
+      "score": 150,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2382397744,
+      "side": 0,
+      "score": 196,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 679713698,
+      "side": 1,
+      "score": 251,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3171585959,
+      "side": 0,
+      "score": 186,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1169621416,
+      "side": 1,
+      "score": 157,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3796748075,
+      "side": 0,
+      "score": 209,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 295576064,
+      "side": 1,
+      "score": 229,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2835281330,
+      "side": 0,
+      "score": 161,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4101372608,
+      "side": 1,
+      "score": 139,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1031484731,
+      "side": 0,
+      "score": 126,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3179516226,
+      "side": 1,
+      "score": 183,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2914192382,
+      "side": 0,
+      "score": 132,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1317560460,
+      "side": 1,
+      "score": 181,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 795140060,
+      "side": 0,
+      "score": 88,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 390773691,
+      "side": 1,
+      "score": 182,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1685851129,
+      "side": 0,
+      "score": 191,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2995152401,
+      "side": 1,
+      "score": 211,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2906025823,
+      "side": 0,
+      "score": 176,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2893675953,
+      "side": 1,
+      "score": 239,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 649490437,
+      "side": 0,
+      "score": 181,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2930991333,
+      "side": 1,
+      "score": 134,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2647605975,
+      "side": 0,
+      "score": 188,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1495070093,
+      "side": 1,
+      "score": 184,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 997179802,
+      "side": 0,
+      "score": 146,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1552207104,
+      "side": 1,
+      "score": 214,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4262133970,
+      "side": 0,
+      "score": 260,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2975590291,
+      "side": 1,
+      "score": 165,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1706336954,
+      "side": 0,
+      "score": 175,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 810084094,
+      "side": 1,
+      "score": 151,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2908146799,
+      "side": 0,
+      "score": 182,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1331726176,
+      "side": 1,
+      "score": 225,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 668859715,
+      "side": 0,
+      "score": 179,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2898996045,
+      "side": 1,
+      "score": 279,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1108346470,
+      "side": 0,
+      "score": 188,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 849967975,
+      "side": 1,
+      "score": 208,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 584100780,
+      "side": 0,
+      "score": 214,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3548193536,
+      "side": 1,
+      "score": 171,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3998892531,
+      "side": 0,
+      "score": 221,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2091542202,
+      "side": 1,
+      "score": 198,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1926147552,
+      "side": 0,
+      "score": 217,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2832196873,
+      "side": 1,
+      "score": 188,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2204860285,
+      "side": 0,
+      "score": 267,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 981973721,
+      "side": 1,
+      "score": 210,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2984999639,
+      "side": 0,
+      "score": 233,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1321117347,
+      "side": 1,
+      "score": 161,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1662283442,
+      "side": 0,
+      "score": 161,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2271926820,
+      "side": 1,
+      "score": 153,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1852200906,
+      "side": 0,
+      "score": 146,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2800876884,
+      "side": 1,
+      "score": 214,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 709714365,
+      "side": 0,
+      "score": 163,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2467999099,
+      "side": 1,
+      "score": 172,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2338012982,
+      "side": 0,
+      "score": 121,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 46732157,
+      "side": 1,
+      "score": 163,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3283626238,
+      "side": 0,
+      "score": 178,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 95462595,
+      "side": 1,
+      "score": 126,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 54712469,
+      "side": 0,
+      "score": 211,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 86334960,
+      "side": 1,
+      "score": 215,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 622384359,
+      "side": 0,
+      "score": 148,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1785103527,
+      "side": 1,
+      "score": 141,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1479331873,
+      "side": 0,
+      "score": 167,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 972591932,
+      "side": 1,
+      "score": 190,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3217915866,
+      "side": 0,
+      "score": 218,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 160642818,
+      "side": 1,
+      "score": 214,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3444484427,
+      "side": 0,
+      "score": 165,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1096742410,
+      "side": 1,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1439347715,
+      "side": 0,
+      "score": 164,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2399398891,
+      "side": 1,
+      "score": 218,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1946917205,
+      "side": 0,
+      "score": 171,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 297429617,
+      "side": 1,
+      "score": 163,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 435065497,
+      "side": 0,
+      "score": 128,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3765993097,
+      "side": 1,
+      "score": 206,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3829672913,
+      "side": 0,
+      "score": 173,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2283198034,
+      "side": 1,
+      "score": 215,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3527558171,
+      "side": 0,
+      "score": 167,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2384109234,
+      "side": 1,
+      "score": 217,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1183916255,
+      "side": 0,
+      "score": 238,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1940773766,
+      "side": 1,
+      "score": 160,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2970122865,
+      "side": 0,
+      "score": 176,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3315018231,
+      "side": 1,
+      "score": 178,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3332745691,
+      "side": 0,
+      "score": 201,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 374188054,
+      "side": 1,
+      "score": 155,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 571435449,
+      "side": 0,
+      "score": 205,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4005138682,
+      "side": 1,
+      "score": 187,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1673602766,
+      "side": 0,
+      "score": 143,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3691796049,
+      "side": 1,
+      "score": 140,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3303391340,
+      "side": 0,
+      "score": 254,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2429353500,
+      "side": 1,
+      "score": 206,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 4022364590,
+      "side": 0,
+      "score": 197,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2996691462,
+      "side": 1,
+      "score": 184,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3585450723,
+      "side": 0,
+      "score": 204,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3067850216,
+      "side": 1,
+      "score": 181,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2518776990,
+      "side": 0,
+      "score": 206,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3003601141,
+      "side": 1,
+      "score": 170,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1299345652,
+      "side": 0,
+      "score": 201,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 997838970,
+      "side": 1,
+      "score": 205,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4149113721,
+      "side": 0,
+      "score": 252,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1677015312,
+      "side": 1,
+      "score": 222,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3696575514,
+      "side": 0,
+      "score": 160,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1783074662,
+      "side": 1,
+      "score": 199,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2445673387,
+      "side": 0,
+      "score": 204,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3170566767,
+      "side": 1,
+      "score": 252,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2319380760,
+      "side": 0,
+      "score": 205,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2026761118,
+      "side": 1,
+      "score": 203,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 157776432,
+      "side": 0,
+      "score": 174,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 280608403,
+      "side": 1,
+      "score": 177,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3869579962,
+      "side": 0,
+      "score": 213,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 135816994,
+      "side": 1,
+      "score": 184,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3535842264,
+      "side": 0,
+      "score": 150,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3554252893,
+      "side": 1,
+      "score": 220,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3181095180,
+      "side": 0,
+      "score": 125,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 733131168,
+      "side": 1,
+      "score": 182,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3824664295,
+      "side": 0,
+      "score": 166,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 586832974,
+      "side": 1,
+      "score": 186,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3607792318,
+      "side": 0,
+      "score": 245,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 164714905,
+      "side": 1,
+      "score": 235,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1955428019,
+      "side": 0,
+      "score": 244,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3326254921,
+      "side": 1,
+      "score": 191,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2860820147,
+      "side": 0,
+      "score": 219,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 232350635,
+      "side": 1,
+      "score": 191,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1249724029,
+      "side": 0,
+      "score": 175,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3369597907,
+      "side": 1,
+      "score": 239,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2008654045,
+      "side": 0,
+      "score": 197,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4007762217,
+      "side": 1,
+      "score": 96,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2882685852,
+      "side": 0,
+      "score": 218,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2076261738,
+      "side": 1,
+      "score": 172,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3372576129,
+      "side": 0,
+      "score": 205,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 305676792,
+      "side": 1,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2794603404,
+      "side": 0,
+      "score": 218,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 39356003,
+      "side": 1,
+      "score": 123,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3053388233,
+      "side": 0,
+      "score": 212,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 992757487,
+      "side": 1,
+      "score": 246,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1202753151,
+      "side": 0,
+      "score": 140,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 221553286,
+      "side": 1,
+      "score": 266,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 679991539,
+      "side": 0,
+      "score": 244,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3625191313,
+      "side": 1,
+      "score": 249,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2444101719,
+      "side": 0,
+      "score": 245,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2116607059,
+      "side": 1,
+      "score": 108,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2220506583,
+      "side": 0,
+      "score": 238,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2238625149,
+      "side": 1,
+      "score": 224,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1830019724,
+      "side": 0,
+      "score": 142,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3087059474,
+      "side": 1,
+      "score": 220,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 145687753,
+      "side": 0,
+      "score": 148,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3695944456,
+      "side": 1,
+      "score": 159,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4223502154,
+      "side": 0,
+      "score": 125,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 266797629,
+      "side": 1,
+      "score": 164,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1920323450,
+      "side": 0,
+      "score": 270,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2148597690,
+      "side": 1,
+      "score": 167,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3764295462,
+      "side": 0,
+      "score": 149,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2338646096,
+      "side": 1,
+      "score": 196,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 257240464,
+      "side": 0,
+      "score": 173,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 427621199,
+      "side": 1,
+      "score": 167,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1956920499,
+      "side": 0,
+      "score": 214,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1914814379,
+      "side": 1,
+      "score": 147,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 955637386,
+      "side": 0,
+      "score": 178,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1552085560,
+      "side": 1,
+      "score": 172,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 313445110,
+      "side": 0,
+      "score": 218,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1505073740,
+      "side": 1,
+      "score": 212,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1064380710,
+      "side": 0,
+      "score": 201,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3324159824,
+      "side": 1,
+      "score": 213,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3834308378,
+      "side": 0,
+      "score": 273,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3714339117,
+      "side": 1,
+      "score": 183,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4263718263,
+      "side": 0,
+      "score": 252,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3511864591,
+      "side": 1,
+      "score": 221,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2775254594,
+      "side": 0,
+      "score": 211,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3983379750,
+      "side": 1,
+      "score": 160,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1155663125,
+      "side": 0,
+      "score": 189,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1602813722,
+      "side": 1,
+      "score": 210,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4249221285,
+      "side": 0,
+      "score": 205,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3377388599,
+      "side": 1,
+      "score": 267,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2358652018,
+      "side": 0,
+      "score": 199,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2777693965,
+      "side": 1,
+      "score": 241,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1741732105,
+      "side": 0,
+      "score": 219,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3390041060,
+      "side": 1,
+      "score": 242,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3776485340,
+      "side": 0,
+      "score": 151,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 364364450,
+      "side": 1,
+      "score": 170,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1247243102,
+      "side": 0,
+      "score": 191,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3702161073,
+      "side": 1,
+      "score": 195,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3032973610,
+      "side": 0,
+      "score": 158,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1145366855,
+      "side": 1,
+      "score": 168,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 857830830,
+      "side": 0,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 532050276,
+      "side": 1,
+      "score": 161,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3741977118,
+      "side": 0,
+      "score": 148,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1901021066,
+      "side": 1,
+      "score": 209,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3309188743,
+      "side": 0,
+      "score": 152,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1065430505,
+      "side": 1,
+      "score": 186,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3426089592,
+      "side": 0,
+      "score": 180,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1387619809,
+      "side": 1,
+      "score": 183,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2157482258,
+      "side": 0,
+      "score": 236,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1936535839,
+      "side": 1,
+      "score": 162,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4130069502,
+      "side": 0,
+      "score": 208,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1863123753,
+      "side": 1,
+      "score": 141,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2309001879,
+      "side": 0,
+      "score": 218,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 24990951,
+      "side": 1,
+      "score": 197,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3696725709,
+      "side": 0,
+      "score": 164,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 919126466,
+      "side": 1,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1899013832,
+      "side": 0,
+      "score": 249,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4037573025,
+      "side": 1,
+      "score": 165,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2419578802,
+      "side": 0,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2651048503,
+      "side": 1,
+      "score": 211,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3430307092,
+      "side": 0,
+      "score": 186,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 846886672,
+      "side": 1,
+      "score": 176,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 383779146,
+      "side": 0,
+      "score": 201,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2670436945,
+      "side": 1,
+      "score": 233,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1096455874,
+      "side": 0,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2377240200,
+      "side": 1,
+      "score": 154,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3843886911,
+      "side": 0,
+      "score": 198,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3403346056,
+      "side": 1,
+      "score": 249,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1872784752,
+      "side": 0,
+      "score": 245,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1637218812,
+      "side": 1,
+      "score": 174,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1336466076,
+      "side": 0,
+      "score": 128,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 940265334,
+      "side": 1,
+      "score": 165,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3766569160,
+      "side": 0,
+      "score": 204,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3614778245,
+      "side": 1,
+      "score": 220,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2006495386,
+      "side": 0,
+      "score": 150,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3956597798,
+      "side": 1,
+      "score": 180,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1766336136,
+      "side": 0,
+      "score": 164,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2402642828,
+      "side": 1,
+      "score": 214,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1004832295,
+      "side": 0,
+      "score": 158,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3221538937,
+      "side": 1,
+      "score": 144,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3435399581,
+      "side": 0,
+      "score": 205,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2355006558,
+      "side": 1,
+      "score": 190,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 353624855,
+      "side": 0,
+      "score": 179,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2862752023,
+      "side": 1,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2778321136,
+      "side": 0,
+      "score": 197,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 564643695,
+      "side": 1,
+      "score": 167,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1753100563,
+      "side": 0,
+      "score": 188,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 328695027,
+      "side": 1,
+      "score": 207,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2522396994,
+      "side": 0,
+      "score": 154,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4109955786,
+      "side": 1,
+      "score": 185,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3781453303,
+      "side": 0,
+      "score": 122,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2354136852,
+      "side": 1,
+      "score": 209,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 249796250,
+      "side": 0,
+      "score": 219,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1779243653,
+      "side": 1,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4157076682,
+      "side": 0,
+      "score": 178,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2742038276,
+      "side": 1,
+      "score": 243,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4203547815,
+      "side": 0,
+      "score": 128,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3310005197,
+      "side": 1,
+      "score": 220,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3317577803,
+      "side": 0,
+      "score": 202,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1051915094,
+      "side": 1,
+      "score": 151,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2877957064,
+      "side": 0,
+      "score": 158,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2204750822,
+      "side": 1,
+      "score": 209,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1735210679,
+      "side": 0,
+      "score": 159,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1370178996,
+      "side": 1,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 760638461,
+      "side": 0,
+      "score": 160,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 449792038,
+      "side": 1,
+      "score": 147,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 158685296,
+      "side": 0,
+      "score": 181,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1151060687,
+      "side": 1,
+      "score": 191,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2514703681,
+      "side": 0,
+      "score": 209,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2376642327,
+      "side": 1,
+      "score": 219,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2111105822,
+      "side": 0,
+      "score": 139,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2762553606,
+      "side": 1,
+      "score": 168,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1559385529,
+      "side": 0,
+      "score": 213,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 281585073,
+      "side": 1,
+      "score": 215,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3432850943,
+      "side": 0,
+      "score": 213,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3868063658,
+      "side": 1,
+      "score": 141,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2077058262,
+      "side": 0,
+      "score": 218,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2710526342,
+      "side": 1,
+      "score": 242,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 463379629,
+      "side": 0,
+      "score": 182,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2299848969,
+      "side": 1,
+      "score": 199,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 727174398,
+      "side": 0,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 193194035,
+      "side": 1,
+      "score": 199,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3201057934,
+      "side": 0,
+      "score": 238,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3679125197,
+      "side": 1,
+      "score": 208,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 266952850,
+      "side": 0,
+      "score": 144,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3320830145,
+      "side": 1,
+      "score": 250,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 160314317,
+      "side": 0,
+      "score": 203,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2250313543,
+      "side": 1,
+      "score": 128,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3756281600,
+      "side": 0,
+      "score": 165,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1494136110,
+      "side": 1,
+      "score": 222,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 4017457942,
+      "side": 0,
+      "score": 202,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2049509308,
+      "side": 1,
+      "score": 189,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2609992920,
+      "side": 0,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 741029059,
+      "side": 1,
+      "score": 186,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3615194454,
+      "side": 0,
+      "score": 275,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1623264485,
+      "side": 1,
+      "score": 210,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3430749479,
+      "side": 0,
+      "score": 206,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2331158709,
+      "side": 1,
+      "score": 257,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2344035012,
+      "side": 0,
+      "score": 246,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3225185546,
+      "side": 1,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2366146828,
+      "side": 0,
+      "score": 133,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4154972431,
+      "side": 1,
+      "score": 204,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 486499687,
+      "side": 0,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3616189470,
+      "side": 1,
+      "score": 218,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2899900370,
+      "side": 0,
+      "score": 194,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4069088686,
+      "side": 1,
+      "score": 195,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2998576538,
+      "side": 0,
+      "score": 148,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2988666951,
+      "side": 1,
+      "score": 119,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1283056379,
+      "side": 0,
+      "score": 247,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3767139014,
+      "side": 1,
+      "score": 209,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3594155808,
+      "side": 0,
+      "score": 155,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1435153333,
+      "side": 1,
+      "score": 169,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1652250576,
+      "side": 0,
+      "score": 214,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1596134109,
+      "side": 1,
+      "score": 148,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 367688314,
+      "side": 0,
+      "score": 190,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 505096367,
+      "side": 1,
+      "score": 224,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3133941486,
+      "side": 0,
+      "score": 119,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4029579121,
+      "side": 1,
+      "score": 188,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 275796250,
+      "side": 0,
+      "score": 155,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4131039701,
+      "side": 1,
+      "score": 136,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4140981465,
+      "side": 0,
+      "score": 223,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1371585326,
+      "side": 1,
+      "score": 127,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1504678989,
+      "side": 0,
+      "score": 172,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 761649570,
+      "side": 1,
+      "score": 232,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3897780072,
+      "side": 0,
+      "score": 253,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2174253446,
+      "side": 1,
+      "score": 219,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1997936965,
+      "side": 0,
+      "score": 224,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1451686784,
+      "side": 1,
+      "score": 214,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3093261067,
+      "side": 0,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 798267364,
+      "side": 1,
+      "score": 204,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1652146776,
+      "side": 0,
+      "score": 214,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3959063645,
+      "side": 1,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1986015227,
+      "side": 0,
+      "score": 188,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 343899409,
+      "side": 1,
+      "score": 215,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1047677553,
+      "side": 0,
+      "score": 184,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1453940783,
+      "side": 1,
+      "score": 155,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2592456801,
+      "side": 0,
+      "score": 220,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2073386976,
+      "side": 1,
+      "score": 185,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2338460993,
+      "side": 0,
+      "score": 174,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 99628966,
+      "side": 1,
+      "score": 131,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 647885609,
+      "side": 0,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 936161156,
+      "side": 1,
+      "score": 214,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 337515366,
+      "side": 0,
+      "score": 247,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3681129904,
+      "side": 1,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2609123809,
+      "side": 0,
+      "score": 125,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 957519989,
+      "side": 1,
+      "score": 220,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1689984040,
+      "side": 0,
+      "score": 184,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2601926560,
+      "side": 1,
+      "score": 215,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3875423674,
+      "side": 0,
+      "score": 267,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1195870074,
+      "side": 1,
+      "score": 149,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2815399319,
+      "side": 0,
+      "score": 143,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 520601134,
+      "side": 1,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 778753503,
+      "side": 0,
+      "score": 111,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 659144846,
+      "side": 1,
+      "score": 239,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1123436278,
+      "side": 0,
+      "score": 203,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3514332193,
+      "side": 1,
+      "score": 210,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1028886238,
+      "side": 0,
+      "score": 239,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 761638634,
+      "side": 1,
+      "score": 244,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4089261644,
+      "side": 0,
+      "score": 208,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3577171944,
+      "side": 1,
+      "score": 209,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 944134701,
+      "side": 0,
+      "score": 247,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2878245136,
+      "side": 1,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 167393386,
+      "side": 0,
+      "score": 174,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1540572442,
+      "side": 1,
+      "score": 206,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3498141868,
+      "side": 0,
+      "score": 287,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3303517144,
+      "side": 1,
+      "score": 212,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1174632850,
+      "side": 0,
+      "score": 167,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1721071685,
+      "side": 1,
+      "score": 182,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 454013380,
+      "side": 0,
+      "score": 183,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 640227719,
+      "side": 1,
+      "score": 143,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1754093388,
+      "side": 0,
+      "score": 156,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 485887569,
+      "side": 1,
+      "score": 179,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 316669828,
+      "side": 0,
+      "score": 186,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2722366010,
+      "side": 1,
+      "score": 198,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2648886673,
+      "side": 0,
+      "score": 157,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 589994444,
+      "side": 1,
+      "score": 206,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1095072049,
+      "side": 0,
+      "score": 151,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1346186072,
+      "side": 1,
+      "score": 191,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3462710533,
+      "side": 0,
+      "score": 215,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2250138294,
+      "side": 1,
+      "score": 276,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 131009801,
+      "side": 0,
+      "score": 200,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2268967187,
+      "side": 1,
+      "score": 269,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3500624617,
+      "side": 0,
+      "score": 211,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2709079519,
+      "side": 1,
+      "score": 213,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4293461965,
+      "side": 0,
+      "score": 194,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3699779411,
+      "side": 1,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1345660059,
+      "side": 0,
+      "score": 216,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1116305823,
+      "side": 1,
+      "score": 210,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3146265052,
+      "side": 0,
+      "score": 169,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1792956803,
+      "side": 1,
+      "score": 237,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3082587396,
+      "side": 0,
+      "score": 185,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3368557137,
+      "side": 1,
+      "score": 217,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2139488547,
+      "side": 0,
+      "score": 164,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4081577851,
+      "side": 1,
+      "score": 218,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 608889652,
+      "side": 0,
+      "score": 178,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 232029346,
+      "side": 1,
+      "score": 274,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3338497145,
+      "side": 0,
+      "score": 135,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2047633809,
+      "side": 1,
+      "score": 152,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3612453833,
+      "side": 0,
+      "score": 216,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 269033728,
+      "side": 1,
+      "score": 194,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2497802548,
+      "side": 0,
+      "score": 175,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4176712495,
+      "side": 1,
+      "score": 207,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3459321361,
+      "side": 0,
+      "score": 174,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1348886975,
+      "side": 1,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3698589753,
+      "side": 0,
+      "score": 169,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2830983,
+      "side": 1,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3684845619,
+      "side": 0,
+      "score": 190,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 587436067,
+      "side": 1,
+      "score": 209,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 417732432,
+      "side": 0,
+      "score": 152,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4248676739,
+      "side": 1,
+      "score": 226,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1130017589,
+      "side": 0,
+      "score": 254,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1168547535,
+      "side": 1,
+      "score": 239,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2423176387,
+      "side": 0,
+      "score": 196,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3771233412,
+      "side": 1,
+      "score": 230,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3757420036,
+      "side": 0,
+      "score": 180,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1829102357,
+      "side": 1,
+      "score": 182,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1779621700,
+      "side": 0,
+      "score": 211,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2645199881,
+      "side": 1,
+      "score": 182,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3083863057,
+      "side": 0,
+      "score": 262,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 549568553,
+      "side": 1,
+      "score": 172,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2077725009,
+      "side": 0,
+      "score": 238,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1126046848,
+      "side": 1,
+      "score": 161,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 297512741,
+      "side": 0,
+      "score": 240,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 112673713,
+      "side": 1,
+      "score": 228,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1323488246,
+      "side": 0,
+      "score": 197,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2018320360,
+      "side": 1,
+      "score": 263,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1206985680,
+      "side": 0,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2408290563,
+      "side": 1,
+      "score": 208,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1009116547,
+      "side": 0,
+      "score": 190,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3388700632,
+      "side": 1,
+      "score": 241,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2658867573,
+      "side": 0,
+      "score": 221,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3006866690,
+      "side": 1,
+      "score": 161,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3832586423,
+      "side": 0,
+      "score": 252,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3113723682,
+      "side": 1,
+      "score": 252,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 250684063,
+      "side": 0,
+      "score": 181,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1007621636,
+      "side": 1,
+      "score": 184,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4184722578,
+      "side": 0,
+      "score": 147,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1353416150,
+      "side": 1,
+      "score": 122,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1105406260,
+      "side": 0,
+      "score": 188,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1254690384,
+      "side": 1,
+      "score": 218,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3174355153,
+      "side": 0,
+      "score": 185,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2563296980,
+      "side": 1,
+      "score": 223,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3066290205,
+      "side": 0,
+      "score": 151,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 636267719,
+      "side": 1,
+      "score": 194,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 550970200,
+      "side": 0,
+      "score": 190,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3013268007,
+      "side": 1,
+      "score": 273,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 456846669,
+      "side": 0,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1046308468,
+      "side": 1,
+      "score": 216,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 538342627,
+      "side": 0,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1118657297,
+      "side": 1,
+      "score": 247,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2071432232,
+      "side": 0,
+      "score": 211,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 4275992519,
+      "side": 1,
+      "score": 131,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 649367225,
+      "side": 0,
+      "score": 159,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4020411982,
+      "side": 1,
+      "score": 215,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3679156986,
+      "side": 0,
+      "score": 155,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4193624565,
+      "side": 1,
+      "score": 167,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2914187716,
+      "side": 0,
+      "score": 199,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3747971638,
+      "side": 1,
+      "score": 171,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3377141412,
+      "side": 0,
+      "score": 95,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3043303439,
+      "side": 1,
+      "score": 210,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4018436540,
+      "side": 0,
+      "score": 194,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 126157,
+      "side": 1,
+      "score": 208,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3071912133,
+      "side": 0,
+      "score": 148,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 2704671014,
+      "side": 1,
+      "score": 157,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4019323268,
+      "side": 0,
+      "score": 165,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1209790072,
+      "side": 1,
+      "score": 167,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3158249662,
+      "side": 0,
+      "score": 266,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 532498229,
+      "side": 1,
+      "score": 218,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3279332880,
+      "side": 0,
+      "score": 177,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2996235621,
+      "side": 1,
+      "score": 154,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2280329749,
+      "side": 0,
+      "score": 198,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 328744643,
+      "side": 1,
+      "score": 144,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 24017673,
+      "side": 0,
+      "score": 246,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1691531720,
+      "side": 1,
+      "score": 116,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3315138356,
+      "side": 0,
+      "score": 138,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1022434329,
+      "side": 1,
+      "score": 203,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2335761790,
+      "side": 0,
+      "score": 182,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 173361334,
+      "side": 1,
+      "score": 265,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 849813801,
+      "side": 0,
+      "score": 221,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3108370014,
+      "side": 1,
+      "score": 212,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2014106283,
+      "side": 0,
+      "score": 191,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 592016451,
+      "side": 1,
+      "score": 167,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 83679058,
+      "side": 0,
+      "score": 206,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1866461172,
+      "side": 1,
+      "score": 184,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1000722554,
+      "side": 0,
+      "score": 192,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 2949195675,
+      "side": 1,
+      "score": 162,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 749102001,
+      "side": 0,
+      "score": 221,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1873079622,
+      "side": 1,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1922006783,
+      "side": 0,
+      "score": 260,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 582597189,
+      "side": 1,
+      "score": 245,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 4277929538,
+      "side": 0,
+      "score": 174,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 907217912,
+      "side": 1,
+      "score": 172,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3670747140,
+      "side": 0,
+      "score": 223,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1945424998,
+      "side": 1,
+      "score": 178,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2544869144,
+      "side": 0,
+      "score": 135,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 842313718,
+      "side": 1,
+      "score": 205,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 322868510,
+      "side": 0,
+      "score": 216,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4265472865,
+      "side": 1,
+      "score": 174,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1613153305,
+      "side": 0,
+      "score": 175,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 307339435,
+      "side": 1,
+      "score": 194,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1967202265,
+      "side": 0,
+      "score": 224,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 522982912,
+      "side": 1,
+      "score": 221,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3090813158,
+      "side": 0,
+      "score": 143,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3636344734,
+      "side": 1,
+      "score": 199,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1304810419,
+      "side": 0,
+      "score": 183,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2221984579,
+      "side": 1,
+      "score": 199,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3789334259,
+      "side": 0,
+      "score": 246,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3379564090,
+      "side": 1,
+      "score": 253,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3047069478,
+      "side": 0,
+      "score": 215,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3902724447,
+      "side": 1,
+      "score": 137,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2306001038,
+      "side": 0,
+      "score": 202,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3579047510,
+      "side": 1,
+      "score": 207,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 374296686,
+      "side": 0,
+      "score": 172,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1578053164,
+      "side": 1,
+      "score": 225,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1942372874,
+      "side": 0,
+      "score": 239,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3296477345,
+      "side": 1,
+      "score": 200,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1920755501,
+      "side": 0,
+      "score": 174,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3919064523,
+      "side": 1,
+      "score": 158,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 682142397,
+      "side": 0,
+      "score": 116,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3527882492,
+      "side": 1,
+      "score": 194,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2182834268,
+      "side": 0,
+      "score": 149,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3905359773,
+      "side": 1,
+      "score": 187,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1316081949,
+      "side": 0,
+      "score": 186,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1735754056,
+      "side": 1,
+      "score": 158,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1448028670,
+      "side": 0,
+      "score": 253,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3167082598,
+      "side": 1,
+      "score": 206,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3919356505,
+      "side": 0,
+      "score": 169,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 50152390,
+      "side": 1,
+      "score": 143,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3030496422,
+      "side": 0,
+      "score": 143,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 449526113,
+      "side": 1,
+      "score": 171,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1068579884,
+      "side": 0,
+      "score": 128,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4269080958,
+      "side": 1,
+      "score": 182,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 872296577,
+      "side": 0,
+      "score": 245,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3804053391,
+      "side": 1,
+      "score": 208,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 522911165,
+      "side": 0,
+      "score": 180,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3147388667,
+      "side": 1,
+      "score": 140,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 1222084327,
+      "side": 0,
+      "score": 262,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 742488336,
+      "side": 1,
+      "score": 181,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3526046294,
+      "side": 0,
+      "score": 184,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3614383523,
+      "side": 1,
+      "score": 236,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 715445803,
+      "side": 0,
+      "score": 238,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 824200274,
+      "side": 1,
+      "score": 110,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 773148631,
+      "side": 0,
+      "score": 251,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 121366585,
+      "side": 1,
+      "score": 240,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1478403102,
+      "side": 0,
+      "score": 244,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 312409903,
+      "side": 1,
+      "score": 186,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3410795859,
+      "side": 0,
+      "score": 196,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3011770809,
+      "side": 1,
+      "score": 215,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1916193390,
+      "side": 0,
+      "score": 138,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 4164058131,
+      "side": 1,
+      "score": 220,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1753196995,
+      "side": 0,
+      "score": 142,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3860695656,
+      "side": 1,
+      "score": 263,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2737136036,
+      "side": 0,
+      "score": 224,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4000800164,
+      "side": 1,
+      "score": 219,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3313564282,
+      "side": 0,
+      "score": 188,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1861382104,
+      "side": 1,
+      "score": 225,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3881689125,
+      "side": 0,
+      "score": 226,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2645141736,
+      "side": 1,
+      "score": 186,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 713376729,
+      "side": 0,
+      "score": 162,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2481675374,
+      "side": 1,
+      "score": 198,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3824407186,
+      "side": 0,
+      "score": 169,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 4142062970,
+      "side": 1,
+      "score": 188,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2862209045,
+      "side": 0,
+      "score": 168,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3800076221,
+      "side": 1,
+      "score": 265,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 906667003,
+      "side": 0,
+      "score": 170,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3502307456,
+      "side": 1,
+      "score": 200,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3551403291,
+      "side": 0,
+      "score": 200,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 769635107,
+      "side": 1,
+      "score": 157,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 896910663,
+      "side": 0,
+      "score": 216,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2641218551,
+      "side": 1,
+      "score": 167,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3218813943,
+      "side": 0,
+      "score": 205,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1296215327,
+      "side": 1,
+      "score": 186,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1457950583,
+      "side": 0,
+      "score": 233,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 3761244224,
+      "side": 1,
+      "score": 148,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3675237194,
+      "side": 0,
+      "score": 243,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2915582708,
+      "side": 1,
+      "score": 167,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1197324463,
+      "side": 0,
+      "score": 210,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2396748881,
+      "side": 1,
+      "score": 203,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 3583813345,
+      "side": 0,
+      "score": 219,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3690540117,
+      "side": 1,
+      "score": 177,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 1183260141,
+      "side": 0,
+      "score": 156,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3078536556,
+      "side": 1,
+      "score": 222,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 1151700615,
+      "side": 0,
+      "score": 137,
+      "bonus": false,
+      "yacht": false
+    },
+    {
+      "seed": 3344505851,
+      "side": 1,
+      "score": 192,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2709439374,
+      "side": 0,
+      "score": 166,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2001555516,
+      "side": 1,
+      "score": 156,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1855447946,
+      "side": 0,
+      "score": 171,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 1756531390,
+      "side": 1,
+      "score": 157,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2663715295,
+      "side": 0,
+      "score": 193,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 528337018,
+      "side": 1,
+      "score": 227,
+      "bonus": false,
+      "yacht": true
+    },
+    {
+      "seed": 888193650,
+      "side": 0,
+      "score": 188,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 3157444421,
+      "side": 1,
+      "score": 233,
+      "bonus": true,
+      "yacht": true
+    },
+    {
+      "seed": 2875403760,
+      "side": 0,
+      "score": 166,
+      "bonus": true,
+      "yacht": false
+    },
+    {
+      "seed": 2421108062,
+      "side": 1,
+      "score": 132,
+      "bonus": false,
+      "yacht": false
+    }
+  ]
+}

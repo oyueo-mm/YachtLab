@@ -25,7 +25,7 @@ test("커스텀 알고리즘 선택창의 난이도·키보드·외부 클릭·�
   await page.keyboard.press("Escape");
   await expect(page.getByRole("listbox")).toHaveCount(0);
   await box.click();
-  await page.locator(".topbar").click({position:{x:280,y:20}});
+  await page.locator(".topbar").click({ position: { x: 280, y: 20 } });
   await expect(page.getByRole("listbox")).toHaveCount(0);
   await chooseAlgorithm(page, "상대 AI", "DP Expert");
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
@@ -41,4 +41,33 @@ test("AI 행동은 고정·굴림 상태를 보이고 재대결에서 정리", a
     page.getByRole("button", { name: "주사위 굴리기" }),
   ).toBeEnabled();
   await expect(page.getByRole("alert")).toHaveCount(0);
+});
+test("백그라운드에서는 AI 행동을 진행하지 않고 복귀하면 재개", async ({
+  page,
+}) => {
+  await page.goto("#play");
+  await chooseAlgorithm(page, "상대 AI", "PPO");
+  await page.getByRole("button", { name: "주사위 굴리기" }).click();
+  await page.locator(".score-option").first().click();
+  await expect(page.locator(".ai-action-status")).toContainText("굴렸습니다");
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => true,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  const before = await page.locator(".game-board").innerText();
+  await page.waitForTimeout(1200);
+  expect(await page.locator(".game-board").innerText()).toBe(before);
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => false,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(page.getByRole("button", { name: "주사위 굴리기" })).toBeEnabled(
+    { timeout: 20000 },
+  );
 });

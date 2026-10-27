@@ -1,0 +1,65 @@
+{
+  "format": 1,
+  "columns": 108,
+  "observation": "sorted-value-then-stable-id, baseline 60 features",
+  "actions": "32 canonical hold masks + 12 categories",
+  "teacherSha256": "cf1c1a4d65c00705b37331abda22e7bc3cb64099ab12e5f8c00595d5fa97f452",
+  "seedScheme": "Murmur3 finalizer; training 400000+i, validation 500000+i; final evaluation reserved 700000+i",
+  "splits": {
+    "train": {
+      "games": 3600,
+      "rows": 228956,
+      "seedStart": 400000,
+      "coverage": {
+        "rolls": [
+          0,
+          86400,
+          76392,
+          66164
+        ],
+        "phase": [
+          75646,
+          75849,
+          77461
+        ],
+        "upperNearBonus": 14450,
+        "policies": [
+          61694,
+          60774,
+          47859,
+          58629
+        ]
+      },
+      "sha256": "afa9be634e755c56de8aa27cb52c78564d83d3fde927555e9f32ff59ce920efa",
+      "seconds": 442.72049659999993
+    },
+    "validation": {
+      "games": 400,
+      "rows": 25503,
+      "seedStart": 500000,
+      "coverage": {
+        "rolls": [
+          0,
+          9600,
+          8515,
+          7388
+        ],
+        "phase": [
+          8456,
+          8404,
+          8643
+        ],
+        "upperNearBonus": 1600,
+        "policies": [
+          6866,
+          6772,
+          5288,
+          6577
+        ]
+      },
+      "sha256": "ab85db49b7a892d597c9224825c9deacbc398a874be9db36e38a026565bdbfd0",
+      "seconds": 44.9629289
+    }
+  },
+  "createdAt": "2026-10-27T18:26:35.931Z"
+}

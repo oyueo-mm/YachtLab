@@ -35,6 +35,7 @@ import { runJob, createDecisionSession } from "./client";
 import { Dice, DieIcon } from "./Dice";
 import { Scoreboard, CategoryIcon } from "./Scoreboard";
 import HomeDemo from "./HomeDemo";
+import ResearchResults from "./ResearchResults";
 import ReplayViewer, { type AnalysisSource } from "./ReplayViewer";
 import {
   newReplay,
@@ -48,10 +49,14 @@ import {
 import AlgorithmSelect from "./AlgorithmDropdown";
 import { useHumanTurn } from "./human-turn";
 import benchmark from "./benchmark-summary.json";
+import research from "./research-summary.json";
 import dpManifest from "./dp-manifest.json";
 const verifiedBest =
   benchmark.gamesPerAlgorithm >= 1000 &&
-  benchmark.dpTableSha256 === dpManifest.sha256
+  benchmark.dpTableSha256 === dpManifest.sha256 &&
+  research.complete &&
+  research.teacherSha256 === dpManifest.sha256 &&
+  research.bestAlgorithm === benchmark.bestAlgorithm
     ? algorithms.find((a) => a === benchmark.bestAlgorithm)
     : undefined;
 type Page = "home" | "play" | "watch" | "tournament" | "analysis";
@@ -384,7 +389,7 @@ function HumanGame({
               {algorithm === verifiedBest && (
                 <a
                   className="best-ai-label"
-                  href="https://github.com/oyueo-mm/YachtLab/blob/main/benchmarks/REPORT.md"
+                  href="https://github.com/oyueo-mm/YachtLab/blob/main/benchmarks/v04/REPORT.md"
                   target="_blank"
                   rel="noreferrer"
                   title={`${benchmark.gamesPerAlgorithm.toLocaleString("ko-KR")}경기 평균 총점 기준`}
@@ -690,7 +695,8 @@ function Spectator({
       </div>
       {source && (
         <p className="small-note">
-          기보 {source.index}수 · {branchState?.round}라운드 상태에서 이어갑니다. 양쪽 AI를 선택하세요.
+          기보 {source.index}수 · {branchState?.round}라운드 상태에서
+          이어갑니다. 양쪽 AI를 선택하세요.
         </p>
       )}
       <div className="config-bar panel">
@@ -1190,23 +1196,46 @@ function Tournament({ openReplay }: { openReplay: (m: Match) => void }) {
   );
 }
 function Analysis({ initial }: { initial: AnalysisSource | null }) {
-  const [values, setValues] = useState(initial?.state.dice.map(d => d.value) ?? [1, 2, 3, 4, 5]),
-    [left, setLeft] = useState(initial ? 3-initial.state.rolls : 2),
-    [card, setCard] = useState<Partial<Record<Category, number>>>(initial ? clone(initial.state.cards[initial.state.player]) : {}),
+  const [values, setValues] = useState(
+      initial?.state.dice.map((d) => d.value) ?? [1, 2, 3, 4, 5],
+    ),
+    [left, setLeft] = useState(initial ? 3 - initial.state.rolls : 2),
+    [card, setCard] = useState<Partial<Record<Category, number>>>(
+      initial ? clone(initial.state.cards[initial.state.player]) : {},
+    ),
     [selected, setSelected] = useState<Algorithm[]>(["Greedy", "Expectimax"]),
     [seed, setSeed] = useState(42),
     [iterations, setIterations] = useState(1000),
-    [answers, setAnswers] = useState<
-      import("./strategy").Comparison["rows"]
-    >([]),
+    [answers, setAnswers] = useState<import("./strategy").Comparison["rows"]>(
+      [],
+    ),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
-  const [comparison, setComparison] = useState<import("./strategy").Comparison | null>(null);
+  const [comparison, setComparison] = useState<
+    import("./strategy").Comparison | null
+  >(null);
   const [answerValues, setAnswerValues] = useState(values);
-  const choiceLabel = (d: import("./dp").Choice) => d.type === "score" ? `${names[d.category]} 기록` : `고정 ${d.ids.map(id=>answerValues[id]).join("·") || "없음"} 후 재굴림`;
-  const sourceUnchanged = !!initial && JSON.stringify(values) === JSON.stringify(initial.state.dice.map(d=>d.value)) && left === 3-initial.state.rolls && JSON.stringify(card) === JSON.stringify(initial.state.cards[initial.state.player]);
+  const choiceLabel = (d: import("./dp").Choice) =>
+    d.type === "score"
+      ? `${names[d.category]} 기록`
+      : `고정 ${d.ids.map((id) => answerValues[id]).join("·") || "없음"} 후 재굴림`;
+  const sourceUnchanged =
+    !!initial &&
+    JSON.stringify(values) ===
+      JSON.stringify(initial.state.dice.map((d) => d.value)) &&
+    left === 3 - initial.state.rolls &&
+    JSON.stringify(card) ===
+      JSON.stringify(initial.state.cards[initial.state.player]);
   const tasks = useRef<{ cancel: () => void }[]>([]),
     version = useRef(0);
+  useEffect(() => {
+    version.current++;
+    tasks.current.forEach((t) => t.cancel());
+    tasks.current = [];
+    setBusy(false);
+    setAnswers([]);
+    setComparison(null);
+  }, [values, left, card, seed, iterations, selected]);
   useEffect(
     () => () => {
       version.current++;
@@ -1219,15 +1248,23 @@ function Analysis({ initial }: { initial: AnalysisSource | null }) {
     setAnswers([]);
     setError("");
     const v = ++version.current;
-    const state = sourceUnchanged ? clone(initial!.state) : {
-      ...createGame(seed),
-      rolls: 3 - left,
-      cards: [card, {}] as Game["cards"],
-      dice: values.map((value, id) => ({ id, value, held: false })),
-    };
+    const state = sourceUnchanged
+      ? clone(initial!.state)
+      : {
+          ...createGame(seed),
+          rolls: 3 - left,
+          cards: [card, {}] as Game["cards"],
+          dice: values.map((value, id) => ({ id, value, held: false })),
+        };
     try {
       setComparison(null);
-      const job = runJob<import("./strategy").Comparison>({type:"compare", state, algorithms:selected, options:{iterations,seed}, actual:sourceUnchanged ? initial?.actual : undefined});
+      const job = runJob<import("./strategy").Comparison>({
+        type: "compare",
+        state,
+        algorithms: selected,
+        options: { iterations, seed },
+        actual: sourceUnchanged ? initial?.actual : undefined,
+      });
       tasks.current.push(job);
       const result = await job.promise;
       if (v !== version.current) return;
@@ -1253,7 +1290,13 @@ function Analysis({ initial }: { initial: AnalysisSource | null }) {
       <div className="analysis-grid">
         <section className="panel analysis-input">
           <h2>분석할 상태</h2>
-          {initial && <p className="small-note">{sourceUnchanged ? `기보의 실제 선택 · ${initial.label}` : "기보 상태를 수정한 가상 분석입니다."}</p>}
+          {initial && (
+            <p className="small-note">
+              {sourceUnchanged
+                ? `기보의 실제 선택 · ${initial.label}`
+                : "기보 상태를 수정한 가상 분석입니다."}
+            </p>
+          )}
           <div className="analysis-dice">
             {values.map((value, i) => (
               <label key={i}>
@@ -1391,15 +1434,60 @@ function Analysis({ initial }: { initial: AnalysisSource | null }) {
             </p>
           </section>
           <ErrorMessage message={error} />
-          {comparison && <section className="panel analysis-comparison">
-            <h2>공통 DP 기준 비교</h2>
-            <p>최선의 기대 최종점수 {comparison.best.toFixed(3)}점. 선택 후에는 DP 최적 정책을 따른다는 가정입니다.</p>
-            <p>DP 최선: {choiceLabel(comparison.optimal)}</p>
-            {comparison.actual && <p>기보의 실제 선택: {choiceLabel(comparison.actual.choice)} · {comparison.actual.q.toFixed(3)}점 · 최선 대비 손실 {comparison.actual.loss.toFixed(3)}점 · {comparison.actual.sameChoice ? "DP와 같은 선택" : "DP와 다른 선택"}</p>}
-            <p className="small-note">단독 게임의 기대 총점 기준이며 상대 승률의 손실을 뜻하지 않습니다. 손실 0은 동가 최적 행동입니다. 아래 정책 확률·근사 효용은 AI 자체 지표입니다.</p>
-            {comparison.rows.map((r,i)=><div className="comparison-row" key={r.algorithm}><span>{i+1}. {r.algorithm}</span><span>{choiceLabel(r.decision)}</span><meter aria-label={`${r.algorithm} DP 가치 손실`} min={0} max={Math.max(1,...comparison.rows.map(x=>x.loss))} value={r.loss}/><strong>{r.q.toFixed(2)}점</strong><span>손실 {r.loss.toFixed(3)}{r.loss<1e-6 ? " · 최적" : ""}</span></div>)}
-            <details><summary>합법 행동의 DP 가치 순위</summary>{comparison.optimal.candidates.map((c,i)=><p key={i}>{i+1}. {names[c.label as Category] ?? c.label} · {c.value.toFixed(3)}점 · 손실 {Math.max(0,comparison.best-c.value).toFixed(3)}</p>)}</details>
-          </section>}
+          {comparison && (
+            <section className="panel analysis-comparison">
+              <h2>공통 DP 기준 비교</h2>
+              <p>
+                최선의 기대 최종점수 {comparison.best.toFixed(3)}점. 선택 후에는
+                DP 최적 정책을 따른다는 가정입니다.
+              </p>
+              <p>DP 최선: {choiceLabel(comparison.optimal)}</p>
+              {comparison.actual && (
+                <p>
+                  기보의 실제 선택: {choiceLabel(comparison.actual.choice)} ·{" "}
+                  {comparison.actual.q.toFixed(3)}점 · 최선 대비 손실{" "}
+                  {comparison.actual.loss.toFixed(3)}점 ·{" "}
+                  {comparison.actual.sameChoice
+                    ? "DP와 같은 선택"
+                    : "DP와 다른 선택"}
+                </p>
+              )}
+              <p className="small-note">
+                단독 게임의 기대 총점 기준이며 상대 승률의 손실을 뜻하지
+                않습니다. 손실 0은 동가 최적 행동입니다. 아래 정책 확률·근사
+                효용은 AI 자체 지표입니다.
+              </p>
+              {comparison.rows.map((r, i) => (
+                <div className="comparison-row" key={r.algorithm}>
+                  <span>
+                    {i + 1}. {r.algorithm}
+                  </span>
+                  <span>{choiceLabel(r.decision)}</span>
+                  <meter
+                    aria-label={`${r.algorithm} DP 가치 손실`}
+                    min={0}
+                    max={Math.max(1, ...comparison.rows.map((x) => x.loss))}
+                    value={r.loss}
+                  />
+                  <strong>{r.q.toFixed(2)}점</strong>
+                  <span>
+                    손실 {r.loss.toFixed(3)}
+                    {r.loss < 1e-6 ? " · 최적" : ""}
+                  </span>
+                </div>
+              ))}
+              <details>
+                <summary>합법 행동의 DP 가치 순위</summary>
+                {comparison.optimal.candidates.map((c, i) => (
+                  <p key={i}>
+                    {i + 1}. {names[c.label as Category] ?? c.label} ·{" "}
+                    {c.value.toFixed(3)}점 · 손실{" "}
+                    {Math.max(0, comparison.best - c.value).toFixed(3)}
+                  </p>
+                ))}
+              </details>
+            </section>
+          )}
           {answers.map(({ algorithm, decision, ms, q, loss }) => (
             <section
               className="panel analysis-answer"
@@ -1410,7 +1498,10 @@ function Analysis({ initial }: { initial: AnalysisSource | null }) {
                 <h2>{algorithm}</h2>
                 <span>{ms.toFixed(1)}ms · 판단 연산</span>
               </div>
-              <p>DP 기대 최종점수 {q.toFixed(3)} · 최선 대비 손실 {loss.toFixed(3)}</p>
+              <p>
+                DP 기대 최종점수 {q.toFixed(3)} · 최선 대비 손실{" "}
+                {loss.toFixed(3)}
+              </p>
               <div className="recommended-dice">
                 {answerValues.map((value, id) => (
                   <div
@@ -1435,6 +1526,7 @@ function Analysis({ initial }: { initial: AnalysisSource | null }) {
               <DecisionView decision={decision} />
             </section>
           ))}
+          <ResearchResults />
         </div>
       </div>
     </>

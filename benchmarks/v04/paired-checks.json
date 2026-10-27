@@ -1,0 +1,26 @@
+{
+  "totalActualMatches": 300,
+  "pairs": [
+    {
+      "a": "Distilled Policy",
+      "b": "DP Expert",
+      "actualMatches": 100,
+      "alternatedSeats": true,
+      "allScoresMatch": true
+    },
+    {
+      "a": "Distilled Policy",
+      "b": "Distilled PPO",
+      "actualMatches": 100,
+      "alternatedSeats": true,
+      "allScoresMatch": true
+    },
+    {
+      "a": "Distilled Policy",
+      "b": "PPO",
+      "actualMatches": 100,
+      "alternatedSeats": true,
+      "allScoresMatch": true
+    }
+  ]
+}

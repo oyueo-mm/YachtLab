@@ -1,0 +1,35 @@
+{
+  "base": "http://127.0.0.1:5173/YachtLab/",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+  "rows": [
+    {
+      "algorithm": "PPO",
+      "firstMs": 99.30000001192093,
+      "requests": 100,
+      "meanRoundTripMs": 0.18200000047683715,
+      "p95RoundTripMs": 0.3999999761581421
+    },
+    {
+      "algorithm": "Distilled Policy",
+      "firstMs": 48.299999952316284,
+      "requests": 100,
+      "meanRoundTripMs": 0.24200000047683715,
+      "p95RoundTripMs": 0.5
+    },
+    {
+      "algorithm": "Distilled PPO",
+      "firstMs": 51.39999997615814,
+      "requests": 100,
+      "meanRoundTripMs": 0.27,
+      "p95RoundTripMs": 0.5
+    },
+    {
+      "algorithm": "DP Expert",
+      "firstMs": 36.39999997615814,
+      "requests": 100,
+      "meanRoundTripMs": 0.06800000011920929,
+      "p95RoundTripMs": 0.19999998807907104
+    }
+  ],
+  "note": "Local Chromium measurements; first request includes worker/model preparation. HTTP cache may be warm. Round trips include message cloning. Not a public-network or mobile-device latency guarantee."
+}

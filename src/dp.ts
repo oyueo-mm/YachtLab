@@ -166,24 +166,40 @@ export function dpDecision(state: Game): Decision {
   };
 }
 
-export type Choice = { type: "score"; category: (typeof categories)[number] } | { type: "reroll"; ids: number[] };
+export type Choice =
+  | { type: "score"; category: (typeof categories)[number] }
+  | { type: "reroll"; ids: number[] };
 const partialIndex = new Map(kernel.states.map((v, i) => [v.join(""), i]));
 /** 0..31 stable-ID hold masks; 32..43 score categories. Illegal actions are -Infinity. */
 export function dpActionValues(state: Game): number[] {
   if (state.done || !state.rolls) throw Error("굴린 주사위가 필요합니다.");
-  const card = state.cards[state.player], u = Math.min(63, upper(card)), base = total(card);
-  const mask = categories.reduce((m, c, i) => card[c] === undefined ? m | (1 << i) : m, 0);
-  const dice = state.dice.map(d => d.value);
+  const card = state.cards[state.player],
+    u = Math.min(63, upper(card)),
+    base = total(card);
+  const mask = categories.reduce(
+    (m, c, i) => (card[c] === undefined ? m | (1 << i) : m),
+    0,
+  );
+  const dice = state.dice.map((d) => d.value);
   const q = Array(44).fill(-Infinity);
   categories.forEach((c, i) => {
     if (!(mask & (1 << i))) return;
-    const p = score(dice, c), next = i < 6 ? Math.min(63, u + p) : u;
-    q[32 + i] = base + p + (u < 63 && next === 63 ? 35 : 0) + dpFutureValue(mask ^ (1 << i), next);
+    const p = score(dice, c),
+      next = i < 6 ? Math.min(63, u + p) : u;
+    q[32 + i] =
+      base +
+      p +
+      (u < 63 && next === 63 ? 35 : 0) +
+      dpFutureValue(mask ^ (1 << i), next);
   });
   if (state.rolls < 3) {
     const expected = chanceValues(turnValues(mask, u, 2 - state.rolls).values);
     for (let m = 0; m < 32; m++) {
-      const key = state.dice.filter(d => m & (1 << d.id)).map(d => d.value).sort().join("");
+      const key = state.dice
+        .filter((d) => m & (1 << d.id))
+        .map((d) => d.value)
+        .sort()
+        .join("");
       q[m] = base + expected[partialIndex.get(key)!];
     }
   }
@@ -195,7 +211,11 @@ export function choiceIndex(choice: Choice): number {
     if (c < 0) throw Error("알 수 없는 카테고리입니다.");
     return 32 + c;
   }
-  if (new Set(choice.ids).size !== choice.ids.length || choice.ids.some(id => !Number.isInteger(id) || id < 0 || id > 4)) throw Error("잘못된 고정 주사위입니다.");
+  if (
+    new Set(choice.ids).size !== choice.ids.length ||
+    choice.ids.some((id) => !Number.isInteger(id) || id < 0 || id > 4)
+  )
+    throw Error("잘못된 고정 주사위입니다.");
   return choice.ids.reduce((mask, id) => mask | (1 << id), 0);
 }
 export function dpActionValue(state: Game, choice: Choice) {

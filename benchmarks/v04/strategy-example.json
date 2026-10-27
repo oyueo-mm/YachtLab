@@ -1,0 +1,400 @@
+{
+  "source": "actual Greedy vs Greedy game, seed 42",
+  "frameIndex": 54,
+  "state": {
+    "dice": [
+      {
+        "id": 0,
+        "value": 3,
+        "held": false
+      },
+      {
+        "id": 1,
+        "value": 2,
+        "held": false
+      },
+      {
+        "id": 2,
+        "value": 5,
+        "held": true
+      },
+      {
+        "id": 3,
+        "value": 2,
+        "held": false
+      },
+      {
+        "id": 4,
+        "value": 5,
+        "held": true
+      }
+    ],
+    "order": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "cards": [
+      {
+        "choice": 25,
+        "four": 26,
+        "small": 15,
+        "yacht": 50
+      },
+      {
+        "choice": 25,
+        "four": 26,
+        "small": 15,
+        "yacht": 50
+      }
+    ],
+    "player": 0,
+    "round": 5,
+    "rolls": 3,
+    "done": false,
+    "winner": null,
+    "seed": 42,
+    "rng": [
+      1168486510,
+      3086441138
+    ],
+    "actions": 53
+  },
+  "loss": 5.768677653820902,
+  "actual": {
+    "type": "score",
+    "category": "fives"
+  },
+  "comparison": {
+    "best": 215.35687708076105,
+    "optimal": {
+      "type": "score",
+      "category": "deuces",
+      "value": 215.35687708076105,
+      "candidates": [
+        {
+          "label": "deuces",
+          "value": 215.35687708076105
+        },
+        {
+          "label": "aces",
+          "value": 211.23322086406836
+        },
+        {
+          "label": "fives",
+          "value": 209.58819942694015
+        },
+        {
+          "label": "threes",
+          "value": 207.90828279846298
+        },
+        {
+          "label": "full",
+          "value": 207.01826883058988
+        },
+        {
+          "label": "large",
+          "value": 204.4167265716061
+        },
+        {
+          "label": "fours",
+          "value": 199.39332165734405
+        },
+        {
+          "label": "sixes",
+          "value": 193.3035469817718
+        }
+      ],
+      "note": "전체 게임 DP 기대 최종점수 · 독립 공정 주사위 모형 · Float64 수치 계산 (상대 승률 최적화 아님)"
+    },
+    "rows": [
+      {
+        "algorithm": "DP Expert",
+        "decision": {
+          "type": "score",
+          "category": "deuces",
+          "value": 215.35687708076105,
+          "candidates": [
+            {
+              "label": "deuces",
+              "value": 215.35687708076105
+            },
+            {
+              "label": "aces",
+              "value": 211.23322086406836
+            },
+            {
+              "label": "fives",
+              "value": 209.58819942694015
+            },
+            {
+              "label": "threes",
+              "value": 207.90828279846298
+            },
+            {
+              "label": "full",
+              "value": 207.01826883058988
+            },
+            {
+              "label": "large",
+              "value": 204.4167265716061
+            },
+            {
+              "label": "fours",
+              "value": 199.39332165734405
+            },
+            {
+              "label": "sixes",
+              "value": 193.3035469817718
+            }
+          ],
+          "note": "전체 게임 DP 기대 최종점수 · 독립 공정 주사위 모형 · Float64 수치 계산 (상대 승률 최적화 아님)"
+        },
+        "ms": 0.03690000000005966,
+        "q": 215.35687708076105,
+        "loss": 0
+      },
+      {
+        "algorithm": "Distilled Policy",
+        "decision": {
+          "type": "score",
+          "category": "deuces",
+          "value": 0.9841858541323077,
+          "candidates": [
+            {
+              "value": 0.9841858541323077,
+              "label": "deuces"
+            },
+            {
+              "value": 0.009828811472961153,
+              "label": "aces"
+            },
+            {
+              "value": 0.004479612678467588,
+              "label": "fives"
+            },
+            {
+              "value": 0.0009158583034919189,
+              "label": "full"
+            },
+            {
+              "value": 0.0004306650848945947,
+              "label": "threes"
+            },
+            {
+              "value": 0.000150562389225048,
+              "label": "large"
+            },
+            {
+              "value": 0.000008631857308366739,
+              "label": "fours"
+            },
+            {
+              "value": 4.081343393874553e-9,
+              "label": "sixes"
+            }
+          ],
+          "note": "DP 교사 모방학습 7,392회 업데이트 · 마스킹 후 정책 확률"
+        },
+        "ms": 0.9290000000000873,
+        "q": 215.35687708076105,
+        "loss": 0
+      },
+      {
+        "algorithm": "Distilled PPO",
+        "decision": {
+          "type": "score",
+          "category": "deuces",
+          "value": 0.9686033571312811,
+          "candidates": [
+            {
+              "value": 0.9686033571312811,
+              "label": "deuces"
+            },
+            {
+              "value": 0.015298718442616224,
+              "label": "aces"
+            },
+            {
+              "value": 0.007141277809634774,
+              "label": "full"
+            },
+            {
+              "value": 0.007100721200640611,
+              "label": "fives"
+            },
+            {
+              "value": 0.0010700182275259673,
+              "label": "large"
+            },
+            {
+              "value": 0.0007714803654860393,
+              "label": "threes"
+            },
+            {
+              "value": 0.000014413416391659116,
+              "label": "fours"
+            },
+            {
+              "value": 1.3406423614079706e-8,
+              "label": "sixes"
+            }
+          ],
+          "note": "모방학습 초기화 + 실제 보상 PPO 32,768 환경 스텝 체크포인트 · 마스킹 후 정책 확률"
+        },
+        "ms": 0.3412999999998192,
+        "q": 215.35687708076105,
+        "loss": 0
+      },
+      {
+        "algorithm": "Greedy",
+        "decision": {
+          "type": "score",
+          "category": "fives",
+          "value": 10,
+          "candidates": [
+            {
+              "label": "aces",
+              "value": 0
+            },
+            {
+              "label": "deuces",
+              "value": 4
+            },
+            {
+              "label": "threes",
+              "value": 3
+            },
+            {
+              "label": "fours",
+              "value": 0
+            },
+            {
+              "label": "fives",
+              "value": 10
+            },
+            {
+              "label": "sixes",
+              "value": 0
+            },
+            {
+              "label": "full",
+              "value": 0
+            },
+            {
+              "label": "large",
+              "value": 0
+            }
+          ],
+          "note": "현재 얻는 점수가 가장 큰 카테고리"
+        },
+        "ms": 0.008799999999837382,
+        "q": 209.58819942694015,
+        "loss": 5.768677653820902
+      },
+      {
+        "algorithm": "Expectimax",
+        "decision": {
+          "type": "score",
+          "category": "fives",
+          "value": 7.136363636363637,
+          "candidates": [
+            {
+              "label": "aces",
+              "value": -1.2727272727272727
+            },
+            {
+              "label": "deuces",
+              "value": 2.8545454545454545
+            },
+            {
+              "label": "threes",
+              "value": 0.23181818181818148
+            },
+            {
+              "label": "fours",
+              "value": -5.090909090909091
+            },
+            {
+              "label": "fives",
+              "value": 7.136363636363637
+            },
+            {
+              "label": "sixes",
+              "value": -7.636363636363637
+            },
+            {
+              "label": "full",
+              "value": -6.363636363636363
+            },
+            {
+              "label": "large",
+              "value": -10.181818181818182
+            }
+          ],
+          "note": "기회비용과 상단 보너스를 반영한 근사 효용"
+        },
+        "ms": 0.10220000000003893,
+        "q": 209.58819942694015,
+        "loss": 5.768677653820902
+      },
+      {
+        "algorithm": "PPO",
+        "decision": {
+          "type": "score",
+          "category": "fives",
+          "value": 0.8999214728039822,
+          "candidates": [
+            {
+              "label": "fives",
+              "value": 0.8999214728039822
+            },
+            {
+              "label": "deuces",
+              "value": 0.09162814307952444
+            },
+            {
+              "label": "aces",
+              "value": 0.005104284124722984
+            },
+            {
+              "label": "large",
+              "value": 0.002986481767897197
+            },
+            {
+              "label": "full",
+              "value": 0.00026084403695079896
+            },
+            {
+              "label": "threes",
+              "value": 0.00009793334239295985
+            },
+            {
+              "label": "sixes",
+              "value": 8.113671499549352e-7
+            },
+            {
+              "label": "fours",
+              "value": 2.9477379594077213e-8
+            }
+          ],
+          "note": "실제 PPO 학습 1,048,576스텝 · 행동 마스킹 후 정책 확률 · 초기 학습 모델"
+        },
+        "ms": 10.696299999999837,
+        "q": 209.58819942694015,
+        "loss": 5.768677653820902
+      }
+    ],
+    "actual": {
+      "choice": {
+        "type": "score",
+        "category": "fives"
+      },
+      "sameChoice": false,
+      "q": 209.58819942694015,
+      "loss": 5.768677653820902
+    }
+  }
+}

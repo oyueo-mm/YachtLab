@@ -1,0 +1,374 @@
+{
+  "complete": true,
+  "gamesPerAlgorithm": 1000,
+  "teacherSha256": "cf1c1a4d65c00705b37331abda22e7bc3cb64099ab12e5f8c00595d5fa97f452",
+  "bestAlgorithm": "DP Expert",
+  "trainingStates": 228956,
+  "validationStates": 25503,
+  "width": 128,
+  "gradientUpdates": 7392,
+  "ppoSteps": 262144,
+  "ppoCheckpointSteps": 32768,
+  "accuracy": 0.9215386425126456,
+  "top3": 0.9921969964317924,
+  "regret": 0.07509700151554244,
+  "ppoRegret": 0.09925072584760632,
+  "algorithms": [
+    {
+      "algorithm": "DP Expert",
+      "games": 1000,
+      "seedScheme": "Murmur3 finalizer of 700000+i; reserved final-test set, unseen in training/validation/v0.3",
+      "teacherSha256": "cf1c1a4d65c00705b37331abda22e7bc3cb64099ab12e5f8c00595d5fa97f452",
+      "mean": 191.884,
+      "sd": 36.83513772705853,
+      "ci95": [
+        189.60093451038733,
+        194.16706548961264
+      ],
+      "median": 192,
+      "min": 78,
+      "max": 287,
+      "bonusRate": 0.697,
+      "yachtRate": 0.292,
+      "actions": 34302,
+      "decisionMs": 0.04155844265640524,
+      "maxDecisionMs": 1.513400000000047,
+      "seconds": 1.5750851000000003,
+      "model": {
+        "bytes": 2097152,
+        "gzipBytes": 1324626
+      }
+    },
+    {
+      "algorithm": "Distilled Policy",
+      "games": 1000,
+      "seedScheme": "Murmur3 finalizer of 700000+i; reserved final-test set, unseen in training/validation/v0.3",
+      "teacherSha256": "cf1c1a4d65c00705b37331abda22e7bc3cb64099ab12e5f8c00595d5fa97f452",
+      "mean": 187.822,
+      "sd": 37.93417083998701,
+      "ci95": [
+        185.47081573231569,
+        190.17318426768432
+      ],
+      "median": 189,
+      "min": 80,
+      "max": 289,
+      "bonusRate": 0.503,
+      "yachtRate": 0.299,
+      "actions": 34785,
+      "decisionMs": 0.05371759379042617,
+      "maxDecisionMs": 10.596099999999979,
+      "seconds": 2.0237225,
+      "model": {
+        "bytes": 609827,
+        "gzipBytes": 273846
+      }
+    },
+    {
+      "algorithm": "Distilled PPO",
+      "games": 1000,
+      "seedScheme": "Murmur3 finalizer of 700000+i; reserved final-test set, unseen in training/validation/v0.3",
+      "teacherSha256": "cf1c1a4d65c00705b37331abda22e7bc3cb64099ab12e5f8c00595d5fa97f452",
+      "mean": 185.983,
+      "sd": 37.62635317770582,
+      "ci95": [
+        183.6508944686857,
+        188.31510553131432
+      ],
+      "median": 188,
+      "min": 69,
+      "max": 287,
+      "bonusRate": 0.518,
+      "yachtRate": 0.292,
+      "actions": 34657,
+      "decisionMs": 0.06927607409758585,
+      "maxDecisionMs": 12.40319999999997,
+      "seconds": 2.657311,
+      "model": {
+        "bytes": 609702,
+        "gzipBytes": 273725
+      }
+    },
+    {
+      "algorithm": "Expectimax",
+      "games": 1000,
+      "seedScheme": "Murmur3 finalizer of 700000+i; reserved final-test set, unseen in training/validation/v0.3",
+      "teacherSha256": "cf1c1a4d65c00705b37331abda22e7bc3cb64099ab12e5f8c00595d5fa97f452",
+      "mean": 174.516,
+      "sd": 35.8284443064644,
+      "ci95": [
+        172.29533001503316,
+        176.73666998496682
+      ],
+      "median": 170,
+      "min": 81,
+      "max": 282,
+      "bonusRate": 0.28,
+      "yachtRate": 0.311,
+      "actions": 34249,
+      "decisionMs": 39.55095325410987,
+      "maxDecisionMs": 1240.564400000003,
+      "seconds": 1355.5802401,
+      "model": null
+    },
+    {
+      "algorithm": "Greedy",
+      "games": 1000,
+      "seedScheme": "Murmur3 finalizer of 700000+i; reserved final-test set, unseen in training/validation/v0.3",
+      "teacherSha256": "cf1c1a4d65c00705b37331abda22e7bc3cb64099ab12e5f8c00595d5fa97f452",
+      "mean": 161.661,
+      "sd": 32.00919661078152,
+      "ci95": [
+        159.67704943970065,
+        163.64495056029935
+      ],
+      "median": 158,
+      "min": 73,
+      "max": 270,
+      "bonusRate": 0.032,
+      "yachtRate": 0.275,
+      "actions": 33790,
+      "decisionMs": 0.520938230245634,
+      "maxDecisionMs": 8.810699999999997,
+      "seconds": 18.078905600000002,
+      "model": null
+    },
+    {
+      "algorithm": "PPO",
+      "games": 1000,
+      "seedScheme": "Murmur3 finalizer of 700000+i; reserved final-test set, unseen in training/validation/v0.3",
+      "teacherSha256": "cf1c1a4d65c00705b37331abda22e7bc3cb64099ab12e5f8c00595d5fa97f452",
+      "mean": 100.182,
+      "sd": 20.037774037761473,
+      "ci95": [
+        98.94004589809735,
+        101.42395410190265
+      ],
+      "median": 99,
+      "min": 51,
+      "max": 174,
+      "bonusRate": 0.02,
+      "yachtRate": 0,
+      "actions": 28037,
+      "decisionMs": 0.031496611620357585,
+      "maxDecisionMs": 13.386700000000019,
+      "seconds": 1.0272257,
+      "model": {
+        "bytes": 276346,
+        "gzipBytes": 106260
+      }
+    }
+  ],
+  "pairs": [
+    {
+      "a": "DP Expert",
+      "b": "Distilled Policy",
+      "games": 1000,
+      "meanDifference": 4.062,
+      "ci95": [
+        1.9813096577361677,
+        6.142690342263833
+      ],
+      "wins": 492,
+      "draws": 83,
+      "losses": 425,
+      "winCredit": 0.5335
+    },
+    {
+      "a": "DP Expert",
+      "b": "Distilled PPO",
+      "games": 1000,
+      "meanDifference": 5.901,
+      "ci95": [
+        3.8271841107704807,
+        7.974815889229519
+      ],
+      "wins": 543,
+      "draws": 63,
+      "losses": 394,
+      "winCredit": 0.5745
+    },
+    {
+      "a": "DP Expert",
+      "b": "Expectimax",
+      "games": 1000,
+      "meanDifference": 17.368,
+      "ci95": [
+        14.71182819369186,
+        20.024171806308136
+      ],
+      "wins": 668,
+      "draws": 9,
+      "losses": 323,
+      "winCredit": 0.6725
+    },
+    {
+      "a": "DP Expert",
+      "b": "Greedy",
+      "games": 1000,
+      "meanDifference": 30.223,
+      "ci95": [
+        27.493912705218804,
+        32.952087294781194
+      ],
+      "wins": 744,
+      "draws": 7,
+      "losses": 249,
+      "winCredit": 0.7475
+    },
+    {
+      "a": "DP Expert",
+      "b": "PPO",
+      "games": 1000,
+      "meanDifference": 91.702,
+      "ci95": [
+        89.21341330762236,
+        94.19058669237764
+      ],
+      "wins": 990,
+      "draws": 2,
+      "losses": 8,
+      "winCredit": 0.991
+    },
+    {
+      "a": "Distilled Policy",
+      "b": "Distilled PPO",
+      "games": 1000,
+      "meanDifference": 1.839,
+      "ci95": [
+        0.1136588966209029,
+        3.564341103379097
+      ],
+      "wins": 407,
+      "draws": 248,
+      "losses": 345,
+      "winCredit": 0.531
+    },
+    {
+      "a": "Distilled Policy",
+      "b": "Expectimax",
+      "games": 1000,
+      "meanDifference": 13.306,
+      "ci95": [
+        10.652102271998203,
+        15.959897728001796
+      ],
+      "wins": 636,
+      "draws": 7,
+      "losses": 357,
+      "winCredit": 0.6395
+    },
+    {
+      "a": "Distilled Policy",
+      "b": "Greedy",
+      "games": 1000,
+      "meanDifference": 26.161,
+      "ci95": [
+        23.424640511859835,
+        28.897359488140168
+      ],
+      "wins": 723,
+      "draws": 2,
+      "losses": 275,
+      "winCredit": 0.724
+    },
+    {
+      "a": "Distilled Policy",
+      "b": "PPO",
+      "games": 1000,
+      "meanDifference": 87.64,
+      "ci95": [
+        85.03580104476666,
+        90.24419895523334
+      ],
+      "wins": 985,
+      "draws": 1,
+      "losses": 14,
+      "winCredit": 0.9855
+    },
+    {
+      "a": "Distilled PPO",
+      "b": "Expectimax",
+      "games": 1000,
+      "meanDifference": 11.467,
+      "ci95": [
+        8.811796665630965,
+        14.122203334369036
+      ],
+      "wins": 598,
+      "draws": 12,
+      "losses": 390,
+      "winCredit": 0.604
+    },
+    {
+      "a": "Distilled PPO",
+      "b": "Greedy",
+      "games": 1000,
+      "meanDifference": 24.322,
+      "ci95": [
+        21.66790525277019,
+        26.97609474722981
+      ],
+      "wins": 711,
+      "draws": 8,
+      "losses": 281,
+      "winCredit": 0.715
+    },
+    {
+      "a": "Distilled PPO",
+      "b": "PPO",
+      "games": 1000,
+      "meanDifference": 85.801,
+      "ci95": [
+        83.26401729614922,
+        88.33798270385078
+      ],
+      "wins": 984,
+      "draws": 2,
+      "losses": 14,
+      "winCredit": 0.985
+    },
+    {
+      "a": "Expectimax",
+      "b": "Greedy",
+      "games": 1000,
+      "meanDifference": 12.855,
+      "ci95": [
+        10.250464708005042,
+        15.459535291994959
+      ],
+      "wins": 609,
+      "draws": 15,
+      "losses": 376,
+      "winCredit": 0.6165
+    },
+    {
+      "a": "Expectimax",
+      "b": "PPO",
+      "games": 1000,
+      "meanDifference": 74.334,
+      "ci95": [
+        71.88054236767292,
+        76.78745763232709
+      ],
+      "wins": 984,
+      "draws": 2,
+      "losses": 14,
+      "winCredit": 0.985
+    },
+    {
+      "a": "Greedy",
+      "b": "PPO",
+      "games": 1000,
+      "meanDifference": 61.479,
+      "ci95": [
+        59.23496314520905,
+        63.72303685479095
+      ],
+      "wins": 960,
+      "draws": 3,
+      "losses": 37,
+      "winCredit": 0.9615
+    }
+  ]
+}
