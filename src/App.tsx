@@ -193,6 +193,24 @@ export default function App() {
                 요트다이스를
                 <br /> 플레이해보세요
               </h1>
+              <div className="home-shortcuts">
+                <a
+                  href="#play"
+                  className="primary"
+                  onClick={() => navigate("play")}
+                >
+                  <Dices size={18} />
+                  사람 vs AI
+                </a>
+                <a
+                  href="#watch"
+                  className="secondary"
+                  onClick={() => navigate("watch")}
+                >
+                  <Bot size={18} />
+                  AI vs AI
+                </a>
+              </div>
               <div className="hero-dice" aria-label="장식용 주사위 세 개">
                 <DieIcon value={3} className="hero-die one" />
                 <DieIcon value={5} className="hero-die two" />

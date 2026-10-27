@@ -1872,7 +1872,7 @@ input[type="range"],
   border: 2px solid transparent;
   border-radius: 21%;
   transition:
-    transform 0.42s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform var(--demo-move) cubic-bezier(0.2, 0.7, 0.2, 1),
     border-color 0.25s,
     opacity 0.3s;
 }
@@ -1905,7 +1905,7 @@ input[type="range"],
   transform: translateY(6px);
 }
 .demo-die.is-rolling {
-  animation: demo-roll 0.36s ease-in-out;
+  animation: demo-roll var(--demo-roll) ease-in-out;
 }
 .home-demo[data-paused="true"] * {
   animation-play-state: paused;
@@ -1928,7 +1928,7 @@ input[type="range"],
   background: #fff;
   border-radius: 9px;
   padding: 18px 18px 12px;
-  transition: transform 0.35s;
+  transition: transform var(--demo-receipt);
 }
 .receipt-lines {
   display: flex;
@@ -2020,6 +2020,29 @@ input[type="range"],
   .receipt-entry .category-pattern .die-icon {
     width: 10px;
     height: 10px;
+  }
+}
+.home-shortcuts {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: -12px 0 30px;
+}
+.home-shortcuts a {
+  min-height: 44px;
+  font-size: 12px;
+  padding-inline: 16px;
+}
+@media (max-width: 760px) {
+  .home-shortcuts {
+    margin: 2px 0 22px;
+    gap: 8px;
+  }
+  .home-shortcuts a {
+    flex: 1;
+    padding-inline: 10px;
+    font-size: 11px;
+    white-space: nowrap;
   }
 }
 @media (max-width: 1000px) and (min-width: 761px) {

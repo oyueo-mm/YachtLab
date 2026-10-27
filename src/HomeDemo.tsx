@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
+import { demoTiming as timing } from "./demo-timing";
 import { Check, LockKeyhole } from "lucide-react";
 import records from "./demo-records.json";
 import { DieIcon } from "./Dice";
@@ -42,14 +43,14 @@ export default function HomeDemo() {
     const clip = clips[cursor.clip],
       next = clip.frames[cursor.frame + 1];
     const delay = cursor.rolling
-      ? 360
+      ? timing.roll
       : cursor.frame === clip.frames.length - 1
-        ? 2200
+        ? timing.complete
         : cursor.frame === 0
-          ? 700
+          ? timing.ready
           : clip.frames[cursor.frame].action?.type === "hold"
-            ? 1050
-            : 1200;
+            ? timing.hold
+            : timing.action;
     const timer = window.setTimeout(
       () =>
         setCursor((current) => {
@@ -81,6 +82,13 @@ export default function HomeDemo() {
   return (
     <div
       className="home-demo"
+      style={
+        {
+          "--demo-roll": `${timing.roll}ms`,
+          "--demo-move": `${timing.move}ms`,
+          "--demo-receipt": `${timing.receipt}ms`,
+        } as CSSProperties
+      }
       role="img"
       aria-label="주사위를 굴리고 고정한 뒤 점수를 기록하는 자동 플레이 시연"
       aria-live="off"

@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { demoTiming as T } from "../../src/demo-timing";
 test("홈 시연은 굴림·고정·재굴림·점수 기록 후 다음 턴으로 반복", async ({
   page,
 }) => {
@@ -10,11 +11,11 @@ test("홈 시연은 굴림·고정·재굴림·점수 기록 후 다음 턴으�
   await page.goto("");
   const demo = page.locator(".home-demo");
   await expect(demo).toHaveAttribute("data-phase", "ready");
-  await page.clock.runFor(750);
+  await page.clock.runFor(T.ready + 20);
   await expect(demo).toHaveAttribute("data-phase", "rolling");
-  await page.clock.runFor(400);
+  await page.clock.runFor(T.roll + 20);
   await expect(demo).toHaveAttribute("data-phase", "roll");
-  await page.clock.runFor(1200);
+  await page.clock.runFor(T.action + 20);
   await expect(demo).toHaveAttribute("data-phase", "hold");
   const held = await page
     .locator(".demo-die[data-held=true]")
@@ -25,12 +26,12 @@ test("홈 시연은 굴림·고정·재굴림·점수 기록 후 다음 턴으�
       })),
     );
   expect(held.length).toBeGreaterThan(0);
-  await page.clock.runFor(1500);
+  await page.clock.runFor(T.hold + T.roll + 20);
   for (const die of held)
     await expect(
       page.locator(`.demo-die[data-id="${die.id}"]`),
     ).toHaveAttribute("data-value", die.value!);
-  await page.clock.runFor(4200);
+  await page.clock.runFor(T.action + T.hold + T.roll + T.action + 20);
   await expect(demo).toHaveAttribute("data-phase", "score");
   await expect(page.locator(".receipt-entry strong")).toHaveText("27");
   await page.screenshot({
@@ -38,7 +39,7 @@ test("홈 시연은 굴림·고정·재굴림·점수 기록 후 다음 턴으�
     fullPage: true,
     animations: "disabled",
   });
-  await page.clock.runFor(2400);
+  await page.clock.runFor(T.complete + 20);
   await expect(demo).toHaveAttribute("data-clip", "1");
   // The six clips return to the first without creating any AI worker requests.
   const seen = new Set<string>(["0"]);
@@ -50,7 +51,7 @@ test("홈 시연은 굴림·고정·재굴림·점수 기록 후 다음 턴으�
       returned = true;
       break;
     }
-    await page.clock.runFor(1200);
+    await page.clock.runFor(T.action);
   }
   expect(seen.size).toBe(6);
   expect(returned).toBe(true);
@@ -62,7 +63,7 @@ test("백그라운드 중 정지, 화면 이동 후 정리 및 홈 복귀", asyn
   page.on("pageerror", (e) => errors.push(e.message));
   await page.clock.install();
   await page.goto("");
-  await page.clock.runFor(1200);
+  await page.clock.runFor(T.ready + T.roll + 50);
   await page.evaluate(() => {
     Object.defineProperty(document, "hidden", {
       value: true,
@@ -100,12 +101,27 @@ test("백그라운드 중 정지, 화면 이동 후 정리 및 홈 복귀", asyn
     location.hash = "home";
   });
   await expect(page.locator(".home-demo")).toHaveAttribute("data-frame", "0");
-  await page.clock.runFor(1200);
+  await page.clock.runFor(T.ready + T.roll + 50);
   await expect(page.locator(".home-demo")).toHaveAttribute(
     "data-phase",
     "roll",
   );
   expect(errors).toEqual([]);
+});
+
+test("홈 바로가기는 기존 화면으로 이동하고 시연을 정리", async ({ page }) => {
+  await page.goto("");
+  await page.locator('.home-shortcuts a[href="#play"]').click();
+  await expect(
+    page.getByRole("button", { name: "주사위 굴리기" }),
+  ).toBeVisible();
+  await expect(page.locator(".home-demo")).toHaveCount(0);
+  await page.goto("#home");
+  await page.locator('.home-shortcuts a[href="#watch"]').click();
+  await expect(
+    page.getByRole("heading", { name: "AI 대전 관전" }),
+  ).toBeVisible();
+  await expect(page.locator(".home-demo")).toHaveCount(0);
 });
 test("모션 감소 설정에서는 실제 완성된 턴을 정적으로 표시", async ({
   page,

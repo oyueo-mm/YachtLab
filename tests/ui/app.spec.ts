@@ -18,7 +18,7 @@ test("홈 문구와 장식 주사위, 메뉴와 새로고침", async ({ page }) 
   await expect(page.locator(".hero-intro .die-icon")).toHaveCount(3);
   await expect(page.locator(".demo-dice .die-icon")).toHaveCount(5);
   await expect(page.locator("header a, header .brand")).toHaveCount(0);
-  await expect(page.locator("main button")).toHaveCount(0);
+  await expect(page.locator(".home-shortcuts a")).toHaveCount(2);
   await navigate(page, "전략 분석실");
   await expect(
     page.getByRole("heading", { name: "전략 분석실" }),
