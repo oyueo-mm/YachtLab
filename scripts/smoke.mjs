@@ -15,7 +15,14 @@ try {
   await expect(page.locator("main h1")).toHaveText(
     "요트다이스를 플레이해보세요",
   );
-  await expect(page.locator(".hero .die-icon")).toHaveCount(3);
+  await expect(page.locator(".hero-intro .die-icon")).toHaveCount(3);
+  await expect(page.locator(".demo-dice .die-icon")).toHaveCount(5);
+  await expect(page.locator("header a")).toHaveCount(0);
+  await expect(page.locator(".home-demo")).toHaveAttribute(
+    "data-frame",
+    /^[1-9]/,
+    { timeout: 10000 },
+  );
   await page.screenshot({
     path: "test-results/public-home.png",
     fullPage: true,

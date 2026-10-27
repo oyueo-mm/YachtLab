@@ -34,6 +34,7 @@ import { type Match, type Result, statistics } from "./match";
 import { runJob } from "./client";
 import { Dice, DieIcon } from "./Dice";
 import { Scoreboard, CategoryIcon } from "./Scoreboard";
+import HomeDemo from "./HomeDemo";
 type Page = "home" | "play" | "watch" | "tournament" | "analysis";
 const navigation = [
   { id: "home", name: "홈", icon: Home },
@@ -158,12 +159,6 @@ export default function App() {
         >
           <Menu size={22} />
         </button>
-        <a href="#home" className="brand" onClick={() => navigate("home")}>
-          <span className="brand-icon">
-            <Dices size={22} />
-          </span>
-          YachtLab
-        </a>
       </header>
       {open && (
         <button
@@ -193,15 +188,18 @@ export default function App() {
       <main className={`main page-${page}`}>
         {page === "home" && (
           <section className="hero">
-            <h1>
-              요트다이스를
-              <br className="mobile-break" /> 플레이해보세요
-            </h1>
-            <div className="hero-dice" aria-label="주사위 세 개">
-              <DieIcon value={3} className="hero-die one" />
-              <DieIcon value={5} className="hero-die two" />
-              <DieIcon value={2} className="hero-die three" />
+            <div className="hero-intro">
+              <h1>
+                요트다이스를
+                <br /> 플레이해보세요
+              </h1>
+              <div className="hero-dice" aria-label="장식용 주사위 세 개">
+                <DieIcon value={3} className="hero-die one" />
+                <DieIcon value={5} className="hero-die two" />
+                <DieIcon value={2} className="hero-die three" />
+              </div>
             </div>
+            <HomeDemo />
           </section>
         )}
         {page === "play" && <HumanGame />}
@@ -906,7 +904,7 @@ function Tournament({ openReplay }: { openReplay: (m: Match) => void }) {
             {participants.map((a) => {
               const s = statistics(results, a)!;
               return (
-                <div className="chart-row" key={a}>
+                <div className="chart-row" key={a} data-algorithm={a}>
                   <span>{a}</span>
                   <div>
                     <i style={{ width: `${(s.mean / 323) * 100}%` }} />
@@ -1200,7 +1198,11 @@ function Analysis() {
           </section>
           <ErrorMessage message={error} />
           {answers.map(({ algorithm, decision, ms }) => (
-            <section className="panel analysis-answer" key={algorithm}>
+            <section
+              className="panel analysis-answer"
+              key={algorithm}
+              data-algorithm={algorithm}
+            >
               <div className="section-heading">
                 <h2>{algorithm}</h2>
                 <span>{ms.toFixed(0)}ms · 통신 포함</span>

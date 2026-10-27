@@ -1,13 +1,4 @@
-import {
-  Star,
-  Shapes,
-  Copy,
-  House,
-  ChartNoAxesColumnIncreasing,
-  ArrowRight,
-  Anchor,
-  Sigma,
-} from "lucide-react";
+import { Star, Shapes, Sigma } from "lucide-react";
 import {
   bonus,
   categories,
@@ -21,16 +12,31 @@ import {
 import { DieIcon } from "./Dice";
 export function CategoryIcon({ category }: { category: Category }) {
   const index = categories.indexOf(category);
-  if (index < 6) return <DieIcon value={index + 1} />;
-  const Icon = {
-    choice: Shapes,
-    four: Copy,
-    full: House,
-    small: ChartNoAxesColumnIncreasing,
-    large: ArrowRight,
-    yacht: Anchor,
-  }[category as "choice"];
-  return <Icon size={17} />;
+  const patterns: Partial<Record<Category, number[]>> = {
+    four: [4, 4, 4, 4],
+    full: [2, 2, 3, 3, 3],
+    small: [1, 2, 3, 4],
+    large: [1, 2, 3, 4, 5],
+    yacht: [6, 6, 6, 6, 6],
+  };
+  const values = index < 6 ? [index + 1] : patterns[category];
+  return (
+    <span
+      className={`category-icon ${values && values.length > 1 ? "category-pattern" : ""}`}
+      role="img"
+      aria-label={
+        values ? `${names[category]}: ${values.join(", ")}` : "초이스"
+      }
+    >
+      {values ? (
+        values.map((value, i) => (
+          <DieIcon key={i} value={value} aria-hidden="true" />
+        ))
+      ) : (
+        <Shapes size={17} aria-hidden="true" />
+      )}
+    </span>
+  );
 }
 export function Scoreboard({
   state,
@@ -134,10 +140,12 @@ function Rows({
           </tr>
         </>
       )}
-      <tr>
+      <tr data-category={c}>
         <th scope="row">
-          <CategoryIcon category={c} />
-          {names[c]}
+          <span className="category-label">
+            <CategoryIcon category={c} />
+            <span>{names[c]}</span>
+          </span>
         </th>
         {state.cards.map((card, i) => {
           const can =
