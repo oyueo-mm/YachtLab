@@ -1,0 +1,14 @@
+{
+  "dpTableSha256": "cf1c1a4d65c00705b37331abda22e7bc3cb64099ab12e5f8c00595d5fa97f452",
+  "bestAlgorithm": "DP Expert",
+  "gamesPerAlgorithm": 1000,
+  "criterion": "highest sample mean and positive paired 95% mean-difference CI against every other policy",
+  "means": {
+    "Random": 39.302,
+    "Greedy": 163.451,
+    "Expectimax": 173.869,
+    "MCTS": 136.34,
+    "PPO": 101.179,
+    "DP Expert": 193.821
+  }
+}

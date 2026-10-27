@@ -4,6 +4,18 @@ async function selectDP(page: import("@playwright/test").Page) {
   await page.getByLabel("Expectimax", { exact: true }).uncheck();
   await page.getByLabel("DP Expert", { exact: true }).check();
 }
+
+test("검증된 평균 총점 1위 DP를 기본 상대와 근거 링크로 표시", async ({
+  page,
+}) => {
+  await page.goto("#play");
+  await expect(page.getByRole("combobox", { name: "상대 AI" })).toHaveValue(
+    "DP Expert",
+  );
+  await expect(
+    page.getByRole("link", { name: "최고 성능 · 벤치마크 기준" }),
+  ).toHaveAttribute("href", /benchmarks\/REPORT.md$/);
+});
 test("DP는 필요할 때 로드하고 분석에서 전체 경기 기대값과 후보 차이를 표시", async ({
   page,
 }) => {

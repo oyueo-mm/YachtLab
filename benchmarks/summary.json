@@ -1,0 +1,436 @@
+{
+  "dpTableSha256": "cf1c1a4d65c00705b37331abda22e7bc3cb64099ab12e5f8c00595d5fa97f452",
+  "objective": "mean final total, not optimized opponent win probability",
+  "gamesPerAlgorithm": 1000,
+  "seedScheme": "Murmur3 32-bit finalizer of 200000 + game index",
+  "seedBase": 200000,
+  "mctsIterations": 600,
+  "confidence": "Means: 95% normal approximation. Win credit: Bonferroni combination of 97.5% Wilson marginal intervals for wins/losses (approximate conservative 95%). Draw=0.5.",
+  "pairedProjectionChecks": 100,
+  "environment": {
+    "node": "v24.19.0",
+    "os": "win32 10.0.26200",
+    "cpu": "Intel(R) Core(TM) Ultra 7 256V",
+    "timing": "function wall time; browser validation may share the host; RSS includes Vite/Node harness"
+  },
+  "bestAlgorithm": "DP Expert",
+  "criterion": "highest sample mean and positive paired 95% mean-difference CI against every other policy",
+  "algorithms": [
+    {
+      "algorithm": "Random",
+      "games": 1000,
+      "seedStart": 200000,
+      "seedScheme": "Murmur3 32-bit finalizer of 200000 + game index",
+      "iterations": null,
+      "mean": 39.302,
+      "meanCI95": [
+        38.54307056995173,
+        40.06092943004827
+      ],
+      "median": 38,
+      "sd": 12.244620317785555,
+      "min": 11,
+      "max": 96,
+      "bonusRate": 0,
+      "yachtRate": 0.003,
+      "meanActionMs": 0.0008752495919224654,
+      "maxActionMs": 1.3712000000000444,
+      "actions": 26343,
+      "peakRssBytes": 137097216,
+      "peakHeapBytes": 48220456,
+      "wallSeconds": 0.18648570000000017
+    },
+    {
+      "algorithm": "Greedy",
+      "games": 1000,
+      "seedStart": 200000,
+      "seedScheme": "Murmur3 32-bit finalizer of 200000 + game index",
+      "iterations": null,
+      "mean": 163.451,
+      "meanCI95": [
+        161.39079061631517,
+        165.51120938368481
+      ],
+      "median": 158,
+      "sd": 33.23956178212153,
+      "min": 75,
+      "max": 286,
+      "bonusRate": 0.042,
+      "yachtRate": 0.276,
+      "meanActionMs": 0.5263298179014108,
+      "maxActionMs": 32.8888999999981,
+      "actions": 33718,
+      "peakRssBytes": 171704320,
+      "peakHeapBytes": 66363608,
+      "wallSeconds": 18.2765394
+    },
+    {
+      "algorithm": "Expectimax",
+      "games": 1000,
+      "seedStart": 200000,
+      "seedScheme": "Murmur3 32-bit finalizer of 200000 + game index",
+      "iterations": null,
+      "mean": 173.869,
+      "meanCI95": [
+        171.5601420488603,
+        176.17785795113969
+      ],
+      "median": 172,
+      "sd": 37.25127509893449,
+      "min": 61,
+      "max": 283,
+      "bonusRate": 0.256,
+      "yachtRate": 0.3,
+      "meanActionMs": 37.89257836274348,
+      "maxActionMs": 902.9202000000078,
+      "actions": 34228,
+      "peakRssBytes": 263024640,
+      "peakHeapBytes": 165788152,
+      "wallSeconds": 1297.9476356
+    },
+    {
+      "algorithm": "MCTS",
+      "games": 1000,
+      "seedStart": 200000,
+      "seedScheme": "Murmur3 32-bit finalizer of 200000 + game index",
+      "iterations": 600,
+      "mean": 136.34,
+      "meanCI95": [
+        134.42109803486687,
+        138.25890196513313
+      ],
+      "median": 135,
+      "sd": 30.959698042825018,
+      "min": 64,
+      "max": 267,
+      "bonusRate": 0.064,
+      "yachtRate": 0.097,
+      "meanActionMs": 2.9472658976537334,
+      "maxActionMs": 67.08710000000428,
+      "actions": 30602,
+      "peakRssBytes": 253243392,
+      "peakHeapBytes": 113085384,
+      "wallSeconds": 90.8265967
+    },
+    {
+      "algorithm": "PPO",
+      "games": 1000,
+      "seedStart": 200000,
+      "seedScheme": "Murmur3 32-bit finalizer of 200000 + game index",
+      "iterations": null,
+      "mean": 101.179,
+      "meanCI95": [
+        99.96149631026066,
+        102.39650368973935
+      ],
+      "median": 101,
+      "sd": 19.643289383853645,
+      "min": 60,
+      "max": 191,
+      "bonusRate": 0.019,
+      "yachtRate": 0.002,
+      "meanActionMs": 0.03429490767248792,
+      "maxActionMs": 48.5865,
+      "actions": 27944,
+      "peakRssBytes": 141217792,
+      "peakHeapBytes": 52737480,
+      "wallSeconds": 1.1195708
+    },
+    {
+      "algorithm": "DP Expert",
+      "games": 1000,
+      "seedStart": 200000,
+      "seedScheme": "Murmur3 32-bit finalizer of 200000 + game index",
+      "iterations": null,
+      "mean": 193.821,
+      "meanCI95": [
+        191.53224147178108,
+        196.10975852821892
+      ],
+      "median": 193,
+      "sd": 36.926989608707125,
+      "min": 92,
+      "max": 282,
+      "bonusRate": 0.704,
+      "yachtRate": 0.294,
+      "meanActionMs": 0.06038951947217732,
+      "maxActionMs": 9.853900000000067,
+      "actions": 34254,
+      "peakRssBytes": 195940352,
+      "peakHeapBytes": 71365664,
+      "wallSeconds": 2.3830913000000002
+    }
+  ],
+  "pairs": [
+    {
+      "a": "Random",
+      "b": "Greedy",
+      "games": 1000,
+      "wins": 0,
+      "draws": 0,
+      "losses": 1000,
+      "winCreditRate": 0,
+      "winCreditCI95": [
+        0,
+        0.004998772921083139
+      ],
+      "meanScoreDifference": -124.149,
+      "meanDifferenceCI95": [
+        -126.3331019253365,
+        -121.9648980746635
+      ]
+    },
+    {
+      "a": "Random",
+      "b": "Expectimax",
+      "games": 1000,
+      "wins": 0,
+      "draws": 0,
+      "losses": 1000,
+      "winCreditRate": 0,
+      "winCreditCI95": [
+        0,
+        0.004998772921083139
+      ],
+      "meanScoreDifference": -134.567,
+      "meanDifferenceCI95": [
+        -137.01434756983662,
+        -132.1196524301634
+      ]
+    },
+    {
+      "a": "Random",
+      "b": "MCTS",
+      "games": 1000,
+      "wins": 1,
+      "draws": 0,
+      "losses": 999,
+      "winCreditRate": 0.001,
+      "winCreditCI95": [
+        0.00014539618504616492,
+        0.006843379190194732
+      ],
+      "meanScoreDifference": -97.038,
+      "meanDifferenceCI95": [
+        -99.04581499012338,
+        -95.03018500987662
+      ]
+    },
+    {
+      "a": "Random",
+      "b": "PPO",
+      "games": 1000,
+      "wins": 1,
+      "draws": 0,
+      "losses": 999,
+      "winCreditRate": 0.001,
+      "winCreditCI95": [
+        0.00014539618504616492,
+        0.006843379190194732
+      ],
+      "meanScoreDifference": -61.877,
+      "meanDifferenceCI95": [
+        -63.26169662683997,
+        -60.492303373160034
+      ]
+    },
+    {
+      "a": "Random",
+      "b": "DP Expert",
+      "games": 1000,
+      "wins": 0,
+      "draws": 0,
+      "losses": 1000,
+      "winCreditRate": 0,
+      "winCreditCI95": [
+        0,
+        0.004998772921083139
+      ],
+      "meanScoreDifference": -154.519,
+      "meanDifferenceCI95": [
+        -156.9208705240701,
+        -152.11712947592991
+      ]
+    },
+    {
+      "a": "Greedy",
+      "b": "Expectimax",
+      "games": 1000,
+      "wins": 396,
+      "draws": 18,
+      "losses": 586,
+      "winCreditRate": 0.405,
+      "winCreditCI95": [
+        0.3707706052069173,
+        0.44017916164808857
+      ],
+      "meanScoreDifference": -10.418,
+      "meanDifferenceCI95": [
+        -13.115513635645998,
+        -7.7204863643540005
+      ]
+    },
+    {
+      "a": "Greedy",
+      "b": "MCTS",
+      "games": 1000,
+      "wins": 766,
+      "draws": 9,
+      "losses": 225,
+      "winCreditRate": 0.7705,
+      "winCreditCI95": [
+        0.7393884969846674,
+        0.7989071668650267
+      ],
+      "meanScoreDifference": 27.111,
+      "meanDifferenceCI95": [
+        24.636807456403364,
+        29.585192543596637
+      ]
+    },
+    {
+      "a": "Greedy",
+      "b": "PPO",
+      "games": 1000,
+      "wins": 967,
+      "draws": 4,
+      "losses": 29,
+      "winCreditRate": 0.969,
+      "winCreditCI95": [
+        0.9541858284548066,
+        0.9791253225452174
+      ],
+      "meanScoreDifference": 62.272,
+      "meanDifferenceCI95": [
+        60.024793066478374,
+        64.51920693352163
+      ]
+    },
+    {
+      "a": "Greedy",
+      "b": "DP Expert",
+      "games": 1000,
+      "wins": 243,
+      "draws": 10,
+      "losses": 747,
+      "winCreditRate": 0.248,
+      "winCreditCI95": [
+        0.21870365101470135,
+        0.2798157305375246
+      ],
+      "meanScoreDifference": -30.37,
+      "meanDifferenceCI95": [
+        -33.04268157110804,
+        -27.69731842889196
+      ]
+    },
+    {
+      "a": "Expectimax",
+      "b": "MCTS",
+      "games": 1000,
+      "wins": 801,
+      "draws": 6,
+      "losses": 193,
+      "winCreditRate": 0.804,
+      "winCreditCI95": [
+        0.774374055465223,
+        0.8305866905987586
+      ],
+      "meanScoreDifference": 37.529,
+      "meanDifferenceCI95": [
+        34.77672378101325,
+        40.281276218986754
+      ]
+    },
+    {
+      "a": "Expectimax",
+      "b": "PPO",
+      "games": 1000,
+      "wins": 972,
+      "draws": 0,
+      "losses": 28,
+      "winCreditRate": 0.972,
+      "winCreditCI95": [
+        0.9577404333661692,
+        0.9815407249963284
+      ],
+      "meanScoreDifference": 72.69,
+      "meanDifferenceCI95": [
+        70.22628550270852,
+        75.15371449729147
+      ]
+    },
+    {
+      "a": "Expectimax",
+      "b": "DP Expert",
+      "games": 1000,
+      "wins": 318,
+      "draws": 10,
+      "losses": 672,
+      "winCreditRate": 0.323,
+      "winCreditCI95": [
+        0.2908132322840968,
+        0.3569563333299666
+      ],
+      "meanScoreDifference": -19.952,
+      "meanDifferenceCI95": [
+        -22.67998125864184,
+        -17.224018741358165
+      ]
+    },
+    {
+      "a": "MCTS",
+      "b": "PPO",
+      "games": 1000,
+      "wins": 851,
+      "draws": 6,
+      "losses": 143,
+      "winCreditRate": 0.854,
+      "winCreditCI95": [
+        0.8272042670274727,
+        0.8772566017444003
+      ],
+      "meanScoreDifference": 35.161,
+      "meanDifferenceCI95": [
+        33.05119516259481,
+        37.270804837405194
+      ]
+    },
+    {
+      "a": "MCTS",
+      "b": "DP Expert",
+      "games": 1000,
+      "wins": 92,
+      "draws": 1,
+      "losses": 907,
+      "winCreditRate": 0.0925,
+      "winCreditCI95": [
+        0.07395153309476032,
+        0.11512246683592237
+      ],
+      "meanScoreDifference": -57.481,
+      "meanDifferenceCI95": [
+        -60.17608080593754,
+        -54.785919194062465
+      ]
+    },
+    {
+      "a": "PPO",
+      "b": "DP Expert",
+      "games": 1000,
+      "wins": 5,
+      "draws": 1,
+      "losses": 994,
+      "winCreditRate": 0.0055,
+      "winCreditCI95": [
+        0.0021921199214224862,
+        0.01375166649752868
+      ],
+      "meanScoreDifference": -92.642,
+      "meanDifferenceCI95": [
+        -95.10835240275028,
+        -90.17564759724971
+      ]
+    }
+  ]
+}

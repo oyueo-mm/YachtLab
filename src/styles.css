@@ -311,6 +311,19 @@ small {
   align-items: center;
   gap: 12px;
 }
+.opponent-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.best-ai-label {
+  font-size: 10px;
+  color: var(--red-deep);
+  line-height: 1.5;
+}
+.best-ai-label:hover {
+  text-decoration: underline;
+}
 .score-summary {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;

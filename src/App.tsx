@@ -35,6 +35,13 @@ import { runJob, createDecisionSession } from "./client";
 import { Dice, DieIcon } from "./Dice";
 import { Scoreboard, CategoryIcon } from "./Scoreboard";
 import HomeDemo from "./HomeDemo";
+import benchmark from "./benchmark-summary.json";
+import dpManifest from "./dp-manifest.json";
+const verifiedBest =
+  benchmark.gamesPerAlgorithm >= 1000 &&
+  benchmark.dpTableSha256 === dpManifest.sha256
+    ? algorithms.find((a) => a === benchmark.bestAlgorithm)
+    : undefined;
 type Page = "home" | "play" | "watch" | "tournament" | "analysis";
 const navigation = [
   { id: "home", name: "홈", icon: Home },
@@ -239,7 +246,7 @@ export default function App() {
 }
 function HumanGame() {
   const [state, setState] = useState(() => createGame(newSeed())),
-    [algorithm, setAlgorithm] = useState<Algorithm>("Greedy"),
+    [algorithm, setAlgorithm] = useState<Algorithm>(verifiedBest ?? "Greedy"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [last, setLast] = useState<Decision | null>(null);
@@ -322,12 +329,25 @@ function HumanGame() {
     <div className="game-grid">
       <div className="game-left">
         <div className="game-tools">
-          <AlgorithmSelect
-            label="상대 AI"
-            value={algorithm}
-            set={setAlgorithm}
-            disabled={state.actions > 0}
-          />
+          <div className="opponent-picker">
+            <AlgorithmSelect
+              label="상대 AI"
+              value={algorithm}
+              set={setAlgorithm}
+              disabled={state.actions > 0}
+            />
+            {algorithm === verifiedBest && (
+              <a
+                className="best-ai-label"
+                href="https://github.com/oyueo-mm/YachtLab/blob/main/benchmarks/REPORT.md"
+                target="_blank"
+                rel="noreferrer"
+                title={`${benchmark.gamesPerAlgorithm.toLocaleString("ko-KR")}경기 평균 총점 기준`}
+              >
+                최고 성능 · 벤치마크 기준
+              </a>
+            )}
+          </div>
           <button className="text-button" onClick={restart}>
             <RotateCcw size={15} />
             재대결
