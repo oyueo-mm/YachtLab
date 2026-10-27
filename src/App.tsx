@@ -35,6 +35,8 @@ import { runJob, createDecisionSession } from "./client";
 import { Dice, DieIcon } from "./Dice";
 import { Scoreboard, CategoryIcon } from "./Scoreboard";
 import HomeDemo from "./HomeDemo";
+import AlgorithmSelect from "./AlgorithmDropdown";
+import { useHumanTurn } from "./human-turn";
 import benchmark from "./benchmark-summary.json";
 import dpManifest from "./dp-manifest.json";
 const verifiedBest =
@@ -96,34 +98,6 @@ function NumberField({
           )
         }
       />
-    </label>
-  );
-}
-function AlgorithmSelect({
-  value,
-  set,
-  label,
-  disabled = false,
-}: {
-  value: Algorithm;
-  set: (v: Algorithm) => void;
-  label: string;
-  disabled?: boolean;
-}) {
-  return (
-    <label className="field">
-      {label}
-      <select
-        value={value}
-        disabled={disabled}
-        onChange={(e) => set(e.target.value as Algorithm)}
-      >
-        {algorithms.map((a) => (
-          <option key={a} value={a}>
-            {a === "PPO" ? "PPO · 초기 학습" : a}
-          </option>
-        ))}
-      </select>
     </label>
   );
 }
@@ -263,54 +237,38 @@ function HumanGame() {
     },
     [],
   );
-  useEffect(() => {
-    if (state.player !== 1 || state.done) return;
-    const gen = generation.current;
-    let alive = true;
-    setBusy(true);
-    const timer = setTimeout(async () => {
-      try {
-        if (!state.rolls) {
-          if (alive) setState((s) => transition(s, { type: "roll" }));
-          return;
-        }
-        if (!aiSession.current) aiSession.current = createDecisionSession();
-        const active = aiSession.current;
-        job.current = {
-          promise: active.decide(state, algorithm),
-          cancel: () => {
-            active.cancel();
-            if (aiSession.current === active) aiSession.current = null;
-          },
-        };
-        const d = await job.current.promise;
-        if (!alive || gen !== generation.current) return;
-        setLast(d);
-        if (d.type === "score")
-          setState((s) =>
-            transition(s, { type: "score", category: d.category }),
-          );
-        else {
-          const held = transition(state, { type: "hold", ids: d.ids });
-          setState(held);
-          await new Promise((r) => setTimeout(r, 350));
-          if (alive && gen === generation.current)
-            setState((s) => transition(s, { type: "roll" }));
-        }
-      } catch (e) {
-        if (alive && gen === generation.current) setError(errorText(e));
-      } finally {
-        if (alive && gen === generation.current) setBusy(false);
-      }
-    }, 400);
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [state.player, state.rolls, state.done, algorithm, retry]);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const [aiTurn, setAiTurn] = useState(0),
+    [caption, setCaption] = useState("");
+  const commit = (
+    action: Parameters<typeof transition>[1],
+    decision?: Decision,
+  ) => {
+    const before = stateRef.current,
+      next = transition(before, action);
+    stateRef.current = next;
+    setState(next);
+    if (before.player === 0 && next.player === 1) setAiTurn((n) => n + 1);
+    return next;
+  };
+  useHumanTurn({
+    stateRef,
+    algorithm,
+    trigger: aiTurn,
+    retry,
+    generation,
+    session: aiSession,
+    job,
+    commit,
+    setBusy,
+    setError,
+    setLast,
+    setCaption,
+  });
   const act = (action: Parameters<typeof transition>[1]) => {
     try {
-      setState((s) => transition(s, action));
+      commit(action);
       setError("");
     } catch (e) {
       setError(errorText(e));
@@ -322,9 +280,13 @@ function HumanGame() {
     setBusy(false);
     setLast(null);
     setError("");
-    setState(createGame(newSeed()));
+    const fresh = createGame(newSeed());
+    stateRef.current = fresh;
+    setState(fresh);
+    setAiTurn(0);
+    setCaption("");
   };
-  const can = state.player === 0 && !state.done;
+  const can = state.player === 0 && !state.done && !busy;
   return (
     <div className="game-grid">
       <div className="game-left">
@@ -425,6 +387,11 @@ function HumanGame() {
                       : "클릭하여 고정 · 드래그하여 순서 변경"}
             </p>
           </div>
+          {caption && (
+            <p className="ai-action-status" role="status">
+              {caption}
+            </p>
+          )}
           {busy && <Thinking />}
           {state.done && (
             <div className="game-result" role="status">

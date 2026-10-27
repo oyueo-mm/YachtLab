@@ -1,3 +1,4 @@
+import { chooseAlgorithm } from "./helpers";
 import { test, expect, type Page } from "@playwright/test";
 async function navigate(page: Page, name: string) {
   if (
@@ -185,7 +186,7 @@ test("PPO와 12라운드 완주, 최종 승패와 재대결", async ({ page }) =
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("#play");
-  await page.getByLabel("상대 AI").selectOption("PPO");
+  await chooseAlgorithm(page, "\uc0c1\ub300 AI", "PPO");
   for (let round = 0; round < 12; round++) {
     await expect(
       page.getByRole("button", { name: "주사위 굴리기" }),

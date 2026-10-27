@@ -1,3 +1,4 @@
+import { chooseAlgorithm } from "./helpers";
 import { test, expect } from "@playwright/test";
 async function selectDP(page: import("@playwright/test").Page) {
   await page.getByLabel("Greedy", { exact: true }).uncheck();
@@ -9,7 +10,7 @@ test("검증된 평균 총점 1위 DP를 기본 상대와 근거 링크로 표�
   page,
 }) => {
   await page.goto("#play");
-  await expect(page.getByRole("combobox", { name: "상대 AI" })).toHaveValue(
+  await expect(page.getByRole("combobox", { name: "상대 AI" })).toContainText(
     "DP Expert",
   );
   await expect(
@@ -50,12 +51,8 @@ test("DP는 필요할 때 로드하고 분석에서 전체 경기 기대값과 �
 });
 test("DP 관전은 실제 경기 완주와 이전 행동 복원을 지원", async ({ page }) => {
   await page.goto("#watch");
-  await page
-    .getByRole("combobox", { name: "AI 1", exact: true })
-    .selectOption("DP Expert");
-  await page
-    .getByRole("combobox", { name: "AI 2", exact: true })
-    .selectOption("Greedy");
+  await chooseAlgorithm(page, "AI 1", "DP Expert");
+  await chooseAlgorithm(page, "AI 2", "Greedy");
   await page.getByRole("button", { name: "새 경기 시작" }).click();
   await expect(page.getByRole("button", { name: "일시정지" })).toBeEnabled();
   await page.getByRole("button", { name: "일시정지" }).click();
@@ -77,7 +74,7 @@ test("사람 대전의 DP 로딩은 재대결로 취소 가능", async ({ page }
     await route.continue().catch(() => {});
   });
   await page.goto("#play");
-  await page.getByLabel("상대 AI").selectOption("DP Expert");
+  await chooseAlgorithm(page, "\uc0c1\ub300 AI", "DP Expert");
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
   await page.locator(".score-option").first().click();
   await expect.poll(() => started).toBe(true);
@@ -114,7 +111,7 @@ test("사람 대전은 두 턴에 DP 테이블을 한 번만 로드", async ({ p
   const requests: string[] = [];
   page.on("request", (r) => requests.push(r.url()));
   await page.goto("#play");
-  await page.getByLabel("상대 AI").selectOption("DP Expert");
+  await chooseAlgorithm(page, "\uc0c1\ub300 AI", "DP Expert");
   for (let turn = 0; turn < 2; turn++) {
     await page.getByRole("button", { name: "주사위 굴리기" }).click();
     await page.locator(".score-option").first().click();

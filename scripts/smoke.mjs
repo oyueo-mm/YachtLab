@@ -1,3 +1,7 @@
+async function chooseAlgorithm(page, label, value) {
+  await page.getByRole("combobox", { name: label, exact: true }).click();
+  await page.getByRole("option", { name: value, exact: true }).click();
+}
 import { chromium, expect } from "@playwright/test";
 
 const url = process.argv[2];
@@ -29,9 +33,7 @@ try {
     fullPage: true,
   });
   await page.getByRole("link", { name: "AI 대전 관전", exact: true }).click();
-  await page
-    .getByRole("combobox", { name: "AI 1", exact: true })
-    .selectOption("DP Expert");
+  await chooseAlgorithm(page, "AI 1", "DP Expert");
   await page.getByRole("button", { name: "새 경기 시작" }).click();
   await expect(page.getByRole("button", { name: "일시정지" })).toBeEnabled({
     timeout: 30000,
