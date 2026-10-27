@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,7 +21,11 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
+      # Hosted Ubuntu already provides Chromium's required shared libraries.
+      # Avoid downloading unrelated OS fonts on every deployment.
+      - name: Install headless Chromium
+        timeout-minutes: 5
+        run: npx playwright install --only-shell chromium
       - name: Browser checks
         run: |
           npm run preview -- --port 5173 > /tmp/yachtlab-vite.log 2>&1 &

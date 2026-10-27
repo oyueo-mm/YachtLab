@@ -94,6 +94,8 @@ npm audit
 
 `.github/workflows/deploy.yml`은 main에 푸시할 때 단위 테스트·타입 검사·빌드·브라우저 테스트를 모두 통과한 경우 GitHub Pages에 배포합니다. 저장소 Settings → Pages의 Source를 **GitHub Actions**로 설정해야 합니다. PR은 검증만 수행합니다. Vite base는 `/YachtLab/`입니다.
 
+CI는 GitHub 호스팅 Ubuntu 24.04의 시스템 라이브러리를 사용하고 테스트용 Chromium 헤드리스 브라우저만 설치합니다. OS 글꼴 패키지 저장소의 다운로드 지연을 피하며 모든 브라우저 테스트는 그대로 실행합니다. 브라우저 설치에는 5분 제한을 둡니다.
+
 ## 현재 한계와 다음 개선
 
 - PPO는 학습을 완료한 초기 모델이며 성능 개선, 장기 학습, 하이퍼파라미터 탐색이 필요합니다.
