@@ -31,7 +31,7 @@ import {
 } from "./engine";
 import { algorithms, type Algorithm, type Decision } from "./ai";
 import { type Match, type Result, statistics } from "./match";
-import { runJob } from "./client";
+import { runJob, createDecisionSession } from "./client";
 import { Dice, DieIcon } from "./Dice";
 import { Scoreboard, CategoryIcon } from "./Scoreboard";
 import HomeDemo from "./HomeDemo";
@@ -243,8 +243,12 @@ function HumanGame() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [last, setLast] = useState<Decision | null>(null);
+  const [retry, setRetry] = useState(0);
   const generation = useRef(0),
     job = useRef<ReturnType<typeof runJob<Decision>> | null>(null);
+  const aiSession = useRef<ReturnType<typeof createDecisionSession> | null>(
+    null,
+  );
   useEffect(
     () => () => {
       generation.current++;
@@ -263,7 +267,15 @@ function HumanGame() {
           if (alive) setState((s) => transition(s, { type: "roll" }));
           return;
         }
-        job.current = runJob<Decision>({ type: "decide", state, algorithm });
+        if (!aiSession.current) aiSession.current = createDecisionSession();
+        const active = aiSession.current;
+        job.current = {
+          promise: active.decide(state, algorithm),
+          cancel: () => {
+            active.cancel();
+            if (aiSession.current === active) aiSession.current = null;
+          },
+        };
         const d = await job.current.promise;
         if (!alive || gen !== generation.current) return;
         setLast(d);
@@ -279,16 +291,16 @@ function HumanGame() {
             setState((s) => transition(s, { type: "roll" }));
         }
       } catch (e) {
-        if (alive) setError(errorText(e));
+        if (alive && gen === generation.current) setError(errorText(e));
       } finally {
-        if (alive) setBusy(false);
+        if (alive && gen === generation.current) setBusy(false);
       }
     }, 400);
     return () => {
       alive = false;
       clearTimeout(timer);
     };
-  }, [state.player, state.rolls, state.done, algorithm]);
+  }, [state.player, state.rolls, state.done, algorithm, retry]);
   const act = (action: Parameters<typeof transition>[1]) => {
     try {
       setState((s) => transition(s, action));
@@ -415,6 +427,18 @@ function HumanGame() {
           )}
         </section>
         <ErrorMessage message={error} />
+        {error && state.player === 1 && !state.done && (
+          <button
+            className="secondary"
+            onClick={() => {
+              job.current?.cancel();
+              setError("");
+              setRetry((n) => n + 1);
+            }}
+          >
+            AI 다시 계산
+          </button>
+        )}
         {last && (
           <details className="decision-details">
             <summary>
@@ -437,6 +461,7 @@ function HumanGame() {
 }
 function DecisionView({ decision: d }: { decision: Decision }) {
   const probability = d.note.includes("정책 확률"),
+    fullGame = d.note.startsWith("전체 게임 DP"),
     format = (value: number) =>
       probability ? `${(value * 100).toFixed(1)}%` : value.toFixed(2);
   return (
@@ -450,11 +475,13 @@ function DecisionView({ decision: d }: { decision: Decision }) {
       {d.candidates.length > 0 && (
         <>
           <div className="value-label">
-            {probability
-              ? "정책 확률"
-              : d.note.includes("기댓점수") || d.note.includes("현재 얻는")
-                ? "점수 / 기댓점수"
-                : "근사 효용"}{" "}
+            {fullGame
+              ? "전체 게임 기대 최종점수"
+              : probability
+                ? "정책 확률"
+                : d.note.includes("기댓점수") || d.note.includes("현재 얻는")
+                  ? "점수 / 기댓점수"
+                  : "근사 효용"}{" "}
             <b>{format(d.value)}</b>
           </div>
           <div className="candidates">
@@ -462,6 +489,11 @@ function DecisionView({ decision: d }: { decision: Decision }) {
               <div key={i}>
                 <span>{names[c.label as Category] ?? c.label}</span>
                 <strong>{format(c.value)}</strong>
+                {fullGame && (
+                  <small className="candidate-gap">
+                    최선 대비 −{Math.max(0, d.value - c.value).toFixed(2)}
+                  </small>
+                )}
                 {c.visits !== undefined && <small>{c.visits}회 방문</small>}
               </div>
             ))}

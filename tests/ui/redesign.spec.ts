@@ -216,7 +216,7 @@ test("모든 메뉴의 흰 배경과 무채색·레드 팔레트, 차트 구분"
     expect(green).toEqual([]);
   }
   await page.goto("#tournament");
-  for (const algorithm of ["Expectimax", "MCTS", "PPO"])
+  for (const algorithm of ["Expectimax", "MCTS", "PPO", "DP Expert"])
     await page.getByLabel(algorithm, { exact: true }).check();
   await page.getByLabel("조합별 경기 수").fill("1");
   await page.getByRole("button", { name: "토너먼트 시작" }).click();
@@ -227,7 +227,7 @@ test("모든 메뉴의 흰 배경과 무채색·레드 팔레트, 차트 구분"
       nodes.map((n) => getComputedStyle(n).backgroundColor),
     );
   expect(new Set(colors).size).toBe(colors.length);
-  expect(colors).toHaveLength(5);
+  expect(colors).toHaveLength(6);
 });
 
 test("320px 화면에서도 홈·점수판·분석실이 잘리지 않음", async ({ page }) => {

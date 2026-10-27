@@ -8,3 +8,5 @@ __pycache__/
 training/checkpoints/
 *.local
 *.tsbuildinfo
+training/dp/solve.exe
+public/ai/*.f64

@@ -1725,6 +1725,9 @@ input[type="range"],
 [data-algorithm="PPO"] {
   --algorithm-color: #86516c;
 }
+[data-algorithm="DP Expert"] {
+  --algorithm-color: #315878;
+}
 .chart-row i {
   background: var(--algorithm-color);
   border-radius: 3px;
@@ -2032,6 +2035,21 @@ input[type="range"],
   min-height: 44px;
   font-size: 12px;
   padding-inline: 16px;
+}
+.home-shortcuts .primary:hover {
+  background: var(--red-deep);
+}
+.home-shortcuts .secondary:hover {
+  background: #f7f7f7;
+}
+.candidates > div {
+  flex-wrap: wrap;
+}
+.candidates .candidate-gap {
+  flex-basis: 100%;
+  text-align: right;
+  margin-top: -4px;
+  color: var(--muted);
 }
 @media (max-width: 760px) {
   .home-shortcuts {

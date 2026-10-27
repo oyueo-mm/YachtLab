@@ -18,6 +18,7 @@ try {
   await expect(page.locator(".hero-intro .die-icon")).toHaveCount(3);
   await expect(page.locator(".demo-dice .die-icon")).toHaveCount(5);
   await expect(page.locator("header a")).toHaveCount(0);
+  await expect(page.locator(".home-shortcuts a")).toHaveCount(2);
   await expect(page.locator(".home-demo")).toHaveAttribute(
     "data-frame",
     /^[1-9]/,
@@ -28,6 +29,9 @@ try {
     fullPage: true,
   });
   await page.getByRole("link", { name: "AI 대전 관전", exact: true }).click();
+  await page
+    .getByRole("combobox", { name: "AI 1", exact: true })
+    .selectOption("DP Expert");
   await page.getByRole("button", { name: "새 경기 시작" }).click();
   await expect(page.getByRole("button", { name: "일시정지" })).toBeEnabled({
     timeout: 30000,
@@ -46,6 +50,7 @@ try {
       status: response.status(),
       home: true,
       workerMatch: true,
+      dpExpert: true,
       hashRefresh: true,
       pageErrors: errors,
     }),

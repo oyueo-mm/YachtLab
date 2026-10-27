@@ -10,12 +10,14 @@ import {
   type Game,
 } from "./engine";
 import { ppoDecision } from "./ppo";
+import { dpDecision } from "./dp";
 export const algorithms = [
   "Random",
   "Greedy",
   "Expectimax",
   "MCTS",
   "PPO",
+  "DP Expert",
 ] as const;
 export type Algorithm = (typeof algorithms)[number];
 export type Candidate = { label: string; value: number; visits?: number };
@@ -124,6 +126,7 @@ export function decide(
   if (state.done || !state.rolls)
     throw Error("AI 판단에는 굴린 주사위가 필요합니다.");
   if (algorithm === "PPO") return ppoDecision(state);
+  if (algorithm === "DP Expert") return dpDecision(state);
   const card = state.cards[state.player],
     values = state.dice.map((d) => d.value),
     left = 3 - state.rolls;

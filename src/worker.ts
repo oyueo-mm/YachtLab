@@ -2,6 +2,7 @@
 import { decide, type Algorithm, type Options } from "./ai";
 import { simulate, result, type Result } from "./match";
 import type { Game } from "./engine";
+import { loadDP } from "./dp";
 export type Request =
   | {
       id: number;
@@ -25,8 +26,13 @@ export type Request =
       seed: number;
       options?: Options;
     };
-self.onmessage = ({ data: r }: MessageEvent<Request>) => {
+self.onmessage = async ({ data: r }: MessageEvent<Request>) => {
   try {
+    const needsDP =
+      r.type === "decide"
+        ? r.algorithm === "DP Expert"
+        : r.algorithms.includes("DP Expert");
+    if (needsDP) await loadDP();
     if (r.type === "decide")
       self.postMessage({
         id: r.id,

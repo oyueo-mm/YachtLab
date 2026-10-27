@@ -1,0 +1,20 @@
+{
+  "environment": "localhost production build; Chromium; retained dedicated worker; 100 warm round trips",
+  "browser": "156.0.8078.4",
+  "coldMs": 50.10000002384186,
+  "warmMeanMs": 0.5510000002384186,
+  "warmMaxMs": 6.300000011920929,
+  "samples": 100,
+  "workerHeap": {
+    "usedSize": 1720704,
+    "totalSize": 4681728,
+    "embedderHeapUsedSize": 2870208,
+    "backingStorageSize": 2807011
+  },
+  "mainHeap": {
+    "usedSize": 2427656,
+    "totalSize": 5242880,
+    "embedderHeapUsedSize": 2111544,
+    "backingStorageSize": 325207
+  }
+}

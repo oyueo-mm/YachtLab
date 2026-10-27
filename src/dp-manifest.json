@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "ruleSet": "YachtLab-12",
+  "objective": "expected final total under independent fair dice",
+  "precision": "IEEE754 Float64 LE",
+  "remainingMasks": 4096,
+  "upperStates": 64,
+  "diceMultisets": 252,
+  "partialMultisets": 462,
+  "sha256": "cf1c1a4d65c00705b37331abda22e7bc3cb64099ab12e5f8c00595d5fa97f452",
+  "asset": "dp-values-cf1c1a4d65c0.f64.gz",
+  "gzipBytes": 1324626,
+  "initialExpectedScore": 191.760879752165,
+  "seconds": 1.1306916,
+  "peakRssBytes": 7667712,
+  "tableBytes": 2097152,
+  "solvedCardStates": 197119,
+  "prunedCardStates": 64961
+}
