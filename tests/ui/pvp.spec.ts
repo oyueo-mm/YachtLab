@@ -31,7 +31,9 @@ test("로컬 PvP: 이름, 양쪽 점수 선택, 재대결 및 기보", async ({ 
     { type: "human", name: "민수" },
     { type: "human", name: "지민" },
   ]);
-  expect(record.frames.at(-1).state.player).toBe(0);
+  expect(record.format).toBe("YachtLabMultiReplay");
+  expect(record.actions).toHaveLength(4);
+  expect(record.finalState.player).toBe(0);
   await page.getByRole("button", { name: "기보 닫기" }).click();
   await page.getByRole("button", { name: "재대결", exact: true }).click();
   await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(0);
