@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { available, createGame } from "../src/engine";
+import { available, createGame, total } from "../src/engine";
 import { createMultiGame, multiStandings, transitionMulti } from "../src/multi-engine";
 import { appendMultiAction, newMultiReplay, parseMultiReplay, replaySeek, validateMultiReplay } from "../src/multi-replay";
 import { appendFrame, newReplay } from "../src/replay";
@@ -24,7 +24,7 @@ describe("N명 로컬 요트 규칙", () => {
     expect(replay.finalState.done).toBe(true);
     expect(replay.finalState.cards).toHaveLength(n);
     expect(replay.finalState.round).toBe(12);
-    const points = replay.finalState.cards.map((c) => Object.values(c).reduce((a, b) => a + (b ?? 0), 0));
+    const points = replay.finalState.cards.map(total);
     const high = Math.max(...points);
     expect(replay.finalState.winners).toEqual(points.flatMap((v, i) => v === high ? [i] : []));
     expect(replay.actions).toHaveLength(n * 24);
