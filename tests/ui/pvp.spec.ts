@@ -49,7 +49,7 @@ test("로컬 PvP: 24턴 완주, 승패 표시, 두 점수판 확정", async ({ p
     await page.getByRole("button", { name: "주사위 굴리기" }).click();
     await page.locator(".score-option").first().click();
   }
-  await expect(page.locator(".game-result")).toContainText(/승리|무승부/);
+  await expect(page.locator(".game-result")).toContainText(/승리|무승부|공동 우승/);
   await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(24);
   await expect(page.locator(".game-board .roll-button")).toBeDisabled();
   await page.getByRole("button", { name: "한 번 더 플레이" }).click();
