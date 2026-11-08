@@ -16,6 +16,36 @@ test("3인전: 인원 변경, 이름, 턴 교대와 라운드", async ({ page })
   await expect(page.getByLabel("참가 인원", { exact: true })).toBeDisabled();
 });
 
+test("UI 간소화와 턴 전환 시 이전 주사위 눈 숨김", async ({ page }) => {
+  await page.goto("#pvp");
+  await page.getByLabel("참가 인원", { exact: true }).fill("4");
+  await expect(page.locator(".multi-toolbar")).toBeVisible();
+  await expect(page.locator(".multi-config")).toHaveCount(0);
+  await expect(page.locator(".multi-local-game .multi-player-chip")).toHaveCount(4);
+  await expect(page.locator(".multi-toolbar-names")).toHaveCount(0);
+  await page.getByRole("button", { name: "플레이어 설정" }).click();
+  await expect(page.getByLabel("플레이어 4 이름")).toBeVisible();
+  await page.getByRole("button", { name: "플레이어 설정" }).click();
+  await expect(page.locator(".multi-dice-ready")).toBeVisible();
+  await expect(page.locator(".multi-dice-ready .die-icon circle").first()).toHaveCSS("opacity", "0");
+  await page.getByRole("button", { name: "주사위 굴리기" }).click();
+  await expect(page.locator(".multi-dice-ready")).toHaveCount(0);
+  await page.locator(".score-option").first().click();
+  await expect(page.locator(".turn-indicator")).toContainText("플레이어 2의 차례");
+  await expect(page.locator(".multi-dice-ready .die-icon circle").first()).toHaveCSS("opacity", "0");
+  await page.getByRole("button", { name: "주사위 굴리기" }).click();
+  await page.locator(".score-option").first().click();
+  await page.getByRole("button", { name: "기보 보기" }).click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "JSON 내보내기", exact: true }).click();
+  const file = await download;
+  const saved = JSON.parse(await readFile((await file.path())!, "utf8"));
+  expect(saved.version).toBe(2);
+  expect(new Set(saved.finalState.rng).size).toBe(4);
+  await page.getByRole("button", { name: "기보 닫기" }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
 test("4인전: 48턴 완주, 공동 우승 가능 및 완성된 기보", async ({ page }) => {
   await page.goto("#pvp");
   await page.getByLabel("참가 인원", { exact: true }).fill("4");
