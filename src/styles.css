@@ -2668,3 +2668,57 @@ input[type="range"],
   .multi-replay-modal { width: 96vw; }
   .multi-replay-actions .field { flex-basis: 100%; }
 }
+
+
+/* 2026 N-player refinement: focus the game, not repeated cards. */
+.multi-local-game .multi-toolbar { margin: 0 0 20px; padding: 0 0 16px; border-bottom: 1px solid var(--line); min-width: 0; }
+.multi-toolbar-line { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.multi-toolbar-title { display: flex; align-items: baseline; gap: 10px; min-width: 0; white-space: nowrap; }
+.multi-toolbar-title strong { color: var(--ink); font-size: 17px; font-weight: 680; }
+.multi-toolbar-title > span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.multi-toolbar-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.multi-toolbar .multi-count-control { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 3px 5px 3px 10px; }
+.multi-toolbar .multi-count-control > span { margin: 0 6px 0 0; color: var(--muted); font-size: 11px; }
+.multi-toolbar .multi-count-control .icon-button { width: 28px; height: 28px; min-width: 28px; min-height: 28px; border: 0; border-radius: 6px; }
+.multi-toolbar .multi-count-control input { width: 42px; min-width: 42px; height: 28px; padding: 2px 0; border: 0; border-radius: 4px; font-size: 13px; background: transparent; }
+.multi-toolbar-button { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid transparent; border-radius: 9px; background: transparent; padding: 7px 10px; color: var(--muted); white-space: nowrap; font-size: 12px; cursor: pointer; }
+.multi-toolbar-button:hover, .multi-toolbar-button.active { color: var(--ink); background: var(--soft); }
+.multi-toolbar-button:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.multi-toolbar-names { margin: 15px 0 0; padding: 14px 0 0; border-top: 1px solid var(--soft); grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); max-height: 195px; overflow-y: auto; }
+.multi-local-game .multi-player-strip { padding: 2px 0 9px; margin: 0 0 10px; gap: 6px; }
+.multi-local-game .multi-player-chip { flex: 0 0 124px; min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 7px 10px; border-radius: 9px; }
+.multi-local-game .multi-player-chip.selected { padding: 6px 9px; }
+.multi-local-game .multi-player-chip span { min-width: 0; flex: 1; margin: 0; font-size: 11px; }
+.multi-local-game .multi-player-chip strong { flex: 0 0 auto; display: inline; margin: 0; font-size: 15px; font-weight: 650; }
+.multi-local-game .multi-player-chip strong small { font-size: 9px; }
+.multi-local-game .multi-game-grid { align-items: start; gap: 22px; }
+.multi-local-game .multi-game-grid.multi-small { grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr); }
+.multi-local-game .multi-game-grid.multi-medium { grid-template-columns: minmax(0, 1fr); }
+.multi-local-game .multi-game-grid.multi-wide { grid-template-columns: minmax(0, 1.04fr) minmax(0, .96fr); }
+.multi-local-game .multi-game-grid .game-board { min-height: 340px; }
+.multi-local-game .multi-game-grid .dice-row { margin-top: 46px; margin-bottom: 16px; }
+.multi-local-game .multi-dice-ready .die-icon circle { opacity: 0; }
+.multi-local-game .multi-game-grid .game-board .roll-area p { margin-top: 11px; }
+.multi-local-game .multi-scores .multi-scoreboard { max-width: 100%; }
+.multi-local-game .multi-scores .multi-score-scroll { max-width: 100%; }
+.multi-local-game .multi-score-scroll th:first-child { min-width: 140px; }
+.multi-local-game .multi-score-scroll td { min-width: 72px; width: 76px; max-width: 116px; }
+.multi-local-game .multi-scores .score-title { padding: 16px 18px 11px; }
+.multi-local-game .multi-scores .score-foot { padding: 11px 16px; font-size: 10px; }
+.multi-local-game .multi-standings { margin: 13px 0 0; }
+@media (max-width: 1300px) {
+  .multi-local-game .multi-game-grid.multi-small, .multi-local-game .multi-game-grid.multi-wide { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .multi-toolbar-line { align-items: stretch; }
+  .multi-toolbar-title { justify-content: space-between; align-items: center; width: 100%; }
+  .multi-toolbar-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; width: 100%; }
+  .multi-toolbar .multi-count-control { grid-column: 1 / -1; justify-content: space-between; }
+  .multi-toolbar-button { font-size: 11px; padding: 7px 3px; gap: 4px; }
+  .multi-toolbar-button svg { width: 13px; height: 13px; }
+  .multi-toolbar-names { grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); }
+  .multi-local-game .multi-game-grid .game-board { min-height: 305px; }
+  .multi-local-game .multi-game-grid .dice-row { margin-top: 45px; }
+  .multi-local-game .multi-player-chip { flex-basis: 110px; }
+  .multi-local-game .multi-score-scroll th:first-child { min-width: 143px; }
+}
