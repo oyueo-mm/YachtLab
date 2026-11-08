@@ -2550,3 +2550,21 @@ input[type="range"],
   color: #a92323;
   text-decoration: underline;
 }
+
+/* Local two-player game: keep the existing board and scoreboard layout. */
+.pvp-tools { gap: 16px; }
+.pvp-name-fields { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.pvp-name-fields label { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+.pvp-name-fields input { width: 130px; max-width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--ink); font-size: 13px; }
+.pvp-name-fields input:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.pvp-name-fields input:disabled { background: var(--soft); color: var(--muted); }
+.pvp-name-fields input:disabled:hover { cursor: not-allowed; }
+.pvp-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.pvp-actions .text-button { white-space: nowrap; }
+@media (max-width: 760px) {
+  .pvp-tools { align-items: flex-start; }
+  .pvp-name-fields { width: 100%; }
+  .pvp-name-fields label { flex: 1 1 130px; }
+  .pvp-name-fields input { min-width: 0; width: 100%; }
+  .pvp-actions { width: 100%; justify-content: space-between; }
+}

@@ -42,10 +42,12 @@ export function Scoreboard({
   state,
   labels = ["나", "AI"],
   select,
+  selectPlayer = 0,
 }: {
   state: Game;
   labels?: [string, string];
   select?: (c: Category) => void;
+  selectPlayer?: 0 | 1;
 }) {
   return (
     <section className="scoreboard panel" aria-label="점수판">
@@ -81,6 +83,7 @@ export function Scoreboard({
               index={i}
               state={state}
               select={select}
+              selectPlayer={selectPlayer}
             />
           ))}
           <tr className="total-row">
@@ -104,11 +107,13 @@ function Rows({
   index,
   state,
   select,
+  selectPlayer,
 }: {
   category: Category;
   index: number;
   state: Game;
   select?: (c: Category) => void;
+  selectPlayer: 0 | 1;
 }) {
   return (
     <>
@@ -150,8 +155,8 @@ function Rows({
         {state.cards.map((card, i) => {
           const can =
             Boolean(select) &&
-            i === 0 &&
-            state.player === 0 &&
+            i === selectPlayer &&
+            state.player === selectPlayer &&
             state.rolls > 0 &&
             !state.done &&
             card[c] === undefined;

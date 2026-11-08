@@ -3,6 +3,7 @@ import {
   Menu,
   Home,
   UserRound,
+  UsersRound,
   Bot,
   Trophy,
   FlaskConical,
@@ -48,6 +49,7 @@ import {
 } from "./replay";
 import AlgorithmSelect from "./AlgorithmDropdown";
 import { useHumanTurn } from "./human-turn";
+import LocalGame from "./LocalGame";
 import benchmark from "./benchmark-summary.json";
 import research from "./research-summary.json";
 import dpManifest from "./dp-manifest.json";
@@ -59,10 +61,11 @@ const verifiedBest =
   research.bestAlgorithm === benchmark.bestAlgorithm
     ? algorithms.find((a) => a === benchmark.bestAlgorithm)
     : undefined;
-type Page = "home" | "play" | "watch" | "tournament" | "analysis";
+type Page = "home" | "play" | "pvp" | "watch" | "tournament" | "analysis";
 const navigation = [
   { id: "home", name: "홈", icon: Home },
   { id: "play", name: "사람 vs AI", icon: UserRound },
+  { id: "pvp", name: "사람 vs 사람", icon: UsersRound },
   { id: "watch", name: "AI 대전 관전", icon: Bot },
   { id: "tournament", name: "AI 토너먼트", icon: Trophy },
   { id: "analysis", name: "전략 분석실", icon: FlaskConical },
@@ -220,6 +223,14 @@ export default function App() {
                   사람 vs AI
                 </a>
                 <a
+                  href="#pvp"
+                  className="secondary"
+                  onClick={() => navigate("pvp")}
+                >
+                  <UsersRound size={18} />
+                  사람 vs 사람
+                </a>
+                <a
                   href="#watch"
                   className="secondary"
                   onClick={() => navigate("watch")}
@@ -238,6 +249,7 @@ export default function App() {
           </section>
         )}
         {page === "play" && <HumanGame onBranch={branch} onAnalyze={analyze} />}
+        {page === "pvp" && <LocalGame onBranch={branch} onAnalyze={analyze} />}
         {page === "watch" && (
           <Spectator
             initial={replay}
