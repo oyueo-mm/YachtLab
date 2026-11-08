@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { available, createGame } from "../src/engine";
+import { available, createGame, total } from "../src/engine";
 import { createMultiGame, multiStandings, transitionMulti } from "../src/multi-engine";
 import { appendMultiAction, newMultiReplay, parseMultiReplay, replaySeek, validateMultiReplay } from "../src/multi-replay";
 import { appendFrame, newReplay } from "../src/replay";
@@ -19,20 +19,57 @@ function finish(n: number, seed = 103) {
 }
 
 describe("N명 로컬 요트 규칙", () => {
-  it.each([2, 3, 4, 9, 50])("%i명에서 12라운드 완주, 정확한 순환과 공동 우승", (n) => {
+  it.each([2, 3, 4, 9, 50])("%i명에서 12라운드 완주, 정확한 순환과 우승 순위", (n) => {
     const replay = finish(n);
     expect(replay.finalState.done).toBe(true);
     expect(replay.finalState.cards).toHaveLength(n);
     expect(replay.finalState.round).toBe(12);
-    expect(replay.finalState.winners).toEqual(Array.from({ length: n }, (_, i) => i));
+    const points = replay.finalState.cards.map(total);
+    const high = Math.max(...points);
+    expect(replay.finalState.winners).toEqual(points.flatMap((v, i) => v === high ? [i] : []));
     expect(replay.actions).toHaveLength(n * 24);
-    expect(multiStandings(replay.finalState).every((p) => p.rank === 1 && p.finished === 12)).toBe(true);
+    expect(multiStandings(replay.finalState).every((p) => p.finished === 12)).toBe(true);
     const parsed = parseMultiReplay(JSON.stringify(replay));
     expect(parsed.finalState).toEqual(replay.finalState);
     const seek = replaySeek(parsed);
     expect(seek(0).round).toBe(1);
     expect(seek(37).actions).toBeLessThanOrEqual(37);
     expect(seek(replay.actions.length)).toEqual(replay.finalState);
+  });
+  it("서로 다른 참가자에게 중복되지 않는 PRNG 초기 상태를 배정하고 동일 시드 재현성을 유지", () => {
+    for (const seed of [0, 1, 103, 0xffffffff]) {
+      const first = createMultiGame(50, seed);
+      const second = createMultiGame(50, seed);
+      expect(first.rng).toEqual(second.rng);
+      expect(new Set(first.rng).size).toBe(50);
+      expect(new Set(createMultiGame(50, seed, true).rng).size).toBe(1);
+    }
+    let state = createMultiGame(4, 20261109);
+    const sequences: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      state = transitionMulti(state, { type: "roll" });
+      sequences.push(state.dice.map((die) => die.value).join(","));
+      state = transitionMulti(state, { type: "score", category: "aces" });
+    }
+    expect(new Set(sequences).size).toBeGreaterThan(1);
+  });
+  it("이전 다인전 v1 기보의 동일 시드 결과를 정확히 불러와 재생", () => {
+    let legacy = newMultiReplay(createMultiGame(3, 531, true), Array.from({ length: 3 }, (_, i) => ({ type: "human", name: "P" + i })));
+    legacy.version = 1;
+    legacy.metadata.ruleVersion = "YachtLab-12-multi-v1";
+    for (let i = 0; i < 3; i++) {
+      legacy = appendMultiAction(legacy, { type: "roll" });
+      legacy = appendMultiAction(legacy, { type: "score", category: "choice" });
+    }
+    const parsed = parseMultiReplay(JSON.stringify(legacy));
+    expect(parsed.version).toBe(1);
+    expect(replaySeek(parsed)(parsed.actions.length)).toEqual(legacy.finalState);
+    expect(parsed.finalState.rng).toEqual(legacy.finalState.rng);
+  });
+  it("새 다인전 기보는 버전 2를 사용", () => {
+    const replay = finish(4);
+    expect(replay.version).toBe(2);
+    expect(replay.metadata.ruleVersion).toBe("YachtLab-12-multi-v2");
   });
   it("주사위 고정과 순서 변경은 현재 플레이어 RNG만 변경", () => {
     let s = transitionMulti(createMultiGame(5, 17), { type: "roll" });

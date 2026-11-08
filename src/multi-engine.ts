@@ -17,7 +17,8 @@ export type MultiGame = {
 
 export type Standing = { player: number; points: number; rank: number; finished: number };
 
-export function createMultiGame(count: number, seed: number): MultiGame {
+/** Distinct per-player PRNG streams. Keep the old initialization for v1 replay verification. */
+export function createMultiGame(count: number, seed: number, legacySeedStream = false): MultiGame {
   if (!Number.isSafeInteger(count) || count < 2) throw Error("참가 인원은 2명 이상이어야 합니다.");
   if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff) throw Error("잘못된 난수 시드입니다.");
   return {
@@ -30,8 +31,15 @@ export function createMultiGame(count: number, seed: number): MultiGame {
     done: false,
     winners: [],
     seed: seed >>> 0,
-    // Each participant has an independent stream, initialized consistently with legacy 2-player games.
-    rng: Array.from({ length: count }, () => seed >>> 0),
+    // A bijective 32-bit mix gives each player a distinct stream state.
+    // v1 replays deliberately use the old equal-seed behavior for exact playback.
+    rng: Array.from({ length: count }, (_, i) => {
+      if (legacySeedStream) return seed >>> 0;
+      let value = (seed + Math.imul(i + 1, 0x9e3779b9)) >>> 0;
+      value = Math.imul(value ^ (value >>> 16), 0x85ebca6b) >>> 0;
+      value = Math.imul(value ^ (value >>> 13), 0xc2b2ae35) >>> 0;
+      return (value ^ (value >>> 16)) >>> 0;
+    }),
     actions: 0,
   };
 }
