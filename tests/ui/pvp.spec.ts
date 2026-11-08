@@ -31,7 +31,9 @@ test("로컬 PvP: 이름, 양쪽 점수 선택, 재대결 및 기보", async ({ 
     { type: "human", name: "민수" },
     { type: "human", name: "지민" },
   ]);
-  expect(record.frames.at(-1).state.player).toBe(0);
+  expect(record.format).toBe("YachtLabMultiReplay");
+  expect(record.actions).toHaveLength(4);
+  expect(record.finalState.player).toBe(0);
   await page.getByRole("button", { name: "기보 닫기" }).click();
   await page.getByRole("button", { name: "재대결", exact: true }).click();
   await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(0);
@@ -47,7 +49,7 @@ test("로컬 PvP: 24턴 완주, 승패 표시, 두 점수판 확정", async ({ p
     await page.getByRole("button", { name: "주사위 굴리기" }).click();
     await page.locator(".score-option").first().click();
   }
-  await expect(page.locator(".game-result")).toContainText(/승리|무승부/);
+  await expect(page.locator(".game-result")).toContainText(/승리|무승부|공동 우승/);
   await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(24);
   await expect(page.locator(".game-board .roll-button")).toBeDisabled();
   await page.getByRole("button", { name: "한 번 더 플레이" }).click();

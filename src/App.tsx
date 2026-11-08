@@ -249,7 +249,7 @@ export default function App() {
           </section>
         )}
         {page === "play" && <HumanGame onBranch={branch} onAnalyze={analyze} />}
-        {page === "pvp" && <LocalGame onBranch={branch} onAnalyze={analyze} />}
+        {page === "pvp" && <LocalGame />}
         {page === "watch" && (
           <Spectator
             initial={replay}

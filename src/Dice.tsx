@@ -155,7 +155,7 @@ export function Dice({
   onToggle,
   onOrder,
 }: {
-  state: Game;
+  state: Pick<Game, "dice" | "order" | "rolls">;
   interactive?: boolean;
   onToggle?: (id: number) => void;
   onOrder?: (ids: number[]) => void;
