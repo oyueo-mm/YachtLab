@@ -50,7 +50,7 @@ try {
     seats: "each seed played twice with swapped algorithm seats",
     metric: "win credit = win 1 / draw 0.5 / loss 0",
     winCredit: rate, ci95ApproxPairedNormal: [Math.max(0, rate - halfWidth), Math.min(1, rate + halfWidth)],
-    excessOverHalf: rate - 0.5, ownMean, opponentMean, expectedScoreGap: ownMean - oppMean,
+    excessOverHalf: rate - 0.5, ownMean, opponentMean: oppMean, expectedScoreGap: ownMean - oppMean,
     endgameDecisions: winDecisions, differentEndgameActionsVsDP: strategicChanges,
     elapsedSeconds: elapsedMs / 1000,
     caveat: "Exact if opponent finished; exact conditional on DP Expert's final-turn policy if opponent has one remaining category; no SOTA claim.",
