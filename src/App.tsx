@@ -280,7 +280,7 @@ function HumanGame({
   onBranch: (r: Replay, index: number) => void;
   onAnalyze: (s: AnalysisSource) => void;
 }) {
-  const [state, setState] = useState(() => createGame(newSeed())),
+  const [state, setState] = useState(() => createGame(newSeed(), true)),
     [algorithm, setAlgorithm] = useState<Algorithm>(verifiedBest ?? "Greedy"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -304,7 +304,7 @@ function HumanGame({
     newReplay(state, [
       { type: "human", name: "나" },
       { type: "ai", name: algorithm, algorithm },
-    ]),
+    ], "요트 대국", 2),
   );
   useEffect(() => {
     if (state.actions === 0)
@@ -366,12 +366,12 @@ function HumanGame({
     setBusy(false);
     setLast(null);
     setError("");
-    const fresh = createGame(newSeed());
+    const fresh = createGame(newSeed(), true);
     stateRef.current = fresh;
     record.current = newReplay(fresh, [
       { type: "human", name: "나" },
       { type: "ai", name: algorithm, algorithm },
-    ]);
+    ], "요트 대국", 2);
     setState(fresh);
     setAiTurn(0);
     setCaption("");
