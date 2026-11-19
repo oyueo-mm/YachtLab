@@ -11,6 +11,7 @@ import {
 } from "./engine";
 import { ppoDecision } from "./ppo";
 import { dpDecision } from "./dp";
+import { winDPDecision } from "./win-dp";
 import { distilledDecision } from "./distilled";
 import distilledStatus from "./distilled-status.json";
 const allAlgorithms = [
@@ -20,6 +21,7 @@ const allAlgorithms = [
   "MCTS",
   "PPO",
   "DP Expert",
+  "Win DP",
   "Distilled Policy",
   "Distilled PPO",
 ] as const;
@@ -134,6 +136,7 @@ export function decide(
     throw Error("AI 판단에는 굴린 주사위가 필요합니다.");
   if (algorithm === "PPO") return ppoDecision(state);
   if (algorithm === "DP Expert") return dpDecision(state);
+  if (algorithm === "Win DP") return winDPDecision(state) ?? dpDecision(state);
   if (algorithm === "Distilled Policy" || algorithm === "Distilled PPO")
     return distilledDecision(state, algorithm);
   const card = state.cards[state.player],

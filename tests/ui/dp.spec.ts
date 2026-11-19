@@ -121,3 +121,13 @@ test("사람 대전은 두 턴에 DP 테이블을 한 번만 로드", async ({ p
   }
   expect(requests.filter((u) => u.includes("dp-values-"))).toHaveLength(1);
 });
+
+test("Win DP가 AI 대전의 별도 실험 알고리즘으로 선택되고 정상 완주", async ({ page }) => {
+  await page.goto("#watch");
+  await chooseAlgorithm(page, "AI 1", "Win DP");
+  await chooseAlgorithm(page, "AI 2", "DP Expert");
+  await page.getByRole("button", { name: "새 경기 시작" }).click();
+  await expect(page.getByRole("button", { name: "일시정지" })).toBeEnabled({ timeout: 20000 });
+  await page.getByLabel("재생 속도").selectOption("instant");
+  await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(24);
+});
