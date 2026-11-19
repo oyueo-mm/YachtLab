@@ -1,0 +1,29 @@
+name: Competitive research benchmark
+on:
+  workflow_dispatch:
+    inputs:
+      games:
+        description: "Even number of games with swapped seats for each seed (2 to 100000)"
+        required: true
+        default: "2000"
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Run Win DP versus DP Expert experiment
+        run: node scripts/research-competitive.mjs ${{ inputs.games }}
+      - name: Save individual game scores
+        uses: actions/upload-artifact@v4
+        with:
+          name: competitive-research-results
+          path: benchmarks/research/win-dp-vs-dp.json
+          retention-days: 90

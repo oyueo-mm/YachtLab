@@ -26,6 +26,7 @@ import {
 } from "../src/engine";
 import { outcomes, holds } from "../src/ai";
 import { simulate } from "../src/match";
+import { winDPDecision, canUseWinDP, lastTurnDPDistribution } from "../src/win-dp";
 beforeAll(() => {
   const bytes = gunzipSync(readFileSync(`public/ai/${manifest.asset}`));
   expect(createHash("sha256").update(bytes).digest("hex")).toBe(
@@ -218,5 +219,62 @@ it("분석 후보의 최댓값과 현재 턴 DP 값은 동일", () => {
     expect(d.value).toBeCloseTo(turnValues(4095, 0, 2).values[index], 10);
     expect(d.candidates[0].value).toBe(d.value);
     expect(d.candidates.every((c) => c.value <= d.value + 1e-10)).toBe(true);
+  }
+});
+
+
+it("상대 점수가 확정된 초이스 마지막 턴에서 승률 DP가 기대점수 DP와 다른 수를 선택", () => {
+  const opponent = Object.fromEntries(categories.map((c) => [c, c === "sixes" ? 24 : 0])) as Card;
+  const mine = Object.fromEntries(categories.filter((c) => c !== "choice").map((c) => [c, 0])) as Card;
+  const state: Game = { ...createGame(42, true), cards: [opponent, mine], player: 1, round: 12, rolls: 1,
+    dice: [1, 4, 5, 6, 6].map((value, id) => ({ id, value, held: false })) };
+  const win = winDPDecision(state)!, baseline = dpDecision(state);
+  expect(canUseWinDP(state)).toBe(true);
+  expect(win.type).toBe("reroll");
+  expect(baseline.type).toBe("reroll");
+  if (win.type === "reroll" && baseline.type === "reroll") {
+    expect(win.ids).toEqual([1, 2, 3, 4]);
+    expect(baseline.ids).toEqual([2, 3, 4]);
+  }
+  expect(win.value).toBeGreaterThanOrEqual(0);
+  expect(win.value).toBeLessThanOrEqual(1);
+  expect(winDPDecision(state)).toEqual(win);
+});
+it("상대가 한 칸 남은 경우 DP Expert의 최종 점수 분포를 정규화하고 이용", () => {
+  for (const category of ["choice", "sixes", "yacht"] as Category[]) {
+    const dist = lastTurnDPDistribution(category, category === "sixes" ? 60 : 0);
+    expect(dist.reduce((sum, p) => sum + p, 0)).toBeCloseTo(1, 10);
+    expect(dist.every((p) => p >= 0)).toBe(true);
+  }
+  const choice = lastTurnDPDistribution("choice", 0);
+  const average = choice.reduce((sum, p, score) => sum + score * p, 0);
+  expect(average).toBeCloseTo(23.3333333333, 3);
+  const after = choice.slice(25).reduce((a, b) => a + b, 0);
+  expect(after).toBeGreaterThan(0.38);
+  expect(after).toBeLessThan(0.41);
+  const mine = Object.fromEntries(categories.filter((c) => c !== "choice").map((c) => [c, 0])) as Card;
+  const other = Object.fromEntries(categories.filter((c) => c !== "sixes").map((c) => [c, 0])) as Card;
+  const state: Game = { ...createGame(77, true), cards: [mine, other], player: 0, round: 12, rolls: 1,
+    dice: [1, 4, 5, 6, 6].map((value, id) => ({ id, value, held: false })) };
+  expect(canUseWinDP(state)).toBe(true);
+  const d = winDPDecision(state)!;
+  expect(d.note).toContain("DP Expert");
+  expect(d.value).toBeGreaterThanOrEqual(0);
+  expect(d.value).toBeLessThanOrEqual(1);
+});
+it("남은 라운드가 많은 상태에선 Win DP가 DP Expert와 정확히 동일하게 동작", () => {
+  for (const seed of [1, 42, 99]) {
+    const state = transition(createGame(seed, true), { type: "roll" });
+    expect(canUseWinDP(state)).toBe(false);
+    expect(winDPDecision(state)).toBeNull();
+  }
+});
+it("Win DP와 기존 DP Expert의 실제 12라운드 경기가 정상 종료", () => {
+  for (const seed of [21, 22, 23, 24]) {
+    const match = simulate(seed % 2 ? ["Win DP", "DP Expert"] : ["DP Expert", "Win DP"], seed);
+    expect(match.frames.at(-1)!.state.done).toBe(true);
+    expect(match.frames.at(-1)!.state.cards.every((c) => Object.keys(c).length === 12)).toBe(true);
+    const winDecisions = match.frames.filter((f) => f.decision?.note.includes("마지막 턴 승리 확률"));
+    expect(winDecisions.length).toBeGreaterThan(0);
   }
 });
