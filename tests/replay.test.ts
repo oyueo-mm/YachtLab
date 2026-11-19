@@ -24,6 +24,15 @@ it("round-trips human rolls, sorting, holds and independent snapshots", () => {
   expect(r.frames).toHaveLength(1);
   expect(s.finalState.order).toEqual([0, 1, 2, 3, 4]);
 });
+it("새 사람 vs AI의 독립 주사위 시드와 기존 v1 기보를 모두 재현", () => {
+  const legacy = appendFrame(fresh(), { type: "roll" });
+  const independent = appendFrame(newReplay(createGame(824, true), [...players], "요트 대국", 2), { type: "roll" });
+  expect(parseReplay(JSON.stringify(legacy))).toEqual(legacy);
+  expect(parseReplay(JSON.stringify(independent))).toEqual(independent);
+  const altered = clone(independent);
+  altered.initialState.rng[1] = altered.initialState.rng[0];
+  expect(() => validateReplay(altered)).toThrow();
+});
 it("rejects forged RNG, score, dice, illegal actions, versions and oversized files", () => {
   const r = appendFrame(fresh(), { type: "roll" });
   for (const mutate of [
