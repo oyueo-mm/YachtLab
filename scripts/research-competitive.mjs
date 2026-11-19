@@ -1,7 +1,8 @@
 import { createServer } from "vite";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { gunzipSync } from "node:zlib";
-const games = Number(process.argv[2] ?? 2000);
+const games = Number(process.argv[2] ?? 2000), seedBase = Number(process.argv[3] ?? 910000);
+if (!Number.isInteger(seedBase) || seedBase < 0 || seedBase > 0xffffffff - games) throw Error("Invalid seed base.");
 if (!Number.isInteger(games) || games < 2 || games > 100000 || games % 2 !== 0) throw Error("games must be an even integer between 2 and 100000.");
 const mix = (number) => { let n = number >>> 0; n = Math.imul(n ^ (n >>> 16), 0x85ebca6b) >>> 0; n = Math.imul(n ^ (n >>> 13), 0xc2b2ae35) >>> 0; return (n ^ (n >>> 16)) >>> 0; };
 const server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: "custom" });
@@ -15,7 +16,7 @@ try {
   const pairedCredit = [], gamesData = [];
   let strategicChanges = 0, winDecisions = 0, elapsedMs = 0;
   for (let pair = 0; pair < games / 2; pair++) {
-    const seed = mix(910000 + pair), outcomes = [];
+    const seed = mix(seedBase + pair), outcomes = [];
     for (const side of [0, 1]) {
       const algorithms = side === 0 ? ["Win DP", "DP Expert"] : ["DP Expert", "Win DP"];
       const time = performance.now(), match = simulate(algorithms, seed);
@@ -46,7 +47,7 @@ try {
   const oppMean = gamesData.reduce((s, g) => s + g.opponent, 0) / games;
   const result = {
     algorithm: "Win DP", opponent: "DP Expert", games, pairedSeeds: n,
-    seedScheme: "Murmur3 finalizer of 910000+i (independent research set)",
+    seedScheme: "Murmur3 finalizer of " + seedBase + "+i (independent research set)", seedBase,
     seats: "each seed played twice with swapped algorithm seats",
     metric: "win credit = win 1 / draw 0.5 / loss 0",
     winCredit: rate, ci95ApproxPairedNormal: [Math.max(0, rate - halfWidth), Math.min(1, rate + halfWidth)],
@@ -57,6 +58,7 @@ try {
     individualMatches: gamesData
   };
   await mkdir("benchmarks/research", { recursive: true });
-  await writeFile("benchmarks/research/win-dp-vs-dp.json", JSON.stringify(result, null, 2) + "\n");
+  const filename = seedBase === 910000 ? "win-dp-vs-dp.json" : "win-dp-vs-dp-" + seedBase + "-" + games + ".json";
+  await writeFile("benchmarks/research/" + filename, JSON.stringify(result, null, 2) + "\n");
   console.log("BENCHMARK_SUMMARY " + JSON.stringify({ ...result, individualMatches: undefined }));
 } finally { await server.close(); }
