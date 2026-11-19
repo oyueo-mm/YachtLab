@@ -25,7 +25,9 @@ test("진행 중 기보 저장·JSON 검증·로컬 이름 변경·삭제와 원
     dialog.getByText("브라우저에 기보를 저장했습니다.", { exact: true }),
   ).toBeVisible();
   const record = await exported(page);
-  expect(record.version).toBe(1);
+  expect(record.version).toBe(2);
+  expect(record.metadata.ruleVersion).toBe("YachtLab-12-v2");
+  expect(record.initialState.rng[0]).not.toBe(record.initialState.rng[1]);
   expect(record.frames).toHaveLength(2);
   await page
     .getByLabel("기보 JSON 불러오기")
