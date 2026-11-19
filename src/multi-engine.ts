@@ -1,4 +1,4 @@
-import { available, random, score, total, type Action, type Card, type Die } from "./engine";
+import { available, playerRngSeed, random, score, total, type Action, type Card, type Die } from "./engine";
 
 /** Separate state machine: existing two-player AI and v1 replay remain unchanged. */
 export type MultiGame = {
@@ -31,15 +31,8 @@ export function createMultiGame(count: number, seed: number, legacySeedStream = 
     done: false,
     winners: [],
     seed: seed >>> 0,
-    // A bijective 32-bit mix gives each player a distinct stream state.
-    // v1 replays deliberately use the old equal-seed behavior for exact playback.
-    rng: Array.from({ length: count }, (_, i) => {
-      if (legacySeedStream) return seed >>> 0;
-      let value = (seed + Math.imul(i + 1, 0x9e3779b9)) >>> 0;
-      value = Math.imul(value ^ (value >>> 16), 0x85ebca6b) >>> 0;
-      value = Math.imul(value ^ (value >>> 13), 0xc2b2ae35) >>> 0;
-      return (value ^ (value >>> 16)) >>> 0;
-    }),
+    // v1 replays use the old equal-seed behavior for exact playback.
+    rng: Array.from({ length: count }, (_, i) => legacySeedStream ? seed >>> 0 : playerRngSeed(seed, i)),
     actions: 0,
   };
 }

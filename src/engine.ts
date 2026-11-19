@@ -95,7 +95,13 @@ export function random(seed: number): [number, number] {
   const next = (Math.imul(1664525, seed >>> 0) + 1013904223) >>> 0;
   return [next / 4294967296, next];
 }
-export function createGame(seed = Date.now() >>> 0): Game {
+export function playerRngSeed(seed: number, index: number): number {
+  let value = (seed + Math.imul(index + 1, 0x9e3779b9)) >>> 0;
+  value = Math.imul(value ^ (value >>> 16), 0x85ebca6b) >>> 0;
+  value = Math.imul(value ^ (value >>> 13), 0xc2b2ae35) >>> 0;
+  return (value ^ (value >>> 16)) >>> 0;
+}
+export function createGame(seed = Date.now() >>> 0, independentPlayers = false): Game {
   return {
     dice: Array.from({ length: 5 }, (_, id) => ({ id, value: 1, held: false })),
     order: [0, 1, 2, 3, 4],
@@ -106,7 +112,7 @@ export function createGame(seed = Date.now() >>> 0): Game {
     done: false,
     winner: null,
     seed: seed >>> 0,
-    rng: [seed >>> 0, seed >>> 0],
+    rng: independentPlayers ? [playerRngSeed(seed, 0), playerRngSeed(seed, 1)] : [seed >>> 0, seed >>> 0],
     actions: 0,
   };
 }

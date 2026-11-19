@@ -67,6 +67,20 @@ describe("국내 12종 요트 규칙", () => {
     expect(s.dice[0]).toEqual(old[0]);
     expect(s.dice[3]).toEqual(old[3]);
   });
+  it("사람 vs AI는 서로 다른 주사위 난수 스트림을 사용하고 기존 시드는 유지", () => {
+    for (const seed of [0, 1, 42, 103, 0xffffffff]) {
+      const legacy = createGame(seed);
+      const independent = createGame(seed, true);
+      expect(legacy.rng).toEqual([seed >>> 0, seed >>> 0]);
+      expect(independent.rng[0]).not.toBe(independent.rng[1]);
+      expect(independent).toEqual(createGame(seed, true));
+    }
+    let state = transition(createGame(42, true), { type: "roll" });
+    const first = state.dice.map((die) => die.value);
+    state = transition(state, { type: "score", category: "aces" });
+    state = transition(state, { type: "roll" });
+    expect(state.dice.map((die) => die.value)).not.toEqual(first);
+  });
   it("카테고리 중복 방지", () => {
     let s = transition(createGame(1), { type: "roll" });
     s = transition(s, { type: "score", category: "aces" });

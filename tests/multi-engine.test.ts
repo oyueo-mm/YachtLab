@@ -66,6 +66,16 @@ describe("N명 로컬 요트 규칙", () => {
     expect(replaySeek(parsed)(parsed.actions.length)).toEqual(legacy.finalState);
     expect(parsed.finalState.rng).toEqual(legacy.finalState.rng);
   });
+  it("사람 vs AI v2 기보를 다인전 뷰어로 변환할 때 주사위 난수를 보존", () => {
+    let replay = newReplay(createGame(701, true), [{ type: "human", name: "나" }, { type: "ai", name: "Greedy", algorithm: "Greedy" }], "요트 대국", 2);
+    replay = appendFrame(replay, { type: "roll" });
+    replay = appendFrame(replay, { type: "score", category: "aces" });
+    replay = appendFrame(replay, { type: "roll" });
+    const converted = parseMultiReplay(JSON.stringify(replay));
+    expect(converted.version).toBe(2);
+    expect(converted.finalState.dice).toEqual(replay.finalState.dice);
+    expect(converted.finalState.rng).toEqual(replay.finalState.rng);
+  });
   it("새 다인전 기보는 버전 2를 사용", () => {
     const replay = finish(4);
     expect(replay.version).toBe(2);

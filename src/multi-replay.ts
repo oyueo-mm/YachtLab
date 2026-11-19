@@ -60,10 +60,10 @@ function validAction(raw: unknown): Action {
 }
 function fromLegacy(raw: unknown): MultiReplay {
   const old = validateReplay(raw);
-  const state = createMultiGame(2, old.initialState.seed, true);
+  const state = createMultiGame(2, old.initialState.seed, old.version === 1);
   let replay = newMultiReplay(state, old.metadata.players, old.metadata.name);
-  replay.version = 1;
-  replay.metadata.ruleVersion = "YachtLab-12-multi-v1";
+  replay.version = old.version;
+  replay.metadata.ruleVersion = `YachtLab-12-multi-v${old.version}`;
   for (const frame of old.frames.slice(1)) replay = appendMultiAction(replay, frame.action!);
   replay.metadata.createdAt = old.metadata.createdAt;
   return replay;
