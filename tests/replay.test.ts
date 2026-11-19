@@ -48,8 +48,21 @@ it("rejects forged RNG, score, dice, illegal actions, versions and oversized fil
   }
   expect(() => parseReplay(" ".repeat(8 * 1024 * 1024 + 1))).toThrow();
 });
+it("새 AI 대국은 v2로 저장하고 기존 동일 난수의 v1 대국도 읽는다", () => {
+  const independent = simulate(["Random", "Random"], 42);
+  const modern = replayFromMatch(independent);
+  expect(modern.version).toBe(2);
+  expect(modern.metadata.ruleVersion).toBe("YachtLab-12-v2");
+  expect(validateReplay(independent).finalState).toEqual(modern.finalState);
+  expect(parseReplay(JSON.stringify(modern))).toEqual(modern);
+  const old = simulateFromState(createGame(42), ["Random", "Random"]);
+  const legacy = replayFromMatch(old);
+  expect(legacy.version).toBe(1);
+  expect(validateReplay(old).finalState).toEqual(legacy.finalState);
+  expect(parseReplay(JSON.stringify(legacy))).toEqual(legacy);
+});
 it("imports legacy matches and preserves a full prefix and exact RNG at branches", () => {
-  const m = simulate(["Greedy", "Random"], 782),
+  const m = simulateFromState(createGame(782), ["Greedy", "Random"]),
     r = replayFromMatch(m),
     index = m.frames.findIndex((f) => f.action?.type === "hold");
   expect(validateReplay(m).finalState).toEqual(r.finalState);

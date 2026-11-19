@@ -138,7 +138,7 @@ describe("확률과 AI", () => {
     "%s의 경기 완주 및 리플레이",
     (algorithm) => {
       const match = simulate([algorithm, "Random"], 123, { iterations: 100 });
-      let s = createGame(123);
+      let s = createGame(123, true);
       for (const frame of match.frames.slice(1)) {
         s = transition(s, frame.action!);
         expect(s).toEqual(frame.state);
@@ -152,6 +152,19 @@ describe("확률과 AI", () => {
     const a = simulate(["Random", "MCTS"], 55, { iterations: 100 }),
       b = simulate(["Random", "MCTS"], 55, { iterations: 100 });
     expect(a.frames).toEqual(b.frames);
+  });
+  it("AI 대전은 플레이어별 독립 난수로 굴리며 같은 시드를 재현", () => {
+    for (const seed of [0, 1, 42, 103, 0xffffffff]) {
+      const match = simulate(["Random", "Random"], seed);
+      expect(match.frames[0].state.rng).toEqual(createGame(seed, true).rng);
+      const firstRolls = [0, 1].map((actor) =>
+        match.frames
+          .find((frame) => frame.actor === actor && frame.action?.type === "roll")!
+          .state.dice.map((die) => die.value),
+      );
+      expect(firstRolls[0]).not.toEqual(firstRolls[1]);
+      expect(simulate(["Random", "Random"], seed).frames).toEqual(match.frames);
+    }
   });
   it("MCTS 방문 횟수와 실제 표본 평균", () => {
     const s = transition(createGame(3), { type: "roll" }),
