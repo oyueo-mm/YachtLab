@@ -26,7 +26,7 @@ export function simulate(
   seed: number,
   options: Options = {},
 ): Match {
-  return simulateFromState(createGame(seed), algorithms, options);
+  return simulateFromState(createGame(seed, true), algorithms, options);
 }
 export function simulateFromState(
   initialState: Game,

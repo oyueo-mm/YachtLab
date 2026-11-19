@@ -92,10 +92,16 @@ export function replayFromMatch(match: Match): Replay {
     type: "ai" as const,
     algorithm,
   })) as [Player, Player];
+  const initialState = match.frames[0].state;
+  // Old v1 matches seeded both players identically. New independent matches use v2.
+  const legacy =
+    initialState.actions === 0 &&
+    initialState.rng.every((value) => value === initialState.seed);
   const r = newReplay(
-    match.frames[0].state,
+    initialState,
     players,
     `${players[0].name} vs ${players[1].name}`,
+    legacy ? 1 : 2,
   );
   return {
     ...r,

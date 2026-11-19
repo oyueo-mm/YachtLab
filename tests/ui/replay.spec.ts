@@ -55,6 +55,28 @@ test("진행 중 기보 저장·JSON 검증·로컬 이름 변경·삭제와 원
   expect(after).toBe(live);
   await expect(page.getByRole("button", { name: "다시 굴리기" })).toBeEnabled();
 });
+test("AI vs AI 기보는 독립 난수 v2를 사용하고 가져오기도 가능", async ({ page }) => {
+  await page.goto("#watch");
+  await page.getByRole("button", { name: "새 경기 시작" }).click();
+  await expect(page.getByRole("button", { name: "일시정지" })).toBeEnabled({ timeout: 20000 });
+  await page.getByRole("button", { name: "기보 보기 · 저장 · 불러오기" }).click();
+  const record = await exported(page);
+  expect(record.version).toBe(2);
+  expect(record.initialState.rng[0]).not.toBe(record.initialState.rng[1]);
+  const rolls = record.frames.filter((frame: any) => frame.action?.type === "roll");
+  const first = [0, 1].map((actor) =>
+    rolls.find((frame: any) => frame.actor === actor)?.state.dice.map((die: any) => die.value),
+  );
+  expect(first[0]).toBeDefined();
+  expect(first[1]).toBeDefined();
+  expect(first[0]).not.toEqual(first[1]);
+  await page.getByLabel("기보 JSON 불러오기").setInputFiles({
+    name: "ai-v2.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(record)),
+  });
+  await expect(page.getByRole("alert")).toHaveCount(0);
+});
 test("v0.3 JSON 중간 고정 상태에서 분기하여 완주하고 원본과 난수 보존", async ({
   page,
 }) => {

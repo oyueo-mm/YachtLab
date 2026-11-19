@@ -65,7 +65,7 @@ try {
   const file = await downloadEvent,
     bytes = await readFile(await file.path());
   const record = JSON.parse(bytes.toString("utf8"));
-  expect(record.version).toBe(1);
+  expect(record.version).toBe(2);
   await page
     .getByLabel("기보 JSON 불러오기")
     .setInputFiles({
