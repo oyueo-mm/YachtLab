@@ -17,12 +17,12 @@ export type Player = {
 };
 export type Replay = {
   format: "YachtLabReplay";
-  version: 1;
+  version: 1 | 2;
   metadata: {
     id: string;
     name: string;
     createdAt: string;
-    ruleVersion: "YachtLab-12-v1";
+    ruleVersion: "YachtLab-12-v1" | "YachtLab-12-v2";
     players: [Player, Player];
     source?: { replayId: string; frameIndex: number };
   };
@@ -42,15 +42,16 @@ export function newReplay(
   state: Game,
   players: [Player, Player],
   name = "요트 대국",
+  version: 1 | 2 = 1,
 ): Replay {
   return {
     format: "YachtLabReplay",
-    version: 1,
+    version,
     metadata: {
       id: crypto.randomUUID(),
       name,
       createdAt: new Date().toISOString(),
-      ruleVersion: "YachtLab-12-v1",
+      ruleVersion: `YachtLab-12-v${version}`,
       players: clone(players),
     },
     initialState: clone(state),
@@ -119,9 +120,11 @@ export function branchReplay(
   const branch = replayFromMatch(match);
   return validateReplay({
     ...branch,
+    version: trusted.version,
     initialState: trusted.initialState,
     metadata: {
       ...branch.metadata,
+      ruleVersion: trusted.metadata.ruleVersion,
       source: { replayId: trusted.metadata.id, frameIndex: index },
       name: `${trusted.metadata.name} · ${index}수 분기`,
     },
@@ -320,11 +323,11 @@ export function validateReplay(input: unknown): Replay {
   ) {
     return validateReplay(replayFromMatch(raw as unknown as Match));
   }
-  if (raw.format !== "YachtLabReplay" || raw.version !== 1)
+  if (raw.format !== "YachtLabReplay" || (raw.version !== 1 && raw.version !== 2))
     throw Error("지원하지 않는 기보 형식 또는 버전입니다.");
   const meta = object(raw.metadata);
   if (
-    meta.ruleVersion !== "YachtLab-12-v1" ||
+    meta.ruleVersion !== `YachtLab-12-v${raw.version}` ||
     !Array.isArray(meta.players) ||
     meta.players.length !== 2
   )
@@ -345,7 +348,7 @@ export function validateReplay(input: unknown): Replay {
   if (!Number.isFinite(Date.parse(meta.createdAt)))
     throw Error("저장 날짜가 올바르지 않습니다.");
   validateGameShape(raw.initialState);
-  let state = createGame(raw.initialState.seed);
+  let state = createGame(raw.initialState.seed, raw.version === 2);
   if (
     !same(state, raw.initialState) ||
     !Array.isArray(raw.frames) ||
@@ -392,12 +395,12 @@ export function validateReplay(input: unknown): Replay {
     throw Error("분기 출처가 올바르지 않습니다.");
   return {
     format: "YachtLabReplay",
-    version: 1,
+    version: raw.version,
     metadata: {
       id: text(meta.id, 100),
       name: text(meta.name, 80),
       createdAt: new Date(meta.createdAt).toISOString(),
-      ruleVersion: "YachtLab-12-v1",
+      ruleVersion: meta.ruleVersion,
       players,
       ...(source
         ? {
