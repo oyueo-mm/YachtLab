@@ -1,0 +1,106 @@
+name: YachtLab QR-DQN and IQN deep research
+on:
+  pull_request:
+    paths:
+      - "src/qr-extensions.ts"
+      - "scripts/research-qr-suite.mjs"
+      - "scripts/summarize-qr-suite.mjs"
+      - "tests/qr-extensions.test.ts"
+      - ".github/workflows/qr-deep-research.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/qr-extensions.ts"
+      - "scripts/research-qr-suite.mjs"
+      - "scripts/summarize-qr-suite.mjs"
+      - "tests/qr-extensions.test.ts"
+      - ".github/workflows/qr-deep-research.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-qr-deep-research-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Static checks and complete unit tests
+        run: |
+          npm test -- --reporter=dot
+          npm run build
+          node --check scripts/research-qr-suite.mjs
+          node --check scripts/summarize-qr-suite.mjs
+      - name: Real full-game end-to-end smoke
+        run: node scripts/research-qr-suite.mjs --smoke --group baseline --seed-index 0
+  full-research:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        group: [baseline, grid0, grid1, grid2, grid3, grid4, grid5, improvements, iqn]
+        seed: [0, 1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Train and validate independent full-game policies
+        run: node scripts/research-qr-suite.mjs --group ${{ matrix.group }} --seed-index ${{ matrix.seed }}
+      - name: Preserve all trained models, seeds, games and counterfactual evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: qr-suite-${{ matrix.group }}-seed-${{ matrix.seed }}
+          path: training/results/qr-suite/*.json
+          retention-days: 90
+  aggregate:
+    needs: full-research
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: qr-suite-*
+          merge-multiple: true
+          path: training/results/qr-suite
+      - name: Aggregate five-seed controlled ablations without confirmation-based selection
+        run: node scripts/summarize-qr-suite.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qr-suite-all-results
+          path: |
+            docs/context/_generated/QR-SUITE-LATEST.md
+            training/results/qr-suite-summary.json
+          retention-days: 90
+      - name: Permanently save the completed experiment summary
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/QR-SUITE-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(context): record complete QR/IQN five-seed ablations [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
