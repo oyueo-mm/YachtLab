@@ -12,6 +12,7 @@ import {
 import { ppoDecision } from "./ppo";
 import { dpDecision } from "./dp";
 import { winDPDecision } from "./win-dp";
+import { winDPv2Decision } from "./competitive-v2";
 import { distilledDecision } from "./distilled";
 import distilledStatus from "./distilled-status.json";
 const allAlgorithms = [
@@ -22,6 +23,7 @@ const allAlgorithms = [
   "PPO",
   "DP Expert",
   "Win DP",
+  "Win DP v2",
   "Distilled Policy",
   "Distilled PPO",
 ] as const;
@@ -137,6 +139,7 @@ export function decide(
   if (algorithm === "PPO") return ppoDecision(state);
   if (algorithm === "DP Expert") return dpDecision(state);
   if (algorithm === "Win DP") return winDPDecision(state) ?? dpDecision(state);
+  if (algorithm === "Win DP v2") return winDPv2Decision(state) ?? dpDecision(state);
   if (algorithm === "Distilled Policy" || algorithm === "Distilled PPO")
     return distilledDecision(state, algorithm);
   const card = state.cards[state.player],

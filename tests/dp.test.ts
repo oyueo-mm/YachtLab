@@ -20,6 +20,7 @@ import {
   score,
   upper,
   total,
+  available,
   type Card,
   type Game,
   type Category,
@@ -27,6 +28,8 @@ import {
 import { outcomes, holds } from "../src/ai";
 import { simulate } from "../src/match";
 import { winDPDecision, canUseWinDP, lastTurnDPDistribution } from "../src/win-dp";
+import { dpOpponentGains, winDPv2Decision } from "../src/competitive-v2";
+import { researchGuidedDecision } from "../src/research-guided-mcts";
 beforeAll(() => {
   const bytes = gunzipSync(readFileSync(`public/ai/${manifest.asset}`));
   expect(createHash("sha256").update(bytes).digest("hex")).toBe(
@@ -277,4 +280,51 @@ it("Win DP와 기존 DP Expert의 실제 12라운드 경기가 정상 종료", (
     const winDecisions = match.frames.filter((f) => f.decision?.note.includes("마지막 턴 승리 확률"));
     expect(winDecisions.length).toBeGreaterThan(0);
   }
+});
+
+it("Win DP v2: DP Expert의 남은 두 카테고리 최종 점수분포는 정규화되며 기대값도 일치", () => {
+  for (const [a,b,u] of [["choice","yacht",0],["sixes","choice",51],["small","large",63]] as [Category,Category,number][]) {
+    const mask = (1 << categories.indexOf(a)) | (1 << categories.indexOf(b));
+    const distribution = dpOpponentGains(mask,u);
+    expect(distribution.reduce((sum,v)=>sum+v,0)).toBeCloseTo(1,9);
+    expect(distribution.every(v=>v>=0)).toBe(true);
+    expect(distribution.reduce((sum,v,i)=>sum+v*i,0)).toBeCloseTo(dpFutureValue(mask,u),7);
+  }
+});
+it("Win DP v2: 공개 점수판만으로 마지막 두 라운드의 승률 행동을 계산", () => {
+  const own:Card=Object.fromEntries(categories.filter(c=>c!=="choice"&&c!=="yacht").map(c=>[c,0]));
+  const opponent:Card=Object.fromEntries(categories.filter(c=>c!=="sixes"&&c!=="choice").map(c=>[c,0]));
+  const state:Game={...createGame(2026,true),cards:[own,opponent],rolls:1,round:11,player:0,
+    dice:[1,3,4,5,6].map((value,id)=>({id,value,held:false}))};
+  const result=winDPv2Decision(state);
+  expect(result).not.toBeNull();
+  expect(result!.note).toContain("두 카테고리");
+  expect(result!.value).toBeGreaterThanOrEqual(0);
+  expect(result!.value).toBeLessThanOrEqual(1);
+  if(result!.type==="reroll")expect(result!.ids.every(id=>id>=0&&id<5)).toBe(true);
+  else expect(available(own)).toContain(result!.category);
+  expect(winDPv2Decision(state)).toEqual(result);
+  expect(winDPv2Decision({...state,round:1,rolls:0})).toThrow();
+});
+it("Win DP v2: 실제 12라운드 전체 경기를 완료하고 선후공을 교대할 수 있다", () => {
+  for (const seed of [210,211]) {
+    const algorithms: ["Win DP v2","DP Expert"] | ["DP Expert","Win DP v2"] = seed%2 ? ["Win DP v2","DP Expert"]:["DP Expert","Win DP v2"];
+    const match = simulate(algorithms,seed);
+    expect(match.frames.at(-1)?.state.done).toBe(true);
+    expect(match.frames.some(f=>f.decision?.note.includes("Win DP v2"))).toBe(true);
+    expect(match.frames.at(-1)!.state.cards.every(c=>Object.keys(c).length===12)).toBe(true);
+  }
+});
+
+it("DP-guided UCB 탐색은 숨긴 시드·RNG 상태를 읽지 않고 합법적인 행동을 제시", () => {
+  const own:Card=Object.fromEntries(categories.filter(c=>!["choice","large","yacht"].includes(c)).map(c=>[c,0]));
+  const other:Card=Object.fromEntries(categories.filter(c=>!["choice","four","yacht"].includes(c)).map(c=>[c,0]));
+  const state:Game={...createGame(300,true),cards:[own,other],round:10,rolls:1,player:0,
+    dice:[1,2,3,5,6].map((value,id)=>({id,value,held:false}))};
+  const first=researchGuidedDecision(state,24);
+  const obscured:Game={...state,seed:99999,rng:[12345,67890]};
+  expect(researchGuidedDecision(obscured,24)).toEqual(first);
+  expect(first.note).toContain("실제 승률 아님");
+  if(first.type==="score")expect(available(own)).toContain(first.category);
+  else expect(first.ids.every(id=>id>=0&&id<5)).toBe(true);
 });
