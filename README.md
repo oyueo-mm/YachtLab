@@ -4,6 +4,15 @@
 
 대상 공개 주소: https://oyueo-mm.github.io/YachtLab/
 
+
+## 📚 맥락 · 연구 · 실험 (새 채팅은 여기부터)
+
+**[맥락 허브](docs/context/README.md) · [자동 현재 상태](docs/context/_generated/CURRENT_STATE.md) · [전체 AI 기법 도감](docs/context/TECHNIQUES.md) · [실험 결과](docs/context/RESULTS.md) · [연구 로드맵](docs/context/ROADMAP.md) · [새 채팅 인수인계](docs/context/HANDOFF.md)**
+
+이 저장소에 연구 맥락을 모아 둡니다. 코드·알고리즘 목록·최근 Git 커밋·Actions 상태는 [Context sync](.github/workflows/context-sync.yml)가 Push와 매일 정기 실행으로 자동 갱신하며, 논문·연구 가설·검증 수치는 근거가 확인된 문서로 보존합니다. GitHub 상단에 **사용자 지정 탭을 임의로 추가할 수는 없고**, Wiki 미러를 추가 시도합니다. Wiki가 초기화되지 않았거나 쓰기 권한이 없더라도 위 맥락 허브는 정상 동작합니다.
+
+새 ChatGPT 대화에서는 **[CONTEXT.md](CONTEXT.md) 링크 하나**를 공유하면 충분합니다. 채팅 내용 자체는 자동으로 업로드되지 않으므로 연구 결정을 확정했다면 해당 결정도 GitHub에 기록해야 다음 대화에서 다시 읽을 수 있습니다.
+
 ## 통합 경쟁형 AI 연구 · Win DP v2 / Guided MCTS / QR-DQN 실험
 
 마지막 두 카테고리까지 승리 점수율을 최적화하는 **Win DP v2**를 별도 AI로 추가했습니다. DP Expert 상대의 남은 두 카테고리 최종 점수분포를 정확히 전개하여 조건부 최적 턴 행동을 선택하며, 그보다 이른 라운드에서는 원본 DP Expert로 폴백합니다. 원본 Win DP 및 기존 AI의 정책·기본값은 보존합니다.

@@ -1,0 +1,102 @@
+name: Context sync
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/context/_generated/**"
+  schedule:
+    - cron: "20 0 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "docs/context/**"
+      - "scripts/update-context.mjs"
+      - "scripts/prepare-context-wiki.mjs"
+      - ".github/workflows/context-sync.yml"
+      - "src/ai.ts"
+      - "src/engine.ts"
+permissions:
+  contents: read
+concurrency:
+  group: context-sync-main
+  cancel-in-progress: false
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 80
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate context snapshot generator
+        run: |
+          node --check scripts/update-context.mjs
+          node --check scripts/prepare-context-wiki.mjs
+          node scripts/update-context.mjs --check
+          node scripts/update-context.mjs --write
+          node scripts/prepare-context-wiki.mjs /tmp/yachtlab-context-wiki-preview
+          test -s /tmp/yachtlab-context-wiki-preview/Home.md
+          test -s docs/context/_generated/CURRENT_STATE.md
+          test -s docs/context/_generated/manifest.json
+  sync:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 80
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Generate truthful context from repository and CI status
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/update-context.mjs --write
+      - name: Commit only changed generated context
+        run: |
+          set -eu
+          git add docs/context/_generated/
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore(context): refresh repository snapshot [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          else
+            echo "No context changes; skipping auto commit"
+          fi
+      - name: Mirror context pages to built-in GitHub Wiki if permitted
+        id: wiki
+        continue-on-error: true
+        env:
+          WIKI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          wiki_dir="$RUNNER_TEMP/yachtlab-context-wiki"
+          wiki_url="https://x-access-token:${WIKI_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
+          if ! git clone --quiet "$wiki_url" "$wiki_dir"; then
+            echo "Wiki not initialized or clone unavailable; attempting bootstrap"
+            mkdir -p "$wiki_dir"
+            git -C "$wiki_dir" init -q --initial-branch=master
+            git -C "$wiki_dir" remote add origin "$wiki_url"
+          fi
+          node scripts/prepare-context-wiki.mjs "$wiki_dir"
+          git -C "$wiki_dir" add -A
+          if ! git -C "$wiki_dir" diff --cached --quiet; then
+            git -C "$wiki_dir" config user.name "github-actions[bot]"
+            git -C "$wiki_dir" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C "$wiki_dir" commit -q -m "Sync YachtLab context docs"
+            git -C "$wiki_dir" push --quiet origin HEAD:master
+          else
+            echo "GitHub Wiki already synchronized"
+          fi
+      - name: Explain optional wiki mirror status
+        if: steps.wiki.outcome == 'failure'
+        run: |
+          echo "::warning::Wiki mirror requires an initialized GitHub Wiki and token permissions; docs/context/ is still complete and automatically maintained."
