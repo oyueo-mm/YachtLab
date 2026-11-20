@@ -5,7 +5,6 @@ Run: python training/qr_dqn_choice.py --episodes 6000 --eval 3000 --seed 26020
 import argparse
 import json
 import random
-from collections import deque
 from pathlib import Path
 import numpy as np
 import torch
@@ -72,7 +71,7 @@ def main():
     online=Network().to(device);target=Network().to(device)
     target.load_state_dict(online.state_dict())
     optimizer=torch.optim.Adam(online.parameters(),lr=0.0004)
-    replay=deque(maxlen=30000)
+    replay=[]
     batch_size=96
     updates=0
     tau=torch.tensor([(i+0.5)/online.quantiles for i in range(online.quantiles)],device=device).view(1,-1,1)
@@ -83,7 +82,9 @@ def main():
         while True:
             action=choose(online,dice,left,epsilon,rng,device)
             next_dice,next_left,done,reward=step(dice,left,action,rng,args.threshold)
-            replay.append((encode(dice,left),action,reward,encode(next_dice,next_left),next_left,float(done)))
+            item=(encode(dice,left),action,reward,encode(next_dice,next_left),next_left,float(done))
+            if len(replay)<30000:replay.append(item)
+            else:replay[rng.randrange(len(replay))]=item
             dice,left=next_dice,next_left
             if len(replay)>=batch_size*2:
                 rows=rng.sample(replay,batch_size)
