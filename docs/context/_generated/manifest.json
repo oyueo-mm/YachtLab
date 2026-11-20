@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "sourceOfTruth": "https://github.com/oyueo-mm/YachtLab/blob/main/docs/context/README.md",
+  "inputFiles": [
+    "src/ai.ts",
+    "src/engine.ts",
+    "package.json"
+  ],
+  "runtime": "module",
+  "npmScripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "vitest run",
+    "test:ui": "playwright test",
+    "benchmark": "node scripts/benchmark-all.mjs && node scripts/summarize-benchmark.mjs"
+  },
+  "algorithms": [
+    "Random",
+    "Greedy",
+    "Expectimax",
+    "MCTS",
+    "PPO",
+    "DP Expert",
+    "Win DP",
+    "Win DP v2",
+    "Distilled Policy",
+    "Distilled PPO"
+  ],
+  "categories": [
+    "aces",
+    "deuces",
+    "threes",
+    "fours",
+    "fives",
+    "sixes",
+    "choice",
+    "four",
+    "full",
+    "small",
+    "large",
+    "yacht"
+  ],
+  "documentation": [
+    "AUTOMATION.md",
+    "DECISIONS.md",
+    "HANDOFF.md",
+    "README.md",
+    "REFERENCES.md",
+    "RESULTS.md",
+    "ROADMAP.md",
+    "TECHNIQUES.md"
+  ],
+  "workflowFiles": [
+    "competitive-research.yml",
+    "confirm-v2.yml",
+    "context-sync.yml",
+    "deploy.yml",
+    "integrated-research.yml"
+  ],
+  "recentSourceCommits": [
+    {
+      "sha": "0a2402c",
+      "date": "2026-11-20",
+      "subject": "docs: persistent YachtLab AI research context hub with daily GitHub/Wiki sync"
+    },
+    {
+      "sha": "76f206d",
+      "date": "2026-11-20",
+      "subject": "research: independently confirm 20k Win DP v2 games and 30k-episode QR-DQN"
+    },
+    {
+      "sha": "5099caf",
+      "date": "2026-11-20",
+      "subject": "research: integrate two-turn competitive DP, opponent distributions, MCTS and QR-DQN evaluation"
+    },
+    {
+      "sha": "4fb405a",
+      "date": "2026-11-20",
+      "subject": "research: add 20k independent paired validation and two-category exact results"
+    },
+    {
+      "sha": "8e4f3b2",
+      "date": "2026-11-20",
+      "subject": "fix: emit competitive benchmark opponent mean correctly"
+    },
+    {
+      "sha": "5871921",
+      "date": "2026-11-20",
+      "subject": "ci: run paired competitive benchmark on solver changes and retain raw matches"
+    },
+    {
+      "sha": "6248bce",
+      "date": "2026-11-20",
+      "subject": "research: introduce Win DP exact competitive endgame and evaluation harness"
+    },
+    {
+      "sha": "c1a67b2",
+      "date": "2026-11-20",
+      "subject": "fix: independent dice for AI vs AI and replay compatibility"
+    },
+    {
+      "sha": "8674d77",
+      "date": "2026-11-19",
+      "subject": "fix: separate human and AI dice RNG with replay compatibility"
+    },
+    {
+      "sha": "ae4ac13",
+      "date": "2026-11-09",
+      "subject": "fix: independent N-player dice and compact match layout"
+    }
+  ],
+  "recentWorkflowRuns": [
+    {
+      "name": "Confirm Win DP v2 and long QR-DQN on fresh seeds",
+      "status": "success",
+      "head": "76f206dee7",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44690511514"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "76f206dee7",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44690511503"
+    },
+    {
+      "name": "Integrated competitive AI research",
+      "status": "success",
+      "head": "5099cafaae",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44689804618"
+    },
+    {
+      "name": "Competitive research benchmark",
+      "status": "success",
+      "head": "5099cafaae",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44689804438"
+    }
+  ],
+  "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
+  "disclaimer": "코드와 저장소 메타데이터의 자동 색인. 알고리즘 성능 결과 및 새 대화 내용은 자동 해석/수집하지 않음."
+}
