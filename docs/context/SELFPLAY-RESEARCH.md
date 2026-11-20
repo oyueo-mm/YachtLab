@@ -77,3 +77,12 @@ GitHub Actions [full-selfplay.yml](../../.github/workflows/full-selfplay.yml)에
 연구용 스크립트는 `node scripts/train-selfplay.mjs --smoke`, `node scripts/calibrate-opponents.mjs --smoke`, `node scripts/bench-v3.mjs --smoke`로 개별 최소 재현 가능. 실제 본 실험은 각 `--smoke`를 제거한다.
 
 **연구 요약 자동 문서:** [SELFPLAY-LATEST.md](./_generated/SELFPLAY-LATEST.md) (성공한 본 실험 이후 생성). 완료 전에는 성능 향상 여부를 주장하지 않는다.
+
+## 후속 실제 12라운드 신경망 자기 대국
+
+- 연구 모듈: [src/neural-residual.ts](../../src/neural-residual.ts), [학습 하네스](../../scripts/train-neural-selfplay.mjs), [GitHub Actions](../../.github/workflows/neural-selfplay.yml).
+- **REINFORCE 신경망**과 **Monte-Carlo advantage actor-critic** 두 모델을 실제 12라운드 승패 보상으로 학습. Actor는 DP의 행동별 Q를 기본값으로 사용하는 행동별 **12→12→1 비선형 MLP**, critic은 양쪽 공개 점수판에서 만든 5차원 값 예측 회귀 baseline이다.
+- 네트워크 샘플링 및 정책 업데이트에 숨겨진 게임 시드·미래 주사위 값을 사용하지 않음.
+- 각 모델 **75배치 × 96 전체 게임 에피소드**, 이전 신경망 스냅샷·DP Expert·Win DP v2와 혼합 상대 리그에서 훈련. 검증/확증 시드 분리, 원시 경기·정책 가중치 보존.
+- 이 critic은 최종 게임 outcome을 대상으로 하는 **Monte-Carlo baseline**이다. TD 부트스트랩 A2C나 PPO와 동일하다고 주장하지 않는다.
+- 확증 결과가 나오기 전에는 기존 Win DP v2/기본 모델에 영향 없음. [최신 신경망 결과](./_generated/NEURAL-SELFPLAY-LATEST.md)는 연구 워크플로 성공 후 생성된다.
