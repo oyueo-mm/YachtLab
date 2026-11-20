@@ -121,3 +121,10 @@
 - ⚠️ 상대 점수 PMF는 유한 시뮬레이션으로 학습한 **경험적 근사**이지 3개 이상 모든 주사위 경로의 정확 완전열거가 아님.
 - 🔲 다음 연구는 상대 정책/점수판 조건부 **정확 3개+ PMF**, PSRO 응답 오라클 품질 및 모집단 메타게임 payoff 신뢰구간, PPO 다중 학습 시드·더 큰 학습 예산·복잡한 가치망.
 - 🔒 기존 Win DP v2 유지, 명확한 독립 head-to-head 개선 없이는 기본 AI 배포 금지.
+
+## PSRO 오라클·점수판 조건부 점수분포·PPO 다중 시드 확대 연구 (2026-11-20)
+
+- [확장 연구 프로토콜](./EXTENDED-PSRO-PMF-PPO-RESEARCH.md): 이전 PSRO에서는 실제 oracle best-response가 기존 가장 강한 정책보다 좋다는 증거가 없었으므로 **각 단계의 원래 meta mixture에 대한 새 oracle−기존 정책의 독립 paired CI**로 검증.
+- 기존 남은 카테고리 수만 조건으로 쓰던 Gaussian/PMF에서 **마스크·상단 누적·현재 점수·DP projected final-score 조건부 CART empirical PMF**로 확대, 정책별 650 train/200 validation/400 confirm 경기.
+- **전체게임 PPO 학습 초기화 3회**, 정책별/시드별 **8,192게임**, PPO·DP teacher KL 두 모델 **총 49,152게임**. seed별 비감독 실험 편향 없이 모든 결과/분산 보고.
+- 미사용 seed의 Win DP v2 직접 승률이 개선되지 않으면 현재 기본 Win DP v2 유지. 연구 실행 상태는 [확장 자동 워크플로](../../.github/workflows/psro-extended.yml) 및 [생성 결과](./_generated/PPO-MULTISEED-LATEST.md) 참조.
