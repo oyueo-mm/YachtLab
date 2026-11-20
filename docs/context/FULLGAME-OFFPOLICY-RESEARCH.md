@@ -6,8 +6,8 @@
 
 | 계열 | 실제 구현 요소 | 충실도 및 별개 미구현 요소 |
 |---|---|---|
-| **Double Dueling DQN + PER (Rainbow-lite)** | value/advantage 분해 선형 network, Double Q online/target action selection, proportional PER + importance weight, **3-step TD**, 주기적 target copy | **정식 Rainbow 미구현**: C51 categorical distribution, NoisyNet 등 누락. Rainbow 완전체라고 부르지 않는다 |
-| **QR-DQN** | 행동별 **16개 고정 분위수**의 return 분포, pairwise quantile Huber regression, Double target action selection, PER, terminal credit 1/.5/0 | IQN(연속 `τ` embedding) **미구현**. 고정된 16개 quantile 회귀가 핵심 |
+| **Double Dueling DQN + PER (Rainbow-lite)** | 공유 8-unit tanh 은닉층과 value/advantage dueling head를 갖춘 MLP network, Double Q online/target action selection, proportional PER + importance weight, **3-step TD**, 주기적 target copy | **정식 Rainbow 미구현**: C51 categorical distribution, NoisyNet 등 누락. Rainbow 완전체라고 부르지 않는다 |
+| **QR-DQN** | 공유 8-unit tanh 은닉층 기반 행동별 **16개 고정 분위수**의 return 분포, pairwise quantile Huber regression, Double target action selection, PER, terminal credit 1/.5/0 | IQN(연속 `τ` embedding) **미구현**. 고정된 16개 quantile 회귀가 핵심 |
 | **Expert Iteration** | 정책 상태마다 DP 기대점수가 비슷한 2~3개 후보를 골라 **미래 주사위를 새로 샘플링한 실제 전체 게임 rollout**으로 승리 점수율을 평가, top 개선 행동을 정책에 supervised distillation, 여러 반복 | 예산 제한 MC oracle이며 진짜 최적 대응 증명 없음, 초기 DP보다 강하다고 가정하지 않음 |
 | **Dyna-Q (정확한 전이 모델)** | YachtLab **기존 엔진으로 추가 가상 next-decision transitions** 생성, real+imagined replay를 Double Dueling Q TD 학습 | 가상 전이는 **새 RNG 시드**로 생성; 미래 주사위 미리 읽지 않음. 변형된 모델을 따로 학습하지 않음 |
 | **Discrete SAC (소형 연구 정책)** | off-policy stochastic actor, **two critics**, soft entropy regularized objective, target Q critic copy, replay, terminal 승패 보상 | 선형 근사 actor/critic, 고성능 딥 신경망 SAC가 아님. 모든 옵션을 갖춘 production SAC 주장 금지 |
@@ -36,7 +36,7 @@
 1. 5계열 + PPO는 **서로 다른 학습 대상·학습 예산**이므로 단순 승리점수율이 높으면 그 알고리즘이 본질적으로 우월하다고 주장하지 않는다.
 2. 성능 주장은 **훈련/검증과 분리된 confirmation 시드, 두 좌석 교대 및 승리 점수율 CI**를 기본으로 한다. 여러 모델의 다중 비교 유의성까지 전부 해결한 것은 아니다.
 3. QR-DQN vs IQN, Double Dueling vs Full Rainbow는 구현 수준이 다르므로 불명확하게 합쳐 말하지 않는다.
-4. GPU 기반 딥 신경망·수백만 게임 규모의 SOTA 실험이 아니라 **정확한 엔진을 활용한 연구용 소형 모델**이다.
+4. DQN/QR-DQN은 은닉층을 갖춘 소형 신경망이고, SAC/ExIt는 작은 선형 정책이다. GPU 기반 대규모 딥 신경망·수백만 게임 규모의 SOTA 실험은 아니다.
 5. 강화학습이 더 강해지지 않아도 코드·원시 실험·모델·실패 사례를 GitHub 맥락 허브에 자동 보존하고, 기존 Win DP v2는 무단 변경하지 않는다.
 
 ## 연구 근거
