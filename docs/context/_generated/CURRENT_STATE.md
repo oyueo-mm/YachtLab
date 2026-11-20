@@ -36,6 +36,7 @@
 - [context-sync.yml](../../../.github/workflows/context-sync.yml)
 - [deploy.yml](../../../.github/workflows/deploy.yml)
 - [integrated-research.yml](../../../.github/workflows/integrated-research.yml)
+- [tabular-zoo.yml](../../../.github/workflows/tabular-zoo.yml)
 
 ## 맥락 허브의 보존된 문서
 
@@ -53,6 +54,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [6002008](https://github.com/oyueo-mm/YachtLab/commit/6002008) | 2026-11-20 | research: add eight tabular RL control algorithms for YachtLab Choice benchmark |
 | [491abcb](https://github.com/oyueo-mm/YachtLab/commit/491abcb) | 2026-11-20 | research: broad algorithm zoo 58 variants, 4 RL methods and held-out evaluation |
 | [0a2402c](https://github.com/oyueo-mm/YachtLab/commit/0a2402c) | 2026-11-20 | docs: persistent YachtLab AI research context hub with daily GitHub/Wiki sync |
 | [76f206d](https://github.com/oyueo-mm/YachtLab/commit/76f206d) | 2026-11-20 | research: independently confirm 20k Win DP v2 games and 30k-episode QR-DQN |
@@ -62,7 +64,6 @@
 | [5871921](https://github.com/oyueo-mm/YachtLab/commit/5871921) | 2026-11-20 | ci: run paired competitive benchmark on solver changes and retain raw matches |
 | [6248bce](https://github.com/oyueo-mm/YachtLab/commit/6248bce) | 2026-11-20 | research: introduce Win DP exact competitive endgame and evaluation harness |
 | [c1a67b2](https://github.com/oyueo-mm/YachtLab/commit/c1a67b2) | 2026-11-20 | fix: independent dice for AI vs AI and replay compatibility |
-| [8674d77](https://github.com/oyueo-mm/YachtLab/commit/8674d77) | 2026-11-19 | fix: separate human and AI dice RNG with replay compatibility |
 
 ## 최근 GitHub Actions 상태
 
@@ -70,8 +71,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Algorithm zoo — broad tournament and RL study](https://github.com/oyueo-mm/YachtLab/actions/runs/44704032319) | success | 6a721fde1f |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44700490044) | success | 0a2402c98b |
+| [Algorithm zoo — broad tournament and RL study](https://github.com/oyueo-mm/YachtLab/actions/runs/44705247175) | success | 4458f0ffeb |
+| [Tabular RL algorithm zoo — last-turn Choice](https://github.com/oyueo-mm/YachtLab/actions/runs/44705247158) | success | 4458f0ffeb |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44704462185) | success | 491abcb1c2 |
 | [Confirm Win DP v2 and long QR-DQN on fresh seeds](https://github.com/oyueo-mm/YachtLab/actions/runs/44690511514) | success | 76f206dee7 |
 | [Integrated competitive AI research](https://github.com/oyueo-mm/YachtLab/actions/runs/44689804618) | success | 5099cafaae |
 | [Competitive research benchmark](https://github.com/oyueo-mm/YachtLab/actions/runs/44689804438) | success | 5099cafaae |

@@ -58,9 +58,15 @@
     "confirm-v2.yml",
     "context-sync.yml",
     "deploy.yml",
-    "integrated-research.yml"
+    "integrated-research.yml",
+    "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "6002008",
+      "date": "2026-11-20",
+      "subject": "research: add eight tabular RL control algorithms for YachtLab Choice benchmark"
+    },
     {
       "sha": "491abcb",
       "date": "2026-11-20",
@@ -105,25 +111,26 @@
       "sha": "c1a67b2",
       "date": "2026-11-20",
       "subject": "fix: independent dice for AI vs AI and replay compatibility"
-    },
-    {
-      "sha": "8674d77",
-      "date": "2026-11-19",
-      "subject": "fix: separate human and AI dice RNG with replay compatibility"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Algorithm zoo — broad tournament and RL study",
       "status": "success",
-      "head": "6a721fde1f",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44704032319"
+      "head": "4458f0ffeb",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44705247175"
+    },
+    {
+      "name": "Tabular RL algorithm zoo — last-turn Choice",
+      "status": "success",
+      "head": "4458f0ffeb",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44705247158"
     },
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "0a2402c98b",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44700490044"
+      "head": "491abcb1c2",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44704462185"
     },
     {
       "name": "Confirm Win DP v2 and long QR-DQN on fresh seeds",
