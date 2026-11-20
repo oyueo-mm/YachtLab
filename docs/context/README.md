@@ -17,6 +17,9 @@
 
 | 문서 | 먼저 확인할 내용 |
 |---|---|
+| **[전체 게임 강화학습 5계열 + PPO 2배 확대](./FULLGAME-OFFPOLICY-RESEARCH.md)** | Double Dueling/PER, QR-DQN, ExIt, Dyna-Q, Discrete SAC 및 98,304 PPO 학습 |
+| [전체 게임 RL 다섯 알고리즘 자동 결과](./_generated/FULLGAME-RL-ZOO-LATEST.md) | 실제 12라운드 학습/독립 대전/실패 모델 포함 |
+| [PPO 2배 학습 자동 결과](./_generated/PPO-HIGH-BUDGET-LATEST.md) | 기존 49,152게임과 비교, 3시드×2모델×16,384게임 |
 | **[대량 실험 최종 보고서](./EXPERIMENT-ZOO-2026-11-20.md)** | 58개 정책 설정/45,784경기와 12개 학습 모델의 실제 결과, 실패 사례·신뢰구간 |
 | [알고리즘 대량 실험](./EXPERIMENT-ZOO.md) | 58개 후보/설정, 4종 강화학습 파일럿, 대규모 경기 리그 및 결과 자동 기록 |
 | [최신 대량 실험 결과 (자동)](./_generated/LATEST_EXPERIMENT.md) | 실제 연구 워크플로 실행 성공 후 생성되는 결과 |

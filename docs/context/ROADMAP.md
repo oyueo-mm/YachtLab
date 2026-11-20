@@ -136,3 +136,11 @@
 - ⚠️ 기존 zero-neural reference가 validation 최고. 일반 PPO vs Win DP v2 3시드 평균 **48.222%**, 초기화 sd 3.076%p; **DP teacher KL PPO 평균 50.069%**, sd 0.296%p. KL은 안정성 징후가 있으나 강함 향상 입증 불가.
 - 🔲 후속: 일반 PPO의 극단적 훈련시드 불안정 원인을 actor gradient/clipFraction/보상 분포, 서브리그 opponents, critic value error로 분리하고, KL β의 여러 시드 반복 및 실제 큰 네트워크 학습 검토.
 - 🔒 상대점수 PMF는 Greedy 상대에서만 CRPS 개선, PSRO approximate best-response oracle 세 단계 모두 독립 우위 미입증. 기존 **Win DP v2 유지**.
+
+## 2026-11-21 RL 5계열 비교와 PPO 2배 확대
+
+- [구현/평가 범위 문서](./FULLGAME-OFFPOLICY-RESEARCH.md): Full 12-round **Double Dueling DQN + PER + 3-step**, fixed 16-quantile **QR-DQN**, full-game MC oracle **Expert Iteration**, exact-engine Dyna-Q, twin-Q **Discrete SAC**.
+- **명칭 주의:** Rainbow-lite는 정식 Rainbow가 아니고, QR-DQN은 IQN과 다름. 나머지 5계열은 DP 고정 후보/후반 Win DP v2 폴백을 사용해 공정한 시작점을 보존.
+- 학습 전후 각각 validation 및 independent confirmation Win DP v2/DP Expert 상대 대전을 기록. 실험 성공 전 성능 우위 주장 금지.
+- [PPO 2배 추가 학습](./_generated/PPO-HIGH-BUDGET-LATEST.md): 3 seeds × 2 PPO variants × 128 batches × 128 full-game episodes = **98,304 학습게임**. 기존 49,152게임 연구와 비교하여 성능 변동/오버피팅/학습량 증가 효과 확인.
+- GitHub Actions [통합 워크플로](../../.github/workflows/offpolicy-ppo-expanded.yml), 모델 가중치+원시 경기 결과 아티팩트 저장; **기본 Win DP v2 유지**.
