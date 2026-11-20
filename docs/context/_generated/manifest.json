@@ -44,6 +44,7 @@
   "documentation": [
     "AUTOMATION.md",
     "DECISIONS.md",
+    "EXPERIMENT-ZOO-2026-11-20.md",
     "EXPERIMENT-ZOO.md",
     "HANDOFF.md",
     "README.md",
@@ -62,6 +63,11 @@
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "c5dd0a4",
+      "date": "2026-11-20",
+      "subject": "docs: preserve 45,784-game algorithm zoo and 12 RL study results"
+    },
     {
       "sha": "6002008",
       "date": "2026-11-20",
@@ -106,31 +112,26 @@
       "sha": "6248bce",
       "date": "2026-11-20",
       "subject": "research: introduce Win DP exact competitive endgame and evaluation harness"
-    },
-    {
-      "sha": "c1a67b2",
-      "date": "2026-11-20",
-      "subject": "fix: independent dice for AI vs AI and replay compatibility"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "Tabular RL algorithm zoo — last-turn Choice",
+      "status": "success",
+      "head": "6002008dd8",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44705368822"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "6002008dd8",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44705368777"
+    },
     {
       "name": "Algorithm zoo — broad tournament and RL study",
       "status": "success",
       "head": "4458f0ffeb",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44705247175"
-    },
-    {
-      "name": "Tabular RL algorithm zoo — last-turn Choice",
-      "status": "success",
-      "head": "4458f0ffeb",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44705247158"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "491abcb1c2",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44704462185"
     },
     {
       "name": "Confirm Win DP v2 and long QR-DQN on fresh seeds",
