@@ -89,6 +89,12 @@ jobs:
         with:
           name: psro-opponents-for-expanded-ppo
           path: .
+      - name: Restore downloaded PSRO model in the expected research path
+        run: |
+          mkdir -p training/results
+          if [ -f psro-population.json ]; then mv psro-population.json training/results/psro-population.json; fi
+          if [ -f psro-real-matrix.json ]; then mv psro-real-matrix.json training/results/psro-real-matrix.json; fi
+          test -s training/results/psro-population.json
       - name: Train PPO and teacher-KL PPO at 128 x 128 full-games per variant
         run: node scripts/train-ppo-high-budget.mjs --seed-index ${{ matrix.seed }} ${{ github.event_name == 'pull_request' && '--smoke' || '' }}
       - uses: actions/upload-artifact@v4
