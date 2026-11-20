@@ -65,6 +65,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [6680443](https://github.com/oyueo-mm/YachtLab/commit/6680443) | 2026-11-21 | docs: finalize PSRO oracle, scorecard PMF and 49k-game multi-seed PPO evidence |
 | [319f53a](https://github.com/oyueo-mm/YachtLab/commit/319f53a) | 2026-11-21 | docs: preserve verified PSRO oracle audit and scorecard PMF holdout outcomes |
 | [6f82244](https://github.com/oyueo-mm/YachtLab/commit/6f82244) | 2026-11-20 | research: audit actual PSRO oracle best-response, scorecard conditional PMF and independent PPO seeds |
 | [fc6a4ac](https://github.com/oyueo-mm/YachtLab/commit/fc6a4ac) | 2026-11-20 | docs: preserve verified PSRO, empirical PMF and PPO head-to-head experiments |
@@ -74,7 +75,6 @@
 | [d8fa25a](https://github.com/oyueo-mm/YachtLab/commit/d8fa25a) | 2026-11-20 | research: full-game league self-play, policy-gradient and three-turn competitive planning |
 | [c5dd0a4](https://github.com/oyueo-mm/YachtLab/commit/c5dd0a4) | 2026-11-20 | docs: preserve 45,784-game algorithm zoo and 12 RL study results |
 | [6002008](https://github.com/oyueo-mm/YachtLab/commit/6002008) | 2026-11-20 | research: add eight tabular RL control algorithms for YachtLab Choice benchmark |
-| [491abcb](https://github.com/oyueo-mm/YachtLab/commit/491abcb) | 2026-11-20 | research: broad algorithm zoo 58 variants, 4 RL methods and held-out evaluation |
 
 ## 최근 GitHub Actions 상태
 
@@ -82,10 +82,10 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44758929116) | success | 319f53a0b5 |
 | [Full-game self-play and three-turn competitive research](https://github.com/oyueo-mm/YachtLab/actions/runs/44756146027) | success | 6f822441cd |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44756143900) | success | 6f822441cd |
+| [PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44756143942) | success | 6f822441cd |
 | [YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44756143885) | success | 6f822441cd |
-| [PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44755609428) | success | e84cc44d4a |
 | [Full-game neural self-play — REINFORCE and Monte Carlo Actor-Critic](https://github.com/oyueo-mm/YachtLab/actions/runs/44725235280) | success | 9eff1ea5eb |
 
 ## 다음 채팅과 작업의 시작점

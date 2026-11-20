@@ -74,6 +74,11 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "6680443",
+      "date": "2026-11-21",
+      "subject": "docs: finalize PSRO oracle, scorecard PMF and 49k-game multi-seed PPO evidence"
+    },
+    {
       "sha": "319f53a",
       "date": "2026-11-21",
       "subject": "docs: preserve verified PSRO oracle audit and scorecard PMF holdout outcomes"
@@ -117,14 +122,15 @@
       "sha": "6002008",
       "date": "2026-11-20",
       "subject": "research: add eight tabular RL control algorithms for YachtLab Choice benchmark"
-    },
-    {
-      "sha": "491abcb",
-      "date": "2026-11-20",
-      "subject": "research: broad algorithm zoo 58 variants, 4 RL methods and held-out evaluation"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "319f53a0b5",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44758929116"
+    },
     {
       "name": "Full-game self-play and three-turn competitive research",
       "status": "success",
@@ -132,22 +138,16 @@
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44756146027"
     },
     {
-      "name": "Test and deploy YachtLab",
+      "name": "PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO",
       "status": "success",
       "head": "6f822441cd",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44756143900"
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44756143942"
     },
     {
       "name": "YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO",
       "status": "success",
       "head": "6f822441cd",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44756143885"
-    },
-    {
-      "name": "PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO",
-      "status": "success",
-      "head": "e84cc44d4a",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44755609428"
     },
     {
       "name": "Full-game neural self-play — REINFORCE and Monte Carlo Actor-Critic",
