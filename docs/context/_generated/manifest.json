@@ -51,6 +51,7 @@
     "REFERENCES.md",
     "RESULTS.md",
     "ROADMAP.md",
+    "SELFPLAY-RESEARCH.md",
     "TECHNIQUES.md"
   ],
   "workflowFiles": [
@@ -59,10 +60,16 @@
     "confirm-v2.yml",
     "context-sync.yml",
     "deploy.yml",
+    "full-selfplay.yml",
     "integrated-research.yml",
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "d8fa25a",
+      "date": "2026-11-20",
+      "subject": "research: full-game league self-play, policy-gradient and three-turn competitive planning"
+    },
     {
       "sha": "c5dd0a4",
       "date": "2026-11-20",
@@ -107,25 +114,26 @@
       "sha": "5871921",
       "date": "2026-11-20",
       "subject": "ci: run paired competitive benchmark on solver changes and retain raw matches"
-    },
-    {
-      "sha": "6248bce",
-      "date": "2026-11-20",
-      "subject": "research: introduce Win DP exact competitive endgame and evaluation harness"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "Full-game self-play and three-turn competitive research",
+      "status": "success",
+      "head": "035497c57d",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44710450617"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "035497c57d",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44710450435"
+    },
     {
       "name": "Tabular RL algorithm zoo — last-turn Choice",
       "status": "success",
       "head": "6002008dd8",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44705368822"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "6002008dd8",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44705368777"
     },
     {
       "name": "Algorithm zoo — broad tournament and RL study",

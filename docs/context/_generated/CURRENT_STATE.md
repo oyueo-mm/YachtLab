@@ -35,6 +35,7 @@
 - [confirm-v2.yml](../../../.github/workflows/confirm-v2.yml)
 - [context-sync.yml](../../../.github/workflows/context-sync.yml)
 - [deploy.yml](../../../.github/workflows/deploy.yml)
+- [full-selfplay.yml](../../../.github/workflows/full-selfplay.yml)
 - [integrated-research.yml](../../../.github/workflows/integrated-research.yml)
 - [tabular-zoo.yml](../../../.github/workflows/tabular-zoo.yml)
 
@@ -49,12 +50,14 @@
 - [REFERENCES.md](../REFERENCES.md)
 - [RESULTS.md](../RESULTS.md)
 - [ROADMAP.md](../ROADMAP.md)
+- [SELFPLAY-RESEARCH.md](../SELFPLAY-RESEARCH.md)
 - [TECHNIQUES.md](../TECHNIQUES.md)
 
 ## 최근 Git 커밋 (맥락 자동 커밋 제외)
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [d8fa25a](https://github.com/oyueo-mm/YachtLab/commit/d8fa25a) | 2026-11-20 | research: full-game league self-play, policy-gradient and three-turn competitive planning |
 | [c5dd0a4](https://github.com/oyueo-mm/YachtLab/commit/c5dd0a4) | 2026-11-20 | docs: preserve 45,784-game algorithm zoo and 12 RL study results |
 | [6002008](https://github.com/oyueo-mm/YachtLab/commit/6002008) | 2026-11-20 | research: add eight tabular RL control algorithms for YachtLab Choice benchmark |
 | [491abcb](https://github.com/oyueo-mm/YachtLab/commit/491abcb) | 2026-11-20 | research: broad algorithm zoo 58 variants, 4 RL methods and held-out evaluation |
@@ -64,7 +67,6 @@
 | [4fb405a](https://github.com/oyueo-mm/YachtLab/commit/4fb405a) | 2026-11-20 | research: add 20k independent paired validation and two-category exact results |
 | [8e4f3b2](https://github.com/oyueo-mm/YachtLab/commit/8e4f3b2) | 2026-11-20 | fix: emit competitive benchmark opponent mean correctly |
 | [5871921](https://github.com/oyueo-mm/YachtLab/commit/5871921) | 2026-11-20 | ci: run paired competitive benchmark on solver changes and retain raw matches |
-| [6248bce](https://github.com/oyueo-mm/YachtLab/commit/6248bce) | 2026-11-20 | research: introduce Win DP exact competitive endgame and evaluation harness |
 
 ## 최근 GitHub Actions 상태
 
@@ -72,8 +74,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
+| [Full-game self-play and three-turn competitive research](https://github.com/oyueo-mm/YachtLab/actions/runs/44710450617) | success | 035497c57d |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44710450435) | success | 035497c57d |
 | [Tabular RL algorithm zoo — last-turn Choice](https://github.com/oyueo-mm/YachtLab/actions/runs/44705368822) | success | 6002008dd8 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44705368777) | success | 6002008dd8 |
 | [Algorithm zoo — broad tournament and RL study](https://github.com/oyueo-mm/YachtLab/actions/runs/44705247175) | success | 4458f0ffeb |
 | [Confirm Win DP v2 and long QR-DQN on fresh seeds](https://github.com/oyueo-mm/YachtLab/actions/runs/44690511514) | success | 76f206dee7 |
 | [Integrated competitive AI research](https://github.com/oyueo-mm/YachtLab/actions/runs/44689804618) | success | 5099cafaae |
