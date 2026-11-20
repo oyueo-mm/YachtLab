@@ -1,0 +1,65 @@
+name: Full-game neural self-play — REINFORCE and Monte Carlo Actor-Critic
+on:
+  pull_request:
+    paths:
+      - "src/neural-residual.ts"
+      - "scripts/train-neural-selfplay.mjs"
+      - "tests/neural-selfplay.test.ts"
+      - ".github/workflows/neural-selfplay.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/neural-residual.ts"
+      - "scripts/train-neural-selfplay.mjs"
+      - "tests/neural-selfplay.test.ts"
+      - ".github/workflows/neural-selfplay.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: neural-selfplay-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  train:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 30
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Check JavaScript harness syntax
+        run: node --check scripts/train-neural-selfplay.mjs
+      - name: Smoke train both full-game neural methods in PR
+        if: github.event_name == 'pull_request'
+        run: node scripts/train-neural-selfplay.mjs --smoke
+      - name: Train and evaluate both neural methods in actual full games
+        if: github.event_name != 'pull_request'
+        run: node scripts/train-neural-selfplay.mjs
+      - name: Archive learned network weights and all individual match records
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-game-neural-selfplay
+          path: |
+            training/results/neural-full-selfplay.json
+            training/checkpoints/neural-full-selfplay-chosen.json
+            docs/context/_generated/NEURAL-SELFPLAY-LATEST.md
+          retention-days: 90
+      - name: Persist scientific summary in GitHub context hub
+        if: github.event_name != 'pull_request'
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/NEURAL-SELFPLAY-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(context): save full-game neural self-play report [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
