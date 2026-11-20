@@ -44,6 +44,7 @@
   "documentation": [
     "AUTOMATION.md",
     "DECISIONS.md",
+    "EXPERIMENT-ZOO.md",
     "HANDOFF.md",
     "README.md",
     "REFERENCES.md",
@@ -52,6 +53,7 @@
     "TECHNIQUES.md"
   ],
   "workflowFiles": [
+    "algorithm-zoo.yml",
     "competitive-research.yml",
     "confirm-v2.yml",
     "context-sync.yml",
@@ -59,6 +61,11 @@
     "integrated-research.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "491abcb",
+      "date": "2026-11-20",
+      "subject": "research: broad algorithm zoo 58 variants, 4 RL methods and held-out evaluation"
+    },
     {
       "sha": "0a2402c",
       "date": "2026-11-20",
@@ -103,25 +110,26 @@
       "sha": "8674d77",
       "date": "2026-11-19",
       "subject": "fix: separate human and AI dice RNG with replay compatibility"
-    },
-    {
-      "sha": "ae4ac13",
-      "date": "2026-11-09",
-      "subject": "fix: independent N-player dice and compact match layout"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "Algorithm zoo — broad tournament and RL study",
+      "status": "success",
+      "head": "6a721fde1f",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44704032319"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "0a2402c98b",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44700490044"
+    },
     {
       "name": "Confirm Win DP v2 and long QR-DQN on fresh seeds",
       "status": "success",
       "head": "76f206dee7",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44690511514"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "76f206dee7",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44690511503"
     },
     {
       "name": "Integrated competitive AI research",

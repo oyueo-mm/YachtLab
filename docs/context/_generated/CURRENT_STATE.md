@@ -30,6 +30,7 @@
 
 ## 저장소에서 발견한 워크플로
 
+- [algorithm-zoo.yml](../../../.github/workflows/algorithm-zoo.yml)
 - [competitive-research.yml](../../../.github/workflows/competitive-research.yml)
 - [confirm-v2.yml](../../../.github/workflows/confirm-v2.yml)
 - [context-sync.yml](../../../.github/workflows/context-sync.yml)
@@ -40,6 +41,7 @@
 
 - [AUTOMATION.md](../AUTOMATION.md)
 - [DECISIONS.md](../DECISIONS.md)
+- [EXPERIMENT-ZOO.md](../EXPERIMENT-ZOO.md)
 - [HANDOFF.md](../HANDOFF.md)
 - [README.md](../README.md)
 - [REFERENCES.md](../REFERENCES.md)
@@ -51,6 +53,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [491abcb](https://github.com/oyueo-mm/YachtLab/commit/491abcb) | 2026-11-20 | research: broad algorithm zoo 58 variants, 4 RL methods and held-out evaluation |
 | [0a2402c](https://github.com/oyueo-mm/YachtLab/commit/0a2402c) | 2026-11-20 | docs: persistent YachtLab AI research context hub with daily GitHub/Wiki sync |
 | [76f206d](https://github.com/oyueo-mm/YachtLab/commit/76f206d) | 2026-11-20 | research: independently confirm 20k Win DP v2 games and 30k-episode QR-DQN |
 | [5099caf](https://github.com/oyueo-mm/YachtLab/commit/5099caf) | 2026-11-20 | research: integrate two-turn competitive DP, opponent distributions, MCTS and QR-DQN evaluation |
@@ -60,7 +63,6 @@
 | [6248bce](https://github.com/oyueo-mm/YachtLab/commit/6248bce) | 2026-11-20 | research: introduce Win DP exact competitive endgame and evaluation harness |
 | [c1a67b2](https://github.com/oyueo-mm/YachtLab/commit/c1a67b2) | 2026-11-20 | fix: independent dice for AI vs AI and replay compatibility |
 | [8674d77](https://github.com/oyueo-mm/YachtLab/commit/8674d77) | 2026-11-19 | fix: separate human and AI dice RNG with replay compatibility |
-| [ae4ac13](https://github.com/oyueo-mm/YachtLab/commit/ae4ac13) | 2026-11-09 | fix: independent N-player dice and compact match layout |
 
 ## 최근 GitHub Actions 상태
 
@@ -68,8 +70,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
+| [Algorithm zoo — broad tournament and RL study](https://github.com/oyueo-mm/YachtLab/actions/runs/44704032319) | success | 6a721fde1f |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44700490044) | success | 0a2402c98b |
 | [Confirm Win DP v2 and long QR-DQN on fresh seeds](https://github.com/oyueo-mm/YachtLab/actions/runs/44690511514) | success | 76f206dee7 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44690511503) | success | 76f206dee7 |
 | [Integrated competitive AI research](https://github.com/oyueo-mm/YachtLab/actions/runs/44689804618) | success | 5099cafaae |
 | [Competitive research benchmark](https://github.com/oyueo-mm/YachtLab/actions/runs/44689804438) | success | 5099cafaae |
 
