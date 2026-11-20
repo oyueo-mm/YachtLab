@@ -11,8 +11,8 @@ export type TreeNode={n:number;split?:{feature:string;threshold:number};left?:Tr
 export type ConditionalScoreModel={params:ConditionalParams;byRemaining:Record<string,{prior:Pmf;tree:TreeNode;mean:number;std:number;leaves:number}>};
 export const BIN_LIMIT=160;
 const BINS=BIN_LIMIT*2+1;
-const bounded=x=>Math.max(0,Math.min(BINS-1,Math.round(x)+BIN_LIMIT));
-const mean=a=>a.reduce((s,x)=>s+x,0)/a.length;
+const bounded=(x:number)=>Math.max(0,Math.min(BINS-1,Math.round(x)+BIN_LIMIT));
+const mean=(a:number[])=>a.reduce((s,x)=>s+x,0)/a.length;
 function histogram(rows:ScorecardObservation[],bandwidth:number):number[]{
   const counts=new Float64Array(BINS),out=new Float64Array(BINS),kernel=[];
   for(const r of rows)counts[bounded(r.residual)]++;

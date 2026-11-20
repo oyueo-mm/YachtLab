@@ -5,7 +5,7 @@ it("scorecard mask conditions distinct empirical final-score distributions",()=>
  const model=trainConditionalScoreModel(rows,{minLeaf:25,alpha:2,bandwidth:2,maxDepth:3});
  const plus=predictConditionalResidual(model,{remaining:3,mask:2048,upper:0,current:120,projected:150});
  const minus=predictConditionalResidual(model,{remaining:3,mask:1024,upper:0,current:120,projected:150});
- const mu=p=>p.probabilities.reduce((sum,v,i)=>sum+v*(i-BIN_LIMIT),0);
+ const mu=(p:{probabilities:number[]})=>p.probabilities.reduce((sum,v,i)=>sum+v*(i-BIN_LIMIT),0);
  expect(mu(plus)).toBeGreaterThan(15);expect(mu(minus)).toBeLessThan(-15);
  expect(plus.probabilities.reduce((a,b)=>a+b,0)).toBeCloseTo(1,10);
  expect(scoreDiscretePmf(plus,25).crps).toBeLessThan(scoreDiscretePmf(plus,-25).crps);
