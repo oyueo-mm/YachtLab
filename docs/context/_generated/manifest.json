@@ -47,6 +47,7 @@
     "EXPERIMENT-ZOO-2026-11-20.md",
     "EXPERIMENT-ZOO.md",
     "HANDOFF.md",
+    "PSRO-PPO-PMF-RESEARCH.md",
     "README.md",
     "REFERENCES.md",
     "RESULTS.md",
@@ -64,9 +65,15 @@
     "full-selfplay.yml",
     "integrated-research.yml",
     "neural-selfplay.yml",
+    "psro-ppo.yml",
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "9eff1ea",
+      "date": "2026-11-20",
+      "subject": "research: full PSRO meta-solver, adaptive population, empirical PMF and full-game clipped PPO"
+    },
     {
       "sha": "df76263",
       "date": "2026-11-20",
@@ -111,43 +118,38 @@
       "sha": "5099caf",
       "date": "2026-11-20",
       "subject": "research: integrate two-turn competitive DP, opponent distributions, MCTS and QR-DQN evaluation"
-    },
-    {
-      "sha": "4fb405a",
-      "date": "2026-11-20",
-      "subject": "research: add 20k independent paired validation and two-category exact results"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "Test and deploy YachtLab",
+      "name": "Full-game self-play and three-turn competitive research",
       "status": "success",
-      "head": "361f75d10f",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44713879177"
+      "head": "8492aeda86",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44724512632"
     },
     {
       "name": "Full-game neural self-play — REINFORCE and Monte Carlo Actor-Critic",
       "status": "success",
-      "head": "361f75d10f",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44713879146"
+      "head": "8492aeda86",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44724512500"
     },
     {
-      "name": "Full-game self-play and three-turn competitive research",
+      "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "5fdba93acd",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44713123428"
+      "head": "8492aeda86",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44724512467"
+    },
+    {
+      "name": "YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO",
+      "status": "success",
+      "head": "8492aeda86",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44724512452"
     },
     {
       "name": "Tabular RL algorithm zoo — last-turn Choice",
       "status": "success",
       "head": "6002008dd8",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44705368822"
-    },
-    {
-      "name": "Algorithm zoo — broad tournament and RL study",
-      "status": "success",
-      "head": "4458f0ffeb",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44705247175"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
