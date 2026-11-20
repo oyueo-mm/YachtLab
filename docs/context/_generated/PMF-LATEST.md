@@ -2,7 +2,7 @@
 
 > 실제 게임 기반 잔차 histogram/KDE vs Gaussian, 훈련·선택·확증 세 시드 구간 완전 분리.
 
-- source SHA: 9eff1ea5ebc8426ae0adcfda12879e6b2bdea9fc
+- source SHA: 6f822441cd3d2683fd49f6875dccbf6b53f34278
 - 정책별 350 훈련게임, 180 대역폭 선택게임, 320 미사용 최종 확증게임.
 - CRPS가 **낮을수록 정확한 확률 예측**. 음수 개선은 오히려 악화됨.
 

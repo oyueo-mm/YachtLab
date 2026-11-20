@@ -2,7 +2,7 @@
 
 > 모집단 간 직접 대국 payoff로 zero-sum empirical meta-game을 만들고 fictitious play로 계산한 **근사 제한게임 Nash 분포**. 본게임 Nash가 아님.
 
-- source SHA: 9eff1ea5ebc8426ae0adcfda12879e6b2bdea9fc
+- source SHA: 6f822441cd3d2683fd49f6875dccbf6b53f34278
 - 정책 모집단: DP Expert, Win DP v2, risk-seeking residual, upper-bonus residual, PSRO oracle 0, PSRO oracle 1, PSRO oracle 2
 - 대국으로 채운 게임 payoff 행렬은 연구 아티팩트 JSON 저장. 대각선 0, 반대칭 보장.
 - 현재 제한게임 exploitability proxy (zero-sum payoff): 0.000229

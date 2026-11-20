@@ -2,7 +2,7 @@
 
 > 실제 PPO clipped surrogate(행동 로그확률 보존·비율 클리핑·재사용) + GAE + critic. 단순 REINFORCE가 아님.
 
-- 코드: 9eff1ea5ebc8426ae0adcfda12879e6b2bdea9fc
+- 코드: 6f822441cd3d2683fd49f6875dccbf6b53f34278
 - 실제 full-game train: 정책별 2688게임, 후보선택/최종확증 다른 시드.
 - 강한 상대: DP Expert, Win DP v2, PSRO restricted meta-game mixture, 이전 PPO 세대.
 - 비교: PPO, PPO+DP teacher KL, 학습 전 잔차0 기준.
