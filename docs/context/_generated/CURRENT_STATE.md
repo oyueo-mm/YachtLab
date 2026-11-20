@@ -38,6 +38,7 @@
 - [full-selfplay.yml](../../../.github/workflows/full-selfplay.yml)
 - [integrated-research.yml](../../../.github/workflows/integrated-research.yml)
 - [neural-selfplay.yml](../../../.github/workflows/neural-selfplay.yml)
+- [offpolicy-ppo-expanded.yml](../../../.github/workflows/offpolicy-ppo-expanded.yml)
 - [psro-extended.yml](../../../.github/workflows/psro-extended.yml)
 - [psro-ppo.yml](../../../.github/workflows/psro-ppo.yml)
 - [tabular-zoo.yml](../../../.github/workflows/tabular-zoo.yml)
@@ -50,6 +51,7 @@
 - [EXPERIMENT-ZOO.md](../EXPERIMENT-ZOO.md)
 - [EXTENDED-PSRO-PMF-PPO-RESEARCH.md](../EXTENDED-PSRO-PMF-PPO-RESEARCH.md)
 - [EXTENDED-PSRO-PMF-PPO-RESULTS.md](../EXTENDED-PSRO-PMF-PPO-RESULTS.md)
+- [FULLGAME-OFFPOLICY-RESEARCH.md](../FULLGAME-OFFPOLICY-RESEARCH.md)
 - [HANDOFF.md](../HANDOFF.md)
 - [PSRO-PPO-PMF-2026-11-20-FINAL.md](../PSRO-PPO-PMF-2026-11-20-FINAL.md)
 - [PSRO-PPO-PMF-RESEARCH.md](../PSRO-PPO-PMF-RESEARCH.md)
@@ -65,6 +67,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [f9f3e7c](https://github.com/oyueo-mm/YachtLab/commit/f9f3e7c) | 2026-11-21 | research: full-game five RL families and doubled multi-seed PPO training |
 | [6680443](https://github.com/oyueo-mm/YachtLab/commit/6680443) | 2026-11-21 | docs: finalize PSRO oracle, scorecard PMF and 49k-game multi-seed PPO evidence |
 | [319f53a](https://github.com/oyueo-mm/YachtLab/commit/319f53a) | 2026-11-21 | docs: preserve verified PSRO oracle audit and scorecard PMF holdout outcomes |
 | [6f82244](https://github.com/oyueo-mm/YachtLab/commit/6f82244) | 2026-11-20 | research: audit actual PSRO oracle best-response, scorecard conditional PMF and independent PPO seeds |
@@ -74,7 +77,6 @@
 | [361f75d](https://github.com/oyueo-mm/YachtLab/commit/361f75d) | 2026-11-20 | research: train full-game neural REINFORCE and Monte Carlo actor-critic against policy league |
 | [d8fa25a](https://github.com/oyueo-mm/YachtLab/commit/d8fa25a) | 2026-11-20 | research: full-game league self-play, policy-gradient and three-turn competitive planning |
 | [c5dd0a4](https://github.com/oyueo-mm/YachtLab/commit/c5dd0a4) | 2026-11-20 | docs: preserve 45,784-game algorithm zoo and 12 RL study results |
-| [6002008](https://github.com/oyueo-mm/YachtLab/commit/6002008) | 2026-11-20 | research: add eight tabular RL control algorithms for YachtLab Choice benchmark |
 
 ## 최근 GitHub Actions 상태
 
@@ -82,11 +84,11 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44758929116) | success | 319f53a0b5 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44766331521) | success | 64c39e98eb |
+| [YachtLab full-game off-policy RL and 2x PPO training](https://github.com/oyueo-mm/YachtLab/actions/runs/44766331483) | success | 64c39e98eb |
 | [Full-game self-play and three-turn competitive research](https://github.com/oyueo-mm/YachtLab/actions/runs/44756146027) | success | 6f822441cd |
 | [PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44756143942) | success | 6f822441cd |
 | [YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44756143885) | success | 6f822441cd |
-| [Full-game neural self-play — REINFORCE and Monte Carlo Actor-Critic](https://github.com/oyueo-mm/YachtLab/actions/runs/44725235280) | success | 9eff1ea5eb |
 
 ## 다음 채팅과 작업의 시작점
 

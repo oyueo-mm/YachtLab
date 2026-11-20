@@ -48,6 +48,7 @@
     "EXPERIMENT-ZOO.md",
     "EXTENDED-PSRO-PMF-PPO-RESEARCH.md",
     "EXTENDED-PSRO-PMF-PPO-RESULTS.md",
+    "FULLGAME-OFFPOLICY-RESEARCH.md",
     "HANDOFF.md",
     "PSRO-PPO-PMF-2026-11-20-FINAL.md",
     "PSRO-PPO-PMF-RESEARCH.md",
@@ -68,11 +69,17 @@
     "full-selfplay.yml",
     "integrated-research.yml",
     "neural-selfplay.yml",
+    "offpolicy-ppo-expanded.yml",
     "psro-extended.yml",
     "psro-ppo.yml",
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "f9f3e7c",
+      "date": "2026-11-21",
+      "subject": "research: full-game five RL families and doubled multi-seed PPO training"
+    },
     {
       "sha": "6680443",
       "date": "2026-11-21",
@@ -117,19 +124,20 @@
       "sha": "c5dd0a4",
       "date": "2026-11-20",
       "subject": "docs: preserve 45,784-game algorithm zoo and 12 RL study results"
-    },
-    {
-      "sha": "6002008",
-      "date": "2026-11-20",
-      "subject": "research: add eight tabular RL control algorithms for YachtLab Choice benchmark"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "319f53a0b5",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44758929116"
+      "head": "64c39e98eb",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44766331521"
+    },
+    {
+      "name": "YachtLab full-game off-policy RL and 2x PPO training",
+      "status": "success",
+      "head": "64c39e98eb",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44766331483"
     },
     {
       "name": "Full-game self-play and three-turn competitive research",
@@ -148,12 +156,6 @@
       "status": "success",
       "head": "6f822441cd",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44756143885"
-    },
-    {
-      "name": "Full-game neural self-play — REINFORCE and Monte Carlo Actor-Critic",
-      "status": "success",
-      "head": "9eff1ea5eb",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44725235280"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
