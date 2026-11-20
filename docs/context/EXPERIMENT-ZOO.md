@@ -83,3 +83,7 @@ python training/choice_rl_zoo.py --episodes 9000 --eval 5000 --seed 27111
 - 대상 상태: 정렬된 5개 주사위 252개 조합 × 남은 재굴림 3개 상태, 초이스에서 25점 이상 획득 여부. **전체 12라운드 요트다이스 모델이 아니다.**
 - 비교 대조군: 5·6만 유지, 4 이상 유지, 랜덤. 본 실험의 정확 목표 DP 성능 기준은 약 41.671%.
 - 본 연구 계열은 Deep RL과 다른 **표 기반 강화학습** 방법이다. 초이스 축소 환경의 실험을 전체 YachtLab 승률이라고 보고하지 않는다.
+
+## 실제 실행 결과 안내 (2026-11-20)
+
+[최종 보고서](./EXPERIMENT-ZOO-2026-11-20.md)에서 **58개 전체 게임 정책·설정, 총 45,784경기 및 딥/표형 RL 12종**의 결과를 확인. 선별된 정책의 독립 우월성은 **미입증**이므로 Win DP v2를 유지함. [대량 연구 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/44704462236), [표형 RL CI](https://github.com/oyueo-mm/YachtLab/actions/runs/44705368822).

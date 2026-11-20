@@ -104,3 +104,13 @@ Sixes·Choice 조건은 정책마다 50,000번 Monte Carlo 검산. **근거:** [
 ## 후속 대량 알고리즘 탐색
 
 2026-11-20부터 [Algorithm Zoo](./EXPERIMENT-ZOO.md) 연구를 별도 실험으로 기록한다. **새 실험 수치는 자동 성공 아티팩트가 만들어진 다음** [최신 결과](./_generated/LATEST_EXPERIMENT.md)에서 확인해야 한다. 기존 v1/v2 검증 수치를 새 후보의 점수로 재사용하지 말 것.
+
+## 2026-11-20: 70개 후보·방법/설정 대량 실험 완료
+
+- **[최종 보존 보고서](./EXPERIMENT-ZOO-2026-11-20.md)** · [전체 게임 자동 요약](./_generated/LATEST_EXPERIMENT.md) · [58개 설정 JSON](./_generated/zoo-summary.json).
+- **실제 12카테고리 경기 45,784게임**을 통해 58개 설정(12개 계열)을 선별. 예비 1위 `trailGate--5`는 최종 독립 12,000경기에서 DP Expert 상대로 50.200% (95% CI 49.993~50.407%), Win DP v2 상대 49.796% (95% CI 49.582~50.010%). **새 성능 우위 입증 불가.**
+- [전체 경기 연구 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/44704462236) 성공, GitHub 자동 결과 문서 커밋 확인.
+- [딥 RL 4종](https://github.com/oyueo-mm/YachtLab/actions/runs/44704462236) Choice-only, 학습 각 9,000에피소드/평가 각 5,000. **Double DQN 33.38%**가 네 학습기 중 최고, 단순 5·6 유지 휴리스틱은 37.24%.
+- [표형 RL 8종](https://github.com/oyueo-mm/YachtLab/actions/runs/44705368822) Choice-only, 학습 각 250,000에피소드/평가 각 10,000. **Dyna-Q 37.05%**가 표형 학습기 중 최고, 같은 조건 5·6 유지 휴리스틱 36.64%.
+- 초이스-only 정확 목표점수 DP의 이론값 약 41.671%; **RL 실험 결과는 전체 게임 승률이 아님**. 서로 다른 시드/평가 묶음 간 수치만으로 직접 우열을 단정하지 않음.
+- 현재 승률 기준 연구 최강 모델로 **Win DP v2 유지**. 구현·배포 기본 AI를 이번 탐색만으로 변경하지 않음.

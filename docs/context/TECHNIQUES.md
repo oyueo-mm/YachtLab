@@ -118,3 +118,9 @@
 ## 외부 근거
 
 [연구 출처 모음](./REFERENCES.md)과 [실험 증거](./RESULTS.md)를 참고한다. QR-DQN·PSRO·Stochastic MuZero 등의 원 논문은 **YachtLab에서 성능이 높다는 직접 증거가 아니라 방법론 근거**이다.
+
+## 2026-11-20 완료된 실제 알고리즘 비교
+
+[58개 정책 설정과 12개 강화학습 알고리즘 결과](./EXPERIMENT-ZOO-2026-11-20.md)는 실제 실행 완료됨. 축소 문제 **REINFORCE·A2C·DQN·Double DQN** (9,000학습/5,000평가) 및 **Q-learning·SARSA·Expected SARSA·Double Q-learning·First-Visit MC·Dyna-Q·UCB Q-learning·Optimistic Q-learning** (250,000학습/10,000평가) 훈련 및 가중치 보존 완료.
+
+실제 12라운드 58개 전략 탐색은 완료됐지만 **Win DP v2보다 높은 범용 승리점수율이 독립 검증으로 입증되지는 않음**. 위험 조절, 카테고리 편향, UCB 예산 변형은 연구용으로만 남긴다. 12개 강화학습 방법은 모두 **한 카테고리 전용**이며 본 게임 SOTA로 소개하지 않는다.
