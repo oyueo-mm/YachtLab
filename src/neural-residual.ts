@@ -8,7 +8,7 @@ export const NEURAL_INPUTS = FEATURE_NAMES.length;
 export const NEURAL_HIDDEN = 12;
 export const NEURAL_GRADIENT_SIZE = NEURAL_HIDDEN * NEURAL_INPUTS + NEURAL_HIDDEN * 2;
 export type NeuralResidual = { w1: number[][]; b1: number[]; w2: number[]; critic: number[]; label?: string };
-export type NeuralSample = { decision: Decision; gradient: number[]; valueFeatures: number[]; stateValue: number; probability: number };
+export type NeuralSample = { decision: Decision; gradient: number[]; valueFeatures: number[]; stateValue: number; probability: number; logProbability: number; actionIndex: number; teacherGradient: number[]; teacherKl: number };
 const sigmoid = (x: number) => 1 / (1 + Math.exp(-Math.max(-20, Math.min(20, x))));
 const dot = (a: number[], b: number[]) => a.reduce((s, v, i) => s + v * b[i], 0);
 const truncate = (x: number) => Math.max(-1, Math.min(1, x));
@@ -48,7 +48,7 @@ function fromIndex(state: Game, idx: number, value: number): Decision {
 }
 export function neuralResidualDecision(
   state: Game, model: NeuralResidual,
-  opts: { sample?: boolean; rng?: () => number; temperature?: number; pointLossCap?: number } = {}
+  opts: { sample?: boolean; rng?: () => number; temperature?: number; pointLossCap?: number; forcedIndex?: number } = {}
 ): NeuralSample {
   if (!state.rolls || state.done) throw Error("Neural policy requires a rolled visible game.");
   if (model.w1.length !== NEURAL_HIDDEN || model.critic.length !== 5 || !unpackNeuralActor(model).every(Number.isFinite))
@@ -56,7 +56,7 @@ export function neuralResidualDecision(
   const vf = neuralValueFeatures(state), value = sigmoid(dot(vf, model.critic));
   if (available(state.cards[state.player]).length <= 2) {
     return { decision:winDPv2Decision(state) ?? dpDecision(state),
-      gradient:zeros(NEURAL_GRADIENT_SIZE), valueFeatures:vf, stateValue:value, probability:1 };
+      gradient:zeros(NEURAL_GRADIENT_SIZE), valueFeatures:vf, stateValue:value, probability:1, logProbability:0, actionIndex:-1, teacherGradient:zeros(NEURAL_GRADIENT_SIZE), teacherKl:0 };
   }
   const candidates = residualCandidates(state, opts.pointLossCap ?? 3.5);
   const bestQ = Math.max(...candidates.map(c=>c.q)), temperature = Math.max(.2, opts.temperature ?? .8);
@@ -64,7 +64,8 @@ export function neuralResidualDecision(
   const logits=candidates.map((c,i)=>(c.q-bestQ)/temperature + dot(hidden[i],model.w2));
   const hi=Math.max(...logits),weights=logits.map(v=>Math.exp(v-hi)),norm=weights.reduce((s,v)=>s+v,0),probs=weights.map(x=>x/norm);
   let selected=0;
-  if(opts.sample){
+  if(opts.forcedIndex !== undefined){selected=candidates.findIndex(c=>c.index===opts.forcedIndex);if(selected<0)throw Error('PPO replay action not among currently legal candidates');}
+  else if(opts.sample){
     let u=opts.rng?.()??.5;
     for(let i=0;i<probs.length;i++){ u-=probs[i]; if(u<=0 || i===probs.length-1){selected=i;break;} }
   } else for(let i=1;i<logits.length;i++)if(logits[i]>logits[selected]+1e-12)selected=i;
@@ -83,6 +84,15 @@ export function neuralResidualDecision(
   for(let i=0;i<candidates.length;i++)
     for(let j=0;j<grad.length;j++)grad[j] -= probs[i]*gradients[i][j];
   for(let j=0;j<grad.length;j++)grad[j]+=gradients[selected][j];
+  const teacherQ = candidates.map(c=>(c.q-bestQ)/temperature);
+  const teacherNorm = teacherQ.reduce((acc,v)=>acc+Math.exp(v),0);
+  const teacher = teacherQ.map(v=>Math.exp(v)/teacherNorm);
+  const teacherGradient=zeros(NEURAL_GRADIENT_SIZE);
+  let teacherKl=0;
+  for(let i=0;i<candidates.length;i++){
+    teacherKl+=teacher[i]*Math.log(Math.max(1e-12,teacher[i])/Math.max(1e-12,probs[i]));
+    for(let j=0;j<teacherGradient.length;j++)teacherGradient[j]+=(teacher[i]-probs[i])*gradients[i][j];
+  }
   return {decision:fromIndex(state,candidates[selected].index,candidates[selected].q),
-    gradient:grad, valueFeatures:vf,stateValue:value,probability:probs[selected]};
+    gradient:grad, valueFeatures:vf,stateValue:value,probability:probs[selected],logProbability:Math.log(Math.max(1e-12,probs[selected])),actionIndex:candidates[selected].index,teacherGradient,teacherKl};
 }
