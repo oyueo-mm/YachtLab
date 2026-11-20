@@ -2,7 +2,7 @@
 
 > 승패 보상으로 정책 가중치를 실제 학습한 결과. 세계 SOTA나 검증된 최강 모델이라고 가정하지 않음.
 
-- 코드 SHA: d8fa25a5655f1a89b93e6faab811195c0820c086
+- 코드 SHA: 9eff1ea5ebc8426ae0adcfda12879e6b2bdea9fc
 - 전체 게임 진화 탐색: 6 세대 × 12 후보, 리그 상대 DP Expert/Win DP v2/이전 세대.
 - 실제 최종 승패 보상 REINFORCE: 10 epochs × 96 games.
 - 최종 후보는 별도 시드 검증에서 고정: **DP anchored residual (zero)**.
