@@ -62,9 +62,15 @@
     "deploy.yml",
     "full-selfplay.yml",
     "integrated-research.yml",
+    "neural-selfplay.yml",
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "361f75d",
+      "date": "2026-11-20",
+      "subject": "research: train full-game neural REINFORCE and Monte Carlo actor-critic against policy league"
+    },
     {
       "sha": "d8fa25a",
       "date": "2026-11-20",
@@ -109,25 +115,26 @@
       "sha": "8e4f3b2",
       "date": "2026-11-20",
       "subject": "fix: emit competitive benchmark opponent mean correctly"
-    },
-    {
-      "sha": "5871921",
-      "date": "2026-11-20",
-      "subject": "ci: run paired competitive benchmark on solver changes and retain raw matches"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Full-game self-play and three-turn competitive research",
       "status": "success",
-      "head": "035497c57d",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44710450617"
+      "head": "5fdba93acd",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44713123428"
+    },
+    {
+      "name": "Full-game neural self-play — REINFORCE and Monte Carlo Actor-Critic",
+      "status": "success",
+      "head": "5fdba93acd",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44713123349"
     },
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "035497c57d",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44710450435"
+      "head": "5fdba93acd",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44713123336"
     },
     {
       "name": "Tabular RL algorithm zoo — last-turn Choice",
@@ -140,24 +147,6 @@
       "status": "success",
       "head": "4458f0ffeb",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44705247175"
-    },
-    {
-      "name": "Confirm Win DP v2 and long QR-DQN on fresh seeds",
-      "status": "success",
-      "head": "76f206dee7",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44690511514"
-    },
-    {
-      "name": "Integrated competitive AI research",
-      "status": "success",
-      "head": "5099cafaae",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44689804618"
-    },
-    {
-      "name": "Competitive research benchmark",
-      "status": "success",
-      "head": "5099cafaae",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44689804438"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
