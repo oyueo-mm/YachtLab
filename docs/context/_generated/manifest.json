@@ -72,9 +72,15 @@
     "offpolicy-ppo-expanded.yml",
     "psro-extended.yml",
     "psro-ppo.yml",
+    "qr-deep-research.yml",
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "34f4e39",
+      "date": "2026-11-21",
+      "subject": "research: QR-DQN, IQN and 5-seed controlled full-game experimental suite"
+    },
     {
       "sha": "f9f3e7c",
       "date": "2026-11-21",
@@ -119,43 +125,26 @@
       "sha": "d8fa25a",
       "date": "2026-11-20",
       "subject": "research: full-game league self-play, policy-gradient and three-turn competitive planning"
-    },
-    {
-      "sha": "c5dd0a4",
-      "date": "2026-11-20",
-      "subject": "docs: preserve 45,784-game algorithm zoo and 12 RL study results"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "Test and deploy YachtLab",
+      "name": "YachtLab QR-DQN and IQN deep research",
       "status": "success",
-      "head": "64c39e98eb",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44766331521"
+      "head": "337b2cf7c7",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44838139302"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "cancelled",
+      "head": "2831a4ab05",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44837963513"
     },
     {
       "name": "YachtLab full-game off-policy RL and 2x PPO training",
       "status": "success",
-      "head": "64c39e98eb",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44766331483"
-    },
-    {
-      "name": "Full-game self-play and three-turn competitive research",
-      "status": "success",
-      "head": "6f822441cd",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44756146027"
-    },
-    {
-      "name": "PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO",
-      "status": "success",
-      "head": "6f822441cd",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44756143942"
-    },
-    {
-      "name": "YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO",
-      "status": "success",
-      "head": "6f822441cd",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44756143885"
+      "head": "f9f3e7ca88",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44767257705"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
