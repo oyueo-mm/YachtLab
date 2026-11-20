@@ -111,3 +111,13 @@
 - 🔬 정책별/잔여 카테고리별 실측 **이산 잔차 PMF**, Gaussian 대비 CRPS·NLL 미사용 시드 검증, 연구형 Win DP v3 확률예측 입력.
 - 🔬 실제 12라운드 **PPO clipped objective + GAE + actor/critic + KL 교사** 두 모델, DP Expert·Win DP v2 상대 독립 확증.
 - 성능이 검증되기 전에는 성과를 주장하지 않고 기존 Win DP v2·사용자 AI 기본값 보존. 자동 결과는 [PSRO](./_generated/PSRO-LATEST.md) · [PMF](./_generated/PMF-LATEST.md) · [PPO](./_generated/PPO-LATEST.md) 참조.
+
+## PSRO-PMF-PPO 본 실험 판정 — 2026-11-20
+
+- ✅ 실제 PSRO meta-game matrix와 restricted Nash fictitious play **구현 및 3회 oracle 확장**, 7개 정책 모집단에서 독립 평가. [최종 보고서](./PSRO-PPO-PMF-2026-11-20-FINAL.md).
+- ✅ 정책별 경험적 이산 상대 점수분포 vs Gaussian **CRPS/NLL 미사용 시드 검증**, Greedy만 눈에 띄는 CRPS 개선, Win DP v2는 소폭 악화.
+- ✅ **실제 full-game clipped PPO, GAE, value critic, teacher KL** 두 정책 각각 2,688경기 학습. 실제 Win DP v2 우위 미입증.
+- ⚠️ PSRO restricted exploitability 수치는 **관찰된 정책 모집단의 경험적 행렬** 기준으로 세계 SOTA 또는 전체 게임 Nash가 아님.
+- ⚠️ 상대 점수 PMF는 유한 시뮬레이션으로 학습한 **경험적 근사**이지 3개 이상 모든 주사위 경로의 정확 완전열거가 아님.
+- 🔲 다음 연구는 상대 정책/점수판 조건부 **정확 3개+ PMF**, PSRO 응답 오라클 품질 및 모집단 메타게임 payoff 신뢰구간, PPO 다중 학습 시드·더 큰 학습 예산·복잡한 가치망.
+- 🔒 기존 Win DP v2 유지, 명확한 독립 head-to-head 개선 없이는 기본 AI 배포 금지.
