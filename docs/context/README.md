@@ -24,6 +24,7 @@
 | **[자기 대국·경쟁 v3 종합 결과](./SELFPLAY-2026-11-20-FINAL.md)** | 전체 게임 학습 2계열·상대분포·v3, 신경망 전체게임 강화학습, 독립 검증 결과 |
 | [전체 게임 신경망 자기 대국](./SELFPLAY-RESEARCH.md#후속-실제-12라운드-신경망-자기-대국) | REINFORCE와 Monte-Carlo actor-critic, DP-Q 기반 12→12→1 신경망 |
 | [신경망 자기 대국 자동 결과](./_generated/NEURAL-SELFPLAY-LATEST.md) | 성공한 실제 학습 및 확증 경기의 기록 |
+| **[확장 PSRO 오라클·점수판 조건부 PMF 실제 결과](./EXTENDED-PSRO-PMF-PPO-RESULTS.md)** | 새 오라클 vs 기존 정책의 paired CI, Greedy 상대 CRPS 개선, v3 독립 대전 |
 | **[PSRO 오라클·점수판 조건부 PMF·대규모 PPO](./EXTENDED-PSRO-PMF-PPO-RESEARCH.md)** | 오라클 실제 대응력, 게임 상태별 점수분포, 3시드/49,152게임 학습 실험 |
 | [PSRO 오라클 독립 평가](./_generated/PSRO-ORACLE-AUDIT.md) | 매 PSRO 단계의 새 oracle vs 기존 최강 정책의 독립 승률·paired CI |
 | [점수판 조건부 PMF 결과](./_generated/SCORECARD-PMF-LATEST.md) | scorecard mask/upper/current/DP projected 조건부 CRPS 검증 |

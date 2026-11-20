@@ -143,3 +143,11 @@ Sixes·Choice 조건은 정책마다 50,000번 Monte Carlo 검산. **근거:** [
 - 정책별 실제 잔차 이산 PMF 훈련 350/선택 180/독립확증 320게임. Gaussian 대비 CRPS: DP Expert **18.2201→18.2191** (극히 미미), Win DP v2 **17.4464→17.4499** (악화), Greedy **15.0835→14.9413** (개선). 이는 **승률이 아니라 확률 예측 오차**. PMF Win DP v3 vs Win DP v2 **400경기 49.375%** (CI 47.589~51.161%), 우위 미입증.
 - 실제 12라운드 **PPO clipped+GAE+critic** 및 **PPO + DP teacher-KL**, 각각 2,688 full-game 학습 경기. PSRO meta mix/이전 PPO 스냅샷과 적응형 리그로 훈련. 선택된 기본 PPO 독립 확증 **vs Win DP v2 3,200경기 49.5313%** (CI **48.450~50.612%**), **vs DP Expert 3,200경기 50.0781%** (CI **49.027~51.129%**). **승률 우위 미입증**.
 - 연구용 원시 데이터/모델 체크포인트/PSRO payoff matrix GitHub Actions artifacts 3개 확인. 기존 Win DP v2 및 사용자 기본 AI 변경하지 않음.
+
+## 추가 실제 독립 실험 (2026-11-20)
+
+- [확장 실험 실제 기록](./EXTENDED-PSRO-PMF-PPO-RESULTS.md) · [원시 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/44756143942).
+- 세 PSRO approximate best-response oracle은 frozen historical meta mixture에서 기존 정책 대비 각각 **−1.0156%p** (CI −3.9755~+1.9442), **+0.8594%p** (CI −2.3158~+4.0345), **+2.1094%p** (CI −1.0364~+5.2551). 세 단계 모두 우위 미입증.
+- 상태별 상대 PMF는 DP Expert/Win DP v2/Greedy 각 650 train, 200 validation, 400 confirm games. Gaussian→조건부 CRPS: DP Expert 17.6306→17.6371, Win DP v2 17.8672→17.8908 (**악화**), Greedy 15.0158→14.7389 (**개선**, game-cluster 95% CI 개선 +0.1840~+0.3698).
+- 상태별 PMF를 쓰는 Win DP v3 vs Win DP v2 **240경기 47.083%** (CI 44.751~49.416%). 기존 Win DP v2 대체 금지.
+- PPO 3시드×2변형×8192경기 = **49,152 full-game 학습**은 CI에서 별도 학습·종합 검증. 완료 시 [PPO multi-seed 결과](./_generated/PPO-MULTISEED-LATEST.md)를 근거로 추가.
