@@ -20,6 +20,8 @@
 | **[대량 실험 최종 보고서](./EXPERIMENT-ZOO-2026-11-20.md)** | 58개 정책 설정/45,784경기와 12개 학습 모델의 실제 결과, 실패 사례·신뢰구간 |
 | [알고리즘 대량 실험](./EXPERIMENT-ZOO.md) | 58개 후보/설정, 4종 강화학습 파일럿, 대규모 경기 리그 및 결과 자동 기록 |
 | [최신 대량 실험 결과 (자동)](./_generated/LATEST_EXPERIMENT.md) | 실제 연구 워크플로 실행 성공 후 생성되는 결과 |
+| **[전체 게임 자기 대국·Win DP v3 연구](./SELFPLAY-RESEARCH.md)** | 진화적 리그, 실제 게임 승패 REINFORCE, 상대 모델링, 마지막 3개 카테고리 솔버 |
+| [자기 대국 최신 자동 실험](./_generated/SELFPLAY-LATEST.md) | GitHub Actions가 본실험 성공 후 최종 후보와 독립 검증 결과를 기록 |
 | [현재 상태 — 자동 생성](./_generated/CURRENT_STATE.md) | 현재 브랜치 코드로 확인한 AI·카테고리·최근 변경 사항 |
 | [실험 결과·검증 근거](./RESULTS.md) | 직접 수행한 비교, 게임 수, 신뢰구간, 평가상의 한계 |
 | [전체 AI 알고리즘 후보 도감](./TECHNIQUES.md) | 확률/DP/탐색/RL/자기 대국/진화/하이브리드 전 후보 |

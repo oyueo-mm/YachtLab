@@ -7,6 +7,8 @@
 
 ## 📚 맥락 · 연구 · 실험 (새 채팅은 여기부터)
 
+**[자기 대국 연구](docs/context/SELFPLAY-RESEARCH.md) · [자기 대국 실험 결과](docs/context/_generated/SELFPLAY-LATEST.md)**
+
 **[맥락 허브](docs/context/README.md) · [자동 현재 상태](docs/context/_generated/CURRENT_STATE.md) · [전체 AI 기법 도감](docs/context/TECHNIQUES.md) · [실험 결과](docs/context/RESULTS.md) · [연구 로드맵](docs/context/ROADMAP.md) · [새 채팅 인수인계](docs/context/HANDOFF.md)**
 
 이 저장소에 연구 맥락을 모아 둡니다. 코드·알고리즘 목록·최근 Git 커밋·Actions 상태는 [Context sync](.github/workflows/context-sync.yml)가 Push와 매일 정기 실행으로 자동 갱신하며, 논문·연구 가설·검증 수치는 근거가 확인된 문서로 보존합니다. GitHub 상단에 **사용자 지정 탭을 임의로 추가할 수는 없고**, Wiki 미러를 추가 시도합니다. Wiki가 초기화되지 않았거나 쓰기 권한이 없더라도 위 맥락 허브는 정상 동작합니다.
