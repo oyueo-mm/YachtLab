@@ -151,3 +151,13 @@ Sixes·Choice 조건은 정책마다 50,000번 Monte Carlo 검산. **근거:** [
 - 상태별 상대 PMF는 DP Expert/Win DP v2/Greedy 각 650 train, 200 validation, 400 confirm games. Gaussian→조건부 CRPS: DP Expert 17.6306→17.6371, Win DP v2 17.8672→17.8908 (**악화**), Greedy 15.0158→14.7389 (**개선**, game-cluster 95% CI 개선 +0.1840~+0.3698).
 - 상태별 PMF를 쓰는 Win DP v3 vs Win DP v2 **240경기 47.083%** (CI 44.751~49.416%). 기존 Win DP v2 대체 금지.
 - PPO 3시드×2변형×8192경기 = **49,152 full-game 학습**은 CI에서 별도 학습·종합 검증. 완료 시 [PPO multi-seed 결과](./_generated/PPO-MULTISEED-LATEST.md)를 근거로 추가.
+
+## 전체 12라운드 PPO 다중 시드 49,152 학습경기 확증
+
+[PSRO 오라클·점수판 분포·PPO 종합 실증 보고](./EXTENDED-PSRO-PMF-PPO-RESULTS.md) · [성공한 6-job 본실험 GitHub Actions](https://github.com/oyueo-mm/YachtLab/actions/runs/44756143942) · [자동 3시드 집계](./_generated/PPO-MULTISEED-LATEST.md).
+
+- PPO 일반형 / PPO+DP teacher-KL **각각 3개 초기화×8192 full games=24,576**, 두 모델 **합계 49,152 학습 게임**. 초기화별 Win DP v2와 각각 1200경기 미사용 시드 독립 비교.
+- **학습하지 않은 기준 정책(Zero-neural reference)**: Win DP v2 상대 세 seed 평균 **50.083%**(훈련시드 sd 0.622%p).
+- **일반 PPO**: 48.750%, **44.917%**, 51.000% → 평균 **48.222%**, sd **3.076%p**. 고정된 3개 모델의 1800 paired seed CI **46.991~49.453%**이지만 **독립 초기화 간 t(2) CI 40.581~55.863%**로 불확실성 큼.
+- **PPO+DP teacher-KL**: 49.750%, 50.333%, 50.125% → 평균 **50.069%**, sd **0.296%p**. 3개 훈련시드 t(2) CI **49.335~50.804%**; 우위 미입증. 이번 세 시드에서 일반 PPO보다 **초기화 안정화 경향**은 관찰됐으나 일반화 보장하지 않음.
+- 확증 결과로 후보를 고른 것이 아니라 **학습/검증 시드 분리 후 validation 평균으로 기존 zero-neural reference가 선택**됐고, 실제 학습 모델은 기본 AI로 적용하지 않음. **Win DP v2 유지**.

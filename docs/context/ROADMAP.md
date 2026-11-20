@@ -128,3 +128,11 @@
 - 기존 남은 카테고리 수만 조건으로 쓰던 Gaussian/PMF에서 **마스크·상단 누적·현재 점수·DP projected final-score 조건부 CART empirical PMF**로 확대, 정책별 650 train/200 validation/400 confirm 경기.
 - **전체게임 PPO 학습 초기화 3회**, 정책별/시드별 **8,192게임**, PPO·DP teacher KL 두 모델 **총 49,152게임**. seed별 비감독 실험 편향 없이 모든 결과/분산 보고.
 - 미사용 seed의 Win DP v2 직접 승률이 개선되지 않으면 현재 기본 Win DP v2 유지. 연구 실행 상태는 [확장 자동 워크플로](../../.github/workflows/psro-extended.yml) 및 [생성 결과](./_generated/PPO-MULTISEED-LATEST.md) 참조.
+
+## 3시드 확장 PPO 연구 종료 및 판정 (2026-11-20)
+
+- ✅ 3개 초기화×2개 PPO 모델×각 8192 full-game episodes = **49,152 학습경기**, 전체 미사용 시드 대결과 3시드 집계 성공.
+- ✅ [종합 검증 결과](./EXTENDED-PSRO-PMF-PPO-RESULTS.md) · [원시 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/44756143942).
+- ⚠️ 기존 zero-neural reference가 validation 최고. 일반 PPO vs Win DP v2 3시드 평균 **48.222%**, 초기화 sd 3.076%p; **DP teacher KL PPO 평균 50.069%**, sd 0.296%p. KL은 안정성 징후가 있으나 강함 향상 입증 불가.
+- 🔲 후속: 일반 PPO의 극단적 훈련시드 불안정 원인을 actor gradient/clipFraction/보상 분포, 서브리그 opponents, critic value error로 분리하고, KL β의 여러 시드 반복 및 실제 큰 네트워크 학습 검토.
+- 🔒 상대점수 PMF는 Greedy 상대에서만 CRPS 개선, PSRO approximate best-response oracle 세 단계 모두 독립 우위 미입증. 기존 **Win DP v2 유지**.
