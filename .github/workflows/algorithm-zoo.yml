@@ -1,0 +1,91 @@
+name: Algorithm zoo — broad tournament and RL study
+on:
+  pull_request:
+    paths:
+      - "scripts/sweep-algorithms.mjs"
+      - "training/choice_rl_zoo.py"
+      - ".github/workflows/algorithm-zoo.yml"
+      - "docs/context/EXPERIMENT-ZOO.md"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/sweep-algorithms.mjs"
+      - "training/choice_rl_zoo.py"
+      - ".github/workflows/algorithm-zoo.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-algorithm-zoo-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  sweep:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Validate JS syntax
+        run: node --check scripts/sweep-algorithms.mjs
+      - name: Short smoke test across every algorithm configuration
+        if: github.event_name == 'pull_request'
+        run: node scripts/sweep-algorithms.mjs --smoke
+      - name: Full algorithm-family search, validation and independent confirmation
+        if: github.event_name != 'pull_request'
+        run: node scripts/sweep-algorithms.mjs
+      - name: Archive all configurations, raw matches and statistical results
+        uses: actions/upload-artifact@v4
+        with:
+          name: algorithm-zoo-raw
+          path: |
+            benchmarks/research/zoo-run.json
+            docs/context/_generated/zoo-summary.json
+            docs/context/_generated/LATEST_EXPERIMENT.md
+          retention-days: 90
+      - name: Publish compact, source-generated research results to GitHub
+        if: github.event_name != 'pull_request'
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/zoo-summary.json docs/context/_generated/LATEST_EXPERIMENT.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(context): record algorithm-zoo results [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+  rl:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Check research-only RL implementations
+        run: python -m py_compile training/choice_rl_zoo.py
+      - name: Install CPU research dependencies
+        if: github.event_name != 'pull_request'
+        run: |
+          python -m pip install numpy
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Train REINFORCE, A2C, DQN and Double DQN with independent evaluation
+        if: github.event_name != 'pull_request'
+        run: python training/choice_rl_zoo.py --episodes 9000 --eval 5000 --seed 27111
+      - name: Save actual trained models and complete evaluation logs
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: algorithm-zoo-rl-weights
+          path: |
+            training/results/choice-rl-zoo.json
+            training/checkpoints/choice-rl-zoo/
+          retention-days: 90

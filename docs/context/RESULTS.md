@@ -100,3 +100,7 @@ Sixes·Choice 조건은 정책마다 50,000번 Monte Carlo 검산. **근거:** [
 - QR-DQN: python training/qr_dqn_choice.py --episodes 30000 --eval 5000 --seed 26111
 
 모든 수치가 자동 최신이라는 뜻은 아니다. **측정된 사실의 스냅샷**으로 유지하고 새로운 검증 실험이 완료되면 실험 출처와 함께 갱신한다.
+
+## 후속 대량 알고리즘 탐색
+
+2026-11-20부터 [Algorithm Zoo](./EXPERIMENT-ZOO.md) 연구를 별도 실험으로 기록한다. **새 실험 수치는 자동 성공 아티팩트가 만들어진 다음** [최신 결과](./_generated/LATEST_EXPERIMENT.md)에서 확인해야 한다. 기존 v1/v2 검증 수치를 새 후보의 점수로 재사용하지 말 것.
