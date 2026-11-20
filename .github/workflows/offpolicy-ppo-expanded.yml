@@ -1,0 +1,153 @@
+name: YachtLab full-game off-policy RL and 2x PPO training
+on:
+  pull_request:
+    paths:
+      - "src/research-offpolicy.ts"
+      - "scripts/train-offpolicy-fullgame.mjs"
+      - "scripts/train-ppo-high-budget.mjs"
+      - "scripts/summarize-ppo-high-budget.mjs"
+      - "tests/research-offpolicy.test.ts"
+      - ".github/workflows/offpolicy-ppo-expanded.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/research-offpolicy.ts"
+      - "scripts/train-offpolicy-fullgame.mjs"
+      - "scripts/train-ppo-high-budget.mjs"
+      - "scripts/summarize-ppo-high-budget.mjs"
+      - ".github/workflows/offpolicy-ppo-expanded.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-offpolicy-expanded-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify-and-offpolicy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: TypeScript build and all unit tests
+        run: |
+          npm test -- --reporter=dot
+          npm run build
+          node --check scripts/train-offpolicy-fullgame.mjs
+          node --check scripts/train-ppo-high-budget.mjs
+          node --check scripts/summarize-ppo-high-budget.mjs
+      - name: Train and evaluate five full-game RL approaches
+        run: node scripts/train-offpolicy-fullgame.mjs ${{ github.event_name == 'pull_request' && '--smoke' || '' }}
+      - name: Store all weights, paired games and honest failed outcomes
+        uses: actions/upload-artifact@v4
+        with:
+          name: fullgame-rl-zoo-raw
+          path: |
+            training/results/fullgame-rl-zoo.json
+            docs/context/_generated/FULLGAME-RL-ZOO-LATEST.md
+          retention-days: 90
+  prepare-psro:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Regenerate empirical PSRO opponent population on distinct fixed seeds
+        run: node scripts/research-psro.mjs ${{ github.event_name == 'pull_request' && '--smoke' || '' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: psro-opponents-for-expanded-ppo
+          path: |
+            training/results/psro-population.json
+            training/results/psro-real-matrix.json
+          retention-days: 90
+  ppo-twofold:
+    needs: prepare-psro
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        seed: [0,1,2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: psro-opponents-for-expanded-ppo
+          path: .
+      - name: Restore downloaded PSRO model in the expected research path
+        run: |
+          mkdir -p training/results
+          if [ -f psro-population.json ]; then mv psro-population.json training/results/psro-population.json; fi
+          if [ -f psro-real-matrix.json ]; then mv psro-real-matrix.json training/results/psro-real-matrix.json; fi
+          test -s training/results/psro-population.json
+      - name: Train PPO and teacher-KL PPO at 128 x 128 full-games per variant
+        run: node scripts/train-ppo-high-budget.mjs --seed-index ${{ matrix.seed }} ${{ github.event_name == 'pull_request' && '--smoke' || '' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ppo-high-budget-seed-${{ matrix.seed }}
+          path: |
+            training/results/ppo-high-budget-${{ matrix.seed }}.json
+            training/checkpoints/ppo-high-budget-${{ matrix.seed }}.json
+            docs/context/_generated/PPO-HIGH-BUDGET-${{ matrix.seed }}.md
+          retention-days: 90
+  aggregate:
+    needs: [verify-and-offpolicy, ppo-twofold]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: fullgame-rl-zoo-raw
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ppo-high-budget-seed-*
+          merge-multiple: true
+          path: .
+      - name: Summarize PPO 2x budget training across three seeds
+        run: node scripts/summarize-ppo-high-budget.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: expanded-rl-ppo-summary
+          path: |
+            training/results/ppo-high-budget-summary.json
+            docs/context/_generated/FULLGAME-RL-ZOO-LATEST.md
+            docs/context/_generated/PPO-HIGH-BUDGET-LATEST.md
+          retention-days: 90
+      - name: Save real scientific findings in the permanent GitHub context hub
+        if: github.event_name != 'pull_request'
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/FULLGAME-RL-ZOO-LATEST.md docs/context/_generated/PPO-HIGH-BUDGET-0.md docs/context/_generated/PPO-HIGH-BUDGET-1.md docs/context/_generated/PPO-HIGH-BUDGET-2.md docs/context/_generated/PPO-HIGH-BUDGET-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(context): record full-game RL zoo and doubled PPO budget [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
