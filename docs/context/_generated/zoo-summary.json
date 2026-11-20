@@ -1,0 +1,829 @@
+{
+  "timestamp": "2026-11-20T08:50:30.742Z",
+  "mode": "full",
+  "modelVersion": "GitHub commit 491abcb1c2058f279606f4ff8a7213cd08a74572",
+  "candidatesTested": 58,
+  "families": [
+    "baseline",
+    "legacy",
+    "legacyMCTS",
+    "balanceGate",
+    "trailGate",
+    "lossCap",
+    "adaptiveCap",
+    "winProbGate",
+    "riskProxy",
+    "categoryPrior",
+    "guided",
+    "guidedConditional"
+  ],
+  "scan": [
+    {
+      "policy": "baseline-DP",
+      "family": "baseline",
+      "winCredit": 0.5,
+      "ci95": [
+        0.5,
+        0.5
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "baseline-WinDP",
+      "family": "baseline",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.4925,
+        0.523125
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "baseline-WinDPv2",
+      "family": "baseline",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "legacy-Greedy",
+      "family": "legacy",
+      "winCredit": 0.25,
+      "ci95": [
+        0.1776102,
+        0.3223898
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "legacy-Expectimax",
+      "family": "legacy",
+      "winCredit": 0.2708333,
+      "ci95": [
+        0.1061138,
+        0.4355528
+      ],
+      "pairs": 12
+    },
+    {
+      "policy": "legacyMCTS-32",
+      "family": "legacyMCTS",
+      "winCredit": 0,
+      "ci95": [
+        0,
+        0
+      ],
+      "pairs": 12
+    },
+    {
+      "policy": "legacyMCTS-96",
+      "family": "legacyMCTS",
+      "winCredit": 0.0833333,
+      "ci95": [
+        0,
+        0.1934526
+      ],
+      "pairs": 12
+    },
+    {
+      "policy": "legacyMCTS-256",
+      "family": "legacyMCTS",
+      "winCredit": 0.0833333,
+      "ci95": [
+        0,
+        0.1934526
+      ],
+      "pairs": 12
+    },
+    {
+      "policy": "balanceGate-6",
+      "family": "balanceGate",
+      "winCredit": 0.5,
+      "ci95": [
+        0.4781737,
+        0.5218263
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "balanceGate-10",
+      "family": "balanceGate",
+      "winCredit": 0.5,
+      "ci95": [
+        0.4781737,
+        0.5218263
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "balanceGate-15",
+      "family": "balanceGate",
+      "winCredit": 0.4921875,
+      "ci95": [
+        0.4655255,
+        0.5188495
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "balanceGate-20",
+      "family": "balanceGate",
+      "winCredit": 0.4921875,
+      "ci95": [
+        0.4655255,
+        0.5188495
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "balanceGate-30",
+      "family": "balanceGate",
+      "winCredit": 0.5,
+      "ci95": [
+        0.4691329,
+        0.5308671
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "balanceGate-45",
+      "family": "balanceGate",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "trailGate--25",
+      "family": "trailGate",
+      "winCredit": 0.515625,
+      "ci95": [
+        0.4941424,
+        0.5371076
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "trailGate--15",
+      "family": "trailGate",
+      "winCredit": 0.5234375,
+      "ci95": [
+        0.4973399,
+        0.5495351
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "trailGate--5",
+      "family": "trailGate",
+      "winCredit": 0.515625,
+      "ci95": [
+        0.485,
+        0.54625
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "trailGate-0",
+      "family": "trailGate",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "trailGate-5",
+      "family": "trailGate",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "trailGate-15",
+      "family": "trailGate",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "trailGate-25",
+      "family": "trailGate",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "lossCap-0_1",
+      "family": "lossCap",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.4925,
+        0.523125
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "lossCap-0_25",
+      "family": "lossCap",
+      "winCredit": 0.5,
+      "ci95": [
+        0.4781737,
+        0.5218263
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "lossCap-0_5",
+      "family": "lossCap",
+      "winCredit": 0.5,
+      "ci95": [
+        0.4691329,
+        0.5308671
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "lossCap-1",
+      "family": "lossCap",
+      "winCredit": 0.5,
+      "ci95": [
+        0.4691329,
+        0.5308671
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "lossCap-2",
+      "family": "lossCap",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "lossCap-3",
+      "family": "lossCap",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "lossCap-5",
+      "family": "lossCap",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "lossCap-8",
+      "family": "lossCap",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "lossCap-16",
+      "family": "lossCap",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "adaptiveCap-0_05",
+      "family": "adaptiveCap",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "adaptiveCap-0_1",
+      "family": "adaptiveCap",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "adaptiveCap-0_2",
+      "family": "adaptiveCap",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "adaptiveCap-0_35",
+      "family": "adaptiveCap",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "adaptiveCap-0_5",
+      "family": "adaptiveCap",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "adaptiveCap-0_8",
+      "family": "adaptiveCap",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "winProbGate-0_05",
+      "family": "winProbGate",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.4925,
+        0.523125
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "winProbGate-0_1",
+      "family": "winProbGate",
+      "winCredit": 0.5,
+      "ci95": [
+        0.4781737,
+        0.5218263
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "winProbGate-0_2",
+      "family": "winProbGate",
+      "winCredit": 0.5,
+      "ci95": [
+        0.4781737,
+        0.5218263
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "winProbGate-0_3",
+      "family": "winProbGate",
+      "winCredit": 0.4921875,
+      "ci95": [
+        0.4655255,
+        0.5188495
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "riskProxy--2",
+      "family": "riskProxy",
+      "winCredit": 0.5,
+      "ci95": [
+        0.4382658,
+        0.5617342
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "riskProxy--1",
+      "family": "riskProxy",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.4451508,
+        0.5704742
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "riskProxy--0_5",
+      "family": "riskProxy",
+      "winCredit": 0.5,
+      "ci95": [
+        0.4511948,
+        0.5488052
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "riskProxy-0_5",
+      "family": "riskProxy",
+      "winCredit": 0.5234375,
+      "ci95": [
+        0.4775,
+        0.569375
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "riskProxy-1",
+      "family": "riskProxy",
+      "winCredit": 0.5390625,
+      "ci95": [
+        0.4810903,
+        0.5970347
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "riskProxy-2",
+      "family": "riskProxy",
+      "winCredit": 0.5351563,
+      "ci95": [
+        0.4645428,
+        0.6057697
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "categoryPrior-upper0_5",
+      "family": "categoryPrior",
+      "winCredit": 0.515625,
+      "ci95": [
+        0.4780181,
+        0.5532319
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "categoryPrior-upper1_5",
+      "family": "categoryPrior",
+      "winCredit": 0.515625,
+      "ci95": [
+        0.4721432,
+        0.5591068
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "categoryPrior-yacht0_5",
+      "family": "categoryPrior",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "categoryPrior-yacht1_5",
+      "family": "categoryPrior",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "categoryPrior-straight0_5",
+      "family": "categoryPrior",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "categoryPrior-straight1_5",
+      "family": "categoryPrior",
+      "winCredit": 0.5078125,
+      "ci95": [
+        0.473356,
+        0.542269
+      ],
+      "pairs": 64
+    },
+    {
+      "policy": "guided-16",
+      "family": "guided",
+      "winCredit": 0.5416667,
+      "ci95": [
+        0.3525305,
+        0.7308028
+      ],
+      "pairs": 12
+    },
+    {
+      "policy": "guided-48",
+      "family": "guided",
+      "winCredit": 0.5416667,
+      "ci95": [
+        0.3959925,
+        0.6873408
+      ],
+      "pairs": 12
+    },
+    {
+      "policy": "guided-96",
+      "family": "guided",
+      "winCredit": 0.5416667,
+      "ci95": [
+        0.3959925,
+        0.6873408
+      ],
+      "pairs": 12
+    },
+    {
+      "policy": "guidedConditional--20",
+      "family": "guidedConditional",
+      "winCredit": 0.5416667,
+      "ci95": [
+        0.3959925,
+        0.6873408
+      ],
+      "pairs": 12
+    },
+    {
+      "policy": "guidedConditional-0",
+      "family": "guidedConditional",
+      "winCredit": 0.5416667,
+      "ci95": [
+        0.3959925,
+        0.6873408
+      ],
+      "pairs": 12
+    },
+    {
+      "policy": "guidedConditional-20",
+      "family": "guidedConditional",
+      "winCredit": 0.5416667,
+      "ci95": [
+        0.46,
+        0.6233333
+      ],
+      "pairs": 12
+    }
+  ],
+  "round2": [
+    {
+      "policy": "baseline-WinDPv2",
+      "family": "baseline",
+      "winCredit": 0.5025,
+      "ci95": [
+        0.490485,
+        0.514515
+      ],
+      "pairs": 400
+    },
+    {
+      "policy": "guided-16",
+      "family": "guided",
+      "winCredit": 0.495625,
+      "ci95": [
+        0.4752898,
+        0.5159602
+      ],
+      "pairs": 400
+    },
+    {
+      "policy": "guided-48",
+      "family": "guided",
+      "winCredit": 0.483125,
+      "ci95": [
+        0.4642357,
+        0.5020143
+      ],
+      "pairs": 400
+    },
+    {
+      "policy": "guided-96",
+      "family": "guided",
+      "winCredit": 0.4875,
+      "ci95": [
+        0.4703724,
+        0.5046276
+      ],
+      "pairs": 400
+    },
+    {
+      "policy": "guidedConditional--20",
+      "family": "guidedConditional",
+      "winCredit": 0.485625,
+      "ci95": [
+        0.4673633,
+        0.5038867
+      ],
+      "pairs": 400
+    },
+    {
+      "policy": "guidedConditional-0",
+      "family": "guidedConditional",
+      "winCredit": 0.486875,
+      "ci95": [
+        0.4698842,
+        0.5038658
+      ],
+      "pairs": 400
+    },
+    {
+      "policy": "guidedConditional-20",
+      "family": "guidedConditional",
+      "winCredit": 0.504375,
+      "ci95": [
+        0.4904509,
+        0.5182991
+      ],
+      "pairs": 400
+    },
+    {
+      "policy": "riskProxy-1",
+      "family": "riskProxy",
+      "winCredit": 0.4875,
+      "ci95": [
+        0.4652527,
+        0.5097473
+      ],
+      "pairs": 400
+    },
+    {
+      "policy": "riskProxy-2",
+      "family": "riskProxy",
+      "winCredit": 0.44,
+      "ci95": [
+        0.4155012,
+        0.4644988
+      ],
+      "pairs": 400
+    },
+    {
+      "policy": "trailGate--15",
+      "family": "trailGate",
+      "winCredit": 0.504375,
+      "ci95": [
+        0.4973422,
+        0.5114078
+      ],
+      "pairs": 400
+    },
+    {
+      "policy": "riskProxy-0_5",
+      "family": "riskProxy",
+      "winCredit": 0.498125,
+      "ci95": [
+        0.4782348,
+        0.5180152
+      ],
+      "pairs": 400
+    },
+    {
+      "policy": "trailGate--25",
+      "family": "trailGate",
+      "winCredit": 0.500625,
+      "ci95": [
+        0.4962031,
+        0.5050469
+      ],
+      "pairs": 400
+    },
+    {
+      "policy": "trailGate--5",
+      "family": "trailGate",
+      "winCredit": 0.506875,
+      "ci95": [
+        0.4983158,
+        0.5154342
+      ],
+      "pairs": 400
+    }
+  ],
+  "selected": "trailGate--5",
+  "confirm": [
+    {
+      "policy": "trailGate--5",
+      "family": "trailGate",
+      "opponent": "baseline-DP",
+      "pairs": 6000,
+      "games": 12000,
+      "winCredit": 0.502,
+      "ci95": [
+        0.4999312,
+        0.5040688
+      ],
+      "scoreMean": 191.0355833,
+      "opponentScoreMean": 191.4618333,
+      "decisionMsPerGame": 6.515708,
+      "wins": 5971,
+      "draws": 106,
+      "losses": 5923,
+      "seedBase": 2110000
+    },
+    {
+      "policy": "trailGate--5",
+      "family": "trailGate",
+      "opponent": "baseline-WinDPv2",
+      "pairs": 6000,
+      "games": 12000,
+      "winCredit": 0.4979583,
+      "ci95": [
+        0.4958182,
+        0.5000984
+      ],
+      "scoreMean": 191.24125,
+      "opponentScoreMean": 190.9200833,
+      "decisionMsPerGame": 6.0787163,
+      "wins": 5927,
+      "draws": 97,
+      "losses": 5976,
+      "seedBase": 2118000
+    },
+    {
+      "policy": "trailGate--5",
+      "family": "trailGate",
+      "opponent": "baseline-WinDP",
+      "pairs": 1000,
+      "games": 2000,
+      "winCredit": 0.505,
+      "ci95": [
+        0.4998676,
+        0.5101324
+      ],
+      "scoreMean": 192.153,
+      "opponentScoreMean": 192.506,
+      "decisionMsPerGame": 6.2967636,
+      "wins": 1003,
+      "draws": 14,
+      "losses": 983,
+      "seedBase": 2126000
+    },
+    {
+      "policy": "baseline-WinDPv2",
+      "family": "baseline",
+      "opponent": "baseline-DP",
+      "pairs": 1500,
+      "games": 3000,
+      "winCredit": 0.509,
+      "ci95": [
+        0.5036101,
+        0.5143899
+      ],
+      "scoreMean": 190.574,
+      "opponentScoreMean": 191.4526667,
+      "decisionMsPerGame": 11.6826558,
+      "wins": 1517,
+      "draws": 20,
+      "losses": 1463,
+      "seedBase": 2131000
+    }
+  ],
+  "protocol": {
+    "searchSeedBase": 1700000,
+    "validationSeedBase": 1850000,
+    "confirmSeedBase": 2110000,
+    "selection": "64 seed pairs for normal variants (12 for costly variants), promote 12 + baseline; evaluate promoted candidates using 400 pairs; select one primary nominee without consulting confirmation seeds; two-sided direct matches vs baseline and v1; DO NOT interpret search wins as proof.",
+    "smoke": false,
+    "multipleComparisons": "Search/validation comparisons are exploratory; independent direct head-to-head vs Win DP v2 is the primary check; 95% CIs are unadjusted for the many searched configurations."
+  },
+  "limitations": [
+    "Many candidates are hyperparameter variants, not independent algorithm families.",
+    "Risk proxies and category priors are heuristics, not calibrated win probabilities.",
+    "Opponent models in Win DP v2 assume fixed DP Expert policy.",
+    "Exhaustive self-play, trained deep RL, PSRO, and full expectiminimax are not implemented by this sweep.",
+    "Changing a source model, calibration, or opponent changes the interpretation of the result.",
+    "GitHub Actions artifacts may expire; a compact summary is committed to the repository."
+  ]
+}
