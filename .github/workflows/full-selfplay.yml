@@ -1,0 +1,97 @@
+name: Full-game self-play and three-turn competitive research
+on:
+  pull_request:
+    paths:
+      - "src/selfplay-residual.ts"
+      - "src/competitive-v3.ts"
+      - "tests/selfplay.test.ts"
+      - "scripts/train-selfplay.mjs"
+      - "scripts/calibrate-opponents.mjs"
+      - "scripts/bench-v3.mjs"
+      - "docs/context/SELFPLAY-RESEARCH.md"
+      - ".github/workflows/full-selfplay.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/selfplay-residual.ts"
+      - "src/competitive-v3.ts"
+      - "scripts/train-selfplay.mjs"
+      - "scripts/calibrate-opponents.mjs"
+      - "scripts/bench-v3.mjs"
+      - ".github/workflows/full-selfplay.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-full-selfplay-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  selfplay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 40
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Validate full game self-play research script
+        run: node --check scripts/train-selfplay.mjs
+      - name: Smoke train against current and historical snapshots
+        if: github.event_name == 'pull_request'
+        run: node scripts/train-selfplay.mjs --smoke
+      - name: Actual full-game population evolution, REINFORCE self-play and independent matches
+        if: github.event_name != 'pull_request'
+        run: node scripts/train-selfplay.mjs
+      - name: Preserve learned weights, training and per-game evaluation
+        uses: actions/upload-artifact@v4
+        with:
+          name: yachtlab-full-game-selfplay-research
+          path: |
+            training/results/full-selfplay-research.json
+            training/checkpoints/full-selfplay-selected.json
+            docs/context/_generated/SELFPLAY-LATEST.md
+          retention-days: 90
+      - name: Record experiment summary in persistent GitHub context
+        if: github.event_name != 'pull_request'
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/SELFPLAY-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(context): record full-game self-play experiment [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+  three_turn:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Check opponent calibration and 3-category solver harness syntax
+        run: |
+          node --check scripts/calibrate-opponents.mjs
+          node --check scripts/bench-v3.mjs
+      - name: Calibrate opponent score forecast with separate training and test seeds
+        run: node scripts/calibrate-opponents.mjs ${{ github.event_name == 'pull_request' && '--smoke' || '' }}
+      - name: Test exact own-three-turn DP under the forecast and paired matches
+        run: node scripts/bench-v3.mjs ${{ github.event_name == 'pull_request' && '--smoke' || '' }}
+      - name: Preserve opponent forecast and paired v3 benchmark
+        uses: actions/upload-artifact@v4
+        with:
+          name: yachtlab-three-turn-distributional-study
+          path: |
+            training/results/opponent-calibration.json
+            benchmarks/research/win-v3-calibration-study.json
+          retention-days: 90

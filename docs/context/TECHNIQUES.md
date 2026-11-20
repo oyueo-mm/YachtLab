@@ -124,3 +124,7 @@
 [58개 정책 설정과 12개 강화학습 알고리즘 결과](./EXPERIMENT-ZOO-2026-11-20.md)는 실제 실행 완료됨. 축소 문제 **REINFORCE·A2C·DQN·Double DQN** (9,000학습/5,000평가) 및 **Q-learning·SARSA·Expected SARSA·Double Q-learning·First-Visit MC·Dyna-Q·UCB Q-learning·Optimistic Q-learning** (250,000학습/10,000평가) 훈련 및 가중치 보존 완료.
 
 실제 12라운드 58개 전략 탐색은 완료됐지만 **Win DP v2보다 높은 범용 승리점수율이 독립 검증으로 입증되지는 않음**. 위험 조절, 카테고리 편향, UCB 예산 변형은 연구용으로만 남긴다. 12개 강화학습 방법은 모두 **한 카테고리 전용**이며 본 게임 SOTA로 소개하지 않는다.
+
+## 2026-11-20 전체 게임 자기 대국 연구
+
+12라운드 최종 승패를 보상으로 학습하는 **진화 리그 ES + REINFORCE**, opponent-score residual calibration, 마지막 3개 카테고리의 경쟁형 DP v3(상대 3칸 이상은 가우시안 예측 **근사**)를 실제 구현. [실험 설계](./SELFPLAY-RESEARCH.md). 성공한 자동 실험이 생기기 전에는 성능 향상 결과로 표기 금지. 참조 [자동 자기 대국 연구](./_generated/SELFPLAY-LATEST.md).
