@@ -304,7 +304,7 @@ it("Win DP v2: 공개 점수판만으로 마지막 두 라운드의 승률 행�
   if(result!.type==="reroll")expect(result!.ids.every(id=>id>=0&&id<5)).toBe(true);
   else expect(available(own)).toContain(result!.category);
   expect(winDPv2Decision(state)).toEqual(result);
-  expect(winDPv2Decision({...state,round:1,rolls:0})).toThrow();
+  expect(()=>winDPv2Decision({...state,round:1,rolls:0})).toThrow();
 });
 it("Win DP v2: 실제 12라운드 전체 경기를 완료하고 선후공을 교대할 수 있다", () => {
   for (const seed of [210,211]) {
