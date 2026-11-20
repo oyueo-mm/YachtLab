@@ -131,3 +131,13 @@ test("Win DP가 AI 대전의 별도 실험 알고리즘으로 선택되고 정�
   await page.getByLabel("재생 속도").selectOption("instant");
   await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(24);
 });
+
+test("Win DP v2는 AI 대국 관전에서 선택 가능하고 마지막 두 라운드를 합법적으로 완료", async ({page}) => {
+  await page.goto("#watch");
+  await chooseAlgorithm(page,"AI 1","Win DP v2");
+  await chooseAlgorithm(page,"AI 2","DP Expert");
+  await page.getByRole("button",{name:"새 경기 시작"}).click();
+  await expect(page.getByRole("button",{name:"일시정지"})).toBeEnabled({timeout:30000});
+  await page.getByLabel("재생 속도").selectOption("instant");
+  await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(24);
+});

@@ -10,6 +10,7 @@ export const difficulty: Record<string, { label: string; color: string }> = {
   Expectimax: { label: "어려움", color: "#b84326" },
   "DP Expert": { label: "매우 어려움", color: "#bd2525" },
   "Win DP": { label: "승률 특화 · 실험", color: "#b84326" },
+  "Win DP v2": { label: "2라운드 승률 · 연구", color: "#b84326" },
   "Distilled Policy": { label: "어려움", color: "#b84326" },
   "Distilled PPO": { label: "어려움", color: "#b84326" },
 };
@@ -156,7 +157,7 @@ export default function AlgorithmDropdown({
             className="algorithm-menu"
             style={position}
           >
-            <p>난이도는 참고용 · Win DP는 실험 모델</p>
+            <p>난이도는 참고용 · Win DP 계열은 연구 모델</p>
             {algorithms.map((a, i) => {
               const d = difficulty[a] ?? { label: "평가 중", color: "#666" };
               return (

@@ -45,8 +45,8 @@ self.onmessage = async ({ data: r }: MessageEvent<Request>) => {
     const needsDP =
       r.type === "compare" ||
       (r.type === "decide"
-        ? r.algorithm === "DP Expert" || r.algorithm === "Win DP"
-        : r.algorithms.includes("DP Expert") || r.algorithms.includes("Win DP"));
+        ? r.algorithm === "DP Expert" || r.algorithm === "Win DP" || r.algorithm === "Win DP v2"
+        : r.algorithms.includes("DP Expert") || r.algorithms.includes("Win DP") || r.algorithms.includes("Win DP v2"));
     if (needsDP) await loadDP();
     const selected = r.type === "decide" ? [r.algorithm] : r.algorithms;
     await Promise.all(
