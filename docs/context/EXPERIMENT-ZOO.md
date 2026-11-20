@@ -74,3 +74,12 @@ python training/choice_rl_zoo.py --episodes 9000 --eval 5000 --seed 27111
 ```
 
 연구 결과가 좋다고 해도 기존 AI 기본값을 자동 변경하거나 모델을 직접 배포하지 않는다. 연구 후보가 충분히 검증되면 별도 PR로 사용자 기능에 도입한다.
+
+## 별도 표형 강화학습 알고리즘 8종
+
+- [실제 구현](../../training/tabular_choice_zoo.py) · [자동 실험 워크플로](../../.github/workflows/tabular-zoo.yml)
+- **Q-learning, SARSA, Expected SARSA, Double Q-learning, First-Visit Monte Carlo Control, Dyna-Q, UCB Q-learning, Optimistic Q-learning** 총 8종을 별도 훈련한다.
+- 학습: 각 250,000에피소드, 테스트: 정책별 독립 미사용 10,000게임, 모델 Q-테이블과 학습 곡선 결과 저장.
+- 대상 상태: 정렬된 5개 주사위 252개 조합 × 남은 재굴림 3개 상태, 초이스에서 25점 이상 획득 여부. **전체 12라운드 요트다이스 모델이 아니다.**
+- 비교 대조군: 5·6만 유지, 4 이상 유지, 랜덤. 본 실험의 정확 목표 DP 성능 기준은 약 41.671%.
+- 본 연구 계열은 Deep RL과 다른 **표 기반 강화학습** 방법이다. 초이스 축소 환경의 실험을 전체 YachtLab 승률이라고 보고하지 않는다.

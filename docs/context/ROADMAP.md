@@ -65,3 +65,7 @@
 ## 대량 알고리즘 탐색 연구 (2026-11-20)
 
 [Algorithm Zoo 설계 및 재현 방법](./EXPERIMENT-ZOO.md)을 따라 **58개 정책/파라미터 조합**, 4종 새 강화학습 알고리즘과 4종 축소 문제 대조군을 CI에서 비교한다. 이 숫자는 **서로 독립적인 SOTA 모델 58개**가 아니라 정책 계열·설정의 총수다. 승률 우위 여부는 첫 실행 전에는 **미확인**이며, 성공한 실험의 검정 결과는 [_generated/LATEST_EXPERIMENT.md](./_generated/LATEST_EXPERIMENT.md)에서 확인한다. 이 파일은 GitHub Actions 성공 후 생성됨.
+
+## 별도 표형 RL 비교 연구
+
+[알고리즘 대량 실험](./EXPERIMENT-ZOO.md)에는 Q-learning/SARSA/Double Q/Monte Carlo/Dyna-Q/UCB-Q 등 **8개 표형 강화학습**의 축소 문제 비교도 연결함. 실제 성공된 실행 결과만 확증 성적으로 추가해야 함.
