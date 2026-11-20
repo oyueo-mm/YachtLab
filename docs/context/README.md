@@ -21,6 +21,7 @@
 | [알고리즘 대량 실험](./EXPERIMENT-ZOO.md) | 58개 후보/설정, 4종 강화학습 파일럿, 대규모 경기 리그 및 결과 자동 기록 |
 | [최신 대량 실험 결과 (자동)](./_generated/LATEST_EXPERIMENT.md) | 실제 연구 워크플로 실행 성공 후 생성되는 결과 |
 | **[전체 게임 자기 대국·Win DP v3 연구](./SELFPLAY-RESEARCH.md)** | 진화적 리그, 실제 게임 승패 REINFORCE, 상대 모델링, 마지막 3개 카테고리 솔버 |
+| **[자기 대국·경쟁 v3 종합 결과](./SELFPLAY-2026-11-20-FINAL.md)** | 전체 게임 학습 2계열·상대분포·v3, 신경망 전체게임 강화학습, 독립 검증 결과 |
 | [전체 게임 신경망 자기 대국](./SELFPLAY-RESEARCH.md#후속-실제-12라운드-신경망-자기-대국) | REINFORCE와 Monte-Carlo actor-critic, DP-Q 기반 12→12→1 신경망 |
 | [신경망 자기 대국 자동 결과](./_generated/NEURAL-SELFPLAY-LATEST.md) | 성공한 실제 학습 및 확증 경기의 기록 |
 | [자기 대국 최신 자동 실험](./_generated/SELFPLAY-LATEST.md) | GitHub Actions가 본실험 성공 후 최종 후보와 독립 검증 결과를 기록 |

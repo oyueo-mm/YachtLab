@@ -15,10 +15,11 @@
 
 1. **[맥락 허브](docs/context/README.md)** — 전체 문서 목차와 현재 방향.
 2. **[자동 생성 현재 상태](docs/context/_generated/CURRENT_STATE.md)** — 코드의 실제 AI 이름·카테고리·커밋·CI 내역.
-3. **[검증된 실험 결과](docs/context/RESULTS.md)** — 승률/평균점수/시드/신뢰구간/한계.
-4. **[AI 기법 전체 도감](docs/context/TECHNIQUES.md)** — DP·검색·RL·Self-Play·진화·하이브리드.
-5. **[연구 로드맵](docs/context/ROADMAP.md)**, **[설계 결정](docs/context/DECISIONS.md)**, **[새 채팅 인수인계](docs/context/HANDOFF.md)**.
-6. **[자동 갱신 원칙](docs/context/AUTOMATION.md)**.
+3. **[자기 대국 최신 종합 결론](docs/context/SELFPLAY-2026-11-20-FINAL.md)** — 소형/신경망 자기 대국, 상대 점수 예측, Win DP v3의 성공과 실패 기록.
+4. **[검증된 실험 결과](docs/context/RESULTS.md)** — 승률/평균점수/시드/신뢰구간/한계.
+5. **[AI 기법 전체 도감](docs/context/TECHNIQUES.md)** — DP·검색·RL·Self-Play·진화·하이브리드.
+6. **[연구 로드맵](docs/context/ROADMAP.md)**, **[설계 결정](docs/context/DECISIONS.md)**, **[새 채팅 인수인계](docs/context/HANDOFF.md)**.
+7. **[자동 갱신 원칙](docs/context/AUTOMATION.md)**.
 
 ## 새 대화에 전달할 한 줄
 

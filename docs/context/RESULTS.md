@@ -126,3 +126,11 @@ Sixes·Choice 조건은 정책마다 50,000번 Monte Carlo 검산. **근거:** [
 - 상대 모델 검증: 정책별 훈련 240/평가 240경기. 최종 점수잔차의 Gaussian RMSE: DP Expert 30.154, Win DP v2 28.913, Greedy 24.729. 같은 데이터 무보정 오차는 각각 30.131, 28.977, 28.478. DP Expert는 보정이 약간 나빠졌고, Greedy에서 개선 확인. 이는 **승률 개선 성적이 아니라 예측 RMSE**.
 - Win DP v3 (내 마지막 3칸 Bellman, 상대가 3칸 이상 남으면 Gaussian 근사) vs Win DP v2 **72경기 50.000%**, vs DP Expert **48경기 46.875%**. 표본이 작고 우위 입증 실패, 사용자 기본 AI에는 미적용.
 - 기록: 코드·실험·개별 결과·가중치가 Actions artifact에 보관됨. 아티팩트 보존 정책으로 만료 가능; 요약은 Git에 보존.
+
+## 2026-11-20 신경망 전체 게임 자기 대국 추가 연구 결과
+
+- 최종 보존 보고서 **[자기 대국 종합 보고](./SELFPLAY-2026-11-20-FINAL.md)**, [신경망 모델 원시 Actions](https://github.com/oyueo-mm/YachtLab/actions/runs/44713879146), [자동 요약](./_generated/NEURAL-SELFPLAY-LATEST.md).
+- 실제 전체 게임 DP-Q 보조 행동 신경망(12→12→1)으로 **Neural REINFORCE, Monte-Carlo Advantage Actor-Critic 각각 7,200게임 학습** 완료.
+- 별도 선택용 시드에서 Neural MC Actor-Critic 선택, 독립 확증 DP Expert 상대 **3,600경기 51.403%**(95% paired CI **50.742~52.064%**), Win DP v2 상대 **3,600경기 49.736%**(CI **49.239~50.233%**).
+- **Win DP v2 직접 승률 개선 미입증**. DP Expert 상대의 이전 20,000경기 Win DP v2 수치와 시드가 달라 단순 숫자 비교를 우월성 검정으로 사용하지 않는다.
+- 종합적으로 선형/진화 리그, 소형 신경망, 상대 예측 및 v3 모두 실제 실행됐지만 기존 최강 모델을 교체하지 않는다.

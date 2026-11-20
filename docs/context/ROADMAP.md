@@ -95,3 +95,11 @@
 - ⚠️ 학습 후보 중 어떤 것도 기존 잔차0/Win DP v2보다 우월하다는 증거 없음. 전략 보정만으로는 강한 DP의 기준을 넘기 어려움.
 - 🔬 다음: **DP-Q 보조 신경망**의 표현력을 늘리고, 실제 12라운드 승패로 REINFORCE 및 Monte-Carlo advantage actor-critic 훈련. 독립 시드 확증 전에는 강하다고 주장하지 않음.
 - 🔲 장기: PSRO meta-solver 및 실제 대전 최적 대응/상대 분포 강건화, 더 많은 시드·상대의 교차 평가.
+
+## 신경망 전체 게임 자기 대국 후 결정
+
+- ✅ REINFORCE neural·Monte-Carlo actor-critic neural 학습 완료, 각각 7,200 전체 게임; [최종 결과](./SELFPLAY-2026-11-20-FINAL.md).
+- ✅ DP Expert 상대 신경망 51.403%(3,600경기), **Win DP v2 상대 49.736%(3,600경기)**. 후자 CI에 50% 포함되므로 **최강 AI 갱신 없음**.
+- P0 후속: 실제 PSRO meta-solver, 보다 정확한 opponent final-score distribution 및 다중 opponent holdout.
+- P0 후속: **진짜 PPO/A2C TD advantage + DP teacher KL** 훈련 및 여러 초기화 시드에서 반복.
+- P1: chance-aware MCTS/value network 통합과 동일 연산 예산 제어.
