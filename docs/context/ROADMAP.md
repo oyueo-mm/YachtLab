@@ -103,3 +103,11 @@
 - P0 후속: 실제 PSRO meta-solver, 보다 정확한 opponent final-score distribution 및 다중 opponent holdout.
 - P0 후속: **진짜 PPO/A2C TD advantage + DP teacher KL** 훈련 및 여러 초기화 시드에서 반복.
 - P1: chance-aware MCTS/value network 통합과 동일 연산 예산 제어.
+
+## 2026-11-20 PSRO·PPO·PMF 실제 구현 연구
+
+- 🔬 [통합 설계](./PSRO-PPO-PMF-RESEARCH.md): 제로섬 restricted PSRO **실제 메타게임 행렬/fictitious-play 솔버**, 현재 혼합 상대에 대한 ES 근사 최적대응 오라클 및 반복 모집단 추가.
+- 🔬 임의 상대 3명 고정에서 벗어나, PSRO 메타 정책과 **이전 PPO 스냅샷**에 대한 적응형 자기 대국.
+- 🔬 정책별/잔여 카테고리별 실측 **이산 잔차 PMF**, Gaussian 대비 CRPS·NLL 미사용 시드 검증, 연구형 Win DP v3 확률예측 입력.
+- 🔬 실제 12라운드 **PPO clipped objective + GAE + actor/critic + KL 교사** 두 모델, DP Expert·Win DP v2 상대 독립 확증.
+- 성능이 검증되기 전에는 성과를 주장하지 않고 기존 Win DP v2·사용자 AI 기본값 보존. 자동 결과는 [PSRO](./_generated/PSRO-LATEST.md) · [PMF](./_generated/PMF-LATEST.md) · [PPO](./_generated/PPO-LATEST.md) 참조.

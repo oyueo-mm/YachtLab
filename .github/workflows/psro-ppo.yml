@@ -1,0 +1,96 @@
+name: YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO
+on:
+  pull_request:
+    paths:
+      - "src/psro-meta.ts"
+      - "src/ppo-surrogate.ts"
+      - "src/neural-residual.ts"
+      - "src/competitive-v3.ts"
+      - "scripts/research-psro.mjs"
+      - "scripts/research-opponent-pmf.mjs"
+      - "scripts/train-ppo-psro.mjs"
+      - "tests/psro-meta.test.ts"
+      - "tests/ppo-surrogate.test.ts"
+      - ".github/workflows/psro-ppo.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/psro-meta.ts"
+      - "src/ppo-surrogate.ts"
+      - "src/neural-residual.ts"
+      - "src/competitive-v3.ts"
+      - "scripts/research-psro.mjs"
+      - "scripts/research-opponent-pmf.mjs"
+      - "scripts/train-ppo-psro.mjs"
+      - ".github/workflows/psro-ppo.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-psro-ppo-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Validate JavaScript syntax and mathematical unit tests
+        run: |
+          node --check scripts/research-psro.mjs
+          node --check scripts/research-opponent-pmf.mjs
+          node --check scripts/train-ppo-psro.mjs
+          npm test -- --reporter=dot
+      - name: Simulate PSRO best-response oracle and restricted-game Nash meta-solver
+        run: node scripts/research-psro.mjs ${{ github.event_name == 'pull_request' && '--smoke' || '' }}
+      - name: Archive PSRO matrix, meta-strategy and adaptive snapshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: psro-matrix-and-adaptive-oracles
+          path: |
+            training/results/psro-real-matrix.json
+            training/results/psro-population.json
+            docs/context/_generated/PSRO-LATEST.md
+          retention-days: 90
+      - name: Validate discrete opponent residual score PMF against Gaussian and play Win DP v3
+        run: node scripts/research-opponent-pmf.mjs ${{ github.event_name == 'pull_request' && '--smoke' || '' }}
+      - name: Archive full probabilistic opponent score forecasts and independent held-out evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: opponent-empirical-pmf
+          path: |
+            training/results/opponent-empirical-pmf.json
+            docs/context/_generated/PMF-LATEST.md
+          retention-days: 90
+      - name: Train genuine full-game PPO + PPO with DP teacher KL against PSRO mixture
+        run: node scripts/train-ppo-psro.mjs ${{ github.event_name == 'pull_request' && '--smoke' || '' }}
+      - name: Archive PPO checkpoints, frozen log probabilities, training and independent matches
+        uses: actions/upload-artifact@v4
+        with:
+          name: ppo-full-game-models-and-raw
+          path: |
+            training/results/ppo-full-game.json
+            training/checkpoints/ppo-selected.json
+            docs/context/_generated/PPO-LATEST.md
+          retention-days: 90
+      - name: Persist independently measured research results to GitHub context hub
+        if: github.event_name != 'pull_request'
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/PSRO-LATEST.md docs/context/_generated/PMF-LATEST.md docs/context/_generated/PPO-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(context): record PSRO-PMF-PPO real experiments [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi

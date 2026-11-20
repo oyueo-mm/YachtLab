@@ -24,6 +24,10 @@
 | **[자기 대국·경쟁 v3 종합 결과](./SELFPLAY-2026-11-20-FINAL.md)** | 전체 게임 학습 2계열·상대분포·v3, 신경망 전체게임 강화학습, 독립 검증 결과 |
 | [전체 게임 신경망 자기 대국](./SELFPLAY-RESEARCH.md#후속-실제-12라운드-신경망-자기-대국) | REINFORCE와 Monte-Carlo actor-critic, DP-Q 기반 12→12→1 신경망 |
 | [신경망 자기 대국 자동 결과](./_generated/NEURAL-SELFPLAY-LATEST.md) | 성공한 실제 학습 및 확증 경기의 기록 |
+| **[PSRO·PPO·이산 점수분포 연구](./PSRO-PPO-PMF-RESEARCH.md)** | 실제 메타게임 Nash 솔버, 적응형 상대 리그, PMF 검정, clipped PPO |
+| [PSRO 실제 메타게임 결과](./_generated/PSRO-LATEST.md) | 새 오라클에 따라 바뀌는 혼합 정책과 제한게임 exploitability |
+| [상대 이산 점수분포 평가](./_generated/PMF-LATEST.md) | Gaussian vs PMF CRPS·로그우도 비교 |
+| [전체 게임 PPO 실제 결과](./_generated/PPO-LATEST.md) | PPO vs PPO+DP teacher KL 및 Win DP v2 확증 |
 | [자기 대국 최신 자동 실험](./_generated/SELFPLAY-LATEST.md) | GitHub Actions가 본실험 성공 후 최종 후보와 독립 검증 결과를 기록 |
 | [현재 상태 — 자동 생성](./_generated/CURRENT_STATE.md) | 현재 브랜치 코드로 확인한 AI·카테고리·최근 변경 사항 |
 | [실험 결과·검증 근거](./RESULTS.md) | 직접 수행한 비교, 게임 수, 신뢰구간, 평가상의 한계 |
