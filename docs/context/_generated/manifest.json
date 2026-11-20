@@ -51,6 +51,7 @@
     "REFERENCES.md",
     "RESULTS.md",
     "ROADMAP.md",
+    "SELFPLAY-2026-11-20-FINAL.md",
     "SELFPLAY-RESEARCH.md",
     "TECHNIQUES.md"
   ],
@@ -66,6 +67,11 @@
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "df76263",
+      "date": "2026-11-20",
+      "subject": "docs: preserve complete real full-game self-play, opponent modeling and v3 research evidence"
+    },
     {
       "sha": "361f75d",
       "date": "2026-11-20",
@@ -110,31 +116,26 @@
       "sha": "4fb405a",
       "date": "2026-11-20",
       "subject": "research: add 20k independent paired validation and two-category exact results"
-    },
-    {
-      "sha": "8e4f3b2",
-      "date": "2026-11-20",
-      "subject": "fix: emit competitive benchmark opponent mean correctly"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "361f75d10f",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44713879177"
+    },
+    {
+      "name": "Full-game neural self-play — REINFORCE and Monte Carlo Actor-Critic",
+      "status": "success",
+      "head": "361f75d10f",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44713879146"
+    },
     {
       "name": "Full-game self-play and three-turn competitive research",
       "status": "success",
       "head": "5fdba93acd",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44713123428"
-    },
-    {
-      "name": "Full-game neural self-play — REINFORCE and Monte Carlo Actor-Critic",
-      "status": "success",
-      "head": "5fdba93acd",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44713123349"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "5fdba93acd",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44713123336"
     },
     {
       "name": "Tabular RL algorithm zoo — last-turn Choice",
