@@ -39,7 +39,10 @@ jobs:
           node --check scripts/research-qr-suite.mjs
           node --check scripts/summarize-qr-suite.mjs
       - name: Real full-game end-to-end smoke
-        run: node scripts/research-qr-suite.mjs --smoke --group baseline --seed-index 0
+        run: |
+          for group in baseline grid0 grid1 grid2 grid3 grid4 grid5 improvements iqn; do
+            node scripts/research-qr-suite.mjs --smoke --group "$group" --seed-index 0
+          done
   full-research:
     needs: verify
     if: github.event_name != 'pull_request'
