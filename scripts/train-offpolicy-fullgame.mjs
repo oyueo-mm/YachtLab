@@ -34,7 +34,7 @@ try{
   if(model.kind==="ddqn"||model.kind==="dyna")return dueling(model.q,features).q;
   if(model.kind==="qr")return quantileValue(model.q,features);
   if(model.kind==="exit")return features.map(x=>dot(model.actor,x)+.15*x[F-1]);
-  if(model.kind==="sac")return features.map(x=>Math.min(qScalar(model.q1,x),qScalar(model.q2,x)));
+  if(model.kind==="sac")return features.map(x=>dot(model.actor,x)+.075*x[F-1]);
   throw Error("Unknown kind "+model.kind);
  }
  function fromCandidate(state,c){
