@@ -1,0 +1,163 @@
+name: PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO
+on:
+  pull_request:
+    paths:
+      - "src/conditional-score-pmf.ts"
+      - "src/competitive-v3.ts"
+      - "scripts/audit-psro-oracles.mjs"
+      - "scripts/research-scorecard-pmf.mjs"
+      - "scripts/train-ppo-multiseed.mjs"
+      - "scripts/summarize-ppo-multiseed.mjs"
+      - "tests/conditional-score-pmf.test.ts"
+      - ".github/workflows/psro-extended.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/conditional-score-pmf.ts"
+      - "src/competitive-v3.ts"
+      - "scripts/audit-psro-oracles.mjs"
+      - "scripts/research-scorecard-pmf.mjs"
+      - "scripts/train-ppo-multiseed.mjs"
+      - "scripts/summarize-ppo-multiseed.mjs"
+      - ".github/workflows/psro-extended.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-extended-psro-ppo-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  psro-oracle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Full unit tests and reproducibility of oracle harness
+        run: |
+          npm test -- --reporter=dot
+          node --check scripts/audit-psro-oracles.mjs
+      - name: Build genuine empirical metagame and learn approximate responses
+        run: node scripts/research-psro.mjs ${{ github.event_name == 'pull_request' && '--smoke' || '' }}
+      - name: Evaluate every response oracle against frozen historical meta mix with independent seeds
+        run: node scripts/audit-psro-oracles.mjs ${{ github.event_name == 'pull_request' && '--smoke' || '' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: psro-oracle-expanded
+          path: |
+            training/results/psro-population.json
+            training/results/psro-real-matrix.json
+            training/results/psro-oracle-audit.json
+            docs/context/_generated/PSRO-ORACLE-AUDIT.md
+          retention-days: 90
+  scorecard-pmf:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Test conditional scorecard PMF and log/CRPS calculations
+        run: |
+          npm test -- --reporter=dot
+          node --check scripts/research-scorecard-pmf.mjs
+      - name: Fit mask/upper/score-conditioned empirical PMF on three disjoint data splits
+        run: node scripts/research-scorecard-pmf.mjs ${{ github.event_name == 'pull_request' && '--smoke' || '' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scorecard-conditional-pmf
+          path: |
+            training/results/scorecard-conditional-pmf.json
+            docs/context/_generated/SCORECARD-PMF-LATEST.md
+          retention-days: 90
+  ppo:
+    needs: psro-oracle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        seed: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Reuse fixed, separately produced empirical PSRO population
+        uses: actions/download-artifact@v4
+        with:
+          name: psro-oracle-expanded
+          path: .
+      - name: Check PPO experiment syntax
+        run: node --check scripts/train-ppo-multiseed.mjs
+      - name: Train two PPO variants (8192 full games each) with independent initialization
+        run: node scripts/train-ppo-multiseed.mjs --seed-index ${{ matrix.seed }} ${{ github.event_name == 'pull_request' && '--smoke' || '' }}
+      - name: Save all model weights, full-game raw matches and untouched seed confirmation
+        uses: actions/upload-artifact@v4
+        with:
+          name: ppo-large-seed-${{ matrix.seed }}
+          path: |
+            training/results/ppo-multiseed-${{ matrix.seed }}.json
+            training/checkpoints/ppo-multiseed-${{ matrix.seed }}.json
+            docs/context/_generated/PPO-MULTISEED-${{ matrix.seed }}.md
+          retention-days: 90
+  aggregate:
+    needs: [ppo, scorecard-pmf]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: psro-oracle-expanded
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: scorecard-conditional-pmf
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ppo-large-seed-*
+          merge-multiple: true
+          path: .
+      - name: Aggregate independent PPO seeds without selecting by confirmation result
+        run: node scripts/summarize-ppo-multiseed.mjs
+      - name: Save multi-seed independent confirmation and uncertainty audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: ppo-multiseed-consolidated
+          path: |
+            training/results/ppo-multiseed-summary.json
+            docs/context/_generated/PPO-MULTISEED-LATEST.md
+          retention-days: 90
+      - name: Commit reproducible outcome to permanent GitHub context hub
+        if: github.event_name != 'pull_request'
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/PSRO-ORACLE-AUDIT.md docs/context/_generated/SCORECARD-PMF-LATEST.md docs/context/_generated/PPO-MULTISEED-0.md docs/context/_generated/PPO-MULTISEED-1.md docs/context/_generated/PPO-MULTISEED-2.md docs/context/_generated/PPO-MULTISEED-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(context): record oracle, scorecard PMF and three PPO seeds [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi

@@ -3,13 +3,14 @@ import { chanceValues, dpFutureValue } from "./dp";
 import { dpOpponentGains, winDPv2Decision } from "./competitive-v2";
 import { categories, total, upper, type Game } from "./engine";
 import type { Decision } from "./ai";
+import { predictConditionalResidual,scorecardPmfPayoff,type ConditionalScoreModel } from "./conditional-score-pmf";
 
 // EXACT for our last <=3 scoring turns versus an assumed, EXOGENOUS final
 // opponent score distribution. That opponent distribution is APPROXIMATE when
 // the opponent has more than two turns remaining. This is not exact multiplayer
 // minimax or an equilibrium, and must remain research-only until tested.
 type Plan = { win: Float64Array[]; points: Float64Array[]; picks: Int16Array[]; turnWin: number; turnPoints: number };
-export type OpponentForecast = { meanBias?: number; stdDev?: number; byRemaining?: Record<string, { bias: number; std: number }>; discreteResidualByRemaining?: Record<string, { offset: number; probabilities: number[] }> };
+export type OpponentForecast = { meanBias?: number; stdDev?: number; byRemaining?: Record<string, { bias: number; std: number }>; discreteResidualByRemaining?: Record<string, { offset: number; probabilities: number[] }>; scorecardConditional?: ConditionalScoreModel };
 const EPS = 1e-12;
 const FACES = 252;
 const fullIndex = new Map(kernel.states.slice(210).map((d, i) => [d.join(""), i]));
@@ -41,6 +42,12 @@ export function opponentForecastPayoff(state: Game, forecast: OpponentForecast =
         return prefix[diff] + dist[diff] / 2;
       }
     };
+  }
+  if(forecast.scorecardConditional){
+    const projected=ownBase+dpFutureValue(remMask,u);
+    const histogram=predictConditionalResidual(forecast.scorecardConditional,{remaining:n,mask:remMask,upper:upper(other),current:ownBase,projected});
+    const payoff=scorecardPmfPayoff(histogram,projected);
+    return {mean:payoff.mean,sigma:NaN,kind:"empirical mask/upper/current/projected-score conditional PMF, not exact",payoff:payoff.payoff};
   }
   const empirical = forecast.discreteResidualByRemaining?.[String(n)];
   if(empirical) {
@@ -117,7 +124,7 @@ export function winDPv3Decision(state: Game, forecast: OpponentForecast = {}): D
   const opponent = opponentForecastPayoff(state, forecast);
   const key = [m, Math.min(63, upper(state.cards[state.player])), total(state.cards[state.player]),
     mask(state, 1-state.player), total(state.cards[1-state.player]), Math.min(63,upper(state.cards[1-state.player])),
-    opponent.mean.toFixed(3),String(opponent.sigma),opponent.kind, forecast.discreteResidualByRemaining?JSON.stringify(forecast.discreteResidualByRemaining[String(bitcount(mask(state,1-state.player)))])??"":""].join(":");
+    opponent.mean.toFixed(3),String(opponent.sigma),opponent.kind,forecast.scorecardConditional?JSON.stringify({r:bitcount(mask(state,1-state.player)),c:mask(state,1-state.player),u:upper(state.cards[1-state.player]),n:total(state.cards[1-state.player]),cfg:forecast.scorecardConditional.params}):forecast.discreteResidualByRemaining?JSON.stringify(forecast.discreteResidualByRemaining[String(bitcount(mask(state,1-state.player)))])??"":""].join(":");
   let plan = priorCache.get(key);
   if (!plan) {
     plan = createPlan(m, Math.min(63, upper(state.cards[state.player])), total(state.cards[state.player]), opponent.payoff, new Map());
