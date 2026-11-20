@@ -38,6 +38,7 @@
 - [full-selfplay.yml](../../../.github/workflows/full-selfplay.yml)
 - [integrated-research.yml](../../../.github/workflows/integrated-research.yml)
 - [neural-selfplay.yml](../../../.github/workflows/neural-selfplay.yml)
+- [psro-extended.yml](../../../.github/workflows/psro-extended.yml)
 - [psro-ppo.yml](../../../.github/workflows/psro-ppo.yml)
 - [tabular-zoo.yml](../../../.github/workflows/tabular-zoo.yml)
 
@@ -47,6 +48,7 @@
 - [DECISIONS.md](../DECISIONS.md)
 - [EXPERIMENT-ZOO-2026-11-20.md](../EXPERIMENT-ZOO-2026-11-20.md)
 - [EXPERIMENT-ZOO.md](../EXPERIMENT-ZOO.md)
+- [EXTENDED-PSRO-PMF-PPO-RESEARCH.md](../EXTENDED-PSRO-PMF-PPO-RESEARCH.md)
 - [HANDOFF.md](../HANDOFF.md)
 - [PSRO-PPO-PMF-2026-11-20-FINAL.md](../PSRO-PPO-PMF-2026-11-20-FINAL.md)
 - [PSRO-PPO-PMF-RESEARCH.md](../PSRO-PPO-PMF-RESEARCH.md)
@@ -62,6 +64,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [6f82244](https://github.com/oyueo-mm/YachtLab/commit/6f82244) | 2026-11-20 | research: audit actual PSRO oracle best-response, scorecard conditional PMF and independent PPO seeds |
 | [fc6a4ac](https://github.com/oyueo-mm/YachtLab/commit/fc6a4ac) | 2026-11-20 | docs: preserve verified PSRO, empirical PMF and PPO head-to-head experiments |
 | [9eff1ea](https://github.com/oyueo-mm/YachtLab/commit/9eff1ea) | 2026-11-20 | research: full PSRO meta-solver, adaptive population, empirical PMF and full-game clipped PPO |
 | [df76263](https://github.com/oyueo-mm/YachtLab/commit/df76263) | 2026-11-20 | docs: preserve complete real full-game self-play, opponent modeling and v3 research evidence |
@@ -71,7 +74,6 @@
 | [6002008](https://github.com/oyueo-mm/YachtLab/commit/6002008) | 2026-11-20 | research: add eight tabular RL control algorithms for YachtLab Choice benchmark |
 | [491abcb](https://github.com/oyueo-mm/YachtLab/commit/491abcb) | 2026-11-20 | research: broad algorithm zoo 58 variants, 4 RL methods and held-out evaluation |
 | [0a2402c](https://github.com/oyueo-mm/YachtLab/commit/0a2402c) | 2026-11-20 | docs: persistent YachtLab AI research context hub with daily GitHub/Wiki sync |
-| [76f206d](https://github.com/oyueo-mm/YachtLab/commit/76f206d) | 2026-11-20 | research: independently confirm 20k Win DP v2 games and 30k-episode QR-DQN |
 
 ## 최근 GitHub Actions 상태
 
@@ -79,11 +81,11 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
+| [YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44755609562) | success | e84cc44d4a |
+| [Full-game self-play and three-turn competitive research](https://github.com/oyueo-mm/YachtLab/actions/runs/44755609533) | success | e84cc44d4a |
+| [PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44755609428) | success | e84cc44d4a |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44755305879) | failure | e06acc8f75 |
 | [Full-game neural self-play — REINFORCE and Monte Carlo Actor-Critic](https://github.com/oyueo-mm/YachtLab/actions/runs/44725235280) | success | 9eff1ea5eb |
-| [YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44725235023) | success | 9eff1ea5eb |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44725234914) | success | 9eff1ea5eb |
-| [Full-game self-play and three-turn competitive research](https://github.com/oyueo-mm/YachtLab/actions/runs/44725234905) | success | 9eff1ea5eb |
-| [Tabular RL algorithm zoo — last-turn Choice](https://github.com/oyueo-mm/YachtLab/actions/runs/44705368822) | success | 6002008dd8 |
 
 ## 다음 채팅과 작업의 시작점
 
