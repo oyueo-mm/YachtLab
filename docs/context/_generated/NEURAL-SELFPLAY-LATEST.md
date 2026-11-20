@@ -2,7 +2,7 @@
 
 > 실제 12라운드 승패를 reward로 쓰는 on-policy 신경망 학습 결과. 실험용이며 SOTA 주장이 아니다.
 
-- 소스 SHA: 361f75d10fe623ac1c7c3d72e7cd896ead216cb8
+- 소스 SHA: 9eff1ea5ebc8426ae0adcfda12879e6b2bdea9fc
 - 학습 에피소드: **정책당 7200 전체 12라운드 경기**
 - 학습 방식: REINFORCE, Monte-Carlo advantage actor-critic (not bootstrapped A2C).
 - 정책은 DP Q 위에서 행동별 12→12→1 MLP 보정, 마지막 두 카테고리는 기존 Win DP v2.
