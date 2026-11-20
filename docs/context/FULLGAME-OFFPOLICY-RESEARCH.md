@@ -19,7 +19,7 @@
 - 사용 가능한 후보는 DP 기대점수 최적에서 **최대 6점 손실**의 합법적인 주사위 고정/점수 선택 행동. 마지막 2개 카테고리는 기존 **Win DP v2를 보존**한다. 따라서 전체 게임으로 학습·평가하지만 **전체 44개 행동을 완전히 자유롭게 배우는 학습은 아니다**.
 - 학습 상대: 강한 Win DP v2 50%, DP Expert 25%, 과거 frozen 자신의 정책 최대 25%. 매 대국마다 선택, 같은 에피소드 중 상대 정책은 고정.
 - 각 대전 결과는 실제 최종 `winCredit = 승 1 / 동 .5 / 패 0`. 중간 보상은 0이며 자신의 다음 행동까지의 n-step/1-step TD로 학습한다.
-- 본실험: Double Dueling, QR-DQN, Dyna, Discrete SAC는 **각 500개 전체 게임 훈련**; Expert Iteration은 rollout 비용으로 **140개 실제 게임 + 전게임 MC oracle rollouts**. 초기 모델과 훈련 모델을 각각 별도 validation 시드 90경기/상대 및 untouched confirmation 시드 **380경기 vs Win DP v2 + 190경기 vs DP Expert**로 평가. 하나의 시작 시드만 학습하므로 파일럿이다.
+- 본실험: Double Dueling, QR-DQN, Dyna, Discrete SAC는 **각 1,500개 전체 게임 훈련**; Expert Iteration은 rollout 비용으로 **350개 실제 게임 + 전게임 MC oracle rollouts**. 초기 모델과 훈련 모델을 각각 별도 validation 시드 200경기/상대 및 untouched confirmation 시드 **1,200경기 vs Win DP v2 + 600경기 vs DP Expert**로 평가. 하나의 시작 시드만 학습하므로 파일럿이다.
 - 실제 로그는 [통합 연구 workflow](../../.github/workflows/offpolicy-ppo-expanded.yml)와 [생성된 결과](./_generated/FULLGAME-RL-ZOO-LATEST.md); 훈련별 checkpoint 및 every paired match가 Actions artifact에 저장.
 
 ## PPO 추가 학습량 2배

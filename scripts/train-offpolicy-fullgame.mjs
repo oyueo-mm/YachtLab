@@ -217,11 +217,11 @@ try{
   }
   return{opponent:opponent.name,games:pairs*2,...pairCI(values),changedDecisions:changes,totalDecisions:decisions,raw};
  }
- const full=smoke?2:500,validPairs=smoke?1:45,confirmPairs=smoke?1:190,summary=[];
+ const full=smoke?2:1500,validPairs=smoke?1:100,confirmPairs=smoke?1:600,summary=[];
  for(let index=0;index<names.length;index++){
   const name=names[index],model=init(name,31800+index*1337),start=clone(model),random=rng(hash(82000000+index*1000)),replay=[],snapshots=[];
   let loss=0,taught=0,imagined=0,changed=0,decisions=0;
-  const episodes=name==="Expert Iteration"?(smoke?2:140):full,progress=[];
+  const episodes=name==="Expert Iteration"?(smoke?2:350):full,progress=[];
   for(let ep=0;ep<episodes;ep++){
    const chance=random(),opponent=chance<.5?win:chance<.75?dp:snapshots.length?snapshots[Math.floor(random()*snapshots.length)]:win;
    const seed=hash(83000000+index*250000+ep),match=game(model,opponent,seed,ep%2,{train:true,epsilon:name==="Expert Iteration"?0:.14});
