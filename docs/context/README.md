@@ -15,6 +15,9 @@
 
 ## 맥락 내비게이션
 
+**[Win DP v3.1 연구 계획·한계·독립 실험](./V31-RESEARCH.md)** — 3턴 v3와 마지막 1턴 정확 BR을 결합한 연구용 후보. 결과는 자동 검증 후 [_generated/V31-LATEST.md](./_generated/V31-LATEST.md)에 기록되며 **현재 SOTA 주장이 아님**.
+
+
 | 문서 | 먼저 확인할 내용 |
 |---|---|
 | **[전체 게임 강화학습 5계열 + PPO 2배 확대](./FULLGAME-OFFPOLICY-RESEARCH.md)** | Double Dueling/PER, QR-DQN, ExIt, Dyna-Q, Discrete SAC 및 98,304 PPO 학습 |
