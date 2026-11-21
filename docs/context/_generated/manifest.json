@@ -60,7 +60,8 @@
     "ROADMAP.md",
     "SELFPLAY-2026-11-20-FINAL.md",
     "SELFPLAY-RESEARCH.md",
-    "TECHNIQUES.md"
+    "TECHNIQUES.md",
+    "V31-RESEARCH.md"
   ],
   "workflowFiles": [
     "algorithm-zoo.yml",
@@ -87,9 +88,25 @@
     "sota-attack-lab.yml",
     "sota-independent-confirm.yml",
     "tabular-zoo.yml",
+    "v31-research.yml",
     "yahtzeerl-transfer.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "0d08aac",
+      "date": "2026-11-21",
+      "subject": "research: add Win DP v3.1 hybrid and independent competition suite"
+    },
+    {
+      "sha": "98b4bea",
+      "date": "2026-11-21",
+      "subject": "chore(research): publish independently seeded competitive policy confirmation [skip ci]"
+    },
+    {
+      "sha": "14207b5",
+      "date": "2026-11-21",
+      "subject": "chore(research): publish 2-seed full-turn QR-DQN retraining [skip ci]"
+    },
     {
       "sha": "a5cc3f4",
       "date": "2026-11-21",
@@ -124,41 +141,32 @@
       "sha": "637baec",
       "date": "2026-11-21",
       "subject": "chore(research): publish discovered Yacht source adversaries' loss analysis [skip ci]"
-    },
-    {
-      "sha": "820b619",
-      "date": "2026-11-21",
-      "subject": "fix(research): reliably download independently trained YahtzeeRL checkpoint artifacts"
-    },
-    {
-      "sha": "1a8a43d",
-      "date": "2026-11-21",
-      "subject": "research: evaluate actual pretrained competitive YahtzeeRL network via labeled 12-category zero-shot transfer"
-    },
-    {
-      "sha": "6992fa9",
-      "date": "2026-11-21",
-      "subject": "research: audit additional independent Yacht opponent source strategies and diagnose competitive losses"
     }
   ],
   "recentWorkflowRuns": [
     {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "901360c429",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44913064712"
+    },
+    {
+      "name": "YachtLab Win DP v3.1 research and independent confirmation",
+      "status": "success",
+      "head": "901360c429",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44913064707"
+    },
+    {
       "name": "YachtLab SOTA candidate independent large-sample confirmation",
       "status": "success",
-      "head": "e64f8c6f06",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44910398610"
+      "head": "a5cc3f4f33",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44910464089"
     },
     {
       "name": "YachtLab SOTA challenger research 4-pillars",
       "status": "success",
-      "head": "c35c6c0031",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44910090422"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "failure",
-      "head": "6394cf2b36",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44910007931"
+      "head": "cba6700fe5",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44910167666"
     },
     {
       "name": "YachtLab actual 12-category pretrained DQN independent competition",
@@ -171,12 +179,6 @@
       "status": "success",
       "head": "820b619737",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44908082097"
-    },
-    {
-      "name": "YachtLab independent discovered Yacht AI forensic evaluation",
-      "status": "success",
-      "head": "6992fa901e",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44907575575"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

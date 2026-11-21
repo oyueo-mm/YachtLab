@@ -54,6 +54,7 @@
 - [sota-attack-lab.yml](../../../.github/workflows/sota-attack-lab.yml)
 - [sota-independent-confirm.yml](../../../.github/workflows/sota-independent-confirm.yml)
 - [tabular-zoo.yml](../../../.github/workflows/tabular-zoo.yml)
+- [v31-research.yml](../../../.github/workflows/v31-research.yml)
 - [yahtzeerl-transfer.yml](../../../.github/workflows/yahtzeerl-transfer.yml)
 
 ## 맥락 허브의 보존된 문서
@@ -77,11 +78,15 @@
 - [SELFPLAY-2026-11-20-FINAL.md](../SELFPLAY-2026-11-20-FINAL.md)
 - [SELFPLAY-RESEARCH.md](../SELFPLAY-RESEARCH.md)
 - [TECHNIQUES.md](../TECHNIQUES.md)
+- [V31-RESEARCH.md](../V31-RESEARCH.md)
 
 ## 최근 Git 커밋 (맥락 자동 커밋 제외)
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [0d08aac](https://github.com/oyueo-mm/YachtLab/commit/0d08aac) | 2026-11-21 | research: add Win DP v3.1 hybrid and independent competition suite |
+| [98b4bea](https://github.com/oyueo-mm/YachtLab/commit/98b4bea) | 2026-11-21 | chore(research): publish independently seeded competitive policy confirmation [skip ci] |
+| [14207b5](https://github.com/oyueo-mm/YachtLab/commit/14207b5) | 2026-11-21 | chore(research): publish 2-seed full-turn QR-DQN retraining [skip ci] |
 | [a5cc3f4](https://github.com/oyueo-mm/YachtLab/commit/a5cc3f4) | 2026-11-21 | research: independently confirm v3, MCTS and conditional BR improvements with 10000 more 12-rule games |
 | [dcab43d](https://github.com/oyueo-mm/YachtLab/commit/dcab43d) | 2026-11-21 | chore(research): publish six-policy SOTA attack benchmark [skip ci] |
 | [cba6700](https://github.com/oyueo-mm/YachtLab/commit/cba6700) | 2026-11-21 | research: evaluate opponent-specific BR, forecast DP, MCTS, neural distillation and new full-turn QR retraining |
@@ -89,9 +94,6 @@
 | [15b4443](https://github.com/oyueo-mm/YachtLab/commit/15b4443) | 2026-11-21 | research: benchmark authentic 12-category pretrained Yacht DQN against Win DP v2 with 2000 paired games |
 | [86664e5](https://github.com/oyueo-mm/YachtLab/commit/86664e5) | 2026-11-21 | chore(research): publish authentic YahtzeeRL checkpoint transfer diagnostics [skip ci] |
 | [637baec](https://github.com/oyueo-mm/YachtLab/commit/637baec) | 2026-11-21 | chore(research): publish discovered Yacht source adversaries' loss analysis [skip ci] |
-| [820b619](https://github.com/oyueo-mm/YachtLab/commit/820b619) | 2026-11-21 | fix(research): reliably download independently trained YahtzeeRL checkpoint artifacts |
-| [1a8a43d](https://github.com/oyueo-mm/YachtLab/commit/1a8a43d) | 2026-11-21 | research: evaluate actual pretrained competitive YahtzeeRL network via labeled 12-category zero-shot transfer |
-| [6992fa9](https://github.com/oyueo-mm/YachtLab/commit/6992fa9) | 2026-11-21 | research: audit additional independent Yacht opponent source strategies and diagnose competitive losses |
 
 ## 최근 GitHub Actions 상태
 
@@ -99,12 +101,12 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab SOTA candidate independent large-sample confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44910398610) | success | e64f8c6f06 |
-| [YachtLab SOTA challenger research 4-pillars](https://github.com/oyueo-mm/YachtLab/actions/runs/44910090422) | success | c35c6c0031 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44910007931) | failure | 6394cf2b36 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44913064712) | success | 901360c429 |
+| [YachtLab Win DP v3.1 research and independent confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44913064707) | success | 901360c429 |
+| [YachtLab SOTA candidate independent large-sample confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44910464089) | success | a5cc3f4f33 |
+| [YachtLab SOTA challenger research 4-pillars](https://github.com/oyueo-mm/YachtLab/actions/runs/44910167666) | success | cba6700fe5 |
 | [YachtLab actual 12-category pretrained DQN independent competition](https://github.com/oyueo-mm/YachtLab/actions/runs/44909157511) | success | 15b4443509 |
 | [YachtLab independently trained YahtzeeRL checkpoint transfer diagnostic](https://github.com/oyueo-mm/YachtLab/actions/runs/44908082097) | success | 820b619737 |
-| [YachtLab independent discovered Yacht AI forensic evaluation](https://github.com/oyueo-mm/YachtLab/actions/runs/44907575575) | success | 6992fa901e |
 
 ## 다음 채팅과 작업의 시작점
 
