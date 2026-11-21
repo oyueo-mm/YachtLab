@@ -90,9 +90,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v33-forecast-locked
-          path: |
-            training/results/v33-pack.json
-            docs/context/_generated/V33-FORECAST-LATEST.md
+          path: training/results/v33-pack.json
           retention-days: 90
   train-psro:
     if: github.event_name != 'pull_request'
@@ -166,9 +164,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: v4-actor-frozen-selected
-          path: |
-            training/checkpoints/v4-selected.json
-            docs/context/_generated/V4-TRAIN-LATEST.md
+          path: training/checkpoints/v4-selected.json
           retention-days: 90
   duel:
     needs: [train-v33, select-v4]
