@@ -52,6 +52,7 @@
     "HANDOFF.md",
     "PSRO-PPO-PMF-2026-11-20-FINAL.md",
     "PSRO-PPO-PMF-RESEARCH.md",
+    "QR-FOUR-PILLARS-INVALID-RUN.md",
     "QR-SUITE-POSTRUN-AUDIT.md",
     "README.md",
     "REFERENCES.md",
@@ -79,6 +80,11 @@
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "dd42a21",
+      "date": "2026-11-21",
+      "subject": "fix(research): validate gamma and finite QR weights; rerun invalid 4-pillar experiment"
+    },
     {
       "sha": "c5a466d",
       "date": "2026-11-21",
@@ -123,31 +129,26 @@
       "sha": "fc6a4ac",
       "date": "2026-11-20",
       "subject": "docs: preserve verified PSRO, empirical PMF and PPO head-to-head experiments"
-    },
-    {
-      "sha": "9eff1ea",
-      "date": "2026-11-20",
-      "subject": "research: full PSRO meta-solver, adaptive population, empirical PMF and full-game clipped PPO"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "YachtLab QR four-pillar research",
       "status": "success",
-      "head": "c5a466de79",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44871846426"
+      "head": "c2f99432bf",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44884779203"
+    },
+    {
+      "name": "YachtLab QR-DQN and IQN deep research",
+      "status": "success",
+      "head": "c2f99432bf",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44884779135"
     },
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
       "head": "c5a466de79",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44871846378"
-    },
-    {
-      "name": "YachtLab QR-DQN and IQN deep research",
-      "status": "success",
-      "head": "98ee2e1dfd",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44871720844"
     },
     {
       "name": ".github/workflows/qr-four-pillars.yml",

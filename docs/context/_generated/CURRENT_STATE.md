@@ -58,6 +58,7 @@
 - [HANDOFF.md](../HANDOFF.md)
 - [PSRO-PPO-PMF-2026-11-20-FINAL.md](../PSRO-PPO-PMF-2026-11-20-FINAL.md)
 - [PSRO-PPO-PMF-RESEARCH.md](../PSRO-PPO-PMF-RESEARCH.md)
+- [QR-FOUR-PILLARS-INVALID-RUN.md](../QR-FOUR-PILLARS-INVALID-RUN.md)
 - [QR-SUITE-POSTRUN-AUDIT.md](../QR-SUITE-POSTRUN-AUDIT.md)
 - [README.md](../README.md)
 - [REFERENCES.md](../REFERENCES.md)
@@ -71,6 +72,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [dd42a21](https://github.com/oyueo-mm/YachtLab/commit/dd42a21) | 2026-11-21 | fix(research): validate gamma and finite QR weights; rerun invalid 4-pillar experiment |
 | [c5a466d](https://github.com/oyueo-mm/YachtLab/commit/c5a466d) | 2026-11-21 | research: implement QR-DQN stability, DP-unrestricted, counterfactual gating and rich state experiments |
 | [34c39ea](https://github.com/oyueo-mm/YachtLab/commit/34c39ea) | 2026-11-21 | research: launch QR16 loss2 20k full-game training across five seeds |
 | [a33fd33](https://github.com/oyueo-mm/YachtLab/commit/a33fd33) | 2026-11-21 | docs(research): audit QR suite success, counterfactual omission and DP Expert comparator contamination [skip ci] |
@@ -80,7 +82,6 @@
 | [319f53a](https://github.com/oyueo-mm/YachtLab/commit/319f53a) | 2026-11-21 | docs: preserve verified PSRO oracle audit and scorecard PMF holdout outcomes |
 | [6f82244](https://github.com/oyueo-mm/YachtLab/commit/6f82244) | 2026-11-20 | research: audit actual PSRO oracle best-response, scorecard conditional PMF and independent PPO seeds |
 | [fc6a4ac](https://github.com/oyueo-mm/YachtLab/commit/fc6a4ac) | 2026-11-20 | docs: preserve verified PSRO, empirical PMF and PPO head-to-head experiments |
-| [9eff1ea](https://github.com/oyueo-mm/YachtLab/commit/9eff1ea) | 2026-11-20 | research: full PSRO meta-solver, adaptive population, empirical PMF and full-game clipped PPO |
 
 ## 최근 GitHub Actions 상태
 
@@ -88,9 +89,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab QR four-pillar research](https://github.com/oyueo-mm/YachtLab/actions/runs/44871846426) | success | c5a466de79 |
+| [YachtLab QR four-pillar research](https://github.com/oyueo-mm/YachtLab/actions/runs/44884779203) | success | c2f99432bf |
+| [YachtLab QR-DQN and IQN deep research](https://github.com/oyueo-mm/YachtLab/actions/runs/44884779135) | success | c2f99432bf |
 | [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44871846378) | success | c5a466de79 |
-| [YachtLab QR-DQN and IQN deep research](https://github.com/oyueo-mm/YachtLab/actions/runs/44871720844) | success | 98ee2e1dfd |
 | [.github/workflows/qr-four-pillars.yml](https://github.com/oyueo-mm/YachtLab/actions/runs/44871616455) | failure | 39f7f674d8 |
 | [YachtLab QR16 loss2 20k five-seed training](https://github.com/oyueo-mm/YachtLab/actions/runs/44845182600) | success | 34c39ea0be |
 
