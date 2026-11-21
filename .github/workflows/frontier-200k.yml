@@ -1,0 +1,256 @@
+name: YachtLab v3.3 v3.4 v4 self-play and 200k-per-model confirmation
+on:
+  pull_request:
+    paths:
+      - src/research-v33.ts
+      - src/research-v34.ts
+      - src/research-v4.ts
+      - scripts/train-v33.mjs
+      - scripts/train-v4.mjs
+      - scripts/select-v4.mjs
+      - scripts/bench-frontier.mjs
+      - scripts/summarize-frontier.mjs
+      - tests/research-frontier.test.ts
+      - .github/workflows/frontier-200k.yml
+  push:
+    branches: [main]
+    paths:
+      - src/research-v33.ts
+      - src/research-v34.ts
+      - src/research-v4.ts
+      - scripts/train-v33.mjs
+      - scripts/train-v4.mjs
+      - scripts/select-v4.mjs
+      - scripts/bench-frontier.mjs
+      - scripts/summarize-frontier.mjs
+      - tests/research-frontier.test.ts
+      - .github/workflows/frontier-200k.yml
+  workflow_dispatch:
+    inputs:
+      scale:
+        description: Full games per candidate / named opponent
+        type: choice
+        options: ["200000", "1000000"]
+        default: "200000"
+        required: true
+      candidate:
+        description: One frozen candidate for the manual confirmation (push runs all)
+        type: choice
+        options: [v3-unmodified, v33-conditioned, v34-adaptive, v4-league]
+        default: v3-unmodified
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-frontier-${{ github.ref }}-${{ github.event_name }}-${{ inputs.candidate || 'all' }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Production build and complete mathematical/unit tests
+        run: |
+          npm test -- --reporter=dot
+          npm run build
+      - name: All new scripts parse
+        run: |
+          for f in scripts/train-v33.mjs scripts/train-v4.mjs scripts/select-v4.mjs scripts/bench-frontier.mjs scripts/summarize-frontier.mjs; do node --check "$f"; done
+      - name: Train v3.3 and v4 small reproducible smoke
+        run: |
+          node scripts/train-v33.mjs --smoke
+          node scripts/train-v4.mjs --smoke --seed-index 0
+          cp training/checkpoints/v4-seed-0.json training/checkpoints/v4-selected.json
+      - name: All four variants play both seats and return legal decisions
+        run: |
+          node scripts/bench-frontier.mjs --candidate v3-unmodified --opponent "Win DP v2" --shard 1201 --smoke --compact
+          node scripts/bench-frontier.mjs --candidate v33-conditioned --opponent "Win DP v2" --shard 1201 --smoke --compact
+          node scripts/bench-frontier.mjs --candidate v34-adaptive --opponent "Win DP v2" --shard 1201 --smoke --compact
+          node scripts/bench-frontier.mjs --candidate v4-league --opponent "Win DP v2" --shard 1201 --smoke --compact
+  train-v33:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Fit opponent-conditioned forecast from separate train/selection/untouched test games
+        run: node scripts/train-v33.mjs --train 800 --validation 300 --test 300
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v33-forecast-locked
+          path: training/results/v33-pack.json
+          retention-days: 90
+  train-psro:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Refresh fixed opponent restricted meta-game using independent training seeds
+        run: node scripts/research-psro.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v4-psro-population
+          path: training/results/psro-population.json
+          retention-days: 90
+  train-v4:
+    needs: [train-v33, train-psro]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: v33-forecast-locked
+          path: training/results
+      - uses: actions/download-artifact@v4
+        with:
+          name: v4-psro-population
+          path: training/results
+      - name: Ensure the two frozen training inputs are actually present
+        run: |
+          test -s training/results/v33-pack.json
+          test -s training/results/psro-population.json
+      - name: Train full-game DP teacher ExIt plus PSRO/self-play REINFORCE
+        run: node scripts/train-v4.mjs --seed-index ${{ matrix.seed }} --episodes 3000 --validation-pairs 400
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v4-actor-seed-${{ matrix.seed }}
+          path: training/checkpoints/v4-seed-${{ matrix.seed }}.json
+          retention-days: 90
+  select-v4:
+    needs: train-v4
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: v4-actor-seed-*
+          merge-multiple: true
+          path: training/checkpoints
+      - name: Frozen validation-only model selection
+        run: node scripts/select-v4.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v4-actor-frozen-selected
+          path: training/checkpoints/v4-selected.json
+          retention-days: 90
+  duel:
+    needs: [train-v33, select-v4]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        candidate: ${{ fromJSON(github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.candidate) || '["v3-unmodified","v33-conditioned","v34-adaptive","v4-league"]') }}
+        shard: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.scale == '1000000' && '[1401,1402,1403,1404,1405,1406,1407,1408,1409,1410,1411,1412,1413,1414,1415,1416,1417,1418,1419,1420,1421,1422,1423,1424,1425,1426,1427,1428,1429,1430,1431,1432,1433,1434,1435,1436,1437,1438,1439,1440,1441,1442,1443,1444,1445,1446,1447,1448,1449,1450,1451,1452,1453,1454,1455,1456,1457,1458,1459,1460,1461,1462,1463,1464,1465,1466,1467,1468,1469,1470,1471,1472,1473,1474,1475,1476,1477,1478,1479,1480,1481,1482,1483,1484,1485,1486,1487,1488,1489,1490,1491,1492,1493,1494,1495,1496,1497,1498,1499,1500]' || '[1301,1302,1303,1304,1305,1306,1307,1308,1309,1310,1311,1312,1313,1314,1315,1316,1317,1318,1319,1320]') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: v33-forecast-locked
+          path: training/results
+      - uses: actions/download-artifact@v4
+        with:
+          name: v4-actor-frozen-selected
+          path: training/checkpoints
+      - name: Verify immutable model packs exist
+        run: |
+          test -s training/results/v33-pack.json
+          test -s training/checkpoints/v4-selected.json
+      - name: Five thousand independent seed pairs; both seats; no hidden RNG
+        run: node scripts/bench-frontier.mjs --candidate "${{ matrix.candidate }}" --opponent "Win DP v2" --shard "${{ matrix.shard }}" --pairs 5000 --compact
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontier-${{ matrix.candidate }}-${{ matrix.shard }}
+          path: training/results/frontier-challenge/*.json
+          retention-days: 90
+          if-no-files-found: error
+  report:
+    needs: duel
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: frontier-*
+          merge-multiple: true
+          path: training/results/frontier-challenge
+      - name: Reject missing/duplicated shards and compute paired intervals
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ inputs.scale }}" == "1000000" ]]; then
+              node scripts/summarize-frontier.mjs --start 1401 --count 100 --candidate "${{ inputs.candidate }}"
+            else
+              node scripts/summarize-frontier.mjs --start 1301 --count 20 --candidate "${{ inputs.candidate }}"
+            fi
+          else
+            node scripts/summarize-frontier.mjs --start 1301 --count 20
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontier-confirmation-final
+          path: |
+            training/results/frontier-challenge/frontier-summary-*.json
+            docs/context/_generated/FRONTIER-*.md
+          retention-days: 90
+      - name: Commit ONLY validated research evidence; no production promotion
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/FRONTIER-*.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(research): publish frozen 200k-per-candidate frontier evidence [skip ci]"
+            for attempt in 1 2 3 4 5; do
+              git pull --rebase origin main
+              if git push origin HEAD:main; then exit 0; fi
+              sleep 2
+            done
+            exit 1
+          fi
