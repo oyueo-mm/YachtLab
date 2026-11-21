@@ -1,7 +1,7 @@
 import {createServer} from "vite";
 import {readFile,writeFile,mkdir} from "node:fs/promises";
 import {gunzipSync} from "node:zlib";
-const hash=x=>{x>>>=0;x=Math.imul(x^(x>>>16),0x85ebca6b)>>>0;x=Math.imul(x^(x>>>13),0xc2b2ae35)>>>0;return(x^(x>>>16))>>>0;},pairs=process.argv.includes("--smoke")?3:1200,gameSeed=(base,seed,i)=>hash(base+seed*1000003+i*170003),mean=a=>a.reduce((s,x)=>s+x,0)/a.length,ciSeed=a=>{const m=mean(a),sd=Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1));return[m-2.776*sd/Math.sqrt(a.length),m+2.776*sd/Math.sqrt(a.length)];};
+const hash=x=>{x>>>=0;x=Math.imul(x^(x>>>16),0x85ebca6b)>>>0;x=Math.imul(x^(x>>>13),0xc2b2ae35)>>>0;return(x^(x>>>16))>>>0;},pairs=process.argv.includes("--smoke")?3:1200,gameSeed=(base,seed,i)=>hash(base+seed*1000003+i),mean=a=>a.reduce((s,x)=>s+x,0)/a.length,ciSeed=a=>{const m=mean(a),sd=Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1));return[m-2.776*sd/Math.sqrt(a.length),m+2.776*sd/Math.sqrt(a.length)];};
 const server=await createServer({server:{middlewareMode:true,hmr:false},appType:"custom"});
 try{
  const eng=await server.ssrLoadModule("/src/engine.ts"),dp=await server.ssrLoadModule("/src/dp.ts"),winDP=await server.ssrLoadModule("/src/competitive-v2.ts"),res=await server.ssrLoadModule("/src/selfplay-residual.ts"),q=await server.ssrLoadModule("/src/qr-extensions.ts");
