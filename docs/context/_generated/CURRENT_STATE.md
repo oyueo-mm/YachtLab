@@ -43,6 +43,7 @@
 - [psro-ppo.yml](../../../.github/workflows/psro-ppo.yml)
 - [qr-20k.yml](../../../.github/workflows/qr-20k.yml)
 - [qr-deep-research.yml](../../../.github/workflows/qr-deep-research.yml)
+- [qr-four-pillars.yml](../../../.github/workflows/qr-four-pillars.yml)
 - [tabular-zoo.yml](../../../.github/workflows/tabular-zoo.yml)
 
 ## 맥락 허브의 보존된 문서
@@ -70,6 +71,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [c5a466d](https://github.com/oyueo-mm/YachtLab/commit/c5a466d) | 2026-11-21 | research: implement QR-DQN stability, DP-unrestricted, counterfactual gating and rich state experiments |
 | [34c39ea](https://github.com/oyueo-mm/YachtLab/commit/34c39ea) | 2026-11-21 | research: launch QR16 loss2 20k full-game training across five seeds |
 | [a33fd33](https://github.com/oyueo-mm/YachtLab/commit/a33fd33) | 2026-11-21 | docs(research): audit QR suite success, counterfactual omission and DP Expert comparator contamination [skip ci] |
 | [34f4e39](https://github.com/oyueo-mm/YachtLab/commit/34f4e39) | 2026-11-21 | research: QR-DQN, IQN and 5-seed controlled full-game experimental suite |
@@ -79,7 +81,6 @@
 | [6f82244](https://github.com/oyueo-mm/YachtLab/commit/6f82244) | 2026-11-20 | research: audit actual PSRO oracle best-response, scorecard conditional PMF and independent PPO seeds |
 | [fc6a4ac](https://github.com/oyueo-mm/YachtLab/commit/fc6a4ac) | 2026-11-20 | docs: preserve verified PSRO, empirical PMF and PPO head-to-head experiments |
 | [9eff1ea](https://github.com/oyueo-mm/YachtLab/commit/9eff1ea) | 2026-11-20 | research: full PSRO meta-solver, adaptive population, empirical PMF and full-game clipped PPO |
-| [df76263](https://github.com/oyueo-mm/YachtLab/commit/df76263) | 2026-11-20 | docs: preserve complete real full-game self-play, opponent modeling and v3 research evidence |
 
 ## 최근 GitHub Actions 상태
 
@@ -87,10 +88,11 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab QR16 loss2 20k five-seed training](https://github.com/oyueo-mm/YachtLab/actions/runs/44845105341) | success | 430773136b |
-| [YachtLab QR-DQN and IQN deep research](https://github.com/oyueo-mm/YachtLab/actions/runs/44838345749) | success | 34f4e390b1 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44838345712) | success | 34f4e390b1 |
-| [YachtLab full-game off-policy RL and 2x PPO training](https://github.com/oyueo-mm/YachtLab/actions/runs/44767257705) | success | f9f3e7ca88 |
+| [YachtLab QR-DQN and IQN deep research](https://github.com/oyueo-mm/YachtLab/actions/runs/44871720844) | success | 98ee2e1dfd |
+| [YachtLab QR four-pillar research](https://github.com/oyueo-mm/YachtLab/actions/runs/44871720826) | success | 98ee2e1dfd |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44871697524) | cancelled | 3e40e05103 |
+| [.github/workflows/qr-four-pillars.yml](https://github.com/oyueo-mm/YachtLab/actions/runs/44871616455) | failure | 39f7f674d8 |
+| [YachtLab QR16 loss2 20k five-seed training](https://github.com/oyueo-mm/YachtLab/actions/runs/44845182600) | success | 34c39ea0be |
 
 ## 다음 채팅과 작업의 시작점
 
