@@ -85,6 +85,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "18bac46",
+      "date": "2026-11-21",
+      "subject": "docs(research): show concrete WinDP versus exact best-response actions for each error"
+    },
+    {
+      "sha": "7d61faf",
+      "date": "2026-11-21",
+      "subject": "chore(research): exhaustive last-turn WinDP policy error audit [skip ci]"
+    },
+    {
       "sha": "c8d6eae",
       "date": "2026-11-21",
       "subject": "research: exhaustively enumerate 100800 last-turn Win DP best-response decision states"
@@ -123,36 +133,26 @@
       "sha": "c5a466d",
       "date": "2026-11-21",
       "subject": "research: implement QR-DQN stability, DP-unrestricted, counterfactual gating and rich state experiments"
-    },
-    {
-      "sha": "34c39ea",
-      "date": "2026-11-21",
-      "subject": "research: launch QR16 loss2 20k full-game training across five seeds"
-    },
-    {
-      "sha": "a33fd33",
-      "date": "2026-11-21",
-      "subject": "docs(research): audit QR suite success, counterfactual omission and DP Expert comparator contamination [skip ci]"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "YachtLab exhaustive exact last-turn WinDP error enumeration",
       "status": "success",
-      "head": "4b35b69f41",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900272458"
+      "head": "0fa1d94d6f",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900501667"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "cancelled",
+      "head": "2bdec89a14",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900147283"
     },
     {
       "name": "YachtLab exact Best Response and opponent-policy forensic research",
       "status": "success",
       "head": "9a4ae0cd93",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900132415"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "cancelled",
-      "head": "d5bf47ff16",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900043813"
     },
     {
       "name": "YachtLab autonomous QR reward and architecture research",

@@ -76,6 +76,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [18bac46](https://github.com/oyueo-mm/YachtLab/commit/18bac46) | 2026-11-21 | docs(research): show concrete WinDP versus exact best-response actions for each error |
+| [7d61faf](https://github.com/oyueo-mm/YachtLab/commit/7d61faf) | 2026-11-21 | chore(research): exhaustive last-turn WinDP policy error audit [skip ci] |
 | [c8d6eae](https://github.com/oyueo-mm/YachtLab/commit/c8d6eae) | 2026-11-21 | research: exhaustively enumerate 100800 last-turn Win DP best-response decision states |
 | [2bdec89](https://github.com/oyueo-mm/YachtLab/commit/2bdec89) | 2026-11-21 | research: exact Win DP response, stochastic coupled search, checkpoint stability and supervised teacher study |
 | [7a617a6](https://github.com/oyueo-mm/YachtLab/commit/7a617a6) | 2026-11-21 | chore(research): autonomous QR campaign findings [skip ci] |
@@ -84,8 +86,6 @@
 | [c548513](https://github.com/oyueo-mm/YachtLab/commit/c548513) | 2026-11-21 | research: QR 54.2% independent replication, value stability, replay and 32/64/128 width ablations |
 | [dd42a21](https://github.com/oyueo-mm/YachtLab/commit/dd42a21) | 2026-11-21 | fix(research): validate gamma and finite QR weights; rerun invalid 4-pillar experiment |
 | [c5a466d](https://github.com/oyueo-mm/YachtLab/commit/c5a466d) | 2026-11-21 | research: implement QR-DQN stability, DP-unrestricted, counterfactual gating and rich state experiments |
-| [34c39ea](https://github.com/oyueo-mm/YachtLab/commit/34c39ea) | 2026-11-21 | research: launch QR16 loss2 20k full-game training across five seeds |
-| [a33fd33](https://github.com/oyueo-mm/YachtLab/commit/a33fd33) | 2026-11-21 | docs(research): audit QR suite success, counterfactual omission and DP Expert comparator contamination [skip ci] |
 
 ## 최근 GitHub Actions 상태
 
@@ -93,9 +93,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab exhaustive exact last-turn WinDP error enumeration](https://github.com/oyueo-mm/YachtLab/actions/runs/44900272458) | success | 4b35b69f41 |
+| [YachtLab exhaustive exact last-turn WinDP error enumeration](https://github.com/oyueo-mm/YachtLab/actions/runs/44900501667) | success | 0fa1d94d6f |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44900147283) | cancelled | 2bdec89a14 |
 | [YachtLab exact Best Response and opponent-policy forensic research](https://github.com/oyueo-mm/YachtLab/actions/runs/44900132415) | success | 9a4ae0cd93 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44900043813) | cancelled | d5bf47ff16 |
 | [YachtLab autonomous QR reward and architecture research](https://github.com/oyueo-mm/YachtLab/actions/runs/44895765360) | success | c63f39462e |
 
 ## 다음 채팅과 작업의 시작점
