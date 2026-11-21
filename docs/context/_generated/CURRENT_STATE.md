@@ -79,6 +79,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [820b619](https://github.com/oyueo-mm/YachtLab/commit/820b619) | 2026-11-21 | fix(research): reliably download independently trained YahtzeeRL checkpoint artifacts |
 | [1a8a43d](https://github.com/oyueo-mm/YachtLab/commit/1a8a43d) | 2026-11-21 | research: evaluate actual pretrained competitive YahtzeeRL network via labeled 12-category zero-shot transfer |
 | [6992fa9](https://github.com/oyueo-mm/YachtLab/commit/6992fa9) | 2026-11-21 | research: audit additional independent Yacht opponent source strategies and diagnose competitive losses |
 | [2fc4cde](https://github.com/oyueo-mm/YachtLab/commit/2fc4cde) | 2026-11-21 | chore(research): publish external strategy adaptation tournament results [skip ci] |
@@ -88,7 +89,6 @@
 | [18bac46](https://github.com/oyueo-mm/YachtLab/commit/18bac46) | 2026-11-21 | docs(research): show concrete WinDP versus exact best-response actions for each error |
 | [7d61faf](https://github.com/oyueo-mm/YachtLab/commit/7d61faf) | 2026-11-21 | chore(research): exhaustive last-turn WinDP policy error audit [skip ci] |
 | [c8d6eae](https://github.com/oyueo-mm/YachtLab/commit/c8d6eae) | 2026-11-21 | research: exhaustively enumerate 100800 last-turn Win DP best-response decision states |
-| [2bdec89](https://github.com/oyueo-mm/YachtLab/commit/2bdec89) | 2026-11-21 | research: exact Win DP response, stochastic coupled search, checkpoint stability and supervised teacher study |
 
 ## 최근 GitHub Actions 상태
 
@@ -96,9 +96,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab independently trained YahtzeeRL checkpoint transfer diagnostic](https://github.com/oyueo-mm/YachtLab/actions/runs/44907769281) | success | 279082ebf4 |
+| [YachtLab independently trained YahtzeeRL checkpoint transfer diagnostic](https://github.com/oyueo-mm/YachtLab/actions/runs/44908017549) | success | f3ed3bbd44 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44907575665) | cancelled | 6992fa901e |
 | [YachtLab independent discovered Yacht AI forensic evaluation](https://github.com/oyueo-mm/YachtLab/actions/runs/44907476073) | success | bc448daacf |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44907331693) | failure | e94804e9f2 |
 | [YachtLab external-source strategy championship](https://github.com/oyueo-mm/YachtLab/actions/runs/44905127036) | success | 4e82bbd7c4 |
 | [YachtLab exhaustive exact last-turn WinDP error enumeration](https://github.com/oyueo-mm/YachtLab/actions/runs/44900566422) | success | 18bac46f8d |
 

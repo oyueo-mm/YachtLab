@@ -88,6 +88,11 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "820b619",
+      "date": "2026-11-21",
+      "subject": "fix(research): reliably download independently trained YahtzeeRL checkpoint artifacts"
+    },
+    {
       "sha": "1a8a43d",
       "date": "2026-11-21",
       "subject": "research: evaluate actual pretrained competitive YahtzeeRL network via labeled 12-category zero-shot transfer"
@@ -131,31 +136,26 @@
       "sha": "c8d6eae",
       "date": "2026-11-21",
       "subject": "research: exhaustively enumerate 100800 last-turn Win DP best-response decision states"
-    },
-    {
-      "sha": "2bdec89",
-      "date": "2026-11-21",
-      "subject": "research: exact Win DP response, stochastic coupled search, checkpoint stability and supervised teacher study"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "YachtLab independently trained YahtzeeRL checkpoint transfer diagnostic",
       "status": "success",
-      "head": "279082ebf4",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44907769281"
+      "head": "f3ed3bbd44",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44908017549"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "cancelled",
+      "head": "6992fa901e",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44907575665"
     },
     {
       "name": "YachtLab independent discovered Yacht AI forensic evaluation",
       "status": "success",
       "head": "bc448daacf",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44907476073"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "failure",
-      "head": "e94804e9f2",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44907331693"
     },
     {
       "name": "YachtLab external-source strategy championship",
