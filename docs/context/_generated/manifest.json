@@ -64,6 +64,7 @@
   ],
   "workflowFiles": [
     "algorithm-zoo.yml",
+    "br-research.yml",
     "competitive-research.yml",
     "confirm-v2.yml",
     "context-sync.yml",
@@ -82,6 +83,16 @@
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "2bdec89",
+      "date": "2026-11-21",
+      "subject": "research: exact Win DP response, stochastic coupled search, checkpoint stability and supervised teacher study"
+    },
+    {
+      "sha": "7a617a6",
+      "date": "2026-11-21",
+      "subject": "chore(research): autonomous QR campaign findings [skip ci]"
+    },
     {
       "sha": "c63f394",
       "date": "2026-11-21",
@@ -121,48 +132,32 @@
       "sha": "34f4e39",
       "date": "2026-11-21",
       "subject": "research: QR-DQN, IQN and 5-seed controlled full-game experimental suite"
-    },
-    {
-      "sha": "f9f3e7c",
-      "date": "2026-11-21",
-      "subject": "research: full-game five RL families and doubled multi-seed PPO training"
-    },
-    {
-      "sha": "6680443",
-      "date": "2026-11-21",
-      "subject": "docs: finalize PSRO oracle, scorecard PMF and 49k-game multi-seed PPO evidence"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "YachtLab autonomous QR reward and architecture research",
-      "status": "success",
-      "head": "142cd9b751",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44895661828"
-    },
-    {
       "name": "Test and deploy YachtLab",
       "status": "cancelled",
-      "head": "9f2412f036",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44895639689"
+      "head": "d5bf47ff16",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900043813"
+    },
+    {
+      "name": "YachtLab exact Best Response and opponent-policy forensic research",
+      "status": "success",
+      "head": "d5bf47ff16",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900043810"
+    },
+    {
+      "name": "YachtLab autonomous QR reward and architecture research",
+      "status": "success",
+      "head": "c63f39462e",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44895765360"
     },
     {
       "name": "YachtLab QR 54-percent recheck and learning stability research",
       "status": "success",
       "head": "c54851347a",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44889467544"
-    },
-    {
-      "name": "YachtLab QR four-pillar research",
-      "status": "success",
-      "head": "dd42a2122c",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44884858783"
-    },
-    {
-      "name": "YachtLab QR-DQN and IQN deep research",
-      "status": "success",
-      "head": "c2f99432bf",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44884779135"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

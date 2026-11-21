@@ -31,6 +31,7 @@
 ## 저장소에서 발견한 워크플로
 
 - [algorithm-zoo.yml](../../../.github/workflows/algorithm-zoo.yml)
+- [br-research.yml](../../../.github/workflows/br-research.yml)
 - [competitive-research.yml](../../../.github/workflows/competitive-research.yml)
 - [confirm-v2.yml](../../../.github/workflows/confirm-v2.yml)
 - [context-sync.yml](../../../.github/workflows/context-sync.yml)
@@ -74,6 +75,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [2bdec89](https://github.com/oyueo-mm/YachtLab/commit/2bdec89) | 2026-11-21 | research: exact Win DP response, stochastic coupled search, checkpoint stability and supervised teacher study |
+| [7a617a6](https://github.com/oyueo-mm/YachtLab/commit/7a617a6) | 2026-11-21 | chore(research): autonomous QR campaign findings [skip ci] |
 | [c63f394](https://github.com/oyueo-mm/YachtLab/commit/c63f394) | 2026-11-21 | research: autonomous 24→6→1 QR reward/model exploration with independent 12k-game confirmation |
 | [eb9be40](https://github.com/oyueo-mm/YachtLab/commit/eb9be40) | 2026-11-21 | chore(research): QR 54 recheck and learning stability findings [skip ci] |
 | [c548513](https://github.com/oyueo-mm/YachtLab/commit/c548513) | 2026-11-21 | research: QR 54.2% independent replication, value stability, replay and 32/64/128 width ablations |
@@ -82,8 +85,6 @@
 | [34c39ea](https://github.com/oyueo-mm/YachtLab/commit/34c39ea) | 2026-11-21 | research: launch QR16 loss2 20k full-game training across five seeds |
 | [a33fd33](https://github.com/oyueo-mm/YachtLab/commit/a33fd33) | 2026-11-21 | docs(research): audit QR suite success, counterfactual omission and DP Expert comparator contamination [skip ci] |
 | [34f4e39](https://github.com/oyueo-mm/YachtLab/commit/34f4e39) | 2026-11-21 | research: QR-DQN, IQN and 5-seed controlled full-game experimental suite |
-| [f9f3e7c](https://github.com/oyueo-mm/YachtLab/commit/f9f3e7c) | 2026-11-21 | research: full-game five RL families and doubled multi-seed PPO training |
-| [6680443](https://github.com/oyueo-mm/YachtLab/commit/6680443) | 2026-11-21 | docs: finalize PSRO oracle, scorecard PMF and 49k-game multi-seed PPO evidence |
 
 ## 최근 GitHub Actions 상태
 
@@ -91,11 +92,10 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab autonomous QR reward and architecture research](https://github.com/oyueo-mm/YachtLab/actions/runs/44895661828) | success | 142cd9b751 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44895639689) | cancelled | 9f2412f036 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44900043813) | cancelled | d5bf47ff16 |
+| [YachtLab exact Best Response and opponent-policy forensic research](https://github.com/oyueo-mm/YachtLab/actions/runs/44900043810) | success | d5bf47ff16 |
+| [YachtLab autonomous QR reward and architecture research](https://github.com/oyueo-mm/YachtLab/actions/runs/44895765360) | success | c63f39462e |
 | [YachtLab QR 54-percent recheck and learning stability research](https://github.com/oyueo-mm/YachtLab/actions/runs/44889467544) | success | c54851347a |
-| [YachtLab QR four-pillar research](https://github.com/oyueo-mm/YachtLab/actions/runs/44884858783) | success | dd42a2122c |
-| [YachtLab QR-DQN and IQN deep research](https://github.com/oyueo-mm/YachtLab/actions/runs/44884779135) | success | c2f99432bf |
 
 ## 다음 채팅과 작업의 시작점
 
