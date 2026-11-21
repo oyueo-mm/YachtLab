@@ -71,7 +71,7 @@ jobs:
         env:
           HF_HUB_DISABLE_TELEMETRY: '1'
         run: |
-          hf download itxtx/yahtzee-rl-checkpoints --include "config.json" "step_011800/**" --local-dir "$RUNNER_TEMP/yahtzeerl/checkpoints/win_loss_margin_32simsrun4"
+          python -c 'import os; from huggingface_hub import snapshot_download; print(snapshot_download(repo_id="itxtx/yahtzee-rl-checkpoints",allow_patterns=["config.json","step_011800/**"],local_dir=os.path.join(os.environ["RUNNER_TEMP"],"yahtzeerl/checkpoints/win_loss_margin_32simsrun4")))'
           test -e "$RUNNER_TEMP/yahtzeerl/checkpoints/win_loss_margin_32simsrun4/config.json"
           test -d "$RUNNER_TEMP/yahtzeerl/checkpoints/win_loss_margin_32simsrun4/step_011800"
       - name: Real pretrained greedy policy head zero-shot transfer vs Win DP v2
