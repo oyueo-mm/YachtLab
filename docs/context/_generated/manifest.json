@@ -70,6 +70,7 @@
     "confirm-v2.yml",
     "context-sync.yml",
     "deploy.yml",
+    "external-championship.yml",
     "full-selfplay.yml",
     "integrated-research.yml",
     "neural-selfplay.yml",
@@ -84,6 +85,21 @@
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "4e82bbd",
+      "date": "2026-11-21",
+      "subject": "research: 12-rule source strategy championship against Rust, Pancht and Benji-inspired opponents"
+    },
+    {
+      "sha": "d841906",
+      "date": "2026-11-21",
+      "subject": "chore(research): exact WinDP BR diagnostics and counterfactual audit [skip ci]"
+    },
+    {
+      "sha": "bdd7fb6",
+      "date": "2026-11-21",
+      "subject": "chore(research): exhaustive last-turn WinDP policy error audit [skip ci]"
+    },
     {
       "sha": "18bac46",
       "date": "2026-11-21",
@@ -118,47 +134,32 @@
       "sha": "eb9be40",
       "date": "2026-11-21",
       "subject": "chore(research): QR 54 recheck and learning stability findings [skip ci]"
-    },
-    {
-      "sha": "c548513",
-      "date": "2026-11-21",
-      "subject": "research: QR 54.2% independent replication, value stability, replay and 32/64/128 width ablations"
-    },
-    {
-      "sha": "dd42a21",
-      "date": "2026-11-21",
-      "subject": "fix(research): validate gamma and finite QR weights; rerun invalid 4-pillar experiment"
-    },
-    {
-      "sha": "c5a466d",
-      "date": "2026-11-21",
-      "subject": "research: implement QR-DQN stability, DP-unrestricted, counterfactual gating and rich state experiments"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "YachtLab exhaustive exact last-turn WinDP error enumeration",
+      "name": "YachtLab external-source strategy championship",
       "status": "success",
-      "head": "0fa1d94d6f",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900501667"
+      "head": "c8f7ad453e",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44905064483"
     },
     {
       "name": "Test and deploy YachtLab",
-      "status": "cancelled",
-      "head": "2bdec89a14",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900147283"
+      "status": "failure",
+      "head": "7f72f20293",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44904999512"
+    },
+    {
+      "name": "YachtLab exhaustive exact last-turn WinDP error enumeration",
+      "status": "success",
+      "head": "18bac46f8d",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900566422"
     },
     {
       "name": "YachtLab exact Best Response and opponent-policy forensic research",
       "status": "success",
-      "head": "9a4ae0cd93",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900132415"
-    },
-    {
-      "name": "YachtLab autonomous QR reward and architecture research",
-      "status": "success",
-      "head": "c63f39462e",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44895765360"
+      "head": "2bdec89a14",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900147293"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

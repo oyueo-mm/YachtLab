@@ -37,6 +37,7 @@
 - [confirm-v2.yml](../../../.github/workflows/confirm-v2.yml)
 - [context-sync.yml](../../../.github/workflows/context-sync.yml)
 - [deploy.yml](../../../.github/workflows/deploy.yml)
+- [external-championship.yml](../../../.github/workflows/external-championship.yml)
 - [full-selfplay.yml](../../../.github/workflows/full-selfplay.yml)
 - [integrated-research.yml](../../../.github/workflows/integrated-research.yml)
 - [neural-selfplay.yml](../../../.github/workflows/neural-selfplay.yml)
@@ -76,6 +77,9 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [4e82bbd](https://github.com/oyueo-mm/YachtLab/commit/4e82bbd) | 2026-11-21 | research: 12-rule source strategy championship against Rust, Pancht and Benji-inspired opponents |
+| [d841906](https://github.com/oyueo-mm/YachtLab/commit/d841906) | 2026-11-21 | chore(research): exact WinDP BR diagnostics and counterfactual audit [skip ci] |
+| [bdd7fb6](https://github.com/oyueo-mm/YachtLab/commit/bdd7fb6) | 2026-11-21 | chore(research): exhaustive last-turn WinDP policy error audit [skip ci] |
 | [18bac46](https://github.com/oyueo-mm/YachtLab/commit/18bac46) | 2026-11-21 | docs(research): show concrete WinDP versus exact best-response actions for each error |
 | [7d61faf](https://github.com/oyueo-mm/YachtLab/commit/7d61faf) | 2026-11-21 | chore(research): exhaustive last-turn WinDP policy error audit [skip ci] |
 | [c8d6eae](https://github.com/oyueo-mm/YachtLab/commit/c8d6eae) | 2026-11-21 | research: exhaustively enumerate 100800 last-turn Win DP best-response decision states |
@@ -83,9 +87,6 @@
 | [7a617a6](https://github.com/oyueo-mm/YachtLab/commit/7a617a6) | 2026-11-21 | chore(research): autonomous QR campaign findings [skip ci] |
 | [c63f394](https://github.com/oyueo-mm/YachtLab/commit/c63f394) | 2026-11-21 | research: autonomous 24→6→1 QR reward/model exploration with independent 12k-game confirmation |
 | [eb9be40](https://github.com/oyueo-mm/YachtLab/commit/eb9be40) | 2026-11-21 | chore(research): QR 54 recheck and learning stability findings [skip ci] |
-| [c548513](https://github.com/oyueo-mm/YachtLab/commit/c548513) | 2026-11-21 | research: QR 54.2% independent replication, value stability, replay and 32/64/128 width ablations |
-| [dd42a21](https://github.com/oyueo-mm/YachtLab/commit/dd42a21) | 2026-11-21 | fix(research): validate gamma and finite QR weights; rerun invalid 4-pillar experiment |
-| [c5a466d](https://github.com/oyueo-mm/YachtLab/commit/c5a466d) | 2026-11-21 | research: implement QR-DQN stability, DP-unrestricted, counterfactual gating and rich state experiments |
 
 ## 최근 GitHub Actions 상태
 
@@ -93,10 +94,10 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab exhaustive exact last-turn WinDP error enumeration](https://github.com/oyueo-mm/YachtLab/actions/runs/44900501667) | success | 0fa1d94d6f |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44900147283) | cancelled | 2bdec89a14 |
-| [YachtLab exact Best Response and opponent-policy forensic research](https://github.com/oyueo-mm/YachtLab/actions/runs/44900132415) | success | 9a4ae0cd93 |
-| [YachtLab autonomous QR reward and architecture research](https://github.com/oyueo-mm/YachtLab/actions/runs/44895765360) | success | c63f39462e |
+| [YachtLab external-source strategy championship](https://github.com/oyueo-mm/YachtLab/actions/runs/44905064483) | success | c8f7ad453e |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44904999512) | failure | 7f72f20293 |
+| [YachtLab exhaustive exact last-turn WinDP error enumeration](https://github.com/oyueo-mm/YachtLab/actions/runs/44900566422) | success | 18bac46f8d |
+| [YachtLab exact Best Response and opponent-policy forensic research](https://github.com/oyueo-mm/YachtLab/actions/runs/44900147293) | success | 2bdec89a14 |
 
 ## 다음 채팅과 작업의 시작점
 
