@@ -186,7 +186,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: br-teacher-mlp-and-unseen-evaluation
-          path: .
+          path: training
       - name: Consolidate exact local regrets, independent rollouts, checkpoint CIs, neural agreement
         run: node scripts/summarize-br-research.mjs
       - uses: actions/upload-artifact@v4
