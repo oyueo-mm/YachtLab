@@ -24,7 +24,7 @@ const hold=(s:Game,values:number[],note:string):Decision=>{const copy=[...values
 const priority:Category[]=["yacht","large","small","full","four","sixes","fives","fours","threes","deuces","aces","choice"];
 function medium(s:Game):Decision{
  const vs=n(s),avail=availableCats(s),note="z7workbench MediumAi original fixed score priority (priority×1000+points), Yamaha 12-score adaptation";
- if(s.rolls===3){const cat=priority.find(c=>avail.includes(c))!;return candidate("score",cat,score(vs,cat),note);}
+ if(s.rolls===3){const cat=priority.find(c=>avail.includes(c))!;return candidate("score",cat,score(vs,cat),note);}if(s.rolls===2)return hold(s,vs,"z7workbench MediumAi source consumes final reroll by keeping all five dice");
  const count=Array(7).fill(0);for(const v of vs)count[v]++;
  const max=Math.max(...count),target=count.indexOf(max);
  if(max>=3&&avail.includes("yacht"))return hold(s,vs.filter(v=>v===target),note);
