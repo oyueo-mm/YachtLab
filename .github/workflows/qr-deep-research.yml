@@ -7,14 +7,6 @@ on:
       - "scripts/summarize-qr-suite.mjs"
       - "tests/qr-extensions.test.ts"
       - ".github/workflows/qr-deep-research.yml"
-  push:
-    branches: [main]
-    paths:
-      - "src/qr-extensions.ts"
-      - "scripts/research-qr-suite.mjs"
-      - "scripts/summarize-qr-suite.mjs"
-      - "tests/qr-extensions.test.ts"
-      - ".github/workflows/qr-deep-research.yml"
   workflow_dispatch:
 permissions:
   contents: read
