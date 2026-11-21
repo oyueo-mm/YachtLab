@@ -52,6 +52,7 @@
     "HANDOFF.md",
     "PSRO-PPO-PMF-2026-11-20-FINAL.md",
     "PSRO-PPO-PMF-RESEARCH.md",
+    "QR-SUITE-POSTRUN-AUDIT.md",
     "README.md",
     "REFERENCES.md",
     "RESULTS.md",
@@ -72,10 +73,21 @@
     "offpolicy-ppo-expanded.yml",
     "psro-extended.yml",
     "psro-ppo.yml",
+    "qr-20k.yml",
     "qr-deep-research.yml",
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "34c39ea",
+      "date": "2026-11-21",
+      "subject": "research: launch QR16 loss2 20k full-game training across five seeds"
+    },
+    {
+      "sha": "a33fd33",
+      "date": "2026-11-21",
+      "subject": "docs(research): audit QR suite success, counterfactual omission and DP Expert comparator contamination [skip ci]"
+    },
     {
       "sha": "34f4e39",
       "date": "2026-11-21",
@@ -115,30 +127,26 @@
       "sha": "df76263",
       "date": "2026-11-20",
       "subject": "docs: preserve complete real full-game self-play, opponent modeling and v3 research evidence"
-    },
-    {
-      "sha": "361f75d",
-      "date": "2026-11-20",
-      "subject": "research: train full-game neural REINFORCE and Monte Carlo actor-critic against policy league"
-    },
-    {
-      "sha": "d8fa25a",
-      "date": "2026-11-20",
-      "subject": "research: full-game league self-play, policy-gradient and three-turn competitive planning"
     }
   ],
   "recentWorkflowRuns": [
     {
+      "name": "YachtLab QR16 loss2 20k five-seed training",
+      "status": "success",
+      "head": "430773136b",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44845105341"
+    },
+    {
       "name": "YachtLab QR-DQN and IQN deep research",
       "status": "success",
-      "head": "337b2cf7c7",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44838139302"
+      "head": "34f4e390b1",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44838345749"
     },
     {
       "name": "Test and deploy YachtLab",
-      "status": "cancelled",
-      "head": "2831a4ab05",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44837963513"
+      "status": "success",
+      "head": "34f4e390b1",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44838345712"
     },
     {
       "name": "YachtLab full-game off-policy RL and 2x PPO training",

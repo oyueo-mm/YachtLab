@@ -41,6 +41,7 @@
 - [offpolicy-ppo-expanded.yml](../../../.github/workflows/offpolicy-ppo-expanded.yml)
 - [psro-extended.yml](../../../.github/workflows/psro-extended.yml)
 - [psro-ppo.yml](../../../.github/workflows/psro-ppo.yml)
+- [qr-20k.yml](../../../.github/workflows/qr-20k.yml)
 - [qr-deep-research.yml](../../../.github/workflows/qr-deep-research.yml)
 - [tabular-zoo.yml](../../../.github/workflows/tabular-zoo.yml)
 
@@ -56,6 +57,7 @@
 - [HANDOFF.md](../HANDOFF.md)
 - [PSRO-PPO-PMF-2026-11-20-FINAL.md](../PSRO-PPO-PMF-2026-11-20-FINAL.md)
 - [PSRO-PPO-PMF-RESEARCH.md](../PSRO-PPO-PMF-RESEARCH.md)
+- [QR-SUITE-POSTRUN-AUDIT.md](../QR-SUITE-POSTRUN-AUDIT.md)
 - [README.md](../README.md)
 - [REFERENCES.md](../REFERENCES.md)
 - [RESULTS.md](../RESULTS.md)
@@ -68,6 +70,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [34c39ea](https://github.com/oyueo-mm/YachtLab/commit/34c39ea) | 2026-11-21 | research: launch QR16 loss2 20k full-game training across five seeds |
+| [a33fd33](https://github.com/oyueo-mm/YachtLab/commit/a33fd33) | 2026-11-21 | docs(research): audit QR suite success, counterfactual omission and DP Expert comparator contamination [skip ci] |
 | [34f4e39](https://github.com/oyueo-mm/YachtLab/commit/34f4e39) | 2026-11-21 | research: QR-DQN, IQN and 5-seed controlled full-game experimental suite |
 | [f9f3e7c](https://github.com/oyueo-mm/YachtLab/commit/f9f3e7c) | 2026-11-21 | research: full-game five RL families and doubled multi-seed PPO training |
 | [6680443](https://github.com/oyueo-mm/YachtLab/commit/6680443) | 2026-11-21 | docs: finalize PSRO oracle, scorecard PMF and 49k-game multi-seed PPO evidence |
@@ -76,8 +80,6 @@
 | [fc6a4ac](https://github.com/oyueo-mm/YachtLab/commit/fc6a4ac) | 2026-11-20 | docs: preserve verified PSRO, empirical PMF and PPO head-to-head experiments |
 | [9eff1ea](https://github.com/oyueo-mm/YachtLab/commit/9eff1ea) | 2026-11-20 | research: full PSRO meta-solver, adaptive population, empirical PMF and full-game clipped PPO |
 | [df76263](https://github.com/oyueo-mm/YachtLab/commit/df76263) | 2026-11-20 | docs: preserve complete real full-game self-play, opponent modeling and v3 research evidence |
-| [361f75d](https://github.com/oyueo-mm/YachtLab/commit/361f75d) | 2026-11-20 | research: train full-game neural REINFORCE and Monte Carlo actor-critic against policy league |
-| [d8fa25a](https://github.com/oyueo-mm/YachtLab/commit/d8fa25a) | 2026-11-20 | research: full-game league self-play, policy-gradient and three-turn competitive planning |
 
 ## 최근 GitHub Actions 상태
 
@@ -85,8 +87,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab QR-DQN and IQN deep research](https://github.com/oyueo-mm/YachtLab/actions/runs/44838139302) | success | 337b2cf7c7 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44837963513) | cancelled | 2831a4ab05 |
+| [YachtLab QR16 loss2 20k five-seed training](https://github.com/oyueo-mm/YachtLab/actions/runs/44845105341) | success | 430773136b |
+| [YachtLab QR-DQN and IQN deep research](https://github.com/oyueo-mm/YachtLab/actions/runs/44838345749) | success | 34f4e390b1 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44838345712) | success | 34f4e390b1 |
 | [YachtLab full-game off-policy RL and 2x PPO training](https://github.com/oyueo-mm/YachtLab/actions/runs/44767257705) | success | f9f3e7ca88 |
 
 ## 다음 채팅과 작업의 시작점
