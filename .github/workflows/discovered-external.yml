@@ -1,0 +1,108 @@
+name: YachtLab independent discovered Yacht AI forensic evaluation
+on:
+  pull_request:
+    paths:
+      - src/discovered-external.ts
+      - tests/discovered-external.test.ts
+      - scripts/benchmark-discovered-external.mjs
+      - scripts/summarize-discovered-external.mjs
+      - .github/workflows/discovered-external.yml
+  push:
+    branches: [main]
+    paths:
+      - src/discovered-external.ts
+      - tests/discovered-external.test.ts
+      - scripts/benchmark-discovered-external.mjs
+      - scripts/summarize-discovered-external.mjs
+      - .github/workflows/discovered-external.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: yachtlab-discovered-external-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Unit tests, strict TypeScript build and node syntax
+        run: |
+          npm test -- --reporter=dot
+          npm run build
+          node --check scripts/benchmark-discovered-external.mjs
+          node --check scripts/summarize-discovered-external.mjs
+      - name: One fully instrumented complete 12-category match per model
+        run: |
+          node scripts/benchmark-discovered-external.mjs --model Z7DartHard12 --shard 0 --smoke
+          node scripts/benchmark-discovered-external.mjs --model Z7DartMedium12 --shard 0 --smoke
+  duel:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        model: [Z7DartHard12, Z7DartMedium12]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: 40 paired public dice seeds and game-stage loss attribution
+        run: node scripts/benchmark-discovered-external.mjs --model ${{ matrix.model }} --shard ${{ matrix.shard }} --pairs 40
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: discovered-duel-${{ matrix.model }}-${{ matrix.shard }}
+          path: training/results/new-external-research/${{ matrix.model }}-shard-${{ matrix.shard }}.json
+          retention-days: 90
+          if-no-files-found: warn
+  summarize:
+    needs: duel
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: discovered-duel-*
+          path: training/results/new-external-research
+          merge-multiple: true
+      - name: Validate every pair and generate measured failure taxonomy
+        run: node scripts/summarize-discovered-external.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: discovered-external-final-report
+          path: |
+            docs/context/_generated/NEW-EXTERNAL-RESEARCH-LATEST.md
+            training/results/new-external-research/final-summary.json
+          retention-days: 90
+      - name: Publish research report only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/NEW-EXTERNAL-RESEARCH-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(research): publish discovered Yacht source adversaries' loss analysis [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi

@@ -1,0 +1,29 @@
+import {createServer} from "vite";
+import {readFile,writeFile,mkdir} from "node:fs/promises";
+import {gunzipSync} from "node:zlib";
+const arg=(key,fallback)=>{const ix=process.argv.indexOf(key);return ix<0?fallback:process.argv[ix+1];},model=arg("--model","Z7DartHard12"),shard=Number(arg("--shard","0")),pairs=process.argv.includes("--smoke")?1:Number(arg("--pairs","40")),mix=x=>{x>>>=0;x=Math.imul(x^(x>>>16),0x85ebca6b)>>>0;x=Math.imul(x^(x>>>13),0xc2b2ae35)>>>0;return(x^(x>>>16))>>>0;},avg=a=>a.reduce((s,x)=>s+x,0)/a.length;
+if(!Number.isInteger(shard)||shard<0||shard>15||!Number.isInteger(pairs)||pairs<1||pairs>4000)throw Error("Invalid sample count");
+const server=await createServer({server:{middlewareMode:true,hmr:false},appType:"custom"});
+try{
+ const eng=await server.ssrLoadModule("/src/engine.ts"),dp=await server.ssrLoadModule("/src/dp.ts"),win=await server.ssrLoadModule("/src/competitive-v2.ts"),ext=await server.ssrLoadModule("/src/discovered-external.ts");
+ if(!ext.newExternalIds.includes(model))throw Error("Unknown discovered source model");
+ const manifest=JSON.parse(await readFile("src/dp-manifest.json","utf8")),buf=gunzipSync(await readFile("public/ai/"+manifest.asset));dp.setDPTable(buf.buffer.slice(buf.byteOffset,buf.byteOffset+buf.byteLength));
+ const obs=[],begin=performance.now(),allRegrets=[],tiers=["opening","middle","endgame"];
+ const play=(seed,seat)=>{let s=eng.createGame(seed,true),steps=0,ownMs=0,ownActions=0,otherMs=0,otherActions=0,ownByTurn=[],otherByTurn=[],regrets=[],rerolls=Array(3).fill(0),categoryCounts={},categoryScores={};
+  while(!s.done){if(++steps>190)throw Error("Game failed to terminate");if(!s.rolls){s=eng.transition(s,{type:"roll"});continue;}
+   const own=s.player===seat,pre=s,at=performance.now(),a=own?ext.discoveredExternalDecision(s,model):(win.winDPv2Decision(s)??dp.dpDecision(s)),ms=performance.now()-at;
+   if(own){ownMs+=ms;ownActions++;}else{otherMs+=ms;otherActions++;}
+   if(own&&pre.rolls===1&&[2,6,10].includes(pre.round)){const q=dp.dpActionValues(pre),actionIdx=dp.choiceIndex(a),val=q[actionIdx],opt=Math.max(...q),regret=Math.max(0,opt-val),expectedDecision=dp.dpDecision(pre);
+     if(!Number.isFinite(regret))throw Error("Invalid sampled regret");regrets.push({round:pre.round,stage:pre.round<=4?"opening":pre.round<=8?"middle":"endgame",regret,sourceAction:a.type==="score"?a.category:"hold:"+a.ids.map(i=>pre.dice.find(d=>d.id===i).value).sort().join(""),exactScoreDpAction:expectedDecision.type==="score"?expectedDecision.category:"hold:"+expectedDecision.ids.map(i=>pre.dice.find(d=>d.id===i).value).sort().join(""),dice:pre.dice.map(d=>d.value),scoreOwn:eng.total(pre.cards[seat]),scoreOpponent:eng.total(pre.cards[1-seat]),availableCategories:eng.available(pre.cards[seat])});}
+   if(a.type==="score"){if(!eng.available(s.cards[s.player]).includes(a.category))throw Error("Illegal score category "+a.category);const pts=eng.score(s.dice.map(d=>d.value),a.category),r=s.round;
+    if(own){ownByTurn.push({round:r,category:a.category,points:pts});categoryCounts[a.category]=(categoryCounts[a.category]??0)+1;categoryScores[a.category]=(categoryScores[a.category]??0)+pts;}
+    else otherByTurn.push({round:r,category:a.category,points:pts});
+    s=eng.transition(s,{type:"score",category:a.category});
+   }else{if(s.rolls===3||new Set(a.ids).size!==a.ids.length||a.ids.some(id=>!s.dice.some(d=>d.id===id)))throw Error("Invalid reroll");if(own)rerolls[s.rolls-1]++;s=eng.transition(eng.transition(s,{type:"hold",ids:a.ids}),{type:"roll"});}
+  }
+  const ownScore=eng.total(s.cards[seat]),otherScore=eng.total(s.cards[1-seat]);return{winCredit:ownScore>otherScore?1:ownScore===otherScore?.5:0,ownScore,otherScore,ownBonus:eng.bonus(s.cards[seat])>0,otherBonus:eng.bonus(s.cards[1-seat])>0,ownYacht:s.cards[seat].yacht===50,otherYacht:s.cards[1-seat].yacht===50,ownMs,otherMs,ownActions,otherActions,ownByTurn,otherByTurn,regrets,rerolls,categoryCounts,categoryScores};
+ };
+ const rows=[],credits=[];for(let i=0;i<pairs;i++){const seed=mix(701521143+shard*917431+i),a=play(seed,0),b=play(seed,1);const credit=(a.winCredit+b.winCredit)/2;rows.push({seed,challengerFirst:a,challengerSecond:b,pairedCredit:credit});credits.push(credit);if((i+1)%(pairs<8?1:8)===0)console.log("DISCOVERED_EXTERNAL_PROGRESS "+JSON.stringify({model,shard,pairsCompleted:i+1,pairs,winCredit:avg(credits),seconds:(performance.now()-begin)/1000}));}
+ const games=rows.flatMap(r=>[r.challengerFirst,r.challengerSecond]),regr=games.flatMap(x=>x.regrets),reported={model,source:ext.newExternalSources[model],shard,pairs,games:pairs*2,winCredit:avg(credits),ownMean:avg(games.map(x=>x.ownScore)),baselineMean:avg(games.map(x=>x.otherScore)),ownBonusRate:avg(games.map(x=>Number(x.ownBonus))),baselineBonusRate:avg(games.map(x=>Number(x.otherBonus))),ownYachtRate:avg(games.map(x=>Number(x.ownYacht))),baselineYachtRate:avg(games.map(x=>Number(x.otherYacht))),meanOwnDecisionMs:games.reduce((s,x)=>s+x.ownMs,0)/games.reduce((s,x)=>s+x.ownActions,0),sampledRegrets:regr.length,stageRegret:tiers.map(t=>({stage:t,n:regr.filter(x=>x.stage===t).length,meanDPRegret:avg(regr.filter(x=>x.stage===t).map(x=>x.regret))})),raw:rows,scope:"Original source-logic port, NOT the original Dart binary: 12-category payoff rules, deterministic sampling, no artificial UI delay"};
+ await mkdir("training/results/new-external-research",{recursive:true});const fn="training/results/new-external-research/"+model+"-shard-"+shard+".json";await writeFile(fn,JSON.stringify(reported)+"\n");console.log("DISCOVERED_EXTERNAL_SHARD "+JSON.stringify({model,shard,games:pairs*2,win:reported.winCredit,ownMean:reported.ownMean,baselineMean:reported.baselineMean,bonus:reported.ownBonusRate,regrets:reported.stageRegret,seconds:(performance.now()-begin)/1000}));
+}finally{await server.close();}
