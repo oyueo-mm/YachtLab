@@ -1,0 +1,113 @@
+name: YachtLab SOTA candidate independent large-sample confirmation
+on:
+  pull_request:
+    paths:
+      - scripts/summarize-sota-confirm.mjs
+      - .github/workflows/sota-independent-confirm.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/summarize-sota-confirm.mjs
+      - .github/workflows/sota-independent-confirm.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: yachtlab-sota-independent-confirm-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Syntax and public-state exact BR regression tests
+        run: |
+          node --check scripts/summarize-sota-confirm.mjs
+          npm test -- --reporter=dot
+  duel:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      max-parallel: 5
+      fail-fast: false
+      matrix:
+        include:
+          - candidate: calibrated-v3
+            opponent: Win DP v2
+            pairs: 1000
+          - candidate: dp-guided-mcts
+            opponent: Win DP v2
+            pairs: 1000
+          - candidate: conditional-br-v21
+            opponent: Win DP v2
+            pairs: 2000
+          - candidate: calibrated-v3
+            opponent: DP Expert
+            pairs: 500
+          - candidate: conditional-br-v21
+            opponent: DP Expert
+            pairs: 500
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Fresh held-out 12-category full games with swapped seats
+        run: node scripts/sota-attack-benchmark.mjs --candidate "${{ matrix.candidate }}" --opponent "${{ matrix.opponent }}" --shard 2 --pairs ${{ matrix.pairs }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sota-confirm-${{ matrix.candidate }}-${{ matrix.opponent }}
+          path: training/results/sota-challenge/*-2.json
+          retention-days: 90
+          if-no-files-found: warn
+  summarize:
+    needs: duel
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: sota-confirm-*
+          path: training/results/sota-challenge
+          merge-multiple: true
+      - run: node scripts/summarize-sota-confirm.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sota-independent-confirmation-report
+          path: |
+            training/results/sota-challenge/independent-confirmation.json
+            docs/context/_generated/SOTA-CONFIRM-LATEST.md
+          retention-days: 90
+      - name: Commit research-only report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/SOTA-CONFIRM-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(research): publish independently seeded competitive policy confirmation [skip ci]"
+            for attempt in 1 2 3 4 5; do
+              git pull --rebase origin main
+              if git push origin HEAD:main; then exit 0; fi
+              sleep 2
+            done
+            exit 1
+          fi
