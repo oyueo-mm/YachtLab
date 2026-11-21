@@ -1,0 +1,131 @@
+name: YachtLab Win DP v3.1 research and independent confirmation
+on:
+  pull_request:
+    paths:
+      - src/research-v31.ts
+      - tests/research-v31.test.ts
+      - scripts/bench-v31.mjs
+      - scripts/summarize-v31.mjs
+      - .github/workflows/v31-research.yml
+  push:
+    branches: [main]
+    paths:
+      - src/research-v31.ts
+      - tests/research-v31.test.ts
+      - scripts/bench-v31.mjs
+      - scripts/summarize-v31.mjs
+      - .github/workflows/v31-research.yml
+  workflow_dispatch:
+  schedule:
+    - cron: "0 12 * * 0"
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-v31-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Full unit tests, typecheck, and production build
+        run: |
+          npm test -- --reporter=dot
+          npm run build
+          node --check scripts/bench-v31.mjs
+          node --check scripts/summarize-v31.mjs
+      - name: Seat-swapped full-game smoke checks
+        run: |
+          node scripts/bench-v31.mjs --candidate v31-hybrid --opponent "Win DP v2" --shard 1 --smoke
+          node scripts/bench-v31.mjs --candidate v31-hybrid --opponent "Win DP v3" --shard 1 --smoke
+          node scripts/bench-v31.mjs --candidate v31-hybrid --opponent "DP Expert" --shard 1 --smoke
+          node scripts/bench-v31.mjs --candidate v3-unmodified --opponent "Win DP v2" --shard 1 --smoke
+  duel:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - candidate: v31-hybrid
+            opponent: Win DP v2
+            pairs: 1000
+          - candidate: v3-unmodified
+            opponent: Win DP v2
+            pairs: 1000
+          - candidate: v31-hybrid
+            opponent: Win DP v3
+            pairs: 1000
+          - candidate: v31-hybrid
+            opponent: DP Expert
+            pairs: 500
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Fresh independent seat-swapped match pairs
+        run: |
+          shard=3
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then shard=$((${{ github.run_number }} + 100)); fi
+          node scripts/bench-v31.mjs --candidate "${{ matrix.candidate }}" --opponent "${{ matrix.opponent }}" --shard "$shard" --pairs "${{ matrix.pairs }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v31-confirm-${{ matrix.candidate }}-${{ matrix.opponent }}
+          path: training/results/v31-challenge/*.json
+          retention-days: 90
+          if-no-files-found: warn
+  summarize:
+    needs: duel
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: v31-confirm-*
+          path: training/results/v31-challenge
+          merge-multiple: true
+      - name: Independently summarize the preregistered four scenarios
+        run: |
+          shard=3
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then shard=$((${{ github.run_number }} + 100)); fi
+          node scripts/summarize-v31.mjs --shard "$shard"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v31-independent-report
+          path: |
+            training/results/v31-challenge/independent-confirmation.json
+            docs/context/_generated/V31-LATEST.md
+          retention-days: 90
+      - name: Commit research-only summary without promoting AI
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/V31-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(research): publish Win DP v3.1 fresh-shard evidence [skip ci]"
+            for attempt in 1 2 3 4 5; do
+              git pull --rebase origin main
+              if git push origin HEAD:main; then exit 0; fi
+              sleep 2
+            done
+            exit 1
+          fi
