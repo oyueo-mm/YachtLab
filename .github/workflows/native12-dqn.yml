@@ -1,0 +1,140 @@
+name: YachtLab actual 12-category pretrained DQN independent competition
+on:
+  pull_request:
+    paths:
+      - scripts/native12-dqn-bridge.py
+      - scripts/benchmark-native12-dqn.mjs
+      - scripts/summarize-native12-dqn.mjs
+      - .github/workflows/native12-dqn.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/native12-dqn-bridge.py
+      - scripts/benchmark-native12-dqn.mjs
+      - scripts/summarize-native12-dqn.mjs
+      - .github/workflows/native12-dqn.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: yachtlab-native12-trained-dqn-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm ci
+      - name: Validate tournament and baseline, strict TypeScript, original code bridge
+        run: |
+          npm test -- --reporter=dot
+          npm run build
+          node --check scripts/benchmark-native12-dqn.mjs
+          node --check scripts/summarize-native12-dqn.mjs
+          python -m py_compile scripts/native12-dqn-bridge.py
+      - name: Fetch EXACT original independent 12-category source revision and checkpoint
+        run: |
+          git init "$RUNNER_TEMP/the7even"
+          git -C "$RUNNER_TEMP/the7even" remote add origin https://github.com/The7Even/Yacht_AI.git
+          git -C "$RUNNER_TEMP/the7even" fetch --depth=1 origin 984ba6644644700a9f3465f84f3a39b8b447947b
+          git -C "$RUNNER_TEMP/the7even" checkout --detach FETCH_HEAD
+          test "$(git -C "$RUNNER_TEMP/the7even" rev-parse HEAD)" = 984ba6644644700a9f3465f84f3a39b8b447947b
+          test "$(git hash-object "$RUNNER_TEMP/the7even/yacht_ai_brain.pth")" = 5b866633085749752aebd5f5ba1b1ad0cefe2223
+          echo "UPSTREAM_12DQN_SOURCE_AND_WEIGHTS_VERIFIED"
+      - name: Install CPU-only PyTorch for original 12-category checkpoint inference
+        run: python -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+      - name: Test complete realistic games against loaded original checkpoint
+        env:
+          THE7EVEN_WEIGHTS: ${{ runner.temp }}/the7even/yacht_ai_brain.pth
+          THE7EVEN_PYTHON: python
+        run: node scripts/benchmark-native12-dqn.mjs --shard 0 --smoke
+  duel:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm ci
+      - name: Retrieve original pretrained model from precisely pinned revision
+        run: |
+          git init "$RUNNER_TEMP/the7even"
+          git -C "$RUNNER_TEMP/the7even" remote add origin https://github.com/The7Even/Yacht_AI.git
+          git -C "$RUNNER_TEMP/the7even" fetch --depth=1 origin 984ba6644644700a9f3465f84f3a39b8b447947b
+          git -C "$RUNNER_TEMP/the7even" checkout --detach FETCH_HEAD
+          test "$(git hash-object "$RUNNER_TEMP/the7even/yacht_ai_brain.pth")" = 5b866633085749752aebd5f5ba1b1ad0cefe2223
+      - run: python -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+      - name: 250 independent paired source-model-vs-v2 games, twice swapped seats
+        env:
+          THE7EVEN_WEIGHTS: ${{ runner.temp }}/the7even/yacht_ai_brain.pth
+          THE7EVEN_PYTHON: python
+          OMP_NUM_THREADS: '1'
+        run: node scripts/benchmark-native12-dqn.mjs --shard ${{ matrix.shard }} --pairs 250
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native12-dqn-shard-${{ matrix.shard }}
+          path: training/results/native12-dqn/shard-${{ matrix.shard }}.json
+          if-no-files-found: warn
+          retention-days: 90
+  summarize:
+    needs: duel
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native12-dqn-shard-*
+          path: training/results/native12-dqn
+          merge-multiple: true
+      - name: Verify 2000 games, source checksum, independent seeds, report failure taxonomy
+        run: node scripts/summarize-native12-dqn.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native12-dqn-full-report
+          path: |
+            docs/context/_generated/NATIVE12-DQN-LATEST.md
+            training/results/native12-dqn/final-summary.json
+          retention-days: 90
+      - name: Publish reproducible summary without changing any live policy
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/NATIVE12-DQN-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(research): publish independent trained 12-category DQN vs Win DP v2 [skip ci]"
+            for attempt in 1 2 3 4 5; do
+              git pull --rebase origin main
+              if git push origin HEAD:main; then exit 0; fi
+              sleep 2
+            done
+            exit 1
+          fi
