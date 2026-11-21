@@ -54,6 +54,7 @@
 - [sota-attack-lab.yml](../../../.github/workflows/sota-attack-lab.yml)
 - [sota-independent-confirm.yml](../../../.github/workflows/sota-independent-confirm.yml)
 - [tabular-zoo.yml](../../../.github/workflows/tabular-zoo.yml)
+- [v31-large.yml](../../../.github/workflows/v31-large.yml)
 - [v31-research.yml](../../../.github/workflows/v31-research.yml)
 - [yahtzeerl-transfer.yml](../../../.github/workflows/yahtzeerl-transfer.yml)
 
@@ -67,6 +68,7 @@
 - [EXTENDED-PSRO-PMF-PPO-RESULTS.md](../EXTENDED-PSRO-PMF-PPO-RESULTS.md)
 - [FULLGAME-OFFPOLICY-RESEARCH.md](../FULLGAME-OFFPOLICY-RESEARCH.md)
 - [HANDOFF.md](../HANDOFF.md)
+- [LARGE-SCALE-V32-ROADMAP.md](../LARGE-SCALE-V32-ROADMAP.md)
 - [PSRO-PPO-PMF-2026-11-20-FINAL.md](../PSRO-PPO-PMF-2026-11-20-FINAL.md)
 - [PSRO-PPO-PMF-RESEARCH.md](../PSRO-PPO-PMF-RESEARCH.md)
 - [QR-FOUR-PILLARS-INVALID-RUN.md](../QR-FOUR-PILLARS-INVALID-RUN.md)
@@ -84,16 +86,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [c26466e](https://github.com/oyueo-mm/YachtLab/commit/c26466e) | 2026-11-21 | research: launch 170k-game paired v2.1/v3/v3.1 independent confirmation |
+| [8d5980f](https://github.com/oyueo-mm/YachtLab/commit/8d5980f) | 2026-11-21 | docs: preregister 170k-game holdout and v3.2-v4 concrete improvement gates |
+| [930fed7](https://github.com/oyueo-mm/YachtLab/commit/930fed7) | 2026-11-21 | ci(research): run 170k full-game preregistered v2.1-v3-v3.1 holdout |
+| [05124a7](https://github.com/oyueo-mm/YachtLab/commit/05124a7) | 2026-11-21 | research: summarize 170k seat-swapped games with paired 99% CIs and rare BR impact |
+| [c0d5ded](https://github.com/oyueo-mm/YachtLab/commit/c0d5ded) | 2026-11-21 | benchmark: support compact 170k-game independent evidence and v2.1 ablation |
+| [1677595](https://github.com/oyueo-mm/YachtLab/commit/1677595) | 2026-11-21 | chore(research): publish Win DP v3.1 fresh-shard evidence [skip ci] |
 | [0d08aac](https://github.com/oyueo-mm/YachtLab/commit/0d08aac) | 2026-11-21 | research: add Win DP v3.1 hybrid and independent competition suite |
 | [98b4bea](https://github.com/oyueo-mm/YachtLab/commit/98b4bea) | 2026-11-21 | chore(research): publish independently seeded competitive policy confirmation [skip ci] |
 | [14207b5](https://github.com/oyueo-mm/YachtLab/commit/14207b5) | 2026-11-21 | chore(research): publish 2-seed full-turn QR-DQN retraining [skip ci] |
 | [a5cc3f4](https://github.com/oyueo-mm/YachtLab/commit/a5cc3f4) | 2026-11-21 | research: independently confirm v3, MCTS and conditional BR improvements with 10000 more 12-rule games |
-| [dcab43d](https://github.com/oyueo-mm/YachtLab/commit/dcab43d) | 2026-11-21 | chore(research): publish six-policy SOTA attack benchmark [skip ci] |
-| [cba6700](https://github.com/oyueo-mm/YachtLab/commit/cba6700) | 2026-11-21 | research: evaluate opponent-specific BR, forecast DP, MCTS, neural distillation and new full-turn QR retraining |
-| [c77f8cc](https://github.com/oyueo-mm/YachtLab/commit/c77f8cc) | 2026-11-21 | chore(research): publish independent trained 12-category DQN vs Win DP v2 [skip ci] |
-| [15b4443](https://github.com/oyueo-mm/YachtLab/commit/15b4443) | 2026-11-21 | research: benchmark authentic 12-category pretrained Yacht DQN against Win DP v2 with 2000 paired games |
-| [86664e5](https://github.com/oyueo-mm/YachtLab/commit/86664e5) | 2026-11-21 | chore(research): publish authentic YahtzeeRL checkpoint transfer diagnostics [skip ci] |
-| [637baec](https://github.com/oyueo-mm/YachtLab/commit/637baec) | 2026-11-21 | chore(research): publish discovered Yacht source adversaries' loss analysis [skip ci] |
 
 ## 최근 GitHub Actions 상태
 
@@ -101,12 +103,13 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44913064712) | success | 901360c429 |
-| [YachtLab Win DP v3.1 research and independent confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44913064707) | success | 901360c429 |
-| [YachtLab SOTA candidate independent large-sample confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44910464089) | success | a5cc3f4f33 |
-| [YachtLab SOTA challenger research 4-pillars](https://github.com/oyueo-mm/YachtLab/actions/runs/44910167666) | success | cba6700fe5 |
-| [YachtLab actual 12-category pretrained DQN independent competition](https://github.com/oyueo-mm/YachtLab/actions/runs/44909157511) | success | 15b4443509 |
-| [YachtLab independently trained YahtzeeRL checkpoint transfer diagnostic](https://github.com/oyueo-mm/YachtLab/actions/runs/44908082097) | success | 820b619737 |
+| [YachtLab v3.2 exact three-slot opponent forecast research](https://github.com/oyueo-mm/YachtLab/actions/runs/44915629754) | success | 6617a32fbb |
+| [Full-game self-play and three-turn competitive research](https://github.com/oyueo-mm/YachtLab/actions/runs/44915629679) | success | 6617a32fbb |
+| [YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44915600952) | success | e91f74c7f7 |
+| [PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44915600917) | cancelled | e91f74c7f7 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44915600852) | cancelled | e91f74c7f7 |
+| [YachtLab Win DP v3.1 research and independent confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44915350777) | success | 8d5980f97b |
+| [YachtLab 170k-game v2.1 v3 v3.1 independent comparison](https://github.com/oyueo-mm/YachtLab/actions/runs/44915350772) | success | 8d5980f97b |
 
 ## 다음 채팅과 작업의 시작점
 

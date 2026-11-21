@@ -50,6 +50,7 @@
     "EXTENDED-PSRO-PMF-PPO-RESULTS.md",
     "FULLGAME-OFFPOLICY-RESEARCH.md",
     "HANDOFF.md",
+    "LARGE-SCALE-V32-ROADMAP.md",
     "PSRO-PPO-PMF-2026-11-20-FINAL.md",
     "PSRO-PPO-PMF-RESEARCH.md",
     "QR-FOUR-PILLARS-INVALID-RUN.md",
@@ -88,10 +89,41 @@
     "sota-attack-lab.yml",
     "sota-independent-confirm.yml",
     "tabular-zoo.yml",
+    "v31-large.yml",
     "v31-research.yml",
     "yahtzeerl-transfer.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "c26466e",
+      "date": "2026-11-21",
+      "subject": "research: launch 170k-game paired v2.1/v3/v3.1 independent confirmation"
+    },
+    {
+      "sha": "8d5980f",
+      "date": "2026-11-21",
+      "subject": "docs: preregister 170k-game holdout and v3.2-v4 concrete improvement gates"
+    },
+    {
+      "sha": "930fed7",
+      "date": "2026-11-21",
+      "subject": "ci(research): run 170k full-game preregistered v2.1-v3-v3.1 holdout"
+    },
+    {
+      "sha": "05124a7",
+      "date": "2026-11-21",
+      "subject": "research: summarize 170k seat-swapped games with paired 99% CIs and rare BR impact"
+    },
+    {
+      "sha": "c0d5ded",
+      "date": "2026-11-21",
+      "subject": "benchmark: support compact 170k-game independent evidence and v2.1 ablation"
+    },
+    {
+      "sha": "1677595",
+      "date": "2026-11-21",
+      "subject": "chore(research): publish Win DP v3.1 fresh-shard evidence [skip ci]"
+    },
     {
       "sha": "0d08aac",
       "date": "2026-11-21",
@@ -111,74 +143,50 @@
       "sha": "a5cc3f4",
       "date": "2026-11-21",
       "subject": "research: independently confirm v3, MCTS and conditional BR improvements with 10000 more 12-rule games"
-    },
-    {
-      "sha": "dcab43d",
-      "date": "2026-11-21",
-      "subject": "chore(research): publish six-policy SOTA attack benchmark [skip ci]"
-    },
-    {
-      "sha": "cba6700",
-      "date": "2026-11-21",
-      "subject": "research: evaluate opponent-specific BR, forecast DP, MCTS, neural distillation and new full-turn QR retraining"
-    },
-    {
-      "sha": "c77f8cc",
-      "date": "2026-11-21",
-      "subject": "chore(research): publish independent trained 12-category DQN vs Win DP v2 [skip ci]"
-    },
-    {
-      "sha": "15b4443",
-      "date": "2026-11-21",
-      "subject": "research: benchmark authentic 12-category pretrained Yacht DQN against Win DP v2 with 2000 paired games"
-    },
-    {
-      "sha": "86664e5",
-      "date": "2026-11-21",
-      "subject": "chore(research): publish authentic YahtzeeRL checkpoint transfer diagnostics [skip ci]"
-    },
-    {
-      "sha": "637baec",
-      "date": "2026-11-21",
-      "subject": "chore(research): publish discovered Yacht source adversaries' loss analysis [skip ci]"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "Test and deploy YachtLab",
+      "name": "YachtLab v3.2 exact three-slot opponent forecast research",
       "status": "success",
-      "head": "901360c429",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44913064712"
+      "head": "6617a32fbb",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915629754"
+    },
+    {
+      "name": "Full-game self-play and three-turn competitive research",
+      "status": "success",
+      "head": "6617a32fbb",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915629679"
+    },
+    {
+      "name": "YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO",
+      "status": "success",
+      "head": "e91f74c7f7",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915600952"
+    },
+    {
+      "name": "PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO",
+      "status": "cancelled",
+      "head": "e91f74c7f7",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915600917"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "cancelled",
+      "head": "e91f74c7f7",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915600852"
     },
     {
       "name": "YachtLab Win DP v3.1 research and independent confirmation",
       "status": "success",
-      "head": "901360c429",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44913064707"
+      "head": "8d5980f97b",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915350777"
     },
     {
-      "name": "YachtLab SOTA candidate independent large-sample confirmation",
+      "name": "YachtLab 170k-game v2.1 v3 v3.1 independent comparison",
       "status": "success",
-      "head": "a5cc3f4f33",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44910464089"
-    },
-    {
-      "name": "YachtLab SOTA challenger research 4-pillars",
-      "status": "success",
-      "head": "cba6700fe5",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44910167666"
-    },
-    {
-      "name": "YachtLab actual 12-category pretrained DQN independent competition",
-      "status": "success",
-      "head": "15b4443509",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44909157511"
-    },
-    {
-      "name": "YachtLab independently trained YahtzeeRL checkpoint transfer diagnostic",
-      "status": "success",
-      "head": "820b619737",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44908082097"
+      "head": "8d5980f97b",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915350772"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
