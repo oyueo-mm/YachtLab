@@ -1,0 +1,110 @@
+name: YachtLab v3.2 exact three-slot opponent forecast research
+on:
+  pull_request:
+    paths:
+      - src/research-exact-three-score.ts
+      - src/research-v32.ts
+      - src/competitive-v3.ts
+      - tests/research-v32.test.ts
+      - scripts/bench-v32.mjs
+      - scripts/summarize-v32.mjs
+      - .github/workflows/v32-research.yml
+  push:
+    branches: [main]
+    paths:
+      - src/research-exact-three-score.ts
+      - src/research-v32.ts
+      - src/competitive-v3.ts
+      - tests/research-v32.test.ts
+      - scripts/bench-v32.mjs
+      - scripts/summarize-v32.mjs
+      - .github/workflows/v32-research.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-v32-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Bellman expectation normalization, policy legality, RNG invariance
+        run: npm test -- --reporter=dot
+      - run: npm run build
+      - run: |
+          node --check scripts/bench-v32.mjs
+          node --check scripts/summarize-v32.mjs
+      - name: Complete two seed pairs with exact PMF v3.2
+        run: node scripts/bench-v32.mjs --candidate v32-exact3 --opponent "DP Expert" --shard 1200 --smoke
+  duel:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        candidate: [v32-exact3, v3-unmodified]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Fresh 300 independent seat-paired seeds for small pilot
+        run: node scripts/bench-v32.mjs --candidate "${{ matrix.candidate }}" --opponent "DP Expert" --shard 1201 --pairs 300
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v32-pilot-${{ matrix.candidate }}
+          path: training/results/v32-challenge/*.json
+          retention-days: 90
+          if-no-files-found: error
+  report:
+    needs: duel
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: v32-pilot-*
+          path: training/results/v32-challenge
+          merge-multiple: true
+      - run: node scripts/summarize-v32.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v32-pilot-independent-summary
+          path: |
+            training/results/v32-challenge/summary.json
+            docs/context/_generated/V32-LATEST.md
+          retention-days: 90
+      - name: Publish research report only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/V32-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(research): publish Win DP v3.2 exact-forecast pilot [skip ci]"
+            for attempt in 1 2 3 4 5; do
+              git pull --rebase origin main
+              if git push origin HEAD:main; then exit 0; fi
+              sleep 2
+            done
+            exit 1
+          fi
