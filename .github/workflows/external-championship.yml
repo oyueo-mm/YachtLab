@@ -1,0 +1,109 @@
+name: YachtLab external-source strategy championship
+on:
+  pull_request:
+    paths:
+      - "src/external-challengers.ts"
+      - "tests/external-challengers.test.ts"
+      - "scripts/external-championship.mjs"
+      - "scripts/summarize-external-championship.mjs"
+      - ".github/workflows/external-championship.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/external-challengers.ts"
+      - "tests/external-challengers.test.ts"
+      - "scripts/external-championship.mjs"
+      - "scripts/summarize-external-championship.mjs"
+      - ".github/workflows/external-championship.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: yachtlab-external-strategies-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Regression tests, external rule ports and client build
+        run: |
+          npm test -- --reporter=dot
+          npm run build
+          node --check scripts/external-championship.mjs
+          node --check scripts/summarize-external-championship.mjs
+      - name: All four challenger roundtrip smoke games
+        run: |
+          for opponent in RustHeuristic12 RustOptimalEquivalent12 PanchtWeighted12 BenjiWinObjective12; do
+            node scripts/external-championship.mjs --opponent "$opponent" --shard 0 --smoke
+          done
+  duel:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        opponent: [RustHeuristic12, RustOptimalEquivalent12, PanchtWeighted12, BenjiWinObjective12]
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: 250 independent paired seeds, two games with swapped seats
+        run: node scripts/external-championship.mjs --opponent ${{ matrix.opponent }} --shard ${{ matrix.shard }} --pairs 250
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: external-duel-${{ matrix.opponent }}-${{ matrix.shard }}
+          path: training/results/external-championship/${{ matrix.opponent }}-shard-${{ matrix.shard }}.json
+          if-no-files-found: warn
+          retention-days: 90
+  summarize:
+    needs: duel
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: external-duel-*
+          path: training/results/external-championship
+          merge-multiple: true
+      - name: Verify 8k matches and compute paired confidence intervals
+        run: node scripts/summarize-external-championship.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: external-championship-final-report
+          path: |
+            training/results/external-championship/final-summary.json
+            docs/context/_generated/EXTERNAL-CHAMPIONSHIP-LATEST.md
+          retention-days: 90
+      - name: Commit only research results, no default AI changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/EXTERNAL-CHAMPIONSHIP-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(research): publish external strategy adaptation tournament results [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
