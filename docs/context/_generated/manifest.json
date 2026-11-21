@@ -48,6 +48,7 @@
     "EXPERIMENT-ZOO.md",
     "EXTENDED-PSRO-PMF-PPO-RESEARCH.md",
     "EXTENDED-PSRO-PMF-PPO-RESULTS.md",
+    "FRONTIER-200K-RESEARCH.md",
     "FULLGAME-OFFPOLICY-RESEARCH.md",
     "HANDOFF.md",
     "LARGE-SCALE-V32-ROADMAP.md",
@@ -75,6 +76,7 @@
     "deploy.yml",
     "discovered-external.yml",
     "external-championship.yml",
+    "frontier-200k.yml",
     "full-selfplay.yml",
     "integrated-research.yml",
     "native12-dqn.yml",
@@ -97,98 +99,104 @@
   ],
   "recentSourceCommits": [
     {
-      "sha": "6e3968b",
-      "date": "2026-11-21",
-      "subject": "research: integrate v3.2 exact three-slot DP Expert score forecast"
+      "sha": "eab4302",
+      "date": "2026-11-22",
+      "subject": "research: v3.3-v4 SOTA frontier and 200k candidate confirmation"
     },
     {
-      "sha": "c26466e",
-      "date": "2026-11-21",
-      "subject": "research: launch 170k-game paired v2.1/v3/v3.1 independent confirmation"
+      "sha": "c1ae7b4",
+      "date": "2026-11-22",
+      "subject": "docs: formalize v3.3-v4 implementation, 200k each and optional 1m budget and caveats"
     },
     {
-      "sha": "6617a32",
-      "date": "2026-11-21",
-      "subject": "fix(v3.2): write pilot output to the correct v32 challenge directory"
+      "sha": "84fbf86",
+      "date": "2026-11-22",
+      "subject": "ci: keep model artifacts single-root so training inputs resolve after download"
     },
     {
-      "sha": "e91f74c",
-      "date": "2026-11-21",
-      "subject": "docs(v3.2): distinguish exact fixed-policy PMF from adaptive win-rate optimal play"
+      "sha": "35e6be2",
+      "date": "2026-11-22",
+      "subject": "ci(research): run three new research tracks plus 200k-per-candidate, 1m optional independent confirmation"
     },
     {
-      "sha": "53b6a06",
-      "date": "2026-11-21",
-      "subject": "ci(v3.2): validate exact score PMF and launch independent paired pilot"
+      "sha": "253a5ba",
+      "date": "2026-11-22",
+      "subject": "research: preregister 200k-to-1m per-policy matched seed evaluation and honest comparative CIs"
     },
     {
-      "sha": "af43a50",
-      "date": "2026-11-21",
-      "subject": "research(v3.2): matched v3 baseline versus exact forecast pilot summary"
+      "sha": "3d8e44d",
+      "date": "2026-11-22",
+      "subject": "research(v4): pick teacher-and-league trained actor solely on validation, never confirm seeds"
     },
     {
-      "sha": "7d639e4",
-      "date": "2026-11-21",
-      "subject": "benchmark(v3.2): seat-swapped exact-vs-Gaussian DP Expert opponent pilot"
+      "sha": "c6bd8f5",
+      "date": "2026-11-22",
+      "subject": "benchmark: common 12-category paired full-game evaluator for v3, v3.3, v3.4 and v4"
     },
     {
-      "sha": "d321f8c",
-      "date": "2026-11-21",
-      "subject": "test(v3.2): prove three-slot DP score PMF normalization, expectation, gating, and RNG invariance"
+      "sha": "feeaf26",
+      "date": "2026-11-22",
+      "subject": "test(research): verify v3.3 model gates, v3.4 public RNG invariance, v4 legality"
     },
     {
-      "sha": "0191869",
-      "date": "2026-11-21",
-      "subject": "research(v3.2): exact fixed DP Expert final-score forecast with strict opponent gate"
+      "sha": "2ca3cff",
+      "date": "2026-11-22",
+      "subject": "research(v4): implement full-game DP teacher imitation + PSRO league/self-play REINFORCE over 3 seeds"
     },
     {
-      "sha": "83dcb75",
-      "date": "2026-11-21",
-      "subject": "feat(research): allow exactly enumerated three-category DP Expert forecast in v3"
+      "sha": "5668a57",
+      "date": "2026-11-22",
+      "subject": "research(v4): compose DP-anchored trained policy, v3.3 forecast and v3.4 adaptive endgame"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO",
+      "name": "YachtLab v3.3 v3.4 v4 self-play and 200k-per-model confirmation",
       "status": "success",
-      "head": "6617a32fbb",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915629790"
-    },
-    {
-      "name": "YachtLab v3.2 exact three-slot opponent forecast research",
-      "status": "success",
-      "head": "6617a32fbb",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915629754"
+      "head": "c1ae7b4844",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44921977607"
     },
     {
       "name": "Full-game self-play and three-turn competitive research",
       "status": "success",
-      "head": "6617a32fbb",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915629679"
+      "head": "6e3968befa",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915723971"
+    },
+    {
+      "name": "YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO",
+      "status": "success",
+      "head": "6e3968befa",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915723922"
     },
     {
       "name": "PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO",
-      "status": "cancelled",
-      "head": "e91f74c7f7",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915600917"
+      "status": "success",
+      "head": "6e3968befa",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915723908"
+    },
+    {
+      "name": "YachtLab v3.2 exact three-slot opponent forecast research",
+      "status": "success",
+      "head": "6e3968befa",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915723897"
     },
     {
       "name": "Test and deploy YachtLab",
-      "status": "cancelled",
-      "head": "e91f74c7f7",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915600852"
+      "status": "success",
+      "head": "6e3968befa",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915723883"
     },
     {
       "name": "YachtLab Win DP v3.1 research and independent confirmation",
       "status": "success",
-      "head": "8d5980f97b",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915350777"
+      "head": "c26466e59b",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915685402"
     },
     {
       "name": "YachtLab 170k-game v2.1 v3 v3.1 independent comparison",
       "status": "success",
-      "head": "8d5980f97b",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915350772"
+      "head": "c26466e59b",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915685398"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
