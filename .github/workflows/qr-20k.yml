@@ -1,0 +1,114 @@
+name: YachtLab QR16 loss2 20k five-seed training
+on:
+  pull_request:
+    paths:
+      - "scripts/train-qr-20k.mjs"
+      - "scripts/summarize-qr-20k.mjs"
+      - ".github/workflows/qr-20k.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/train-qr-20k.mjs"
+      - "scripts/summarize-qr-20k.mjs"
+      - ".github/workflows/qr-20k.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-qr20k-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Test and build
+        run: |
+          npm test -- --reporter=dot
+          npm run build
+          node --check scripts/train-qr-20k.mjs
+          node --check scripts/summarize-qr-20k.mjs
+      - name: Real 12-round full-game training and confirmation smoke
+        run: node scripts/train-qr-20k.mjs --smoke --seed-index 0
+  train-20k:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        seed: [0, 1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: 20,000 complete Yacht Dice matches for this independently initialized QR-DQN
+        run: node scripts/train-qr-20k.mjs --seed-index ${{ matrix.seed }}
+      - name: Preserve training and untouched paired evaluation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qr20k-seed-${{ matrix.seed }}
+          path: training/results/qr-20k/seed-*.json
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Preserve training checkpoints even if training is interrupted
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qr20k-checkpoints-${{ matrix.seed }}
+          path: training/checkpoints/qr20k/seed-*.json
+          if-no-files-found: warn
+          retention-days: 90
+  summarize:
+    needs: train-20k
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: qr20k-seed-*
+          path: training/results/qr-20k
+          merge-multiple: true
+      - name: Consolidate five seeds; compare 1k vs 20k on untouched paired confirmation seeds
+        run: |
+          mkdir -p training/results/qr-20k
+          find training/results/qr-20k -name "seed-*.json" -not -path "*/qr20k/*" -print
+          node scripts/summarize-qr-20k.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qr20k-five-seed-summary
+          path: |
+            docs/context/_generated/QR-20K-LATEST.md
+            training/results/qr-20k-summary.json
+          retention-days: 90
+      - name: Preserve research findings in the GitHub context hub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/QR-20K-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(context): QR16 loss2 20k five-seed actual results [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
