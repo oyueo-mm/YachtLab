@@ -83,9 +83,15 @@
     "qr-deep-research.yml",
     "qr-followup.yml",
     "qr-four-pillars.yml",
-    "tabular-zoo.yml"
+    "tabular-zoo.yml",
+    "yahtzeerl-transfer.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "1a8a43d",
+      "date": "2026-11-21",
+      "subject": "research: evaluate actual pretrained competitive YahtzeeRL network via labeled 12-category zero-shot transfer"
+    },
     {
       "sha": "6992fa9",
       "date": "2026-11-21",
@@ -130,14 +136,15 @@
       "sha": "2bdec89",
       "date": "2026-11-21",
       "subject": "research: exact Win DP response, stochastic coupled search, checkpoint stability and supervised teacher study"
-    },
-    {
-      "sha": "7a617a6",
-      "date": "2026-11-21",
-      "subject": "chore(research): autonomous QR campaign findings [skip ci]"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "YachtLab independently trained YahtzeeRL checkpoint transfer diagnostic",
+      "status": "success",
+      "head": "279082ebf4",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44907769281"
+    },
     {
       "name": "YachtLab independent discovered Yacht AI forensic evaluation",
       "status": "success",
@@ -161,12 +168,6 @@
       "status": "success",
       "head": "18bac46f8d",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900566422"
-    },
-    {
-      "name": "YachtLab exact Best Response and opponent-policy forensic research",
-      "status": "success",
-      "head": "2bdec89a14",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900147293"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
