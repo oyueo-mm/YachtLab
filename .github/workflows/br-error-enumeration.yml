@@ -1,0 +1,100 @@
+name: YachtLab exhaustive exact last-turn WinDP error enumeration
+on:
+  pull_request:
+    paths:
+      - "scripts/enumerate-br-lastturn.mjs"
+      - "scripts/summarize-br-enumeration.mjs"
+      - ".github/workflows/br-error-enumeration.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/enumerate-br-lastturn.mjs"
+      - "scripts/summarize-br-enumeration.mjs"
+      - ".github/workflows/br-error-enumeration.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: yachtlab-exact-lastturn-enum-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: |
+          npm test -- --reporter=dot
+          npm run build
+          node --check scripts/enumerate-br-lastturn.mjs
+          node --check scripts/summarize-br-enumeration.mjs
+      - name: Smoke exact 252-dice enumeration on genuine self-play scorecards
+        run: node scripts/enumerate-br-lastturn.mjs --shard 0 --smoke
+  enumerate:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Generate 100 real game boards and evaluate all 252 rolled dice per board
+        run: node scripts/enumerate-br-lastturn.mjs --shard ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: br-exact-enumeration-${{ matrix.shard }}
+          path: training/results/br-enumeration/shard-${{ matrix.shard }}.json
+          if-no-files-found: warn
+          retention-days: 90
+  summarize:
+    needs: enumerate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: br-exact-enumeration-*
+          path: training/results/br-enumeration
+          merge-multiple: true
+      - name: Full probability-weighted exact witness audit and game-clustered CI
+        run: node scripts/summarize-br-enumeration.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: br-exact-enumeration-final-summary
+          path: |
+            docs/context/_generated/BR-ERRORS-LATEST.md
+            training/results/br-enumeration/summary.json
+          retention-days: 90
+      - name: Persist research evidence, no app policy modification
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/BR-ERRORS-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(research): exhaustive last-turn WinDP policy error audit [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
