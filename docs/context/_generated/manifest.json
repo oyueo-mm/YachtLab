@@ -64,6 +64,7 @@
   ],
   "workflowFiles": [
     "algorithm-zoo.yml",
+    "br-error-enumeration.yml",
     "br-research.yml",
     "competitive-research.yml",
     "confirm-v2.yml",
@@ -83,6 +84,11 @@
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "c8d6eae",
+      "date": "2026-11-21",
+      "subject": "research: exhaustively enumerate 100800 last-turn Win DP best-response decision states"
+    },
     {
       "sha": "2bdec89",
       "date": "2026-11-21",
@@ -127,14 +133,21 @@
       "sha": "a33fd33",
       "date": "2026-11-21",
       "subject": "docs(research): audit QR suite success, counterfactual omission and DP Expert comparator contamination [skip ci]"
-    },
-    {
-      "sha": "34f4e39",
-      "date": "2026-11-21",
-      "subject": "research: QR-DQN, IQN and 5-seed controlled full-game experimental suite"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "YachtLab exhaustive exact last-turn WinDP error enumeration",
+      "status": "success",
+      "head": "4b35b69f41",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900272458"
+    },
+    {
+      "name": "YachtLab exact Best Response and opponent-policy forensic research",
+      "status": "success",
+      "head": "9a4ae0cd93",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900132415"
+    },
     {
       "name": "Test and deploy YachtLab",
       "status": "cancelled",
@@ -142,22 +155,10 @@
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900043813"
     },
     {
-      "name": "YachtLab exact Best Response and opponent-policy forensic research",
-      "status": "success",
-      "head": "d5bf47ff16",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44900043810"
-    },
-    {
       "name": "YachtLab autonomous QR reward and architecture research",
       "status": "success",
       "head": "c63f39462e",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44895765360"
-    },
-    {
-      "name": "YachtLab QR 54-percent recheck and learning stability research",
-      "status": "success",
-      "head": "c54851347a",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44889467544"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
