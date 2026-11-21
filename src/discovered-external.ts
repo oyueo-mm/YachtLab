@@ -49,7 +49,7 @@ const scoreHard=(s:Game):Decision=>{const vs=n(s),card=s.cards[s.player],u=upper
 };
 const combo=(vs:number[],mask:number,rng:()=>number)=>vs.map((v,i)=>(mask&(1<<i))?v:Math.floor(rng()*6)+1);
 const evalKeep=(s:Game,vs:number[],mask:number,depth:number,rng:()=>number):number=>{
- if(depth>=2)return hardEval(s,vs);const n=5-Array.from({length:5},(_,i)=>mask&(1<<i)?1:0).reduce((a,b)=>a+b,0);if(!n)return hardEval(s,vs);
+ if(depth>=2)return hardEval(s,vs);const n=5-Array.from({length:5},(_,i)=>mask&(1<<i)?1:0).reduce((a:number,b:number)=>a+b,0);if(!n)return hardEval(s,vs);
  const samples=n<=2?36:6;let total=0;
  for(let z=0;z<samples;z++){const next=combo(vs,mask,rng);
   if(depth===0&&s.rolls===1){let max=-Infinity;for(let nextMask=0;nextMask<31;nextMask++){const sampleRng= rng;const v=evalKeep(s,next,nextMask,1,sampleRng);if(v>max)max=v;}total+=Number.isFinite(max)?max:hardEval(s,next);}
