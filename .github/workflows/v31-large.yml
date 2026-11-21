@@ -1,0 +1,173 @@
+name: YachtLab 170k-game v2.1 v3 v3.1 independent comparison
+on:
+  pull_request:
+    paths:
+      - scripts/bench-v31.mjs
+      - scripts/summarize-v31-large.mjs
+      - .github/workflows/v31-large.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/bench-v31.mjs
+      - scripts/summarize-v31-large.mjs
+      - .github/workflows/v31-large.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-v31-large-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test -- --reporter=dot
+      - run: npm run build
+      - name: Benchmark syntax and compact matched-seat smoke
+        run: |
+          node --check scripts/bench-v31.mjs
+          node --check scripts/summarize-v31-large.mjs
+          node scripts/bench-v31.mjs --candidate v31-hybrid --opponent "Win DP v2" --shard 901 --smoke --compact
+          node scripts/bench-v31.mjs --candidate v3-unmodified --opponent "Win DP v2" --shard 901 --smoke --compact
+          node scripts/bench-v31.mjs --candidate v21-conditional --opponent "Win DP v2" --shard 901 --smoke --compact
+          node scripts/bench-v31.mjs --candidate v31-hybrid --opponent "Win DP v3" --shard 901 --smoke --compact
+  duel:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include:
+          - candidate: v31-hybrid
+            opponent: Win DP v2
+            shard: 1001
+            pairs: 5000
+          - candidate: v31-hybrid
+            opponent: Win DP v2
+            shard: 1002
+            pairs: 5000
+          - candidate: v31-hybrid
+            opponent: Win DP v2
+            shard: 1003
+            pairs: 5000
+          - candidate: v31-hybrid
+            opponent: Win DP v2
+            shard: 1004
+            pairs: 5000
+          - candidate: v31-hybrid
+            opponent: Win DP v2
+            shard: 1005
+            pairs: 5000
+          - candidate: v3-unmodified
+            opponent: Win DP v2
+            shard: 1001
+            pairs: 5000
+          - candidate: v3-unmodified
+            opponent: Win DP v2
+            shard: 1002
+            pairs: 5000
+          - candidate: v3-unmodified
+            opponent: Win DP v2
+            shard: 1003
+            pairs: 5000
+          - candidate: v3-unmodified
+            opponent: Win DP v2
+            shard: 1004
+            pairs: 5000
+          - candidate: v3-unmodified
+            opponent: Win DP v2
+            shard: 1005
+            pairs: 5000
+          - candidate: v31-hybrid
+            opponent: Win DP v3
+            shard: 1001
+            pairs: 5000
+          - candidate: v31-hybrid
+            opponent: Win DP v3
+            shard: 1002
+            pairs: 5000
+          - candidate: v31-hybrid
+            opponent: Win DP v3
+            shard: 1003
+            pairs: 5000
+          - candidate: v31-hybrid
+            opponent: Win DP v3
+            shard: 1004
+            pairs: 5000
+          - candidate: v31-hybrid
+            opponent: Win DP v3
+            shard: 1005
+            pairs: 5000
+          - candidate: v21-conditional
+            opponent: Win DP v2
+            shard: 1001
+            pairs: 5000
+          - candidate: v21-conditional
+            opponent: Win DP v2
+            shard: 1002
+            pairs: 5000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Fixed 5k independent seed-pair shard with both seats
+        run: node scripts/bench-v31.mjs --candidate "${{ matrix.candidate }}" --opponent "${{ matrix.opponent }}" --shard "${{ matrix.shard }}" --pairs "${{ matrix.pairs }}" --compact
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v31-large-${{ matrix.candidate }}-${{ matrix.opponent }}-${{ matrix.shard }}
+          path: training/results/v31-challenge/*.json
+          retention-days: 90
+          if-no-files-found: error
+  summarize:
+    needs: duel
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: v31-large-*
+          path: training/results/v31-large
+          merge-multiple: true
+      - name: Verify all 17 complete shards and exact matching seeds
+        run: node scripts/summarize-v31-large.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v31-large-170k-independent-report
+          path: |
+            training/results/v31-large/summary.json
+            docs/context/_generated/V31-LARGE-LATEST.md
+          retention-days: 90
+      - name: Publish evidence only; never promote any production AI
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/V31-LARGE-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(research): publish 170k-game independent v31 comparison [skip ci]"
+            for attempt in 1 2 3 4 5; do
+              git pull --rebase origin main
+              if git push origin HEAD:main; then exit 0; fi
+              sleep 2
+            done
+            exit 1
+          fi
