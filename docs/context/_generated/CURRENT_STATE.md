@@ -51,6 +51,7 @@
 - [qr-deep-research.yml](../../../.github/workflows/qr-deep-research.yml)
 - [qr-followup.yml](../../../.github/workflows/qr-followup.yml)
 - [qr-four-pillars.yml](../../../.github/workflows/qr-four-pillars.yml)
+- [sota-attack-lab.yml](../../../.github/workflows/sota-attack-lab.yml)
 - [tabular-zoo.yml](../../../.github/workflows/tabular-zoo.yml)
 - [yahtzeerl-transfer.yml](../../../.github/workflows/yahtzeerl-transfer.yml)
 
@@ -80,6 +81,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [cba6700](https://github.com/oyueo-mm/YachtLab/commit/cba6700) | 2026-11-21 | research: evaluate opponent-specific BR, forecast DP, MCTS, neural distillation and new full-turn QR retraining |
+| [c77f8cc](https://github.com/oyueo-mm/YachtLab/commit/c77f8cc) | 2026-11-21 | chore(research): publish independent trained 12-category DQN vs Win DP v2 [skip ci] |
 | [15b4443](https://github.com/oyueo-mm/YachtLab/commit/15b4443) | 2026-11-21 | research: benchmark authentic 12-category pretrained Yacht DQN against Win DP v2 with 2000 paired games |
 | [86664e5](https://github.com/oyueo-mm/YachtLab/commit/86664e5) | 2026-11-21 | chore(research): publish authentic YahtzeeRL checkpoint transfer diagnostics [skip ci] |
 | [637baec](https://github.com/oyueo-mm/YachtLab/commit/637baec) | 2026-11-21 | chore(research): publish discovered Yacht source adversaries' loss analysis [skip ci] |
@@ -88,8 +91,6 @@
 | [6992fa9](https://github.com/oyueo-mm/YachtLab/commit/6992fa9) | 2026-11-21 | research: audit additional independent Yacht opponent source strategies and diagnose competitive losses |
 | [2fc4cde](https://github.com/oyueo-mm/YachtLab/commit/2fc4cde) | 2026-11-21 | chore(research): publish external strategy adaptation tournament results [skip ci] |
 | [4e82bbd](https://github.com/oyueo-mm/YachtLab/commit/4e82bbd) | 2026-11-21 | research: 12-rule source strategy championship against Rust, Pancht and Benji-inspired opponents |
-| [d841906](https://github.com/oyueo-mm/YachtLab/commit/d841906) | 2026-11-21 | chore(research): exact WinDP BR diagnostics and counterfactual audit [skip ci] |
-| [bdd7fb6](https://github.com/oyueo-mm/YachtLab/commit/bdd7fb6) | 2026-11-21 | chore(research): exhaustive last-turn WinDP policy error audit [skip ci] |
 
 ## 최근 GitHub Actions 상태
 
@@ -97,12 +98,11 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab actual 12-category pretrained DQN independent competition](https://github.com/oyueo-mm/YachtLab/actions/runs/44909062605) | success | 4c1f356de3 |
+| [YachtLab SOTA challenger research 4-pillars](https://github.com/oyueo-mm/YachtLab/actions/runs/44910090422) | success | c35c6c0031 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44910007931) | failure | 6394cf2b36 |
+| [YachtLab actual 12-category pretrained DQN independent competition](https://github.com/oyueo-mm/YachtLab/actions/runs/44909157511) | success | 15b4443509 |
 | [YachtLab independently trained YahtzeeRL checkpoint transfer diagnostic](https://github.com/oyueo-mm/YachtLab/actions/runs/44908082097) | success | 820b619737 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44908082067) | success | 820b619737 |
 | [YachtLab independent discovered Yacht AI forensic evaluation](https://github.com/oyueo-mm/YachtLab/actions/runs/44907575575) | success | 6992fa901e |
-| [YachtLab external-source strategy championship](https://github.com/oyueo-mm/YachtLab/actions/runs/44905127036) | success | 4e82bbd7c4 |
-| [YachtLab exhaustive exact last-turn WinDP error enumeration](https://github.com/oyueo-mm/YachtLab/actions/runs/44900566422) | success | 18bac46f8d |
 
 ## 다음 채팅과 작업의 시작점
 
