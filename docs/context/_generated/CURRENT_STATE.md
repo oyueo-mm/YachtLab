@@ -52,6 +52,7 @@
 - [qr-followup.yml](../../../.github/workflows/qr-followup.yml)
 - [qr-four-pillars.yml](../../../.github/workflows/qr-four-pillars.yml)
 - [sota-attack-lab.yml](../../../.github/workflows/sota-attack-lab.yml)
+- [sota-independent-confirm.yml](../../../.github/workflows/sota-independent-confirm.yml)
 - [tabular-zoo.yml](../../../.github/workflows/tabular-zoo.yml)
 - [yahtzeerl-transfer.yml](../../../.github/workflows/yahtzeerl-transfer.yml)
 
@@ -81,6 +82,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [a5cc3f4](https://github.com/oyueo-mm/YachtLab/commit/a5cc3f4) | 2026-11-21 | research: independently confirm v3, MCTS and conditional BR improvements with 10000 more 12-rule games |
+| [dcab43d](https://github.com/oyueo-mm/YachtLab/commit/dcab43d) | 2026-11-21 | chore(research): publish six-policy SOTA attack benchmark [skip ci] |
 | [cba6700](https://github.com/oyueo-mm/YachtLab/commit/cba6700) | 2026-11-21 | research: evaluate opponent-specific BR, forecast DP, MCTS, neural distillation and new full-turn QR retraining |
 | [c77f8cc](https://github.com/oyueo-mm/YachtLab/commit/c77f8cc) | 2026-11-21 | chore(research): publish independent trained 12-category DQN vs Win DP v2 [skip ci] |
 | [15b4443](https://github.com/oyueo-mm/YachtLab/commit/15b4443) | 2026-11-21 | research: benchmark authentic 12-category pretrained Yacht DQN against Win DP v2 with 2000 paired games |
@@ -89,8 +92,6 @@
 | [820b619](https://github.com/oyueo-mm/YachtLab/commit/820b619) | 2026-11-21 | fix(research): reliably download independently trained YahtzeeRL checkpoint artifacts |
 | [1a8a43d](https://github.com/oyueo-mm/YachtLab/commit/1a8a43d) | 2026-11-21 | research: evaluate actual pretrained competitive YahtzeeRL network via labeled 12-category zero-shot transfer |
 | [6992fa9](https://github.com/oyueo-mm/YachtLab/commit/6992fa9) | 2026-11-21 | research: audit additional independent Yacht opponent source strategies and diagnose competitive losses |
-| [2fc4cde](https://github.com/oyueo-mm/YachtLab/commit/2fc4cde) | 2026-11-21 | chore(research): publish external strategy adaptation tournament results [skip ci] |
-| [4e82bbd](https://github.com/oyueo-mm/YachtLab/commit/4e82bbd) | 2026-11-21 | research: 12-rule source strategy championship against Rust, Pancht and Benji-inspired opponents |
 
 ## 최근 GitHub Actions 상태
 
@@ -98,6 +99,7 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
+| [YachtLab SOTA candidate independent large-sample confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44910398610) | success | e64f8c6f06 |
 | [YachtLab SOTA challenger research 4-pillars](https://github.com/oyueo-mm/YachtLab/actions/runs/44910090422) | success | c35c6c0031 |
 | [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44910007931) | failure | 6394cf2b36 |
 | [YachtLab actual 12-category pretrained DQN independent competition](https://github.com/oyueo-mm/YachtLab/actions/runs/44909157511) | success | 15b4443509 |

@@ -85,10 +85,21 @@
     "qr-followup.yml",
     "qr-four-pillars.yml",
     "sota-attack-lab.yml",
+    "sota-independent-confirm.yml",
     "tabular-zoo.yml",
     "yahtzeerl-transfer.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "a5cc3f4",
+      "date": "2026-11-21",
+      "subject": "research: independently confirm v3, MCTS and conditional BR improvements with 10000 more 12-rule games"
+    },
+    {
+      "sha": "dcab43d",
+      "date": "2026-11-21",
+      "subject": "chore(research): publish six-policy SOTA attack benchmark [skip ci]"
+    },
     {
       "sha": "cba6700",
       "date": "2026-11-21",
@@ -128,19 +139,15 @@
       "sha": "6992fa9",
       "date": "2026-11-21",
       "subject": "research: audit additional independent Yacht opponent source strategies and diagnose competitive losses"
-    },
-    {
-      "sha": "2fc4cde",
-      "date": "2026-11-21",
-      "subject": "chore(research): publish external strategy adaptation tournament results [skip ci]"
-    },
-    {
-      "sha": "4e82bbd",
-      "date": "2026-11-21",
-      "subject": "research: 12-rule source strategy championship against Rust, Pancht and Benji-inspired opponents"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "YachtLab SOTA candidate independent large-sample confirmation",
+      "status": "success",
+      "head": "e64f8c6f06",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44910398610"
+    },
     {
       "name": "YachtLab SOTA challenger research 4-pillars",
       "status": "success",
