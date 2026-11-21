@@ -70,6 +70,7 @@
     "confirm-v2.yml",
     "context-sync.yml",
     "deploy.yml",
+    "discovered-external.yml",
     "external-championship.yml",
     "full-selfplay.yml",
     "integrated-research.yml",
@@ -85,6 +86,16 @@
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "6992fa9",
+      "date": "2026-11-21",
+      "subject": "research: audit additional independent Yacht opponent source strategies and diagnose competitive losses"
+    },
+    {
+      "sha": "2fc4cde",
+      "date": "2026-11-21",
+      "subject": "chore(research): publish external strategy adaptation tournament results [skip ci]"
+    },
     {
       "sha": "4e82bbd",
       "date": "2026-11-21",
@@ -124,30 +135,26 @@
       "sha": "7a617a6",
       "date": "2026-11-21",
       "subject": "chore(research): autonomous QR campaign findings [skip ci]"
-    },
-    {
-      "sha": "c63f394",
-      "date": "2026-11-21",
-      "subject": "research: autonomous 24→6→1 QR reward/model exploration with independent 12k-game confirmation"
-    },
-    {
-      "sha": "eb9be40",
-      "date": "2026-11-21",
-      "subject": "chore(research): QR 54 recheck and learning stability findings [skip ci]"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "YachtLab external-source strategy championship",
+      "name": "YachtLab independent discovered Yacht AI forensic evaluation",
       "status": "success",
-      "head": "c8f7ad453e",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44905064483"
+      "head": "bc448daacf",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44907476073"
     },
     {
       "name": "Test and deploy YachtLab",
       "status": "failure",
-      "head": "7f72f20293",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44904999512"
+      "head": "e94804e9f2",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44907331693"
+    },
+    {
+      "name": "YachtLab external-source strategy championship",
+      "status": "success",
+      "head": "4e82bbd7c4",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44905127036"
     },
     {
       "name": "YachtLab exhaustive exact last-turn WinDP error enumeration",
