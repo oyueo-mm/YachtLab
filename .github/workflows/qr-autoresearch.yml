@@ -1,0 +1,217 @@
+name: YachtLab autonomous QR reward and architecture research
+on:
+  pull_request:
+    paths:
+      - "scripts/train-qr-autoresearch.mjs"
+      - "scripts/select-qr-autoresearch.mjs"
+      - "scripts/summarize-qr-autoresearch.mjs"
+      - ".github/workflows/qr-autoresearch.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/train-qr-autoresearch.mjs"
+      - "scripts/select-qr-autoresearch.mjs"
+      - "scripts/summarize-qr-autoresearch.mjs"
+      - ".github/workflows/qr-autoresearch.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: yachtlab-autoqr-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Check full test suite, production build and automation syntax
+        run: |
+          npm test -- --reporter=dot
+          npm run build
+          node --check scripts/train-qr-autoresearch.mjs
+          node --check scripts/select-qr-autoresearch.mjs
+          node --check scripts/summarize-qr-autoresearch.mjs
+      - name: Exercise reward types, 32-to-128-width heads, auxiliary and multi-step variants
+        run: |
+          for cfg in baseline32 scoreOnly marginOnly win70margin20score10 auxMargin auxScore wide128Hybrid mcHybrid nstepHybrid; do
+            node scripts/train-qr-autoresearch.mjs --config "$cfg" --seed-index 0 --tier screen --smoke
+          done
+  screen:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        config: [baseline32, scoreOnly, marginOnly, scoreMargin, win80score20, win80margin20, win70margin20score10, win50margin25score25, win90margin10, win90score10, win60margin40, win60score40, auxMargin, auxScore, wide64Hybrid, wide128Hybrid, smallLRHybrid, target500Hybrid, loss4Hybrid, loss6Hybrid, gamma1Hybrid, uniformHybrid, mcHybrid, nstepHybrid]
+        seed: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: node scripts/train-qr-autoresearch.mjs --config ${{ matrix.config }} --seed-index ${{ matrix.seed }} --tier screen
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qr-auto-screen-${{ matrix.config }}-${{ matrix.seed }}
+          path: training/results/qr-autoresearch/screen/*.json
+          if-no-files-found: warn
+          retention-days: 90
+  select-screen:
+    needs: screen
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      configs: ${{ steps.pick.outputs.configs }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: qr-auto-screen-*
+          path: training/results/qr-autoresearch/screen
+          merge-multiple: true
+      - id: pick
+        run: node scripts/select-qr-autoresearch.mjs --tier screen --output github >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qr-auto-screen-selection
+          path: training/results/qr-autoresearch/selection-screen.json
+          retention-days: 90
+  develop:
+    needs: select-screen
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        config: ${{ fromJSON(needs.select-screen.outputs.configs) }}
+        seed: [0, 1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: node scripts/train-qr-autoresearch.mjs --config ${{ matrix.config }} --seed-index ${{ matrix.seed }} --tier develop
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qr-auto-develop-${{ matrix.config }}-${{ matrix.seed }}
+          path: training/results/qr-autoresearch/develop/*.json
+          if-no-files-found: warn
+          retention-days: 90
+  select-develop:
+    needs: develop
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      champion: ${{ steps.pick.outputs.champion }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: qr-auto-develop-*
+          path: training/results/qr-autoresearch/develop
+          merge-multiple: true
+      - id: pick
+        run: node scripts/select-qr-autoresearch.mjs --tier develop --output github >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qr-auto-develop-selection
+          path: training/results/qr-autoresearch/selection-develop.json
+          retention-days: 90
+  confirm:
+    needs: select-develop
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        seed: [0, 1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Five independent 20000-game finalist trainings with 12000 untouched match confirmations
+        run: node scripts/train-qr-autoresearch.mjs --config ${{ needs.select-develop.outputs.champion }} --seed-index ${{ matrix.seed }} --tier confirm
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qr-auto-confirm-${{ matrix.seed }}
+          path: training/results/qr-autoresearch/confirm/*.json
+          if-no-files-found: warn
+          retention-days: 90
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qr-auto-final-checkpoint-${{ matrix.seed }}
+          path: training/checkpoints/qr-autoresearch/confirm/*.json
+          if-no-files-found: warn
+          retention-days: 90
+  report:
+    needs: confirm
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          name: qr-auto-screen-selection
+          path: training/results/qr-autoresearch
+      - uses: actions/download-artifact@v4
+        with:
+          name: qr-auto-develop-selection
+          path: training/results/qr-autoresearch
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: qr-auto-confirm-*
+          path: training/results/qr-autoresearch/confirm
+          merge-multiple: true
+      - run: node scripts/summarize-qr-autoresearch.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qr-autoresearch-final-campaign-report
+          path: |
+            docs/context/_generated/QR-AUTORESEARCH-LATEST.md
+            training/results/qr-autoresearch/final-summary.json
+          retention-days: 90
+      - name: Persist final evidence without changing the shipped AI
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/QR-AUTORESEARCH-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(research): autonomous QR campaign findings [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
