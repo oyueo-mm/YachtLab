@@ -56,6 +56,7 @@
 - [tabular-zoo.yml](../../../.github/workflows/tabular-zoo.yml)
 - [v31-large.yml](../../../.github/workflows/v31-large.yml)
 - [v31-research.yml](../../../.github/workflows/v31-research.yml)
+- [v32-research.yml](../../../.github/workflows/v32-research.yml)
 - [yahtzeerl-transfer.yml](../../../.github/workflows/yahtzeerl-transfer.yml)
 
 ## 맥락 허브의 보존된 문서
@@ -81,21 +82,22 @@
 - [SELFPLAY-RESEARCH.md](../SELFPLAY-RESEARCH.md)
 - [TECHNIQUES.md](../TECHNIQUES.md)
 - [V31-RESEARCH.md](../V31-RESEARCH.md)
+- [V32-EXACT-FORECAST.md](../V32-EXACT-FORECAST.md)
 
 ## 최근 Git 커밋 (맥락 자동 커밋 제외)
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [6e3968b](https://github.com/oyueo-mm/YachtLab/commit/6e3968b) | 2026-11-21 | research: integrate v3.2 exact three-slot DP Expert score forecast |
 | [c26466e](https://github.com/oyueo-mm/YachtLab/commit/c26466e) | 2026-11-21 | research: launch 170k-game paired v2.1/v3/v3.1 independent confirmation |
-| [8d5980f](https://github.com/oyueo-mm/YachtLab/commit/8d5980f) | 2026-11-21 | docs: preregister 170k-game holdout and v3.2-v4 concrete improvement gates |
-| [930fed7](https://github.com/oyueo-mm/YachtLab/commit/930fed7) | 2026-11-21 | ci(research): run 170k full-game preregistered v2.1-v3-v3.1 holdout |
-| [05124a7](https://github.com/oyueo-mm/YachtLab/commit/05124a7) | 2026-11-21 | research: summarize 170k seat-swapped games with paired 99% CIs and rare BR impact |
-| [c0d5ded](https://github.com/oyueo-mm/YachtLab/commit/c0d5ded) | 2026-11-21 | benchmark: support compact 170k-game independent evidence and v2.1 ablation |
-| [1677595](https://github.com/oyueo-mm/YachtLab/commit/1677595) | 2026-11-21 | chore(research): publish Win DP v3.1 fresh-shard evidence [skip ci] |
-| [0d08aac](https://github.com/oyueo-mm/YachtLab/commit/0d08aac) | 2026-11-21 | research: add Win DP v3.1 hybrid and independent competition suite |
-| [98b4bea](https://github.com/oyueo-mm/YachtLab/commit/98b4bea) | 2026-11-21 | chore(research): publish independently seeded competitive policy confirmation [skip ci] |
-| [14207b5](https://github.com/oyueo-mm/YachtLab/commit/14207b5) | 2026-11-21 | chore(research): publish 2-seed full-turn QR-DQN retraining [skip ci] |
-| [a5cc3f4](https://github.com/oyueo-mm/YachtLab/commit/a5cc3f4) | 2026-11-21 | research: independently confirm v3, MCTS and conditional BR improvements with 10000 more 12-rule games |
+| [6617a32](https://github.com/oyueo-mm/YachtLab/commit/6617a32) | 2026-11-21 | fix(v3.2): write pilot output to the correct v32 challenge directory |
+| [e91f74c](https://github.com/oyueo-mm/YachtLab/commit/e91f74c) | 2026-11-21 | docs(v3.2): distinguish exact fixed-policy PMF from adaptive win-rate optimal play |
+| [53b6a06](https://github.com/oyueo-mm/YachtLab/commit/53b6a06) | 2026-11-21 | ci(v3.2): validate exact score PMF and launch independent paired pilot |
+| [af43a50](https://github.com/oyueo-mm/YachtLab/commit/af43a50) | 2026-11-21 | research(v3.2): matched v3 baseline versus exact forecast pilot summary |
+| [7d639e4](https://github.com/oyueo-mm/YachtLab/commit/7d639e4) | 2026-11-21 | benchmark(v3.2): seat-swapped exact-vs-Gaussian DP Expert opponent pilot |
+| [d321f8c](https://github.com/oyueo-mm/YachtLab/commit/d321f8c) | 2026-11-21 | test(v3.2): prove three-slot DP score PMF normalization, expectation, gating, and RNG invariance |
+| [0191869](https://github.com/oyueo-mm/YachtLab/commit/0191869) | 2026-11-21 | research(v3.2): exact fixed DP Expert final-score forecast with strict opponent gate |
+| [83dcb75](https://github.com/oyueo-mm/YachtLab/commit/83dcb75) | 2026-11-21 | feat(research): allow exactly enumerated three-category DP Expert forecast in v3 |
 
 ## 최근 GitHub Actions 상태
 
@@ -103,9 +105,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
+| [YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44915629790) | success | 6617a32fbb |
 | [YachtLab v3.2 exact three-slot opponent forecast research](https://github.com/oyueo-mm/YachtLab/actions/runs/44915629754) | success | 6617a32fbb |
 | [Full-game self-play and three-turn competitive research](https://github.com/oyueo-mm/YachtLab/actions/runs/44915629679) | success | 6617a32fbb |
-| [YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44915600952) | success | e91f74c7f7 |
 | [PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44915600917) | cancelled | e91f74c7f7 |
 | [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44915600852) | cancelled | e91f74c7f7 |
 | [YachtLab Win DP v3.1 research and independent confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44915350777) | success | 8d5980f97b |

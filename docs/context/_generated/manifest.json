@@ -62,7 +62,8 @@
     "SELFPLAY-2026-11-20-FINAL.md",
     "SELFPLAY-RESEARCH.md",
     "TECHNIQUES.md",
-    "V31-RESEARCH.md"
+    "V31-RESEARCH.md",
+    "V32-EXACT-FORECAST.md"
   ],
   "workflowFiles": [
     "algorithm-zoo.yml",
@@ -91,61 +92,68 @@
     "tabular-zoo.yml",
     "v31-large.yml",
     "v31-research.yml",
+    "v32-research.yml",
     "yahtzeerl-transfer.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "6e3968b",
+      "date": "2026-11-21",
+      "subject": "research: integrate v3.2 exact three-slot DP Expert score forecast"
+    },
     {
       "sha": "c26466e",
       "date": "2026-11-21",
       "subject": "research: launch 170k-game paired v2.1/v3/v3.1 independent confirmation"
     },
     {
-      "sha": "8d5980f",
+      "sha": "6617a32",
       "date": "2026-11-21",
-      "subject": "docs: preregister 170k-game holdout and v3.2-v4 concrete improvement gates"
+      "subject": "fix(v3.2): write pilot output to the correct v32 challenge directory"
     },
     {
-      "sha": "930fed7",
+      "sha": "e91f74c",
       "date": "2026-11-21",
-      "subject": "ci(research): run 170k full-game preregistered v2.1-v3-v3.1 holdout"
+      "subject": "docs(v3.2): distinguish exact fixed-policy PMF from adaptive win-rate optimal play"
     },
     {
-      "sha": "05124a7",
+      "sha": "53b6a06",
       "date": "2026-11-21",
-      "subject": "research: summarize 170k seat-swapped games with paired 99% CIs and rare BR impact"
+      "subject": "ci(v3.2): validate exact score PMF and launch independent paired pilot"
     },
     {
-      "sha": "c0d5ded",
+      "sha": "af43a50",
       "date": "2026-11-21",
-      "subject": "benchmark: support compact 170k-game independent evidence and v2.1 ablation"
+      "subject": "research(v3.2): matched v3 baseline versus exact forecast pilot summary"
     },
     {
-      "sha": "1677595",
+      "sha": "7d639e4",
       "date": "2026-11-21",
-      "subject": "chore(research): publish Win DP v3.1 fresh-shard evidence [skip ci]"
+      "subject": "benchmark(v3.2): seat-swapped exact-vs-Gaussian DP Expert opponent pilot"
     },
     {
-      "sha": "0d08aac",
+      "sha": "d321f8c",
       "date": "2026-11-21",
-      "subject": "research: add Win DP v3.1 hybrid and independent competition suite"
+      "subject": "test(v3.2): prove three-slot DP score PMF normalization, expectation, gating, and RNG invariance"
     },
     {
-      "sha": "98b4bea",
+      "sha": "0191869",
       "date": "2026-11-21",
-      "subject": "chore(research): publish independently seeded competitive policy confirmation [skip ci]"
+      "subject": "research(v3.2): exact fixed DP Expert final-score forecast with strict opponent gate"
     },
     {
-      "sha": "14207b5",
+      "sha": "83dcb75",
       "date": "2026-11-21",
-      "subject": "chore(research): publish 2-seed full-turn QR-DQN retraining [skip ci]"
-    },
-    {
-      "sha": "a5cc3f4",
-      "date": "2026-11-21",
-      "subject": "research: independently confirm v3, MCTS and conditional BR improvements with 10000 more 12-rule games"
+      "subject": "feat(research): allow exactly enumerated three-category DP Expert forecast in v3"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO",
+      "status": "success",
+      "head": "6617a32fbb",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915629790"
+    },
     {
       "name": "YachtLab v3.2 exact three-slot opponent forecast research",
       "status": "success",
@@ -157,12 +165,6 @@
       "status": "success",
       "head": "6617a32fbb",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915629679"
-    },
-    {
-      "name": "YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO",
-      "status": "success",
-      "head": "e91f74c7f7",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44915600952"
     },
     {
       "name": "PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO",
