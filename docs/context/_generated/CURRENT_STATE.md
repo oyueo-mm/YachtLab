@@ -42,6 +42,7 @@
 - [psro-extended.yml](../../../.github/workflows/psro-extended.yml)
 - [psro-ppo.yml](../../../.github/workflows/psro-ppo.yml)
 - [qr-20k.yml](../../../.github/workflows/qr-20k.yml)
+- [qr-autoresearch.yml](../../../.github/workflows/qr-autoresearch.yml)
 - [qr-deep-research.yml](../../../.github/workflows/qr-deep-research.yml)
 - [qr-followup.yml](../../../.github/workflows/qr-followup.yml)
 - [qr-four-pillars.yml](../../../.github/workflows/qr-four-pillars.yml)
@@ -73,6 +74,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [c63f394](https://github.com/oyueo-mm/YachtLab/commit/c63f394) | 2026-11-21 | research: autonomous 24→6→1 QR reward/model exploration with independent 12k-game confirmation |
+| [eb9be40](https://github.com/oyueo-mm/YachtLab/commit/eb9be40) | 2026-11-21 | chore(research): QR 54 recheck and learning stability findings [skip ci] |
 | [c548513](https://github.com/oyueo-mm/YachtLab/commit/c548513) | 2026-11-21 | research: QR 54.2% independent replication, value stability, replay and 32/64/128 width ablations |
 | [dd42a21](https://github.com/oyueo-mm/YachtLab/commit/dd42a21) | 2026-11-21 | fix(research): validate gamma and finite QR weights; rerun invalid 4-pillar experiment |
 | [c5a466d](https://github.com/oyueo-mm/YachtLab/commit/c5a466d) | 2026-11-21 | research: implement QR-DQN stability, DP-unrestricted, counterfactual gating and rich state experiments |
@@ -81,8 +84,6 @@
 | [34f4e39](https://github.com/oyueo-mm/YachtLab/commit/34f4e39) | 2026-11-21 | research: QR-DQN, IQN and 5-seed controlled full-game experimental suite |
 | [f9f3e7c](https://github.com/oyueo-mm/YachtLab/commit/f9f3e7c) | 2026-11-21 | research: full-game five RL families and doubled multi-seed PPO training |
 | [6680443](https://github.com/oyueo-mm/YachtLab/commit/6680443) | 2026-11-21 | docs: finalize PSRO oracle, scorecard PMF and 49k-game multi-seed PPO evidence |
-| [319f53a](https://github.com/oyueo-mm/YachtLab/commit/319f53a) | 2026-11-21 | docs: preserve verified PSRO oracle audit and scorecard PMF holdout outcomes |
-| [6f82244](https://github.com/oyueo-mm/YachtLab/commit/6f82244) | 2026-11-20 | research: audit actual PSRO oracle best-response, scorecard conditional PMF and independent PPO seeds |
 
 ## 최근 GitHub Actions 상태
 
@@ -90,11 +91,11 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab QR 54-percent recheck and learning stability research](https://github.com/oyueo-mm/YachtLab/actions/runs/44888926690) | failure | 0121b7a853 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44888926671) | cancelled | 0121b7a853 |
+| [YachtLab autonomous QR reward and architecture research](https://github.com/oyueo-mm/YachtLab/actions/runs/44895661828) | success | 142cd9b751 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44895639689) | cancelled | 9f2412f036 |
+| [YachtLab QR 54-percent recheck and learning stability research](https://github.com/oyueo-mm/YachtLab/actions/runs/44889467544) | success | c54851347a |
 | [YachtLab QR four-pillar research](https://github.com/oyueo-mm/YachtLab/actions/runs/44884858783) | success | dd42a2122c |
 | [YachtLab QR-DQN and IQN deep research](https://github.com/oyueo-mm/YachtLab/actions/runs/44884779135) | success | c2f99432bf |
-| [.github/workflows/qr-four-pillars.yml](https://github.com/oyueo-mm/YachtLab/actions/runs/44871616455) | failure | 39f7f674d8 |
 
 ## 다음 채팅과 작업의 시작점
 

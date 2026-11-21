@@ -75,12 +75,23 @@
     "psro-extended.yml",
     "psro-ppo.yml",
     "qr-20k.yml",
+    "qr-autoresearch.yml",
     "qr-deep-research.yml",
     "qr-followup.yml",
     "qr-four-pillars.yml",
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "c63f394",
+      "date": "2026-11-21",
+      "subject": "research: autonomous 24→6→1 QR reward/model exploration with independent 12k-game confirmation"
+    },
+    {
+      "sha": "eb9be40",
+      "date": "2026-11-21",
+      "subject": "chore(research): QR 54 recheck and learning stability findings [skip ci]"
+    },
     {
       "sha": "c548513",
       "date": "2026-11-21",
@@ -120,30 +131,26 @@
       "sha": "6680443",
       "date": "2026-11-21",
       "subject": "docs: finalize PSRO oracle, scorecard PMF and 49k-game multi-seed PPO evidence"
-    },
-    {
-      "sha": "319f53a",
-      "date": "2026-11-21",
-      "subject": "docs: preserve verified PSRO oracle audit and scorecard PMF holdout outcomes"
-    },
-    {
-      "sha": "6f82244",
-      "date": "2026-11-20",
-      "subject": "research: audit actual PSRO oracle best-response, scorecard conditional PMF and independent PPO seeds"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "YachtLab QR 54-percent recheck and learning stability research",
-      "status": "failure",
-      "head": "0121b7a853",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44888926690"
+      "name": "YachtLab autonomous QR reward and architecture research",
+      "status": "success",
+      "head": "142cd9b751",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44895661828"
     },
     {
       "name": "Test and deploy YachtLab",
       "status": "cancelled",
-      "head": "0121b7a853",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44888926671"
+      "head": "9f2412f036",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44895639689"
+    },
+    {
+      "name": "YachtLab QR 54-percent recheck and learning stability research",
+      "status": "success",
+      "head": "c54851347a",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44889467544"
     },
     {
       "name": "YachtLab QR four-pillar research",
@@ -156,12 +163,6 @@
       "status": "success",
       "head": "c2f99432bf",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44884779135"
-    },
-    {
-      "name": ".github/workflows/qr-four-pillars.yml",
-      "status": "failure",
-      "head": "39f7f674d8",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44871616455"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
