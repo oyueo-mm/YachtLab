@@ -144,3 +144,9 @@
 - 학습 전후 각각 validation 및 independent confirmation Win DP v2/DP Expert 상대 대전을 기록. 실험 성공 전 성능 우위 주장 금지.
 - [PPO 2배 추가 학습](./_generated/PPO-HIGH-BUDGET-LATEST.md): 3 seeds × 2 PPO variants × 128 batches × 128 full-game episodes = **98,304 학습게임**. 기존 49,152게임 연구와 비교하여 성능 변동/오버피팅/학습량 증가 효과 확인.
 - GitHub Actions [통합 워크플로](../../.github/workflows/offpolicy-ppo-expanded.yml), 모델 가중치+원시 경기 결과 아티팩트 저장; **기본 Win DP v2 유지**.
+
+## 2026-11-21: Win DP v3.1 연구용 하이브리드
+
+- 🔬 [v3.1 연구 설계·정확성 범위](./V31-RESEARCH.md): v3의 3턴 조건부 Bellman + 최종턴 v2.1 정확 BR. 정확 BR은 고정된 v2/v3 마지막 턴 상대에게만 사용.
+- 🔬 독립 비교: v3.1/v3 vs v2 동일 시드, v3.1 vs v3, DP Expert; 매주 신규 시드 감시·99% 근사 다중비교 구간. 연구 완성 및 확증 전 승률 우위 미확정.
+- 🔒 사용자 기본 AI 및 DP 테이블은 보존. v3의 상대 분포 근사·전역 게임 이론 최적성 문제는 미해결.
