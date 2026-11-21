@@ -88,9 +88,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
+| [YachtLab QR four-pillar research](https://github.com/oyueo-mm/YachtLab/actions/runs/44871846426) | success | c5a466de79 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44871846378) | success | c5a466de79 |
 | [YachtLab QR-DQN and IQN deep research](https://github.com/oyueo-mm/YachtLab/actions/runs/44871720844) | success | 98ee2e1dfd |
-| [YachtLab QR four-pillar research](https://github.com/oyueo-mm/YachtLab/actions/runs/44871720826) | success | 98ee2e1dfd |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44871697524) | cancelled | 3e40e05103 |
 | [.github/workflows/qr-four-pillars.yml](https://github.com/oyueo-mm/YachtLab/actions/runs/44871616455) | failure | 39f7f674d8 |
 | [YachtLab QR16 loss2 20k five-seed training](https://github.com/oyueo-mm/YachtLab/actions/runs/44845182600) | success | 34c39ea0be |
 

@@ -132,22 +132,22 @@
   ],
   "recentWorkflowRuns": [
     {
+      "name": "YachtLab QR four-pillar research",
+      "status": "success",
+      "head": "c5a466de79",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44871846426"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "c5a466de79",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44871846378"
+    },
+    {
       "name": "YachtLab QR-DQN and IQN deep research",
       "status": "success",
       "head": "98ee2e1dfd",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44871720844"
-    },
-    {
-      "name": "YachtLab QR four-pillar research",
-      "status": "success",
-      "head": "98ee2e1dfd",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44871720826"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "cancelled",
-      "head": "3e40e05103",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44871697524"
     },
     {
       "name": ".github/workflows/qr-four-pillars.yml",
