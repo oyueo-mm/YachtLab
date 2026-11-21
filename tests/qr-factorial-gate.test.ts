@@ -1,6 +1,6 @@
 import {expect,it} from "vitest";
 import {createGame,transition} from "../src/engine";
-import {featureVectors,newQNet,actionValues,updateDistribution,distribution} from "../src/qr-extensions";
+import {featureVectors,newQNet,actionValues,updateDistribution,distribution,assertFiniteQNet} from "../src/qr-extensions";
 import {sameAction,safetyStats} from "../src/qr-safety-gate";
 const candidate=(q:number,index:number,features:number[])=>({q,index,features});
 it("normalized rich features are finite, use both public scorecards, and never read rng or seed",()=>{const s=transition(createGame(17,true),{type:"roll"}),candidates=[candidate(192,32,Array(12).fill(.2)),candidate(191,0,Array(12).fill(.3))],a=featureVectors(s,candidates,"normalized"),masked={...s,rng:[123,999] as [number,number],seed:999};expect(a[0].length).toBeGreaterThan(75);expect(featureVectors(masked,candidates,"normalized")).toEqual(a);expect(a.flat().every(Number.isFinite)).toBe(true);const b={...s,cards:[{aces:3},{aces:5}] as any};expect(featureVectors(b,candidates,"normalized")).not.toEqual(a);});
@@ -8,3 +8,4 @@ it("32-unit 16-quantile model trains every layer with normalized rich features",
 it("legacy 8-unit QR network remains reproducible",()=>{const n=newQNet(37,13,16,"qr",false);expect(n.encoder).toHaveLength(8);expect(n.heads).toHaveLength(16);expect(n.encoder.every((h:number[])=>h.length===13)).toBe(true);});
 it("counterfactual gate only accepts positive one-sided confidence lower bound above margin",()=>{expect(safetyStats([1,1,1,1,1,1,1,1],.03).accept).toBe(true);expect(safetyStats([1,1,0,0,-1,-1],.03).accept).toBe(false);expect(safetyStats([0,0,0,0],.03).accept).toBe(false);expect(safetyStats([1],.03).accept).toBe(false);});
 it("equivalent reroll dice ID sets and category choices compare accurately",()=>{expect(sameAction({type:"reroll",ids:[3,0,1]},{type:"reroll",ids:[1,3,0]})).toBe(true);expect(sameAction({type:"reroll",ids:[3]},{type:"reroll",ids:[1]})).toBe(false);expect(sameAction({type:"score",category:"aces"},{type:"score",category:"sixes"})).toBe(false);expect(sameAction({type:"score",category:"aces"},{type:"score",category:"aces"})).toBe(true);});
+it("checkpoint parameter validation rejects NaN and JSON-serialized-null weights before scoring",()=>{const n=newQNet(19,13,16,"qr",false);expect(assertFiniteQNet(n)).toBe(true);n.encoder[0][0]=Number.NaN;expect(()=>assertFiniteQNet(n)).toThrow(/nonfinite/);n.encoder[0][0]=null as any;expect(()=>assertFiniteQNet(n)).toThrow(/nonfinite/);});
