@@ -1,0 +1,151 @@
+name: YachtLab QR 54-percent recheck and learning stability research
+on:
+  pull_request:
+    paths:
+      - "scripts/recheck-richstable-54.mjs"
+      - "scripts/train-qr-followup.mjs"
+      - "scripts/summarize-qr-followup.mjs"
+      - ".github/workflows/qr-followup.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/recheck-richstable-54.mjs"
+      - "scripts/train-qr-followup.mjs"
+      - "scripts/summarize-qr-followup.mjs"
+      - ".github/workflows/qr-followup.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: yachtlab-qr-followup-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Regression tests, site build and research syntax
+        run: |
+          npm test -- --reporter=dot
+          npm run build
+          node --check scripts/recheck-richstable-54.mjs
+          node --check scripts/train-qr-followup.mjs
+          node --check scripts/summarize-qr-followup.mjs
+      - name: "Nine end-to-end 12-round full-game and replay smoke tests"
+        run: |
+          for cfg in baseline32 lr005 target500 uniformReplay phaseBalanced monteCarlo nstep3 wide64 wide128; do
+            node scripts/train-qr-followup.mjs --config "$cfg" --seed-index 0 --smoke
+          done
+  reproduce-54:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 44884858783
+          github-token: ${{ github.token }}
+          pattern: qr-factorial-results-richStable-*
+          path: training/results/qr-factorial
+          merge-multiple: true
+      - name: Reproduce exact former 250-game and 3000-game results, then run 12000 new games
+        run: |
+          test "$(find training/results/qr-factorial -maxdepth 1 -name 'richStable-seed-*.json' | wc -l)" -eq 5
+          node scripts/recheck-richstable-54.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qr-54-independent-12000-confirmation
+          path: training/results/qr-followup/richstable-54-recheck.json
+          retention-days: 90
+  train:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        config: [baseline32, lr005, target500, uniformReplay, phaseBalanced, monteCarlo, nstep3, wide64, wide128]
+        seed: [0, 1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Equal-budget 5000 full-game QR ablation
+        run: node scripts/train-qr-followup.mjs --config ${{ matrix.config }} --seed-index ${{ matrix.seed }}
+      - name: Preserve paired validation and checkpoint evaluations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qr-followup-results-${{ matrix.config }}-${{ matrix.seed }}
+          path: training/results/qr-followup-ablations/*.json
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Preserve finite weight checkpoints
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qr-followup-checkpoints-${{ matrix.config }}-${{ matrix.seed }}
+          path: training/checkpoints/qr-followup-ablations/*.json
+          if-no-files-found: warn
+          retention-days: 90
+  summarize:
+    needs: [train, reproduce-54]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: qr-followup-results-*
+          merge-multiple: true
+          path: training/results/qr-followup-ablations
+      - uses: actions/download-artifact@v4
+        with:
+          name: qr-54-independent-12000-confirmation
+          path: training/results/qr-followup
+      - name: Strict five-seed paired analysis without confirmation-based checkpoint choice
+        run: node scripts/summarize-qr-followup.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qr-followup-54-recheck-stability-architecture-report
+          path: |
+            docs/context/_generated/QR-FOLLOWUP-LATEST.md
+            training/results/qr-followup-summary.json
+          retention-days: 90
+      - name: Store research conclusions in context hub, no AI default switch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/QR-FOLLOWUP-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(research): QR 54 recheck and learning stability findings [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
