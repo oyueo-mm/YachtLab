@@ -1,7 +1,7 @@
 import{describe,it,expect}from"vitest";import{readFileSync}from"node:fs";import{gunzipSync}from"node:zlib";
 import{createGame,transition,available,categories,type Game}from"../src/engine";import{setDPTable}from"../src/dp";import{researchSotaDecision,baselineResearchDecision,sotaResearchVariants}from"../src/research-sota-hybrids";import{analyzeExactLastTurn}from"../src/research-last-turn-br";import manifest from"../src/dp-manifest.json";
 const b=gunzipSync(readFileSync("public/ai/"+manifest.asset));setDPTable(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength));
-const sample=(remaining=12)=>{const state=transition(createGame(20261121,true),{type:"roll"});if(remaining<12){const open=new Set(categories.slice(-remaining));state.cards=state.cards.map(()=>Object.fromEntries(categories.filter(x=>!open.has(x)).map((x,i)=>[x,i<6?(i+1)*3:5]))as Game["cards"][0]);}return state;};
+const sample=(remaining=12)=>{const state=transition(createGame(20261121,true),{type:"roll"});if(remaining<12){const open=new Set(categories.slice(-remaining));state.cards=state.cards.map(()=>Object.fromEntries(categories.filter(x=>!open.has(x)).map((x,i)=>[x,i<6?(i+1)*3:5]))) as Game["cards"];}return state;};
 const legal=(s:Game,d:ReturnType<typeof researchSotaDecision>)=>{if(d.type==="score")expect(available(s.cards[s.player])).toContain(d.category);else{expect(s.rolls).toBeLessThan(3);expect(new Set(d.ids).size).toBe(d.ids.length);for(const id of d.ids)expect(s.dice.some(x=>x.id===id)).toBe(true);}};
 describe("SOTA-lab is research-only and never changes shipped Win DP v2",()=>{
  it("declares exact provenance of four research variants",()=>expect(sotaResearchVariants).toEqual(["baseline-v2","conditional-br-v21","calibrated-v3","dp-guided-mcts"]));
