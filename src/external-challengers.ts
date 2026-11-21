@@ -23,7 +23,7 @@ const finishScore=(s:Game)=>{const card=s.cards[s.player],values=diceValues(s),u
 const par=[1.9,3.8,5.6,7.5,9.4,11.3,22,12.9,22.3,29.1,32.5,16.9];
 function rustHeuristic(s:Game):Decision{
  const values=diceValues(s),counts=Array(7).fill(0);for(const v of values)counts[v]++;
- const card=s.cards[s.player],has=c=>card[c]===undefined,face=[1,2,3,4,5,6].sort((a,b)=>counts[b]-counts[a]||b-a)[0],max=counts[face];
+ const card=s.cards[s.player],has=(c:(typeof categories)[number])=>card[c]===undefined,face=[1,2,3,4,5,6].sort((a,b)=>counts[b]-counts[a]||b-a)[0],max=counts[face];
  const made=counts.includes(5)||(has("large")&&score(values,"large")>0)||(has("small")&&!has("large")&&score(values,"small")>0)||(has("full")&&score(values,"full")>0);
  if(s.rolls===3||made)return finishScore(s);
  let held:number[]=[];
