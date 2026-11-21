@@ -1,0 +1,206 @@
+name: YachtLab exact Best Response and opponent-policy forensic research
+on:
+  pull_request:
+    paths:
+      - "src/research-last-turn-br.ts"
+      - "tests/research-last-turn-br.test.ts"
+      - "scripts/research-best-response.mjs"
+      - "scripts/train-qr-checkpoint-audit.mjs"
+      - "scripts/distill-exact-br.mjs"
+      - "scripts/summarize-br-research.mjs"
+      - ".github/workflows/br-research.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/research-last-turn-br.ts"
+      - "tests/research-last-turn-br.test.ts"
+      - "scripts/research-best-response.mjs"
+      - "scripts/train-qr-checkpoint-audit.mjs"
+      - "scripts/distill-exact-br.mjs"
+      - "scripts/summarize-br-research.mjs"
+      - ".github/workflows/br-research.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: yachtlab-best-response-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Existing regressions, exact Bellman tests and build
+        run: |
+          npm test -- --reporter=dot
+          npm run build
+          for f in scripts/research-best-response.mjs scripts/train-qr-checkpoint-audit.mjs scripts/distill-exact-br.mjs scripts/summarize-br-research.mjs; do node --check "$f"; done
+      - name: Exact last-turn opponent-policy smoke in all four independent data shards
+        run: |
+          for i in 0 1 2 3; do node scripts/research-best-response.mjs --mode exact --shard "$i" --smoke; done
+      - name: Paired counterfactual smoke with independent discovery and confirmation
+        run: node scripts/research-best-response.mjs --mode counterfactual --shard 0 --smoke
+      - name: Supervised student MLP smoke on three teacher shards and one untouched shard
+        run: node scripts/distill-exact-br.mjs --smoke
+      - name: QR same-trajectory checkpoint smoke
+        run: node scripts/train-qr-checkpoint-audit.mjs --config wide128Hybrid --seed-index 0 --tier confirm --smoke
+  exact:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Exact fixed-opponent final-turn best-response and paired seat-swapped matches
+        run: node scripts/research-best-response.mjs --mode exact --shard ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: br-exact-${{ matrix.shard }}
+          path: training/results/br-research/exact-${{ matrix.shard }}.json
+          if-no-files-found: warn
+          retention-days: 90
+  counterfactual:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Paired 2-v-2 counterfactual policy deviation search on disjoint dice tables
+        run: node scripts/research-best-response.mjs --mode counterfactual --shard ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: br-counterfactual-${{ matrix.shard }}
+          path: training/results/br-research/counterfactual-${{ matrix.shard }}.json
+          if-no-files-found: warn
+          retention-days: 90
+  checkpoint:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        seed: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Fixed training seed and fixed heldout dice across 5k, 10k and 20k episodes
+        run: node scripts/train-qr-checkpoint-audit.mjs --config wide128Hybrid --seed-index ${{ matrix.seed }} --tier confirm
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: br-checkpoints-${{ matrix.seed }}
+          path: training/results/br-checkpoints/wide128Hybrid-seed-${{ matrix.seed }}.json
+          if-no-files-found: warn
+          retention-days: 90
+  distill:
+    needs: exact
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: br-exact-*
+          path: training/results/br-research
+          merge-multiple: true
+      - name: Train supervised MLP on exact decisions, test untouched shard 3
+        run: node scripts/distill-exact-br.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: br-teacher-mlp-and-unseen-evaluation
+          path: |
+            training/results/br-research/distillation.json
+            training/checkpoints/br-distillation/final-mlp.json
+          retention-days: 90
+  summarize:
+    needs: [exact, counterfactual, checkpoint, distill]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: br-exact-*
+          path: training/results/br-research
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: br-counterfactual-*
+          path: training/results/br-research
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: br-checkpoints-*
+          path: training/results/br-checkpoints
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: br-teacher-mlp-and-unseen-evaluation
+          path: .
+      - name: Consolidate exact local regrets, independent rollouts, checkpoint CIs, neural agreement
+        run: node scripts/summarize-br-research.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: br-research-final-results
+          path: |
+            docs/context/_generated/BR-RESEARCH-LATEST.md
+            training/results/br-research/summary.json
+          retention-days: 90
+      - name: Commit factual research report only, never promote a policy
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/BR-RESEARCH-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(research): exact WinDP BR diagnostics and counterfactual audit [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
