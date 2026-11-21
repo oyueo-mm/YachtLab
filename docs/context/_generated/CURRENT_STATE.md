@@ -41,6 +41,7 @@
 - [external-championship.yml](../../../.github/workflows/external-championship.yml)
 - [full-selfplay.yml](../../../.github/workflows/full-selfplay.yml)
 - [integrated-research.yml](../../../.github/workflows/integrated-research.yml)
+- [native12-dqn.yml](../../../.github/workflows/native12-dqn.yml)
 - [neural-selfplay.yml](../../../.github/workflows/neural-selfplay.yml)
 - [offpolicy-ppo-expanded.yml](../../../.github/workflows/offpolicy-ppo-expanded.yml)
 - [psro-extended.yml](../../../.github/workflows/psro-extended.yml)
@@ -79,6 +80,9 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [15b4443](https://github.com/oyueo-mm/YachtLab/commit/15b4443) | 2026-11-21 | research: benchmark authentic 12-category pretrained Yacht DQN against Win DP v2 with 2000 paired games |
+| [86664e5](https://github.com/oyueo-mm/YachtLab/commit/86664e5) | 2026-11-21 | chore(research): publish authentic YahtzeeRL checkpoint transfer diagnostics [skip ci] |
+| [637baec](https://github.com/oyueo-mm/YachtLab/commit/637baec) | 2026-11-21 | chore(research): publish discovered Yacht source adversaries' loss analysis [skip ci] |
 | [820b619](https://github.com/oyueo-mm/YachtLab/commit/820b619) | 2026-11-21 | fix(research): reliably download independently trained YahtzeeRL checkpoint artifacts |
 | [1a8a43d](https://github.com/oyueo-mm/YachtLab/commit/1a8a43d) | 2026-11-21 | research: evaluate actual pretrained competitive YahtzeeRL network via labeled 12-category zero-shot transfer |
 | [6992fa9](https://github.com/oyueo-mm/YachtLab/commit/6992fa9) | 2026-11-21 | research: audit additional independent Yacht opponent source strategies and diagnose competitive losses |
@@ -86,9 +90,6 @@
 | [4e82bbd](https://github.com/oyueo-mm/YachtLab/commit/4e82bbd) | 2026-11-21 | research: 12-rule source strategy championship against Rust, Pancht and Benji-inspired opponents |
 | [d841906](https://github.com/oyueo-mm/YachtLab/commit/d841906) | 2026-11-21 | chore(research): exact WinDP BR diagnostics and counterfactual audit [skip ci] |
 | [bdd7fb6](https://github.com/oyueo-mm/YachtLab/commit/bdd7fb6) | 2026-11-21 | chore(research): exhaustive last-turn WinDP policy error audit [skip ci] |
-| [18bac46](https://github.com/oyueo-mm/YachtLab/commit/18bac46) | 2026-11-21 | docs(research): show concrete WinDP versus exact best-response actions for each error |
-| [7d61faf](https://github.com/oyueo-mm/YachtLab/commit/7d61faf) | 2026-11-21 | chore(research): exhaustive last-turn WinDP policy error audit [skip ci] |
-| [c8d6eae](https://github.com/oyueo-mm/YachtLab/commit/c8d6eae) | 2026-11-21 | research: exhaustively enumerate 100800 last-turn Win DP best-response decision states |
 
 ## 최근 GitHub Actions 상태
 
@@ -96,9 +97,10 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab independently trained YahtzeeRL checkpoint transfer diagnostic](https://github.com/oyueo-mm/YachtLab/actions/runs/44908017549) | success | f3ed3bbd44 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44907575665) | cancelled | 6992fa901e |
-| [YachtLab independent discovered Yacht AI forensic evaluation](https://github.com/oyueo-mm/YachtLab/actions/runs/44907476073) | success | bc448daacf |
+| [YachtLab actual 12-category pretrained DQN independent competition](https://github.com/oyueo-mm/YachtLab/actions/runs/44909062605) | success | 4c1f356de3 |
+| [YachtLab independently trained YahtzeeRL checkpoint transfer diagnostic](https://github.com/oyueo-mm/YachtLab/actions/runs/44908082097) | success | 820b619737 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44908082067) | success | 820b619737 |
+| [YachtLab independent discovered Yacht AI forensic evaluation](https://github.com/oyueo-mm/YachtLab/actions/runs/44907575575) | success | 6992fa901e |
 | [YachtLab external-source strategy championship](https://github.com/oyueo-mm/YachtLab/actions/runs/44905127036) | success | 4e82bbd7c4 |
 | [YachtLab exhaustive exact last-turn WinDP error enumeration](https://github.com/oyueo-mm/YachtLab/actions/runs/44900566422) | success | 18bac46f8d |
 

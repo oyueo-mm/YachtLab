@@ -74,6 +74,7 @@
     "external-championship.yml",
     "full-selfplay.yml",
     "integrated-research.yml",
+    "native12-dqn.yml",
     "neural-selfplay.yml",
     "offpolicy-ppo-expanded.yml",
     "psro-extended.yml",
@@ -87,6 +88,21 @@
     "yahtzeerl-transfer.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "15b4443",
+      "date": "2026-11-21",
+      "subject": "research: benchmark authentic 12-category pretrained Yacht DQN against Win DP v2 with 2000 paired games"
+    },
+    {
+      "sha": "86664e5",
+      "date": "2026-11-21",
+      "subject": "chore(research): publish authentic YahtzeeRL checkpoint transfer diagnostics [skip ci]"
+    },
+    {
+      "sha": "637baec",
+      "date": "2026-11-21",
+      "subject": "chore(research): publish discovered Yacht source adversaries' loss analysis [skip ci]"
+    },
     {
       "sha": "820b619",
       "date": "2026-11-21",
@@ -121,41 +137,32 @@
       "sha": "bdd7fb6",
       "date": "2026-11-21",
       "subject": "chore(research): exhaustive last-turn WinDP policy error audit [skip ci]"
-    },
-    {
-      "sha": "18bac46",
-      "date": "2026-11-21",
-      "subject": "docs(research): show concrete WinDP versus exact best-response actions for each error"
-    },
-    {
-      "sha": "7d61faf",
-      "date": "2026-11-21",
-      "subject": "chore(research): exhaustive last-turn WinDP policy error audit [skip ci]"
-    },
-    {
-      "sha": "c8d6eae",
-      "date": "2026-11-21",
-      "subject": "research: exhaustively enumerate 100800 last-turn Win DP best-response decision states"
     }
   ],
   "recentWorkflowRuns": [
     {
+      "name": "YachtLab actual 12-category pretrained DQN independent competition",
+      "status": "success",
+      "head": "4c1f356de3",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44909062605"
+    },
+    {
       "name": "YachtLab independently trained YahtzeeRL checkpoint transfer diagnostic",
       "status": "success",
-      "head": "f3ed3bbd44",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44908017549"
+      "head": "820b619737",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44908082097"
     },
     {
       "name": "Test and deploy YachtLab",
-      "status": "cancelled",
-      "head": "6992fa901e",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44907575665"
+      "status": "success",
+      "head": "820b619737",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44908082067"
     },
     {
       "name": "YachtLab independent discovered Yacht AI forensic evaluation",
       "status": "success",
-      "head": "bc448daacf",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44907476073"
+      "head": "6992fa901e",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44907575575"
     },
     {
       "name": "YachtLab external-source strategy championship",
