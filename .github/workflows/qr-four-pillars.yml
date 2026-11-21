@@ -1,0 +1,121 @@
+name: YachtLab QR four-pillar research
+on:
+  pull_request:
+    paths:
+      - "src/qr-extensions.ts"
+      - "src/qr-safety-gate.ts"
+      - "scripts/train-qr-factorial.mjs"
+      - "scripts/summarize-qr-factorial.mjs"
+      - "tests/qr-factorial-gate.test.ts"
+      - ".github/workflows/qr-four-pillars.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/qr-extensions.ts"
+      - "src/qr-safety-gate.ts"
+      - "scripts/train-qr-factorial.mjs"
+      - "scripts/summarize-qr-factorial.mjs"
+      - "tests/qr-factorial-gate.test.ts"
+      - ".github/workflows/qr-four-pillars.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: qr-four-pillars-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Full regression tests, Vite build, Node syntax checks
+        run: |
+          npm test -- --reporter=dot
+          npm run build
+          node --check scripts/train-qr-factorial.mjs
+          node --check scripts/summarize-qr-factorial.mjs
+      - name: "Actual 12-round end-to-end smoke: every isolated research factor and safety gate"
+        run: |
+          for cfg in control lr02 target250 perIS noDouble loss6 unrestricted wide32 rich32 richStable; do
+            node scripts/train-qr-factorial.mjs --config "$cfg" --seed-index 0 --smoke
+          done
+  train-factorial:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        config: [control, lr02, target250, perIS, noDouble, loss6, unrestricted, wide32, rich32, richStable]
+        seed: [0, 1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Train and evaluate predeclared QR variant on independent game seeds
+        run: node scripts/train-qr-factorial.mjs --config ${{ matrix.config }} --seed-index ${{ matrix.seed }}
+      - name: Save per-seed training, all final paired games, rollout decisions and weights
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qr-factorial-results-${{ matrix.config }}-${{ matrix.seed }}
+          path: training/results/qr-factorial/*.json
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Preserve intermediate weights even after interrupted training
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qr-factorial-checkpoints-${{ matrix.config }}-${{ matrix.seed }}
+          path: training/checkpoints/qr-factorial/*.json
+          if-no-files-found: warn
+          retention-days: 90
+  consolidate:
+    needs: train-factorial
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: qr-factorial-results-*
+          merge-multiple: true
+          path: training/results/qr-factorial
+      - name: Consolidate 50 seed/config records without confirmation-based model selection
+        run: node scripts/summarize-qr-factorial.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qr-four-pillars-study-summary
+          path: |
+            docs/context/_generated/QR-FOUR-PILLARS-LATEST.md
+            training/results/qr-factorial-summary.json
+          retention-days: 90
+      - name: Permanently save study report without activating experimental AI
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/QR-FOUR-PILLARS-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(context): four-pillar QR study results [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi

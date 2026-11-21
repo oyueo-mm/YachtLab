@@ -7,14 +7,6 @@ on:
       - "scripts/summarize-qr-suite.mjs"
       - "tests/qr-extensions.test.ts"
       - ".github/workflows/qr-deep-research.yml"
-  push:
-    branches: [main]
-    paths:
-      - "src/qr-extensions.ts"
-      - "scripts/research-qr-suite.mjs"
-      - "scripts/summarize-qr-suite.mjs"
-      - "tests/qr-extensions.test.ts"
-      - ".github/workflows/qr-deep-research.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -38,10 +30,15 @@ jobs:
           npm run build
           node --check scripts/research-qr-suite.mjs
           node --check scripts/summarize-qr-suite.mjs
+          node --check scripts/train-qr-factorial.mjs
+          node --check scripts/summarize-qr-factorial.mjs
       - name: Real full-game end-to-end smoke
         run: |
           for group in baseline grid0 grid1 grid2 grid3 grid4 grid5 improvements iqn; do
             node scripts/research-qr-suite.mjs --smoke --group "$group" --seed-index 0
+          done
+          for cfg in control lr02 target250 perIS noDouble loss6 unrestricted wide32 rich32 richStable; do
+            node scripts/train-qr-factorial.mjs --config "$cfg" --seed-index 0 --smoke
           done
   full-research:
     needs: verify
