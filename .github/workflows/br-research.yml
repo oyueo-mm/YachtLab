@@ -46,7 +46,8 @@ jobs:
         run: |
           for i in 0 1 2 3; do node scripts/research-best-response.mjs --mode exact --shard "$i" --smoke; done
       - name: Paired counterfactual smoke with independent discovery and confirmation
-        run: node scripts/research-best-response.mjs --mode counterfactual --shard 0 --smoke
+        run: |
+          for remaining in 2 3 4; do node scripts/research-best-response.mjs --mode counterfactual --remaining "$remaining" --shard 0 --smoke; done
       - name: Supervised student MLP smoke on three teacher shards and one untouched shard
         run: node scripts/distill-exact-br.mjs --smoke
       - name: QR same-trajectory checkpoint smoke
@@ -87,6 +88,7 @@ jobs:
       max-parallel: 4
       matrix:
         shard: [0, 1, 2, 3]
+        remaining: [2, 3, 4]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -95,12 +97,12 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Paired 2-v-2 counterfactual policy deviation search on disjoint dice tables
-        run: node scripts/research-best-response.mjs --mode counterfactual --shard ${{ matrix.shard }}
+        run: node scripts/research-best-response.mjs --mode counterfactual --remaining ${{ matrix.remaining }} --shard ${{ matrix.shard }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: br-counterfactual-${{ matrix.shard }}
-          path: training/results/br-research/counterfactual-${{ matrix.shard }}.json
+          name: br-counterfactual-${{ matrix.remaining }}-${{ matrix.shard }}
+          path: training/results/br-research/counterfactual-${{ matrix.remaining }}-${{ matrix.shard }}.json
           if-no-files-found: warn
           retention-days: 90
   checkpoint:
