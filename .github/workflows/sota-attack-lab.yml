@@ -1,0 +1,195 @@
+name: YachtLab SOTA challenger research 4-pillars
+on:
+  pull_request:
+    paths:
+      - src/research-sota-hybrids.ts
+      - tests/research-sota-hybrids.test.ts
+      - scripts/sota-attack-benchmark.mjs
+      - scripts/summarize-sota-attack.mjs
+      - scripts/summarize-sota-qr.mjs
+      - .github/workflows/sota-attack-lab.yml
+  push:
+    branches: [main]
+    paths:
+      - src/research-sota-hybrids.ts
+      - tests/research-sota-hybrids.test.ts
+      - scripts/sota-attack-benchmark.mjs
+      - scripts/summarize-sota-attack.mjs
+      - scripts/summarize-sota-qr.mjs
+      - .github/workflows/sota-attack-lab.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: yachtlab-sota-challenger-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Existing suite, exact BR and legality, strict type/build and Node syntax
+        run: |
+          npm test -- --reporter=dot
+          npm run build
+          node --check scripts/sota-attack-benchmark.mjs
+          node --check scripts/summarize-sota-attack.mjs
+          node --check scripts/summarize-sota-qr.mjs
+      - name: Complete 12-category smoke game with every research policy
+        run: |
+          for candidate in conditional-br-v21 calibrated-v3 dp-guided-mcts distilled-policy distilled-ppo ppo-fullgame; do
+            node scripts/sota-attack-benchmark.mjs --candidate "$candidate" --opponent "Win DP v2" --shard 0 --smoke
+          done
+  comparison:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include:
+          - candidate: conditional-br-v21
+            pairs: 400
+          - candidate: calibrated-v3
+            pairs: 32
+          - candidate: dp-guided-mcts
+            pairs: 32
+          - candidate: distilled-policy
+            pairs: 150
+          - candidate: distilled-ppo
+            pairs: 150
+          - candidate: ppo-fullgame
+            pairs: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Paired seat-swapped 12-category full-game benchmark
+        run: node scripts/sota-attack-benchmark.mjs --candidate ${{ matrix.candidate }} --opponent "Win DP v2" --shard 0 --pairs ${{ matrix.pairs }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sota-attack-${{ matrix.candidate }}
+          path: training/results/sota-challenge/${{ matrix.candidate }}-Win_DP_v2-0.json
+          retention-days: 90
+          if-no-files-found: warn
+  summarize-comparison:
+    if: github.event_name != 'pull_request'
+    needs: comparison
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: sota-attack-*
+          path: training/results/sota-challenge
+          merge-multiple: true
+      - run: node scripts/summarize-sota-attack.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sota-attack-final-six-policy-report
+          path: |
+            training/results/sota-challenge/summary.json
+            docs/context/_generated/SOTA-ATTACK-LATEST.md
+          retention-days: 90
+      - name: Commit research report only; never change app production AI
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/SOTA-ATTACK-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(research): publish six-policy SOTA attack benchmark [skip ci]"
+            for attempt in 1 2 3 4 5; do
+              git pull --rebase origin main
+              if git push origin HEAD:main; then exit 0; fi
+              sleep 2
+            done
+            exit 1
+          fi
+  rl-train:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        seed: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Train 5k full-game DP-anchored QR agent with reroll and score actions
+        run: node scripts/train-qr-factorial.mjs --config control --seed-index ${{ matrix.seed }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sota-qr-train-seed-${{ matrix.seed }}
+          path: |
+            training/results/qr-factorial/control-seed-${{ matrix.seed }}.json
+            training/checkpoints/qr-factorial/control-seed-${{ matrix.seed }}-*.json
+          retention-days: 90
+          if-no-files-found: warn
+  summarize-rl:
+    if: github.event_name != 'pull_request'
+    needs: rl-train
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: sota-qr-train-seed-*
+          path: training
+          merge-multiple: true
+      - run: node scripts/summarize-sota-qr.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sota-qr-two-seed-training-summary
+          path: |
+            training/results/sota-challenge/qr-train-summary.json
+            docs/context/_generated/SOTA-QR-RETRAIN-LATEST.md
+          retention-days: 90
+      - name: Commit QR research report only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/SOTA-QR-RETRAIN-LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(research): publish 2-seed full-turn QR-DQN retraining [skip ci]"
+            for attempt in 1 2 3 4 5; do
+              git pull --rebase origin main
+              if git push origin HEAD:main; then exit 0; fi
+              sleep 2
+            done
+            exit 1
+          fi
