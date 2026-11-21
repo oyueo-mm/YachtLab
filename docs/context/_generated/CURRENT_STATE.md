@@ -43,6 +43,7 @@
 - [psro-ppo.yml](../../../.github/workflows/psro-ppo.yml)
 - [qr-20k.yml](../../../.github/workflows/qr-20k.yml)
 - [qr-deep-research.yml](../../../.github/workflows/qr-deep-research.yml)
+- [qr-followup.yml](../../../.github/workflows/qr-followup.yml)
 - [qr-four-pillars.yml](../../../.github/workflows/qr-four-pillars.yml)
 - [tabular-zoo.yml](../../../.github/workflows/tabular-zoo.yml)
 
@@ -72,6 +73,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [c548513](https://github.com/oyueo-mm/YachtLab/commit/c548513) | 2026-11-21 | research: QR 54.2% independent replication, value stability, replay and 32/64/128 width ablations |
 | [dd42a21](https://github.com/oyueo-mm/YachtLab/commit/dd42a21) | 2026-11-21 | fix(research): validate gamma and finite QR weights; rerun invalid 4-pillar experiment |
 | [c5a466d](https://github.com/oyueo-mm/YachtLab/commit/c5a466d) | 2026-11-21 | research: implement QR-DQN stability, DP-unrestricted, counterfactual gating and rich state experiments |
 | [34c39ea](https://github.com/oyueo-mm/YachtLab/commit/34c39ea) | 2026-11-21 | research: launch QR16 loss2 20k full-game training across five seeds |
@@ -81,7 +83,6 @@
 | [6680443](https://github.com/oyueo-mm/YachtLab/commit/6680443) | 2026-11-21 | docs: finalize PSRO oracle, scorecard PMF and 49k-game multi-seed PPO evidence |
 | [319f53a](https://github.com/oyueo-mm/YachtLab/commit/319f53a) | 2026-11-21 | docs: preserve verified PSRO oracle audit and scorecard PMF holdout outcomes |
 | [6f82244](https://github.com/oyueo-mm/YachtLab/commit/6f82244) | 2026-11-20 | research: audit actual PSRO oracle best-response, scorecard conditional PMF and independent PPO seeds |
-| [fc6a4ac](https://github.com/oyueo-mm/YachtLab/commit/fc6a4ac) | 2026-11-20 | docs: preserve verified PSRO, empirical PMF and PPO head-to-head experiments |
 
 ## 최근 GitHub Actions 상태
 
@@ -89,11 +90,11 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab QR four-pillar research](https://github.com/oyueo-mm/YachtLab/actions/runs/44884779203) | success | c2f99432bf |
+| [YachtLab QR 54-percent recheck and learning stability research](https://github.com/oyueo-mm/YachtLab/actions/runs/44888926690) | failure | 0121b7a853 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44888926671) | cancelled | 0121b7a853 |
+| [YachtLab QR four-pillar research](https://github.com/oyueo-mm/YachtLab/actions/runs/44884858783) | success | dd42a2122c |
 | [YachtLab QR-DQN and IQN deep research](https://github.com/oyueo-mm/YachtLab/actions/runs/44884779135) | success | c2f99432bf |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44871846378) | success | c5a466de79 |
 | [.github/workflows/qr-four-pillars.yml](https://github.com/oyueo-mm/YachtLab/actions/runs/44871616455) | failure | 39f7f674d8 |
-| [YachtLab QR16 loss2 20k five-seed training](https://github.com/oyueo-mm/YachtLab/actions/runs/44845182600) | success | 34c39ea0be |
 
 ## 다음 채팅과 작업의 시작점
 

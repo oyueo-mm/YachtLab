@@ -76,10 +76,16 @@
     "psro-ppo.yml",
     "qr-20k.yml",
     "qr-deep-research.yml",
+    "qr-followup.yml",
     "qr-four-pillars.yml",
     "tabular-zoo.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "c548513",
+      "date": "2026-11-21",
+      "subject": "research: QR 54.2% independent replication, value stability, replay and 32/64/128 width ablations"
+    },
     {
       "sha": "dd42a21",
       "date": "2026-11-21",
@@ -124,19 +130,26 @@
       "sha": "6f82244",
       "date": "2026-11-20",
       "subject": "research: audit actual PSRO oracle best-response, scorecard conditional PMF and independent PPO seeds"
-    },
-    {
-      "sha": "fc6a4ac",
-      "date": "2026-11-20",
-      "subject": "docs: preserve verified PSRO, empirical PMF and PPO head-to-head experiments"
     }
   ],
   "recentWorkflowRuns": [
     {
+      "name": "YachtLab QR 54-percent recheck and learning stability research",
+      "status": "failure",
+      "head": "0121b7a853",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44888926690"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "cancelled",
+      "head": "0121b7a853",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44888926671"
+    },
+    {
       "name": "YachtLab QR four-pillar research",
       "status": "success",
-      "head": "c2f99432bf",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44884779203"
+      "head": "dd42a2122c",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44884858783"
     },
     {
       "name": "YachtLab QR-DQN and IQN deep research",
@@ -145,22 +158,10 @@
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44884779135"
     },
     {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "c5a466de79",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44871846378"
-    },
-    {
       "name": ".github/workflows/qr-four-pillars.yml",
       "status": "failure",
       "head": "39f7f674d8",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44871616455"
-    },
-    {
-      "name": "YachtLab QR16 loss2 20k five-seed training",
-      "status": "success",
-      "head": "34c39ea0be",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44845182600"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
