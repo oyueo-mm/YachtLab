@@ -6,6 +6,7 @@ test("로컬 PvP: 이름, 양쪽 점수 선택, 재대결 및 기보", async ({ 
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("#pvp");
   await expect(page.getByRole("region", { name: "사람 vs 사람 게임 보드" })).toBeVisible();
+  await page.getByRole("button", { name: "플레이어 설정" }).click();
   await page.getByLabel("플레이어 1 이름").fill("민수");
   await page.getByLabel("플레이어 2 이름").fill("지민");
   await expect(page.locator(".turn-indicator")).toContainText("민수의 차례");
