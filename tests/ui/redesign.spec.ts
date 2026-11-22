@@ -151,6 +151,9 @@ test("점수판 아이콘은 실제 눈 조합이고 작은 화면에서도 겹�
   page,
 }) => {
   await page.goto("#play");
+  const mobile=(page.viewportSize()?.width??1440)<=760;
+  if(mobile)await page.getByRole("button",{name:"점수판 열기"}).click();
+  const scoreArea=mobile?page.getByRole("dialog",{name:"점수판"}):page;
   const combinations: Record<string, number[]> = {
     aces: [1],
     deuces: [2],
@@ -165,7 +168,7 @@ test("점수판 아이콘은 실제 눈 조합이고 작은 화면에서도 겹�
     yacht: [6, 6, 6, 6, 6],
   };
   for (const [category, values] of Object.entries(combinations)) {
-    const row = page.locator(`[data-category="${category}"]`),
+    const row = scoreArea.locator(`[data-category="${category}"]`),
       icons = row.locator(".category-icon .die-icon");
     expect(
       await icons.evaluateAll((nodes) =>
@@ -174,8 +177,8 @@ test("점수판 아이콘은 실제 눈 조합이고 작은 화면에서도 겹�
         ),
       ),
     ).toEqual(values);
-    const label = await row.locator(".category-label").boundingBox(),
-      cell = await row.locator("td").first().boundingBox();
+    const label = await row.locator(mobile?".mobile-quick-name":".category-label").boundingBox(),
+      cell = await row.locator(mobile?".mobile-quick-row-static>strong":"td").first().boundingBox();
     expect(label!.x + label!.width).toBeLessThanOrEqual(cell!.x + 1);
   }
   expect(
