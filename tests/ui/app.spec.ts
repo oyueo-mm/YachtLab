@@ -55,6 +55,8 @@ test("굴림, 고정, 재굴림 한도, 점수 선택과 AI 턴", async ({ page 
     page.getByRole("button", { name: "다시 굴리기" }),
   ).toBeDisabled();
   await page.getByRole("button", { name: /에이스.*점 선택/ }).click();
+  await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(0);
+  await page.getByRole("button", { name: "점수 기록 확정" }).click();
   await expect(page.getByRole("button", { name: "주사위 굴리기" })).toBeEnabled(
     { timeout: 15000 },
   );
