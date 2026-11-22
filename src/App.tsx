@@ -565,7 +565,7 @@ function HumanGame({
         <Scoreboard
           state={state}
           select={can ? chooseScore : undefined}
-          selected={selectedScore}
+          selected={mobileScoreOpen ? null : selectedScore}
           onConfirm={confirmScore}
           onClear={() => setSelectedScore(null)}
           previewCategory={aiPreviewCategory}
