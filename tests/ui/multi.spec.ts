@@ -81,11 +81,22 @@ test("9인전: 현재 점수판, 전체 순위, 가로 스크롤 점수표", asy
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
   await scoreCategory(page);
   await expect(page.locator(".turn-indicator")).toContainText("플레이어 2의 차례");
-  await page.getByRole("button", { name: "전체 점수표" }).click();
-  await expect(page.locator(".multi-scoreboard thead th")).toHaveCount(10);
-  await expect(page.locator(".multi-scoreboard .fixed-score")).toHaveCount(1);
-  await page.getByRole("button", { name: "내 점수판" }).click();
-  await expect(page.locator(".multi-scoreboard thead th")).toHaveCount(2);
+  if ((page.viewportSize()?.width ?? 1024) <= 760) {
+    await page.getByRole("button", { name: "점수판 열기" }).click();
+    const sheet = page.getByRole("dialog", { name: "점수판" });
+    const picker = sheet.getByRole("combobox", { name: "점수표 플레이어" });
+    await picker.selectOption("0");
+    await expect(sheet.locator('[data-category="aces"] .fixed-score')).toHaveCount(1);
+    await picker.selectOption("8");
+    await expect(sheet.locator('[data-category="aces"] .empty-score')).toHaveCount(1);
+    await page.getByRole("button", { name: "점수판 닫기" }).click();
+  } else {
+    await page.getByRole("button", { name: "전체 점수표" }).click();
+    await expect(page.locator(".multi-scoreboard thead th")).toHaveCount(10);
+    await expect(page.locator(".multi-scoreboard .fixed-score")).toHaveCount(1);
+    await page.getByRole("button", { name: "내 점수판" }).click();
+    await expect(page.locator(".multi-scoreboard thead th")).toHaveCount(2);
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
