@@ -10,10 +10,13 @@ test("커스텀 알고리즘 선택창의 난이도·키보드·외부 클릭·�
   await box.focus();
   await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("listbox")).toBeVisible();
+  await page.getByRole("button", { name: "매우 쉬움", exact: true }).click();
+  await box.focus();
   await page.keyboard.press("Home");
   await page.keyboard.press("Enter");
   await expect(box).toContainText("Random");
   await box.click();
+  await page.getByRole("button", { name: "매우 어려움", exact: true }).click();
   await expect(
     page.getByRole("option", { name: "DP Expert", exact: true }),
   ).toContainText("매우 어려움");
