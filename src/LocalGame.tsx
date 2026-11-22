@@ -117,7 +117,7 @@ export default function LocalGame() {
               <span className="turn-indicator"><i />{state.done ? "경기 종료" : current + "의 차례"}</span>
               <span>라운드 {state.round}/12 · 굴림 <b>{state.rolls}</b>/3</span>
             </div>
-            <Dice state={state} interactive={active} onToggle={(id) => act({ type: "hold", ids: state.dice.filter((d) => d.id === id ? !d.held : d.held).map((d) => d.id) })} onOrder={(ids) => act({ type: "order", ids })} />
+            <Dice state={state} interactive={active} animate={active} onToggle={(id) => act({ type: "hold", ids: state.dice.filter((d) => d.id === id ? !d.held : d.held).map((d) => d.id) })} onOrder={(ids) => act({ type: "order", ids })} />
             <div className="roll-area">
               <button className="primary roll-button" disabled={!active || state.rolls >= 3} onClick={() => act({ type: "roll" })}>
                 <Dices size={20} />{state.rolls === 0 ? "주사위 굴리기" : "다시 굴리기"}<span>{3 - state.rolls}회 남음</span>
