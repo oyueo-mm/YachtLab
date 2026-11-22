@@ -5,6 +5,8 @@ import { MultiScoreboard, MultiStandings } from "./MultiScoreboard";
 import { createMultiGame, multiStandings, type MultiGame } from "./multi-engine";
 import { appendMultiAction, newMultiReplay, type MultiReplay } from "./multi-replay";
 import MultiReplayViewer from "./MultiReplayViewer";
+import MobileScoreSheet, { MobileScoreButton } from "./MobileScoreSheet";
+import { saveMultiReplay } from "./multi-replay-storage";
 import { total, type Action } from "./engine";
 
 const newSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
@@ -19,7 +21,8 @@ export default function LocalGame() {
   const [error, setError] = useState("");
   const [viewReplay, setViewReplay] = useState<MultiReplay | null>(null);
   const [allScores, setAllScores] = useState(false);
-  const [showNames, setShowNames] = useState(true);
+  const [showNames, setShowNames] = useState(false);
+  const [mobileScoreOpen, setMobileScoreOpen] = useState(false);
   const railRef = useRef<HTMLDivElement>(null);
   const record = useRef<MultiReplay | null>(null);
   if (!record.current) record.current = newMultiReplay(state, asPlayers(labels, count), "사람 vs 사람");
@@ -44,7 +47,7 @@ export default function LocalGame() {
     const n = Math.min(50, Math.max(2, Math.trunc(next)));
     if (n === count) return;
     const fresh = createMultiGame(n, newSeed());
-    setCount(n); setState(fresh); setAllScores(false); setError(""); setShowNames(n <= 3);
+    setCount(n); setState(fresh); setAllScores(false); setError(""); setShowNames(false);
     record.current = newMultiReplay(fresh, asPlayers(labels, n), "사람 vs 사람");
   };
   const rename = (index: number, value: string) => {
@@ -60,13 +63,14 @@ export default function LocalGame() {
       const next = appendMultiAction(record.current!, action);
       record.current = next;
       setState(next.finalState);
+      if (next.finalState.done && !state.done) void saveMultiReplay(next).catch(e => setError("기보 자동 저장 실패: " + (e instanceof Error ? e.message : String(e))));
       setError("");
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
   };
   const restart = () => {
     const fresh = createMultiGame(count, newSeed());
     record.current = newMultiReplay(fresh, asPlayers(labels, count), "사람 vs 사람");
-    setState(fresh); setError(""); setViewReplay(null); setAllScores(false);
+    setState(fresh); setError(""); setViewReplay(null); setAllScores(false); setMobileScoreOpen(false);
   };
   const standings = state.done ? multiStandings(state) : [];
   return (
@@ -127,6 +131,9 @@ export default function LocalGame() {
               </div>
             )}
           </section>
+          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={state.rolls} />
+          {mobileScoreOpen && <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}><MultiScoreboard state={state} labels={names} focused={count >= 9 && !allScores} select={active ? (category) => { act({ type: "score", category }); setMobileScoreOpen(false); } : undefined}/></MobileScoreSheet>}
+          <details className="game-rules"><summary>게임 방법</summary><p>주사위를 최대 3번 굴리고 원하는 눈을 고정하세요. 점수판에서 빈 칸을 선택하면 다음 사람의 차례가 됩니다. 12칸을 모두 채우면 최종 점수로 순위를 결정해요. 상단 점수 63점 이상이면 +35점!</p></details>
           {error && <p role="alert" className="error">{error}</p>}
           {(state.done && count < 9) && <MultiStandings state={state} labels={names} />}
         </div>
