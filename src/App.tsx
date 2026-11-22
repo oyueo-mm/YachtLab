@@ -511,7 +511,7 @@ function HumanGame({
               </div>
             )}
           </section>
-          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={state.rolls} />
+          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={state.rolls} canScore={can} />
           {mobileScoreOpen && <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}><MobileQuickScore cards={state.cards} dice={state.dice} rolls={state.rolls} current={state.player} labels={["나","AI"]} canScore={can} onScore={recordScore}/></MobileScoreSheet>}
           {gameFeedback && <p className="game-feedback" role="status">{gameFeedback}</p>}
           <details className="game-rules"><summary>게임 방법</summary><p>12라운드 동안 주사위 5개를 최대 3번 굴려요. 원하는 주사위를 눌러 고정하고 점수판에서 원하는 점수를 한 번 누르면 바로 기록돼요. 한 번 기록한 칸은 다시 사용할 수 없어요. 상단 점수 합계가 63점 이상이면 보너스 35점을 받아요.</p></details>
