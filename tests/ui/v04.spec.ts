@@ -37,7 +37,7 @@ test("커스텀 알고리즘 선택창의 난이도·키보드·외부 클릭·�
 test("AI 행동은 고정·굴림 상태를 보이고 재대결에서 정리", async ({ page }) => {
   await page.goto("#play");
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
-  await page.locator(".score-option").first().click();
+  await page.locator(".score-option").first().click(); await page.getByRole("button",{name:"점수 기록 확정"}).click();
   await expect(page.locator(".ai-action-status")).toContainText("굴렸습니다");
   await page.getByRole("button", { name: "재대결", exact: true }).click();
   await expect(
@@ -51,7 +51,7 @@ test("백그라운드에서는 AI 행동을 진행하지 않고 복귀하면 재
   await page.goto("#play");
   await chooseAlgorithm(page, "상대 AI", "PPO");
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
-  await page.locator(".score-option").first().click();
+  await page.locator(".score-option").first().click(); await page.getByRole("button",{name:"점수 기록 확정"}).click();
   await expect(page.locator(".ai-action-status")).toContainText("굴렸습니다");
   await page.evaluate(() => {
     Object.defineProperty(document, "hidden", {
