@@ -106,7 +106,7 @@ function SortableDie({
   useEffect(() => { if (!animating) setVisibleFace(value); }, [value, animating]);
   // Animate a real roll event only. Holding, releasing and reordering never replay the roll.
   useEffect(() => {
-    if (!animate || rollEvent === 0 || held || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (!animate || !rolled || rollEvent === 0 || held || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setVisibleFace(value);
       setAnimating(false);
       return;
