@@ -10,7 +10,7 @@ import { predictConditionalResidual,scorecardPmfPayoff,type ConditionalScoreMode
 // the opponent has more than two turns remaining. This is not exact multiplayer
 // minimax or an equilibrium, and must remain research-only until tested.
 type Plan = { win: Float64Array[]; points: Float64Array[]; picks: Int16Array[]; turnWin: number; turnPoints: number };
-export type OpponentForecast = { meanBias?: number; stdDev?: number; byRemaining?: Record<string, { bias: number; std: number }>; discreteResidualByRemaining?: Record<string, { offset: number; probabilities: number[] }>; scorecardConditional?: ConditionalScoreModel; exactDPThreeGains?: number[] };
+export type OpponentForecast = { meanBias?: number; stdDev?: number; byRemaining?: Record<string, { bias: number; std: number }>; discreteResidualByRemaining?: Record<string, { offset: number; probabilities: number[] }>; scorecardConditional?: ConditionalScoreModel; exactDPThreeGains?: number[]; mixtures?: Array<{weight:number;forecast:OpponentForecast}> };
 const EPS = 1e-12;
 const FACES = 252;
 const fullIndex = new Map(kernel.states.slice(210).map((d, i) => [d.join(""), i]));
@@ -27,9 +27,12 @@ function normalCdf(x: number): number {
   return x >= 0 ? cdf : 1 - cdf;
 }
 
-export function opponentForecastPayoff(state: Game, forecast: OpponentForecast = {}) {
+export type OpponentPayoff={mean:number;sigma:number;kind:string;payoff:(finalScore:number)=>number};
+export function opponentForecastPayoff(state: Game, forecast: OpponentForecast = {}):OpponentPayoff {
   const p = 1 - state.player, other = state.cards[p], remMask = mask(state, p), n = bitcount(remMask);
   const ownBase = total(other), u = Math.min(63, upper(other));
+  if(forecast.mixtures){const parts=forecast.mixtures;if(!parts.length||parts.some(x=>!Number.isFinite(x.weight)||x.weight<0||Boolean(x.forecast.mixtures))||Math.abs(parts.reduce((a,x)=>a+x.weight,0)-1)>1e-6)throw Error("Invalid opponent posterior payoff mixture");const components=parts.filter(x=>x.weight>0).map(x=>({weight:x.weight,pred:opponentForecastPayoff(state,x.forecast)}));return{mean:components.reduce((a,x)=>a+x.weight*x.pred.mean,0),sigma:NaN,kind:"Bayesian mixture of policy-conditioned terminal payoff distributions",payoff:(score:number)=>components.reduce((a,x)=>a+x.weight*x.pred.payoff(score),0)};}
+
   if(n===3&&forecast.exactDPThreeGains){const dist=forecast.exactDPThreeGains;const mass=dist.reduce((a,b)=>a+b,0);if(!dist.length||dist.some(x=>!Number.isFinite(x)||x<0)||Math.abs(mass-1)>1e-8)throw Error("Invalid exact DP Expert 3-slot opponent score PMF");const prefix=new Float64Array(dist.length+1);for(let i=0;i<dist.length;i++)prefix[i+1]=prefix[i]+dist[i];return{mean:ownBase+dist.reduce((a,p,i)=>a+i*p,0),sigma:0,kind:"exact DP Expert three-category policy PMF (not adaptive competitor)",payoff:(finalScore:number)=>{const diff=finalScore-ownBase;if(diff<0)return 0;if(diff>=dist.length)return 1;return prefix[diff]+dist[diff]/2;}};}
   if (n <= 2) {
     const dist = dpOpponentGains(remMask, u);

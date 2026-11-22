@@ -1,0 +1,396 @@
+name: YachtLab Bayesian opponents adaptive search and v4 exact A-E ablations
+on:
+  pull_request:
+    paths:
+      - src/research-opponent-belief.ts
+      - src/research-v33-belief.ts
+      - src/research-v33.ts
+      - src/competitive-v3.ts
+      - src/research-v34.ts
+      - src/research-v34-adaptive.ts
+      - scripts/train-v33-belief.mjs
+      - scripts/train-v4-ablation.mjs
+      - scripts/select-v4-ablation.mjs
+      - scripts/bench-upgrades.mjs
+      - scripts/summarize-upgrades.mjs
+      - tests/research-followup.test.ts
+      - .github/workflows/followup-ablations.yml
+  push:
+    branches: [main]
+    paths:
+      - src/research-opponent-belief.ts
+      - src/research-v33-belief.ts
+      - src/research-v33.ts
+      - src/competitive-v3.ts
+      - src/research-v34.ts
+      - src/research-v34-adaptive.ts
+      - scripts/train-v33-belief.mjs
+      - scripts/train-v4-ablation.mjs
+      - scripts/select-v4-ablation.mjs
+      - scripts/bench-upgrades.mjs
+      - scripts/summarize-upgrades.mjs
+      - tests/research-followup.test.ts
+      - .github/workflows/followup-ablations.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-followup-ablations-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: All unit tests and TypeScript production build
+        run: |
+          npm test -- --reporter=dot
+          npm run build
+      - name: All research entrypoints parse
+        run: |
+          node --check scripts/train-v33-belief.mjs
+          node --check scripts/train-v4-ablation.mjs
+          node --check scripts/select-v4-ablation.mjs
+          node --check scripts/bench-upgrades.mjs
+          node --check scripts/summarize-upgrades.mjs
+      - name: Fit six-opponent Bayesian priors and scorecards (smoke)
+        run: node scripts/train-v33-belief.mjs --smoke
+      - name: Test 6-policy Bayesian posterior on real complete full-game states
+        run: |
+          node scripts/bench-upgrades.mjs --smoke --candidate v33-belief --opponent "Win DP v2" --shard 2000
+          node scripts/bench-upgrades.mjs --smoke --candidate v33-belief --opponent "Aggressive" --shard 2000
+          node scripts/bench-upgrades.mjs --smoke --candidate v33-belief --opponent "Random" --shard 2000
+      - name: Test A/B/C/D/adaptive budgets on actual matches
+        run: |
+          for candidate in v34-legacy v34-A v34-B v34-C v34-D v34-adaptive; do
+            node scripts/bench-upgrades.mjs --smoke --candidate "$candidate" --opponent "Win DP v2" --shard 2000
+          done
+      - name: Train ablation objectives independently and confirm frozen A/B old weights
+        run: |
+          for objective in teacher reinforce joint; do
+            node scripts/train-v4-ablation.mjs --smoke --objective "$objective" --seed-index 0
+            cp "training/checkpoints/v4-ablation-$objective-seed-0.json" "training/checkpoints/v4-ablation-$objective-selected.json"
+          done
+          for candidate in v4-A v4-B v4-C v4-D v4-E; do
+            node scripts/bench-upgrades.mjs --smoke --candidate "$candidate" --opponent "Win DP v2" --shard 2000
+          done
+  train-opponent-models:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Original two-policy pack for matched legacy v4
+        run: node scripts/train-v33.mjs --train 800 --validation 300 --test 300
+      - name: New 6-policy train validation untouched confirm pack
+        run: node scripts/train-v33-belief.mjs --train 800 --validation 300 --test 300
+      - uses: actions/upload-artifact@v4
+        with:
+          name: followup-opponent-packs
+          path: |
+            training/results/v33-pack.json
+            training/results/v33-belief-pack.json
+          retention-days: 90
+  train-psro:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Fixed PSRO population from independent training seeds
+        run: node scripts/research-psro.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: followup-psro
+          path: training/results/psro-population.json
+          retention-days: 90
+  train-ablation:
+    needs: [train-opponent-models, train-psro]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        objective: [teacher, reinforce, joint]
+        seed: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: followup-opponent-packs
+          path: training/results
+      - uses: actions/download-artifact@v4
+        with:
+          name: followup-psro
+          path: training/results
+      - name: Abort if trained opponent distributions missing
+        run: |
+          test -s training/results/v33-pack.json
+          test -s training/results/v33-belief-pack.json
+          test -s training/results/psro-population.json
+      - name: Isolated 3000-game teacher vs RL vs joint training with 4000-game v2 validation
+        run: node scripts/train-v4-ablation.mjs --objective "${{ matrix.objective }}" --seed-index "${{ matrix.seed }}" --episodes 3000 --validation-pairs 2000
+      - uses: actions/upload-artifact@v4
+        with:
+          name: followup-train-${{ matrix.objective }}-${{ matrix.seed }}
+          path: training/checkpoints/v4-ablation-${{ matrix.objective }}-seed-${{ matrix.seed }}.json
+          retention-days: 90
+  select-ablation:
+    needs: train-ablation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: followup-train-*
+          merge-multiple: true
+          path: training/checkpoints
+      - name: Choose 3 ablation actors on expanded v2 validation only
+        run: node scripts/select-v4-ablation.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: followup-frozen-actors
+          path: |
+            training/checkpoints/v4-ablation-teacher-selected.json
+            training/checkpoints/v4-ablation-reinforce-selected.json
+            training/checkpoints/v4-ablation-joint-selected.json
+          retention-days: 90
+  duel-v33:
+    needs: train-opponent-models
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        candidate: [v3-baseline, v33-known, v33-belief]
+        opponent: ["Win DP v2", "Win DP v3", "DP Expert", Aggressive, Conservative, Random]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: followup-opponent-packs
+          path: training/results
+      - name: Each policy cross-check against six opponents using identical paired seeds
+        run: node scripts/bench-upgrades.mjs --candidate "${{ matrix.candidate }}" --opponent "${{ matrix.opponent }}" --pairs 200 --shard 2101
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: followup-v33-${{ matrix.candidate }}-${{ matrix.opponent }}
+          path: training/results/followup-ablation/*.json
+          if-no-files-found: error
+          retention-days: 90
+  duel-v34:
+    needs: train-opponent-models
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        candidate: [v34-legacy, v34-A, v34-B, v34-C, v34-D, v34-adaptive]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: followup-opponent-packs
+          path: training/results
+      - name: Exploratory decision budget and latency curves, A B C D adaptive
+        run: node scripts/bench-upgrades.mjs --candidate "${{ matrix.candidate }}" --opponent "Win DP v2" --pairs 80 --shard 2111
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: followup-v34-${{ matrix.candidate }}
+          path: training/results/followup-ablation/*.json
+          if-no-files-found: error
+          retention-days: 90
+  duel-v4:
+    needs: [train-opponent-models, select-ablation]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        candidate: [v4-A, v4-B, v4-C, v4-D, v4-E]
+        shard: ${{ fromJSON('[2201,2202,2203,2204,2205,2206,2207,2208,2209,2210,2211,2212,2213,2214,2215,2216,2217,2218,2219,2220]') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: followup-opponent-packs
+          path: training/results
+      - uses: actions/download-artifact@v4
+        with:
+          name: followup-frozen-actors
+          path: training/checkpoints
+      - name: Ensure A/B archived weights and C/D/E frozen models exist
+        run: |
+          test -s training/research-archive/v4-original-seed0.json
+          test -s training/checkpoints/v4-ablation-teacher-selected.json
+          test -s training/checkpoints/v4-ablation-reinforce-selected.json
+          test -s training/checkpoints/v4-ablation-joint-selected.json
+      - name: 5000 independent seed pairs both seats; 200k games per A-E policy
+        run: node scripts/bench-upgrades.mjs --candidate "${{ matrix.candidate }}" --opponent "Win DP v2" --pairs 5000 --shard "${{ matrix.shard }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: followup-v4-${{ matrix.candidate }}-${{ matrix.shard }}
+          path: training/results/followup-ablation/*.json
+          if-no-files-found: error
+          retention-days: 90
+  report-v33:
+    needs: duel-v33
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: followup-v33-*
+          path: training/results/followup-ablation
+          merge-multiple: true
+      - run: node scripts/summarize-upgrades.mjs --track v33 --start 2101 --shards 1 --pairs 200
+      - uses: actions/upload-artifact@v4
+        with:
+          name: followup-v33-report
+          path: |
+            training/results/followup-ablation/v33-summary.json
+            docs/context/_generated/FOLLOWUP-V33-LATEST.md
+      - name: Publish independent policy-diversity evidence
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/FOLLOWUP-V33-LATEST.md
+          git commit -m "chore(research): publish six-opponent Bayesian report [skip ci]"
+          for attempt in 1 2 3 4 5 6; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+  report-v34:
+    needs: duel-v34
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: followup-v34-*
+          path: training/results/followup-ablation
+          merge-multiple: true
+      - run: node scripts/summarize-upgrades.mjs --track v34 --start 2111 --shards 1 --pairs 80
+      - uses: actions/upload-artifact@v4
+        with:
+          name: followup-v34-report
+          path: |
+            training/results/followup-ablation/v34-summary.json
+            docs/context/_generated/FOLLOWUP-V34-LATEST.md
+      - name: Publish exploratory budget and latency evidence
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/FOLLOWUP-V34-LATEST.md
+          git commit -m "chore(research): publish v3.4 adaptive budget pilot [skip ci]"
+          for attempt in 1 2 3 4 5 6; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+  report-v4:
+    needs: duel-v4
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: followup-v4-*
+          path: training/results/followup-ablation
+          merge-multiple: true
+      - name: Reject missing shards and compare five matched policies
+        run: node scripts/summarize-upgrades.mjs --track v4 --start 2201 --shards 20 --pairs 5000
+      - uses: actions/upload-artifact@v4
+        with:
+          name: followup-v4-report
+          path: |
+            training/results/followup-ablation/v4-summary.json
+            docs/context/_generated/FOLLOWUP-V4-LATEST.md
+      - name: Publish results only, no default AI promotion
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/FOLLOWUP-V4-LATEST.md
+          git commit -m "chore(research): publish 1m-game A-E ablation with paired 99pct CI [skip ci]"
+          for attempt in 1 2 3 4 5 6; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 2
+          done
+          exit 1
