@@ -6,6 +6,7 @@ import { createMultiGame, multiStandings, type MultiGame } from "./multi-engine"
 import { appendMultiAction, newMultiReplay, type MultiReplay } from "./multi-replay";
 import MultiReplayViewer from "./MultiReplayViewer";
 import MobileScoreSheet, { MobileScoreButton } from "./MobileScoreSheet";
+import MobileQuickScore from "./MobileQuickScore";
 import { saveMultiReplay } from "./multi-replay-storage";
 import { total, names as categoryNames, type Action, type Category } from "./engine";
 
@@ -25,7 +26,6 @@ export default function LocalGame() {
   const [mobileScoreOpen, setMobileScoreOpen] = useState(false);
   const [gameFeedback, setGameFeedback] = useState("");
   const [rollEvent, setRollEvent] = useState(0);
-  const [selectedScore, setSelectedScore] = useState<Category | null>(null);
   const railRef = useRef<HTMLDivElement>(null);
   const record = useRef<MultiReplay | null>(null);
   if (!record.current) record.current = newMultiReplay(state, asPlayers(labels, count), "사람 vs 사람");
@@ -50,7 +50,7 @@ export default function LocalGame() {
     const n = Math.min(50, Math.max(2, Math.trunc(next)));
     if (n === count) return;
     const fresh = createMultiGame(n, newSeed());
-    setCount(n); setState(fresh); setAllScores(false); setError(""); setShowNames(false); setSelectedScore(null);
+    setCount(n); setState(fresh); setAllScores(false); setError(""); setShowNames(false);
     record.current = newMultiReplay(fresh, asPlayers(labels, n), "사람 vs 사람");
   };
   const rename = (index: number, value: string) => {
@@ -67,8 +67,7 @@ export default function LocalGame() {
       if (action.type === "score") setGameFeedback(current + " · " + categoryNames[action.category] + " " + (next.finalState.cards[state.player][action.category] ?? 0) + "점 기록");
       record.current = next;
       setState(next.finalState);
-      if (action.type === "roll") { setRollEvent((n) => n + 1); setSelectedScore(null); }
-      if (action.type === "score") setSelectedScore(null);
+      if (action.type === "roll") setRollEvent((n) => n + 1);
       if (next.finalState.done && !state.done) void saveMultiReplay(next).catch(e => setError("기보 자동 저장 실패: " + (e instanceof Error ? e.message : String(e))));
       setError("");
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
@@ -76,14 +75,9 @@ export default function LocalGame() {
   const restart = () => {
     const fresh = createMultiGame(count, newSeed());
     record.current = newMultiReplay(fresh, asPlayers(labels, count), "사람 vs 사람");
-    setState(fresh); setError(""); setViewReplay(null); setAllScores(false); setMobileScoreOpen(false); setGameFeedback(""); setSelectedScore(null);
+    setState(fresh); setError(""); setViewReplay(null); setAllScores(false); setMobileScoreOpen(false); setGameFeedback("");
   };
-  const chooseScore = (category: Category) => setSelectedScore((current) => current === category ? null : category);
-  const confirmScore = () => {
-    if (!active || !selectedScore || !state.rolls || state.cards[state.player][selectedScore] !== undefined) return;
-    act({ type: "score", category: selectedScore });
-    setMobileScoreOpen(false);
-  };
+  const recordScore = (category: Category) => { if (!active || !state.rolls || state.cards[state.player][category] !== undefined) return; act({ type: "score", category }); setMobileScoreOpen(false); };
   const standings = state.done ? multiStandings(state) : [];
   return (
     <div className="multi-local-game">
@@ -144,9 +138,9 @@ export default function LocalGame() {
             )}
           </section>
           <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={state.rolls} />
-          {mobileScoreOpen && <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}><MultiScoreboard state={state} labels={names} focused={count >= 9 && !allScores} select={active ? chooseScore : undefined} selected={selectedScore} onConfirm={confirmScore} onClear={() => setSelectedScore(null)}/></MobileScoreSheet>}
+          {mobileScoreOpen && <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}><MobileQuickScore cards={state.cards} dice={state.dice} rolls={state.rolls} current={state.player} labels={names} canScore={active} onScore={recordScore}/></MobileScoreSheet>}
           {gameFeedback && <p className="game-feedback" role="status">{gameFeedback}</p>}
-          <details className="game-rules"><summary>게임 방법</summary><p>주사위를 최대 3번 굴리고 원하는 눈을 고정하세요. 점수판에서 점수를 선택하고 확정하면 다음 사람의 차례가 됩니다. 12칸을 모두 채우면 최종 점수로 순위를 결정해요. 상단 점수 63점 이상이면 +35점!</p></details>
+          <details className="game-rules"><summary>게임 방법</summary><p>주사위를 최대 3번 굴리고 원하는 눈을 고정하세요. 점수판에서 점수를 한 번 누르면 다음 사람의 차례가 됩니다. 12칸을 모두 채우면 최종 점수로 순위를 결정해요. 상단 점수 63점 이상이면 +35점!</p></details>
           {error && <p role="alert" className="error">{error}</p>}
           {(state.done && count < 9) && <MultiStandings state={state} labels={names} />}
         </div>
@@ -157,7 +151,7 @@ export default function LocalGame() {
               <button className={allScores ? "active" : ""} onClick={() => setAllScores(true)}>전체 점수표</button>
             </div>
           )}
-          <MultiScoreboard state={state} labels={names} focused={count >= 9 && !allScores} select={active ? chooseScore : undefined} selected={mobileScoreOpen ? null : selectedScore} onConfirm={confirmScore} onClear={() => setSelectedScore(null)} />
+          <MultiScoreboard state={state} labels={names} focused={count >= 9 && !allScores} select={active ? recordScore : undefined} />
           {count >= 9 && <MultiStandings state={state} labels={names} />}
         </div>
       </div>
