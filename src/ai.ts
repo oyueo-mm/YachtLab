@@ -13,6 +13,8 @@ import { ppoDecision } from "./ppo";
 import { dpDecision } from "./dp";
 import { winDPDecision } from "./win-dp";
 import { winDPv2Decision } from "./competitive-v2";
+import { winDPv4Decision, type V4Model } from "./research-v4";
+import frozenV4D from "../training/research-archive/v4-reinforce-seed1-frozen.json";
 import { distilledDecision } from "./distilled";
 import distilledStatus from "./distilled-status.json";
 const allAlgorithms = [
@@ -24,6 +26,7 @@ const allAlgorithms = [
   "DP Expert",
   "Win DP",
   "Win DP v2",
+  "Win DP v4-D",
   "Distilled Policy",
   "Distilled PPO",
 ] as const;
@@ -47,7 +50,7 @@ export type Decision =
       candidates: Candidate[];
       note: string;
     };
-export type Options = { iterations?: number; seed?: number };
+export type Options = { iterations?: number; seed?: number; opponentAlgorithm?: Algorithm };
 type Hold = { values: number[]; ids: number[] };
 export function holds(values: number[]): number[][] {
   const result: number[][] = [];
@@ -140,6 +143,7 @@ export function decide(
   if (algorithm === "DP Expert") return dpDecision(state);
   if (algorithm === "Win DP") return winDPDecision(state) ?? dpDecision(state);
   if (algorithm === "Win DP v2") return winDPv2Decision(state) ?? dpDecision(state);
+  if (algorithm === "Win DP v4-D") { const opponent = options.opponentAlgorithm === "DP Expert" ? "DP Expert" : options.opponentAlgorithm === "Win DP v2" ? "Win DP v2" : "Other"; const frozenModel: V4Model = { version: 1, weights: frozenV4D.weights, trainingSeed: frozenV4D.trainingSeed, teacher: "DP Expert + v3.3 late-game + v3.4 opponent-response", trainingGames: frozenV4D.trainingGames, validationGames: frozenV4D.validationGames, validationWinCredit: frozenV4D.validationWinCredit, trainedAgainst: frozenV4D.trainedAgainst }; const chosen = winDPv4Decision(state, opponent, frozenModel, { disableV34: true }); return { ...chosen, note: "Win DP v4-D · 고정된 REINFORCE 전용 체크포인트 · 마지막 3칸 이하는 Win DP v3.3 계열 정책 · 상대가 인간이거나 불명확하면 Other 가정" }; }
   if (algorithm === "Distilled Policy" || algorithm === "Distilled PPO")
     return distilledDecision(state, algorithm);
   const card = state.cards[state.player],
