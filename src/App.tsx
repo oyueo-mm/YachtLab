@@ -410,7 +410,6 @@ function HumanGame({
                 set={setAlgorithm}
                 disabled={state.actions > 0}
               />
-}
             </div>
             <button className="text-button" onClick={restart}>
               <RotateCcw size={15} />
