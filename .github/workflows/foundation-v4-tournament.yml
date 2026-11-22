@@ -1,0 +1,134 @@
+name: YachtLab DP Expert Win DP v2 original v4 and v4-D 300k tournament
+on:
+  pull_request:
+    paths:
+      - scripts/bench-foundation-v4.mjs
+      - scripts/summarize-foundation-v4.mjs
+      - .github/workflows/foundation-v4-tournament.yml
+      - docs/context/FOUNDATION-V4-TOURNAMENT.md
+  push:
+    branches: [main]
+    paths:
+      - scripts/bench-foundation-v4.mjs
+      - scripts/summarize-foundation-v4.mjs
+      - .github/workflows/foundation-v4-tournament.yml
+      - docs/context/FOUNDATION-V4-TOURNAMENT.md
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: yachtlab-foundation-v4-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Unit tests, build and entrypoint validation
+        run: |
+          node --check scripts/bench-foundation-v4.mjs
+          node --check scripts/summarize-foundation-v4.mjs
+          npm test -- --reporter=dot
+          npm run build
+      - uses: actions/download-artifact@v4
+        with:
+          name: v33-forecast-locked
+          run-id: 44922054901
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: training/results
+      - name: Confirm original preselected policy files
+        run: |
+          test -s training/results/v33-pack.json
+          test -s training/research-archive/v4-original-seed0.json
+          test -s training/research-archive/v4-reinforce-seed1-frozen.json
+      - name: Six real paired full-game smoke matchups
+        run: |
+          for matchup in "DP-Expert Win-DP-v2" "DP-Expert v4-original" "DP-Expert v4-D" "Win-DP-v2 v4-original" "Win-DP-v2 v4-D" "v4-original v4-D"; do
+            read -r left right <<< "$matchup"
+            node scripts/bench-foundation-v4.mjs --smoke --left "$left" --right "$right" --shard 7001
+          done
+  duel:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        matchup: [DP-Expert_vs_Win-DP-v2, DP-Expert_vs_v4-original, DP-Expert_vs_v4-D, Win-DP-v2_vs_v4-original, Win-DP-v2_vs_v4-D, v4-original_vs_v4-D]
+        shard: [7201,7202,7203,7204,7205,7206,7207,7208,7209,7210]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: v33-forecast-locked
+          run-id: 44922054901
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: training/results
+      - name: 2500 paired seeds = 5000 complete games, frozen opponents and 12-category rules
+        run: |
+          matchup="${{ matrix.matchup }}"
+          left="${matchup%%_vs_*}"
+          right="${matchup#*_vs_}"
+          node scripts/bench-foundation-v4.mjs --left "$left" --right "$right" --shard "${{ matrix.shard }}" --pairs 2500
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: foundation-4way-${{ matrix.matchup }}-${{ matrix.shard }}
+          path: training/results/foundation-50k/*.json
+          retention-days: 90
+          if-no-files-found: error
+  report:
+    needs: duel
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: foundation-4way-*
+          merge-multiple: true
+          path: training/results/foundation-50k
+      - name: Strict 60-shard integrity, paired 99pct confidence and six-fold Holm correction
+        run: node scripts/summarize-foundation-v4.mjs --first-shard 7201 --shards 10 --pairs 2500
+      - uses: actions/upload-artifact@v4
+        with:
+          name: foundation-4way-final-report
+          path: |
+            training/results/foundation-50k/foundation-4way-final.json
+            docs/context/_generated/FOUNDATION-4WAY-50K-LATEST.md
+          retention-days: 90
+      - name: Publish immutable source-linked result, no AI promotion
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/FOUNDATION-4WAY-50K-LATEST.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "chore(research): publish DP Expert v2 v4 300k paired match report [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 2
+          done
+          exit 1
