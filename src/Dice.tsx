@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { planThrow, takeThrowDirection, type ThrowPlan } from "./dice-motion";
+import { motionLevel, useSettings } from "./settings";
+import { playSfx } from "./sound";
 import {
   DndContext,
   PointerSensor,
@@ -90,6 +93,8 @@ function SortableDie({
   rollEvent,
   animate,
   move,
+  plan,
+  sound,
 }: {
   id: number;
   value: number;
@@ -100,35 +105,47 @@ function SortableDie({
   rollEvent: number;
   animate: boolean;
   move: (offset: number) => void;
+  plan: ThrowPlan | null;
+  sound: boolean;
 }) {
   const [visibleFace, setVisibleFace] = useState(value);
   const [animating, setAnimating] = useState(false);
+  const motion = useRef<HTMLSpanElement>(null);
+  const shadow = useRef<HTMLSpanElement>(null);
   useEffect(() => { if (!animating) setVisibleFace(value); }, [value, animating]);
   // Animate a real roll event only. Holding, releasing and reordering never replay the roll.
+  // The engine has already resolved `value`; the motion only decides *how* the die lands on it.
   useEffect(() => {
-    if (!animate || !rolled || rollEvent === 0 || held || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (!animate || !rolled || rollEvent === 0 || held || !plan) {
       setVisibleFace(value);
       setAnimating(false);
       return;
     }
-    let step = 0;
     setAnimating(true);
-    const interval = window.setInterval(() => {
-      step += 1;
-      setVisibleFace(1 + ((id * 7 + rollEvent * 5 + step * 11) % 6));
-    }, 90);
-    const timer = window.setTimeout(() => {
-      window.clearInterval(interval);
-      setVisibleFace(value);
-      setAnimating(false);
-    }, 260 + id * 14);
+    setVisibleFace(plan.tumbleFaces[0]?.face ?? value);
+    const timers = [
+      ...plan.tumbleFaces.map(({ at, face }) => window.setTimeout(() => setVisibleFace(face), at)),
+      window.setTimeout(() => setVisibleFace(value), plan.revealAt),
+      window.setTimeout(() => {
+        setVisibleFace(value);
+        setAnimating(false);
+      }, plan.endAt + 20),
+    ];
+    const options: KeyframeAnimationOptions = { duration: plan.duration, delay: plan.delay, fill: "backwards" };
+    const animations = [motion.current?.animate?.(plan.keyframes, options), shadow.current?.animate?.(plan.shadow, options)];
     return () => {
-      window.clearInterval(interval);
-      window.clearTimeout(timer);
+      timers.forEach((t) => window.clearTimeout(t));
+      animations.forEach((a) => a?.cancel());
     };
     // The rollEvent token is emitted with the already resolved dice values.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rollEvent]);
+  // Hold/release click for human and AI alike; a new turn (rolled=false) resets silently.
+  const previousHeld = useRef(held);
+  useEffect(() => {
+    if (previousHeld.current !== held && rolled && sound) playSfx(held ? "hold" : "release");
+    previousHeld.current = held;
+  }, [held, rolled, sound]);
   const {
     attributes,
     listeners,
@@ -166,7 +183,12 @@ function SortableDie({
         aria-pressed={held}
         title="클릭: 고정 · 드래그 또는 Alt + 좌우 방향키: 순서 변경"
       >
-        <DieIcon value={visibleFace} className={animating ? "roll-face" : ""} aria-hidden={animating ? true : undefined}/>
+        <span className="die-stage" aria-hidden={animating ? true : undefined}>
+          <span ref={shadow} className="die-shadow" aria-hidden="true" />
+          <span ref={motion} className="die-motion">
+            <DieIcon value={visibleFace} aria-hidden={animating ? true : undefined} />
+          </span>
+        </span>
       </button>
       <span className={`hold-label ${held ? "visible" : ""}`}>
         <LockKeyhole size={11} />
@@ -197,6 +219,49 @@ export function Dice({
     }),
   );
   const [active, setActive] = useState(false);
+  const settings = useSettings();
+  // One choreography per roll token: each moving die gets its own path; held dice stay put.
+  const plans = useMemo(() => {
+    const result = new Map<number, ThrowPlan>();
+    if (!animate || rollEvent === 0 || state.rolls === 0) return result;
+    const level = motionLevel(settings);
+    const direction = takeThrowDirection(rollEvent);
+    state.order.forEach((id, slot) => {
+      const die = state.dice.find((d) => d.id === id)!;
+      if (die.held) return;
+      const plan = planThrow(rollEvent, id, slot, direction, level, die.value);
+      if (plan) result.set(id, plan);
+    });
+    return result;
+    // Plans are fixed per roll token; later hold/reorder must not re-plan the throw.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rollEvent]);
+  // Sound is scheduled from the same plan, so impacts are heard when the dice visibly land.
+  useEffect(() => {
+    if (!animate || rollEvent === 0 || state.rolls === 0) return;
+    const moving = state.dice.filter((d) => !d.held);
+    if (!moving.length) return;
+    if (!plans.size) {
+      playSfx("impact", { intensity: 0.5 });
+      return;
+    }
+    playSfx("throw");
+    const hits: { at: number; intensity: number; pan: number }[] = [];
+    plans.forEach((plan, id) => {
+      const pan = (state.order.indexOf(id) - 2) * 0.25;
+      plan.impacts.forEach((hit) => hits.push({ ...hit, pan }));
+    });
+    hits.sort((a, b) => a.at - b.at);
+    let last = -Infinity;
+    for (const hit of hits) {
+      if (hit.at - last < 28) continue; // merge near-simultaneous clacks
+      last = hit.at;
+      playSfx("impact", { delay: hit.at / 1000, intensity: hit.intensity, pan: hit.pan });
+    }
+    const end = Math.max(...[...plans.values()].map((p) => p.endAt));
+    playSfx("settle", { delay: end / 1000, intensity: 0.4 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rollEvent]);
   const end = ({ active, over }: DragEndEvent) => {
     setActive(false);
     if (over && active.id !== over.id)
@@ -235,6 +300,8 @@ export function Dice({
                 rolled={state.rolls > 0}
                 animate={animate}
                 rollEvent={rollEvent}
+                plan={plans.get(id) ?? null}
+                sound={animate}
                 move={(offset) => {
                   const index = state.order.indexOf(id),
                     target = index + offset;

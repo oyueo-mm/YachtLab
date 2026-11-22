@@ -1,40 +1,27 @@
 import { chooseAlgorithm,scoreCategory } from "./helpers";
 import { test, expect, type Page } from "@playwright/test";
-async function navigate(page: Page, name: string) {
-  if (
-    (await page
-      .getByRole("button", { name: "메뉴 열기/닫기" })
-      .getAttribute("aria-expanded")) === "false"
-  )
-    await page.getByRole("button", { name: "메뉴 열기/닫기" }).click();
-  await page.getByRole("link", { name, exact: true }).click();
+async function openLabTool(page: Page, name: string) {
+  // Research tools moved from the old sidebar into the lab (연구실) menu.
+  await page.getByRole("button", { name: "연구실" }).click();
+  await page.getByRole("navigation", { name: "연구실 메뉴" }).getByRole("link", { name, exact: true }).click();
 }
-test("홈 문구와 장식 주사위, 메뉴와 새로고침", async ({ page }) => {
+test("홈은 게임 모드 로비이고 연구 기능은 연구실 메뉴에서 열린다", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("");
-  await expect(page.locator("main h1")).toHaveText(
-    "요트다이스를 플레이해보세요",
-  );
-  await expect(page.locator(".hero-intro .die-icon")).toHaveCount(3);
-  await expect(page.locator(".demo-dice .die-icon")).toHaveCount(5);
-  await expect(page.locator("header a, header .brand")).toHaveCount(0);
-  await expect(page.locator(".home-shortcuts a")).toHaveCount(3);
-  await navigate(page, "전략 분석실");
-  await expect(
-    page.getByRole("heading", { name: "전략 분석실" }),
-  ).toBeVisible();
+  await expect(page.locator("main h1")).toHaveText("게임 모드 선택");
+  await expect(page.locator(".lobby .mode-card")).toHaveCount(2);
+  await expect(page.locator(".hero, .home-demo, .sidebar")).toHaveCount(0);
+  await expect(page.locator("header a")).toHaveCount(0);
+  for (const research of ["AI 대전 관전", "AI 토너먼트", "전략 분석실"]) await expect(page.locator("main").getByText(research)).toHaveCount(0);
+  await openLabTool(page, "전략 분석실");
+  await expect(page.getByRole("heading", { name: "전략 분석실" })).toBeVisible();
   await page.reload();
-  await expect(
-    page.getByRole("heading", { name: "전략 분석실" }),
-  ).toBeVisible();
-  await navigate(page, "홈");
-  await expect(page.locator(".hero")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "전략 분석실" })).toBeVisible();
+  await page.getByRole("button", { name: "홈으로" }).click();
+  await expect(page.locator(".lobby")).toBeVisible();
   expect(errors).toEqual([]);
-  await page.screenshot({
-    path: `test-results/home-${test.info().project.name}.png`,
-    fullPage: true,
-  });
+  await page.screenshot({ path: `test-results/home-${test.info().project.name}.png`, fullPage: true });
 });
 test("굴림, 고정, 재굴림 한도, 점수 선택과 AI 턴", async ({ page }) => {
   const errors: string[] = [];

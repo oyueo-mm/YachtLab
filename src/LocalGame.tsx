@@ -9,6 +9,8 @@ import MobileScoreSheet, { MobileScoreButton } from "./MobileScoreSheet";
 import MobileQuickScore from "./MobileQuickScore";
 import { saveMultiReplay } from "./multi-replay-storage";
 import { total, names as categoryNames, type Action, type Category } from "./engine";
+import { useGameSounds, useThrowGesture } from "./game-feel";
+import { Celebrate } from "./ui/Celebrate";
 
 const newSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 const initialNames = () => Array.from({ length: 50 }, (_, i) => "플레이어 " + (i + 1));
@@ -79,6 +81,8 @@ export default function LocalGame() {
   };
   const recordScore = (category: Category) => { if (!active || !state.rolls || state.cards[state.player][category] !== undefined) return; act({ type: "score", category }); setMobileScoreOpen(false); };
   const standings = state.done ? multiStandings(state) : [];
+  const gesture = useThrowGesture(active && state.rolls < 3, () => act({ type: "roll" }));
+  const celebration = useGameSounds(state.cards, state.done, state.done ? "win" : null);
   return (
     <div className="multi-local-game">
       <section className="multi-toolbar" aria-label="다인전 설정">
@@ -116,7 +120,8 @@ export default function LocalGame() {
               </div>
             ))}
           </div>
-          <section className={"game-board " + (state.rolls === 0 ? "multi-dice-ready" : "")} aria-label="사람 vs 사람 게임 보드">
+          <section className={"game-board throw-tray " + (state.rolls === 0 ? "multi-dice-ready" : "")} aria-label="사람 vs 사람 게임 보드" {...gesture}>
+            <Celebrate value={celebration} />
             <div className="board-top">
               <span className="turn-indicator"><i />{state.done ? "경기 종료" : current + "의 차례"}</span>
               <span>라운드 {state.round}/12 · 굴림 <b>{state.rolls}</b>/3</span>

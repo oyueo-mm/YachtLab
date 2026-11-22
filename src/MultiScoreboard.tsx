@@ -1,6 +1,7 @@
 import { Star, Sigma } from "lucide-react";
 import { categories, names, score, total, type Category } from "./engine";
 import { CategoryIcon, BonusProgress } from "./Scoreboard";
+import { CategoryHelp } from "./CategoryHelp";
 import { multiStandings, type MultiGame } from "./multi-engine";
 
 export function MultiScoreboard({
@@ -63,7 +64,7 @@ export function MultiScoreboard({
         {categoryIndex === 6 && (
           <>
             <tr className="bonus-row">
-              <th><Star size={16} /> 상단 보너스 <small>+35</small></th>
+              <th><Star size={16} /> 상단 보너스 <small>+35</small><CategoryHelp topic="bonus" /></th>
               {indices.map((i) => (
                 <td key={i}>
                   <BonusProgress card={state.cards[i]}/>
@@ -74,7 +75,7 @@ export function MultiScoreboard({
           </>
         )}
         <tr data-category={category} className={selected === category ? "score-row-selected" : ""}>
-          <th scope="row">{chosen(current, category) ? <button type="button" className="category-label score-category-select" aria-pressed={selected === category} onClick={() => select?.(category)}><CategoryIcon category={category} /><span>{names[category]}</span></button> : <span className="category-label"><CategoryIcon category={category} /><span>{names[category]}</span></span>}</th>
+          <th scope="row">{chosen(current, category) ? <button type="button" className="category-label score-category-select" aria-pressed={selected === category} onClick={() => select?.(category)}><CategoryIcon category={category} /><span>{names[category]}</span></button> : <span className="category-label"><CategoryIcon category={category} /><span>{names[category]}</span></span>}<CategoryHelp topic={category} /></th>
           {indices.map((i) => (
             <td key={i} className={i === current ? "multi-current-cell" : ""}>
               {chosen(i, category) ? (
