@@ -12,7 +12,6 @@ export const MIN_SEATS = 2;
 export const MAX_SEATS = 8;
 export const DICE_COUNT = 5;
 export const MAX_ROLLS = 3;
-export const RECENT_COMMAND_LIMIT = 256;
 
 export type MatchStatus = "lobby" | "playing" | "finished";
 export type PlayerStatus = "active" | "forfeited";
@@ -52,7 +51,9 @@ export type Standing = {
   status: PlayerStatus;
 };
 
-type EventBase = { seq: number; at: number };
+/** Who issued the command that produced an event group. Present only on the first event of each group. */
+export type CommandRef = { playerId: string; commandId: string };
+type EventBase = { seq: number; at: number; by?: CommandRef };
 export type OnlineEvent = EventBase &
   (
     | { type: "matchCreated"; matchId: string; seats: number; turnTimeoutMs: number | null; protocol: number }
@@ -66,8 +67,8 @@ export type OnlineEvent = EventBase &
     | { type: "matchFinished"; standings: Standing[]; winners: string[] }
   );
 export type OnlineEventType = OnlineEvent["type"];
-/** Event payload before the engine stamps `seq`/`at`. */
-export type PendingEvent = OnlineEvent extends infer E ? (E extends OnlineEvent ? Omit<E, "seq" | "at"> : never) : never;
+/** Event payload before the engine stamps `seq`/`at`/`by`. */
+export type PendingEvent = OnlineEvent extends infer E ? (E extends OnlineEvent ? Omit<E, "seq" | "at" | "by"> : never) : never;
 
 export type TurnState = {
   playerId: string;
@@ -91,8 +92,11 @@ export type OnlineMatchState = {
   standings: Standing[] | null;
   winners: string[];
   log: OnlineEvent[];
-  /** Idempotency window of `${playerId}\u0000${commandId}` → version after it was applied. */
-  recentCommands: { key: string; version: number }[];
+  /**
+   * Idempotency keys (`playerId` + NUL + `commandId`) of every command applied in this match.
+   * Derived only from `by` in the log, so `rebuildFromEvents` restores it after a restart.
+   */
+  processedCommands: string[];
 };
 
 export type OnlineErrorCode =
@@ -133,7 +137,7 @@ export function normalizeName(value: unknown): string | null {
 }
 
 const invalid = (message: string) => ({ ok: false as const, error: { code: "INVALID_COMMAND" as const, message } });
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 /**

@@ -6,8 +6,9 @@ import {
   MAX_SEATS,
   MIN_SEATS,
   ONLINE_PROTOCOL_VERSION,
-  RECENT_COMMAND_LIMIT,
+  isRecord,
   isValidId,
+  parseCommand,
   type CommandEnvelope,
   type CommandResult,
   type OnlineError,
@@ -24,7 +25,8 @@ import {
  *
  * - Pure and runtime-agnostic: no I/O, no timers, no global clock. The host passes `now` and a DiceSource.
  * - Event-sourced: commands are validated into events, and `applyEvent` is the only state mutation path,
- *   so `rebuildFromEvents(state.log)` reproduces the state exactly (used for persistence/reconnect/audit).
+ *   so `rebuildFromEvents(state.log)` reproduces the state exactly, including the idempotency keys
+ *   (used for persistence/restart/reconnect) after auditing the log by re-execution.
  * - Scoring reuses `score/total/upper/bonus` from ../engine so local play, AI research and online
  *   play share one rule implementation (12-category Nintendo-style Yacht Dice).
  */
@@ -74,7 +76,7 @@ function emptyState(): OnlineMatchState {
     standings: null,
     winners: [],
     log: [],
-    recentCommands: [],
+    processedCommands: [],
   };
 }
 
@@ -82,6 +84,7 @@ function emptyState(): OnlineMatchState {
 export function applyEvent(state: OnlineMatchState, event: OnlineEvent): OnlineMatchState {
   const next: OnlineMatchState = { ...state, log: [...state.log, event] };
   next.version = next.log.length;
+  if (event.by) next.processedCommands = [...state.processedCommands, refKey(event.by.playerId, event.by.commandId)];
   switch (event.type) {
     case "matchCreated":
       next.matchId = event.matchId;
@@ -122,35 +125,38 @@ export function applyEvent(state: OnlineMatchState, event: OnlineEvent): OnlineM
   return next;
 }
 
-const commandKey = (c: CommandEnvelope) => `${c.playerId}\u0000${c.commandId}`;
+const refKey = (playerId: string, commandId: string) => `${playerId}\u0000${commandId}`;
 
 /** Validate and apply one command. Never throws for client mistakes; returns a typed rejection instead. */
 export function applyCommand(state: OnlineMatchState, command: CommandEnvelope, context: CommandContext): CommandResult {
-  const key = commandKey(command);
-  if (state.recentCommands.some((r) => r.key === key)) return { ok: true, state, events: [], duplicate: true };
+  // Checked before the version so a retry of an applied command is acknowledged, not rejected as stale.
+  if (state.processedCommands.includes(refKey(command.playerId, command.commandId)))
+    return { ok: true, state, events: [], duplicate: true };
   if (command.expectedVersion !== undefined && command.expectedVersion !== state.version)
     return failure("STALE_VERSION", `상태가 갱신되었습니다. (현재 ${state.version}, 요청 ${command.expectedVersion})`);
   if (!isValidId(command.playerId) || !isValidId(command.commandId)) return failure("INVALID_COMMAND", "잘못된 식별자입니다.");
   if (!Number.isFinite(context.now)) return failure("INVALID_COMMAND", "잘못된 시각입니다.");
+  // Event time never goes backwards, even if the host clock does; the log audit relies on this.
+  const now = Math.max(context.now, state.log.at(-1)?.at ?? -Infinity);
   let draft = state;
   const emitted: OnlineEvent[] = [];
   const emit = (pending: PendingEvent) => {
-    const event = { ...pending, seq: draft.log.length, at: context.now } as OnlineEvent;
+    const stamp = { seq: draft.log.length, at: now };
+    // The first event of each group records who issued the command (idempotency + audit replay).
+    const event = (
+      emitted.length ? { ...pending, ...stamp } : { ...pending, ...stamp, by: { playerId: command.playerId, commandId: command.commandId } }
+    ) as OnlineEvent;
     draft = applyEvent(draft, event);
     emitted.push(event);
     return draft;
   };
   try {
-    decide(state, command, context, emit);
+    decide(state, command, { now, dice: context.dice }, emit);
   } catch (error) {
     if (error instanceof Rejection) return failure(error.code, error.message);
     throw error;
   }
   if (!emitted.length) throw Error("명령이 이벤트를 만들지 않았습니다.");
-  draft = {
-    ...draft,
-    recentCommands: [...state.recentCommands, { key, version: draft.version }].slice(-RECENT_COMMAND_LIMIT),
-  };
   return { ok: true, state: draft, events: emitted, duplicate: false };
 }
 
@@ -303,27 +309,130 @@ export function computeStandings(state: OnlineMatchState): Standing[] {
   return rows;
 }
 
-/** Rebuild and audit a match from its persisted event log. Throws if the log is inconsistent or tampered. */
-export function rebuildFromEvents(events: OnlineEvent[]): OnlineMatchState {
-  if (!events.length || events[0].type !== "matchCreated") throw Error("이벤트 로그는 matchCreated로 시작해야 합니다.");
-  let state = emptyState();
-  for (const [i, event] of events.entries()) {
-    if (event.seq !== i) throw Error(`이벤트 순서가 올바르지 않습니다. (${i})`);
-    if (i > 0 && event.type === "matchCreated") throw Error("matchCreated가 중복되었습니다.");
-    if (event.type === "diceRolled" && (event.dice.length !== DICE_COUNT || event.dice.some((v) => !Number.isInteger(v) || v < 1 || v > 6)))
-      throw Error(`잘못된 주사위 값입니다. (${i})`);
-    if (event.type === "diceRolled" && state.turn) {
-      const previous = state.turn.dice;
-      if (event.kept.some((k) => previous[k] !== event.dice[k])) throw Error(`고정한 주사위가 바뀌었습니다. (${i})`);
-    }
-    if (event.type === "categoryScored") {
-      if (state.turn?.playerId !== event.playerId || state.turn.dice.join() !== event.dice.join())
-        throw Error(`기록 주사위가 현재 턴과 다릅니다. (${i})`);
-      if (score(event.dice, event.category) !== event.points) throw Error(`점수 계산이 규칙과 다릅니다. (${i})`);
-    }
-    state = applyEvent(state, event);
+/* ---------------------------------------------------------------- log audit ---------------------------------------------------------------- */
+
+export class LogIntegrityError extends Error {
+  constructor(readonly index: number, readonly reason: string) {
+    super(`이벤트 로그 검증 실패 (#${index}): ${reason}`);
+    this.name = "LogIntegrityError";
   }
-  return state;
+}
+export type LogAudit = { ok: true; state: OnlineMatchState } | { ok: false; index: number; reason: string };
+
+/** Structural equality for JSON values; keys whose value is `undefined` count as absent. */
+function sameJson(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (Array.isArray(a) || Array.isArray(b))
+    return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((v, i) => sameJson(v, b[i]));
+  if (!isRecord(a) || !isRecord(b)) return false;
+  const ka = Object.keys(a).filter((k) => a[k] !== undefined).sort();
+  const kb = Object.keys(b).filter((k) => b[k] !== undefined).sort();
+  return ka.length === kb.length && ka.every((k, i) => k === kb[i] && sameJson(a[k], b[k]));
+}
+
+/** Map the first event of a group back to the client action that must have produced it. */
+function actionFromEvent(event: Record<string, unknown>): unknown {
+  switch (event.type) {
+    case "playerJoined":
+      return { type: "join", name: event.name };
+    case "playerLeft":
+      return { type: "leave" };
+    case "matchStarted":
+      return { type: "start" };
+    case "diceRolled":
+      return { type: "roll", keep: event.kept };
+    case "categoryScored":
+      return { type: "score", category: event.category };
+    case "playerForfeited":
+      return { type: event.reason === "timeout" ? "claimTimeout" : "resign" };
+    default:
+      return null;
+  }
+}
+
+/** Replays exactly the logged faces for the re-rolled positions, in the order the engine draws them. */
+function loggedDice(event: Record<string, unknown>) {
+  const kept = Array.isArray(event.kept) ? event.kept : [];
+  const faces = event.type === "diceRolled" && Array.isArray(event.dice) ? event.dice.filter((_, i) => !kept.includes(i)) : [];
+  let used = 0;
+  const source: DiceSource = {
+    rollDie() {
+      if (used >= faces.length) throw new Error("로그에 기록된 것보다 많은 주사위가 필요합니다.");
+      return faces[used++] as number;
+    },
+  };
+  return { source, exhausted: () => used === faces.length };
+}
+
+/**
+ * Audit an untrusted event log by **re-executing it through the engine**.
+ *
+ * The log is split into command groups (each starts with an event carrying `by`). For every group the
+ * original command is reconstructed, run through `parseCommand` + `applyCommand` against the state rebuilt
+ * so far, with the logged faces as the dice source and the logged time as `now`, and the produced events
+ * must equal the logged group exactly. Therefore every accepted log is one the engine itself could have
+ * written: all rule, turn-order, scoring, timing, attribution and derived-event (turn/standings/winner)
+ * checks are the engine's own, with no second rule implementation to drift.
+ *
+ * NOT detectable here (see docs/online/ONLINE-V01-PHASE1.md): fabricated but legal dice values, a log
+ * truncated at a command boundary, a wholly rewritten but legal history, forged `by` attribution, or
+ * fabricated timestamps that remain monotonic and consistent with deadlines. Those need authenticity
+ * mechanisms (keyed hash chain, external anchoring, signed commands, verifiable dice) — not rule checks.
+ */
+export function auditEventLog(events: unknown): LogAudit {
+  const fail = (index: number, reason: string): LogAudit => ({ ok: false, index, reason });
+  if (!Array.isArray(events) || !events.length) return fail(0, "로그가 비어 있거나 배열이 아닙니다.");
+  const head = events[0];
+  if (!isRecord(head) || head.type !== "matchCreated") return fail(0, "로그는 matchCreated로 시작해야 합니다.");
+  if (head.protocol !== ONLINE_PROTOCOL_VERSION) return fail(0, "지원하지 않는 프로토콜 버전입니다.");
+  let state: OnlineMatchState;
+  try {
+    state = createOnlineMatch(
+      { matchId: head.matchId as string, seats: head.seats as number, turnTimeoutMs: head.turnTimeoutMs as number | null },
+      head.at as number,
+    );
+  } catch (error) {
+    return fail(0, error instanceof Error ? error.message : String(error));
+  }
+  if (!sameJson(state.log[0], head)) return fail(0, "matchCreated 이벤트 형식이 엔진 출력과 다릅니다.");
+
+  for (let start = 1; start < events.length; ) {
+    const first = events[start];
+    if (!isRecord(first) || !isRecord(first.by)) return fail(start, "명령 출처(by)가 없는 이벤트로 명령 그룹이 시작됩니다.");
+    let end = start + 1;
+    while (end < events.length && !(isRecord(events[end]) && "by" in (events[end] as object))) end++;
+    const group = events.slice(start, end);
+    const action = actionFromEvent(first);
+    if (!action) return fail(start, `명령으로 시작할 수 없는 이벤트 유형입니다: ${String(first.type)}`);
+    const parsed = parseCommand({ commandId: first.by.commandId, action }, first.by.playerId as string);
+    if (!parsed.ok) return fail(start, `명령을 복원할 수 없습니다: ${parsed.error.message}`);
+    const dice = loggedDice(first);
+    let result: CommandResult;
+    try {
+      result = applyCommand(state, parsed.command, { now: first.at as number, dice: dice.source });
+    } catch (error) {
+      return fail(start, error instanceof Error ? error.message : String(error));
+    }
+    if (!result.ok) return fail(start, `규칙상 불가능한 명령입니다 (${result.error.code}): ${result.error.message}`);
+    if (result.duplicate) return fail(start, "이미 처리된 명령 식별자가 다시 기록되었습니다.");
+    if (!dice.exhausted()) return fail(start, "기록된 주사위 수가 실제 재굴림 수와 다릅니다.");
+    for (let k = 0; k < Math.max(group.length, result.events.length); k++)
+      if (!sameJson(result.events[k], group[k]))
+        return fail(
+          start + k,
+          k >= group.length ? "엔진이 만들어야 할 후속 이벤트가 누락되었습니다." : k >= result.events.length ? "명령으로 설명되지 않는 추가 이벤트입니다." : `엔진 출력과 다른 ${String((group[k] as { type?: unknown })?.type)} 이벤트입니다.`,
+        );
+    state = result.state;
+    start = end;
+  }
+  return { ok: true, state };
+}
+
+/** Rebuild a match (including its idempotency keys) from a persisted log. Throws `LogIntegrityError` if the audit fails. */
+export function rebuildFromEvents(events: unknown): OnlineMatchState {
+  const audit = auditEventLog(events);
+  if (!audit.ok) throw new LogIntegrityError(audit.index, audit.reason);
+  return audit.state;
 }
 
 /* ------------------------------------------------------------------ views ------------------------------------------------------------------ */
@@ -357,7 +466,7 @@ export type PlayerView = {
 
 /**
  * Public projection for one viewer (or a spectator with `viewerId = null`).
- * Excludes the idempotency window and any server-only bookkeeping; the engine holds no RNG state at all.
+ * Excludes the idempotency keys and other players' commandIds; the engine holds no RNG state at all.
  */
 export function viewFor(state: OnlineMatchState, viewerId: string | null, now?: number, sinceSeq = state.log.length): PlayerView {
   const me = viewerId ? state.players.find((p) => p.playerId === viewerId) : undefined;
@@ -399,6 +508,11 @@ export function viewFor(state: OnlineMatchState, viewerId: string | null, now?: 
         : null,
     standings: state.standings ? state.standings.map((s) => ({ ...s })) : null,
     winners: [...state.winners],
-    events: state.log.slice(Math.max(0, Math.min(sinceSeq, state.log.length))),
+    // A viewer sees `by` only on its own commands (to confirm pending commandIds); others' ids are not exposed.
+    events: state.log.slice(Math.max(0, Math.min(sinceSeq, state.log.length))).map((event) => {
+      if (!event.by || event.by.playerId === viewerId) return event;
+      const { by: _by, ...rest } = event;
+      return rest as OnlineEvent;
+    }),
   };
 }

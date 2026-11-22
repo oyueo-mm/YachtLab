@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { available, categories, score, total } from "../src/engine";
 import {
+  LogIntegrityError,
   OnlineMatchHost,
   applyCommand,
+  auditEventLog,
   createOnlineMatch,
   cryptoDiceSource,
   parseCommand,
@@ -37,7 +39,7 @@ function expectError(state: OnlineMatchState, command: CommandEnvelope, code: st
 
 function lobby(ids: string[], dice: DiceSource, options: { seats?: number; turnTimeoutMs?: number | null } = {}) {
   let state = createOnlineMatch({ matchId: "m1", seats: options.seats ?? ids.length, turnTimeoutMs: options.turnTimeoutMs ?? null }, 0);
-  for (const id of ids) state = run(state, cmd(id, { type: "join", name: id.toUpperCase() }), dice);
+  for (const id of ids) state = run(state, cmd(id, { type: "join", name: id.toUpperCase() }), dice, 0);
   return state;
 }
 
@@ -53,7 +55,7 @@ function playTurn(state: OnlineMatchState, dice: DiceSource, pick: () => number,
   const open = available(me.card);
   return run(state, cmd(id, { type: "score", category: open[Math.floor(pick() * open.length)] }), dice, now);
 }
-const without = ({ recentCommands: _, ...rest }: OnlineMatchState) => rest;
+const without = (state: OnlineMatchState) => state; // rebuild now restores the full state, idempotency keys included
 
 describe("YachtLab Online v0.1 authoritative engine", () => {
   it("plays a complete 2-player match and the event log rebuilds the exact state", () => {
@@ -222,8 +224,12 @@ describe("YachtLab Online v0.1 authoritative engine", () => {
     const mine = viewFor(state, "a", 15_000);
     const theirs = viewFor(state, "b", 15_000);
     const spectator = viewFor(state, null);
-    const json = JSON.stringify([mine, theirs, spectator]);
-    expect(json).not.toMatch(/recentCommands|"seed"|"rng"|commandId/);
+    expect(JSON.stringify([mine, theirs, spectator])).not.toMatch(/processedCommands|"seed"|"rng"/);
+    // Command ids are only echoed back to the player who issued them.
+    expect(JSON.stringify([theirs, spectator])).not.toMatch(/commandId|"by"/);
+    const own = viewFor(state, "a", undefined, 0).events.filter((e) => e.by);
+    expect(own.length).toBeGreaterThan(0);
+    expect(own.every((e) => e.by!.playerId === "a")).toBe(true);
     expect(mine.legal!.scores).toHaveLength(12);
     for (const option of mine.legal!.scores) expect(option.points).toBe(score(state.turn!.dice, option.category));
     expect(mine.legal).toMatchObject({ canRoll: true, canKeep: true, rollsLeft: 2 });
@@ -235,25 +241,314 @@ describe("YachtLab Online v0.1 authoritative engine", () => {
     expect(viewFor(state, "a", undefined, state.log.length - 1).events).toHaveLength(1);
   });
 
-  it("detects tampered event logs", () => {
-    const dice = scriptedDiceSource([1, 2, 3, 4, 5, 6, 6]);
+});
+
+/* ------------------------------------------------------- restart idempotency ------------------------------------------------------- */
+
+/** Simulates a server restart: only the JSON log survives, state is rebuilt from it. */
+const restart = (state: OnlineMatchState) => rebuildFromEvents(JSON.parse(JSON.stringify(state.log)));
+function countingDice(seed: number) {
+  const base = seededDiceSource(seed);
+  const counter = { rolls: 0 };
+  const dice: DiceSource = { rollDie: () => (counter.rolls++, base.rollDie()) };
+  return { dice, counter };
+}
+
+describe("Online idempotency survives a restart", () => {
+  it("restores processed command keys from the log", () => {
+    const dice = seededDiceSource(21);
     let state = lobby(["a", "b"], dice);
     state = run(state, cmd("a", { type: "start" }), dice);
     state = run(state, cmd("a", { type: "roll", keep: [] }), dice);
-    state = run(state, cmd("a", { type: "roll", keep: [0, 1, 2] }), dice);
-    state = run(state, cmd("a", { type: "score", category: "large" }), dice);
-    const log = () => structuredClone(state.log);
-    const points = log();
-    const scored = points.findIndex((e) => e.type === "categoryScored");
-    (points[scored] as { points: number }).points = 30;
-    expect(() => rebuildFromEvents(points)).toThrow(/점수/);
-    const kept = log();
-    (kept[scored - 1] as { dice: number[] }).dice[0] = 6;
-    expect(() => rebuildFromEvents(kept)).toThrow();
-    const order = log();
-    order.splice(2, 1);
-    expect(() => rebuildFromEvents(order)).toThrow(/순서/);
-    expect(() => rebuildFromEvents([])).toThrow();
+    const rebuilt = restart(state);
+    expect(rebuilt.processedCommands).toEqual(state.processedCommands);
+    expect(rebuilt.processedCommands).toHaveLength(4); // 2 joins, start, roll
+    expect(rebuilt).toEqual(state);
+  });
+
+  it("does not re-roll dice or re-score when a client retries after the restart", () => {
+    const { dice, counter } = countingDice(31);
+    let state = lobby(["a", "b"], dice);
+    state = run(state, cmd("a", { type: "start" }), dice);
+    const roll = cmd("a", { type: "roll", keep: [] }, { expectedVersion: state.version });
+    state = run(state, roll, dice);
+    const reroll = cmd("a", { type: "roll", keep: [0, 1] }, { expectedVersion: state.version });
+    state = run(state, reroll, dice);
+    const scoreCmd = cmd("a", { type: "score", category: "choice" }, { expectedVersion: state.version });
+    state = run(state, scoreCmd, dice);
+    const points = state.players.find((p) => p.playerId === "a")!.card.choice;
+
+    const rebuilt = restart(state);
+    const before = counter.rolls;
+    // The retries carry their original (now stale) expectedVersion: they must be acknowledged, not re-run or rejected.
+    for (const retry of [roll, reroll, scoreCmd]) {
+      const result = applyCommand(rebuilt, retry, { now: 5000, dice });
+      expect(result).toMatchObject({ ok: true, duplicate: true, events: [] });
+      if (result.ok) expect(result.state).toBe(rebuilt);
+    }
+    expect(counter.rolls).toBe(before);
+    expect(rebuilt.players.find((p) => p.playerId === "a")!.card.choice).toBe(points);
+    expect(rebuilt.log.filter((e) => e.type === "categoryScored")).toHaveLength(1);
+    expect(rebuilt.turn).toMatchObject({ playerId: "b", rolls: 0 });
+  });
+
+  it("acknowledges a retry whose response was lost by a crash right after persisting", () => {
+    const { dice, counter } = countingDice(41);
+    let now = 0;
+    const host = new OnlineMatchHost({ matchId: "r1" }, () => now, dice);
+    host.handle({ commandId: "j1", action: { type: "join", name: "A" } }, "a");
+    host.handle({ commandId: "j1", action: { type: "join", name: "B" } }, "b");
+    host.handle({ commandId: "s1", action: { type: "start" } }, "a");
+    const message = { commandId: "roll-1", expectedVersion: host.state.version, action: { type: "roll" } };
+    expect(host.handle(message, "a")).toMatchObject({ ok: true, duplicate: false });
+    const persisted = JSON.stringify(host.state.log);
+    const rolled = counter.rolls;
+
+    now = 1000;
+    const revived = new OnlineMatchHost({ matchId: "r1" }, () => now, dice, rebuildFromEvents(JSON.parse(persisted)));
+    expect(revived.handle(message, "a")).toMatchObject({ ok: true, duplicate: true });
+    expect(counter.rolls).toBe(rolled);
+    // A new command id is processed normally; the same id from another player is a different command.
+    expect(revived.handle({ commandId: "roll-2", action: { type: "roll", keep: [0] } }, "a")).toMatchObject({ ok: true, duplicate: false });
+    expect(revived.handle({ commandId: "roll-1", action: { type: "roll" } }, "b")).toMatchObject({ ok: false, error: { code: "NOT_YOUR_TURN" } });
+  });
+
+  it("tracks every command of a full match, not just a recent window", () => {
+    const dice = seededDiceSource(51);
+    const rng = seededDiceSource(52);
+    let state = lobby(["a", "b"], dice);
+    state = run(state, cmd("a", { type: "start" }), dice);
+    const first = cmd("a", { type: "roll", keep: [] });
+    state = run(state, first, dice);
+    state = run(state, cmd("a", { type: "score", category: "aces" }), dice);
+    while (state.status === "playing") state = playTurn(state, dice, () => (rng.rollDie() - 1) / 6);
+    const rebuilt = restart(state);
+    expect(new Set(rebuilt.processedCommands).size).toBe(rebuilt.processedCommands.length);
+    expect(applyCommand(rebuilt, first, { now: 0, dice })).toMatchObject({ ok: true, duplicate: true });
+  });
+});
+
+/* --------------------------------------------------------- log integrity --------------------------------------------------------- */
+
+type AnyEvent = Record<string, unknown> & { type: string; seq: number; at: number; by?: { playerId: string; commandId: string } };
+/** A complete, valid 2-player match with a turn timeout, used as the base for tampering. */
+function sampleMatch() {
+  const dice = seededDiceSource(61);
+  const rng = seededDiceSource(62);
+  let state = lobby(["a", "b"], dice, { turnTimeoutMs: 60_000 });
+  state = run(state, cmd("a", { type: "start" }), dice, 0);
+  let now = 0;
+  while (state.status === "playing") state = playTurn(state, dice, () => (rng.rollDie() - 1) / 6, (now += 100));
+  return state;
+}
+const clone = (state: OnlineMatchState) => structuredClone(state.log) as unknown as AnyEvent[];
+const indexOf = (log: AnyEvent[], predicate: (e: AnyEvent) => boolean, from = 0) => log.findIndex((e, i) => i >= from && predicate(e));
+function expectRejected(log: unknown, index?: number, reason?: RegExp) {
+  const audit = auditEventLog(log);
+  expect(audit.ok).toBe(false);
+  if (audit.ok) return;
+  if (index !== undefined) expect(audit.index).toBe(index);
+  if (reason) expect(audit.reason).toMatch(reason);
+  expect(() => rebuildFromEvents(log)).toThrow(LogIntegrityError);
+}
+/** Renumber seq after structural edits so the test targets the intended rule, not just seq numbering. */
+const renumber = (log: AnyEvent[]) => log.map((e, i) => ({ ...e, seq: i }));
+
+describe("Online event log audit — detectable rule violations", () => {
+  const base = sampleMatch();
+
+  it("accepts the untouched log and its JSON round trip", () => {
+    expect(auditEventLog(base.log)).toMatchObject({ ok: true });
+    expect(auditEventLog(JSON.parse(JSON.stringify(base.log)))).toMatchObject({ ok: true });
+  });
+
+  it("keeps event time monotonic when the host clock goes backwards, so the log still audits", () => {
+    const dice = seededDiceSource(63);
+    let state = lobby(["a", "b"], dice, { turnTimeoutMs: 10_000 });
+    state = run(state, cmd("a", { type: "start" }), dice, 5_000);
+    state = run(state, cmd("a", { type: "roll", keep: [] }), dice, 4_000); // clock skew
+    expect(state.log.at(-1)!.at).toBe(5_000);
+    expect(state.log.every((e, i) => i === 0 || e.at >= state.log[i - 1].at)).toBe(true);
+    expect(auditEventLog(state.log)).toMatchObject({ ok: true });
+  });
+
+  it("rejects malformed containers and headers", () => {
+    expectRejected([], 0);
+    expectRejected("log", 0);
+    expectRejected(null, 0);
+    const header = clone(base);
+    header[0].protocol = 2;
+    expectRejected(header, 0, /프로토콜/);
+    const seats = clone(base);
+    seats[0].seats = 99;
+    expectRejected(seats, 0);
+    const extra = clone(base);
+    extra[0].note = "x";
+    expectRejected(extra, 0);
+  });
+
+  it("rejects a score that differs from the rule engine", () => {
+    const log = clone(base);
+    const i = indexOf(log, (e) => e.type === "categoryScored");
+    log[i].points = (log[i].points as number) + 1;
+    expectRejected(log, i, /categoryScored/);
+  });
+
+  it("rejects a held die whose value changed between rolls", () => {
+    const log = clone(base);
+    const i = indexOf(log, (e) => e.type === "diceRolled" && (e.kept as number[]).length > 0);
+    const k = (log[i].kept as number[])[0];
+    const dice = log[i].dice as number[];
+    dice[k] = (dice[k] % 6) + 1;
+    expectRejected(log, i);
+  });
+
+  it("rejects out-of-range dice values and fewer/more faces than re-rolled", () => {
+    const face = clone(base);
+    const i = indexOf(face, (e) => e.type === "diceRolled");
+    (face[i].dice as number[])[0] = 7;
+    expectRejected(face, i);
+    const short = clone(base);
+    (short[i].dice as number[]).pop();
+    expectRejected(short, i);
+  });
+
+  it("rejects a fourth roll in one turn", () => {
+    const log = clone(base);
+    const third = indexOf(log, (e) => e.type === "diceRolled" && e.roll === 3);
+    expect(third).toBeGreaterThan(0);
+    const extra: AnyEvent = { ...structuredClone(log[third]), roll: 4, kept: [], by: { playerId: log[third].playerId as string, commandId: "forged4" } };
+    log.splice(third + 1, 0, extra);
+    expectRejected(renumber(log), third + 1, /NO_ROLLS_LEFT/);
+  });
+
+  it("rejects a roll attributed to a player who does not hold the turn", () => {
+    const log = clone(base);
+    const i = indexOf(log, (e) => e.type === "diceRolled" && e.playerId === "a");
+    log[i].by = { playerId: "b", commandId: "forged" };
+    log[i].playerId = "b";
+    expectRejected(log, i, /NOT_YOUR_TURN/);
+  });
+
+  it("rejects writing a category that is already filled", () => {
+    const log = clone(base);
+    const scored = log.filter((e) => e.type === "categoryScored" && e.playerId === "a");
+    const later = indexOf(log, (e) => e === scored[1]);
+    log[later].category = scored[0].category;
+    expectRejected(log, later, /CATEGORY_TAKEN/);
+  });
+
+  it("rejects handing the turn to the wrong player or with a wrong round/deadline", () => {
+    for (const [field, value] of [["playerId", "a"], ["round", 5], ["deadline", 1]] as const) {
+      const log = clone(base);
+      const i = indexOf(log, (e) => e.type === "turnStarted" && e.playerId === "b");
+      log[i][field] = value;
+      expectRejected(log, i, /turnStarted/);
+    }
+  });
+
+  it("rejects a missing derived event and an unexplained extra event", () => {
+    const missing = clone(base);
+    const i = indexOf(missing, (e) => e.type === "turnStarted", 5);
+    missing.splice(i, 1);
+    expectRejected(renumber(missing), i, /누락|by/);
+    const extra = clone(base);
+    const j = indexOf(extra, (e) => e.type === "diceRolled");
+    extra.splice(j + 1, 0, { ...structuredClone(extra[j]), by: undefined });
+    expectRejected(renumber(extra), j + 1);
+  });
+
+  it("rejects forged standings or winners", () => {
+    const winners = clone(base);
+    const end = winners.length - 1;
+    expect(winners[end].type).toBe("matchFinished");
+    winners[end].winners = ["a", "b"];
+    expectRejected(winners, end, /matchFinished/);
+    const standings = clone(base);
+    (standings[end].standings as { points: number }[])[0].points += 10;
+    expectRejected(standings, end, /matchFinished/);
+  });
+
+  it("rejects events appended after the match finished", () => {
+    const log = clone(base);
+    log.push({ seq: log.length, at: log.at(-1)!.at + 1, type: "playerForfeited", playerId: "a", reason: "resign", by: { playerId: "a", commandId: "late" } });
+    expectRejected(log, log.length - 1, /WRONG_PHASE/);
+  });
+
+  it("rejects missing attribution, reused command ids, broken seq and backwards time", () => {
+    const noBy = clone(base);
+    const i = indexOf(noBy, (e) => e.type === "diceRolled");
+    delete noBy[i].by;
+    expectRejected(noBy, i, /추가 이벤트/); // absorbed into the previous group, which the engine cannot explain
+
+    const reused = clone(base);
+    const rolls = reused.filter((e) => e.type === "diceRolled" && e.by?.playerId === "a");
+    rolls[1].by = { ...rolls[0].by! };
+    expectRejected(reused, indexOf(reused, (e) => e === rolls[1]), /이미 처리된/);
+
+    const seq = clone(base);
+    seq[4].seq = 40;
+    expectRejected(seq, 4);
+
+    const time = clone(base);
+    const k = indexOf(time, (e) => e.type === "categoryScored", 10);
+    time[k].at = 0; // earlier than the preceding roll
+    expectRejected(time, k);
+  });
+
+  it("rejects a timeout claimed before the deadline and a lobby join after start", () => {
+    const dice = seededDiceSource(71);
+    let state = lobby(["a", "b", "c"], dice, { turnTimeoutMs: 10_000 });
+    state = run(state, cmd("a", { type: "start" }), dice, 0);
+    state = run(state, cmd("b", { type: "claimTimeout" }), dice, 10_000);
+    expect(auditEventLog(state.log)).toMatchObject({ ok: true });
+    const early = clone(state);
+    const i = indexOf(early, (e) => e.type === "playerForfeited");
+    for (let j = i; j < early.length; j++) early[j].at = 9_999;
+    expectRejected(early, i, /TIMEOUT_NOT_REACHED/);
+    const lateJoin = clone(state);
+    lateJoin.push({ seq: lateJoin.length, at: 10_000, type: "playerJoined", playerId: "d", name: "D", seat: 3, by: { playerId: "d", commandId: "j" } });
+    expectRejected(lateJoin, lateJoin.length - 1, /WRONG_PHASE/);
+  });
+
+  it("rejects a resignation recorded for someone other than the issuer", () => {
+    const dice = seededDiceSource(72);
+    let state = lobby(["a", "b", "c"], dice);
+    state = run(state, cmd("a", { type: "start" }), dice);
+    state = run(state, cmd("c", { type: "resign" }), dice);
+    const log = clone(state);
+    const i = indexOf(log, (e) => e.type === "playerForfeited");
+    log[i].playerId = "b";
+    expectRejected(log, i);
+  });
+});
+
+describe("Online event log audit — documented limits (not detectable by rule checks)", () => {
+  it("accepts fabricated but rule-consistent dice values", () => {
+    const dice = scriptedDiceSource([6, 6, 2, 6, 3, 6, 6]);
+    let state = lobby(["a", "b"], dice);
+    state = run(state, cmd("a", { type: "start" }), dice);
+    state = run(state, cmd("a", { type: "roll", keep: [] }), dice);
+    state = run(state, cmd("a", { type: "roll", keep: [0, 1, 3] }), dice);
+    state = run(state, cmd("a", { type: "score", category: "yacht" }), dice);
+    const forged = clone(state);
+    const first = indexOf(forged, (e) => e.type === "diceRolled");
+    forged[first].dice = [6, 6, 6, 6, 6]; // a "luckier" first roll; later events stay consistent
+    expect(auditEventLog(forged)).toMatchObject({ ok: true });
+  });
+
+  it("accepts a log truncated at a command boundary", () => {
+    const base = sampleMatch();
+    const log = clone(base);
+    const cut = indexOf(log, (e) => e.type === "diceRolled", 20);
+    expect(auditEventLog(log.slice(0, cut))).toMatchObject({ ok: true });
+  });
+
+  it("accepts a different command id attributed to the same player", () => {
+    const log = clone(sampleMatch());
+    const i = indexOf(log, (e) => e.type === "diceRolled");
+    log[i].by = { ...log[i].by!, commandId: "rewritten" };
+    expect(auditEventLog(log)).toMatchObject({ ok: true });
   });
 });
 
