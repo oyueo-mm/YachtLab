@@ -2868,3 +2868,31 @@ input[type="range"],
 @media(max-width:760px){.game-ai-picker .algorithm-picker-tabs button{font-size:10px;padding-inline:1px;}.scoreboard .bonus-row td{min-width:72px;}.scoreboard .bonus-progress strong{font-size:11px;}.scoreboard .bonus-progress small{font-size:9px;}}
 @media(max-width:355px){.game-ai-picker .algorithm-picker-tabs button{font-size:9px;letter-spacing:-.8px;}.scoreboard th:first-child{padding-left:10px;}.scoreboard td,.scoreboard th{padding-inline:7px;}}
 @media(prefers-reduced-motion:reduce){.die-button.dice-animating,.die-button.dice-animating .die-icon.roll-face{animation:none!important;will-change:auto;}.scoreboard .bonus-progress .bonus-track i{transition:none;}}
+
+
+/* Calm, event-driven roll: no animation for hold/release/reorder. */
+.die-button.dice-animating{animation:subtle-dice-roll .30s ease-out both!important;will-change:transform;}
+.die-button.dice-animating .die-icon.roll-face{animation:none!important;filter:none!important;}
+@keyframes subtle-dice-roll{0%{transform:translateY(-2px) rotate(-3deg);}40%{transform:translateY(1px) rotate(2deg);}75%{transform:translateY(-1px) rotate(-1deg);}100%{transform:none;}}
+.hold-label{display:none!important;}
+
+/* Score selection is a quiet row state, not twelve competing red buttons. */
+.scoreboard:has(.score-confirm-bar){overflow:visible;}
+.scoreboard .score-category-select{border:0;background:transparent;color:inherit;display:flex;width:100%;align-items:center;text-align:left;padding:0;cursor:pointer;font:inherit;}
+.scoreboard .score-category-select:hover,.scoreboard .score-category-select:focus-visible{color:var(--red-deep);outline-offset:3px;}
+.scoreboard tr.score-row-selected>th,.scoreboard tr.score-row-selected>td{background:#fff1ed!important;}
+.scoreboard tr.score-row-ai-preview>th,.scoreboard tr.score-row-ai-preview>td{background:#fff4e7!important;}
+.scoreboard tr.score-row-selected .score-category-select{color:var(--red-deep);font-weight:700;}
+.scoreboard .score-option{border:0!important;background:transparent!important;color:#7c7877!important;box-shadow:none!important;transform:none!important;min-width:30px;padding:5px 4px;font-size:13px;font-weight:500;}
+.scoreboard .score-option:hover,.scoreboard .score-option:focus-visible{background:#f5efec!important;color:var(--red-deep)!important;}
+.scoreboard .score-option[aria-pressed=true]{color:var(--red-deep)!important;font-weight:800;}
+.score-confirm-bar{position:sticky;bottom:0;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 15px;background:#fff;border-top:1px solid #e7dedb;box-shadow:0 -6px 20px #28221d0e;border-radius:0 0 12px 12px;}
+.score-confirm-info{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.score-confirm-info>span{font-size:10px;color:var(--muted);}
+.score-confirm-info>strong{font-size:14px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.score-confirm-actions{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.score-confirm-cancel{background:transparent;border:0;color:var(--muted);font-size:12px;min-height:38px;padding:6px 9px;cursor:pointer;}
+.score-confirm-button{min-height:38px;padding:9px 13px;font-size:12px;white-space:nowrap;}
+.score-confirm-cancel:focus-visible,.score-confirm-button:focus-visible{outline-offset:2px;}
+@media(max-width:760px){.mobile-score-scroll .score-confirm-bar{bottom:0;padding:11px 9px;gap:5px;}.score-confirm-info>strong{font-size:12px;}.score-confirm-button{min-height:42px;padding:9px 10px;}.score-confirm-cancel{padding:6px;}.mobile-score-scroll .scoreboard:has(.score-confirm-bar){overflow:visible;}}
+@media(prefers-reduced-motion:reduce){.die-button.dice-animating{animation:none!important;will-change:auto;}}
