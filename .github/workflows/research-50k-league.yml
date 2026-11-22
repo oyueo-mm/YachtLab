@@ -1,0 +1,212 @@
+name: YachtLab 50k-per-budget and four-way head-to-head round robin
+on:
+  pull_request:
+    paths:
+      - scripts/bench-50k-league.mjs
+      - scripts/summarize-50k-league.mjs
+      - training/research-archive/v4-reinforce-seed1-frozen.json
+      - .github/workflows/research-50k-league.yml
+  push:
+    branches: [main]
+    paths:
+      - scripts/bench-50k-league.mjs
+      - scripts/summarize-50k-league.mjs
+      - training/research-archive/v4-reinforce-seed1-frozen.json
+      - .github/workflows/research-50k-league.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: yachtlab-50k-league-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Code parsing, existing full unit tests and production build
+        run: |
+          node --check scripts/bench-50k-league.mjs
+          node --check scripts/summarize-50k-league.mjs
+          npm test -- --reporter=dot
+          npm run build
+      - uses: actions/download-artifact@v4
+        with:
+          name: v33-forecast-locked
+          run-id: 44922054901
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: training/results
+      - name: Verify exact frozen model artifacts
+        run: |
+          test -s training/results/v33-pack.json
+          test -s training/research-archive/v4-reinforce-seed1-frozen.json
+      - name: Smoke-check all seven search budgets (actual paired full games)
+        run: |
+          for b in legacy A B C C-relaxed D adaptive; do
+            node scripts/bench-50k-league.mjs --smoke --mode budget --budget "$b" --shard 5001
+          done
+      - name: Smoke-check all six direct model-vs-model matchups
+        run: |
+          for match in "v3 v33" "v3 v34" "v3 v4-D" "v33 v34" "v33 v4-D" "v34 v4-D"; do
+            read -r a b <<< "$match"
+            node scripts/bench-50k-league.mjs --smoke --mode league --left "$a" --right "$b" --shard 6001
+          done
+  budget:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        budget: [legacy, A, B, C, C-relaxed, D, adaptive]
+        shard: [5101,5102,5103,5104,5105,5106,5107,5108,5109,5110]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: v33-forecast-locked
+          run-id: 44922054901
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: training/results
+      - name: 2500 independent paired seeds both seats (5000 full games)
+        run: node scripts/bench-50k-league.mjs --mode budget --budget "${{ matrix.budget }}" --shard "${{ matrix.shard }}" --pairs 2500
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: research50k-budget-${{ matrix.budget }}-${{ matrix.shard }}
+          path: training/results/50k-league/budget-*.json
+          retention-days: 90
+          if-no-files-found: error
+  league:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        matchup: [v3-vs-v33, v3-vs-v34, v3-vs-v4-D, v33-vs-v34, v33-vs-v4-D, v34-vs-v4-D]
+        shard: [6101,6102,6103,6104,6105,6106,6107,6108,6109,6110]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: v33-forecast-locked
+          run-id: 44922054901
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: training/results
+      - name: 2500 independent paired seeds vs actual named opposing model
+        run: |
+          matchup="${{ matrix.matchup }}"
+          left="${matchup%%-vs-*}"
+          right="${matchup#*-vs-}"
+          node scripts/bench-50k-league.mjs --mode league --left "$left" --right "$right" --shard "${{ matrix.shard }}" --pairs 2500
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: research50k-league-${{ matrix.matchup }}-${{ matrix.shard }}
+          path: training/results/50k-league/league-*.json
+          retention-days: 90
+          if-no-files-found: error
+  report-budget:
+    needs: budget
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: research50k-budget-*
+          merge-multiple: true
+          path: training/results/50k-league
+      - name: Reject duplicate/missing shards and compute 99% paired contrasts
+        run: node scripts/summarize-50k-league.mjs --mode budget --start 5101 --shards 10 --pairs 2500
+      - uses: actions/upload-artifact@v4
+        with:
+          name: research50k-budget-final-report
+          path: |
+            training/results/50k-league/budget-final-summary.json
+            docs/context/_generated/RESEARCH-50K-BUDGET-LATEST.md
+          retention-days: 90
+      - name: Publish research report only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/RESEARCH-50K-BUDGET-LATEST.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "chore(research): publish 50k-per-v3.4-budget study [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+  report-league:
+    needs: league
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: research50k-league-*
+          merge-multiple: true
+          path: training/results/50k-league
+      - name: Reject duplicate/missing shards and compute full 6-match results
+        run: node scripts/summarize-50k-league.mjs --mode league --start 6101 --shards 10 --pairs 2500
+      - uses: actions/upload-artifact@v4
+        with:
+          name: research50k-league-final-report
+          path: |
+            training/results/50k-league/league-final-summary.json
+            docs/context/_generated/RESEARCH-50K-LEAGUE-LATEST.md
+          retention-days: 90
+      - name: Publish research league report only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/context/_generated/RESEARCH-50K-LEAGUE-LATEST.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "chore(research): publish six-way 50k-match head-to-head paired league [skip ci]"
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 2
+          done
+          exit 1
