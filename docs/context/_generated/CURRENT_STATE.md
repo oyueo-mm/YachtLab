@@ -96,16 +96,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
-| [a9a4f85](https://github.com/oyueo-mm/YachtLab/commit/a9a4f85) | 2026-11-22 | research: launch DP Expert v2 original v4 and v4-D 300k paired league |
-| [a8e15b3](https://github.com/oyueo-mm/YachtLab/commit/a8e15b3) | 2026-11-22 | docs: preregister six 50k direct matchups of DP Expert, Win DP v2 and original versus REINFORCE v4 |
-| [f9f0923](https://github.com/oyueo-mm/YachtLab/commit/f9f0923) | 2026-11-22 | ci: run full 300k-game DP Expert, Win DP v2 and both v4 variants 50k-per-pair tournament |
-| [c5f0862](https://github.com/oyueo-mm/YachtLab/commit/c5f0862) | 2026-11-22 | research: six 50k paired-matchups, 99pct CIs with Holm/Bonferroni multiple-testing correction |
-| [b3ab5fe](https://github.com/oyueo-mm/YachtLab/commit/b3ab5fe) | 2026-11-22 | research: full 4-agent round robin for DP Expert, Win DP v2, original v4 and v4-D |
-| [6650fde](https://github.com/oyueo-mm/YachtLab/commit/6650fde) | 2026-11-22 | chore(research): publish six-way 50k-match head-to-head paired league [skip ci] |
-| [f20e819](https://github.com/oyueo-mm/YachtLab/commit/f20e819) | 2026-11-22 | research: launch minimum 50k-budget and four-model head-to-head league |
-| [6f2acde](https://github.com/oyueo-mm/YachtLab/commit/6f2acde) | 2026-11-22 | docs: pre-register no-less-than-50k-per-search-budget and six direct 50k-pairwise league protocol |
-| [252ffa1](https://github.com/oyueo-mm/YachtLab/commit/252ffa1) | 2026-11-22 | ci: minimum 50k real games per v3.4 budget and each of six direct four-model head-to-head pairings |
-| [cead094](https://github.com/oyueo-mm/YachtLab/commit/cead094) | 2026-11-22 | research: reproduce exact C gating under 5× relaxed time budget without changing shipping inference paths |
+| [8b8a203](https://github.com/oyueo-mm/YachtLab/commit/8b8a203) | 2026-11-22 | feat: player-first YachtLab gameplay UX, responsive score sheet and offline match records |
+| [7902c6d](https://github.com/oyueo-mm/YachtLab/commit/7902c6d) | 2026-11-22 | test(mobile): regression for outside-tap closing categorized model picker |
+| [e44f132](https://github.com/oyueo-mm/YachtLab/commit/e44f132) | 2026-11-22 | fix(mobile): allow outside topbar clicks through model-picker scrim to close it |
+| [f6ee544](https://github.com/oyueo-mm/YachtLab/commit/f6ee544) | 2026-11-22 | test(ui): open the intentionally collapsed player settings before editing names |
+| [19fb158](https://github.com/oyueo-mm/YachtLab/commit/19fb158) | 2026-11-22 | test(ui): open the intentionally collapsed player settings before editing names |
+| [0ba2b3c](https://github.com/oyueo-mm/YachtLab/commit/0ba2b3c) | 2026-11-22 | style(feedback): add short non-random dice settle and accessible score confirmation animation |
+| [b0e3ef3](https://github.com/oyueo-mm/YachtLab/commit/b0e3ef3) | 2026-11-22 | feat(feedback): display score commits in local 2–50 player matches |
+| [87d3c08](https://github.com/oyueo-mm/YachtLab/commit/87d3c08) | 2026-11-22 | feat(feedback): announce actual committed score and actor during human and AI turns |
+| [b2e1f14](https://github.com/oyueo-mm/YachtLab/commit/b2e1f14) | 2026-11-22 | test(ui): mobile score recording, categorized AI picker, local setup and offline records |
+| [a483f7f](https://github.com/oyueo-mm/YachtLab/commit/a483f7f) | 2026-11-22 | style: game-first desktop and mobile layouts, tactile dice, clear scoring, AI picker, match history |
 
 ## 최근 GitHub Actions 상태
 
@@ -113,9 +113,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab DP Expert Win DP v2 original v4 and v4-D 300k tournament](https://github.com/oyueo-mm/YachtLab/actions/runs/45003953551) | success | a8e15b3f15 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44988270987) | success | f20e819254 |
-| [YachtLab 50k-per-budget and four-way head-to-head round robin](https://github.com/oyueo-mm/YachtLab/actions/runs/44988168780) | success | 6f2acde010 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45013125287) | success | 7902c6d7ce |
+| [YachtLab DP Expert Win DP v2 original v4 and v4-D 300k tournament](https://github.com/oyueo-mm/YachtLab/actions/runs/45004028751) | success | a9a4f85280 |
+| [YachtLab 50k-per-budget and four-way head-to-head round robin](https://github.com/oyueo-mm/YachtLab/actions/runs/44988270898) | success | f20e819254 |
 | [PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44976869091) | success | 8766651129 |
 | [YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868880) | success | 8766651129 |
 | [YachtLab v3.3 v3.4 v4 self-play and 200k-per-model confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868853) | success | 8766651129 |

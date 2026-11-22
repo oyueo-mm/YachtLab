@@ -105,74 +105,74 @@
   ],
   "recentSourceCommits": [
     {
-      "sha": "a9a4f85",
+      "sha": "8b8a203",
       "date": "2026-11-22",
-      "subject": "research: launch DP Expert v2 original v4 and v4-D 300k paired league"
+      "subject": "feat: player-first YachtLab gameplay UX, responsive score sheet and offline match records"
     },
     {
-      "sha": "a8e15b3",
+      "sha": "7902c6d",
       "date": "2026-11-22",
-      "subject": "docs: preregister six 50k direct matchups of DP Expert, Win DP v2 and original versus REINFORCE v4"
+      "subject": "test(mobile): regression for outside-tap closing categorized model picker"
     },
     {
-      "sha": "f9f0923",
+      "sha": "e44f132",
       "date": "2026-11-22",
-      "subject": "ci: run full 300k-game DP Expert, Win DP v2 and both v4 variants 50k-per-pair tournament"
+      "subject": "fix(mobile): allow outside topbar clicks through model-picker scrim to close it"
     },
     {
-      "sha": "c5f0862",
+      "sha": "f6ee544",
       "date": "2026-11-22",
-      "subject": "research: six 50k paired-matchups, 99pct CIs with Holm/Bonferroni multiple-testing correction"
+      "subject": "test(ui): open the intentionally collapsed player settings before editing names"
     },
     {
-      "sha": "b3ab5fe",
+      "sha": "19fb158",
       "date": "2026-11-22",
-      "subject": "research: full 4-agent round robin for DP Expert, Win DP v2, original v4 and v4-D"
+      "subject": "test(ui): open the intentionally collapsed player settings before editing names"
     },
     {
-      "sha": "6650fde",
+      "sha": "0ba2b3c",
       "date": "2026-11-22",
-      "subject": "chore(research): publish six-way 50k-match head-to-head paired league [skip ci]"
+      "subject": "style(feedback): add short non-random dice settle and accessible score confirmation animation"
     },
     {
-      "sha": "f20e819",
+      "sha": "b0e3ef3",
       "date": "2026-11-22",
-      "subject": "research: launch minimum 50k-budget and four-model head-to-head league"
+      "subject": "feat(feedback): display score commits in local 2–50 player matches"
     },
     {
-      "sha": "6f2acde",
+      "sha": "87d3c08",
       "date": "2026-11-22",
-      "subject": "docs: pre-register no-less-than-50k-per-search-budget and six direct 50k-pairwise league protocol"
+      "subject": "feat(feedback): announce actual committed score and actor during human and AI turns"
     },
     {
-      "sha": "252ffa1",
+      "sha": "b2e1f14",
       "date": "2026-11-22",
-      "subject": "ci: minimum 50k real games per v3.4 budget and each of six direct four-model head-to-head pairings"
+      "subject": "test(ui): mobile score recording, categorized AI picker, local setup and offline records"
     },
     {
-      "sha": "cead094",
+      "sha": "a483f7f",
       "date": "2026-11-22",
-      "subject": "research: reproduce exact C gating under 5× relaxed time budget without changing shipping inference paths"
+      "subject": "style: game-first desktop and mobile layouts, tactile dice, clear scoring, AI picker, match history"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "YachtLab DP Expert Win DP v2 original v4 and v4-D 300k tournament",
-      "status": "success",
-      "head": "a8e15b3f15",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45003953551"
-    },
-    {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "f20e819254",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44988270987"
+      "head": "7902c6d7ce",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45013125287"
+    },
+    {
+      "name": "YachtLab DP Expert Win DP v2 original v4 and v4-D 300k tournament",
+      "status": "success",
+      "head": "a9a4f85280",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45004028751"
     },
     {
       "name": "YachtLab 50k-per-budget and four-way head-to-head round robin",
       "status": "success",
-      "head": "6f2acde010",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44988168780"
+      "head": "f20e819254",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44988270898"
     },
     {
       "name": "PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO",
