@@ -5,13 +5,15 @@
  * The tier is a structural boundary only (lab screens live in src/lab and load lazily) so they
  * could become an optional plan later. No payment, subscription or access control exists.
  */
-export type Route = "home" | "offline" | "online" | "play" | "pvp" | "records" | "lab" | "watch" | "tournament" | "analysis";
+export type Route = "home" | "offline" | "online" | "play-setup" | "pvp-setup" | "play" | "pvp" | "records" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab";
 export type Shell = "lobby" | "game" | "lab" | "page";
 
 export const routes: Record<Route, { title: string; shell: Shell; tier: "core" | "lab" }> = {
   home: { title: "YachtLab", shell: "lobby", tier: "core" },
   offline: { title: "오프라인 대전", shell: "page", tier: "core" },
   online: { title: "온라인 대전", shell: "page", tier: "core" },
+  "play-setup": { title: "사람 vs AI 설정", shell: "page", tier: "core" },
+  "pvp-setup": { title: "사람 vs 사람 설정", shell: "page", tier: "core" },
   play: { title: "사람 vs AI", shell: "game", tier: "core" },
   pvp: { title: "사람 vs 사람", shell: "game", tier: "core" },
   records: { title: "내 기록", shell: "page", tier: "core" },
@@ -19,9 +21,10 @@ export const routes: Record<Route, { title: string; shell: Shell; tier: "core" |
   watch: { title: "AI 대전 관전", shell: "lab", tier: "lab" },
   tournament: { title: "AI 토너먼트", shell: "lab", tier: "lab" },
   analysis: { title: "전략 분석실", shell: "lab", tier: "lab" },
+  "dice-lab": { title: "주사위 실험실", shell: "lab", tier: "lab" },
 };
 
-export const labTools = ["watch", "tournament", "analysis"] as const satisfies readonly Route[];
+export const labTools = ["watch", "tournament", "analysis", "dice-lab"] as const satisfies readonly Route[];
 
 export const isRoute = (value: string): value is Route => Object.prototype.hasOwnProperty.call(routes, value);
 export const currentRoute = (): Route => {

@@ -141,8 +141,12 @@ function Rows({
         <>
           <tr className="bonus-row">
             <th>
-              <Star size={16} /> 상단 보너스 <small>+35</small>
-              <CategoryHelp topic="bonus" />
+              <span className="category-cell">
+                <span className="category-label">
+                  <Star size={16} /> 상단 보너스 <small>+35</small>
+                </span>
+                <CategoryHelp topic="bonus" />
+              </span>
             </th>
             {state.cards.map((card, i) => (<td key={i} className={state.player===i&&!state.done?"current-score-cell":""}><BonusProgress card={card}/></td>))}
           </tr>
@@ -155,12 +159,14 @@ function Rows({
       )}
       <tr data-category={c} className={`${selected === c ? "score-row-selected " : ""}${previewCategory === c ? "score-row-ai-preview " : ""}`}>
         <th scope="row">
+          <span className="category-cell">
           {select && state.player === selectPlayer && state.rolls > 0 && !state.done && state.cards[selectPlayer][c] === undefined ? (
             <button type="button" className="category-label score-category-select" aria-pressed={selected === c} onClick={() => select(c)}><CategoryIcon category={c} /><span>{names[c]}</span></button>
           ) : (
             <span className="category-label"><CategoryIcon category={c} /><span>{names[c]}</span></span>
           )}
           <CategoryHelp topic={c} />
+          </span>
         </th>
         {state.cards.map((card, i) => {
           const can =

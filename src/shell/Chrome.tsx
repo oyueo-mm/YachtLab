@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FlaskConical, History, House, Maximize, Minimize, Settings, Volume2, VolumeX, X } from "lucide-react";
-import { motionLevel, updateSettings, useSettings } from "../settings";
+import { diceRenderer, updateSettings, useSettings, webglAvailable, type DiceQuality } from "../settings";
 import { playSfx, unlockAudio } from "../sound";
 import { labTools, routes, type Route } from "../routes";
 
@@ -51,7 +51,7 @@ export function FullscreenToggle() {
   );
 }
 
-export function SettingsDialog({ open, onClose, navigate }: { open: boolean; onClose: () => void; navigate: (r: Route) => void }) {
+export function SettingsDialog({ open, onClose, navigate, inGame = false }: { open: boolean; onClose: () => void; navigate: (r: Route) => void; inGame?: boolean }) {
   const settings = useSettings();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -61,7 +61,8 @@ export function SettingsDialog({ open, onClose, navigate }: { open: boolean; onC
     if (!open && dialog.open) dialog.close();
   }, [open]);
   const systemReduced = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  const level = motionLevel(settings);
+  const renderer = diceRenderer(settings);
+  const qualityLabel: Record<DiceQuality, string> = { auto: "자동", "3d-high": "3D 고급", "3d": "3D 가볍게", "2.5d": "2.5D (기존)" };
   const go = (route: Route) => {
     onClose();
     navigate(route);
@@ -137,15 +138,37 @@ export function SettingsDialog({ open, onClose, navigate }: { open: boolean; onC
         <section className="settings-group" aria-label="화면 효과">
           <label className="settings-row">
             <span>
-              <strong>주사위 애니메이션 간단히</strong>
-              <small>저사양 기기에서 더 가볍게 굴려요</small>
+              <strong>주사위 애니메이션 품질</strong>
+              <small>{webglAvailable() ? "3D는 실제 물리로 굴러요" : "이 브라우저는 3D를 지원하지 않아 2.5D로 표시해요"}</small>
             </span>
-            <input type="checkbox" role="switch" aria-label="주사위 애니메이션 간단히" checked={settings.reducedEffects} onChange={(e) => updateSettings({ reducedEffects: e.target.checked })} />
+            <select aria-label="주사위 애니메이션 품질" value={settings.diceQuality} onChange={(e) => updateSettings({ diceQuality: e.target.value as DiceQuality })}>
+              {(Object.keys(qualityLabel) as DiceQuality[]).map((q) => (
+                <option key={q} value={q} disabled={q.startsWith("3d") && !webglAvailable()}>
+                  {qualityLabel[q]}
+                </option>
+              ))}
+            </select>
           </label>
-          <p className="settings-note" data-motion={level}>
-            {systemReduced ? "기기의 '동작 줄이기' 설정이 켜져 있어 주사위가 움직이지 않고 바로 결과를 보여 줘요." : level === "lite" ? "가벼운 주사위 애니메이션을 사용 중이에요." : "주사위를 던지는 애니메이션을 사용 중이에요."}
+          <label className="settings-row">
+            <span>
+              <strong>모션 간단히</strong>
+              <small>짧고 가벼운 2.5D 연출로 바꿔요</small>
+            </span>
+            <input type="checkbox" role="switch" aria-label="모션 간단히" checked={settings.reducedEffects} onChange={(e) => updateSettings({ reducedEffects: e.target.checked })} />
+          </label>
+          <p className="settings-note" data-renderer={renderer}>
+            {systemReduced
+              ? "기기의 '동작 줄이기' 설정이 켜져 있어 주사위가 움직이지 않고 바로 결과를 보여 줘요."
+              : renderer === "2.5d"
+                ? "2.5D 주사위 연출을 사용 중이에요."
+                : renderer === "3d-high"
+                  ? "3D 물리 주사위(고급)를 사용 중이에요."
+                  : "3D 물리 주사위(가볍게)를 사용 중이에요."}
           </p>
         </section>
+        {inGame ? (
+          <p className="settings-note settings-game-note">규칙·난이도·인원은 게임 화면의 ‘설정 변경’에서 바꿀 수 있어요.</p>
+        ) : (
         <section className="settings-group settings-links" aria-label="더 보기">
           <button type="button" className="settings-link" onClick={() => go("records")}>
             <History size={17} /> 내 기록
@@ -154,6 +177,7 @@ export function SettingsDialog({ open, onClose, navigate }: { open: boolean; onC
             <FlaskConical size={17} /> 연구실 <small>고급 기능</small>
           </button>
         </section>
+        )}
         <p className="settings-footnote">설정은 이 브라우저에만 저장돼요.</p>
       </div>
     </dialog>

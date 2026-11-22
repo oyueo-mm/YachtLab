@@ -7,6 +7,7 @@ test("연구실 AI 시연은 굴림·고정·재굴림·점수 기록 후 다음
     requests: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("request", (r) => requests.push(r.url()));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.clock.install();
   await page.goto("#lab");
   const demo = page.locator(".home-demo");
@@ -61,6 +62,7 @@ test("연구실 AI 시연은 굴림·고정·재굴림·점수 기록 후 다음
 test("백그라운드 중 정지, 화면 이동 후 정리 및 연구실 복귀", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.clock.install();
   await page.goto("#lab");
   await page.clock.runFor(T.ready + T.roll + 50);
@@ -113,6 +115,7 @@ test("로비에서 오프라인 모드로 이동하면 시연 없이 게임 화�
   await page.goto("");
   await page.getByRole("button", { name: /오프라인 대전/ }).click();
   await page.getByRole("button", { name: /사람 vs AI/ }).click();
+  await page.getByRole("button", { name: "게임 시작" }).click();
   await expect(page.getByRole("button", { name: "주사위 굴리기" })).toBeVisible();
   await expect(page.locator(".home-demo")).toHaveCount(0);
   await page.getByRole("button", { name: "홈으로" }).click();
@@ -192,7 +195,7 @@ test("점수판 아이콘은 실제 눈 조합이고 작은 화면에서도 겹�
 test("모든 메뉴의 흰 배경과 무채색·레드 팔레트, 차트 구분", async ({
   page,
 }) => {
-  for (const route of ["home", "offline", "online", "play", "pvp", "records", "lab", "watch", "tournament", "analysis"]) {
+  for (const route of ["home", "offline", "online", "play-setup", "pvp-setup", "play", "pvp", "records", "lab", "watch", "tournament", "analysis", "dice-lab"]) {
     await page.goto(`#${route}`);
     expect(
       await page
@@ -233,7 +236,7 @@ test("모든 메뉴의 흰 배경과 무채색·레드 팔레트, 차트 구분"
 
 test("320px 화면에서도 홈·점수판·분석실이 잘리지 않음", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
-  for (const route of ["home", "offline", "online", "play", "pvp", "records", "lab", "analysis", "watch"]) {
+  for (const route of ["home", "offline", "online", "play-setup", "pvp-setup", "play", "pvp", "records", "lab", "analysis", "watch", "dice-lab"]) {
     await page.goto(`#${route}`);
     expect(
       await page.evaluate(

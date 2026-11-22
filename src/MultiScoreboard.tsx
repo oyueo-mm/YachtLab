@@ -64,7 +64,7 @@ export function MultiScoreboard({
         {categoryIndex === 6 && (
           <>
             <tr className="bonus-row">
-              <th><Star size={16} /> 상단 보너스 <small>+35</small><CategoryHelp topic="bonus" /></th>
+              <th><span className="category-cell"><span className="category-label"><Star size={16} /> 상단 보너스 <small>+35</small></span><CategoryHelp topic="bonus" /></span></th>
               {indices.map((i) => (
                 <td key={i}>
                   <BonusProgress card={state.cards[i]}/>
@@ -75,7 +75,7 @@ export function MultiScoreboard({
           </>
         )}
         <tr data-category={category} className={selected === category ? "score-row-selected" : ""}>
-          <th scope="row">{chosen(current, category) ? <button type="button" className="category-label score-category-select" aria-pressed={selected === category} onClick={() => select?.(category)}><CategoryIcon category={category} /><span>{names[category]}</span></button> : <span className="category-label"><CategoryIcon category={category} /><span>{names[category]}</span></span>}<CategoryHelp topic={category} /></th>
+          <th scope="row"><span className="category-cell">{chosen(current, category) ? <button type="button" className="category-label score-category-select" aria-pressed={selected === category} onClick={() => select?.(category)}><CategoryIcon category={category} /><span>{names[category]}</span></button> : <span className="category-label"><CategoryIcon category={category} /><span>{names[category]}</span></span>}<CategoryHelp topic={category} /></span></th>
           {indices.map((i) => (
             <td key={i} className={i === current ? "multi-current-cell" : ""}>
               {chosen(i, category) ? (

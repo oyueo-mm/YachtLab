@@ -137,3 +137,53 @@ export function takeThrowDirection(token: number): -1 | 1 {
   hint.fresh = false;
   return hint.resolved;
 }
+
+/* ------------------------------------------------------------------------------------------------
+ * Dice "in motion" store. While any roll animation runs, the roll button, dice and score sheet are
+ * not interactive (prevents double rolls and input landing on the wrong die), and the AI waits
+ * until the dice have visibly settled before acting. Every roll has a safety timeout.
+ * ---------------------------------------------------------------------------------------------- */
+const active = new Set<number>();
+const busyListeners = new Set<() => void>();
+let nextRollId = 1;
+const emitBusy = () => busyListeners.forEach((fn) => fn());
+export const isDiceBusy = () => active.size > 0;
+export function beginDiceMotion(maxMs = 4000): () => void {
+  const id = nextRollId++;
+  active.add(id);
+  emitBusy();
+  const end = () => {
+    if (!active.delete(id)) return;
+    clearTimeout(timer);
+    emitBusy();
+  };
+  const timer = setTimeout(end, maxMs);
+  return end;
+}
+export const subscribeDiceBusy = (fn: () => void) => {
+  busyListeners.add(fn);
+  return () => {
+    busyListeners.delete(fn);
+  };
+};
+/** Resolves once no roll animation is running (immediately if none). */
+export function waitForDice(signal?: AbortSignal): Promise<void> {
+  if (!isDiceBusy()) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const done = () => {
+      if (isDiceBusy()) return;
+      off();
+      resolve();
+    };
+    const abort = () => {
+      off();
+      reject(new DOMException("취소됨", "AbortError"));
+    };
+    const off = () => {
+      unsubscribe();
+      signal?.removeEventListener("abort", abort);
+    };
+    const unsubscribe = subscribeDiceBusy(done);
+    signal?.addEventListener("abort", abort, { once: true });
+  });
+}

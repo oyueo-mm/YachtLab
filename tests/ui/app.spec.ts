@@ -1,4 +1,4 @@
-import { chooseAlgorithm,scoreCategory } from "./helpers";
+import { chooseAlgorithm,scoreCategory , startAI } from "./helpers";
 import { test, expect, type Page } from "@playwright/test";
 async function openLabTool(page: Page, name: string) {
   // Research tools moved from the old sidebar into the lab (연구실) menu.
@@ -52,6 +52,7 @@ test("굴림, 고정, 재굴림 한도, 점수 선택과 AI 턴", async ({ page 
     fullPage: true,
   });
   await page.getByRole("button", { name: "재대결", exact: true }).click();
+  await page.getByRole("dialog", { name: "새 경기를 시작할까요?" }).getByRole("button", { name: "재대결" }).click();
   await expect(
     page.getByRole("button", { name: "주사위 굴리기" }),
   ).toBeEnabled();
@@ -173,7 +174,7 @@ test("PPO와 12라운드 완주, 최종 승패와 재대결", async ({ page }) =
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("#play");
-  await chooseAlgorithm(page, "\uc0c1\ub300 AI", "PPO");
+  await startAI(page, { algorithm: "PPO" });
   for (let round = 0; round < 12; round++) {
     await expect(
       page.getByRole("button", { name: "주사위 굴리기" }),

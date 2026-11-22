@@ -32,7 +32,8 @@ const HOVER_DELAY = 500;
 
 /**
  * Info button + tooltip for a score category. Works the same in every score sheet:
- * - mouse: hover the category cell for ~500 ms
+ * - mouse: hover the category name/icon (`.category-cell`) for ~500 ms; the (?) is not shown on fine pointers
+ *   (it stays in the tab order and appears on keyboard focus)
  * - touch: tap the (?) button; tap outside to close
  * - keyboard: focus the (?) button; Esc closes
  * The tooltip is placed in the nearest open <dialog> (top layer) or <body>, and is clamped to the viewport.
@@ -47,7 +48,7 @@ export function CategoryHelp({ topic }: { topic: HelpTopic }) {
 
   // Hover anywhere on the owning cell/row, mouse only.
   useEffect(() => {
-    const host = button.current?.closest("th, .mobile-quick-row, .mobile-quick-bonus") ?? button.current?.parentElement;
+    const host = button.current?.closest(".category-cell") ?? button.current?.parentElement;
     if (!host) return;
     const enter = (e: Event) => {
       if ((e as PointerEvent).pointerType !== "mouse") return;
@@ -97,7 +98,7 @@ export function CategoryHelp({ topic }: { topic: HelpTopic }) {
   useLayoutEffect(() => {
     const t = tip.current, b = button.current;
     if (!open || !t || !b) return;
-    const anchor = (b.closest("th, .mobile-quick-row, .mobile-quick-bonus") ?? b).getBoundingClientRect();
+    const anchor = (b.closest(".category-cell") ?? b).getBoundingClientRect();
     const box = t.getBoundingClientRect();
     const margin = 8;
     const vw = document.documentElement.clientWidth, vh = window.innerHeight;

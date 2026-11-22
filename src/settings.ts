@@ -8,10 +8,14 @@ export type Settings = {
   volume: number;
   /** Shorter, lighter dice motion (for low-end devices or personal preference). */
   reducedEffects: boolean;
+  /** Dice renderer: auto (3D when WebGL is usable), 3D high/standard, or the original 2.5D CSS motion. */
+  diceQuality: DiceQuality;
 };
+export type DiceQuality = "auto" | "3d-high" | "3d" | "2.5d";
+export const diceQualities: readonly DiceQuality[] = ["auto", "3d-high", "3d", "2.5d"];
 
 export const SETTINGS_KEY = "yachtlab.settings.v1";
-export const defaultSettings: Settings = { muted: false, volume: 0.7, reducedEffects: false };
+export const defaultSettings: Settings = { muted: false, volume: 0.7, reducedEffects: false, diceQuality: "auto" };
 
 function sanitize(raw: unknown): Settings {
   const value = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
@@ -20,6 +24,7 @@ function sanitize(raw: unknown): Settings {
     muted: typeof value.muted === "boolean" ? value.muted : defaultSettings.muted,
     volume,
     reducedEffects: typeof value.reducedEffects === "boolean" ? value.reducedEffects : defaultSettings.reducedEffects,
+    diceQuality: diceQualities.includes(value.diceQuality as DiceQuality) ? (value.diceQuality as DiceQuality) : defaultSettings.diceQuality,
   };
 }
 
@@ -65,4 +70,33 @@ export function motionLevel(settings: Settings = current): MotionLevel {
   const nav = navigator as Navigator & { deviceMemory?: number };
   const lowEnd = (nav.hardwareConcurrency ?? 8) <= 2 || (nav.deviceMemory ?? 8) <= 2;
   return settings.reducedEffects || lowEnd ? "lite" : "full";
+}
+
+export const isLowEndDevice = () => {
+  if (typeof navigator === "undefined") return false;
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  return (nav.hardwareConcurrency ?? 8) <= 2 || (nav.deviceMemory ?? 8) <= 2;
+};
+let webgl: boolean | null = null;
+/** WebGL availability, probed once (a throwaway canvas). */
+export function webglAvailable(): boolean {
+  if (webgl !== null) return webgl;
+  // Test/diagnostic switch to exercise the no-WebGL fallback.
+  if ((globalThis as { __YACHTLAB_DISABLE_WEBGL__?: boolean }).__YACHTLAB_DISABLE_WEBGL__) return (webgl = false);
+  try {
+    const canvas = document.createElement("canvas");
+    webgl = !!(canvas.getContext("webgl2") ?? canvas.getContext("webgl"));
+  } catch {
+    webgl = false;
+  }
+  return webgl;
+}
+export type DiceRenderer = "3d-high" | "3d" | "2.5d" | "none";
+/** Which renderer a roll uses now: reduced motion → none; "motion simple" or low-end → light 2.5D. */
+export function diceRenderer(settings: Settings = current): DiceRenderer {
+  const level = motionLevel(settings);
+  if (level === "none") return "none";
+  if (level === "lite" || settings.diceQuality === "2.5d" || !webglAvailable()) return "2.5d";
+  if (settings.diceQuality === "auto") return window.innerWidth <= 760 ? "3d" : "3d-high";
+  return settings.diceQuality;
 }

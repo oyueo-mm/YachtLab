@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { chooseAlgorithm,scoreCategory } from "./helpers";
+import { chooseAlgorithm,scoreCategory, startAI } from "./helpers";
 async function exported(page: Page) {
   const event = page.waitForEvent("download");
   await page
@@ -134,8 +134,7 @@ test("v0.3 JSON 중간 고정 상태에서 분기하여 완주하고 원본과 �
   });
 });
 test("AI 행동 중 기보를 열면 대국은 정지하고 닫으면 재개", async ({ page }) => {
-  await page.goto("#play");
-  await chooseAlgorithm(page, "상대 AI", "Random");
+  await startAI(page, { algorithm: "Random" });
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
   await scoreCategory(page);
   await page.getByRole("button", { name: "기보 보기", exact: true }).click();

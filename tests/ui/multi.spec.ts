@@ -1,12 +1,9 @@
-import {scoreCategory} from "./helpers";
+import {scoreCategory, startLocal} from "./helpers";
 import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
 test("3인전: 인원 변경, 이름, 턴 교대와 라운드", async ({ page }) => {
-  await page.goto("#pvp");
-  await page.getByLabel("참가 인원", { exact: true }).fill("3");
-  await page.getByRole("button", { name: "플레이어 설정" }).click();
-  await page.getByLabel("플레이어 3 이름").fill("삼");
+  await startLocal(page, { count: 3, names: ["", "", "삼"] });
   await expect(page.locator(".multi-player-chip")).toHaveCount(3);
   for (let i = 0; i < 3; i++) {
     await expect(page.locator(".turn-indicator")).toContainText(i === 2 ? "삼의 차례" : "플레이어 " + (i + 1) + "의 차례");
@@ -15,19 +12,15 @@ test("3인전: 인원 변경, 이름, 턴 교대와 라운드", async ({ page })
   }
   await expect(page.locator(".board-top")).toContainText("라운드 2/12");
   await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(3);
-  await expect(page.getByLabel("참가 인원", { exact: true })).toBeDisabled();
+  await expect(page.getByLabel("참가 인원", { exact: true })).toHaveCount(0); // fixed by the setup screen
 });
 
 test("UI 간소화와 턴 전환 시 이전 주사위 눈 숨김", async ({ page }) => {
-  await page.goto("#pvp");
-  await page.getByLabel("참가 인원", { exact: true }).fill("4");
-  await expect(page.locator(".multi-toolbar")).toBeVisible();
-  await expect(page.locator(".multi-config")).toHaveCount(0);
+  await startLocal(page, { count: 4 });
+  await expect(page.locator(".multi-game-tools")).toBeVisible();
+  await expect(page.locator(".multi-config, .multi-toolbar")).toHaveCount(0);
   await expect(page.locator(".multi-local-game .multi-player-chip")).toHaveCount(4);
-  await expect(page.locator(".multi-toolbar-names")).toHaveCount(0);
-  await page.getByRole("button", { name: "플레이어 설정" }).click();
-  await expect(page.getByLabel("플레이어 4 이름")).toBeVisible();
-  await page.getByRole("button", { name: "플레이어 설정" }).click();
+  await expect(page.getByLabel("플레이어 4 이름")).toHaveCount(0);
   await expect(page.locator(".multi-dice-ready")).toBeVisible();
   await expect(page.locator(".multi-dice-ready .die-icon circle").first()).toHaveCSS("opacity", "0");
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
@@ -49,8 +42,7 @@ test("UI 간소화와 턴 전환 시 이전 주사위 눈 숨김", async ({ page
 });
 
 test("4인전: 48턴 완주, 공동 우승 가능 및 완성된 기보", async ({ page }) => {
-  await page.goto("#pvp");
-  await page.getByLabel("참가 인원", { exact: true }).fill("4");
+  await startLocal(page, { count: 4 });
   for (let i = 0; i < 48; i++) {
     await expect(page.locator(".turn-indicator")).toContainText("플레이어 " + (i % 4 + 1) + "의 차례");
     await page.getByRole("button", { name: "주사위 굴리기" }).click();
@@ -70,12 +62,11 @@ test("4인전: 48턴 완주, 공동 우승 가능 및 완성된 기보", async (
   await page.getByRole("button", { name: "기보 닫기" }).click();
   await page.getByRole("button", { name: "한 번 더 플레이" }).click();
   await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(0);
-  await expect(page.getByLabel("참가 인원", { exact: true })).toHaveValue("4");
+  await expect(page.locator(".multi-player-chip")).toHaveCount(4);
 });
 
 test("9인전: 현재 점수판, 전체 순위, 가로 스크롤 점수표", async ({ page }) => {
-  await page.goto("#pvp");
-  await page.getByLabel("참가 인원", { exact: true }).fill("9");
+  await startLocal(page, { count: 9 });
   await expect(page.locator(".multi-standing-row")).toHaveCount(9);
   await expect(page.locator(".multi-scoreboard thead th")).toHaveCount(2);
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
@@ -101,8 +92,7 @@ test("9인전: 현재 점수판, 전체 순위, 가로 스크롤 점수표", asy
 });
 
 test("50인전: 빠른 설정과 반응형 표시, 기보 저장·불러오기", async ({ page }) => {
-  await page.goto("#pvp");
-  await page.getByLabel("참가 인원", { exact: true }).fill("50");
+  await startLocal(page, { count: 50 });
   await expect(page.locator(".multi-player-chip")).toHaveCount(50);
   await expect(page.locator(".multi-standing-row")).toHaveCount(50);
   await page.getByRole("button", { name: "주사위 굴리기" }).click();

@@ -2,7 +2,8 @@ import { useEffect, useRef, type MutableRefObject } from "react";
 import { createDecisionSession, runJob } from "./client";
 import { names, score, type Action, type Category, type Game } from "./engine";
 import type { Algorithm, Decision } from "./ai";
-import { humanAITiming as T, playbackDelay } from "./playback";
+import { humanAITiming, playbackDelay } from "./playback";
+import { waitForDice } from "./dice-motion";
 export function useHumanTurn({
   stateRef,
   algorithm,
@@ -19,6 +20,8 @@ export function useHumanTurn({
   setPreviewScore,
   paused,
   pausedRef,
+  aiSeat = 1,
+  speed = 1,
 }: {
   stateRef: MutableRefObject<Game>;
   algorithm: Algorithm;
@@ -35,7 +38,12 @@ export function useHumanTurn({
   setPreviewScore: (v: Category | null) => void;
   paused: boolean;
   pausedRef: MutableRefObject<boolean>;
+  /** Seat the AI plays (0 when the AI moves first). */
+  aiSeat?: 0 | 1;
+  /** Pacing multiplier for AI playback delays (setup option). */
+  speed?: number;
 }) {
+  const T = Object.fromEntries(Object.entries(humanAITiming).map(([k, v]) => [k, Math.round(v * speed)])) as Record<keyof typeof humanAITiming, number>;
   const pendingRoll = useRef(false),
     previousGeneration = useRef(generation.current);
   useEffect(() => {
@@ -44,7 +52,7 @@ export function useHumanTurn({
       pendingRoll.current = false;
     }
     if (paused) return;
-    if (stateRef.current.player !== 1 || stateRef.current.done) {
+    if (stateRef.current.player !== aiSeat || stateRef.current.done) {
       setBusy(false);
       return;
     }
@@ -64,16 +72,18 @@ export function useHumanTurn({
           pendingRoll.current = false;
           setCaption("나머지 주사위를 다시 굴렸습니다");
           await playbackDelay(T.reroll, signal);
+          await waitForDice(signal);
         }
         if (!stateRef.current.rolls) {
           commit({ type: "roll" });
           setCaption("주사위를 굴렸습니다");
           await playbackDelay(T.firstRoll, signal);
+          await waitForDice(signal);
         }
         while (
           valid() &&
           !stateRef.current.done &&
-          stateRef.current.player === 1
+          stateRef.current.player === aiSeat
         ) {
           if (!session.current) session.current = createDecisionSession();
           const active = session.current;
@@ -105,6 +115,7 @@ export function useHumanTurn({
             pendingRoll.current = false;
             setCaption("나머지 주사위를 다시 굴렸습니다");
             await playbackDelay(T.reroll, signal);
+            await waitForDice(signal);
           } else {
             setPreviewScore(d.category);
             await playbackDelay(260, signal);
@@ -127,5 +138,5 @@ export function useHumanTurn({
       }
     })();
     return () => controller.abort();
-  }, [trigger, retry, algorithm, paused]);
+  }, [trigger, retry, algorithm, paused, aiSeat]);
 }

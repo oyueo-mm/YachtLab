@@ -1,6 +1,7 @@
 import { ArrowRight, Bot, Globe, Smartphone, UsersRound, WifiOff } from "lucide-react";
 import { DieIcon } from "../Dice";
 import type { Route } from "../routes";
+import { HomeDice } from "./HomeDice";
 
 type Go = (route: Route) => void;
 
@@ -8,6 +9,7 @@ type Go = (route: Route) => void;
 export function Lobby({ navigate }: { navigate: Go }) {
   return (
     <section className="lobby" aria-labelledby="lobby-title">
+      <div className="lobby-menu">
       <h1 id="lobby-title" className="lobby-title">
         게임 모드 선택
       </h1>
@@ -28,7 +30,7 @@ export function Lobby({ navigate }: { navigate: Go }) {
             준비 중
           </span>
         </button>
-        <button type="button" className="mode-card mode-offline" onClick={() => navigate("offline")}>
+        <button type="button" className="mode-card mode-offline mode-primary" onClick={() => navigate("offline")}>
           <span className="mode-icon" aria-hidden="true">
             <WifiOff size={24} />
           </span>
@@ -36,9 +38,13 @@ export function Lobby({ navigate }: { navigate: Go }) {
             <strong>오프라인 대전</strong>
             <span>AI 또는 친구와 이 기기에서 바로 플레이</span>
           </span>
-          <ArrowRight className="mode-arrow" size={22} aria-hidden="true" />
+          <span className="mode-cta">
+            바로 플레이 <ArrowRight size={16} aria-hidden="true" />
+          </span>
         </button>
       </div>
+      </div>
+      <HomeDice />
     </section>
   );
 }
@@ -50,7 +56,7 @@ export function OfflineSelect({ navigate }: { navigate: Go }) {
         오프라인 대전
       </h1>
       <div className="lobby-modes">
-        <button type="button" className="mode-card mode-ai" onClick={() => navigate("play")}>
+        <button type="button" className="mode-card mode-ai" onClick={() => navigate("play-setup")}>
           <span className="mode-icon" aria-hidden="true">
             <Bot size={26} />
           </span>
@@ -60,7 +66,7 @@ export function OfflineSelect({ navigate }: { navigate: Go }) {
           </span>
           <ArrowRight className="mode-arrow" size={22} aria-hidden="true" />
         </button>
-        <button type="button" className="mode-card mode-local" onClick={() => navigate("pvp")}>
+        <button type="button" className="mode-card mode-local" onClick={() => navigate("pvp-setup")}>
           <span className="mode-icon" aria-hidden="true">
             <UsersRound size={26} />
           </span>
