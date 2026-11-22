@@ -49,22 +49,13 @@ import {
   type Replay,
 } from "./replay";
 import AlgorithmSelect from "./AlgorithmDropdown";
+import GameDifficulty, { difficultyLabel } from "./GameDifficulty";
+import MobileQuickScore from "./MobileQuickScore";
 import { useHumanTurn } from "./human-turn";
 import LocalGame from "./LocalGame";
 import MyGames from "./MyGames";
 import MobileScoreSheet, { MobileScoreButton } from "./MobileScoreSheet";
 import { saveReplay } from "./replay-storage";
-import benchmark from "./benchmark-summary.json";
-import research from "./research-summary.json";
-import dpManifest from "./dp-manifest.json";
-const verifiedBest =
-  benchmark.gamesPerAlgorithm >= 1000 &&
-  benchmark.dpTableSha256 === dpManifest.sha256 &&
-  research.complete &&
-  research.teacherSha256 === dpManifest.sha256 &&
-  research.bestAlgorithm === benchmark.bestAlgorithm
-    ? algorithms.find((a) => a === benchmark.bestAlgorithm)
-    : undefined;
 type Page = "home" | "play" | "pvp" | "watch" | "tournament" | "analysis" | "records";
 const navigation = [
   { id: "home", name: "홈", icon: Home },
@@ -287,7 +278,7 @@ function HumanGame({
   onAnalyze: (s: AnalysisSource) => void;
 }) {
   const [state, setState] = useState(() => createGame(newSeed(), true)),
-    [algorithm, setAlgorithm] = useState<Algorithm>(verifiedBest ?? "Greedy"),
+    [algorithm, setAlgorithm] = useState<Algorithm>("Greedy"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [last, setLast] = useState<Decision | null>(null);
@@ -332,7 +323,6 @@ function HumanGame({
     [caption, setCaption] = useState(""),
     [gameFeedback, setGameFeedback] = useState("");
   const [rollEvent, setRollEvent] = useState(0);
-  const [selectedScore, setSelectedScore] = useState<Category | null>(null);
   const [aiPreviewCategory, setAiPreviewCategory] = useState<Category | null>(null);
   const commit = (
     action: Parameters<typeof transition>[1],
@@ -343,9 +333,8 @@ function HumanGame({
     record.current = updated;
     const next = updated.finalState;
     if (next.done && !before.done) void saveReplay(updated).catch((e) => setError("기보 자동 저장 실패: " + errorText(e)));
-    if (action.type === "roll") { setRollEvent((n) => n + 1); setSelectedScore(null); }
+    if (action.type === "roll") setRollEvent((n) => n + 1);
     if (action.type === "score") {
-      setSelectedScore(null);
       setGameFeedback((before.player === 0 ? "나" : "AI") + " · " + names[action.category] + " " + (next.cards[before.player][action.category] ?? 0) + "점 기록");
     }
     stateRef.current = next;
@@ -395,16 +384,10 @@ function HumanGame({
     setCaption("");
     setGameFeedback("");
     setMobileScoreOpen(false);
-    setSelectedScore(null);
     setAiPreviewCategory(null);
   };
   const can = state.player === 0 && !state.done && !busy;
-  const chooseScore = (category: Category) => setSelectedScore((current) => current === category ? null : category);
-  const confirmScore = () => {
-    if (!can || !selectedScore || !state.rolls || state.cards[0][selectedScore] !== undefined) return;
-    act({ type: "score", category: selectedScore });
-    setMobileScoreOpen(false);
-  };
+  const recordScore = (category: Category) => { if (!can || state.rolls === 0 || state.cards[0][category] !== undefined) return; act({ type: "score", category }); setMobileScoreOpen(false); };
   return (
     <>
       <div className="game-grid">
@@ -417,15 +400,11 @@ function HumanGame({
                 setViewReplay(clone(record.current));
               }}
             >
+              <History size={16}/>
               기보 보기
             </button>
             <div className="opponent-picker">
-              <AlgorithmSelect
-                label="상대 AI"
-                value={algorithm}
-                set={setAlgorithm}
-                disabled={state.actions > 0}
-              />
+              <GameDifficulty value={algorithm} set={setAlgorithm} disabled={state.actions > 0} />
             </div>
             <button className="text-button" onClick={restart}>
               <RotateCcw size={15} />
@@ -441,7 +420,7 @@ function HumanGame({
               </strong>
             </div>
             <div className={state.player === 1 ? "selected" : ""}>
-              <span>{algorithm}</span>
+              <span>AI · {difficultyLabel(algorithm)}</span>
               <strong>
                 {total(state.cards[1])}
                 <small>점</small>
@@ -455,7 +434,7 @@ function HumanGame({
               </strong>
             </div>
           </div>
-          <section className="game-board" aria-label="게임 보드">
+          <section className={"game-board" + (state.rolls === 0 ? " dice-ready" : "")} aria-label="게임 보드">
             <div className="board-top">
               <span className="turn-indicator">
                 <i />
@@ -463,7 +442,7 @@ function HumanGame({
                   ? "경기 종료"
                   : can
                     ? "나의 차례"
-                    : `${algorithm}의 차례`}
+                    : "AI의 차례"}
               </span>
               <span>
                 굴림 <b>{state.rolls}</b> / 3
@@ -532,10 +511,10 @@ function HumanGame({
               </div>
             )}
           </section>
-          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={state.rolls} />
-          {mobileScoreOpen && <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}><Scoreboard state={state} select={can ? chooseScore : undefined} selected={selectedScore} onConfirm={confirmScore} onClear={() => setSelectedScore(null)} previewCategory={aiPreviewCategory} /></MobileScoreSheet>}
+          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={state.rolls} canScore={can} />
+          {mobileScoreOpen && <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}><MobileQuickScore cards={state.cards} dice={state.dice} rolls={state.rolls} current={state.player} labels={["나","AI"]} canScore={can} onScore={recordScore}/></MobileScoreSheet>}
           {gameFeedback && <p className="game-feedback" role="status">{gameFeedback}</p>}
-          <details className="game-rules"><summary>게임 방법</summary><p>12라운드 동안 주사위 5개를 최대 3번 굴려요. 원하는 주사위를 눌러 고정하고 점수판에서 점수를 선택하고 기록을 확정하세요. 한 번 기록한 칸은 다시 사용할 수 없어요. 상단 점수 합계가 63점 이상이면 보너스 35점을 받아요.</p></details>
+          <details className="game-rules"><summary>게임 방법</summary><p>12라운드 동안 주사위 5개를 최대 3번 굴려요. 원하는 주사위를 눌러 고정하고 점수판에서 원하는 점수를 한 번 누르면 바로 기록돼요. 한 번 기록한 칸은 다시 사용할 수 없어요. 상단 점수 합계가 63점 이상이면 보너스 35점을 받아요.</p></details>
           <ErrorMessage message={error} />
           {error && state.player === 1 && !state.done && (
             <button
@@ -562,14 +541,7 @@ function HumanGame({
             키보드로 순서 변경: 주사위에 초점을 두고 Alt + 좌우 방향키
           </div>
         </div>
-        <Scoreboard
-          state={state}
-          select={can ? chooseScore : undefined}
-          selected={mobileScoreOpen ? null : selectedScore}
-          onConfirm={confirmScore}
-          onClear={() => setSelectedScore(null)}
-          previewCategory={aiPreviewCategory}
-        />
+        <Scoreboard state={state} select={can ? recordScore : undefined} previewCategory={aiPreviewCategory} />
       </div>
       {viewReplay && (
         <ReplayViewer

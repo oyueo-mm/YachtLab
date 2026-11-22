@@ -1,4 +1,4 @@
-import { chooseAlgorithm } from "./helpers";
+import { chooseAlgorithm,scoreCategory } from "./helpers";
 import { test, expect } from "@playwright/test";
 async function selectDP(page: import("@playwright/test").Page) {
   await page.getByLabel("Greedy", { exact: true }).uncheck();
@@ -6,13 +6,11 @@ async function selectDP(page: import("@playwright/test").Page) {
   await page.getByLabel("DP Expert", { exact: true }).check();
 }
 
-test("검증된 평균 총점 1위 DP를 기본 상대와 근거 링크로 표시", async ({
+test("일반 게임의 초기 난이도는 보통으로 표시", async ({
   page,
 }) => {
   await page.goto("#play");
-  await expect(page.getByRole("combobox", { name: "상대 AI" })).toContainText(
-    "DP Expert",
-  );
+  await expect(page.getByRole("combobox", { name: "상대 AI" })).toHaveValue("Greedy");
   await expect(page.getByRole("link", { name: "최고 성능 · 벤치마크 기준" })).toHaveCount(0);
 });
 test("DP는 필요할 때 로드하고 분석에서 전체 경기 기대값과 후보 차이를 표시", async ({
@@ -72,9 +70,9 @@ test("사람 대전의 DP 로딩은 재대결로 취소 가능", async ({ page }
     await route.continue().catch(() => {});
   });
   await page.goto("#play");
-  await chooseAlgorithm(page, "\uc0c1\ub300 AI", "DP Expert");
+  await chooseAlgorithm(page, "\uc0c1\ub300 AI", "Win DP v4-D");
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
-  await page.locator(".score-option").first().click(); await page.getByRole("button",{name:"점수 기록 확정"}).click();
+  await scoreCategory(page);
   await expect.poll(() => started).toBe(true);
   await expect(page.locator(".thinking")).toBeVisible();
   await page.getByRole("button", { name: "재대결", exact: true }).click();
@@ -109,10 +107,10 @@ test("사람 대전은 두 턴에 DP 테이블을 한 번만 로드", async ({ p
   const requests: string[] = [];
   page.on("request", (r) => requests.push(r.url()));
   await page.goto("#play");
-  await chooseAlgorithm(page, "\uc0c1\ub300 AI", "DP Expert");
+  await chooseAlgorithm(page, "\uc0c1\ub300 AI", "Win DP v4-D");
   for (let turn = 0; turn < 2; turn++) {
     await page.getByRole("button", { name: "주사위 굴리기" }).click();
-    await page.locator(".score-option").first().click(); await page.getByRole("button",{name:"점수 기록 확정"}).click();
+    await scoreCategory(page);
     await expect(
       page.getByRole("button", { name: "주사위 굴리기" }),
     ).toBeEnabled({ timeout: 15000 });

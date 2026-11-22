@@ -2896,3 +2896,73 @@ input[type="range"],
 .score-confirm-cancel:focus-visible,.score-confirm-button:focus-visible{outline-offset:2px;}
 @media(max-width:760px){.mobile-score-scroll .score-confirm-bar{bottom:0;padding:11px 9px;gap:5px;}.score-confirm-info>strong{font-size:12px;}.score-confirm-button{min-height:42px;padding:9px 10px;}.score-confirm-cancel{padding:6px;}.mobile-score-scroll .scoreboard:has(.score-confirm-bar){overflow:visible;}}
 @media(prefers-reduced-motion:reduce){.die-button.dice-animating{animation:none!important;will-change:auto;}}
+
+/* Five fixed gameplay difficulties; research selectors retain the full model list. */
+.game-difficulty{display:flex;align-items:center;gap:10px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 11px;min-width:200px;}
+.game-difficulty>span{font-size:11px;color:var(--muted);white-space:nowrap;}
+.game-difficulty select{flex:1;min-width:0;min-height:40px;appearance:auto;border:0;color:var(--ink);background:transparent;font-size:13px;font-weight:650;cursor:pointer;}
+.game-difficulty select:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radius:5px;}
+.game-difficulty select:disabled{opacity:.68;cursor:default;}
+/* Mobile sheet uses a single player column, with direct score selection and an optional opponent tab. */
+.mobile-quick-score{display:flex;flex-direction:column;gap:0;width:100%;min-width:0;}
+.mobile-score-player-picker{position:sticky;top:-8px;z-index:3;background:#fff;padding:7px 2px 12px;border-bottom:1px solid var(--line);}
+.mobile-score-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;background:#f4f4f4;border-radius:11px;padding:4px;}
+.mobile-score-tabs button{padding:10px;min-height:42px;border-radius:8px;color:#666;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mobile-score-tabs button[aria-pressed=true]{background:#fff;color:var(--red-deep);box-shadow:0 1px 5px #00000013;}
+.mobile-score-player-select{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--muted);}
+.mobile-score-player-select select{flex:1;min-width:0;padding:10px;border:1px solid var(--line);border-radius:9px;font-size:13px;background:#fff;}
+.mobile-quick-bonus{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 12px;border-bottom:1px solid var(--line);}
+.mobile-quick-bonus>span{font-size:13px;font-weight:650;color:var(--ink);}
+.mobile-quick-bonus>span small{font-size:10px;color:var(--muted);font-weight:450;}
+.mobile-quick-bonus .bonus-progress{display:flex;align-items:flex-end;flex-direction:column;gap:3px;min-width:105px;}
+.mobile-quick-bonus .bonus-progress strong{font-size:14px;font-weight:700;}
+.mobile-quick-bonus .bonus-progress small{font-size:10px;color:var(--red-deep);}
+.mobile-quick-bonus .bonus-track{width:100%;height:5px;background:#eee;border-radius:99px;overflow:hidden;}
+.mobile-quick-bonus .bonus-track i{display:block;height:100%;background:var(--red);border-radius:99px;}
+.mobile-quick-instruction{padding:12px 11px 2px;font-size:11px;color:var(--muted);}
+.mobile-quick-group-title{background:#f7f7f7;color:#666;font-size:11px;font-weight:650;padding:10px 12px;}
+.mobile-quick-row{border-bottom:1px solid #f0f0f0;}
+.mobile-quick-row-button,.mobile-quick-row-static{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:51px;padding:10px 12px;text-align:left;background:#fff;color:var(--ink);}
+.mobile-quick-row-button{cursor:pointer;touch-action:manipulation;}
+.mobile-quick-row-button:active{background:#fff0ec;}
+.mobile-quick-row-button:focus-visible{outline:2px solid var(--red);outline-offset:-2px;}
+.mobile-quick-name{display:flex;align-items:center;gap:10px;min-width:0;font-size:13px;}
+.mobile-quick-name>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mobile-quick-name .category-icon{display:inline-flex;align-items:center;flex-shrink:0;}
+.mobile-quick-name .category-icon svg{width:15px;height:15px;}
+.mobile-quick-row-button>strong,.mobile-quick-row-static>strong{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:42px;text-align:right;}
+.mobile-quick-row-button>strong{color:var(--red-deep);}
+.mobile-quick-row.recorded .mobile-quick-name{color:#676767;}
+.mobile-quick-row-static>strong.empty-score{color:#bbb;font-weight:450;}
+@media(max-width:760px){
+ .topbar{height:54px;}
+ .sidebar{top:54px;}
+ .main,.nav-closed .main{margin-top:54px;}
+ .main.page-play,.main.page-pvp{padding:13px 14px 27px;}
+ .page-play .game-tools{display:grid;grid-template-columns:minmax(0,1fr) 40px 40px;gap:8px;align-items:center;margin-bottom:15px;}
+ .page-play .game-tools .opponent-picker{grid-column:1;grid-row:1;order:0;min-width:0;width:100%;flex:none;}
+ .page-play .game-tools .opponent-picker .game-difficulty{width:100%;min-width:0;}
+ .page-play .game-tools>.text-button:first-child{grid-column:2;grid-row:1;order:1;width:40px;height:44px;min-width:40px;margin:0;padding:0;font-size:0;display:flex;border:1px solid var(--line);border-radius:9px;}
+ .page-play .game-tools>.text-button:last-child{grid-column:3;grid-row:1;order:2;width:40px;height:44px;min-width:40px;margin:0;padding:0;font-size:0;display:flex;border:1px solid var(--line);border-radius:9px;}
+ .page-play .game-tools>.text-button svg{width:17px;height:17px;flex-shrink:0;}
+ .page-play .score-summary{margin-bottom:12px;padding:0 0 13px;}
+ .page-play .score-summary>div{padding:0 10px;}
+ .page-play .score-summary>div:first-child{padding-left:3px;}
+ .page-play .score-summary span{font-size:11px;white-space:nowrap;}
+ .page-play .score-summary strong{font-size:28px;}
+ .page-play .score-summary small{font-size:11px;margin-left:4px;}
+ .page-play .score-summary .round strong{font-size:23px;}
+ .page-play .game-board{min-height:260px;padding:16px 12px 12px;border-radius:15px;}
+ .page-play .dice-row{margin-top:29px;margin-bottom:19px;gap:clamp(6px,2vw,10px);}
+ .page-play .die-wrap{width:min(16.5vw,68px);}
+ .page-play .roll-button{min-width:0;min-height:47px;padding:10px 13px;}
+ .page-play .roll-area p{margin-top:9px;}
+ .page-play .dice-ready .die-icon circle{opacity:0;}
+ .page-play .game-grid>.scoreboard{display:none;}
+ .page-pvp .multi-scores{display:none;}
+ .page-play .mobile-score-button,.page-pvp .mobile-score-button{position:sticky;bottom:12px;z-index:12;margin:12px 0 0;min-height:48px;box-shadow:0 5px 16px #d9363625;}
+ .mobile-score-dialog{height:min(88dvh,760px);}
+ .mobile-score-scroll{padding:8px 12px calc(14px + env(safe-area-inset-bottom));}
+}
+@media(max-width:355px){.page-play .game-tools{grid-template-columns:minmax(0,1fr) 38px 38px;gap:6px;}.page-play .score-summary>div{padding-inline:7px;}.page-play .die-wrap{width:16vw;}.mobile-quick-name{gap:6px;font-size:12px;}}
+@media(prefers-reduced-motion:reduce){.mobile-score-tabs button,.mobile-quick-row-button{transition:none!important;}}
