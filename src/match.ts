@@ -57,7 +57,7 @@ export function simulateFromState(
     }
     const actor = state.player,
       start = performance.now(),
-      d = decide(state, algorithms[actor], options);
+      d = decide(state, algorithms[actor], { ...options, opponentAlgorithm: algorithms[1 - actor] });
     elapsed[actor] += performance.now() - start;
     if (d.type === "score")
       push({ type: "score", category: d.category }, "점수 기록", d);
