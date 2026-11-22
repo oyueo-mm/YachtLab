@@ -39,6 +39,7 @@
 - [deploy.yml](../../../.github/workflows/deploy.yml)
 - [discovered-external.yml](../../../.github/workflows/discovered-external.yml)
 - [external-championship.yml](../../../.github/workflows/external-championship.yml)
+- [followup-ablations.yml](../../../.github/workflows/followup-ablations.yml)
 - [frontier-200k.yml](../../../.github/workflows/frontier-200k.yml)
 - [full-selfplay.yml](../../../.github/workflows/full-selfplay.yml)
 - [integrated-research.yml](../../../.github/workflows/integrated-research.yml)
@@ -68,6 +69,7 @@
 - [EXPERIMENT-ZOO.md](../EXPERIMENT-ZOO.md)
 - [EXTENDED-PSRO-PMF-PPO-RESEARCH.md](../EXTENDED-PSRO-PMF-PPO-RESEARCH.md)
 - [EXTENDED-PSRO-PMF-PPO-RESULTS.md](../EXTENDED-PSRO-PMF-PPO-RESULTS.md)
+- [FOLLOWUP-V33-V34-V4-ABLATIONS.md](../FOLLOWUP-V33-V34-V4-ABLATIONS.md)
 - [FRONTIER-200K-RESEARCH.md](../FRONTIER-200K-RESEARCH.md)
 - [FULLGAME-OFFPOLICY-RESEARCH.md](../FULLGAME-OFFPOLICY-RESEARCH.md)
 - [HANDOFF.md](../HANDOFF.md)
@@ -90,16 +92,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
-| [eab4302](https://github.com/oyueo-mm/YachtLab/commit/eab4302) | 2026-11-22 | research: v3.3-v4 SOTA frontier and 200k candidate confirmation |
-| [c1ae7b4](https://github.com/oyueo-mm/YachtLab/commit/c1ae7b4) | 2026-11-22 | docs: formalize v3.3-v4 implementation, 200k each and optional 1m budget and caveats |
-| [84fbf86](https://github.com/oyueo-mm/YachtLab/commit/84fbf86) | 2026-11-22 | ci: keep model artifacts single-root so training inputs resolve after download |
-| [35e6be2](https://github.com/oyueo-mm/YachtLab/commit/35e6be2) | 2026-11-22 | ci(research): run three new research tracks plus 200k-per-candidate, 1m optional independent confirmation |
-| [253a5ba](https://github.com/oyueo-mm/YachtLab/commit/253a5ba) | 2026-11-22 | research: preregister 200k-to-1m per-policy matched seed evaluation and honest comparative CIs |
-| [3d8e44d](https://github.com/oyueo-mm/YachtLab/commit/3d8e44d) | 2026-11-22 | research(v4): pick teacher-and-league trained actor solely on validation, never confirm seeds |
-| [c6bd8f5](https://github.com/oyueo-mm/YachtLab/commit/c6bd8f5) | 2026-11-22 | benchmark: common 12-category paired full-game evaluator for v3, v3.3, v3.4 and v4 |
-| [feeaf26](https://github.com/oyueo-mm/YachtLab/commit/feeaf26) | 2026-11-22 | test(research): verify v3.3 model gates, v3.4 public RNG invariance, v4 legality |
-| [2ca3cff](https://github.com/oyueo-mm/YachtLab/commit/2ca3cff) | 2026-11-22 | research(v4): implement full-game DP teacher imitation + PSRO league/self-play REINFORCE over 3 seeds |
-| [5668a57](https://github.com/oyueo-mm/YachtLab/commit/5668a57) | 2026-11-22 | research(v4): compose DP-anchored trained policy, v3.3 forecast and v3.4 adaptive endgame |
+| [8766651](https://github.com/oyueo-mm/YachtLab/commit/8766651) | 2026-11-22 | research: Bayesian opponents, adaptive search and matched v4 A-E ablation |
+| [657c2c2](https://github.com/oyueo-mm/YachtLab/commit/657c2c2) | 2026-11-22 | docs(report): accurately describe random comparator's independent seeded action stream |
+| [ac0633b](https://github.com/oyueo-mm/YachtLab/commit/ac0633b) | 2026-11-22 | docs: correct random-policy experimental design to seeded private uniform actions |
+| [982fd0b](https://github.com/oyueo-mm/YachtLab/commit/982fd0b) | 2026-11-22 | benchmark: use independent seeded random policy actions rather than public-state deterministic surrogate |
+| [5f3a6e1](https://github.com/oyueo-mm/YachtLab/commit/5f3a6e1) | 2026-11-22 | research(v3.3): sample private independent random-opponent actions in calibration games |
+| [51d998d](https://github.com/oyueo-mm/YachtLab/commit/51d998d) | 2026-11-22 | research(v3.3): support independent private uniform draw for truly stochastic random opponent samples |
+| [acb069b](https://github.com/oyueo-mm/YachtLab/commit/acb069b) | 2026-11-22 | report: expose actual v3.4 rollout count, soft deadline hits, and game-average p95 latency |
+| [d2c6470](https://github.com/oyueo-mm/YachtLab/commit/d2c6470) | 2026-11-22 | fix: parse numerical rollout sample count rather than escaped literal d |
+| [5724af1](https://github.com/oyueo-mm/YachtLab/commit/5724af1) | 2026-11-22 | benchmark: record actual v3.4 rollouts, soft time cap hits and decision latency tails |
+| [ffdc263](https://github.com/oyueo-mm/YachtLab/commit/ffdc263) | 2026-11-22 | fix(v3.4): preserve original unfiltered 2x2 rollout behavior in legacy arm to permit valid ablation |
 
 ## 최근 GitHub Actions 상태
 
@@ -107,14 +109,13 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab v3.3 v3.4 v4 self-play and 200k-per-model confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44921977607) | success | c1ae7b4844 |
-| [Full-game self-play and three-turn competitive research](https://github.com/oyueo-mm/YachtLab/actions/runs/44915723971) | success | 6e3968befa |
-| [YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44915723922) | success | 6e3968befa |
-| [PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44915723908) | success | 6e3968befa |
-| [YachtLab v3.2 exact three-slot opponent forecast research](https://github.com/oyueo-mm/YachtLab/actions/runs/44915723897) | success | 6e3968befa |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44915723883) | success | 6e3968befa |
-| [YachtLab Win DP v3.1 research and independent confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44915685402) | success | c26466e59b |
-| [YachtLab 170k-game v2.1 v3 v3.1 independent comparison](https://github.com/oyueo-mm/YachtLab/actions/runs/44915685398) | success | c26466e59b |
+| [YachtLab v3.2 exact three-slot opponent forecast research](https://github.com/oyueo-mm/YachtLab/actions/runs/44976792287) | success | 657c2c243b |
+| [YachtLab v3.3 v3.4 v4 self-play and 200k-per-model confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44976792243) | success | 657c2c243b |
+| [PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44976783851) | cancelled | ac0633b1d1 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44976783837) | cancelled | ac0633b1d1 |
+| [YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44976783805) | success | ac0633b1d1 |
+| [Full-game self-play and three-turn competitive research](https://github.com/oyueo-mm/YachtLab/actions/runs/44976783772) | cancelled | ac0633b1d1 |
+| [YachtLab Bayesian opponents adaptive search and v4 exact A-E ablations](https://github.com/oyueo-mm/YachtLab/actions/runs/44976783682) | cancelled | ac0633b1d1 |
 
 ## 다음 채팅과 작업의 시작점
 
