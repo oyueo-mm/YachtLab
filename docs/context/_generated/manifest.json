@@ -103,6 +103,11 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "6650fde",
+      "date": "2026-11-22",
+      "subject": "chore(research): publish six-way 50k-match head-to-head paired league [skip ci]"
+    },
+    {
       "sha": "f20e819",
       "date": "2026-11-22",
       "subject": "research: launch minimum 50k-budget and four-model head-to-head league"
@@ -146,14 +151,15 @@
       "sha": "5e670a8",
       "date": "2026-11-22",
       "subject": "research: freeze exact original Win DP v4-D policy from 2026-11-22 A-E ablation artifact"
-    },
-    {
-      "sha": "c6b169b",
-      "date": "2026-11-22",
-      "subject": "chore(research): publish 1m-game A-E ablation with paired 99pct CI [skip ci]"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "f20e819254",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44988270987"
+    },
     {
       "name": "YachtLab 50k-per-budget and four-way head-to-head round robin",
       "status": "success",
@@ -177,12 +183,6 @@
       "status": "success",
       "head": "8766651129",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976868853"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "8766651129",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976868844"
     },
     {
       "name": "YachtLab v3.2 exact three-slot opponent forecast research",

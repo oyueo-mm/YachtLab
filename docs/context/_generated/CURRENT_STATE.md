@@ -94,6 +94,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [6650fde](https://github.com/oyueo-mm/YachtLab/commit/6650fde) | 2026-11-22 | chore(research): publish six-way 50k-match head-to-head paired league [skip ci] |
 | [f20e819](https://github.com/oyueo-mm/YachtLab/commit/f20e819) | 2026-11-22 | research: launch minimum 50k-budget and four-model head-to-head league |
 | [6f2acde](https://github.com/oyueo-mm/YachtLab/commit/6f2acde) | 2026-11-22 | docs: pre-register no-less-than-50k-per-search-budget and six direct 50k-pairwise league protocol |
 | [252ffa1](https://github.com/oyueo-mm/YachtLab/commit/252ffa1) | 2026-11-22 | ci: minimum 50k real games per v3.4 budget and each of six direct four-model head-to-head pairings |
@@ -103,7 +104,6 @@
 | [6fefde3](https://github.com/oyueo-mm/YachtLab/commit/6fefde3) | 2026-11-22 | research: paired full-game four-model six-match league and at-least-50k-per-budget opponent-search benchmark |
 | [7f94be8](https://github.com/oyueo-mm/YachtLab/commit/7f94be8) | 2026-11-22 | research(v3.4): allow transparent controlled soft time budget multiplier for 50k-match relaxed-C comparison |
 | [5e670a8](https://github.com/oyueo-mm/YachtLab/commit/5e670a8) | 2026-11-22 | research: freeze exact original Win DP v4-D policy from 2026-11-22 A-E ablation artifact |
-| [c6b169b](https://github.com/oyueo-mm/YachtLab/commit/c6b169b) | 2026-11-22 | chore(research): publish 1m-game A-E ablation with paired 99pct CI [skip ci] |
 
 ## 최근 GitHub Actions 상태
 
@@ -111,11 +111,11 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44988270987) | success | f20e819254 |
 | [YachtLab 50k-per-budget and four-way head-to-head round robin](https://github.com/oyueo-mm/YachtLab/actions/runs/44988168780) | success | 6f2acde010 |
 | [PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44976869091) | success | 8766651129 |
 | [YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868880) | success | 8766651129 |
 | [YachtLab v3.3 v3.4 v4 self-play and 200k-per-model confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868853) | success | 8766651129 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868844) | success | 8766651129 |
 | [YachtLab v3.2 exact three-slot opponent forecast research](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868806) | success | 8766651129 |
 | [Full-game self-play and three-turn competitive research](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868794) | success | 8766651129 |
 | [YachtLab Bayesian opponents adaptive search and v4 exact A-E ablations](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868790) | success | 8766651129 |
