@@ -98,6 +98,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [31d9a00](https://github.com/oyueo-mm/YachtLab/commit/31d9a00) | 2026-11-22 | feat: five fixed game difficulties and compact one-tap mobile scoring |
 | [a28477d](https://github.com/oyueo-mm/YachtLab/commit/a28477d) | 2026-11-22 | fix: calmer roll feedback, AI animations and confirmed scoring |
 | [4bffdba](https://github.com/oyueo-mm/YachtLab/commit/4bffdba) | 2026-11-22 | feat: enable playable Win DP v4-D and refine player-first YachtLab UI |
 | [8b8a203](https://github.com/oyueo-mm/YachtLab/commit/8b8a203) | 2026-11-22 | feat: player-first YachtLab gameplay UX, responsive score sheet and offline match records |
@@ -107,7 +108,6 @@
 | [19fb158](https://github.com/oyueo-mm/YachtLab/commit/19fb158) | 2026-11-22 | test(ui): open the intentionally collapsed player settings before editing names |
 | [0ba2b3c](https://github.com/oyueo-mm/YachtLab/commit/0ba2b3c) | 2026-11-22 | style(feedback): add short non-random dice settle and accessible score confirmation animation |
 | [b0e3ef3](https://github.com/oyueo-mm/YachtLab/commit/b0e3ef3) | 2026-11-22 | feat(feedback): display score commits in local 2–50 player matches |
-| [87d3c08](https://github.com/oyueo-mm/YachtLab/commit/87d3c08) | 2026-11-22 | feat(feedback): announce actual committed score and actor during human and AI turns |
 
 ## 최근 GitHub Actions 상태
 
@@ -115,8 +115,8 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45021439189) | success | 5c7fd5e796 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45021439135) | success | 5c7fd5e796 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45024816221) | success | 4c4c382735 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45024816215) | success | 4c4c382735 |
 | [Competitive research benchmark](https://github.com/oyueo-mm/YachtLab/actions/runs/45019765513) | success | 4bffdba0a8 |
 
 ## 다음 채팅과 작업의 시작점

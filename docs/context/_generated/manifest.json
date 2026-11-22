@@ -107,6 +107,11 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "31d9a00",
+      "date": "2026-11-22",
+      "subject": "feat: five fixed game difficulties and compact one-tap mobile scoring"
+    },
+    {
       "sha": "a28477d",
       "date": "2026-11-22",
       "subject": "fix: calmer roll feedback, AI animations and confirmed scoring"
@@ -150,25 +155,20 @@
       "sha": "b0e3ef3",
       "date": "2026-11-22",
       "subject": "feat(feedback): display score commits in local 2–50 player matches"
-    },
-    {
-      "sha": "87d3c08",
-      "date": "2026-11-22",
-      "subject": "feat(feedback): announce actual committed score and actor during human and AI turns"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "YachtLab gameplay UI targeted smoke",
-      "status": "success",
-      "head": "5c7fd5e796",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45021439189"
-    },
-    {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "5c7fd5e796",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45021439135"
+      "head": "4c4c382735",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45024816221"
+    },
+    {
+      "name": "YachtLab gameplay UI targeted smoke",
+      "status": "success",
+      "head": "4c4c382735",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45024816215"
     },
     {
       "name": "Competitive research benchmark",
