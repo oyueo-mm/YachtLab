@@ -137,7 +137,7 @@ export default function LocalGame() {
               </div>
             )}
           </section>
-          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={state.rolls} />
+          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={state.rolls} canScore={active} />
           {mobileScoreOpen && <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}><MobileQuickScore cards={state.cards} dice={state.dice} rolls={state.rolls} current={state.player} labels={names} canScore={active} onScore={recordScore}/></MobileScoreSheet>}
           {gameFeedback && <p className="game-feedback" role="status">{gameFeedback}</p>}
           <details className="game-rules"><summary>게임 방법</summary><p>주사위를 최대 3번 굴리고 원하는 눈을 고정하세요. 점수판에서 점수를 한 번 누르면 다음 사람의 차례가 됩니다. 12칸을 모두 채우면 최종 점수로 순위를 결정해요. 상단 점수 63점 이상이면 +35점!</p></details>
