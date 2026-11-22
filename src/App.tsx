@@ -456,6 +456,7 @@ function HumanGame({
             <Dice
               state={state}
               interactive={can}
+              animate={can}
               onToggle={(id) =>
                 act({
                   type: "hold",
