@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { chooseAlgorithm } from "./helpers";
+import { chooseAlgorithm,scoreCategory } from "./helpers";
 async function exported(page: Page) {
   const event = page.waitForEvent("download");
   await page
@@ -137,7 +137,7 @@ test("AI 행동 중 기보를 열면 대국은 정지하고 닫으면 재개", a
   await page.goto("#play");
   await chooseAlgorithm(page, "상대 AI", "Random");
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
-  await page.locator(".score-option").first().click(); await page.getByRole("button",{name:"점수 기록 확정"}).click();
+  await scoreCategory(page);
   await page.getByRole("button", { name: "기보 보기", exact: true }).click();
   const before = await exported(page);
   await page.waitForTimeout(1700);
