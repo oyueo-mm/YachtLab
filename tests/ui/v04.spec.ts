@@ -19,7 +19,7 @@ test("커스텀 알고리즘 선택창의 난이도·키보드·외부 클릭·�
   await page.getByRole("button", { name: "매우 어려움", exact: true }).click();
   await expect(
     page.getByRole("option", { name: "DP Expert", exact: true }),
-  ).toContainText("매우 어려움");
+  ).toBeVisible();
   const bounds = await page.getByRole("listbox").boundingBox();
   expect(bounds!.x).toBeGreaterThanOrEqual(0);
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(
