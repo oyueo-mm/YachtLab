@@ -27,7 +27,8 @@ function normalCdf(x: number): number {
   return x >= 0 ? cdf : 1 - cdf;
 }
 
-export function opponentForecastPayoff(state: Game, forecast: OpponentForecast = {}) {
+export type OpponentPayoff={mean:number;sigma:number;kind:string;payoff:(finalScore:number)=>number};
+export function opponentForecastPayoff(state: Game, forecast: OpponentForecast = {}):OpponentPayoff {
   const p = 1 - state.player, other = state.cards[p], remMask = mask(state, p), n = bitcount(remMask);
   const ownBase = total(other), u = Math.min(63, upper(other));
   if(forecast.mixtures){const parts=forecast.mixtures;if(!parts.length||parts.some(x=>!Number.isFinite(x.weight)||x.weight<0||Boolean(x.forecast.mixtures))||Math.abs(parts.reduce((a,x)=>a+x.weight,0)-1)>1e-6)throw Error("Invalid opponent posterior payoff mixture");const components=parts.filter(x=>x.weight>0).map(x=>({weight:x.weight,pred:opponentForecastPayoff(state,x.forecast)}));return{mean:components.reduce((a,x)=>a+x.weight*x.pred.mean,0),sigma:NaN,kind:"Bayesian mixture of policy-conditioned terminal payoff distributions",payoff:(score:number)=>components.reduce((a,x)=>a+x.weight*x.pred.payoff(score),0)};}
