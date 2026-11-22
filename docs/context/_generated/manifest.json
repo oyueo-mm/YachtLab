@@ -24,6 +24,7 @@
     "DP Expert",
     "Win DP",
     "Win DP v2",
+    "Win DP v4-D",
     "Distilled Policy",
     "Distilled PPO"
   ],
@@ -83,6 +84,7 @@
     "foundation-v4-tournament.yml",
     "frontier-200k.yml",
     "full-selfplay.yml",
+    "gameplay-ui-smoke.yml",
     "integrated-research.yml",
     "native12-dqn.yml",
     "neural-selfplay.yml",
@@ -104,6 +106,11 @@
     "yahtzeerl-transfer.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "4bffdba",
+      "date": "2026-11-22",
+      "subject": "feat: enable playable Win DP v4-D and refine player-first YachtLab UI"
+    },
     {
       "sha": "8b8a203",
       "date": "2026-11-22",
@@ -148,61 +155,20 @@
       "sha": "b2e1f14",
       "date": "2026-11-22",
       "subject": "test(ui): mobile score recording, categorized AI picker, local setup and offline records"
-    },
-    {
-      "sha": "a483f7f",
-      "date": "2026-11-22",
-      "subject": "style: game-first desktop and mobile layouts, tactile dice, clear scoring, AI picker, match history"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "7902c6d7ce",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45013125287"
+      "head": "5334a1e3fb",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45018097508"
     },
     {
-      "name": "YachtLab DP Expert Win DP v2 original v4 and v4-D 300k tournament",
+      "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
-      "head": "a9a4f85280",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45004028751"
-    },
-    {
-      "name": "YachtLab 50k-per-budget and four-way head-to-head round robin",
-      "status": "success",
-      "head": "f20e819254",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44988270898"
-    },
-    {
-      "name": "PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO",
-      "status": "success",
-      "head": "8766651129",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976869091"
-    },
-    {
-      "name": "YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO",
-      "status": "success",
-      "head": "8766651129",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976868880"
-    },
-    {
-      "name": "YachtLab v3.3 v3.4 v4 self-play and 200k-per-model confirmation",
-      "status": "success",
-      "head": "8766651129",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976868853"
-    },
-    {
-      "name": "YachtLab v3.2 exact three-slot opponent forecast research",
-      "status": "success",
-      "head": "8766651129",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976868806"
-    },
-    {
-      "name": "Full-game self-play and three-turn competitive research",
-      "status": "success",
-      "head": "8766651129",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976868794"
+      "head": "5334a1e3fb",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45018097491"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

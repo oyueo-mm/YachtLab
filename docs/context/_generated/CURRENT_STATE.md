@@ -22,10 +22,11 @@
 | DP Expert | [src/ai.ts](../../../src/ai.ts) |
 | Win DP | [src/ai.ts](../../../src/ai.ts) |
 | Win DP v2 | [src/ai.ts](../../../src/ai.ts) |
+| Win DP v4-D | [src/ai.ts](../../../src/ai.ts) |
 | Distilled Policy | [src/ai.ts](../../../src/ai.ts) |
 | Distilled PPO | [src/ai.ts](../../../src/ai.ts) |
 
-- 나열된 모델 수: **10개**. 이는 소스에서 선언된 목록이며, 조건부 등록 여부 및 실제 모델 평가 결과를 뜻하지 않음.
+- 나열된 모델 수: **11개**. 이는 소스에서 선언된 목록이며, 조건부 등록 여부 및 실제 모델 평가 결과를 뜻하지 않음.
 - 연구용 별도 탐색/학습 모듈은 공개 AI 목록에 포함되지 않을 수 있음. [기법 도감](../TECHNIQUES.md) 참고.
 
 ## 저장소에서 발견한 워크플로
@@ -43,6 +44,7 @@
 - [foundation-v4-tournament.yml](../../../.github/workflows/foundation-v4-tournament.yml)
 - [frontier-200k.yml](../../../.github/workflows/frontier-200k.yml)
 - [full-selfplay.yml](../../../.github/workflows/full-selfplay.yml)
+- [gameplay-ui-smoke.yml](../../../.github/workflows/gameplay-ui-smoke.yml)
 - [integrated-research.yml](../../../.github/workflows/integrated-research.yml)
 - [native12-dqn.yml](../../../.github/workflows/native12-dqn.yml)
 - [neural-selfplay.yml](../../../.github/workflows/neural-selfplay.yml)
@@ -96,6 +98,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [4bffdba](https://github.com/oyueo-mm/YachtLab/commit/4bffdba) | 2026-11-22 | feat: enable playable Win DP v4-D and refine player-first YachtLab UI |
 | [8b8a203](https://github.com/oyueo-mm/YachtLab/commit/8b8a203) | 2026-11-22 | feat: player-first YachtLab gameplay UX, responsive score sheet and offline match records |
 | [7902c6d](https://github.com/oyueo-mm/YachtLab/commit/7902c6d) | 2026-11-22 | test(mobile): regression for outside-tap closing categorized model picker |
 | [e44f132](https://github.com/oyueo-mm/YachtLab/commit/e44f132) | 2026-11-22 | fix(mobile): allow outside topbar clicks through model-picker scrim to close it |
@@ -105,7 +108,6 @@
 | [b0e3ef3](https://github.com/oyueo-mm/YachtLab/commit/b0e3ef3) | 2026-11-22 | feat(feedback): display score commits in local 2–50 player matches |
 | [87d3c08](https://github.com/oyueo-mm/YachtLab/commit/87d3c08) | 2026-11-22 | feat(feedback): announce actual committed score and actor during human and AI turns |
 | [b2e1f14](https://github.com/oyueo-mm/YachtLab/commit/b2e1f14) | 2026-11-22 | test(ui): mobile score recording, categorized AI picker, local setup and offline records |
-| [a483f7f](https://github.com/oyueo-mm/YachtLab/commit/a483f7f) | 2026-11-22 | style: game-first desktop and mobile layouts, tactile dice, clear scoring, AI picker, match history |
 
 ## 최근 GitHub Actions 상태
 
@@ -113,14 +115,8 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45013125287) | success | 7902c6d7ce |
-| [YachtLab DP Expert Win DP v2 original v4 and v4-D 300k tournament](https://github.com/oyueo-mm/YachtLab/actions/runs/45004028751) | success | a9a4f85280 |
-| [YachtLab 50k-per-budget and four-way head-to-head round robin](https://github.com/oyueo-mm/YachtLab/actions/runs/44988270898) | success | f20e819254 |
-| [PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44976869091) | success | 8766651129 |
-| [YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868880) | success | 8766651129 |
-| [YachtLab v3.3 v3.4 v4 self-play and 200k-per-model confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868853) | success | 8766651129 |
-| [YachtLab v3.2 exact three-slot opponent forecast research](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868806) | success | 8766651129 |
-| [Full-game self-play and three-turn competitive research](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868794) | success | 8766651129 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45018097508) | success | 5334a1e3fb |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45018097491) | success | 5334a1e3fb |
 
 ## 다음 채팅과 작업의 시작점
 
