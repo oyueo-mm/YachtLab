@@ -1,6 +1,6 @@
 import { Star, Sigma } from "lucide-react";
-import { bonus, categories, names, score, total, upper, type Category } from "./engine";
-import { CategoryIcon } from "./Scoreboard";
+import { categories, names, score, total, type Category } from "./engine";
+import { CategoryIcon, BonusProgress } from "./Scoreboard";
 import { multiStandings, type MultiGame } from "./multi-engine";
 
 export function MultiScoreboard({
@@ -19,7 +19,7 @@ export function MultiScoreboard({
     <section className="scoreboard panel multi-scoreboard" aria-label="점수판">
       <div className="score-title">
         <h2>{focused ? labels[current] + " 점수판" : "점수판"}</h2>
-        <span>12개 카테고리</span>
+
       </div>
       <div className="multi-score-scroll" tabIndex={0} aria-label="점수표 스크롤 영역">
         <table>
@@ -34,7 +34,7 @@ export function MultiScoreboard({
             </tr>
           </thead>
           <tbody>
-            <tr className="section-row"><th colSpan={indices.length + 1}>상단 <span>같은 눈의 합계</span></th></tr>
+            <tr className="section-row"><th colSpan={indices.length + 1}>상단</th></tr>
             {categories.map((category, ci) => (
               <FragmentRow key={category} category={category} categoryIndex={ci} />
             ))}
@@ -45,7 +45,7 @@ export function MultiScoreboard({
           </tbody>
         </table>
       </div>
-      <div className="score-foot"><span className="preview-dot" /> 연한 숫자는 현재 차례의 선택 가능한 점수입니다.</div>
+
     </section>
   );
 
@@ -58,12 +58,11 @@ export function MultiScoreboard({
               <th><Star size={16} /> 상단 보너스 <small>+35</small></th>
               {indices.map((i) => (
                 <td key={i}>
-                  <strong>{bonus(state.cards[i]) > 0 ? "+35" : upper(state.cards[i]) + " / 63"}</strong>
-                  <div className="bonus-track"><i style={{ width: Math.min(100, upper(state.cards[i]) / 63 * 100) + "%" }} /></div>
+                  <BonusProgress card={state.cards[i]}/>
                 </td>
               ))}
             </tr>
-            <tr className="section-row"><th colSpan={indices.length + 1}>하단 <span>주사위 조합</span></th></tr>
+            <tr className="section-row"><th colSpan={indices.length + 1}>하단</th></tr>
           </>
         )}
         <tr data-category={category}>

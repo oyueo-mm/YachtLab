@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -99,6 +99,8 @@ function SortableDie({
   rollNumber: number;
   move: (offset: number) => void;
 }) {
+  const [visibleFace,setVisibleFace]=useState(value),[animating,setAnimating]=useState(false);
+  useEffect(()=>{if(!rolled||rollNumber===0||window.matchMedia("(prefers-reduced-motion: reduce)").matches){setVisibleFace(value);setAnimating(false);return;}let active=true,step=0;setAnimating(true);const interval=window.setInterval(()=>{if(active){step++;setVisibleFace(1+((id*11+rollNumber*7+step*13)%6));}},55);const timer=window.setTimeout(()=>{active=false;window.clearInterval(interval);setVisibleFace(value);setAnimating(false);},380+id*32);return()=>{active=false;window.clearInterval(interval);window.clearTimeout(timer);};},[rolled,rollNumber,value,id]);
   const {
     attributes,
     listeners,
@@ -129,18 +131,14 @@ function SortableDie({
             move(event.key === "ArrowLeft" ? -1 : 1);
           } else listeners?.onKeyDown?.(event);
         }}
-        className={`die-button ${held ? "held" : ""} ${rolled ? "rolled" : ""}`}
+        className={`die-button ${held ? "held" : ""} ${rolled ? "rolled" : ""} ${animating ? "dice-animating" : ""}`}
         onClick={toggle}
         disabled={disabled}
         aria-label={`주사위 ${id + 1}, ${value}, ${held ? "고정됨" : "고정 안 됨"}`}
         aria-pressed={held}
         title="클릭: 고정 · 드래그 또는 Alt + 좌우 방향키: 순서 변경"
       >
-        <DieIcon
-          key={rollNumber}
-          value={value}
-          className={rolled ? "roll-face" : ""}
-        />
+        <DieIcon value={visibleFace} className={animating ? "roll-face" : ""} aria-hidden={animating ? true : undefined}/>
       </button>
       <span className={`hold-label ${held ? "visible" : ""}`}>
         <LockKeyhole size={11} />
@@ -152,11 +150,13 @@ function SortableDie({
 export function Dice({
   state,
   interactive = false,
+  animate = false,
   onToggle,
   onOrder,
 }: {
   state: Pick<Game, "dice" | "order" | "rolls">;
   interactive?: boolean;
+  animate?: boolean;
   onToggle?: (id: number) => void;
   onOrder?: (ids: number[]) => void;
 }) {
@@ -202,7 +202,7 @@ export function Dice({
                 {...die}
                 disabled={!interactive || !state.rolls}
                 toggle={() => onToggle?.(id)}
-                rolled={state.rolls > 0 && !die.held}
+                rolled={animate && state.rolls > 0 && !die.held}
                 rollNumber={state.rolls}
                 move={(offset) => {
                   const index = state.order.indexOf(id),

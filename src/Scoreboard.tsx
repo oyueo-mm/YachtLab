@@ -7,9 +7,11 @@ import {
   total,
   upper,
   type Category,
+  type Card,
   type Game,
 } from "./engine";
 import { DieIcon } from "./Dice";
+export function BonusProgress({card}:{card:Card}) { const points=upper(card),remaining=Math.max(0,63-points),achieved=bonus(card)>0,finished=categories.slice(0,6).every(c=>card[c]!==undefined); return <div className={"bonus-progress"+(achieved?" achieved":"")}><strong>{achieved?"+35":points+" / 63"}</strong><small>{achieved?"달성!":finished?remaining+"점 부족":remaining+"점 남음"}</small><div className="bonus-track" role="progressbar" aria-label="상단 보너스 진행도" aria-valuemin={0} aria-valuemax={63} aria-valuenow={Math.min(63,points)}><i style={{width:Math.min(100,points/63*100)+"%"}}/></div></div>; }
 export function CategoryIcon({ category }: { category: Category }) {
   const index = categories.indexOf(category);
   const patterns: Partial<Record<Category, number[]>> = {
@@ -53,7 +55,7 @@ export function Scoreboard({
     <section className="scoreboard panel" aria-label="점수판">
       <div className="score-title">
         <h2>점수판</h2>
-        <span>12개 카테고리</span>
+
       </div>
       <table>
         <thead>
@@ -73,7 +75,7 @@ export function Scoreboard({
         <tbody>
           <tr className="section-row">
             <th colSpan={3}>
-              상단 <span>같은 눈의 합계</span>
+              상단
             </th>
           </tr>
           {categories.map((c, i) => (
@@ -96,9 +98,7 @@ export function Scoreboard({
           </tr>
         </tbody>
       </table>
-      <div className="score-foot">
-        <span className="preview-dot" /> 연한 숫자는 선택 가능한 점수입니다.
-      </div>
+
     </section>
   );
 }
@@ -123,24 +123,11 @@ function Rows({
             <th>
               <Star size={16} /> 상단 보너스 <small>+35</small>
             </th>
-            {state.cards.map((card, i) => (
-              <td key={i}>
-                <strong>
-                  {bonus(card) > 0 ? "+35" : `${upper(card)} / 63`}
-                </strong>
-                <div className="bonus-track">
-                  <i
-                    style={{
-                      width: `${Math.min(100, (upper(card) / 63) * 100)}%`,
-                    }}
-                  />
-                </div>
-              </td>
-            ))}
+            {state.cards.map((card, i) => (<td key={i} className={state.player===i&&!state.done?"current-score-cell":""}><BonusProgress card={card}/></td>))}
           </tr>
           <tr className="section-row">
             <th colSpan={3}>
-              하단 <span>주사위 조합</span>
+              하단
             </th>
           </tr>
         </>
@@ -161,7 +148,7 @@ function Rows({
             !state.done &&
             card[c] === undefined;
           return (
-            <td key={i}>
+            <td key={i} className={state.player===i&&!state.done?"current-score-cell":""}>
               {can ? (
                 <button
                   className="score-option"

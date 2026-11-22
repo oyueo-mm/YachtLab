@@ -410,17 +410,6 @@ function HumanGame({
                 set={setAlgorithm}
                 disabled={state.actions > 0}
               />
-              {algorithm === verifiedBest && (
-                <a
-                  className="best-ai-label"
-                  href="https://github.com/oyueo-mm/YachtLab/blob/main/benchmarks/v04/REPORT.md"
-                  target="_blank"
-                  rel="noreferrer"
-                  title={`${benchmark.gamesPerAlgorithm.toLocaleString("ko-KR")}경기 평균 총점 기준`}
-                >
-                  최고 성능 · 벤치마크 기준
-                </a>
-              )}
             </div>
             <button className="text-button" onClick={restart}>
               <RotateCcw size={15} />
@@ -467,6 +456,7 @@ function HumanGame({
             <Dice
               state={state}
               interactive={can}
+              animate={can}
               onToggle={(id) =>
                 act({
                   type: "hold",
