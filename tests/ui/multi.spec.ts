@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 test("3인전: 인원 변경, 이름, 턴 교대와 라운드", async ({ page }) => {
   await page.goto("#pvp");
   await page.getByLabel("참가 인원", { exact: true }).fill("3");
+  await page.getByRole("button", { name: "플레이어 설정" }).click();
   await page.getByLabel("플레이어 3 이름").fill("삼");
   await expect(page.locator(".multi-player-chip")).toHaveCount(3);
   for (let i = 0; i < 3; i++) {
