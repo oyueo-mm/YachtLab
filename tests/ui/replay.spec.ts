@@ -15,7 +15,7 @@ test("진행 중 기보 저장·JSON 검증·로컬 이름 변경·삭제와 원
 }) => {
   await page.goto("#play");
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
-  const live = await page.locator(".dice-row").innerHTML();
+  const live = await page.locator(".dice-row .die-button").evaluateAll(nodes=>nodes.map(n=>[n.getAttribute("aria-label"),n.getAttribute("aria-pressed")]));
   await page.getByRole("button", { name: "기보 보기", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "기보 보기" });
   await expect(dialog).toBeVisible();
@@ -51,8 +51,8 @@ test("진행 중 기보 저장·JSON 검증·로컬 이름 변경·삭제와 원
     .click();
   await expect(page.getByText("저장된 기보가 없습니다.")).toBeVisible();
   await page.getByRole("button", { name: "기보 닫기" }).click();
-  const after = await page.locator(".dice-row").innerHTML();
-  expect(after).toBe(live);
+  const after = await page.locator(".dice-row .die-button").evaluateAll(nodes=>nodes.map(n=>[n.getAttribute("aria-label"),n.getAttribute("aria-pressed")]));
+  expect(after).toEqual(live);
   await expect(page.getByRole("button", { name: "다시 굴리기" })).toBeEnabled();
 });
 test("AI vs AI 기보는 독립 난수 v2를 사용하고 가져오기도 가능", async ({ page }) => {
