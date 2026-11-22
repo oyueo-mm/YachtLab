@@ -244,8 +244,9 @@ test("320px 화면에서도 홈·점수판·분석실이 잘리지 않음", asyn
     ).toBe(true);
   }
   await page.goto("#play");
-  const row = page.locator('[data-category="large"]');
-  const label = await row.locator(".category-label").boundingBox(),
-    cell = await row.locator("td").first().boundingBox();
+  await page.getByRole("button",{name:"점수판 열기"}).click();
+  const row = page.getByRole("dialog",{name:"점수판"}).locator('[data-category="large"]');
+  const label = await row.locator(".mobile-quick-name").boundingBox(),
+    cell = await row.locator(".mobile-quick-row-static>strong").boundingBox();
   expect(label!.x + label!.width).toBeLessThanOrEqual(cell!.x + 1);
 });
