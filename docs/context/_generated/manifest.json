@@ -107,6 +107,11 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "a28477d",
+      "date": "2026-11-22",
+      "subject": "fix: calmer roll feedback, AI animations and confirmed scoring"
+    },
+    {
       "sha": "4bffdba",
       "date": "2026-11-22",
       "subject": "feat: enable playable Win DP v4-D and refine player-first YachtLab UI"
@@ -150,25 +155,26 @@
       "sha": "87d3c08",
       "date": "2026-11-22",
       "subject": "feat(feedback): announce actual committed score and actor during human and AI turns"
-    },
-    {
-      "sha": "b2e1f14",
-      "date": "2026-11-22",
-      "subject": "test(ui): mobile score recording, categorized AI picker, local setup and offline records"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "5334a1e3fb",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45018097508"
-    },
-    {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
-      "head": "5334a1e3fb",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45018097491"
+      "head": "5c7fd5e796",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45021439189"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "5c7fd5e796",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45021439135"
+    },
+    {
+      "name": "Competitive research benchmark",
+      "status": "success",
+      "head": "4bffdba0a8",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45019765513"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
