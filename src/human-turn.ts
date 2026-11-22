@@ -1,6 +1,6 @@
 import { useEffect, useRef, type MutableRefObject } from "react";
 import { createDecisionSession, runJob } from "./client";
-import { names, score, type Action, type Game } from "./engine";
+import { names, score, type Action, type Category, type Game } from "./engine";
 import type { Algorithm, Decision } from "./ai";
 import { humanAITiming as T, playbackDelay } from "./playback";
 export function useHumanTurn({
@@ -16,6 +16,7 @@ export function useHumanTurn({
   setError,
   setLast,
   setCaption,
+  setPreviewScore,
   paused,
   pausedRef,
 }: {
@@ -31,6 +32,7 @@ export function useHumanTurn({
   setError: (v: string) => void;
   setLast: (d: Decision) => void;
   setCaption: (v: string) => void;
+  setPreviewScore: (v: Category | null) => void;
   paused: boolean;
   pausedRef: MutableRefObject<boolean>;
 }) {
@@ -52,6 +54,7 @@ export function useHumanTurn({
     const valid = () =>
       !signal.aborted && !pausedRef.current && gen === generation.current;
     setBusy(true);
+    setPreviewScore(null);
     (async () => {
       try {
         await playbackDelay(T.start, signal);
@@ -103,11 +106,15 @@ export function useHumanTurn({
             setCaption("나머지 주사위를 다시 굴렸습니다");
             await playbackDelay(T.reroll, signal);
           } else {
+            setPreviewScore(d.category);
+            await playbackDelay(260, signal);
+            if (!valid()) return;
             const points = score(
               stateRef.current.dice.map((x) => x.value),
               d.category,
             );
             commit({ type: "score", category: d.category }, d);
+            setPreviewScore(null);
             setCaption(`${names[d.category]}에 ${points}점 기록`);
             await playbackDelay(T.score, signal);
             break;

@@ -4,11 +4,14 @@ import { CategoryIcon, BonusProgress } from "./Scoreboard";
 import { multiStandings, type MultiGame } from "./multi-engine";
 
 export function MultiScoreboard({
-  state, labels, select, focused = false,
+  state, labels, select, selected = null, onConfirm, onClear, focused = false,
 }: {
   state: MultiGame;
   labels: string[];
   select?: (category: Category) => void;
+  selected?: Category | null;
+  onConfirm?: () => void;
+  onClear?: () => void;
   focused?: boolean;
 }) {
   const indices = focused ? [state.player] : state.cards.map((_, i) => i);
@@ -45,7 +48,12 @@ export function MultiScoreboard({
           </tbody>
         </table>
       </div>
-
+      {selected && select && onConfirm && !state.done && state.rolls > 0 && state.cards[current][selected] === undefined && (
+        <div className="score-confirm-bar" role="group" aria-label="점수 기록 확인">
+          <div className="score-confirm-info"><span>선택한 점수</span><strong>{names[selected]} · {score(state.dice.map((d) => d.value), selected)}점</strong></div>
+          <div className="score-confirm-actions"><button type="button" className="score-confirm-cancel" onClick={onClear}>취소</button><button type="button" className="primary score-confirm-button" onClick={onConfirm}>점수 기록 확정</button></div>
+        </div>
+      )}
     </section>
   );
 
@@ -65,13 +73,14 @@ export function MultiScoreboard({
             <tr className="section-row"><th colSpan={indices.length + 1}>하단</th></tr>
           </>
         )}
-        <tr data-category={category}>
-          <th scope="row"><span className="category-label"><CategoryIcon category={category} /><span>{names[category]}</span></span></th>
+        <tr data-category={category} className={selected === category ? "score-row-selected" : ""}>
+          <th scope="row">{chosen(current, category) ? <button type="button" className="category-label score-category-select" aria-pressed={selected === category} onClick={() => select?.(category)}><CategoryIcon category={category} /><span>{names[category]}</span></button> : <span className="category-label"><CategoryIcon category={category} /><span>{names[category]}</span></span>}</th>
           {indices.map((i) => (
             <td key={i} className={i === current ? "multi-current-cell" : ""}>
               {chosen(i, category) ? (
                 <button
                   className="score-option"
+                  aria-pressed={selected === category}
                   aria-label={names[category] + " " + score(state.dice.map((d) => d.value), category) + "점 선택"}
                   onClick={() => select?.(category)}
                 >

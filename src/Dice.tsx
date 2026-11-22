@@ -87,7 +87,8 @@ function SortableDie({
   disabled,
   toggle,
   rolled,
-  rollNumber,
+  rollEvent,
+  animate,
   move,
 }: {
   id: number;
@@ -96,11 +97,38 @@ function SortableDie({
   disabled: boolean;
   toggle: () => void;
   rolled: boolean;
-  rollNumber: number;
+  rollEvent: number;
+  animate: boolean;
   move: (offset: number) => void;
 }) {
-  const [visibleFace,setVisibleFace]=useState(value),[animating,setAnimating]=useState(false);
-  useEffect(()=>{if(!rolled||rollNumber===0||window.matchMedia("(prefers-reduced-motion: reduce)").matches){setVisibleFace(value);setAnimating(false);return;}let active=true,step=0;setAnimating(true);const interval=window.setInterval(()=>{if(active){step++;setVisibleFace(1+((id*11+rollNumber*7+step*13)%6));}},55);const timer=window.setTimeout(()=>{active=false;window.clearInterval(interval);setVisibleFace(value);setAnimating(false);},380+id*32);return()=>{active=false;window.clearInterval(interval);window.clearTimeout(timer);};},[rolled,rollNumber,value,id]);
+  const [visibleFace, setVisibleFace] = useState(value);
+  const [animating, setAnimating] = useState(false);
+  useEffect(() => { if (!animating) setVisibleFace(value); }, [value, animating]);
+  // Animate a real roll event only. Holding, releasing and reordering never replay the roll.
+  useEffect(() => {
+    if (!animate || !rolled || rollEvent === 0 || held || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setVisibleFace(value);
+      setAnimating(false);
+      return;
+    }
+    let step = 0;
+    setAnimating(true);
+    const interval = window.setInterval(() => {
+      step += 1;
+      setVisibleFace(1 + ((id * 7 + rollEvent * 5 + step * 11) % 6));
+    }, 90);
+    const timer = window.setTimeout(() => {
+      window.clearInterval(interval);
+      setVisibleFace(value);
+      setAnimating(false);
+    }, 260 + id * 14);
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(timer);
+    };
+    // The rollEvent token is emitted with the already resolved dice values.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rollEvent]);
   const {
     attributes,
     listeners,
@@ -151,12 +179,14 @@ export function Dice({
   state,
   interactive = false,
   animate = false,
+  rollEvent = 0,
   onToggle,
   onOrder,
 }: {
   state: Pick<Game, "dice" | "order" | "rolls">;
   interactive?: boolean;
   animate?: boolean;
+  rollEvent?: number;
   onToggle?: (id: number) => void;
   onOrder?: (ids: number[]) => void;
 }) {
@@ -202,8 +232,9 @@ export function Dice({
                 {...die}
                 disabled={!interactive || !state.rolls}
                 toggle={() => onToggle?.(id)}
-                rolled={animate && state.rolls > 0 && !die.held}
-                rollNumber={state.rolls}
+                rolled={state.rolls > 0}
+                animate={animate}
+                rollEvent={rollEvent}
                 move={(offset) => {
                   const index = state.order.indexOf(id),
                     target = index + offset;

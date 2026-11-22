@@ -331,6 +331,9 @@ function HumanGame({
   const [aiTurn, setAiTurn] = useState(0),
     [caption, setCaption] = useState(""),
     [gameFeedback, setGameFeedback] = useState("");
+  const [rollEvent, setRollEvent] = useState(0);
+  const [selectedScore, setSelectedScore] = useState<Category | null>(null);
+  const [aiPreviewCategory, setAiPreviewCategory] = useState<Category | null>(null);
   const commit = (
     action: Parameters<typeof transition>[1],
     decision?: Decision,
@@ -340,7 +343,11 @@ function HumanGame({
     record.current = updated;
     const next = updated.finalState;
     if (next.done && !before.done) void saveReplay(updated).catch((e) => setError("기보 자동 저장 실패: " + errorText(e)));
-    if (action.type === "score") setGameFeedback((before.player === 0 ? "나" : "AI") + " · " + names[action.category] + " " + (next.cards[before.player][action.category] ?? 0) + "점 기록");
+    if (action.type === "roll") { setRollEvent((n) => n + 1); setSelectedScore(null); }
+    if (action.type === "score") {
+      setSelectedScore(null);
+      setGameFeedback((before.player === 0 ? "나" : "AI") + " · " + names[action.category] + " " + (next.cards[before.player][action.category] ?? 0) + "점 기록");
+    }
     stateRef.current = next;
     setState(next);
     if (before.player === 0 && next.player === 1) setAiTurn((n) => n + 1);
@@ -359,6 +366,7 @@ function HumanGame({
     setError,
     setLast,
     setCaption,
+    setPreviewScore: setAiPreviewCategory,
     paused: !!viewReplay,
     pausedRef,
   });
@@ -387,8 +395,16 @@ function HumanGame({
     setCaption("");
     setGameFeedback("");
     setMobileScoreOpen(false);
+    setSelectedScore(null);
+    setAiPreviewCategory(null);
   };
   const can = state.player === 0 && !state.done && !busy;
+  const chooseScore = (category: Category) => setSelectedScore((current) => current === category ? null : category);
+  const confirmScore = () => {
+    if (!can || !selectedScore || !state.rolls || state.cards[0][selectedScore] !== undefined) return;
+    act({ type: "score", category: selectedScore });
+    setMobileScoreOpen(false);
+  };
   return (
     <>
       <div className="game-grid">
@@ -456,7 +472,8 @@ function HumanGame({
             <Dice
               state={state}
               interactive={can}
-              animate={can}
+              animate
+              rollEvent={rollEvent}
               onToggle={(id) =>
                 act({
                   type: "hold",
@@ -516,9 +533,9 @@ function HumanGame({
             )}
           </section>
           <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={state.rolls} />
-          {mobileScoreOpen && <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}><Scoreboard state={state} select={can ? (c) => { act({ type: "score", category: c }); setMobileScoreOpen(false); } : undefined} /></MobileScoreSheet>}
+          {mobileScoreOpen && <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}><Scoreboard state={state} select={can ? chooseScore : undefined} selected={selectedScore} onConfirm={confirmScore} onClear={() => setSelectedScore(null)} previewCategory={aiPreviewCategory} /></MobileScoreSheet>}
           {gameFeedback && <p className="game-feedback" role="status">{gameFeedback}</p>}
-          <details className="game-rules"><summary>게임 방법</summary><p>12라운드 동안 주사위 5개를 최대 3번 굴려요. 원하는 주사위를 눌러 고정하고 점수판에서 한 칸을 선택해 기록하세요. 한 번 기록한 칸은 다시 사용할 수 없어요. 상단 점수 합계가 63점 이상이면 보너스 35점을 받아요.</p></details>
+          <details className="game-rules"><summary>게임 방법</summary><p>12라운드 동안 주사위 5개를 최대 3번 굴려요. 원하는 주사위를 눌러 고정하고 점수판에서 점수를 선택하고 기록을 확정하세요. 한 번 기록한 칸은 다시 사용할 수 없어요. 상단 점수 합계가 63점 이상이면 보너스 35점을 받아요.</p></details>
           <ErrorMessage message={error} />
           {error && state.player === 1 && !state.done && (
             <button
@@ -547,7 +564,11 @@ function HumanGame({
         </div>
         <Scoreboard
           state={state}
-          select={can ? (c) => act({ type: "score", category: c }) : undefined}
+          select={can ? chooseScore : undefined}
+          selected={mobileScoreOpen ? null : selectedScore}
+          onConfirm={confirmScore}
+          onClear={() => setSelectedScore(null)}
+          previewCategory={aiPreviewCategory}
         />
       </div>
       {viewReplay && (

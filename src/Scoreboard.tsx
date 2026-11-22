@@ -44,11 +44,19 @@ export function Scoreboard({
   state,
   labels = ["나", "AI"],
   select,
+  selected = null,
+  onConfirm,
+  onClear,
+  previewCategory = null,
   selectPlayer = 0,
 }: {
   state: Game;
   labels?: [string, string];
   select?: (c: Category) => void;
+  selected?: Category | null;
+  onConfirm?: () => void;
+  onClear?: () => void;
+  previewCategory?: Category | null;
   selectPlayer?: 0 | 1;
 }) {
   return (
@@ -85,6 +93,8 @@ export function Scoreboard({
               index={i}
               state={state}
               select={select}
+              selected={selected}
+              previewCategory={previewCategory}
               selectPlayer={selectPlayer}
             />
           ))}
@@ -98,7 +108,12 @@ export function Scoreboard({
           </tr>
         </tbody>
       </table>
-
+      {selected && select && onConfirm && state.player === selectPlayer && state.rolls > 0 && state.cards[selectPlayer][selected] === undefined && (
+        <div className="score-confirm-bar" role="group" aria-label="점수 기록 확인">
+          <div className="score-confirm-info"><span>선택한 점수</span><strong>{names[selected]} · {score(state.dice.map((d) => d.value), selected)}점</strong></div>
+          <div className="score-confirm-actions"><button type="button" className="score-confirm-cancel" onClick={onClear}>취소</button><button type="button" className="primary score-confirm-button" onClick={onConfirm}>점수 기록 확정</button></div>
+        </div>
+      )}
     </section>
   );
 }
@@ -107,12 +122,16 @@ function Rows({
   index,
   state,
   select,
+  selected,
+  previewCategory,
   selectPlayer,
 }: {
   category: Category;
   index: number;
   state: Game;
   select?: (c: Category) => void;
+  selected?: Category | null;
+  previewCategory?: Category | null;
   selectPlayer: 0 | 1;
 }) {
   return (
@@ -132,12 +151,13 @@ function Rows({
           </tr>
         </>
       )}
-      <tr data-category={c}>
+      <tr data-category={c} className={`${selected === c ? "score-row-selected " : ""}${previewCategory === c ? "score-row-ai-preview " : ""}`}>
         <th scope="row">
-          <span className="category-label">
-            <CategoryIcon category={c} />
-            <span>{names[c]}</span>
-          </span>
+          {select && state.player === selectPlayer && state.rolls > 0 && !state.done && state.cards[selectPlayer][c] === undefined ? (
+            <button type="button" className="category-label score-category-select" aria-pressed={selected === c} onClick={() => select(c)}><CategoryIcon category={c} /><span>{names[c]}</span></button>
+          ) : (
+            <span className="category-label"><CategoryIcon category={c} /><span>{names[c]}</span></span>
+          )}
         </th>
         {state.cards.map((card, i) => {
           const can =
@@ -152,6 +172,7 @@ function Rows({
               {can ? (
                 <button
                   className="score-option"
+                  aria-pressed={selected === c}
                   onClick={() => select?.(c)}
                   aria-label={`${names[c]} ${score(
                     state.dice.map((d) => d.value),
