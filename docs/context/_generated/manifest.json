@@ -59,6 +59,7 @@
     "QR-SUITE-POSTRUN-AUDIT.md",
     "README.md",
     "REFERENCES.md",
+    "RESEARCH-50K-FOUR-WAY-LEAGUE.md",
     "RESULTS.md",
     "ROADMAP.md",
     "SELFPLAY-2026-11-20-FINAL.md",
@@ -91,6 +92,7 @@
     "qr-deep-research.yml",
     "qr-followup.yml",
     "qr-four-pillars.yml",
+    "research-50k-league.yml",
     "sota-attack-lab.yml",
     "sota-independent-confirm.yml",
     "tabular-zoo.yml",
@@ -101,98 +103,104 @@
   ],
   "recentSourceCommits": [
     {
-      "sha": "8766651",
+      "sha": "f20e819",
       "date": "2026-11-22",
-      "subject": "research: Bayesian opponents, adaptive search and matched v4 A-E ablation"
+      "subject": "research: launch minimum 50k-budget and four-model head-to-head league"
     },
     {
-      "sha": "657c2c2",
+      "sha": "6f2acde",
       "date": "2026-11-22",
-      "subject": "docs(report): accurately describe random comparator's independent seeded action stream"
+      "subject": "docs: pre-register no-less-than-50k-per-search-budget and six direct 50k-pairwise league protocol"
     },
     {
-      "sha": "ac0633b",
+      "sha": "252ffa1",
       "date": "2026-11-22",
-      "subject": "docs: correct random-policy experimental design to seeded private uniform actions"
+      "subject": "ci: minimum 50k real games per v3.4 budget and each of six direct four-model head-to-head pairings"
     },
     {
-      "sha": "982fd0b",
+      "sha": "cead094",
       "date": "2026-11-22",
-      "subject": "benchmark: use independent seeded random policy actions rather than public-state deterministic surrogate"
+      "subject": "research: reproduce exact C gating under 5× relaxed time budget without changing shipping inference paths"
     },
     {
-      "sha": "5f3a6e1",
+      "sha": "a021486",
       "date": "2026-11-22",
-      "subject": "research(v3.3): sample private independent random-opponent actions in calibration games"
+      "subject": "research: keep existing adaptive inference unchanged to prevent unrelated million-match rerun"
     },
     {
-      "sha": "51d998d",
+      "sha": "406deec",
       "date": "2026-11-22",
-      "subject": "research(v3.3): support independent private uniform draw for truly stochastic random opponent samples"
+      "subject": "research: shard-complete, collision-checked 50k/variant budget and six head-to-head paired CI reports"
     },
     {
-      "sha": "acb069b",
+      "sha": "6fefde3",
       "date": "2026-11-22",
-      "subject": "report: expose actual v3.4 rollout count, soft deadline hits, and game-average p95 latency"
+      "subject": "research: paired full-game four-model six-match league and at-least-50k-per-budget opponent-search benchmark"
     },
     {
-      "sha": "d2c6470",
+      "sha": "7f94be8",
       "date": "2026-11-22",
-      "subject": "fix: parse numerical rollout sample count rather than escaped literal d"
+      "subject": "research(v3.4): allow transparent controlled soft time budget multiplier for 50k-match relaxed-C comparison"
     },
     {
-      "sha": "5724af1",
+      "sha": "5e670a8",
       "date": "2026-11-22",
-      "subject": "benchmark: record actual v3.4 rollouts, soft time cap hits and decision latency tails"
+      "subject": "research: freeze exact original Win DP v4-D policy from 2026-11-22 A-E ablation artifact"
     },
     {
-      "sha": "ffdc263",
+      "sha": "c6b169b",
       "date": "2026-11-22",
-      "subject": "fix(v3.4): preserve original unfiltered 2x2 rollout behavior in legacy arm to permit valid ablation"
+      "subject": "chore(research): publish 1m-game A-E ablation with paired 99pct CI [skip ci]"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "YachtLab v3.2 exact three-slot opponent forecast research",
+      "name": "YachtLab 50k-per-budget and four-way head-to-head round robin",
       "status": "success",
-      "head": "657c2c243b",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976792287"
-    },
-    {
-      "name": "YachtLab v3.3 v3.4 v4 self-play and 200k-per-model confirmation",
-      "status": "success",
-      "head": "657c2c243b",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976792243"
+      "head": "6f2acde010",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44988168780"
     },
     {
       "name": "PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO",
-      "status": "cancelled",
-      "head": "ac0633b1d1",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976783851"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "cancelled",
-      "head": "ac0633b1d1",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976783837"
+      "status": "success",
+      "head": "8766651129",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976869091"
     },
     {
       "name": "YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO",
       "status": "success",
-      "head": "ac0633b1d1",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976783805"
+      "head": "8766651129",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976868880"
+    },
+    {
+      "name": "YachtLab v3.3 v3.4 v4 self-play and 200k-per-model confirmation",
+      "status": "success",
+      "head": "8766651129",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976868853"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "8766651129",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976868844"
+    },
+    {
+      "name": "YachtLab v3.2 exact three-slot opponent forecast research",
+      "status": "success",
+      "head": "8766651129",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976868806"
     },
     {
       "name": "Full-game self-play and three-turn competitive research",
-      "status": "cancelled",
-      "head": "ac0633b1d1",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976783772"
+      "status": "success",
+      "head": "8766651129",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976868794"
     },
     {
       "name": "YachtLab Bayesian opponents adaptive search and v4 exact A-E ablations",
-      "status": "cancelled",
-      "head": "ac0633b1d1",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976783682"
+      "status": "success",
+      "head": "8766651129",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976868790"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

@@ -53,6 +53,7 @@
 - [qr-deep-research.yml](../../../.github/workflows/qr-deep-research.yml)
 - [qr-followup.yml](../../../.github/workflows/qr-followup.yml)
 - [qr-four-pillars.yml](../../../.github/workflows/qr-four-pillars.yml)
+- [research-50k-league.yml](../../../.github/workflows/research-50k-league.yml)
 - [sota-attack-lab.yml](../../../.github/workflows/sota-attack-lab.yml)
 - [sota-independent-confirm.yml](../../../.github/workflows/sota-independent-confirm.yml)
 - [tabular-zoo.yml](../../../.github/workflows/tabular-zoo.yml)
@@ -80,6 +81,7 @@
 - [QR-SUITE-POSTRUN-AUDIT.md](../QR-SUITE-POSTRUN-AUDIT.md)
 - [README.md](../README.md)
 - [REFERENCES.md](../REFERENCES.md)
+- [RESEARCH-50K-FOUR-WAY-LEAGUE.md](../RESEARCH-50K-FOUR-WAY-LEAGUE.md)
 - [RESULTS.md](../RESULTS.md)
 - [ROADMAP.md](../ROADMAP.md)
 - [SELFPLAY-2026-11-20-FINAL.md](../SELFPLAY-2026-11-20-FINAL.md)
@@ -92,16 +94,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
-| [8766651](https://github.com/oyueo-mm/YachtLab/commit/8766651) | 2026-11-22 | research: Bayesian opponents, adaptive search and matched v4 A-E ablation |
-| [657c2c2](https://github.com/oyueo-mm/YachtLab/commit/657c2c2) | 2026-11-22 | docs(report): accurately describe random comparator's independent seeded action stream |
-| [ac0633b](https://github.com/oyueo-mm/YachtLab/commit/ac0633b) | 2026-11-22 | docs: correct random-policy experimental design to seeded private uniform actions |
-| [982fd0b](https://github.com/oyueo-mm/YachtLab/commit/982fd0b) | 2026-11-22 | benchmark: use independent seeded random policy actions rather than public-state deterministic surrogate |
-| [5f3a6e1](https://github.com/oyueo-mm/YachtLab/commit/5f3a6e1) | 2026-11-22 | research(v3.3): sample private independent random-opponent actions in calibration games |
-| [51d998d](https://github.com/oyueo-mm/YachtLab/commit/51d998d) | 2026-11-22 | research(v3.3): support independent private uniform draw for truly stochastic random opponent samples |
-| [acb069b](https://github.com/oyueo-mm/YachtLab/commit/acb069b) | 2026-11-22 | report: expose actual v3.4 rollout count, soft deadline hits, and game-average p95 latency |
-| [d2c6470](https://github.com/oyueo-mm/YachtLab/commit/d2c6470) | 2026-11-22 | fix: parse numerical rollout sample count rather than escaped literal d |
-| [5724af1](https://github.com/oyueo-mm/YachtLab/commit/5724af1) | 2026-11-22 | benchmark: record actual v3.4 rollouts, soft time cap hits and decision latency tails |
-| [ffdc263](https://github.com/oyueo-mm/YachtLab/commit/ffdc263) | 2026-11-22 | fix(v3.4): preserve original unfiltered 2x2 rollout behavior in legacy arm to permit valid ablation |
+| [f20e819](https://github.com/oyueo-mm/YachtLab/commit/f20e819) | 2026-11-22 | research: launch minimum 50k-budget and four-model head-to-head league |
+| [6f2acde](https://github.com/oyueo-mm/YachtLab/commit/6f2acde) | 2026-11-22 | docs: pre-register no-less-than-50k-per-search-budget and six direct 50k-pairwise league protocol |
+| [252ffa1](https://github.com/oyueo-mm/YachtLab/commit/252ffa1) | 2026-11-22 | ci: minimum 50k real games per v3.4 budget and each of six direct four-model head-to-head pairings |
+| [cead094](https://github.com/oyueo-mm/YachtLab/commit/cead094) | 2026-11-22 | research: reproduce exact C gating under 5× relaxed time budget without changing shipping inference paths |
+| [a021486](https://github.com/oyueo-mm/YachtLab/commit/a021486) | 2026-11-22 | research: keep existing adaptive inference unchanged to prevent unrelated million-match rerun |
+| [406deec](https://github.com/oyueo-mm/YachtLab/commit/406deec) | 2026-11-22 | research: shard-complete, collision-checked 50k/variant budget and six head-to-head paired CI reports |
+| [6fefde3](https://github.com/oyueo-mm/YachtLab/commit/6fefde3) | 2026-11-22 | research: paired full-game four-model six-match league and at-least-50k-per-budget opponent-search benchmark |
+| [7f94be8](https://github.com/oyueo-mm/YachtLab/commit/7f94be8) | 2026-11-22 | research(v3.4): allow transparent controlled soft time budget multiplier for 50k-match relaxed-C comparison |
+| [5e670a8](https://github.com/oyueo-mm/YachtLab/commit/5e670a8) | 2026-11-22 | research: freeze exact original Win DP v4-D policy from 2026-11-22 A-E ablation artifact |
+| [c6b169b](https://github.com/oyueo-mm/YachtLab/commit/c6b169b) | 2026-11-22 | chore(research): publish 1m-game A-E ablation with paired 99pct CI [skip ci] |
 
 ## 최근 GitHub Actions 상태
 
@@ -109,13 +111,14 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab v3.2 exact three-slot opponent forecast research](https://github.com/oyueo-mm/YachtLab/actions/runs/44976792287) | success | 657c2c243b |
-| [YachtLab v3.3 v3.4 v4 self-play and 200k-per-model confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44976792243) | success | 657c2c243b |
-| [PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44976783851) | cancelled | ac0633b1d1 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44976783837) | cancelled | ac0633b1d1 |
-| [YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44976783805) | success | ac0633b1d1 |
-| [Full-game self-play and three-turn competitive research](https://github.com/oyueo-mm/YachtLab/actions/runs/44976783772) | cancelled | ac0633b1d1 |
-| [YachtLab Bayesian opponents adaptive search and v4 exact A-E ablations](https://github.com/oyueo-mm/YachtLab/actions/runs/44976783682) | cancelled | ac0633b1d1 |
+| [YachtLab 50k-per-budget and four-way head-to-head round robin](https://github.com/oyueo-mm/YachtLab/actions/runs/44988168780) | success | 6f2acde010 |
+| [PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44976869091) | success | 8766651129 |
+| [YachtLab PSRO + adaptive opponents + empirical PMF + full-game PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868880) | success | 8766651129 |
+| [YachtLab v3.3 v3.4 v4 self-play and 200k-per-model confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868853) | success | 8766651129 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868844) | success | 8766651129 |
+| [YachtLab v3.2 exact three-slot opponent forecast research](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868806) | success | 8766651129 |
+| [Full-game self-play and three-turn competitive research](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868794) | success | 8766651129 |
+| [YachtLab Bayesian opponents adaptive search and v4 exact A-E ablations](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868790) | success | 8766651129 |
 
 ## 다음 채팅과 작업의 시작점
 
