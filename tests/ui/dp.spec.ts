@@ -74,7 +74,7 @@ test("사람 대전의 DP 로딩은 재대결로 취소 가능", async ({ page }
   await page.goto("#play");
   await chooseAlgorithm(page, "\uc0c1\ub300 AI", "DP Expert");
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
-  await page.locator(".score-option").first().click();
+  await page.locator(".score-option").first().click(); await page.getByRole("button",{name:"점수 기록 확정"}).click();
   await expect.poll(() => started).toBe(true);
   await expect(page.locator(".thinking")).toBeVisible();
   await page.getByRole("button", { name: "재대결", exact: true }).click();
@@ -112,7 +112,7 @@ test("사람 대전은 두 턴에 DP 테이블을 한 번만 로드", async ({ p
   await chooseAlgorithm(page, "\uc0c1\ub300 AI", "DP Expert");
   for (let turn = 0; turn < 2; turn++) {
     await page.getByRole("button", { name: "주사위 굴리기" }).click();
-    await page.locator(".score-option").first().click();
+    await page.locator(".score-option").first().click(); await page.getByRole("button",{name:"점수 기록 확정"}).click();
     await expect(
       page.getByRole("button", { name: "주사위 굴리기" }),
     ).toBeEnabled({ timeout: 15000 });
