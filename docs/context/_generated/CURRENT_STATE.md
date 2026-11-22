@@ -40,6 +40,7 @@
 - [discovered-external.yml](../../../.github/workflows/discovered-external.yml)
 - [external-championship.yml](../../../.github/workflows/external-championship.yml)
 - [followup-ablations.yml](../../../.github/workflows/followup-ablations.yml)
+- [foundation-v4-tournament.yml](../../../.github/workflows/foundation-v4-tournament.yml)
 - [frontier-200k.yml](../../../.github/workflows/frontier-200k.yml)
 - [full-selfplay.yml](../../../.github/workflows/full-selfplay.yml)
 - [integrated-research.yml](../../../.github/workflows/integrated-research.yml)
@@ -71,6 +72,7 @@
 - [EXTENDED-PSRO-PMF-PPO-RESEARCH.md](../EXTENDED-PSRO-PMF-PPO-RESEARCH.md)
 - [EXTENDED-PSRO-PMF-PPO-RESULTS.md](../EXTENDED-PSRO-PMF-PPO-RESULTS.md)
 - [FOLLOWUP-V33-V34-V4-ABLATIONS.md](../FOLLOWUP-V33-V34-V4-ABLATIONS.md)
+- [FOUNDATION-V4-TOURNAMENT.md](../FOUNDATION-V4-TOURNAMENT.md)
 - [FRONTIER-200K-RESEARCH.md](../FRONTIER-200K-RESEARCH.md)
 - [FULLGAME-OFFPOLICY-RESEARCH.md](../FULLGAME-OFFPOLICY-RESEARCH.md)
 - [HANDOFF.md](../HANDOFF.md)
@@ -94,16 +96,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [a9a4f85](https://github.com/oyueo-mm/YachtLab/commit/a9a4f85) | 2026-11-22 | research: launch DP Expert v2 original v4 and v4-D 300k paired league |
+| [a8e15b3](https://github.com/oyueo-mm/YachtLab/commit/a8e15b3) | 2026-11-22 | docs: preregister six 50k direct matchups of DP Expert, Win DP v2 and original versus REINFORCE v4 |
+| [f9f0923](https://github.com/oyueo-mm/YachtLab/commit/f9f0923) | 2026-11-22 | ci: run full 300k-game DP Expert, Win DP v2 and both v4 variants 50k-per-pair tournament |
+| [c5f0862](https://github.com/oyueo-mm/YachtLab/commit/c5f0862) | 2026-11-22 | research: six 50k paired-matchups, 99pct CIs with Holm/Bonferroni multiple-testing correction |
+| [b3ab5fe](https://github.com/oyueo-mm/YachtLab/commit/b3ab5fe) | 2026-11-22 | research: full 4-agent round robin for DP Expert, Win DP v2, original v4 and v4-D |
 | [6650fde](https://github.com/oyueo-mm/YachtLab/commit/6650fde) | 2026-11-22 | chore(research): publish six-way 50k-match head-to-head paired league [skip ci] |
 | [f20e819](https://github.com/oyueo-mm/YachtLab/commit/f20e819) | 2026-11-22 | research: launch minimum 50k-budget and four-model head-to-head league |
 | [6f2acde](https://github.com/oyueo-mm/YachtLab/commit/6f2acde) | 2026-11-22 | docs: pre-register no-less-than-50k-per-search-budget and six direct 50k-pairwise league protocol |
 | [252ffa1](https://github.com/oyueo-mm/YachtLab/commit/252ffa1) | 2026-11-22 | ci: minimum 50k real games per v3.4 budget and each of six direct four-model head-to-head pairings |
 | [cead094](https://github.com/oyueo-mm/YachtLab/commit/cead094) | 2026-11-22 | research: reproduce exact C gating under 5× relaxed time budget without changing shipping inference paths |
-| [a021486](https://github.com/oyueo-mm/YachtLab/commit/a021486) | 2026-11-22 | research: keep existing adaptive inference unchanged to prevent unrelated million-match rerun |
-| [406deec](https://github.com/oyueo-mm/YachtLab/commit/406deec) | 2026-11-22 | research: shard-complete, collision-checked 50k/variant budget and six head-to-head paired CI reports |
-| [6fefde3](https://github.com/oyueo-mm/YachtLab/commit/6fefde3) | 2026-11-22 | research: paired full-game four-model six-match league and at-least-50k-per-budget opponent-search benchmark |
-| [7f94be8](https://github.com/oyueo-mm/YachtLab/commit/7f94be8) | 2026-11-22 | research(v3.4): allow transparent controlled soft time budget multiplier for 50k-match relaxed-C comparison |
-| [5e670a8](https://github.com/oyueo-mm/YachtLab/commit/5e670a8) | 2026-11-22 | research: freeze exact original Win DP v4-D policy from 2026-11-22 A-E ablation artifact |
 
 ## 최근 GitHub Actions 상태
 
@@ -111,6 +113,7 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
+| [YachtLab DP Expert Win DP v2 original v4 and v4-D 300k tournament](https://github.com/oyueo-mm/YachtLab/actions/runs/45003953551) | success | a8e15b3f15 |
 | [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/44988270987) | success | f20e819254 |
 | [YachtLab 50k-per-budget and four-way head-to-head round robin](https://github.com/oyueo-mm/YachtLab/actions/runs/44988168780) | success | 6f2acde010 |
 | [PSRO oracle audit, scorecard conditional PMF and multi-seed large PPO](https://github.com/oyueo-mm/YachtLab/actions/runs/44976869091) | success | 8766651129 |
@@ -118,7 +121,6 @@
 | [YachtLab v3.3 v3.4 v4 self-play and 200k-per-model confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868853) | success | 8766651129 |
 | [YachtLab v3.2 exact three-slot opponent forecast research](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868806) | success | 8766651129 |
 | [Full-game self-play and three-turn competitive research](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868794) | success | 8766651129 |
-| [YachtLab Bayesian opponents adaptive search and v4 exact A-E ablations](https://github.com/oyueo-mm/YachtLab/actions/runs/44976868790) | success | 8766651129 |
 
 ## 다음 채팅과 작업의 시작점
 

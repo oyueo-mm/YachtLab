@@ -49,6 +49,7 @@
     "EXTENDED-PSRO-PMF-PPO-RESEARCH.md",
     "EXTENDED-PSRO-PMF-PPO-RESULTS.md",
     "FOLLOWUP-V33-V34-V4-ABLATIONS.md",
+    "FOUNDATION-V4-TOURNAMENT.md",
     "FRONTIER-200K-RESEARCH.md",
     "FULLGAME-OFFPOLICY-RESEARCH.md",
     "HANDOFF.md",
@@ -79,6 +80,7 @@
     "discovered-external.yml",
     "external-championship.yml",
     "followup-ablations.yml",
+    "foundation-v4-tournament.yml",
     "frontier-200k.yml",
     "full-selfplay.yml",
     "integrated-research.yml",
@@ -103,6 +105,31 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "a9a4f85",
+      "date": "2026-11-22",
+      "subject": "research: launch DP Expert v2 original v4 and v4-D 300k paired league"
+    },
+    {
+      "sha": "a8e15b3",
+      "date": "2026-11-22",
+      "subject": "docs: preregister six 50k direct matchups of DP Expert, Win DP v2 and original versus REINFORCE v4"
+    },
+    {
+      "sha": "f9f0923",
+      "date": "2026-11-22",
+      "subject": "ci: run full 300k-game DP Expert, Win DP v2 and both v4 variants 50k-per-pair tournament"
+    },
+    {
+      "sha": "c5f0862",
+      "date": "2026-11-22",
+      "subject": "research: six 50k paired-matchups, 99pct CIs with Holm/Bonferroni multiple-testing correction"
+    },
+    {
+      "sha": "b3ab5fe",
+      "date": "2026-11-22",
+      "subject": "research: full 4-agent round robin for DP Expert, Win DP v2, original v4 and v4-D"
+    },
+    {
       "sha": "6650fde",
       "date": "2026-11-22",
       "subject": "chore(research): publish six-way 50k-match head-to-head paired league [skip ci]"
@@ -126,34 +153,15 @@
       "sha": "cead094",
       "date": "2026-11-22",
       "subject": "research: reproduce exact C gating under 5× relaxed time budget without changing shipping inference paths"
-    },
-    {
-      "sha": "a021486",
-      "date": "2026-11-22",
-      "subject": "research: keep existing adaptive inference unchanged to prevent unrelated million-match rerun"
-    },
-    {
-      "sha": "406deec",
-      "date": "2026-11-22",
-      "subject": "research: shard-complete, collision-checked 50k/variant budget and six head-to-head paired CI reports"
-    },
-    {
-      "sha": "6fefde3",
-      "date": "2026-11-22",
-      "subject": "research: paired full-game four-model six-match league and at-least-50k-per-budget opponent-search benchmark"
-    },
-    {
-      "sha": "7f94be8",
-      "date": "2026-11-22",
-      "subject": "research(v3.4): allow transparent controlled soft time budget multiplier for 50k-match relaxed-C comparison"
-    },
-    {
-      "sha": "5e670a8",
-      "date": "2026-11-22",
-      "subject": "research: freeze exact original Win DP v4-D policy from 2026-11-22 A-E ablation artifact"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "YachtLab DP Expert Win DP v2 original v4 and v4-D 300k tournament",
+      "status": "success",
+      "head": "a8e15b3f15",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45003953551"
+    },
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
@@ -195,12 +203,6 @@
       "status": "success",
       "head": "8766651129",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976868794"
-    },
-    {
-      "name": "YachtLab Bayesian opponents adaptive search and v4 exact A-E ablations",
-      "status": "success",
-      "head": "8766651129",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/44976868790"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
