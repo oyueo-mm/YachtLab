@@ -2814,3 +2814,6 @@ input[type="range"],
 .game-feedback{font-size:12px;font-weight:600;color:var(--red-deep);background:#fff5f3;border-radius:8px;padding:9px 12px;margin-top:10px;animation:score-feedback-enter .22s ease-out;}
 @keyframes score-feedback-enter{from{opacity:.4;transform:translateY(-3px);}to{opacity:1;transform:translateY(0);}}
 @media (prefers-reduced-motion:reduce){.roll-face,.game-feedback{animation:none!important;}}
+
+/* Outside taps reach the underlying control; document pointerdown still closes the AI picker. */
+.algorithm-menu-scrim{pointer-events:none;}
