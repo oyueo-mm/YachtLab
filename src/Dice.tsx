@@ -150,11 +150,13 @@ function SortableDie({
 export function Dice({
   state,
   interactive = false,
+  animate = false,
   onToggle,
   onOrder,
 }: {
   state: Pick<Game, "dice" | "order" | "rolls">;
   interactive?: boolean;
+  animate?: boolean;
   onToggle?: (id: number) => void;
   onOrder?: (ids: number[]) => void;
 }) {
@@ -200,7 +202,7 @@ export function Dice({
                 {...die}
                 disabled={!interactive || !state.rolls}
                 toggle={() => onToggle?.(id)}
-                rolled={state.rolls > 0 && !die.held}
+                rolled={animate && state.rolls > 0 && !die.held}
                 rollNumber={state.rolls}
                 move={(offset) => {
                   const index = state.order.indexOf(id),
