@@ -157,7 +157,7 @@ export default function LocalGame() {
               <button className={allScores ? "active" : ""} onClick={() => setAllScores(true)}>전체 점수표</button>
             </div>
           )}
-          <MultiScoreboard state={state} labels={names} focused={count >= 9 && !allScores} select={active ? chooseScore : undefined} selected={selectedScore} onConfirm={confirmScore} onClear={() => setSelectedScore(null)} />
+          <MultiScoreboard state={state} labels={names} focused={count >= 9 && !allScores} select={active ? chooseScore : undefined} selected={mobileScoreOpen ? null : selectedScore} onConfirm={confirmScore} onClear={() => setSelectedScore(null)} />
           {count >= 9 && <MultiStandings state={state} labels={names} />}
         </div>
       </div>
