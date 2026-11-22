@@ -1,9 +1,1 @@
-import type { Page } from "@playwright/test";
-export async function chooseAlgorithm(
-  page: Page,
-  label: string,
-  value: string,
-) {
-  await page.getByRole("combobox", { name: label, exact: true }).click();
-  await page.getByRole("option", { name: value, exact: true }).click();
-}
+import type { Page } from "@playwright/test";export async function chooseAlgorithm(page:Page,label:string,value:string){await page.getByRole("combobox",{name:label,exact:true}).click();const option=page.getByRole("option",{name:value,exact:true});if(!(await option.isVisible())){for(const tier of ["매우 쉬움","쉬움","보통","어려움","매우 어려움"]){await page.getByRole("button",{name:tier,exact:true}).click();if(await option.isVisible())break;}}await option.click();}
