@@ -329,7 +329,8 @@ function HumanGame({
   const stateRef = useRef(state);
   stateRef.current = state;
   const [aiTurn, setAiTurn] = useState(0),
-    [caption, setCaption] = useState("");
+    [caption, setCaption] = useState(""),
+    [gameFeedback, setGameFeedback] = useState("");
   const commit = (
     action: Parameters<typeof transition>[1],
     decision?: Decision,
@@ -339,6 +340,7 @@ function HumanGame({
     record.current = updated;
     const next = updated.finalState;
     if (next.done && !before.done) void saveReplay(updated).catch((e) => setError("기보 자동 저장 실패: " + errorText(e)));
+    if (action.type === "score") setGameFeedback((before.player === 0 ? "나" : "AI") + " · " + names[action.category] + " " + (next.cards[before.player][action.category] ?? 0) + "점 기록");
     stateRef.current = next;
     setState(next);
     if (before.player === 0 && next.player === 1) setAiTurn((n) => n + 1);
@@ -383,6 +385,7 @@ function HumanGame({
     setState(fresh);
     setAiTurn(0);
     setCaption("");
+    setGameFeedback("");
     setMobileScoreOpen(false);
   };
   const can = state.player === 0 && !state.done && !busy;
@@ -524,6 +527,7 @@ function HumanGame({
           </section>
           <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={state.rolls} />
           {mobileScoreOpen && <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}><Scoreboard state={state} select={can ? (c) => { act({ type: "score", category: c }); setMobileScoreOpen(false); } : undefined} /></MobileScoreSheet>}
+          {gameFeedback && <p className="game-feedback" role="status">{gameFeedback}</p>}
           <details className="game-rules"><summary>게임 방법</summary><p>12라운드 동안 주사위 5개를 최대 3번 굴려요. 원하는 주사위를 눌러 고정하고 점수판에서 한 칸을 선택해 기록하세요. 한 번 기록한 칸은 다시 사용할 수 없어요. 상단 점수 합계가 63점 이상이면 보너스 35점을 받아요.</p></details>
           <ErrorMessage message={error} />
           {error && state.player === 1 && !state.done && (
