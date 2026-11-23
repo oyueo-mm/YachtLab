@@ -98,16 +98,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [9279800](https://github.com/oyueo-mm/YachtLab/commit/9279800) | 2026-11-23 | Merge PR #46: 모바일 AI 대전 주사위판 우선 배치와 족보 연출 축소 |
+| [6597429](https://github.com/oyueo-mm/YachtLab/commit/6597429) | 2026-11-23 | feat(ui): refine mobile AI match layout and compact scoring dice effects |
+| [e920a9c](https://github.com/oyueo-mm/YachtLab/commit/e920a9c) | 2026-11-23 | Merge PR #45: YachtLab 게임 UI 1~4차 개편 |
+| [984cf8e](https://github.com/oyueo-mm/YachtLab/commit/984cf8e) | 2026-11-23 | feat: vigorous 3D throws, combination-effect for scored dice, matte table, button system, mobile controls fix |
+| [e32fea0](https://github.com/oyueo-mm/YachtLab/commit/e32fea0) | 2026-11-23 | feat: start-focused lobby, free-landing 3D dice with hold shelf, unified AI model picker, back-navigation guard |
+| [018ba2e](https://github.com/oyueo-mm/YachtLab/commit/018ba2e) | 2026-11-22 | chore(research): publish Win DP v3.1 fresh-shard evidence [skip ci] |
+| [308b358](https://github.com/oyueo-mm/YachtLab/commit/308b358) | 2026-11-23 | feat(ui): setup screens, game-only play view, lobby dice, quiet rule help and 3D physics dice |
+| [5ad7c33](https://github.com/oyueo-mm/YachtLab/commit/5ad7c33) | 2026-11-23 | feat(ui): game-first lobby, immersive game shell, research lab, 2.5D dice, sound and rule tooltips |
 | [31d9a00](https://github.com/oyueo-mm/YachtLab/commit/31d9a00) | 2026-11-22 | feat: five fixed game difficulties and compact one-tap mobile scoring |
 | [a28477d](https://github.com/oyueo-mm/YachtLab/commit/a28477d) | 2026-11-22 | fix: calmer roll feedback, AI animations and confirmed scoring |
-| [4bffdba](https://github.com/oyueo-mm/YachtLab/commit/4bffdba) | 2026-11-22 | feat: enable playable Win DP v4-D and refine player-first YachtLab UI |
-| [8b8a203](https://github.com/oyueo-mm/YachtLab/commit/8b8a203) | 2026-11-22 | feat: player-first YachtLab gameplay UX, responsive score sheet and offline match records |
-| [7902c6d](https://github.com/oyueo-mm/YachtLab/commit/7902c6d) | 2026-11-22 | test(mobile): regression for outside-tap closing categorized model picker |
-| [e44f132](https://github.com/oyueo-mm/YachtLab/commit/e44f132) | 2026-11-22 | fix(mobile): allow outside topbar clicks through model-picker scrim to close it |
-| [f6ee544](https://github.com/oyueo-mm/YachtLab/commit/f6ee544) | 2026-11-22 | test(ui): open the intentionally collapsed player settings before editing names |
-| [19fb158](https://github.com/oyueo-mm/YachtLab/commit/19fb158) | 2026-11-22 | test(ui): open the intentionally collapsed player settings before editing names |
-| [0ba2b3c](https://github.com/oyueo-mm/YachtLab/commit/0ba2b3c) | 2026-11-22 | style(feedback): add short non-random dice settle and accessible score confirmation animation |
-| [b0e3ef3](https://github.com/oyueo-mm/YachtLab/commit/b0e3ef3) | 2026-11-22 | feat(feedback): display score commits in local 2–50 player matches |
 
 ## 최근 GitHub Actions 상태
 
@@ -115,9 +115,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45024816221) | success | 4c4c382735 |
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45024816215) | success | 4c4c382735 |
-| [Competitive research benchmark](https://github.com/oyueo-mm/YachtLab/actions/runs/45019765513) | success | 4bffdba0a8 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45125779857) | success | 9279800b4f |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45110224151) | success | 984cf8e882 |
+| [YachtLab Win DP v3.1 research and independent confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/45056759480) | success | 7e07bfab83 |
 
 ## 다음 채팅과 작업의 시작점
 

@@ -1,14 +1,15 @@
 import { test, expect } from "@playwright/test";
 import { demoTiming as T } from "../../src/demo-timing";
-test("홈 시연은 굴림·고정·재굴림·점수 기록 후 다음 턴으로 반복", async ({
+test("연구실 AI 시연은 굴림·고정·재굴림·점수 기록 후 다음 턴으로 반복", async ({
   page,
 }) => {
   const errors: string[] = [],
     requests: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("request", (r) => requests.push(r.url()));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.clock.install();
-  await page.goto("");
+  await page.goto("#lab");
   const demo = page.locator(".home-demo");
   await expect(demo).toHaveAttribute("data-phase", "ready");
   await page.clock.runFor(T.ready + 20);
@@ -58,11 +59,14 @@ test("홈 시연은 굴림·고정·재굴림·점수 기록 후 다음 턴으�
   expect(requests.some((url) => /\/worker[-.]/.test(url))).toBe(false);
   expect(errors).toEqual([]);
 });
-test("백그라운드 중 정지, 화면 이동 후 정리 및 홈 복귀", async ({ page }) => {
+test("백그라운드 중 정지, 화면 이동 후 정리 및 연구실 복귀", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.clock.install();
-  await page.goto("");
+  await page.goto("#lab");
+  // The lab is a lazily loaded chunk: wait until the demo is mounted before driving the clock.
+  await expect(page.locator(".home-demo")).toHaveAttribute("data-frame", "0");
   await page.clock.runFor(T.ready + T.roll + 50);
   await page.evaluate(() => {
     Object.defineProperty(document, "hidden", {
@@ -98,7 +102,7 @@ test("백그라운드 중 정지, 화면 이동 후 정리 및 홈 복귀", asyn
   await expect(page.locator(".home-demo")).toHaveCount(0);
   await page.clock.runFor(20000);
   await page.evaluate(() => {
-    location.hash = "home";
+    location.hash = "lab";
   });
   await expect(page.locator(".home-demo")).toHaveAttribute("data-frame", "0");
   await page.clock.runFor(T.ready + T.roll + 50);
@@ -109,18 +113,17 @@ test("백그라운드 중 정지, 화면 이동 후 정리 및 홈 복귀", asyn
   expect(errors).toEqual([]);
 });
 
-test("홈 바로가기는 기존 화면으로 이동하고 시연을 정리", async ({ page }) => {
+test("로비에서 오프라인 모드로 이동하면 시연 없이 게임 화면이 열린다", async ({ page }) => {
   await page.goto("");
-  await page.locator('.home-shortcuts a[href="#play"]').click();
-  await expect(
-    page.getByRole("button", { name: "주사위 굴리기" }),
-  ).toBeVisible();
+  await page.getByRole("button", { name: /오프라인 대전/ }).click();
+  await page.getByRole("button", { name: /사람 vs AI/ }).click();
+  await page.getByRole("button", { name: "게임 시작" }).click();
+  await expect(page.getByRole("button", { name: "주사위 굴리기" })).toBeVisible();
   await expect(page.locator(".home-demo")).toHaveCount(0);
-  await page.goto("#home");
-  await page.locator('.home-shortcuts a[href="#watch"]').click();
-  await expect(
-    page.getByRole("heading", { name: "AI 대전 관전" }),
-  ).toBeVisible();
+  await page.getByRole("button", { name: "홈으로" }).click();
+  await page.getByRole("button", { name: "연구실" }).click();
+  await page.getByRole("navigation", { name: "연구실 메뉴" }).getByRole("link", { name: "AI 대전 관전" }).click();
+  await expect(page.getByRole("heading", { name: "AI 대전 관전" })).toBeVisible();
   await expect(page.locator(".home-demo")).toHaveCount(0);
 });
 test("모션 감소 설정에서는 실제 완성된 턴을 정적으로 표시", async ({
@@ -128,7 +131,7 @@ test("모션 감소 설정에서는 실제 완성된 턴을 정적으로 표시"
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.clock.install();
-  await page.goto("");
+  await page.goto("#lab");
   await expect(page.locator(".home-demo")).toHaveAttribute(
     "data-phase",
     "score",
@@ -194,7 +197,7 @@ test("점수판 아이콘은 실제 눈 조합이고 작은 화면에서도 겹�
 test("모든 메뉴의 흰 배경과 무채색·레드 팔레트, 차트 구분", async ({
   page,
 }) => {
-  for (const route of ["home", "play", "watch", "tournament", "analysis"]) {
+  for (const route of ["home", "offline", "online", "play-setup", "pvp-setup", "play", "pvp", "records", "lab", "watch", "tournament", "analysis", "dice-lab"]) {
     await page.goto(`#${route}`);
     expect(
       await page
@@ -235,7 +238,7 @@ test("모든 메뉴의 흰 배경과 무채색·레드 팔레트, 차트 구분"
 
 test("320px 화면에서도 홈·점수판·분석실이 잘리지 않음", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
-  for (const route of ["home", "play", "analysis", "watch"]) {
+  for (const route of ["home", "offline", "online", "play-setup", "pvp-setup", "play", "pvp", "records", "lab", "analysis", "watch", "dice-lab"]) {
     await page.goto(`#${route}`);
     expect(
       await page.evaluate(

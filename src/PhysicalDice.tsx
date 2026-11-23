@@ -1,0 +1,470 @@
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { arrayMove } from "@dnd-kit/sortable";
+import type { Game } from "./engine";
+import { beginDiceMotion, takeThrowDirection } from "./dice-motion";
+import { playSfx } from "./sound";
+import { getScoreFx, useScoreFx } from "./score-fx";
+import type { DiceTableModule } from "./dice3d-loader";
+import type { DebugRoll } from "./Dice";
+
+type Pose = { x: number; y: number; z: number; quat: [number, number, number, number] };
+type Table = InstanceType<DiceTableModule["DiceTable"]>;
+/** Height of the hold shelf below the tray, in die edges. */
+const HOLD_UNITS = 1.45;
+/** Smallest tray depth (die edges) that still gives the physics room to roll. */
+const MIN_TRAY = 4.3;
+const MOVE_MS = 260;
+
+type DebugWindow = Window & {
+  __yachtlabDice?: { last: DebugRoll; history: DebugRoll[]; table?: () => unknown };
+};
+const record = (info: DebugRoll) => {
+  const w = window as DebugWindow;
+  w.__yachtlabDice ??= { last: info, history: [] };
+  w.__yachtlabDice.last = info;
+  w.__yachtlabDice.history.push(info);
+  if (w.__yachtlabDice.history.length > 50) w.__yachtlabDice.history.shift();
+};
+
+/**
+ * 3D dice that stay where they land.
+ *  - Tray: dice are thrown with real rigid-body physics and keep their final position and rotation.
+ *  - Hold shelf: tapping a die moves it to its own slot below the tray; tapping it there puts it back.
+ *    Held dice are not thrown again. The engine's `held` flags are the single source of truth.
+ *  - The roll button lives outside this component, so the 3D canvas never covers it.
+ * Values always come from the engine; the throw is pre-simulated to land on them (see dice3d/physics.ts).
+ */
+export function PhysicalDice({
+  module: mod,
+  quality,
+  state,
+  interactive,
+  rollEvent,
+  onToggle,
+  onOrder,
+  onFailure,
+}: {
+  module: DiceTableModule;
+  quality: "3d" | "3d-high";
+  state: Pick<Game, "dice" | "order" | "rolls">;
+  interactive: boolean;
+  rollEvent: number;
+  onToggle?: (id: number) => void;
+  onOrder?: (ids: number[]) => void;
+  onFailure: () => void;
+}) {
+  const root = useRef<HTMLDivElement>(null);
+  const table = useRef<Table | null>(null);
+  const tray = useRef(new Map<number, Pose>());
+  const parked = useRef(new Map<number, Pose>());
+  const [dims, setDims] = useState<{ w: number; h: number; size: number; W: number; trayH: number } | null>(null);
+  const [flying, setFlying] = useState<ReadonlySet<number>>(new Set());
+  const [, setTick] = useState(0);
+  const refresh = () => setTick((n) => n + 1);
+  const handledRoll = useRef(rollEvent);
+  const prevHeld = useRef(new Map(state.dice.map((d) => [d.id, d.held])));
+  const prevOrder = useRef(state.order.join());
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const hitEls = useRef(new Map<number, HTMLElement>());
+  const dimsRef = useRef<typeof dims>(null);
+  dimsRef.current = dims;
+  const handledFx = useRef(0);
+  const activeFx = useRef<{ key: number; abort: () => void } | null>(null);
+  const fxNow = useScoreFx();
+
+  // Size: dice scale with the board; the tray is at least ~4.7 die edges deep for clean physics.
+  useLayoutEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.clientWidth,
+        h = el.clientHeight;
+      if (w < 120 || h < 160) return;
+      const size = Math.floor(Math.max(34, Math.min(112, w / 6.2, h / (MIN_TRAY + HOLD_UNITS))));
+      setDims({ w, h, size, W: w / size, trayH: h / size - HOLD_UNITS });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(
+    () => () => {
+      table.current?.dispose();
+      table.current = null;
+    },
+    [],
+  );
+
+  const holdSlot = (id: number) => {
+    if (!dims) return { x: 0, z: 0 };
+    const gap = Math.min(1.3, (dims.W - 0.4) / 5);
+    return { x: dims.W / 2 + (stateRef.current.order.indexOf(id) - 2) * gap, z: dims.trayH + HOLD_UNITS / 2 };
+  };
+  const holdPose = (id: number, near?: Pose["quat"]): Pose => {
+    const value = stateRef.current.dice.find((d) => d.id === id)!.value;
+    const s = holdSlot(id);
+    return { x: s.x, y: 0.5, z: s.z, quat: mod.uprightNear(value, near ?? mod.canonicalOrientation(value)) as Pose["quat"] };
+  };
+  /** Nearest floor spot near (x, z) that does not touch another resting die. */
+  const freeSpot = (x: number, z: number, skip: number): { x: number; z: number } => {
+    if (!dims) return { x, z };
+    const others = [...tray.current.entries()].filter(([id]) => id !== skip).map(([, p]) => p);
+    const ok = (px: number, pz: number) => px >= 0.65 && px <= dims.W - 0.65 && pz >= 0.65 && pz <= dims.trayH - 0.65 && others.every((o) => Math.hypot(o.x - px, o.z - pz) >= 1.15);
+    if (ok(x, z)) return { x, z };
+    for (let r = 0.4; r < 6; r += 0.3)
+      for (let a = 0; a < 16; a++) {
+        const px = x + Math.cos((a * Math.PI) / 8) * r,
+          pz = z + Math.sin((a * Math.PI) / 8) * r;
+        if (ok(px, pz)) return { x: px, z: pz };
+      }
+    return { x: Math.min(Math.max(x, 0.65), dims.W - 0.65), z: Math.min(Math.max(z, 0.65), dims.trayH - 0.65) };
+  };
+  const poses = () => {
+    const map = new Map<number, Pose>();
+    if (stateRef.current.rolls === 0) return map;
+    for (const d of stateRef.current.dice) {
+      const p = d.held ? holdPose(d.id, table.current?.pose(d.id)?.quat) : tray.current.get(d.id);
+      if (p) map.set(d.id, p);
+    }
+    return map;
+  };
+
+  // Create / lay out the WebGL table.
+  useLayoutEffect(() => {
+    if (!dims || !root.current) return;
+    if (!table.current) {
+      try {
+        table.current = new mod.DiceTable(root.current.querySelector<HTMLElement>(".dice-table-stage")!, quality);
+      } catch {
+        onFailure();
+        return;
+      }
+      // Mounted mid-turn (lab / lobby): lay the current dice down neatly in the tray.
+      if (state.rolls > 0)
+        state.dice.forEach((d, i) => {
+          if (d.held) return;
+          const gap = Math.min(1.35, (dims.W - 1) / 5);
+          tray.current.set(d.id, { x: dims.W / 2 + (state.order.indexOf(d.id) - 2) * gap, y: 0.5, z: dims.trayH / 2 + (i % 2 ? 0.25 : -0.25), quat: mod.uprightNear(d.value, mod.canonicalOrientation(d.value)) as Pose["quat"] });
+        });
+    }
+    // Hit targets follow what is drawn (also while a die slides), not just where it is going.
+    table.current.onPose = (id, p) => {
+      const el = hitEls.current.get(id),
+        d = dimsRef.current;
+      if (el && d) {
+        el.style.left = `${p.x * d.size - d.size / 2}px`;
+        el.style.top = `${p.z * d.size - d.size / 2}px`;
+      }
+    };
+    table.current.layout(dims.w, dims.h, dims.size);
+    for (const [id, p] of tray.current) {
+      const fixed = { ...p, ...freeSpot(Math.min(p.x, dims.W - 0.65), Math.min(p.z, dims.trayH - 0.65), id) };
+      tray.current.set(id, fixed);
+    }
+    table.current.setPoses(poses());
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dims, quality]);
+
+  // A new turn clears the tray — after the score effect, when the move was a scoring one.
+  useEffect(() => {
+    if (state.rolls !== 0) return;
+    const t = table.current;
+    const clearAll = () => {
+      tray.current.clear();
+      parked.current.clear();
+      table.current?.setPoses(new Map());
+      prevHeld.current = new Map(stateRef.current.dice.map((d) => [d.id, d.held]));
+      refresh();
+    };
+    const fx = getScoreFx();
+    const fresh = !!fx && fx.key !== handledFx.current && performance.now() - fx.at < 400 && fx.ids.length > 0 && !!t && fx.ids.every((id) => !!t.pose(id));
+    if (!t || !fx || !fresh) {
+      clearAll();
+      return;
+    }
+    // Score effect: the dice that make the combination spring toward the camera. The roll button and
+    // dice stay locked until it ends (the engine has already scored the move).
+    handledFx.current = fx.key;
+    const done = beginDiceMotion(fx.ms + 900);
+    let fade = () => {};
+    let stopped = false;
+    const stop = t.celebrate({
+      ids: fx.ids,
+      ms: fx.ms,
+      grand: fx.grand,
+      compact: window.matchMedia("(max-width: 760px)").matches,
+      onPeak: () => playSfx(fx.category === "large" ? "grand" : "combo", { pan: 0 }),
+      onDone: () => {
+        fade = t.fadeOut(170, () => {
+          clearAll();
+          activeFx.current = null;
+          done();
+        });
+      },
+    });
+    const abort = () => {
+      if (stopped) return;
+      stopped = true;
+      stop();
+      fade();
+      clearAll();
+      activeFx.current = null;
+      done();
+    };
+    activeFx.current = { key: fx.key, abort };
+    return abort;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.rolls]);
+
+  // The effect is cancelled when the score event is cleared (rematch, leaving the game).
+  useEffect(() => {
+    if (activeFx.current && fxNow?.key !== activeFx.current.key) activeFx.current.abort();
+  }, [fxNow]);
+
+  // Throw: only the dice that are not held, starting from where they lie (or from the tray edge).
+  useLayoutEffect(() => {
+    if (rollEvent === handledRoll.current) return;
+    handledRoll.current = rollEvent;
+    const t = table.current;
+    if (!t || !dims || state.rolls === 0) return;
+    const moving = state.dice.filter((d) => !d.held);
+    prevHeld.current = new Map(state.dice.map((d) => [d.id, d.held]));
+    if (!moving.length) return;
+    const starts: Record<number, { x: number; z: number; quat: Pose["quat"] }> = {};
+    for (const d of moving) {
+      // Where the die is drawn right now (a slide that has not finished yet still counts).
+      const p = t.pose(d.id) ?? tray.current.get(d.id);
+      if (p) starts[d.id] = { x: p.x, z: p.z, quat: p.quat };
+    }
+    const targets = Object.fromEntries(moving.map((d) => [d.id, d.value]));
+    const effectStart = performance.now();
+    const result = mod.simulateThrow({
+      width: dims.W,
+      height: dims.trayH,
+      direction: takeThrowDirection(rollEvent),
+      seed: (Math.imul(rollEvent, 2654435761) ^ crypto.getRandomValues(new Uint32Array(1))[0]) >>> 0,
+      landing: "free",
+      maxAttempts: 14,
+      starts,
+      dice: moving.map((d) => ({ id: d.id, value: d.value, held: false, x: starts[d.id]?.x ?? dims.W / 2, z: starts[d.id]?.z ?? dims.trayH / 2 })),
+    });
+    for (const d of moving) tray.current.delete(d.id);
+    setFlying(new Set(moving.map((d) => d.id)));
+    const rate = 1.25;
+    const done = beginDiceMotion(((result.frameCount / result.fps) * 1000) / rate + 2000);
+    playSfx("throw");
+    let lastHit = -Infinity,
+      hits = 0,
+      firstFrameAt = 0;
+    const cancel = t.play(result, {
+      rate,
+      onFrame: () => {
+        if (!firstFrameAt) firstFrameAt = performance.now();
+      },
+      onRoll: (level) => playSfx("roll", { intensity: level, pan: 0 }),
+      onImpact: ({ strength, kind, x }) => {
+        // Sound follows the rendered collision: louder and heavier for harder hits, dice knock drier.
+        const now = performance.now();
+        if (hits >= 16 || (now - lastHit < 40 && strength < 6)) return;
+        lastHit = now;
+        hits++;
+        const intensity = Math.min(1, 0.1 + strength / 9) * (kind === "wall" ? 0.65 : 1);
+        playSfx(kind === "die" ? "clack" : "impact", { intensity, pan: (x - 0.5) * 1.2 });
+      },
+      onDone: () => {
+        const last = (result.frameCount - 1) * 7;
+        const pending: (() => void)[] = [];
+        for (const tr of result.tracks) {
+          const f = tr.frames;
+          const pose: Pose = { x: f[last], y: 0.5, z: f[last + 2], quat: [f[last + 3], f[last + 4], f[last + 5], f[last + 6]] };
+          if (f[last + 1] > 0.62) {
+            // Rare: a die came to rest on another one. Slide it down to free floor (top face unchanged).
+            const spot = freeSpot(pose.x, pose.z, tr.id);
+            const to = { ...pose, ...spot };
+            tray.current.set(tr.id, to);
+            pending.push(() => t.moveTo(tr.id, to, MOVE_MS)); // slides from where it is drawn now
+          } else tray.current.set(tr.id, pose);
+        }
+        pending.forEach((run) => run());
+        playSfx("settle", { intensity: 0.35 });
+        setFlying(new Set());
+        refresh();
+        done();
+        const times = [...t.frameTimes].slice(1).sort((a, b) => a - b);
+        record({
+          mode: "3d",
+          token: rollEvent,
+          targets,
+          finals: Object.fromEntries(result.tracks.map((tr) => [tr.id, mod.finalValue(tr, result.frameCount)])),
+          frames: result.frameCount,
+          simMs: result.stats.simMs,
+          startedAfterMs: firstFrameAt - effectStart,
+          attempts: result.attempts,
+          corrected: result.corrected,
+          ok: result.ok,
+          frameMs: times.length ? { avg: times.reduce((a, b) => a + b, 0) / times.length, p95: times[Math.floor(times.length * 0.95)] ?? 0, max: times.at(-1) ?? 0 } : undefined,
+          endedAt: performance.now(),
+        });
+      },
+    });
+    return () => {
+      cancel();
+      done();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rollEvent]);
+
+  // Hold / release: the die travels between the tray and its shelf slot (yaw only, top face kept).
+  useEffect(() => {
+    const t = table.current;
+    if (!t || !dims || state.rolls === 0 || flying.size) return;
+    const cancels: (() => void)[] = [];
+    for (const d of state.dice) {
+      const was = prevHeld.current.get(d.id) ?? false;
+      if (was === d.held) continue;
+      const current = t.pose(d.id);
+      if (d.held) {
+        const from = tray.current.get(d.id) ?? parked.current.get(d.id) ?? current;
+        if (from) parked.current.set(d.id, from);
+        tray.current.delete(d.id);
+        const to = holdPose(d.id, from?.quat);
+        cancels.push(t.moveTo(d.id, to, MOVE_MS));
+        playSfx("hold");
+      } else {
+        const back = parked.current.get(d.id);
+        const spot = freeSpot(back?.x ?? dims.W / 2, back?.z ?? dims.trayH / 2, d.id);
+        const to: Pose = { x: spot.x, y: 0.5, z: spot.z, quat: back?.quat ?? holdPose(d.id).quat };
+        tray.current.set(d.id, to);
+        cancels.push(t.moveTo(d.id, to, MOVE_MS));
+        playSfx("release");
+      }
+    }
+    prevHeld.current = new Map(state.dice.map((d) => [d.id, d.held]));
+    refresh();
+    // A newer slide for the same die replaces the older one (see DiceTable.moveTo); nothing to cancel here.
+    void cancels;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.dice.map((d) => (d.held ? 1 : 0)).join(""), flying.size]);
+
+  // Reordering moves held dice to their new shelf slots.
+  useEffect(() => {
+    const key = state.order.join();
+    if (key === prevOrder.current) return;
+    prevOrder.current = key;
+    const t = table.current;
+    if (!t || state.rolls === 0) return;
+    const cancels: (() => void)[] = [];
+    for (const d of state.dice) {
+      if (!d.held) continue;
+      const from = t.pose(d.id);
+      if (from) cancels.push(t.moveTo(d.id, holdPose(d.id, from.quat), MOVE_MS));
+    }
+    refresh();
+    void cancels;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.order.join()]);
+
+  // Test / diagnostics hook: what is actually drawn right now.
+  useEffect(() => {
+    const w = window as DebugWindow;
+    w.__yachtlabDice ??= { last: { mode: "none", token: 0, targets: {} }, history: [] };
+    w.__yachtlabDice.table = () =>
+      stateRef.current.dice.map((d) => {
+        const p = table.current?.pose(d.id);
+        return p ? { id: d.id, value: d.value, held: d.held, x: p.x, y: p.y, z: p.z, top: mod.topFace(p.quat).value, zone: p.z > (dims?.trayH ?? 0) ? "hold" : "tray" } : { id: d.id, value: d.value, held: d.held, hidden: true };
+      });
+  });
+
+  const visible = state.rolls > 0 && dims;
+  const targets = visible
+    ? state.dice.flatMap((d) => {
+        const p = d.held ? holdPose(d.id) : tray.current.get(d.id);
+        return p ? [{ id: d.id, d, cx: p.x * dims.size, cy: p.z * dims.size }] : [];
+      })
+    : [];
+  const busy = flying.size > 0;
+  /** The die whose centre is nearest to a point (px within the table), if within reach. */
+  const nearest = (clientX: number, clientY: number, reach: number) => {
+    if (!root.current || !dims) return null;
+    const box = root.current.getBoundingClientRect();
+    const px = clientX - box.left,
+      py = clientY - box.top;
+    let best: number | null = null,
+      dist = reach;
+    for (const t of targets) {
+      // Use where the die is drawn right now (it may still be sliding), not only where it is headed.
+      const live = table.current?.pose(t.id);
+      const cx = live ? live.x * dims.size : t.cx,
+        cy = live ? live.z * dims.size : t.cy;
+      const dd = Math.hypot(cx - px, cy - py);
+      if (dd < dist) {
+        dist = dd;
+        best = t.id;
+      }
+    }
+    return best;
+  };
+  /** Pick the die whose centre is nearest to the pointer, so overlapping dice stay selectable. */
+  const pick = (event: MouseEvent<HTMLButtonElement>, id: number) => {
+    event.stopPropagation();
+    if (!interactive || busy) return;
+    if (event.detail === 0 || !dims) return onToggle?.(id); // keyboard activation
+    onToggle?.(nearest(event.clientX, event.clientY, Infinity) ?? id);
+  };
+  /** Taps in the small gaps around a die still reach it. */
+  const pickGap = (event: MouseEvent<HTMLDivElement>) => {
+    if (!interactive || busy || !dims) return;
+    const id = nearest(event.clientX, event.clientY, dims.size * 0.75);
+    if (id !== null) onToggle?.(id);
+  };
+  const keys = (event: KeyboardEvent<HTMLButtonElement>, id: number) => {
+    if (!event.altKey || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
+    event.preventDefault();
+    const index = state.order.indexOf(id),
+      target = index + (event.key === "ArrowLeft" ? -1 : 1);
+    if (target >= 0 && target < 5) onOrder?.(arrayMove(state.order, index, target));
+  };
+  return (
+    <div ref={root} className="physical-dice" data-ready={!!dims} onClick={pickGap}>
+      <div className="dice-tray-area" style={dims ? { height: dims.trayH * dims.size } : undefined} />
+      <div className="dice-hold-area" style={dims ? { height: HOLD_UNITS * dims.size } : undefined} aria-label="고정한 주사위 자리">
+        {dims &&
+          state.order.map((id) => {
+            const s = holdSlot(id);
+            return <span key={id} className="hold-slot" style={{ left: s.x * dims.size - dims.size / 2, top: (s.z - dims.trayH) * dims.size - dims.size / 2, width: dims.size, height: dims.size }} />;
+          })}
+      </div>
+      <div className="dice-table-stage" />
+      {dims &&
+        state.order.map((id) => {
+          const d = state.dice.find((x) => x.id === id)!;
+          const t = targets.find((x) => x.id === id);
+          const moving = flying.has(id);
+          return (
+            <button
+              key={id}
+              ref={(el) => {
+                if (el) hitEls.current.set(id, el);
+                else hitEls.current.delete(id);
+              }}
+              type="button"
+              className={`die-button die-hit ${d.held ? "held" : ""} ${moving ? "dice-animating" : ""}`}
+              data-die-id={id}
+              data-zone={d.held ? "hold" : "tray"}
+              style={t ? { left: t.cx - dims.size / 2, top: t.cy - dims.size / 2, width: dims.size, height: dims.size } : { display: "none" }}
+              disabled={!interactive || busy || !state.rolls}
+              aria-pressed={d.held}
+              aria-label={`주사위 ${id + 1}, ${d.value}, ${d.held ? "고정됨" : "고정 안 됨"}`}
+              title="클릭: 고정/해제 · Alt + 좌우 방향키: 고정 자리 순서 변경"
+              onClick={(e) => pick(e, id)}
+              onKeyDown={(e) => keys(e, id)}
+            />
+          );
+        })}
+    </div>
+  );
+}

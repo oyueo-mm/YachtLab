@@ -11,6 +11,7 @@ import {
   type Game,
 } from "./engine";
 import { DieIcon } from "./Dice";
+import { CategoryHelp } from "./CategoryHelp";
 export function BonusProgress({card}:{card:Card}) { const points=upper(card),remaining=Math.max(0,63-points),achieved=bonus(card)>0,finished=categories.slice(0,6).every(c=>card[c]!==undefined); return <div className={"bonus-progress"+(achieved?" achieved":"")}><strong>{achieved?"+35":points+" / 63"}</strong><small>{achieved?"달성!":finished?remaining+"점 부족":remaining+"점 남음"}</small><div className="bonus-track" role="progressbar" aria-label="상단 보너스 진행도" aria-valuemin={0} aria-valuemax={63} aria-valuenow={Math.min(63,points)}><i style={{width:Math.min(100,points/63*100)+"%"}}/></div></div>; }
 export function CategoryIcon({ category }: { category: Category }) {
   const index = categories.indexOf(category);
@@ -140,7 +141,12 @@ function Rows({
         <>
           <tr className="bonus-row">
             <th>
-              <Star size={16} /> 상단 보너스 <small>+35</small>
+              <span className="category-cell">
+                <span className="category-label">
+                  <Star size={16} /> 상단 보너스 <small>+35</small>
+                </span>
+                <CategoryHelp topic="bonus" />
+              </span>
             </th>
             {state.cards.map((card, i) => (<td key={i} className={state.player===i&&!state.done?"current-score-cell":""}><BonusProgress card={card}/></td>))}
           </tr>
@@ -153,11 +159,14 @@ function Rows({
       )}
       <tr data-category={c} className={`${selected === c ? "score-row-selected " : ""}${previewCategory === c ? "score-row-ai-preview " : ""}`}>
         <th scope="row">
+          <span className="category-cell">
           {select && state.player === selectPlayer && state.rolls > 0 && !state.done && state.cards[selectPlayer][c] === undefined ? (
             <button type="button" className="category-label score-category-select" aria-pressed={selected === c} onClick={() => select(c)}><CategoryIcon category={c} /><span>{names[c]}</span></button>
           ) : (
             <span className="category-label"><CategoryIcon category={c} /><span>{names[c]}</span></span>
           )}
+          <CategoryHelp topic={c} />
+          </span>
         </th>
         {state.cards.map((card, i) => {
           const can =

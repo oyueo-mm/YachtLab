@@ -1,20 +1,16 @@
-import {scoreCategory} from "./helpers";
+import {scoreCategory, startLocal} from "./helpers";
 import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
 test("로컬 PvP: 이름, 양쪽 점수 선택, 재대결 및 기보", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("#pvp");
-  await expect(page.getByRole("region", { name: "사람 vs 사람 게임 보드" })).toBeVisible();
-  await page.getByRole("button", { name: "플레이어 설정" }).click();
-  await page.getByLabel("플레이어 1 이름").fill("민수");
-  await page.getByLabel("플레이어 2 이름").fill("지민");
+  await startLocal(page, { count: 2, names: ["민수", "지민"] });
   await expect(page.locator(".turn-indicator")).toContainText("민수의 차례");
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
   await scoreCategory(page,"aces");
   await expect(page.locator(".turn-indicator")).toContainText("지민의 차례");
-  await expect(page.getByLabel("플레이어 1 이름")).toBeDisabled();
+  await expect(page.getByLabel("플레이어 1 이름")).toHaveCount(0);
   await expect(page.locator('[data-category="aces"] td').first().locator(".fixed-score")).toHaveCount(1);
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
   await expect(page.locator('[data-category="deuces"] td').nth(0).locator(".score-option")).toHaveCount(0);
@@ -38,9 +34,9 @@ test("로컬 PvP: 이름, 양쪽 점수 선택, 재대결 및 기보", async ({ 
   expect(record.finalState.player).toBe(0);
   await page.getByRole("button", { name: "기보 닫기" }).click();
   await page.getByRole("button", { name: "재대결", exact: true }).click();
+  await page.getByRole("dialog", { name: "새 경기를 시작할까요?" }).getByRole("button", { name: "재대결" }).click();
   await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(0);
-  await expect(page.getByLabel("플레이어 1 이름")).toHaveValue("민수");
-  await expect(page.getByLabel("플레이어 2 이름")).toHaveValue("지민");
+  await expect(page.locator(".multi-player-chip span")).toHaveText(["민수", "지민"]);
   expect(errors).toEqual([]);
 });
 
