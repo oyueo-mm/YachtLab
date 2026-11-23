@@ -339,6 +339,44 @@ for (const kind of ["node", "workers"] as const) {
         await c.getByRole("button", { name: "입장하기" }).click();
         await expect(c.getByRole("alert")).toContainText("방을 찾을 수 없어요");
       });
+
+      test("320px 화면에서도 온라인 입장·대기실·게임판이 가로로 넘치지 않는다", async ({
+        browser,
+      }, testInfo) => {
+        test.skip(
+          testInfo.project.name === "mobile" || kind !== "node",
+          "레이아웃은 서버 종류와 무관: 데스크톱 프로젝트에서 한 번만",
+        );
+        const fits = (p: Page) =>
+          p.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
+        const narrow = async () => {
+          const ctx = await browser.newContext({
+            viewport: { width: 320, height: 740 },
+            baseURL: "http://127.0.0.1:5173/YachtLab/",
+            reducedMotion: "reduce",
+          });
+          return ctx.newPage();
+        };
+        const a = await narrow();
+        const b = await narrow();
+        await a.goto(entry());
+        expect(await fits(a)).toBe(true);
+        await a.getByLabel("닉네임").fill("가나다라마바사아자차");
+        await a.getByRole("button", { name: "방 만들기" }).click();
+        await expect(a.getByRole("heading", { name: "대기실" })).toBeVisible();
+        expect(await fits(a)).toBe(true);
+        const code = (await a.getByLabel("초대 코드").textContent())!.trim();
+        await b.goto(entry(code));
+        expect(await fits(b)).toBe(true);
+        await b.getByLabel("닉네임").fill("ABCDEFGHIJKLMNOPQRSTUVWX");
+        await b.getByRole("button", { name: "입장하기" }).click();
+        await a.getByRole("button", { name: "게임 시작" }).click();
+        await expect(b.locator(".roll-button")).toBeVisible();
+        await a.locator(".roll-button").click();
+        await expect(a.locator(".board-top b")).toHaveText("1");
+        expect(await fits(a)).toBe(true);
+        expect(await fits(b)).toBe(true);
+      });
     },
   );
 }

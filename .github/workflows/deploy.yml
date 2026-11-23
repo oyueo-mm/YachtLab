@@ -20,9 +20,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      # Tests run against a build without a server address, so both states stay covered:
+      # the "준비 중" screen, and the online UI through the loopback ?online-server= parameter.
       - run: npm run build
-        env:
-          VITE_ONLINE_SERVER_URL: https://yachtlab-online.hoho96385210.workers.dev
       # Hosted Ubuntu already provides Chromium's required shared libraries.
       # Avoid downloading unrelated OS fonts on every deployment.
       - name: Install headless Chromium
@@ -38,6 +38,13 @@ jobs:
         with:
           name: playwright-results
           path: test-results
+      # The site published to Pages connects to the deployed online Worker.
+      - name: Production build (online server)
+        env:
+          VITE_ONLINE_SERVER_URL: https://yachtlab-online.hoho96385210.workers.dev
+        run: |
+          npm run build
+          grep -rqF "$VITE_ONLINE_SERVER_URL" dist/assets
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:
