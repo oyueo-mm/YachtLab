@@ -99,3 +99,10 @@
 **상태: 신규 (2026-11-23).** 화면 폭 760px 이하에서 사람 vs AI 화면은 주사위판·굴리기 → 모바일 점수판 버튼 → 점수 요약 → 기보·재대결·설정 변경 순서로 재배치한다. 게임판의 중복 정보(나의 차례/굴림 횟수)는 숨기지만 점수 요약의 현재 플레이어 강조와 굴리기 버튼의 남은 횟수는 유지한다. 3D 족보 연출은 모바일에서 상승 높이와 확대 비율을 줄이고 데스크톱은 기존 값을 유지한다. 로컬 사람 대전은 차례 확인이 중요하므로 화면·표시를 바꾸지 않는다. 게임 엔진·기보·AI 정책은 변경하지 않는다.
 
 **근거:** src/mobile-play.css, src/dice3d/table.ts, src/PhysicalDice.tsx, tests/ui/mobile-play.spec.ts.
+
+## D-020. 온라인 Phase 2: 방 단위 직렬 처리 + 좌석 토큰, 클라이언트는 확정 이벤트만 렌더
+
+**상태: 신규 (2026-11-23, Online v0.1 Phase 2, PR #44, 미배포).** 온라인 방은 런타임 무관 `OnlineRoom`(`src/online/room.ts`)이 Phase 1 엔진을 감싸 메시지를 하나씩 처리하고, **저장 성공 후에만** 상태를 반영·전파한다(fail-closed). 초대 코드는 대기실 빈 좌석 입장만 허용하고, 좌석은 1회 발급 비밀 토큰(서버엔 SHA-256 해시만 저장)으로만 재접속한다. 재접속은 `since` 동기화 + 같은 id 명령 재전송(멱등). 서버 턴 타이머 만료 시 서버가 대기 중 좌석 명의로 `claimTimeout`을 실행한다. 고정 미리보기는 비권한 표시용. 웹은 GitHub Pages 유지, 서버 주소는 빌드 변수 `VITE_ONLINE_SERVER_URL`(https)로만 설정하고 미설정 시 "준비 중"; 개발용 `?online-server=`는 루프백만 허용. 첫 MVP는 2인 초대방. 로컬 Node 서버(`server/online/`)로 검증했고 Cloudflare 리소스 생성·배포는 별도 승인 전 금지. 상세: [Phase 2 문서](../online/ONLINE-V01-PHASE2.md).
+
+**근거:** src/online/room.ts, src/online/client.ts, server/online/, tests/online-server.test.ts, tests/ui/online.spec.ts.
+

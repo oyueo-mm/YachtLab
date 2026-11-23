@@ -5,13 +5,14 @@
  * The tier is a structural boundary only (lab screens live in src/lab and load lazily) so they
  * could become an optional plan later. No payment, subscription or access control exists.
  */
-export type Route = "home" | "offline" | "online" | "play-setup" | "pvp-setup" | "play" | "pvp" | "records" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab";
+export type Route = "home" | "offline" | "online" | "online-room" | "play-setup" | "pvp-setup" | "play" | "pvp" | "records" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab";
 export type Shell = "lobby" | "game" | "lab" | "page";
 
 export const routes: Record<Route, { title: string; shell: Shell; tier: "core" | "lab" }> = {
   home: { title: "YachtLab", shell: "lobby", tier: "core" },
   offline: { title: "오프라인 대전", shell: "page", tier: "core" },
   online: { title: "온라인 대전", shell: "page", tier: "core" },
+  "online-room": { title: "온라인 대전", shell: "game", tier: "core" },
   "play-setup": { title: "사람 vs AI 설정", shell: "page", tier: "core" },
   "pvp-setup": { title: "사람 vs 사람 설정", shell: "page", tier: "core" },
   play: { title: "사람 vs AI", shell: "game", tier: "core" },

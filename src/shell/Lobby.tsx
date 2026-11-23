@@ -1,6 +1,7 @@
 import { ArrowRight, Bot, Dices, Globe, Smartphone, UsersRound } from "lucide-react";
 import { DieIcon } from "../Dice";
 import type { Route } from "../routes";
+import { onlineServerUrl } from "../online/client";
 
 type Go = (route: Route) => void;
 
@@ -41,7 +42,7 @@ export function Lobby({ navigate }: { navigate: Go }) {
             <span>다른 플레이어와 실시간 대결</span>
           </span>
           <span className="mode-badge" id="online-status">
-            준비 중
+            {onlineServerUrl() ? "친구 초대" : "준비 중"}
           </span>
         </button>
       </div>
