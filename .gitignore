@@ -11,3 +11,4 @@ training/data/
 *.tsbuildinfo
 training/dp/solve.exe
 public/ai/*.f64
+.online-data/
