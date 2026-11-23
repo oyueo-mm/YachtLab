@@ -37,6 +37,7 @@
 - [competitive-research.yml](../../../.github/workflows/competitive-research.yml)
 - [confirm-v2.yml](../../../.github/workflows/confirm-v2.yml)
 - [context-sync.yml](../../../.github/workflows/context-sync.yml)
+- [deploy-online-worker.yml](../../../.github/workflows/deploy-online-worker.yml)
 - [deploy.yml](../../../.github/workflows/deploy.yml)
 - [discovered-external.yml](../../../.github/workflows/discovered-external.yml)
 - [external-championship.yml](../../../.github/workflows/external-championship.yml)
@@ -98,6 +99,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [5a3ec59](https://github.com/oyueo-mm/YachtLab/commit/5a3ec59) | 2026-11-23 | ci: add guarded manual YachtLab Online Worker deploy (#47) |
 | [9279800](https://github.com/oyueo-mm/YachtLab/commit/9279800) | 2026-11-23 | Merge PR #46: 모바일 AI 대전 주사위판 우선 배치와 족보 연출 축소 |
 | [6597429](https://github.com/oyueo-mm/YachtLab/commit/6597429) | 2026-11-23 | feat(ui): refine mobile AI match layout and compact scoring dice effects |
 | [e920a9c](https://github.com/oyueo-mm/YachtLab/commit/e920a9c) | 2026-11-23 | Merge PR #45: YachtLab 게임 UI 1~4차 개편 |
@@ -107,7 +109,6 @@
 | [308b358](https://github.com/oyueo-mm/YachtLab/commit/308b358) | 2026-11-23 | feat(ui): setup screens, game-only play view, lobby dice, quiet rule help and 3D physics dice |
 | [5ad7c33](https://github.com/oyueo-mm/YachtLab/commit/5ad7c33) | 2026-11-23 | feat(ui): game-first lobby, immersive game shell, research lab, 2.5D dice, sound and rule tooltips |
 | [31d9a00](https://github.com/oyueo-mm/YachtLab/commit/31d9a00) | 2026-11-22 | feat: five fixed game difficulties and compact one-tap mobile scoring |
-| [a28477d](https://github.com/oyueo-mm/YachtLab/commit/a28477d) | 2026-11-22 | fix: calmer roll feedback, AI animations and confirmed scoring |
 
 ## 최근 GitHub Actions 상태
 
@@ -115,7 +116,7 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45125779857) | success | 9279800b4f |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45163537845) | success | d222cc07ca |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45110224151) | success | 984cf8e882 |
 | [YachtLab Win DP v3.1 research and independent confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/45056759480) | success | 7e07bfab83 |
 

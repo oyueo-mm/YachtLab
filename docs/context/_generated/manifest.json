@@ -77,6 +77,7 @@
     "competitive-research.yml",
     "confirm-v2.yml",
     "context-sync.yml",
+    "deploy-online-worker.yml",
     "deploy.yml",
     "discovered-external.yml",
     "external-championship.yml",
@@ -106,6 +107,11 @@
     "yahtzeerl-transfer.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "5a3ec59",
+      "date": "2026-11-23",
+      "subject": "ci: add guarded manual YachtLab Online Worker deploy (#47)"
+    },
     {
       "sha": "9279800",
       "date": "2026-11-23",
@@ -150,19 +156,14 @@
       "sha": "31d9a00",
       "date": "2026-11-22",
       "subject": "feat: five fixed game difficulties and compact one-tap mobile scoring"
-    },
-    {
-      "sha": "a28477d",
-      "date": "2026-11-22",
-      "subject": "fix: calmer roll feedback, AI animations and confirmed scoring"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "9279800b4f",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45125779857"
+      "head": "d222cc07ca",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45163537845"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
