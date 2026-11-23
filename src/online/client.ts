@@ -1,6 +1,6 @@
 import type { OnlineAction } from "./protocol";
 import type { PlayerView } from "./server-engine";
-import type { ApiError, JoinResponse, RoomSummary, ServerMessage } from "./wire";
+import type { ApiError, HoldState, JoinResponse, RoomSummary, ServerMessage } from "./wire";
 
 /**
  * Browser side of YachtLab Online (Phase 2): server address, saved seats, HTTP calls and a
@@ -141,9 +141,12 @@ export const roomSummary = (base: string, code: string) => call<RoomSummary>(bas
 export type ConnectionStatus = "connecting" | "online" | "reconnecting" | "closed";
 export type Ack = Extract<ServerMessage, { t: "ack" }>;
 export type ConnectionEvents = {
-  /** Full state. `live` is false for the catch-up sync after (re)connecting (no animations). */
-  onView(view: PlayerView, live: boolean): void;
-  onHold(playerId: string, keep: number[]): void;
+  /**
+   * Full state. `live` is false for the catch-up sync after (re)connecting (no animations).
+   * `hold` is the shared hold order of the turn (undefined when the server does not send it).
+   */
+  onView(view: PlayerView, live: boolean, hold: HoldState | null | undefined): void;
+  onHold(hold: HoldState): void;
   onPresence(online: string[]): void;
   onStatus(status: ConnectionStatus): void;
   /** The seat is gone (bad token, left, room closed): stop and go back to the entry screen. */
@@ -251,14 +254,13 @@ export class OnlineConnection {
         this.since = msg.view.version;
         this.setStatus("online");
         this.events.onPresence(msg.online);
-        this.events.onView(msg.view, false);
-        if (msg.hold) this.events.onHold(msg.hold.playerId, msg.hold.keep);
+        this.events.onView(msg.view, false, msg.hold ?? null);
         // Commands whose ack was lost are sent again with the same id (applied at most once).
         for (const p of this.pending.values()) this.ws?.send(p.frame);
         return;
       case "view":
         this.since = msg.view.version;
-        this.events.onView(msg.view, true);
+        this.events.onView(msg.view, true, msg.hold);
         return;
       case "ack": {
         const p = this.pending.get(msg.id);
@@ -267,7 +269,7 @@ export class OnlineConnection {
         return;
       }
       case "hold":
-        this.events.onHold(msg.playerId, msg.keep);
+        this.events.onHold({ playerId: msg.playerId, keep: msg.keep, n: msg.n ?? 0 });
         return;
       case "presence":
         this.events.onPresence(msg.online);
@@ -287,8 +289,8 @@ export class OnlineConnection {
     });
   }
 
-  /** Live hold preview for the opponent (best effort, never queued). */
-  hold(keep: number[]) {
-    if (this.ws?.readyState === WebSocket.OPEN && this.status === "online") this.ws.send(JSON.stringify({ t: "hold", keep }));
+  /** Hold selection in selection order (best effort, never queued; the roll carries the real keep). */
+  hold(keep: number[], n: number) {
+    if (this.ws?.readyState === WebSocket.OPEN && this.status === "online") this.ws.send(JSON.stringify({ t: "hold", keep, n }));
   }
 }

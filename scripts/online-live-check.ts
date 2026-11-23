@@ -30,7 +30,10 @@ async function room() {
 }
 
 async function turn(clients: Client[]) {
-  const c = clients.find((x) => x.view?.legal)!;
+  // The next player's view travels on its own socket: wait for it instead of assuming a delay.
+  let c: Client | undefined;
+  for (const deadline = Date.now() + 10_000; !(c = clients.find((x) => x.view?.legal)) && Date.now() < deadline; ) await new Promise((r) => setTimeout(r, 25));
+  if (!c) throw new Error("FAIL: no player received its turn");
   ok((await c.cmd({ type: "roll", keep: [] })).ok, "굴림");
   await c.settled();
   const best = [...c.view!.legal!.scores].sort((x, y) => y.points - x.points)[0];
@@ -51,6 +54,15 @@ try {
   const dup = await g.a.cmd({ type: "roll", keep: [] }, "live-roll-1");
   await g.a.settled();
   ok(roll.ok && dup.ok && dup.duplicate && g.a.view!.turn!.rolls === 1 && JSON.stringify(g.a.view!.turn!.dice) === JSON.stringify(dice), "중복 명령 1회만 적용");
+  // Shared hold order: selection order C(2) → A(0) reaches both players, survives the re-roll.
+  const order = g.b.next((m) => m.t === "hold" && m.keep.join() === "2,0");
+  g.a.ws.send(JSON.stringify({ t: "hold", keep: [2], n: 1 }));
+  g.a.ws.send(JSON.stringify({ t: "hold", keep: [2, 0], n: 2 }));
+  ok(!!(await order), "고정 순서 공유 (C→A)");
+  const rerolled = g.b.next((m) => m.t === "view" && m.view.turn?.rolls === 2);
+  ok((await g.a.cmd({ type: "roll", keep: [2, 0] })).ok, "고정 후 재굴림");
+  const rv = (await rerolled) as Extract<ServerMessage, { t: "view" }>;
+  ok(rv.hold?.keep.join() === "2,0", "재굴림 후에도 고정 순서 유지 (양쪽 동일)");
   const wrong = await g.b.cmd({ type: "roll", keep: [] });
   ok(!wrong.ok && wrong.error.code === "NOT_YOUR_TURN", "잘못된 차례 거부");
   const seen = g.b.view!.version;
@@ -59,7 +71,7 @@ try {
   await g.a.settled();
   const b2 = new Client(base, g.code, origin);
   const w = (await b2.hello(g.tokens[1], seen)) as Extract<ServerMessage, { t: "welcome" }>;
-  ok(w.t === "welcome" && w.view.events.map((e) => e.type).join() === "categoryScored,turnStarted" && !!w.view.legal, "재접속 since 동기화");
+  ok(w.t === "welcome" && w.view.events.map((e) => e.type).join() === "categoryScored,turnStarted" && !!w.view.legal && w.hold === null, "재접속 since 동기화 (새 턴은 고정 없음)");
   const pong = b2.next((m) => m.t === "pong");
   b2.ws.send('{"t":"ping"}');
   ok((await pong).t === "pong", "ping 자동 응답");

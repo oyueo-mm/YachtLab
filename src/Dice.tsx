@@ -121,11 +121,14 @@ function SortableDie({
   sound,
   hidden,
   modeRef,
+  sortable = true,
 }: {
   id: number;
   value: number;
   held: boolean;
   disabled: boolean;
+  /** Drag reordering (off in online play, where every screen shows the same order). */
+  sortable?: boolean;
   toggle: () => void;
   rolled: boolean;
   rollEvent: number;
@@ -197,8 +200,10 @@ function SortableDie({
     >
       <button
         {...attributes}
-        {...listeners}
+        {...(sortable ? listeners : {})}
+        {...(sortable ? {} : { "aria-disabled": undefined, "aria-roledescription": undefined })}
         onKeyDown={(event) => {
+          if (!sortable) return;
           if (
             event.altKey &&
             (event.key === "ArrowLeft" || event.key === "ArrowRight")
@@ -212,7 +217,7 @@ function SortableDie({
         disabled={disabled}
         aria-label={`주사위 ${id + 1}, ${value}, ${held ? "고정됨" : "고정 안 됨"}`}
         aria-pressed={held}
-        title="클릭: 고정 · 드래그 또는 Alt + 좌우 방향키: 순서 변경"
+        title={sortable ? "클릭: 고정 · 드래그 또는 Alt + 좌우 방향키: 순서 변경" : "클릭: 고정/해제"}
       >
         <span className="die-stage" aria-hidden={animating || hidden ? true : undefined}>
           <span ref={shadow} className="die-shadow" aria-hidden="true" />
@@ -236,8 +241,11 @@ export function Dice({
   onToggle,
   onOrder,
   forceRenderer,
+  holdOrder,
 }: {
   state: Pick<Game, "dice" | "order" | "rolls">;
+  /** Held dice in selection order (exposed for tests; the 3D table uses it for the shelf). */
+  holdOrder?: readonly number[];
   /** Dice lab only: compare renderers regardless of the saved setting. */
   forceRenderer?: DiceRenderer;
   interactive?: boolean;
@@ -458,6 +466,7 @@ export function Dice({
           ref={rowRef}
           className={`dice-row ${active ? "sorting" : ""}`}
           key={state.rolls === 0 ? "ready" : "rolling"}
+          data-hold-order={(holdOrder ?? []).join(",")}
         >
           {state.order.map((id) => {
             const die = state.dice.find((d) => d.id === id)!;
@@ -466,6 +475,7 @@ export function Dice({
                 key={id}
                 {...die}
                 disabled={!interactive || !state.rolls}
+                sortable={!!onOrder}
                 toggle={() => onToggle?.(id)}
                 rolled={state.rolls > 0}
                 animate={animate}

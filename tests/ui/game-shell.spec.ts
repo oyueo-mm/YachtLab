@@ -16,8 +16,10 @@ test("홈 → 오프라인 → 상세 설정 → 사람 vs AI / 사람 vs 사람
   await page.goto("");
   const modes = page.locator(".lobby .mode-card");
   await expect(modes).toHaveCount(2);
-  await expect(modes.first()).toContainText("오프라인 대전");
-  await modes.first().click();
+  // Online is the first (main) card; offline play is the second.
+  await expect(modes.first()).toContainText("온라인 대전");
+  await expect(modes.nth(1)).toContainText("오프라인 대전");
+  await modes.nth(1).click();
   await expect(page).toHaveURL(/#offline$/);
   await expect(page.getByRole("heading", { name: "오프라인 대전" })).toBeVisible();
   await page.getByRole("button", { name: /사람 vs AI/ }).click();
@@ -41,14 +43,15 @@ test("홈 → 오프라인 → 상세 설정 → 사람 vs AI / 사람 vs 사람
   expect(errors).toEqual([]);
 });
 
-test("온라인 대전은 준비 중 화면만 보여 주고 실제 대전처럼 보이지 않는다", async ({ page }) => {
+test("서버 주소가 없는 빌드에서 온라인 대전은 연결 안내만 보여 주고 실제 대전처럼 보이지 않는다", async ({ page }) => {
   await page.goto("");
   const online = page.locator(".mode-online");
-  await expect(online.locator(".mode-badge")).toHaveText("준비 중");
+  await expect(online.locator(".mode-badge")).toHaveCount(0);
+  await expect(online).not.toContainText("준비 중");
   await online.click();
   await expect(page).toHaveURL(/#online$/);
-  await expect(page.getByRole("heading", { name: "온라인 대전은 준비 중이에요" })).toBeVisible();
-  await expect(page.locator("main")).toContainText("서버와 연결되어 있지 않아");
+  await expect(page.getByRole("heading", { name: "온라인 서버에 연결되어 있지 않아요" })).toBeVisible();
+  await expect(page.locator("main")).toContainText("서버 주소가 설정되어 있지 않아");
   // No matchmaking controls, no fake player lists or inputs.
   await expect(page.locator("main input, main select, .dice-row")).toHaveCount(0);
   await expect(page.locator("main")).not.toContainText(/매칭 중|접속자|상대를 찾/);

@@ -112,3 +112,20 @@
 
 **근거:** worker/, tests/online-worker.test.ts, tests/online-host.test.ts, tests/ui/online.spec.ts, Cloudflare 공식 요금·한도 문서(2026-11-13~19 갱신본).
 
+## D-022. 온라인 서버 운영: Workers Free 공유 계정, 하루 방 한도와 행 쓰기 0 속도 제한
+
+**상태: 신규 (2026-11-23, Online v0.1 Phase 4, 운영 중).** `yachtlab-online` Worker를 workers.dev 무료 주소로 배포하고 GitHub Pages 프로덕션 빌드를 연결했다. 계정은 Workers Free(결제 수단 없음)이며 `ideadock-auth`와 일일 무료 한도를 공유하므로, 하루 방 생성 한도 300(행 쓰기 약 36%), 동시 방 50, 허용 출처 Pages만, 속도 제한은 메모리 카운터(행 쓰기 0), 재접속은 저장하지 않음을 원칙으로 한다. 배포는 소유자의 수동 워크플로(`deploy-online-worker.yml`, 무료 플랜 확인 필수)로 하고, 실서버 검증은 컨테이너 프록시가 WebSocket을 지원하지 않으므로 GitHub Actions `online-live-check.yml`로 한다. CI 테스트는 서버 주소 없는 빌드로, Pages 업로드만 서버 주소로 다시 빌드한다. 상세: [Phase 4](../online/ONLINE-V01-PHASE4.md).
+
+**근거:** worker/wrangler.toml, worker/src/index.ts, .github/workflows/deploy.yml, .github/workflows/deploy-online-worker.yml, .github/workflows/online-live-check.yml, 실서버 검증 run 45175468744·45181133166.
+
+## D-023. 고정 순서는 표시 상태, 온라인에서는 서버가 공유 / 온라인 대전을 홈 메인으로
+
+**상태: 신규 (2026-11-23).**
+- **홈:** 온라인 대전이 첫 번째 강조 카드(CTA "친구와 대전하기", 모바일에서도 표시), 오프라인 대전은 두 번째 보조 카드. "준비 중" 표기는 없앴고, 서버 주소가 없는 빌드(로컬 미리보기)만 "온라인 서버에 연결되어 있지 않아요"를 보여 준다.
+- **고정 순서:** 고정 선반의 자리는 엔진의 `order`가 아니라 **선택 순서**(`src/hold-order.ts`)로 정한다. 새로 고정한 주사위는 맨 뒤, 해제하면 그 주사위만 빠지고 나머지 순서 유지, 다시 고르면 맨 뒤, 재굴림에도 유지. 주사위 값·`held`·엔진 `order`는 바꾸지 않는 표시 전용 상태다. 오프라인은 `DiceArea`가 `held` 변화에서 추적하고, 온라인은 서버 값을 받는다.
+- **온라인 화면 동기화:** 방(`OnlineRoom`)이 현재 턴의 고정 순서(`HoldState {playerId, keep, n}`)를 엔진 로그 **밖의 공유 표시 상태**로 가진다. 차례인 사람의 `hold` 메시지(순서 보존, 보낸 사람 포함 전원에게 전달, `n`으로 자기 메아리 구분)와 `roll` 명령의 `keep` 순서로 갱신하고, 새 턴·종료 시 비운다. 모든 `view`/`welcome`에 포함되며 레코드에 들어가 **다음 명령과 함께 저장**(추가 행 쓰기 없음). 엔진의 `kept`는 정렬된 집합 그대로라 이벤트 로그·감사·RNG는 바뀌지 않는다. 온라인 행 순서는 id 순 고정이고 드래그 재정렬은 끈다. 3D 물리 궤적·착지 위치는 화면마다 다를 수 있으나, 끝난 뒤의 눈·ID·고정 여부·고정 순서·굴림 수는 같다.
+- **호환성:** 서버는 새 필드만 추가(구 클라이언트는 무시), 새 클라이언트는 `hold`가 없는 구 서버에서도 동작 → **서버 먼저 배포, 그다음 프런트**.
+- **초대 링크:** 기존 Pages URL `https://oyueo-mm.github.io/YachtLab/?room=CODE#online`을 그대로 쓰고, 링크로 열면 그 방 전용 입장 화면(저장된 닉네임 자동 입력, "입장하기" 한 번)으로 간다. 없는 방·정원 초과·진행 중·종료를 안내하고, `#online`이 빠진 링크도 온라인 화면으로 연다. URL에는 방 코드만 있고 좌석 토큰은 없다. 코드 입력 방식도 유지.
+
+**근거:** src/hold-order.ts, src/DiceArea.tsx, src/PhysicalDice.tsx, src/online/room.ts, src/online/wire.ts, src/play/OnlineGame.tsx, src/play/OnlineEntry.tsx, src/shell/Lobby.tsx, tests/hold-order.test.ts, tests/online-server.test.ts, tests/ui/online.spec.ts, tests/ui/game-flow.spec.ts.
+

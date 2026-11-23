@@ -30,5 +30,8 @@ export const labTools = ["watch", "tournament", "analysis", "dice-lab"] as const
 export const isRoute = (value: string): value is Route => Object.prototype.hasOwnProperty.call(routes, value);
 export const currentRoute = (): Route => {
   const id = location.hash.slice(1);
-  return isRoute(id) ? id : "home";
+  if (isRoute(id)) return id;
+  // An invite link whose #online was dropped by a messenger still opens the online screen.
+  if (/^[A-Z2-9]{6}$/i.test(new URLSearchParams(location.search).get("room") ?? "")) return "online";
+  return "home";
 };

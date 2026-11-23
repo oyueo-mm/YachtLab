@@ -38,15 +38,21 @@ export function PhysicalDice({
   module: mod,
   quality,
   state,
+  holdOrder = [],
   interactive,
   rollEvent,
   onToggle,
   onOrder,
+  onShiftHold,
   onFailure,
 }: {
   module: DiceTableModule;
   quality: "3d" | "3d-high";
   state: Pick<Game, "dice" | "order" | "rolls">;
+  /** Held dice in selection order: shelf slot i holds holdOrder[i] (first selected = leftmost). */
+  holdOrder?: readonly number[];
+  /** Alt + arrow on a held die (absent when the order is decided elsewhere, e.g. online). */
+  onShiftHold?: (id: number, step: -1 | 1) => void;
   interactive: boolean;
   rollEvent: number;
   onToggle?: (id: number) => void;
@@ -63,9 +69,11 @@ export function PhysicalDice({
   const refresh = () => setTick((n) => n + 1);
   const handledRoll = useRef(rollEvent);
   const prevHeld = useRef(new Map(state.dice.map((d) => [d.id, d.held])));
-  const prevOrder = useRef(state.order.join());
+  const prevOrder = useRef(holdOrder.join());
   const stateRef = useRef(state);
   stateRef.current = state;
+  const holdRef = useRef(holdOrder);
+  holdRef.current = holdOrder;
   const hitEls = useRef(new Map<number, HTMLElement>());
   const dimsRef = useRef<typeof dims>(null);
   dimsRef.current = dims;
@@ -98,11 +106,14 @@ export function PhysicalDice({
     [],
   );
 
-  const holdSlot = (id: number) => {
+  /** Shelf slot i (0 = leftmost). */
+  const slotAt = (i: number) => {
     if (!dims) return { x: 0, z: 0 };
     const gap = Math.min(1.3, (dims.W - 0.4) / 5);
-    return { x: dims.W / 2 + (stateRef.current.order.indexOf(id) - 2) * gap, z: dims.trayH + HOLD_UNITS / 2 };
+    return { x: dims.W / 2 + (i - 2) * gap, z: dims.trayH + HOLD_UNITS / 2 };
   };
+  /** A held die sits in the slot of its selection order. */
+  const holdSlot = (id: number) => slotAt(Math.max(0, holdRef.current.indexOf(id)));
   const holdPose = (id: number, near?: Pose["quat"]): Pose => {
     const value = stateRef.current.dice.find((d) => d.id === id)!.value;
     const s = holdSlot(id);
@@ -350,9 +361,10 @@ export function PhysicalDice({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.dice.map((d) => (d.held ? 1 : 0)).join(""), flying.size]);
 
-  // Reordering moves held dice to their new shelf slots.
+  // A change in the selection order (a die released, Alt + arrow, an online update) slides the
+  // remaining held dice to their new shelf slots.
   useEffect(() => {
-    const key = state.order.join();
+    const key = holdOrder.join();
     if (key === prevOrder.current) return;
     prevOrder.current = key;
     const t = table.current;
@@ -366,7 +378,7 @@ export function PhysicalDice({
     refresh();
     void cancels;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.order.join()]);
+  }, [holdOrder.join()]);
 
   // Test / diagnostics hook: what is actually drawn right now.
   useEffect(() => {
@@ -424,18 +436,21 @@ export function PhysicalDice({
   const keys = (event: KeyboardEvent<HTMLButtonElement>, id: number) => {
     if (!event.altKey || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
     event.preventDefault();
+    const step = event.key === "ArrowLeft" ? -1 : 1;
+    // A held die moves along the shelf; a die in the tray changes the row order (2.5D view, keyboard users).
+    if (holdRef.current.includes(id)) return onShiftHold?.(id, step);
     const index = state.order.indexOf(id),
       target = index + (event.key === "ArrowLeft" ? -1 : 1);
     if (target >= 0 && target < 5) onOrder?.(arrayMove(state.order, index, target));
   };
   return (
-    <div ref={root} className="physical-dice" data-ready={!!dims} onClick={pickGap}>
+    <div ref={root} className="physical-dice" data-ready={!!dims} data-hold-order={holdOrder.join(",")} onClick={pickGap}>
       <div className="dice-tray-area" style={dims ? { height: dims.trayH * dims.size } : undefined} />
       <div className="dice-hold-area" style={dims ? { height: HOLD_UNITS * dims.size } : undefined} aria-label="고정한 주사위 자리">
         {dims &&
-          state.order.map((id) => {
-            const s = holdSlot(id);
-            return <span key={id} className="hold-slot" style={{ left: s.x * dims.size - dims.size / 2, top: (s.z - dims.trayH) * dims.size - dims.size / 2, width: dims.size, height: dims.size }} />;
+          [0, 1, 2, 3, 4].map((i) => {
+            const s = slotAt(i);
+            return <span key={i} className="hold-slot" style={{ left: s.x * dims.size - dims.size / 2, top: (s.z - dims.trayH) * dims.size - dims.size / 2, width: dims.size, height: dims.size }} />;
           })}
       </div>
       <div className="dice-table-stage" />
@@ -459,7 +474,7 @@ export function PhysicalDice({
               disabled={!interactive || busy || !state.rolls}
               aria-pressed={d.held}
               aria-label={`주사위 ${id + 1}, ${d.value}, ${d.held ? "고정됨" : "고정 안 됨"}`}
-              title="클릭: 고정/해제 · Alt + 좌우 방향키: 고정 자리 순서 변경"
+              title="클릭: 고정/해제 (고정한 순서대로 아래 칸에 놓여요)"
               onClick={(e) => pick(e, id)}
               onKeyDown={(e) => keys(e, id)}
             />
