@@ -100,16 +100,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [a438429](https://github.com/oyueo-mm/YachtLab/commit/a438429) | 2026-11-24 | Merge pull request #49 from oyueo-mm/claude/yachtlab-mobile-ui-o0rd2b |
+| [9587702](https://github.com/oyueo-mm/YachtLab/commit/9587702) | 2026-11-23 | docs: mobile UX, rendering measurements (emulated), sound design, yacht/join effects (D-024) |
+| [368472a](https://github.com/oyueo-mm/YachtLab/commit/368472a) | 2026-11-23 | feat(mobile): one-tap quick picks under the roll button on phones |
+| [e21f7fd](https://github.com/oyueo-mm/YachtLab/commit/e21f7fd) | 2026-11-23 | feat(feel): realistic dice sounds, yacht moment, online join chime, no sound burst on reconnect |
+| [6b0fa63](https://github.com/oyueo-mm/YachtLab/commit/6b0fa63) | 2026-11-23 | perf(dice3d): sharp dice on phones, one render per frame, physics prepared while dice rest |
+| [9936af4](https://github.com/oyueo-mm/YachtLab/commit/9936af4) | 2026-11-23 | fix(ui): scoreboard no longer clipped on tablets/landscape; leaner play screen on every size |
 | [534b85a](https://github.com/oyueo-mm/YachtLab/commit/534b85a) | 2026-11-23 | Merge PR #48: 온라인 메인 홈·고정 선택 순서·두 화면 주사위 동기화·초대 링크 바로 입장 |
 | [3f46d15](https://github.com/oyueo-mm/YachtLab/commit/3f46d15) | 2026-11-23 | test(online): live check waits for the next player's view instead of a fixed delay |
 | [9a0f718](https://github.com/oyueo-mm/YachtLab/commit/9a0f718) | 2026-11-23 | feat(online): online-first home, selection-ordered hold shelf, shared hold order, invite-link entry |
 | [ba2766a](https://github.com/oyueo-mm/YachtLab/commit/ba2766a) | 2026-11-23 | docs(online): Phase 4 deployment, live verification, free-tier safety and operations |
-| [dd5fc72](https://github.com/oyueo-mm/YachtLab/commit/dd5fc72) | 2026-11-23 | Merge PR #44: YachtLab Online v0.1 (서버 권한형 엔진, 친구 초대형 온라인 대전, Workers·Durable Objects) |
-| [f410787](https://github.com/oyueo-mm/YachtLab/commit/f410787) | 2026-11-23 | ci(online): manual live check of the deployed Worker and the public site |
-| [0c77849](https://github.com/oyueo-mm/YachtLab/commit/0c77849) | 2026-11-23 | Merge remote-tracking branch 'origin/feat/online-v01-phase1' into feat/online-v01-phase1 |
-| [ad39984](https://github.com/oyueo-mm/YachtLab/commit/ad39984) | 2026-11-23 | fix(online): keep test builds unconfigured and fix 320px overflow of the online screens |
-| [f283141](https://github.com/oyueo-mm/YachtLab/commit/f283141) | 2026-11-23 | ci(online): test unconfigured preview while connecting production Pages to Worker |
-| [9b69578](https://github.com/oyueo-mm/YachtLab/commit/9b69578) | 2026-11-23 | ci(online): point Pages production build at deployed Cloudflare Worker |
 
 ## 최근 GitHub Actions 상태
 
@@ -117,9 +117,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45195994469) | success | 3f46d15b62 |
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45195994404) | success | 3f46d15b62 |
-| [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45195986887) | success | 3f46d15b62 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45234371645) | success | 9587702c95 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45234371455) | success | 9587702c95 |
+| [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45202478379) | success | 458e0ecd52 |
 | [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45195505313) | success | 9a0f7180b0 |
 
 ## 다음 채팅과 작업의 시작점

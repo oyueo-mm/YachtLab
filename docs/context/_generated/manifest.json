@@ -111,6 +111,36 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "a438429",
+      "date": "2026-11-24",
+      "subject": "Merge pull request #49 from oyueo-mm/claude/yachtlab-mobile-ui-o0rd2b"
+    },
+    {
+      "sha": "9587702",
+      "date": "2026-11-23",
+      "subject": "docs: mobile UX, rendering measurements (emulated), sound design, yacht/join effects (D-024)"
+    },
+    {
+      "sha": "368472a",
+      "date": "2026-11-23",
+      "subject": "feat(mobile): one-tap quick picks under the roll button on phones"
+    },
+    {
+      "sha": "e21f7fd",
+      "date": "2026-11-23",
+      "subject": "feat(feel): realistic dice sounds, yacht moment, online join chime, no sound burst on reconnect"
+    },
+    {
+      "sha": "6b0fa63",
+      "date": "2026-11-23",
+      "subject": "perf(dice3d): sharp dice on phones, one render per frame, physics prepared while dice rest"
+    },
+    {
+      "sha": "9936af4",
+      "date": "2026-11-23",
+      "subject": "fix(ui): scoreboard no longer clipped on tablets/landscape; leaner play screen on every size"
+    },
+    {
       "sha": "534b85a",
       "date": "2026-11-23",
       "subject": "Merge PR #48: 온라인 메인 홈·고정 선택 순서·두 화면 주사위 동기화·초대 링크 바로 입장"
@@ -129,56 +159,26 @@
       "sha": "ba2766a",
       "date": "2026-11-23",
       "subject": "docs(online): Phase 4 deployment, live verification, free-tier safety and operations"
-    },
-    {
-      "sha": "dd5fc72",
-      "date": "2026-11-23",
-      "subject": "Merge PR #44: YachtLab Online v0.1 (서버 권한형 엔진, 친구 초대형 온라인 대전, Workers·Durable Objects)"
-    },
-    {
-      "sha": "f410787",
-      "date": "2026-11-23",
-      "subject": "ci(online): manual live check of the deployed Worker and the public site"
-    },
-    {
-      "sha": "0c77849",
-      "date": "2026-11-23",
-      "subject": "Merge remote-tracking branch 'origin/feat/online-v01-phase1' into feat/online-v01-phase1"
-    },
-    {
-      "sha": "ad39984",
-      "date": "2026-11-23",
-      "subject": "fix(online): keep test builds unconfigured and fix 320px overflow of the online screens"
-    },
-    {
-      "sha": "f283141",
-      "date": "2026-11-23",
-      "subject": "ci(online): test unconfigured preview while connecting production Pages to Worker"
-    },
-    {
-      "sha": "9b69578",
-      "date": "2026-11-23",
-      "subject": "ci(online): point Pages production build at deployed Cloudflare Worker"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "3f46d15b62",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45195994469"
-    },
-    {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
-      "head": "3f46d15b62",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45195994404"
+      "head": "9587702c95",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45234371645"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "9587702c95",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45234371455"
     },
     {
       "name": "YachtLab Online live check (manual)",
       "status": "success",
-      "head": "3f46d15b62",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45195986887"
+      "head": "458e0ecd52",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45202478379"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
