@@ -1,0 +1,35 @@
+name: Deploy YachtLab Online Worker (manual)
+on:
+  workflow_dispatch:
+    inputs:
+      free_plan_confirmed:
+        description: "I verified that this Cloudflare account uses Workers Free and does not have paid billing enabled."
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-online-worker-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: ${{ inputs.free_plan_confirmed }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Deploy only the existing yachtlab-online Worker
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: deploy --config wrangler.toml
