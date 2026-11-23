@@ -30,7 +30,10 @@ async function room() {
 }
 
 async function turn(clients: Client[]) {
-  const c = clients.find((x) => x.view?.legal)!;
+  // The next player's view travels on its own socket: wait for it instead of assuming a delay.
+  let c: Client | undefined;
+  for (const deadline = Date.now() + 10_000; !(c = clients.find((x) => x.view?.legal)) && Date.now() < deadline; ) await new Promise((r) => setTimeout(r, 25));
+  if (!c) throw new Error("FAIL: no player received its turn");
   ok((await c.cmd({ type: "roll", keep: [] })).ok, "굴림");
   await c.settled();
   const best = [...c.view!.legal!.scores].sort((x, y) => y.points - x.points)[0];
