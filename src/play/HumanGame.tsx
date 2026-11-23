@@ -284,7 +284,8 @@ export default function HumanGame({
               AI 다시 계산
             </button>
           )}
-          {last && (
+          {/* Research detail: only for research models chosen in advanced settings, not the public levels. */}
+          {last && !isPublicLevel && (
             <details className="decision-details">
               <summary>
                 AI의 마지막 판단

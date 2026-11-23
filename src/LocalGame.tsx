@@ -148,7 +148,7 @@ export default function LocalGame({
                 <i />
                 {state.done ? "경기 종료" : current + "의 차례"}
               </span>
-              <span>
+              <span className="board-rolls">
                 라운드 {state.round}/12 · 굴림 <b>{state.rolls}</b>/3
               </span>
             </div>
