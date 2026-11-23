@@ -107,6 +107,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "9279800",
+      "date": "2026-11-23",
+      "subject": "Merge PR #46: 모바일 AI 대전 주사위판 우선 배치와 족보 연출 축소"
+    },
+    {
+      "sha": "6597429",
+      "date": "2026-11-23",
+      "subject": "feat(ui): refine mobile AI match layout and compact scoring dice effects"
+    },
+    {
       "sha": "e920a9c",
       "date": "2026-11-23",
       "subject": "Merge PR #45: YachtLab 게임 UI 1~4차 개편"
@@ -145,30 +155,20 @@
       "sha": "a28477d",
       "date": "2026-11-22",
       "subject": "fix: calmer roll feedback, AI animations and confirmed scoring"
-    },
-    {
-      "sha": "4bffdba",
-      "date": "2026-11-22",
-      "subject": "feat: enable playable Win DP v4-D and refine player-first YachtLab UI"
-    },
-    {
-      "sha": "8b8a203",
-      "date": "2026-11-22",
-      "subject": "feat: player-first YachtLab gameplay UX, responsive score sheet and offline match records"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "e920a9c89d",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45114528916"
+    },
     {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
       "head": "984cf8e882",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45110224151"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "984cf8e882",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45110224109"
     },
     {
       "name": "YachtLab Win DP v3.1 research and independent confirmation",
