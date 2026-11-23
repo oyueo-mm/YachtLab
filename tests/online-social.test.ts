@@ -78,7 +78,9 @@ describe("재대결 (같은 방 재사용)", () => {
     expect(room.match.turn!.playerId).toBe(ja.playerId);
     await playOut();
     expect(room.match.status).toBe("finished");
-    expect(b.last("rematch")).toBeUndefined();
+    // The finish itself announces the room score (no request yet).
+    expect(b.last("rematch")!.rematch.requests).toEqual([]);
+    expect(b.last("rematch")!.series.games).toBe(1);
     await room.message(a, JSON.stringify({ t: "rematch", op: "request" }));
     expect(b.last("rematch")!.rematch.requests).toEqual([ja.playerId]);
     // double tap: no second write, no duplicate request
