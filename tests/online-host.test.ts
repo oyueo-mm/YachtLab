@@ -238,4 +238,43 @@ describe("RoomHost (Durable Object logic, runtime-free)", () => {
     console.log(`wake rebuild: ${events} events, median ${runs[10].toFixed(2)} ms, max ${runs[19].toFixed(2)} ms`);
     expect(runs[10]).toBeLessThan(25);
   });
+  it("고정 순서는 다음 명령 전에 객체가 내려가도 소켓 첨부 데이터로 복구되고, 행 쓰기는 늘지 않는다", async () => {
+    const t = 2_000_000;
+    const { state, storage } = fakeStorage();
+    const open: FakeSocket[] = [];
+    const make = () => new RoomHost(storage, () => open, config, () => t, seededDiceSource(5));
+    let host = make();
+    host.init();
+    const created = await host.create("HQKDAB", "민수");
+    const joined = await host.join("지민");
+    if (!created.ok || !joined.ok) throw Error("join failed");
+    const [a, b] = [new FakeSocket(), new FakeSocket()];
+    for (const ws of [a, b]) {
+      host.admit();
+      open.push(ws);
+      host.accepted(ws);
+    }
+    await host.message(a, JSON.stringify({ t: "hello", token: created.token }));
+    await host.message(b, JSON.stringify({ t: "hello", token: joined.token }));
+    await host.message(a, JSON.stringify({ t: "cmd", id: "start", action: { type: "start" } }));
+    await host.message(a, JSON.stringify({ t: "cmd", id: "r1", action: { type: "roll", keep: [] } }));
+    const writes = state.writes;
+    await host.message(a, JSON.stringify({ t: "hold", keep: [3, 0], n: 1 }));
+    await host.message(a, JSON.stringify({ t: "hold", keep: [3, 0, 4], n: 2 }));
+    expect(state.writes).toBe(writes); // hold toggles never write SQLite rows
+    // Eviction: memory is gone, sockets stay. The opponent reconnects and must see the same order.
+    host = make();
+    host.init();
+    const c = new FakeSocket();
+    host.admit();
+    open.splice(1, 1, c);
+    host.accepted(c);
+    await host.message(c, JSON.stringify({ t: "hello", token: joined.token }));
+    expect(c.last("welcome")?.hold).toEqual({ playerId: created.playerId, keep: [3, 0, 4], n: 2 });
+    // The roll keeps that order for both screens.
+    await host.message(a, JSON.stringify({ t: "cmd", id: "r2", action: { type: "roll", keep: [3, 0, 4] } }));
+    expect(c.last("view")?.hold?.keep).toEqual([3, 0, 4]);
+    // A stale copy (older match version) is ignored after the next command.
+    expect(host.room!.adoptHold({ hold: { playerId: created.playerId, keep: [1], n: 9 }, v: 0 })).toBe(false);
+  });
 });

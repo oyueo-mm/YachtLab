@@ -19,7 +19,7 @@ import { ConfirmDialog, type PendingAction } from "../ui/ConfirmDialog";
 import { aiSpeedScale, resolveHumanSeat, type AiMatchConfig } from "../setup";
 import { useDiceBusy } from "../useDiceBusy";
 import { useYachtReady } from "../yacht-moment";
-import { QuickPicks } from "../QuickPicks";
+import { BonusChip, QuickPicks } from "../QuickPicks";
 import { announceScore, clearScoreFx } from "../score-fx";
 
 /**
@@ -203,6 +203,7 @@ export default function HumanGame({
                 <small>/ 12</small>
               </strong>
             </div>
+            <BonusChip card={state.cards[humanSeat]} />
           </div>
           <section className={"game-board throw-tray" + (state.rolls === 0 ? " dice-ready" : "")} aria-label="게임 보드" {...gesture}>
             <Celebrate value={celebration} />

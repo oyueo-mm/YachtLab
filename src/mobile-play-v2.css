@@ -1,0 +1,107 @@
+/*
+ * Phones, AI and online matches (2026-11 follow-up, docs/ui/PHASE-A-2026-11.md).
+ * Mobile-first instead of a shrunk desktop:
+ *  - A compact score strip (me · opponent · round · upper bonus) sits ABOVE the dice. It used to be
+ *    below the score button and fell off-screen on short phones (320×568, 360×640).
+ *  - The tray takes the height that is left, so tray + roll + quick picks + "점수 기록" fit in one screen
+ *    from 568 px tall upwards: the thumb reaches every action without scrolling.
+ *  - The quick-pick row keeps its height when empty (no jump under the finger after a roll).
+ * Desktop/tablet layouts are untouched.
+ */
+.bonus-chip {
+  display: none;
+}
+@media (max-width: 760px) {
+  :is(.page-play, .page-online-room) .game-left > .score-summary {
+    order: -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    margin: 0 0 8px;
+    padding: 0 2px;
+    border: 0;
+  }
+  :is(.page-play, .page-online-room) .score-summary > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    min-height: 44px;
+    padding: 4px 9px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+  }
+  :is(.page-play, .page-online-room) .score-summary > div.selected {
+    border-color: var(--red);
+    box-shadow: inset 0 0 0 1px var(--red);
+  }
+  :is(.page-play, .page-online-room) .score-summary > div > span {
+    display: block;
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .app-shell :is(.page-play, .page-online-room) .score-summary strong {
+    font-size: 19px;
+    line-height: 1.1;
+  }
+  :is(.page-play, .page-online-room) .score-summary small {
+    font-size: 10px;
+  }
+  :is(.page-play, .page-online-room) .score-summary > .round {
+    align-items: center;
+    padding-inline: 7px;
+  }
+  .bonus-chip {
+    display: flex;
+    align-items: center;
+  }
+  .bonus-chip > span {
+    font-size: 10px !important;
+    opacity: 0.75;
+  }
+  .app-shell .bonus-chip > strong {
+    font-size: 11px !important;
+    white-space: nowrap;
+  }
+  .bonus-chip.achieved > strong {
+    color: #2f8a4a;
+  }
+
+  /* Tray height = what is left of the screen (top bar, strip, roll, picks, score button), within limits. */
+  .app-shell.shell-game :is(.page-play, .page-online-room) .game-board > .physical-dice {
+    height: clamp(196px, calc(100dvh - 404px - env(safe-area-inset-bottom)), 390px);
+  }
+  /* Keep the quick-pick row's height even when it has nothing to show. */
+  .app-shell.shell-game .roll-area .quick-picks.quick-picks-empty {
+    display: block;
+  }
+  .app-shell.shell-game .roll-area .quick-picks {
+    box-sizing: border-box;
+    height: 56px;
+    margin-top: 8px;
+  }
+  .app-shell.shell-game .roll-area .quick-pick {
+    height: 56px;
+    min-height: 0;
+  }
+  :is(.page-play, .page-online-room) .game-left > .mobile-score-button {
+    margin-top: 8px;
+  }
+}
+@media (max-width: 360px) {
+  .app-shell.shell-game :is(.page-play, .page-online-room) .game-board > .physical-dice {
+    height: clamp(180px, calc(100dvh - 396px - env(safe-area-inset-bottom)), 330px);
+  }
+  :is(.page-play, .page-online-room) .score-summary > div {
+    padding: 3px 7px;
+  }
+  .bonus-chip > span {
+    display: none;
+  }
+}

@@ -30,7 +30,7 @@ const SINGLE: [string, () => void][] = [
 ];
 
 /**
- * Side-by-side listening test for the dice sounds: v1 (first synthesis) and v2 (current).
+ * Side-by-side listening test for the dice sounds: v1 (first synthesis), v2 (current), v3 (candidate).
  * All sounds are synthesized in the browser (src/sound.ts) — no audio files, no third-party licenses.
  */
 export default function SoundDemo() {
@@ -49,10 +49,10 @@ export default function SoundDemo() {
     <div className="sound-demo" aria-label="효과음 시연">
       <h2>효과음 시연</h2>
       <div className="segmented" role="radiogroup" aria-label="효과음 버전">
-        {(["v2", "v1"] as const).map((v) => (
+        {(["v1", "v2", "v3"] as const).map((v) => (
           <label key={v} className={variant === v ? "checked" : ""}>
             <input type="radio" name="sfx-variant" checked={variant === v} onChange={() => pick(v)} />
-            <span>{v === "v2" ? "현재 (v2)" : "이전 (v1)"}</span>
+            <span>{v === "v2" ? "현재 (v2)" : v === "v1" ? "이전 (v1)" : "후보 (v3)"}</span>
           </label>
         ))}
       </div>
@@ -66,7 +66,7 @@ export default function SoundDemo() {
           </button>
         ))}
       </div>
-      <p className="setup-note">효과음은 모두 브라우저에서 합성해요(외부 음원 없음). 버전을 바꿔 같은 소리를 비교해 보세요. 게임에는 항상 현재 버전이 쓰여요.</p>
+      <p className="setup-note">효과음은 모두 브라우저에서 합성해요(외부 음원 없음). 이전·현재·후보 버전으로 같은 소리를 비교해 보세요. 후보(v3)는 휴대폰 스피커에서도 들리는 음역과 짧은 잡음 타격음을 쓴 실험 버전이에요. 게임에는 항상 현재 버전이 쓰여요.</p>
     </div>
   );
 }

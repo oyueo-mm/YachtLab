@@ -13,6 +13,8 @@ export default defineConfig({
     // Functional tests run without dice motion (3D throws take ~1.3 s each). Tests that check
     // animation opt back in with `withMotion()` from tests/ui/helpers.ts.
     contextOptions: { reducedMotion: "reduce" },
+    // Local sandboxes with a preinstalled Chromium can point at it; CI installs its own.
+    launchOptions: process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {},
   },
   projects: [
     {
