@@ -100,16 +100,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [534b85a](https://github.com/oyueo-mm/YachtLab/commit/534b85a) | 2026-11-23 | Merge PR #48: 온라인 메인 홈·고정 선택 순서·두 화면 주사위 동기화·초대 링크 바로 입장 |
+| [3f46d15](https://github.com/oyueo-mm/YachtLab/commit/3f46d15) | 2026-11-23 | test(online): live check waits for the next player's view instead of a fixed delay |
+| [9a0f718](https://github.com/oyueo-mm/YachtLab/commit/9a0f718) | 2026-11-23 | feat(online): online-first home, selection-ordered hold shelf, shared hold order, invite-link entry |
+| [ba2766a](https://github.com/oyueo-mm/YachtLab/commit/ba2766a) | 2026-11-23 | docs(online): Phase 4 deployment, live verification, free-tier safety and operations |
 | [dd5fc72](https://github.com/oyueo-mm/YachtLab/commit/dd5fc72) | 2026-11-23 | Merge PR #44: YachtLab Online v0.1 (서버 권한형 엔진, 친구 초대형 온라인 대전, Workers·Durable Objects) |
 | [f410787](https://github.com/oyueo-mm/YachtLab/commit/f410787) | 2026-11-23 | ci(online): manual live check of the deployed Worker and the public site |
 | [0c77849](https://github.com/oyueo-mm/YachtLab/commit/0c77849) | 2026-11-23 | Merge remote-tracking branch 'origin/feat/online-v01-phase1' into feat/online-v01-phase1 |
 | [ad39984](https://github.com/oyueo-mm/YachtLab/commit/ad39984) | 2026-11-23 | fix(online): keep test builds unconfigured and fix 320px overflow of the online screens |
 | [f283141](https://github.com/oyueo-mm/YachtLab/commit/f283141) | 2026-11-23 | ci(online): test unconfigured preview while connecting production Pages to Worker |
 | [9b69578](https://github.com/oyueo-mm/YachtLab/commit/9b69578) | 2026-11-23 | ci(online): point Pages production build at deployed Cloudflare Worker |
-| [5a3ec59](https://github.com/oyueo-mm/YachtLab/commit/5a3ec59) | 2026-11-23 | ci: add guarded manual YachtLab Online Worker deploy (#47) |
-| [4a3b991](https://github.com/oyueo-mm/YachtLab/commit/4a3b991) | 2026-11-23 | ci(online): add guarded manual Cloudflare Worker deploy workflow |
-| [b8d2960](https://github.com/oyueo-mm/YachtLab/commit/b8d2960) | 2026-11-23 | fix(online): keep the Worker inside a shared free-tier budget before deployment |
-| [bbffa27](https://github.com/oyueo-mm/YachtLab/commit/bbffa27) | 2026-11-23 | feat(online): Phase 3 Cloudflare Workers + SQLite Durable Objects backend (local only) |
 
 ## 최근 GitHub Actions 상태
 
@@ -117,9 +117,10 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45175468744) | success | f4107870ba |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45175450730) | success | f4107870ba |
-| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45170197533) | success | 4a3b991ded |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45195994469) | success | 3f46d15b62 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45195994404) | success | 3f46d15b62 |
+| [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45195986887) | success | 3f46d15b62 |
+| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45195505313) | success | 9a0f7180b0 |
 
 ## 다음 채팅과 작업의 시작점
 

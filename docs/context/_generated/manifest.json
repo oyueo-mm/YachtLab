@@ -111,6 +111,26 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "534b85a",
+      "date": "2026-11-23",
+      "subject": "Merge PR #48: 온라인 메인 홈·고정 선택 순서·두 화면 주사위 동기화·초대 링크 바로 입장"
+    },
+    {
+      "sha": "3f46d15",
+      "date": "2026-11-23",
+      "subject": "test(online): live check waits for the next player's view instead of a fixed delay"
+    },
+    {
+      "sha": "9a0f718",
+      "date": "2026-11-23",
+      "subject": "feat(online): online-first home, selection-ordered hold shelf, shared hold order, invite-link entry"
+    },
+    {
+      "sha": "ba2766a",
+      "date": "2026-11-23",
+      "subject": "docs(online): Phase 4 deployment, live verification, free-tier safety and operations"
+    },
+    {
       "sha": "dd5fc72",
       "date": "2026-11-23",
       "subject": "Merge PR #44: YachtLab Online v0.1 (서버 권한형 엔진, 친구 초대형 온라인 대전, Workers·Durable Objects)"
@@ -139,46 +159,32 @@
       "sha": "9b69578",
       "date": "2026-11-23",
       "subject": "ci(online): point Pages production build at deployed Cloudflare Worker"
-    },
-    {
-      "sha": "5a3ec59",
-      "date": "2026-11-23",
-      "subject": "ci: add guarded manual YachtLab Online Worker deploy (#47)"
-    },
-    {
-      "sha": "4a3b991",
-      "date": "2026-11-23",
-      "subject": "ci(online): add guarded manual Cloudflare Worker deploy workflow"
-    },
-    {
-      "sha": "b8d2960",
-      "date": "2026-11-23",
-      "subject": "fix(online): keep the Worker inside a shared free-tier budget before deployment"
-    },
-    {
-      "sha": "bbffa27",
-      "date": "2026-11-23",
-      "subject": "feat(online): Phase 3 Cloudflare Workers + SQLite Durable Objects backend (local only)"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "YachtLab Online live check (manual)",
-      "status": "success",
-      "head": "f4107870ba",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45175468744"
-    },
-    {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "f4107870ba",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45175450730"
+      "head": "3f46d15b62",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45195994469"
+    },
+    {
+      "name": "YachtLab gameplay UI targeted smoke",
+      "status": "success",
+      "head": "3f46d15b62",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45195994404"
+    },
+    {
+      "name": "YachtLab Online live check (manual)",
+      "status": "success",
+      "head": "3f46d15b62",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45195986887"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
       "status": "success",
-      "head": "4a3b991ded",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45170197533"
+      "head": "9a0f7180b0",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45195505313"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
