@@ -116,45 +116,139 @@ test("기존 직접 주소 #play / #pvp 는 저장된 설정으로 바로 게임
 
 /* ---------------------------------------------------------------------- 3D ---------------------------------------------------------------------- */
 
+type TableDie = { id: number; value: number; held: boolean; x?: number; y?: number; z?: number; top?: number; zone?: string; hidden?: boolean };
+const tableState = (page: Page) => page.evaluate(() => (window as unknown as { __yachtlabDice?: { table?: () => TableDie[] } }).__yachtlabDice?.table?.() ?? []);
+const waitLoaded3d = (page: Page) =>
+  expect.poll(() => page.evaluate(() => performance.getEntriesByType("resource").some((r) => /table-.*\.js|stage-.*\.js|dice3d\/table/.test(r.name)))).toBe(true);
+const settled = async (page: Page) => {
+  await expect(page.locator(".dice-animating")).toHaveCount(0, { timeout: 8000 });
+  await page.waitForTimeout(350); // hold/release slides are 260 ms
+};
+const clickDie = async (page: Page, id: number) => {
+  const box = (await page.locator(`.die-hit[data-die-id="${id}"]`).boundingBox())!;
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+};
+/** Enter a fresh AI game with the 3D table active (the 3D chunk loads when idle). */
+async function open3d(page: Page, quality: "3d-high" | "3d" = "3d") {
+  await withMotion(page, quality);
+  await page.goto("#home");
+  await waitLoaded3d(page);
+  await page.goto("#play");
+  await expect(page.locator(".physical-dice")).toBeVisible();
+}
+
 for (const quality of ["3d-high", "3d"] as const)
-  test(`3D 주사위(${quality}): 실제 3D로 굴러 엔진 결과와 같은 눈에서 멈추고 고정 주사위는 재굴림되지 않는다`, async ({ page }) => {
-    await withMotion(page, quality);
-    await page.goto("#play");
-    // Let the lazily loaded 3D chunk arrive (it is preloaded when idle).
-    await expect.poll(() => page.evaluate(() => performance.getEntriesByType("resource").some((r) => /stage-.*\.js|dice3d\/stage/.test(r.name)))).toBe(true);
+  test(`3D 주사위(${quality}): 착지한 위치·방향을 유지하고 고정 영역으로 옮겨지며 재굴림·해제·점수가 엔진과 일치한다`, async ({ page }) => {
+    await open3d(page, quality);
     await page.getByRole("button", { name: "주사위 굴리기" }).click();
-    await expect(page.locator(".dice3d-canvas")).toBeVisible();
-    await expect(page.locator(".die-in-3d")).toHaveCount(5);
-    await expect(page.locator(".dice-animating")).toHaveCount(0, { timeout: 5000 });
-    await expect(page.locator(".dice3d-canvas")).toBeHidden();
-    let roll = (await lastRoll(page))!;
+    await expect(page.locator(".dice-table-canvas")).toBeVisible();
+    await expect.poll(async () => Object.keys((await lastRoll(page))?.targets ?? {}).length, { timeout: 8000 }).toBe(5);
+    await settled(page);
+    // Final rendered state: still 3D (no 2D dice), every top face = engine value, not lined up, stable.
+    await expect(page.locator(".die-button:not(.die-hit)")).toHaveCount(0);
+    let t = await tableState(page);
+    expect(t.filter((d) => d.zone === "tray")).toHaveLength(5);
+    for (const d of t) expect(d.top).toBe(d.value);
+    expect(Object.fromEntries(t.map((d) => [String(d.id), d.value]))).toEqual(await domFaces(page));
+    const zs = t.map((d) => d.z!);
+    expect(Math.max(...zs) - Math.min(...zs)).toBeGreaterThan(0.05);
+    await page.waitForTimeout(700);
+    expect(await tableState(page)).toEqual(t);
+    const roll = (await lastRoll(page))!;
     expect(roll.mode).toBe("3d");
     expect(roll.finals).toEqual(roll.targets);
-    expect(roll.targets).toEqual(await domFaces(page));
-    // Hold two dice, reroll: only the other three are thrown.
-    await page.locator(".die-button").nth(0).click();
-    await page.locator(".die-button").nth(2).click();
-    const held = await page.locator(".die-button").evaluateAll((n) => [n[0].getAttribute("aria-label"), n[2].getAttribute("aria-label")]);
+    // Hold two dice → they move to the shelf and keep their faces; the engine agrees.
+    const before = Object.fromEntries(t.map((d) => [d.id, d.value]));
+    await clickDie(page, 0);
+    await clickDie(page, 2);
+    await settled(page);
+    await expect(page.locator('.die-hit[data-die-id="0"]')).toHaveAttribute("aria-pressed", "true");
+    t = await tableState(page);
+    expect(t.filter((d) => d.zone === "hold").map((d) => d.id).sort()).toEqual([0, 2]);
+    for (const d of t) expect(d.top).toBe(d.value);
+    // Re-roll: only the three free dice are thrown; held dice stay on the shelf with the same values.
     await page.getByRole("button", { name: "다시 굴리기" }).click();
-    await expect(page.locator(".die-in-3d")).toHaveCount(3);
-    await expect(page.locator(".dice-animating")).toHaveCount(0, { timeout: 5000 });
-    roll = (await lastRoll(page))!;
-    expect(Object.keys(roll.targets)).toHaveLength(3);
-    expect(roll.finals).toEqual(roll.targets);
-    expect(await page.locator(".die-button").evaluateAll((n) => [n[0].getAttribute("aria-label"), n[2].getAttribute("aria-label")])).toEqual(held);
+    await expect.poll(async () => Object.keys((await lastRoll(page))?.targets ?? {}).length, { timeout: 8000 }).toBe(3);
+    await settled(page);
+    t = await tableState(page);
+    expect(t.filter((d) => d.zone === "hold").map((d) => [d.id, d.value])).toEqual([
+      [0, before[0]],
+      [2, before[2]],
+    ]);
+    for (const d of t) expect(d.top).toBe(d.value);
+    expect(Object.keys((await lastRoll(page))!.targets).sort()).toEqual(["1", "3", "4"]);
+    // Release one: back in the tray with the same value until the next roll.
+    await clickDie(page, 0);
+    await settled(page);
+    t = await tableState(page);
+    expect(t.find((d) => d.id === 0)).toMatchObject({ zone: "tray", held: false, value: before[0], top: before[0] });
+    // All five can be held.
+    for (const id of [0, 1, 3, 4]) await clickDie(page, id);
+    await settled(page);
+    expect((await tableState(page)).every((d) => d.zone === "hold")).toBe(true);
+    // The canvas never reaches the roll button; nothing overflows.
+    const table = (await page.locator(".physical-dice").boundingBox())!;
+    const button = (await page.locator(".roll-button").boundingBox())!;
+    expect(table.y + table.height).toBeLessThanOrEqual(button.y);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    // Scoring uses exactly the five shown values.
+    const sum = Object.values(await domFaces(page)).reduce((a, b) => a + b, 0);
+    await scoreCategory(page, "choice");
+    await expect(page.locator('[data-category="choice"] .fixed-score').first()).toHaveText(String(sum));
   });
 
+test("3D 주사위: 겹쳐 있어도 가장 가까운 주사위가 선택되고 키보드 Enter로도 고정한다", async ({ page }) => {
+  await open3d(page);
+  await page.getByRole("button", { name: "주사위 굴리기" }).click();
+  await settled(page);
+  const t = await tableState(page);
+  // Click slightly off-centre toward a neighbour: the nearest centre still wins.
+  const a = t[1],
+    b = [...t].sort((p, q) => Math.hypot(p.x! - a.x!, p.z! - a.z!) - Math.hypot(q.x! - a.x!, q.z! - a.z!))[1];
+  const boxA = (await page.locator(`.die-hit[data-die-id="${a.id}"]`).boundingBox())!;
+  const boxB = (await page.locator(`.die-hit[data-die-id="${b.id}"]`).boundingBox())!;
+  const ax = boxA.x + boxA.width / 2,
+    ay = boxA.y + boxA.height / 2,
+    bx = boxB.x + boxB.width / 2,
+    by = boxB.y + boxB.height / 2;
+  // A point between the two dice, still within reach of A (closer to A than to B).
+  const len = Math.hypot(bx - ax, by - ay),
+    step = Math.min(len * 0.3, boxA.width * 0.4);
+  await page.mouse.click(ax + ((bx - ax) / len) * step, ay + ((by - ay) / len) * step);
+  await expect(page.locator(`.die-hit[data-die-id="${a.id}"]`)).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(`.die-hit[data-die-id="${b.id}"]`)).toHaveAttribute("aria-pressed", "false");
+  await settled(page);
+  await page.locator(`.die-hit[data-die-id="${b.id}"]`).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(`.die-hit[data-die-id="${b.id}"]`)).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(`.die-hit[data-die-id="${b.id}"]`)).toHaveAttribute("aria-label", /고정됨/);
+});
+
 test("3D 주사위: 굴리는 중 빠른 연속 입력으로 중복 굴림이 생기지 않는다", async ({ page }) => {
-  await withMotion(page, "3d");
-  await page.goto("#play");
-  await expect.poll(() => page.evaluate(() => performance.getEntriesByType("resource").some((r) => /stage-.*\.js|dice3d\/stage/.test(r.name)))).toBe(true);
+  await open3d(page);
   const roll = page.getByRole("button", { name: "주사위 굴리기" });
   await roll.dblclick();
   await page.keyboard.press("Enter");
   await expect(page.getByLabel("게임 보드")).toContainText("굴림 1 / 3");
-  await expect(page.locator(".dice-animating")).toHaveCount(0, { timeout: 5000 });
+  await settled(page);
   await expect(page.getByLabel("게임 보드")).toContainText("굴림 1 / 3");
+});
+
+test("3D 주사위: AI 차례·새 차례에서도 정상 동작하고 화면 이동 후 WebGL 캔버스가 누적되지 않는다", async ({ page }) => {
+  await open3d(page);
+  await page.getByRole("button", { name: "주사위 굴리기" }).click();
+  await settled(page);
+  await scoreCategory(page, "aces");
+  // The AI throws in the same 3D table and the tray is cleared for the next turn.
+  await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(2, { timeout: 30000 });
+  await expect(page.getByRole("button", { name: "주사위 굴리기" })).toBeEnabled({ timeout: 15000 });
+  expect((await tableState(page)).every((d) => d.hidden)).toBe(true);
+  for (let i = 0; i < 3; i++) {
+    await page.goto("#records");
+    await page.goto("#play");
+    await expect(page.locator(".physical-dice")).toBeVisible();
+  }
+  expect(await page.locator("canvas").count()).toBeLessThanOrEqual(1);
 });
 
 test("WebGL을 쓸 수 없으면 2.5D 연출로 대체되고 3D 품질은 선택할 수 없다", async ({ page }) => {
@@ -164,50 +258,144 @@ test("WebGL을 쓸 수 없으면 2.5D 연출로 대체되고 3D 품질은 선택
   await withMotion(page, "3d-high");
   await page.goto("#play");
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
-  await expect(page.locator(".dice3d-canvas")).toHaveCount(0);
+  await expect(page.locator(".dice-table-canvas, .dice3d-canvas")).toHaveCount(0);
   await expect(page.locator(".dice-animating")).toHaveCount(0, { timeout: 2000 });
   expect((await lastRoll(page))!.mode).toBe("2.5d");
+  // Same hold / re-roll rules in the fallback row.
+  await page.locator(".die-button").first().click();
+  await expect(page.locator(".die-button").first()).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "다시 굴리기" }).click();
+  await expect(page.locator(".dice-animating")).toHaveCount(0, { timeout: 2000 });
+  expect(Object.keys((await lastRoll(page))!.targets)).toHaveLength(4);
   await page.getByRole("button", { name: "설정", exact: true }).click();
   const quality = page.getByRole("combobox", { name: "주사위 애니메이션 품질" });
   expect(await quality.locator("option").evaluateAll((o) => (o as HTMLOptionElement[]).filter((x) => x.disabled).map((x) => x.value))).toEqual(["3d-high", "3d"]);
   await expect(page.getByRole("dialog", { name: "설정" })).toContainText("3D를 지원하지 않아");
 });
 
-test("3D 효과음은 실제 충돌에서 재생되고 개수가 제한된다", async ({ page }) => {
-  await withMotion(page, "3d");
-  await page.goto("#play");
-  await expect.poll(() => page.evaluate(() => performance.getEntriesByType("resource").some((r) => /stage-.*\.js|dice3d\/stage/.test(r.name)))).toBe(true);
+test("3D 효과음은 실제 충돌에서 재생되고 개수가 제한되며 고정·해제 소리가 난다", async ({ page }) => {
+  await open3d(page);
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
-  await expect(page.locator(".dice-animating")).toHaveCount(0, { timeout: 5000 });
-  const log = await page.evaluate(() => (window as unknown as { __yachtlabSound: { log: { name: string; delay: number }[] } }).__yachtlabSound.log.map((e) => ({ ...e })));
-  const names = log.map((e) => e.name);
+  await settled(page);
+  const log = () => page.evaluate(() => (window as unknown as { __yachtlabSound: { log: { name: string; delay: number }[] } }).__yachtlabSound.log.map((e) => ({ ...e })));
+  let entries = await log();
+  const names = entries.map((e) => e.name);
   expect(names[0]).toBe("throw");
   expect(names.at(-1)).toBe("settle");
-  const impacts = log.filter((e) => e.name === "impact");
+  const impacts = entries.filter((e) => e.name === "impact");
   expect(impacts.length).toBeGreaterThan(0);
   expect(impacts.length).toBeLessThanOrEqual(14);
   expect(impacts.every((e) => e.delay === 0)).toBe(true); // played live at the rendered collision frame
+  await clickDie(page, 0);
+  await settled(page);
+  await clickDie(page, 0);
+  await settled(page);
+  entries = await log();
+  expect(entries.map((e) => e.name)).toEqual(expect.arrayContaining(["hold", "release"]));
 });
 
 /* ------------------------------------------------------------------ home & lab ------------------------------------------------------------------ */
 
-test("홈 주사위 체험: 직접 굴리고 고정할 수 있으며 게임 기록이나 AI와 무관하다", async ({ page }) => {
-  await withMotion(page, "3d");
+test("홈: 주사위 체험 영역 없이 제목·설명·오프라인(강조)·온라인(준비 중)만 보인다", async ({ page }) => {
   await page.goto("");
-  const tray = page.getByRole("region", { name: "주사위 굴려 보기" });
-  await expect(tray.locator(".die-button")).toHaveCount(5);
-  await tray.locator(".die-button").first().click();
-  await expect(tray.locator(".die-button").first()).toHaveAttribute("aria-pressed", "true");
-  const kept = await tray.locator(".die-button").first().getAttribute("aria-label");
-  await tray.getByRole("button", { name: "굴려 보기" }).click();
-  await expect(tray.locator(".dice-animating")).toHaveCount(4);
-  await expect(tray.locator(".dice-animating")).toHaveCount(0, { timeout: 5000 });
-  await expect(tray.locator(".die-button").first()).toHaveAttribute("aria-label", kept!);
-  const roll = (await lastRoll(page))!;
-  expect(Object.keys(roll.targets)).toHaveLength(4);
-  const stored = await page.evaluate(() => Object.keys(localStorage).filter((k) => /replay|record/i.test(k)));
-  expect(stored).toEqual([]);
+  await expect(page.locator(".home-dice, [aria-label='주사위 굴려 보기']")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("요트다이스를 플레이해보세요");
+  await expect(page.locator(".lobby-hero")).toContainText("AI와 대결하거나 친구와 함께 즐겨보세요.");
+  const cards = page.locator(".lobby .mode-card");
+  await expect(cards).toHaveCount(2);
+  await expect(cards.nth(0)).toContainText("오프라인 대전");
+  await expect(cards.nth(0)).toHaveClass(/mode-primary/);
+  await expect(cards.nth(1)).toContainText("준비 중");
+  const [offline, online] = [(await cards.nth(0).boundingBox())!, (await cards.nth(1).boundingBox())!];
+  expect(offline.height).toBeGreaterThan(online.height);
+  await expect(page.getByRole("button", { name: "내 기록" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "연구실" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+/* ------------------------------------------------------------- research model picker ------------------------------------------------------------- */
+
+test("연구용 알고리즘: 전체 목록·검색·유형 분류, 연구 전용은 선택 불가, 선택한 모델이 실제 대국에 사용된다", async ({ page }) => {
+  test.setTimeout(90000);
+  await page.goto("#play-setup");
+  await page.getByText("고급 설정", { exact: true }).click();
+  await page.getByText("연구용 알고리즘 직접 선택").click();
+  const list = page.getByRole("radiogroup", { name: "연구용 알고리즘" });
+  await expect(list.getByRole("radio", { name: "Win DP v3.4", exact: true })).toBeVisible();
+  const total = await list.getByRole("radio").count();
+  expect(total).toBeGreaterThanOrEqual(11 + 19);
+  await page.getByLabel("모델 검색").fill("Z7");
+  await expect(list.getByRole("radio")).toHaveCount(2);
+  await page.getByLabel("모델 검색").fill("");
+  await page.getByRole("group", { name: "알고리즘 유형" }).getByRole("button", { name: "강화학습" }).click();
+  const rl = list.locator(".model-item.disabled");
+  expect(await rl.count()).toBeGreaterThan(0);
+  await expect(rl.first().getByRole("radio")).toBeDisabled();
+  await expect(rl.first()).toContainText("선택 불가");
+  await page.getByRole("group", { name: "알고리즘 유형" }).getByRole("button", { name: "전체" }).click();
+  await list.locator(".model-item", { has: page.getByRole("radio", { name: "Win DP v3", exact: true }) }).click();
+  await expect(page.getByRole("region", { name: "선택한 모델" })).toContainText("사용 조건");
+  await list.locator(".model-item", { has: page.getByRole("radio", { name: "Win DP v4", exact: true }) }).click();
+  await expect(page.getByRole("region", { name: "선택한 모델" })).toContainText("Win DP v4");
+  await page.getByRole("button", { name: "게임 시작" }).click();
+  await expect(page.locator(".score-summary")).toContainText("AI · Win DP v4");
+  await page.getByRole("button", { name: "주사위 굴리기" }).click();
+  await scoreCategory(page, "aces");
+  await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(2, { timeout: 30000 });
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await page.locator(".decision-details summary").click();
+  await expect(page.locator(".decision-details")).toContainText("Win DP v4");
+  const record = await exportReplay(page);
+  expect(record.metadata.players[1]).toMatchObject({ type: "ai", algorithm: "Win DP v4" });
+  // Turning the research option off returns to the 5 public levels (leaving the running game asks first).
+  await page.getByRole("button", { name: "설정 변경" }).click();
+  await page.getByRole("dialog", { name: "설정을 바꿀까요?" }).getByRole("button", { name: "설정 변경" }).click();
+  await expect(page).toHaveURL(/#play-setup$/);
+  await page.getByText("고급 설정", { exact: true }).click();
+  await page.getByText("연구용 알고리즘 직접 선택").click();
+  await expect(page.getByRole("radiogroup", { name: "AI 난이도" }).getByRole("radio").first()).toBeEnabled();
+  await page.getByRole("button", { name: "게임 시작" }).click();
+  await expect(page.locator(".score-summary")).toContainText("AI · 보통");
+});
+
+/* ------------------------------------------------------------ browser back / forward ------------------------------------------------------------ */
+
+test("진행 중 경기에서 브라우저 뒤로·앞으로·주소 변경은 확인을 거치고, 취소하면 경기와 기록이 그대로다", async ({ page }) => {
+  await page.goto("");
+  await page.getByRole("button", { name: /오프라인 대전/ }).click();
+  await page.getByRole("button", { name: /사람 vs 사람/ }).click();
+  await page.getByRole("button", { name: "게임 시작" }).click();
+  await page.getByRole("button", { name: "주사위 굴리기" }).click();
+  await scoreCategory(page);
+  const length = await page.evaluate(() => history.length);
+  const leave = page.getByRole("dialog", { name: "게임을 나갈까요?" });
+  // Back → ask → cancel: still in the game, same history length, URL restored.
+  await page.goBack();
+  await expect(leave).toBeVisible();
+  await leave.getByRole("button", { name: "계속 플레이" }).click();
+  await expect(page).toHaveURL(/#pvp$/);
+  await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(1);
+  expect(await page.evaluate(() => history.length)).toBe(length);
+  await expect(leave).toHaveCount(0);
+  // Typed hash → ask → cancel.
+  await page.evaluate(() => {
+    location.hash = "records";
+  });
+  await expect(leave).toBeVisible();
+  await leave.getByRole("button", { name: "계속 플레이" }).click();
+  await expect(page).toHaveURL(/#pvp$/);
+  await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(1);
+  // Back → confirm: leaves to the setup screen (where we came from), exactly once.
+  await page.goBack();
+  await leave.getByRole("button", { name: "나가기" }).click();
+  await expect(page).toHaveURL(/#pvp-setup$/);
+  await expect(page.getByRole("heading", { name: "사람 vs 사람" })).toBeVisible();
+  await expect(leave).toHaveCount(0);
+  // Lab / records deep links still open directly.
+  await page.goto("#records");
+  await expect(page.getByRole("heading", { name: "내 기록" })).toBeVisible();
+  await page.goto("#analysis");
+  await expect(page.getByRole("heading", { name: "전략 분석실" })).toBeVisible();
 });
 
 test("주사위 실험실: 지정한 눈으로 3D와 2.5D를 비교하고 물리 일괄 검증이 모두 일치한다", async ({ page }) => {

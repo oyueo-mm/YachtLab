@@ -12,6 +12,8 @@ import { Lobby, OfflineSelect, OnlineSoon } from "./shell/Lobby";
 import { AiSetupScreen, LocalSetupScreen } from "./shell/Setup";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { installAudioUnlock } from "./sound";
+import { diceRenderer } from "./settings";
+import { preloadDiceTableWhenIdle } from "./dice3d-loader";
 import { aiMatchConfig, finalizeNames, getAiSetup, getLocalSetup, type AiMatchConfig, type LocalOrder } from "./setup";
 
 // Research tools are a separate, lazily loaded chunk (see routes.ts "lab" tier).
@@ -36,20 +38,36 @@ export default function App() {
   const [gameKey, setGameKey] = useState(0);
   const inProgress = useRef(false);
   const [leaveTo, setLeaveTo] = useState<Route | null>(null);
+  // Browser history: every in-app move pushes an entry tagged with an index, so back/forward can be
+  // told apart and undone exactly (no duplicate entries) when the player cancels leaving a game.
+  const historyIndex = useRef(typeof history.state?.idx === "number" ? (history.state.idx as number) : 0);
+  const pageRef = useRef(page);
+  pageRef.current = page;
+  const ignoreNextHash = useRef(false);
+  const pendingHistory = useRef<{ idx: number; undo: () => void } | null>(null);
+  /** Switch screens without touching the URL (the URL already says where we are). */
+  const enter = (p: Route) => {
+    if ((p === "play" || p === "pvp") && pageRef.current !== p) {
+      // Entering a game screen from elsewhere starts from the latest saved setup.
+      if (p === "play") setAiConfig(aiMatchConfig(getAiSetup()));
+      else setLocal(localConfig());
+      setGameKey((k) => k + 1);
+    }
+    pageRef.current = p;
+    setPage(p);
+  };
+  const pushRoute = (p: Route) => {
+    historyIndex.current += 1;
+    history.pushState({ idx: historyIndex.current }, "", "#" + p);
+  };
   const go = (p: Route) => {
     if (p === "watch") {
       setArenaSource(null);
       setReplay(null);
     }
     if (p === "analysis") setAnalysisSource(null);
-    if ((p === "play" || p === "pvp") && page !== p) {
-      // Entering a game screen from elsewhere starts from the latest saved setup.
-      if (p === "play") setAiConfig(aiMatchConfig(getAiSetup()));
-      else setLocal(localConfig());
-      setGameKey((k) => k + 1);
-    }
-    location.hash = p;
-    setPage(p);
+    pushRoute(p);
+    enter(p);
   };
   /** Leaving a game in progress asks first (top-bar home, settings links). */
   const navigate = (p: Route) => {
@@ -58,27 +76,45 @@ export default function App() {
   };
   const branch = (r: Replay, index: number) => {
     setReplay(null);
-    location.hash = "watch";
-    setPage("watch");
+    pushRoute("watch");
+    enter("watch");
     setArenaSource({ replay: r, index });
   };
   const analyze = (source: AnalysisSource) => {
-    location.hash = "analysis";
-    setPage("analysis");
+    pushRoute("analysis");
+    enter("analysis");
     setAnalysisSource(source);
   };
   useEffect(() => {
     installAudioUnlock();
+    if (diceRenderer().startsWith("3d")) preloadDiceTableWhenIdle();
+    if (typeof history.state?.idx !== "number") history.replaceState({ idx: historyIndex.current }, "");
+    // Back / forward / a hash typed in the address bar. Leaving a game in progress asks first;
+    // cancelling steps the history back to the game entry instead of adding a new one.
     const fn = () => {
+      const state = history.state as { idx?: number } | null;
+      if (ignoreNextHash.current) {
+        ignoreNextHash.current = false;
+        if (typeof state?.idx === "number") historyIndex.current = state.idx;
+        return;
+      }
       const next = currentRoute();
-      setPage((prev) => {
-        if ((next === "play" || next === "pvp") && prev !== next) {
-          if (next === "play") setAiConfig(aiMatchConfig(getAiSetup()));
-          else setLocal(localConfig());
-          setGameKey((k) => k + 1);
-        }
-        return next;
-      });
+      let idx: number, undo: () => void;
+      if (typeof state?.idx === "number") {
+        idx = state.idx;
+        undo = idx < historyIndex.current ? () => history.forward() : () => history.back();
+      } else {
+        idx = historyIndex.current + 1;
+        history.replaceState({ idx }, "");
+        undo = () => history.back();
+      }
+      if (routes[pageRef.current].shell === "game" && inProgress.current && next !== pageRef.current) {
+        pendingHistory.current = { idx, undo };
+        setLeaveTo(next);
+        return;
+      }
+      historyIndex.current = idx;
+      enter(next);
     };
     window.addEventListener("hashchange", fn);
     return () => window.removeEventListener("hashchange", fn);
@@ -120,8 +156,8 @@ export default function App() {
               openReplay={(match) => {
                 setArenaSource(null);
                 setReplay(match);
-                location.hash = "watch";
-                setPage("watch");
+                pushRoute("watch");
+                enter("watch");
               }}
               arenaSource={arenaSource}
               analysisSource={analysisSource}
@@ -137,12 +173,26 @@ export default function App() {
         title="게임을 나갈까요?"
         message="진행 중인 경기는 저장되지 않아요."
         confirmLabel="나가기"
-        onCancel={() => setLeaveTo(null)}
+        onCancel={() => {
+          setLeaveTo(null);
+          const pending = pendingHistory.current;
+          pendingHistory.current = null;
+          if (pending) {
+            ignoreNextHash.current = true;
+            pending.undo();
+          }
+        }}
         onConfirm={() => {
           const target = leaveTo;
           setLeaveTo(null);
           inProgress.current = false;
-          if (target) go(target);
+          const pending = pendingHistory.current;
+          pendingHistory.current = null;
+          if (!target) return;
+          if (pending) {
+            historyIndex.current = pending.idx;
+            enter(target);
+          } else go(target);
         }}
       />
     </div>

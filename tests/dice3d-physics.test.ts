@@ -98,3 +98,53 @@ describe("pre-simulated throws land exactly on the engine values", () => {
     expect(sim.tracks.map((t) => t.id)).toEqual([1, 3]);
   });
 });
+
+describe("free landing (3rd pass): dice stay where physics leaves them", () => {
+  for (const tray of [
+    { name: "desktop", width: 10, height: 5 },
+    { name: "mobile", width: 6.4, height: 4.8 },
+  ])
+    it(`no alignment, engine faces, inside the tray, smooth re-roll start (${tray.name})`, () => {
+      let rowLike = 0;
+      for (let seed = 1; seed <= 30; seed++) {
+        const values = [0, 1, 2, 3, 4].map((id) => 1 + ((seed * 5 + id) % 6));
+        const moving = seed % 3 === 0 ? [1, 2, 4] : [0, 1, 2, 3, 4];
+        const reroll = seed % 2 === 0;
+        const starts = reroll
+          ? Object.fromEntries(moving.map((id, k) => [id, { x: 1 + k * 1.3, z: tray.height / 2 + (k % 2 ? 0.8 : -0.8), quat: canonicalOrientation(values[id]) as Quat }]))
+          : undefined;
+        const sim = simulateThrow({
+          width: tray.width,
+          height: tray.height,
+          direction: seed % 2 ? 1 : -1,
+          seed: seed * 31,
+          landing: "free",
+          maxAttempts: 14,
+          starts,
+          dice: moving.map((id) => ({ id, value: values[id], held: false, x: tray.width / 2, z: tray.height / 2 })),
+        });
+        const last = sim.frameCount - 1;
+        const ends = sim.tracks.map((t) => ({ x: t.frames[last * 7], y: t.frames[last * 7 + 1], z: t.frames[last * 7 + 2] }));
+        for (const t of sim.tracks) expect(finalValue(t, sim.frameCount)).toBe(values[t.id]);
+        for (const e of ends) {
+          expect(e.x).toBeGreaterThanOrEqual(0.45);
+          expect(e.x).toBeLessThanOrEqual(tray.width - 0.45);
+          expect(e.z).toBeGreaterThanOrEqual(0.45);
+          expect(e.z).toBeLessThanOrEqual(tray.height - 0.45);
+        }
+        for (let i = 0; i < ends.length; i++) for (let j = i + 1; j < ends.length; j++) expect(Math.hypot(ends[i].x - ends[j].x, ends[i].z - ends[j].z)).toBeGreaterThan(0.95);
+        // Not lined up in one row (the old presentation glided every die to y=row).
+        const zs = ends.map((e) => e.z);
+        if (Math.max(...zs) - Math.min(...zs) < 0.05) rowLike++;
+        if (reroll)
+          for (const t of sim.tracks) {
+            // Frame 0 is the die's current resting pose → no jump when a re-roll starts.
+            const s = starts![t.id];
+            expect(Math.hypot(t.frames[0] - s.x, t.frames[2] - s.z)).toBeLessThan(0.5);
+            expect(qAngle(Array.from(t.frames.subarray(3, 7)) as Quat, s.quat)).toBeLessThan(0.6);
+          }
+        expect(sim.stats.maxEndStepDeg).toBeLessThan(12);
+      }
+      expect(rowLike).toBe(0);
+    }, 60000);
+});

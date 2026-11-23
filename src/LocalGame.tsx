@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Dices, History, RotateCcw, SlidersHorizontal, Trophy } from "lucide-react";
-import { Dice } from "./Dice";
+import { DiceArea } from "./DiceArea";
 import { MultiScoreboard, MultiStandings } from "./MultiScoreboard";
 import { createMultiGame, multiStandings, type MultiGame } from "./multi-engine";
 import { appendMultiAction, newMultiReplay, type MultiReplay } from "./multi-replay";
@@ -149,14 +149,14 @@ export default function LocalGame({
                 라운드 {state.round}/12 · 굴림 <b>{state.rolls}</b>/3
               </span>
             </div>
-            <Dice state={state} interactive={canAct} animate={active} rollEvent={rollEvent} onToggle={(id) => act({ type: "hold", ids: state.dice.filter((d) => (d.id === id ? !d.held : d.held)).map((d) => d.id) })} onOrder={(ids) => act({ type: "order", ids })} />
+            <DiceArea state={state} interactive={canAct} animate={active} rollEvent={rollEvent} onToggle={(id) => act({ type: "hold", ids: state.dice.filter((d) => (d.id === id ? !d.held : d.held)).map((d) => d.id) })} onOrder={(ids) => act({ type: "order", ids })} />
             <div className="roll-area">
               <button className="primary roll-button" disabled={!canAct || state.rolls >= 3} onClick={() => act({ type: "roll" })}>
                 <Dices size={20} />
                 {state.rolls === 0 ? "주사위 굴리기" : "다시 굴리기"}
                 <span>{3 - state.rolls}회 남음</span>
               </button>
-              <p>{state.done || rolling ? "" : !state.rolls ? "주사위를 굴려 시작하세요" : state.rolls === 3 ? "점수판에서 점수를 선택하세요" : "클릭하여 고정 · 드래그하여 정렬"}</p>
+              <p>{state.done || rolling ? "" : !state.rolls ? "주사위를 굴려 시작하세요" : state.rolls === 3 ? "점수판에서 점수를 선택하세요" : "주사위를 눌러 고정 · 다시 눌러 해제"}</p>
             </div>
             {state.done && (
               <div className="game-result" role="status">

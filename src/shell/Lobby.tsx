@@ -1,50 +1,50 @@
-import { ArrowRight, Bot, Globe, Smartphone, UsersRound, WifiOff } from "lucide-react";
+import { ArrowRight, Bot, Dices, Globe, Smartphone, UsersRound } from "lucide-react";
 import { DieIcon } from "../Dice";
 import type { Route } from "../routes";
-import { HomeDice } from "./HomeDice";
 
 type Go = (route: Route) => void;
 
-/** Home = game mode lobby. Two choices only; research tools live behind the top-right "연구실". */
+/**
+ * Home = game-start lobby: a title, one line, and two modes. Offline (playable now) is the primary
+ * choice; online is clearly marked as not available yet. Research tools stay behind the top-right "연구실".
+ */
 export function Lobby({ navigate }: { navigate: Go }) {
   return (
-    <section className="lobby" aria-labelledby="lobby-title">
-      <div className="lobby-menu">
-      <h1 id="lobby-title" className="lobby-title">
-        게임 모드 선택
-      </h1>
+    <section className="lobby lobby-v3" aria-labelledby="lobby-title">
+      <div className="lobby-hero">
+        <span className="lobby-dice" aria-hidden="true">
+          <DieIcon value={5} />
+          <DieIcon value={6} />
+        </span>
+        <h1 id="lobby-title">요트다이스를 플레이해보세요</h1>
+        <p>AI와 대결하거나 친구와 함께 즐겨보세요.</p>
+      </div>
       <div className="lobby-modes">
-        <button type="button" className="mode-card mode-online" onClick={() => navigate("online")} aria-describedby="online-status">
-          <span className="mode-dice" aria-hidden="true">
-            <DieIcon value={6} />
-            <DieIcon value={5} />
-          </span>
+        <button type="button" className="mode-card mode-offline mode-primary" onClick={() => navigate("offline")}>
           <span className="mode-icon" aria-hidden="true">
-            <Globe size={26} />
+            <Dices size={26} />
+          </span>
+          <span className="mode-text">
+            <strong>오프라인 대전</strong>
+            <span>AI 대전 · 사람 대전 — 지금 바로 플레이할 수 있어요</span>
+          </span>
+          <span className="mode-cta">
+            플레이 <ArrowRight size={16} aria-hidden="true" />
+          </span>
+        </button>
+        <button type="button" className="mode-card mode-online" onClick={() => navigate("online")} aria-describedby="online-status">
+          <span className="mode-icon" aria-hidden="true">
+            <Globe size={22} />
           </span>
           <span className="mode-text">
             <strong>온라인 대전</strong>
-            <span>다른 플레이어와 실시간으로 대결</span>
+            <span>다른 플레이어와 실시간 대결</span>
           </span>
           <span className="mode-badge" id="online-status">
             준비 중
           </span>
         </button>
-        <button type="button" className="mode-card mode-offline mode-primary" onClick={() => navigate("offline")}>
-          <span className="mode-icon" aria-hidden="true">
-            <WifiOff size={24} />
-          </span>
-          <span className="mode-text">
-            <strong>오프라인 대전</strong>
-            <span>AI 또는 친구와 이 기기에서 바로 플레이</span>
-          </span>
-          <span className="mode-cta">
-            바로 플레이 <ArrowRight size={16} aria-hidden="true" />
-          </span>
-        </button>
       </div>
-      </div>
-      <HomeDice />
     </section>
   );
 }

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Trophy, Dices, RotateCcw, ArrowRight, ChevronRight, History, SlidersHorizontal } from "lucide-react";
 import { createGame, transition, total, names, type Category } from "../engine";
-import { type Decision } from "../ai";
+import { type Algorithm, type Decision } from "../ai";
 import { runJob, createDecisionSession } from "../client";
-import { Dice } from "../Dice";
+import { DiceArea } from "../DiceArea";
 import { Scoreboard } from "../Scoreboard";
 import ReplayViewer, { type AnalysisSource } from "../ReplayViewer";
 import { newReplay, appendFrame, clone, type Replay } from "../replay";
@@ -39,7 +39,7 @@ export default function HumanGame({
 }) {
   const algorithm = config.algorithm;
   const isPublicLevel = gameDifficulties.some((d) => d.algorithm === algorithm);
-  const aiName = isPublicLevel ? `AI · ${difficultyLabel(algorithm)}` : `AI · ${algorithm}`;
+  const aiName = isPublicLevel ? `AI · ${difficultyLabel(algorithm as Algorithm)}` : `AI · ${algorithm}`;
   const [humanSeat, setHumanSeat] = useState<0 | 1>(() => resolveHumanSeat(config.first));
   const aiSeat = (1 - humanSeat) as 0 | 1;
   const seatPlayers = (seat: 0 | 1) => {
@@ -208,7 +208,7 @@ export default function HumanGame({
                 굴림 <b>{state.rolls}</b> / 3
               </span>
             </div>
-            <Dice
+            <DiceArea
               state={state}
               interactive={can}
               animate
@@ -234,7 +234,7 @@ export default function HumanGame({
                     ? "주사위를 굴려 시작하세요"
                     : state.rolls === 3
                       ? "점수판에서 기록할 점수를 선택하세요"
-                      : "클릭하여 고정 · 드래그하여 순서 변경"}
+                      : "주사위를 눌러 고정 · 다시 눌러 해제"}
               </p>
             </div>
             {caption && (

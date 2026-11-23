@@ -16,8 +16,8 @@ test("홈 → 오프라인 → 상세 설정 → 사람 vs AI / 사람 vs 사람
   await page.goto("");
   const modes = page.locator(".lobby .mode-card");
   await expect(modes).toHaveCount(2);
-  await expect(modes.first()).toContainText("온라인 대전");
-  await modes.nth(1).click();
+  await expect(modes.first()).toContainText("오프라인 대전");
+  await modes.first().click();
   await expect(page).toHaveURL(/#offline$/);
   await expect(page.getByRole("heading", { name: "오프라인 대전" })).toBeVisible();
   await page.getByRole("button", { name: /사람 vs AI/ }).click();
@@ -162,7 +162,7 @@ test("주사위: 동작 줄이기에서는 움직임 없이 바로 결과를 보
   await page.goto("#play");
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
   await expect(page.locator(".dice-animating")).toHaveCount(0);
-  await expect(page.locator(".dice3d-canvas")).toHaveCount(0);
+  await expect(page.locator(".dice3d-canvas, .dice-table-canvas")).toHaveCount(0);
   expect(await page.locator(".die-motion").evaluateAll((nodes) => nodes.reduce((n, el) => n + el.getAnimations().length, 0))).toBe(0);
 });
 

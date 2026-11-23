@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from "react";
 import { ArrowLeft, Minus, Play, Plus } from "lucide-react";
-import AlgorithmSelect from "../AlgorithmDropdown";
+import { ModelPicker } from "./ModelPicker";
 import { gameDifficulties } from "../GameDifficulty";
 import { rulesets } from "../rulesets";
 import {
@@ -134,10 +134,10 @@ export function AiSetupScreen({ onBack, onStart }: { onBack: () => void; onStart
             <input type="checkbox" checked={setup.research} onChange={(e) => updateAiSetup({ research: e.target.checked })} />
             <span>
               <strong>연구용 알고리즘 직접 선택</strong>
-              <small>난이도 대신 연구실의 AI 모델을 상대로 지정해요.</small>
+              <small>난이도 대신 지금까지 개발한 AI·연구 모델 중 하나를 상대로 지정해요. 끄면 위의 5단계 난이도로 돌아가요.</small>
             </span>
           </label>
-          {setup.research && <AlgorithmSelect label="연구용 알고리즘" value={setup.researchAlgorithm} set={(researchAlgorithm) => updateAiSetup({ researchAlgorithm })} />}
+          {setup.research && <ModelPicker value={setup.researchAlgorithm} onChange={(researchAlgorithm) => updateAiSetup({ researchAlgorithm })} />}
         </div>
       </details>
     </SetupLayout>

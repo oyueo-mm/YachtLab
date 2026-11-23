@@ -1,4 +1,5 @@
 import { algorithms, type Algorithm, type Decision } from "./ai";
+import { isResearchModelId, type ResearchModelId } from "./model-ids";
 import {
   createGame,
   transition,
@@ -13,7 +14,7 @@ export const replayLimit = 8 * 1024 * 1024;
 export type Player = {
   name: string;
   type: "human" | "ai";
-  algorithm?: Algorithm;
+  algorithm?: Algorithm | ResearchModelId;
 };
 export type Replay = {
   format: "YachtLabReplay";
@@ -342,7 +343,7 @@ export function validateReplay(input: unknown): Replay {
     if (
       !p ||
       !["human", "ai"].includes(p.type) ||
-      (p.type === "ai" && !algorithms.includes(p.algorithm))
+      (p.type === "ai" && !algorithms.includes(p.algorithm) && !isResearchModelId(p.algorithm))
     )
       throw Error("알 수 없는 플레이어입니다.");
     return {

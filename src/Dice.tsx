@@ -18,7 +18,7 @@ export function preloadDice3D() {
 }
 const stages = new WeakMap<HTMLElement, InstanceType<Dice3D["DiceStage"]>>();
 type RollMode = { token: number; mode: "3d" | "2.5d" | "none" };
-export type DebugRoll = { mode: RollMode["mode"]; token: number; targets: Record<number, number>; finals?: Record<number, number>; frames?: number; attempts?: number; corrected?: number; ok?: boolean; frameMs?: { avg: number; p95: number; max: number }; endedAt?: number };
+export type DebugRoll = { mode: RollMode["mode"]; token: number; targets: Record<number, number>; finals?: Record<number, number>; frames?: number; simMs?: number; startedAfterMs?: number; attempts?: number; corrected?: number; ok?: boolean; frameMs?: { avg: number; p95: number; max: number }; endedAt?: number };
 const debug = (info: DebugRoll) => {
   (window as unknown as { __yachtlabDice?: { last: DebugRoll; history: DebugRoll[] } }).__yachtlabDice ??= { last: info, history: [] };
   const box = (window as unknown as { __yachtlabDice: { last: DebugRoll; history: DebugRoll[] } }).__yachtlabDice;

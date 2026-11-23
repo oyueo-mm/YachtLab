@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { Dices, FlaskConical, LoaderCircle } from "lucide-react";
-import { Dice, preloadDice3D, type DebugRoll } from "../Dice";
+import { type DebugRoll } from "../Dice";
+import { DiceArea } from "../DiceArea";
+import { loadDiceTable } from "../dice3d-loader";
 import type { Die } from "../engine";
 import { useThrowGesture } from "../game-feel";
 import { useDiceBusy } from "../useDiceBusy";
@@ -55,19 +57,19 @@ export default function DiceLab() {
   const gesture = useThrowGesture(!busy, roll);
   const runBatch = async () => {
     const tray = trayRef.current;
-    const faceEl = tray?.querySelector<HTMLElement>(".die-motion");
-    if (!tray || !faceEl) return;
+    if (!tray) return;
     setRunning(true);
-    const mod = await preloadDice3D();
+    const mod = await loadDiceTable();
     if (!mod) {
       setRunning(false);
       return;
     }
-    const size = faceEl.getBoundingClientRect().width;
-    const rect = tray.getBoundingClientRect();
-    const W = rect.width / size,
-      H = rect.height / size;
-    const slots = [...tray.querySelectorAll<HTMLElement>("[data-die-id] .die-motion")].map((el) => el.getBoundingClientRect());
+    // Use the real 3D table geometry when it is shown; otherwise a typical desktop tray.
+    const table = tray.querySelector<HTMLElement>(".physical-dice");
+    const hit = tray.querySelector<HTMLElement>(".die-hit");
+    const size = hit?.getBoundingClientRect().width || 90;
+    const W = table ? table.clientWidth / size : 9.5,
+      H = table ? table.clientHeight / size - 1.6 : 5.2;
     const frames: number[] = [];
     const stats: Batch = { runs: 0, ok: 0, match: 0, settled: 0, corrected: 0, inBounds: 0, p50: 0, p95: 0, minDistance: Infinity, maxEndStepDeg: 0, avgSimMs: 0, width: W, height: H };
     let ms = 0;
@@ -78,7 +80,10 @@ export default function DiceLab() {
         height: H,
         direction: (run % 2 ? 1 : -1) as 1 | -1,
         seed: (run * 2654435761) >>> 0,
-        dice: slots.map((r, id) => ({ id, value: 1 + ((run + id * 5) % 6), held: held.has(id), x: (r.left + r.width / 2 - rect.left) / size, z: (r.top + r.height / 2 - rect.top) / size })),
+        landing: "free" as const,
+        // Held dice sit on the shelf outside the tray: only free dice are thrown.
+        dice: [0, 1, 2, 3, 4].filter((id) => !held.has(id)).map((id) => ({ id, value: 1 + ((run + id * 5) % 6), held: false, x: W / 2, z: H / 2 })),
+        starts: run % 2 ? Object.fromEntries([0, 1, 2, 3, 4].map((id) => [id, { x: 1 + ((id * 1.7) % (W - 2)), z: 1 + ((id * 1.3) % (H - 2)) }])) : undefined,
       };
       const result = mod.simulateThrow(input);
       stats.runs++;
@@ -109,7 +114,7 @@ export default function DiceLab() {
       </div>
       <div className="dice-lab-grid">
         <section ref={trayRef} className="game-board throw-tray" aria-label="실험 트레이" {...gesture}>
-          <Dice
+          <DiceArea
             state={{ dice, order, rolls: 1 }}
             interactive={!busy}
             animate
@@ -128,10 +133,10 @@ export default function DiceLab() {
           <h2>연출 방식</h2>
           <select aria-label="연출 방식" value={renderer} onChange={(e) => setRenderer(e.target.value as DiceRenderer)}>
             <option value="3d-high" disabled={!webglAvailable()}>
-              3D 물리 · 고급 (그림자, 안티에일리어싱)
+              3D 자유 착지 · 고급 (그림자)
             </option>
             <option value="3d" disabled={!webglAvailable()}>
-              3D 물리 · 가볍게
+              3D 자유 착지 · 가볍게
             </option>
             <option value="2.5d">2.5D (기존 CSS 연출)</option>
             <option value="none">모션 없음</option>

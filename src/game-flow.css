@@ -51,46 +51,6 @@
   font-weight: 700;
   font-size: 14px;
 }
-.home-dice {
-  display: flex;
-  flex-direction: column;
-  padding-top: 33px;
-}
-.home-dice-tray.game-board {
-  flex: 1;
-  min-height: 330px;
-  padding: 16px;
-  justify-content: center;
-  overflow: hidden;
-  touch-action: pan-y;
-  background: radial-gradient(120% 90% at 50% 38%, #343434 0%, #282828 55%, #202020 100%);
-  border-color: #202020;
-}
-.home-dice-tray .dice-row {
-  margin: auto 0 16px;
-}
-.home-dice-tray .die-wrap {
-  width: auto;
-  flex: 0 1 clamp(52px, 6.2vw, 84px);
-  min-width: 0;
-}
-.home-dice-bar {
-  display: flex;
-  flex-direction: column-reverse;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  width: 100%;
-  margin-bottom: auto;
-}
-.home-dice-combo {
-  min-height: 20px;
-  color: #ffb36b;
-  font-weight: 700;
-}
-.home-dice-roll {
-  background: #fff;
-}
 
 /* ---------- setup screens ---------- */
 .page-play-setup.main,
@@ -641,9 +601,6 @@
   .lobby {
     grid-template-columns: 1fr;
   }
-  .home-dice {
-    margin-top: 0;
-  }
   .dice-lab-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -654,23 +611,11 @@
     min-height: 0;
     display: block;
   }
-  .home-dice {
-    padding-top: 0;
-  }
   .lobby-menu .lobby-modes {
     grid-template-rows: none;
   }
   .lobby {
     gap: 16px;
-  }
-  .home-dice-tray.game-board {
-    flex: none;
-    min-height: 0;
-    height: clamp(260px, 40vh, 340px);
-    padding: 12px;
-  }
-  .home-dice-tray .die-wrap {
-    flex-basis: 60px;
   }
   .mode-cta {
     display: none;

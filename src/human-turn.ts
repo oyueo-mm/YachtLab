@@ -1,7 +1,8 @@
 import { useEffect, useRef, type MutableRefObject } from "react";
 import { createDecisionSession, runJob } from "./client";
 import { names, score, type Action, type Category, type Game } from "./engine";
-import type { Algorithm, Decision } from "./ai";
+import type { Decision } from "./ai";
+import type { ModelId } from "./ai-models";
 import { humanAITiming, playbackDelay } from "./playback";
 import { waitForDice } from "./dice-motion";
 export function useHumanTurn({
@@ -24,7 +25,7 @@ export function useHumanTurn({
   speed = 1,
 }: {
   stateRef: MutableRefObject<Game>;
-  algorithm: Algorithm;
+  algorithm: ModelId;
   trigger: number;
   retry: number;
   generation: MutableRefObject<number>;

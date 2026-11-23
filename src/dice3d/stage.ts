@@ -19,7 +19,7 @@ const PIPS: Record<number, number[][]> = {
   6: [[28, 25], [72, 25], [28, 50], [72, 50], [28, 75], [72, 75]],
 };
 
-function faceTexture(value: number, px: number): THREE.CanvasTexture {
+export function faceTexture(value: number, px: number): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = px;
   const g = canvas.getContext("2d")!;
@@ -42,7 +42,7 @@ function faceTexture(value: number, px: number): THREE.CanvasTexture {
   return texture;
 }
 
-function blobTexture(): THREE.CanvasTexture {
+export function blobTexture(): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 64;
   const g = canvas.getContext("2d")!;

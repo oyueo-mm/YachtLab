@@ -1,6 +1,7 @@
 import type { Request } from "./worker";
 import type { Game } from "./engine";
-import type { Algorithm, Options, Decision } from "./ai";
+import type { Options, Decision } from "./ai";
+import type { ModelId } from "./ai-models";
 type Job = Request extends infer R
   ? R extends Request
     ? Omit<R, "id">
@@ -41,7 +42,7 @@ export function createDecisionSession() {
   };
   return {
     cancel,
-    decide: (state: Game, algorithm: Algorithm, options?: Options) =>
+    decide: (state: Game, algorithm: ModelId, options?: Options) =>
       new Promise<Decision>((resolve, reject) => {
         if (closed) {
           reject(Error("AI 계산 세션이 종료되었습니다."));

@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
-import { algorithms, type Algorithm } from "./ai";
+import { type Algorithm } from "./ai";
+import { isSelectable, type ModelId } from "./model-catalog";
 import { gameDifficulties } from "./GameDifficulty";
 import { DEFAULT_RULESET, isPlayableRuleset, type RulesetId } from "./rulesets";
 
@@ -17,7 +18,7 @@ export type AiSetup = {
   first: FirstPlayer;
   /** Advanced: pick any research algorithm instead of the 5 public difficulties. */
   research: boolean;
-  researchAlgorithm: Algorithm;
+  researchAlgorithm: ModelId;
   speed: AiSpeed;
 };
 export type LocalOrder = "input" | "random";
@@ -47,7 +48,6 @@ export const defaultLocalSetup = (): LocalSetup => ({
 const AI_KEY = "yachtlab.setup.ai.v1";
 const LOCAL_KEY = "yachtlab.setup.local.v1";
 const isDifficulty = (v: unknown): v is Algorithm => gameDifficulties.some((d) => d.algorithm === v);
-const isAlgorithm = (v: unknown): v is Algorithm => (algorithms as readonly unknown[]).includes(v);
 const pick = <T extends string>(v: unknown, options: readonly T[], fallback: T): T => (options.includes(v as T) ? (v as T) : fallback);
 
 const stripControl = (text: string) =>
@@ -75,7 +75,7 @@ export function sanitizeAiSetup(raw: unknown): AiSetup {
     name: typeof v.name === "string" ? draftName(v.name) : defaultAiSetup.name,
     first: pick(v.first, ["random", "me", "ai"] as const, defaultAiSetup.first),
     research: v.research === true,
-    researchAlgorithm: isAlgorithm(v.researchAlgorithm) ? v.researchAlgorithm : defaultAiSetup.researchAlgorithm,
+    researchAlgorithm: typeof v.researchAlgorithm === "string" && isSelectable(v.researchAlgorithm) ? (v.researchAlgorithm as ModelId) : defaultAiSetup.researchAlgorithm,
     speed: pick(v.speed, ["slow", "normal", "fast"] as const, defaultAiSetup.speed),
   };
 }
@@ -137,7 +137,7 @@ export const useLocalSetup = () => useSyncExternalStore(subscribe, getLocalSetup
 
 const randomInt = (n: number) => crypto.getRandomValues(new Uint32Array(1))[0] % n;
 
-export type AiMatchConfig = { algorithm: Algorithm; humanName: string; first: FirstPlayer; speed: AiSpeed };
+export type AiMatchConfig = { algorithm: ModelId; humanName: string; first: FirstPlayer; speed: AiSpeed };
 export const aiMatchConfig = (setup: AiSetup): AiMatchConfig => ({
   algorithm: setup.research ? setup.researchAlgorithm : setup.difficulty,
   humanName: cleanName(setup.name) || DEFAULT_HUMAN_NAME,

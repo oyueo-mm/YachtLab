@@ -24,6 +24,7 @@ const MAX_PHYSICS_FRAMES = 96; // 1.6 s
 const CORRECTION_FRAMES = 10;
 const GLIDE_FRAMES = 15;
 const SETTLE_FRAMES = 8;
+const BLEND_FRAMES = 8;
 
 /** Local face normals carrying each value (opposite faces sum to 7). */
 export const FACE_NORMAL: Record<number, Vec3> = { 1: [0, 1, 0], 6: [0, -1, 0], 2: [1, 0, 0], 5: [-1, 0, 0], 3: [0, 0, 1], 4: [0, 0, -1] };
@@ -155,7 +156,21 @@ function randomQuat(r: () => number): Quat {
 /* ---------------------------------------------------------------- simulation ---------------------------------------------------------------- */
 
 export type SimDie = { id: number; value: number; held: boolean; x: number; z: number };
-export type SimInput = { width: number; height: number; dice: SimDie[]; direction: -1 | 1; seed: number; maxAttempts?: number };
+export type SimInput = {
+  width: number;
+  height: number;
+  dice: SimDie[];
+  direction: -1 | 1;
+  seed: number;
+  maxAttempts?: number;
+  /**
+   * "free" (default for the game): dice stay exactly where and how physics left them.
+   * "slots": after resting, dice glide into their row slots (previous presentation, kept for comparison).
+   */
+  landing?: "free" | "slots";
+  /** Current resting place of moving dice (re-rolls start from there instead of the tray edge). */
+  starts?: Record<number, { x: number; z: number; quat?: Quat }>;
+};
 export type Impact = { frame: number; id: number; strength: number; kind: "floor" | "wall" | "die" };
 export type DieTrack = {
   id: number;
@@ -241,13 +256,24 @@ function runOnce(input: SimInput, seed: number): RawRun {
   const span = Math.max(0, Math.min(W - 1.6, (n - 1) * 1.25));
   moving.forEach((d, i) => {
     const body = new CANNON.Body({ mass: 1, material: dieMat, shape: new CANNON.Box(half), linearDamping: crowd > 0.5 ? 0.32 : 0.2, angularDamping: crowd > 0.5 ? 0.38 : 0.26 });
-    const x = W / 2 - span / 2 + (n > 1 ? (span * i) / (n - 1) : 0) - input.direction * 0.25 + (r() - 0.5) * 0.2;
-    const layer = span < (n - 1) * 1.15 ? i % 2 : 0; // narrow trays: alternate heights
-    body.position.set(Math.min(W - 0.8, Math.max(0.8, x)), 1.25 + layer * 1.2 + r() * 0.3, H - 0.75 - r() * 0.25);
-    const q = randomQuat(r);
-    body.quaternion.set(q[0], q[1], q[2], q[3]);
+    const start = input.starts?.[d.id];
     const speed = Math.min(1.4, Math.max(0.55, H / 5.5)) * (crowd > 0.5 ? 0.8 : 1);
-    body.velocity.set(input.direction * (1.2 + r() * 2.4), 0.6 + r() * 1.4, -(4.2 + r() * 2.6) * speed);
+    if (start) {
+      // Re-roll from where the die lies: scooped up and tossed again inside the tray.
+      body.position.set(Math.min(W - 0.6, Math.max(0.6, start.x)), 1.1 + r() * 0.5, Math.min(H - 0.6, Math.max(0.6, start.z)));
+      const q = start.quat ?? randomQuat(r);
+      body.quaternion.set(q[0], q[1], q[2], q[3]);
+      const toCenterX = (W / 2 - start.x) * 0.6,
+        toCenterZ = (H / 2 - start.z) * 0.6;
+      body.velocity.set(toCenterX + input.direction * (0.8 + r() * 1.6), 3 + r() * 1.6, toCenterZ + (r() - 0.5) * 2.4 * speed);
+    } else {
+      const x = W / 2 - span / 2 + (n > 1 ? (span * i) / (n - 1) : 0) - input.direction * 0.25 + (r() - 0.5) * 0.2;
+      const layer = span < (n - 1) * 1.15 ? i % 2 : 0; // narrow trays: alternate heights
+      body.position.set(Math.min(W - 0.8, Math.max(0.8, x)), 1.25 + layer * 1.2 + r() * 0.3, H - 0.75 - r() * 0.25);
+      const q = randomQuat(r);
+      body.quaternion.set(q[0], q[1], q[2], q[3]);
+      body.velocity.set(input.direction * (1.2 + r() * 2.4), 0.6 + r() * 1.4, -(4.2 + r() * 2.6) * speed);
+    }
     body.angularVelocity.set((r() - 0.5) * 30, (r() - 0.5) * 18, (r() - 0.5) * 30);
     body.addEventListener("collide", (e: { body: CANNON.Body; contact: CANNON.ContactEquation }) => {
       const strength = Math.abs(e.contact.getImpactVelocityAlongNormal());
@@ -324,7 +350,8 @@ export function simulateThrow(input: SimInput): SimResult {
   const tracks: DieTrack[] = [];
   const extra = moving.some((d) => (run.flat.get(d.id) ?? 1) <= 0.985) || !run.settled ? CORRECTION_FRAMES : 0;
   const glideStart = run.physicsFrames + extra;
-  const frameCount = glideStart + GLIDE_FRAMES;
+  const glideFrames = (input.landing ?? "slots") === "slots" ? GLIDE_FRAMES : 0;
+  const frameCount = glideStart + glideFrames;
   for (const d of moving) {
     const raw = run.frames.get(d.id)!;
     const bodyQuats: Quat[] = raw.map((f) => f.quat);
@@ -365,11 +392,22 @@ export function simulateThrow(input: SimInput): SimResult {
       }
     }
     const restPos = positions[positions.length - 1];
-    for (let k = 1; k <= GLIDE_FRAMES; k++) {
+    for (let k = 1; k <= glideFrames; k++) {
       const t = k / GLIDE_FRAMES,
         e = t * t * (3 - 2 * t);
       visual.push(qSlerp(restVisual, end, e));
       positions.push([restPos[0] + (d.x - restPos[0]) * e, 0.5 + Math.sin(Math.PI * t) * 0.06, restPos[2] + (d.z - restPos[2]) * e]);
+    }
+    // Re-roll from a resting die: blend from its current pose into the toss, so nothing jumps on frame 0.
+    const from = input.starts?.[d.id];
+    if (from?.quat) {
+      const p0: Vec3 = [from.x, 0.5, from.z];
+      for (let k = 0; k < Math.min(BLEND_FRAMES, visual.length); k++) {
+        const t = (k + 1) / (BLEND_FRAMES + 1),
+          e = t * t * (3 - 2 * t);
+        visual[k] = qSlerp(from.quat, visual[k], e);
+        positions[k] = [p0[0] + (positions[k][0] - p0[0]) * e, p0[1] + (positions[k][1] - p0[1]) * e, p0[2] + (positions[k][2] - p0[2]) * e];
+      }
     }
     // Pad every track to the same length.
     while (visual.length < frameCount) {

@@ -65,6 +65,8 @@ test("백그라운드 중 정지, 화면 이동 후 정리 및 연구실 복귀"
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.clock.install();
   await page.goto("#lab");
+  // The lab is a lazily loaded chunk: wait until the demo is mounted before driving the clock.
+  await expect(page.locator(".home-demo")).toHaveAttribute("data-frame", "0");
   await page.clock.runFor(T.ready + T.roll + 50);
   await page.evaluate(() => {
     Object.defineProperty(document, "hidden", {
