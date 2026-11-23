@@ -77,6 +77,7 @@ test("두 브라우저가 초대 코드로 입장해 실시간으로 12라운드
 
   // Turn 1: roll, hold the first die (opponent sees the hold live), re-roll: the held die keeps its value.
   await a.locator(".roll-button").click();
+  await expect(a.locator(".board-top b")).toHaveText("1");
   const die = a.locator(".die-button").first();
   await expect(die).toBeVisible();
   const firstValue = (await die.getAttribute("aria-label"))!.split(", ")[1];
