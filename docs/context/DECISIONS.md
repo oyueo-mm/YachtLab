@@ -106,3 +106,9 @@
 
 **근거:** src/online/room.ts, src/online/client.ts, server/online/, tests/online-server.test.ts, tests/ui/online.spec.ts.
 
+## D-021. 온라인 서버는 Workers + SQLite Durable Objects(방당 1개) + Hibernation, 레코드는 한 행
+
+**상태: 신규 (2026-11-23, Online v0.1 Phase 3, PR #44, 미배포).** 방마다 `YachtRoom` DO(`idFromName(code)`)가 Phase 2 `OnlineRoom`을 그대로 감싸고, 방 레코드(이벤트 로그+토큰 해시)를 SQLite **한 행**에 저장한다(명령당 행 쓰기 1회, 원자적; Workers Free의 일일 행 쓰기 100,000이 가장 먼저 닿는 한도이기 때문). 소켓은 Hibernation API로 받고 신원·전달 seq·속도 버킷은 소켓 첨부 데이터에 둔다. keep-alive 핑은 `setWebSocketAutoResponse`로 처리. 턴 제한·인증 전 소켓·보존 기간 정리는 알람 1개(값이 바뀔 때만 `setAlarm`). 전역 `RoomDirectory` DO가 코드 유일성·방 수 한도·IP 해시별 속도 제한을 맡아, 없는 코드로는 방 DO를 만들지 않는다. 보존 기간: 빈 대기실/종료 30분, 진행 중 24시간, 모든 방 최대 48시간. Free 플랜에서 한도 초과는 과금이 아닌 실패이며, Paid 계정이면 지출 한도가 필요하다. 배포·계정 리소스 생성은 별도 승인 전 금지. 상세: [Phase 3 문서](../online/ONLINE-V01-PHASE3.md).
+
+**근거:** worker/, tests/online-worker.test.ts, tests/online-host.test.ts, tests/ui/online.spec.ts, Cloudflare 공식 요금·한도 문서(2026-11-13~19 갱신본).
+

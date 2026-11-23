@@ -164,6 +164,13 @@ export class OnlineRoom {
   get touchedAt() {
     return this.record.touchedAt;
   }
+  /** Copy of the persisted record (code, timestamps, token hashes, log). */
+  get snapshot(): RoomRecord {
+    return this.record;
+  }
+  get createdAt() {
+    return this.record.createdAt;
+  }
   get connectionCount() {
     return this.connections.size;
   }
@@ -280,6 +287,20 @@ export class OnlineRoom {
     this.connections.add(conn);
     this.record = { ...this.record, touchedAt: this.deps.now() };
     return true;
+  }
+
+  /**
+   * Re-register a socket that survived while the host was evicted (Durable Object WebSocket
+   * Hibernation). Its identity, delivered seq and rate bucket come from the socket's attachment.
+   */
+  adopt(conn: RoomConnection) {
+    if (!this.closed) this.connections.add(conn);
+  }
+
+  /** Record activity without a game event (e.g. a socket closed) so idle cleanup counts from now. */
+  touch() {
+    this.record = { ...this.record, touchedAt: this.deps.now() };
+    return this.deps.save(this.record);
   }
 
   disconnect(conn: RoomConnection) {

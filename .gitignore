@@ -12,3 +12,6 @@ training/data/
 training/dp/solve.exe
 public/ai/*.f64
 .online-data/
+.wrangler/
+.wrangler-state/
+worker/.wrangler/

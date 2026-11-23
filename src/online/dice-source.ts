@@ -19,8 +19,10 @@ export function cryptoDiceSource(fill?: FillRandom): DiceSource {
   const getRandom: FillRandom =
     fill ??
     ((buffer) => {
-      if (!globalThis.crypto?.getRandomValues) throw Error("CSPRNG(crypto.getRandomValues)를 사용할 수 없습니다.");
-      return globalThis.crypto.getRandomValues(buffer);
+      // Same Web Crypto API in browsers, Node and the Workers runtime (typed loosely for all three).
+      const webCrypto = (globalThis as { crypto?: { getRandomValues<T extends Uint8Array>(array: T): T } }).crypto;
+      if (!webCrypto?.getRandomValues) throw Error("CSPRNG(crypto.getRandomValues)를 사용할 수 없습니다.");
+      return webCrypto.getRandomValues(buffer);
     });
   const buffer = new Uint8Array(64);
   let index = buffer.length;
