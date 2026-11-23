@@ -112,3 +112,9 @@
 
 **근거:** worker/, tests/online-worker.test.ts, tests/online-host.test.ts, tests/ui/online.spec.ts, Cloudflare 공식 요금·한도 문서(2026-11-13~19 갱신본).
 
+## D-022. 온라인 서버 운영: Workers Free 공유 계정, 하루 방 한도와 행 쓰기 0 속도 제한
+
+**상태: 신규 (2026-11-23, Online v0.1 Phase 4, 운영 중).** `yachtlab-online` Worker를 workers.dev 무료 주소로 배포하고 GitHub Pages 프로덕션 빌드를 연결했다. 계정은 Workers Free(결제 수단 없음)이며 `ideadock-auth`와 일일 무료 한도를 공유하므로, 하루 방 생성 한도 300(행 쓰기 약 36%), 동시 방 50, 허용 출처 Pages만, 속도 제한은 메모리 카운터(행 쓰기 0), 재접속은 저장하지 않음을 원칙으로 한다. 배포는 소유자의 수동 워크플로(`deploy-online-worker.yml`, 무료 플랜 확인 필수)로 하고, 실서버 검증은 컨테이너 프록시가 WebSocket을 지원하지 않으므로 GitHub Actions `online-live-check.yml`로 한다. CI 테스트는 서버 주소 없는 빌드로, Pages 업로드만 서버 주소로 다시 빌드한다. 상세: [Phase 4](../online/ONLINE-V01-PHASE4.md).
+
+**근거:** worker/wrangler.toml, worker/src/index.ts, .github/workflows/deploy.yml, .github/workflows/deploy-online-worker.yml, .github/workflows/online-live-check.yml, 실서버 검증 run 45175468744·45181133166.
+
