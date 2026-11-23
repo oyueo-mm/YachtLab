@@ -8,6 +8,7 @@ import "./play-table.css";
 import "./matte.css";
 import "./mobile-play.css";
 import "./online.css";
+import "./responsive.css";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <App />

@@ -8,6 +8,7 @@ import { diceRenderer, useSettings, type DiceRenderer } from "./settings";
 import { useScoreFx, type ScoreFx } from "./score-fx";
 import { beginDiceMotion } from "./dice-motion";
 import { DieIcon } from "./Dice";
+import { YachtFlash } from "./yacht-moment";
 
 type Props = {
   state: Pick<Game, "dice" | "order" | "rolls">;
@@ -61,8 +62,9 @@ export function DiceArea({ forceRenderer, ...props }: Props) {
   if (physical)
     return (
       <>
-        <PhysicalDice key={renderer} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} interactive={!!props.interactive} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onFailure={() => setFailed(true)} />
+        <PhysicalDice key={renderer} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} adaptive={!forceRenderer && settings.diceQuality === "auto"} interactive={!!props.interactive} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onFailure={() => setFailed(true)} />
         <ScoreFxLabel fx={fx} />
+        {props.animate && <YachtFlash dice={props.state.dice} rolls={props.state.rolls} rollEvent={props.rollEvent ?? 0} />}
       </>
     );
   // Fallback row: plain 2.5D (or none) — the old 3D overlay is not used in games anymore.
@@ -71,6 +73,7 @@ export function DiceArea({ forceRenderer, ...props }: Props) {
       <Dice {...props} holdOrder={holdOrder} forceRenderer={renderer === "none" ? "none" : "2.5d"} />
       <ScoreFxFallback fx={fx} reduced={renderer === "none"} />
       <ScoreFxLabel fx={fx} />
+      {props.animate && <YachtFlash dice={props.state.dice} rolls={props.state.rolls} rollEvent={props.rollEvent ?? 0} />}
     </>
   );
 }

@@ -62,7 +62,7 @@ export function SettingsDialog({ open, onClose, navigate, inGame = false }: { op
   }, [open]);
   const systemReduced = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const renderer = diceRenderer(settings);
-  const qualityLabel: Record<DiceQuality, string> = { auto: "자동", "3d-high": "3D 고급", "3d": "3D 가볍게", "2.5d": "2.5D (기존)" };
+  const qualityLabel: Record<DiceQuality, string> = { auto: "자동", "3d-high": "고화질", "3d": "성능 우선", "2.5d": "간단 (2.5D)" };
   const go = (route: Route) => {
     onClose();
     navigate(route);
@@ -162,8 +162,10 @@ export function SettingsDialog({ open, onClose, navigate, inGame = false }: { op
               : renderer === "2.5d"
                 ? "2.5D 주사위 연출을 사용 중이에요."
                 : renderer === "3d-high"
-                  ? "3D 물리 주사위(고급)를 사용 중이에요."
-                  : "3D 물리 주사위(가볍게)를 사용 중이에요."}
+                  ? settings.diceQuality === "auto"
+                    ? "3D 물리 주사위를 선명하게 그리고, 기기가 버거워하면 자동으로 가볍게 바꿔요."
+                    : "3D 물리 주사위(고화질)를 사용 중이에요."
+                  : "3D 물리 주사위(성능 우선)를 사용 중이에요."}
           </p>
         </section>
         {inGame ? (

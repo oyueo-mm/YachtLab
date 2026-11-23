@@ -197,3 +197,41 @@ describe("4th pass: vigorous throws", () => {
     expect(spread / rows.length).toBeGreaterThan(0.9);
   });
 });
+
+describe("ahead-of-time throw physics (values applied afterwards)", () => {
+  it("a prepared throw gives the same motion as a fresh one and still lands on any requested values", async () => {
+    const { prepareThrow, throwKey } = await import("../src/dice3d/physics");
+    const base = { ...input(5.2, 5.6, [1, 1, 1, 1, 1], [], 4242), landing: "free" as const, maxAttempts: 14 };
+    const prepared = prepareThrow(base);
+    for (const values of [
+      [6, 6, 6, 6, 6],
+      [1, 2, 3, 4, 5],
+      [3, 3, 5, 2, 6],
+    ]) {
+      const withValues = { ...base, dice: base.dice.map((d, i) => ({ ...d, value: values[i] })) };
+      expect(throwKey(withValues)).toBe(prepared.key); // values are not part of the physics
+      const reused = simulateThrow(withValues, prepared);
+      const fresh = simulateThrow(withValues);
+      expect(reused.frameCount).toBe(fresh.frameCount);
+      for (const t of reused.tracks) {
+        expect(finalValue(t, reused.frameCount)).toBe(values[t.id]);
+        const f = fresh.tracks.find((x) => x.id === t.id)!;
+        // identical positions (only the face labelling depends on the value)
+        for (let k = 0; k < reused.frameCount; k++) expect(t.frames[k * 7]).toBeCloseTo(f.frames[k * 7], 5);
+      }
+      expect(reused.stats.simMs).toBeLessThan(fresh.stats.simMs + 1);
+    }
+  });
+  it("a prepared throw is not reused when the table, held dice or direction changed", async () => {
+    const { prepareThrow, throwKey } = await import("../src/dice3d/physics");
+    const base = { ...input(5.2, 5.6, [2, 2, 2, 2, 2], [], 7), landing: "free" as const };
+    const prepared = prepareThrow(base);
+    expect(throwKey({ ...base, direction: -1 })).not.toBe(prepared.key);
+    expect(throwKey({ ...base, width: 6 })).not.toBe(prepared.key);
+    expect(throwKey({ ...base, dice: base.dice.map((d) => ({ ...d, held: d.id === 0 })) })).not.toBe(prepared.key);
+    const held = { ...base, dice: base.dice.map((d) => ({ ...d, held: d.id === 0 })) };
+    const result = simulateThrow(held, prepared); // mismatched: computed fresh, still correct
+    expect(result.tracks.map((t) => t.id).sort()).toEqual([1, 2, 3, 4]);
+    for (const t of result.tracks) expect(finalValue(t, result.frameCount)).toBe(2);
+  });
+});

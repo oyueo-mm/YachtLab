@@ -6,6 +6,8 @@ import { createMultiGame, multiStandings, type MultiGame } from "./multi-engine"
 import { appendMultiAction, newMultiReplay, type MultiReplay } from "./multi-replay";
 import MultiReplayViewer from "./MultiReplayViewer";
 import MobileScoreSheet, { MobileScoreButton } from "./MobileScoreSheet";
+import { useYachtReady } from "./yacht-moment";
+import { QuickPicks } from "./QuickPicks";
 import MobileQuickScore from "./MobileQuickScore";
 import { saveMultiReplay } from "./multi-replay-storage";
 import { total, names as categoryNames, type Action, type Category } from "./engine";
@@ -105,6 +107,7 @@ export default function LocalGame({
   };
   const standings = state.done ? multiStandings(state) : [];
   const gesture = useThrowGesture(canAct && state.rolls < 3, () => act({ type: "roll" }));
+  const yachtReady = useYachtReady(state.dice, state.rolls, !state.done && state.cards[state.player]?.yacht === undefined);
   const celebration = useGameSounds(state.cards, state.done, state.done ? "win" : null);
   return (
     <div className="multi-local-game">
@@ -148,7 +151,7 @@ export default function LocalGame({
                 <i />
                 {state.done ? "경기 종료" : current + "의 차례"}
               </span>
-              <span>
+              <span className="board-rolls">
                 라운드 {state.round}/12 · 굴림 <b>{state.rolls}</b>/3
               </span>
             </div>
@@ -160,6 +163,7 @@ export default function LocalGame({
                 <span>{3 - state.rolls}회 남음</span>
               </button>
               <p>{!state.done && !rolling && state.rolls === 3 ? "점수 칸을 선택하세요" : ""}</p>
+              <QuickPicks values={state.dice.map((d) => d.value)} card={state.cards[state.player]} rolls={state.rolls} canScore={canAct && !state.done} onScore={recordScore} />
             </div>
             {state.done && (
               <div className="game-result" role="status">
@@ -177,7 +181,7 @@ export default function LocalGame({
               </div>
             )}
           </section>
-          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : state.rolls} canScore={canAct} />
+          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : state.rolls} canScore={canAct} yacht={yachtReady} />
           {mobileScoreOpen && (
             <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}>
               <MobileQuickScore cards={state.cards} dice={state.dice} rolls={rolling ? 0 : state.rolls} current={state.player} labels={names} canScore={canAct} onScore={recordScore} />

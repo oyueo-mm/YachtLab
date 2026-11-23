@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { MATERIAL_ORDER, canonicalOrientation, finalValue, qAxisAngle, qDot, qMul, qSlerp, simulateThrow, topFace, type Quat, type SimResult } from "./physics";
+import { MATERIAL_ORDER, canonicalOrientation, finalValue, prepareThrow, throwKey, qAxisAngle, qDot, qMul, qSlerp, simulateThrow, topFace, type PreparedThrow, type Quat, type SimResult } from "./physics";
 import { blobTexture, faceTexture, type Quality } from "./stage";
 
 /**
@@ -14,7 +14,39 @@ import { blobTexture, faceTexture, type Quality } from "./stage";
  * the hold shelf is z ∈ [trayH, totalH]. The camera maps the top-face plane (y = 1) 1:1 to CSS pixels,
  * so DOM hit targets can be placed exactly over each die.
  */
-export { simulateThrow, finalValue, canonicalOrientation, topFace };
+export { simulateThrow, prepareThrow, throwKey, finalValue, canonicalOrientation, topFace };
+export type { PreparedThrow };
+
+/**
+ * Canvas resolution policy (CSS px → canvas px). Before: phones used the "3d" tier at 1.25 px per
+ * CSS px with 128 px face textures — on 2.6–3× screens the dice were drawn at under half resolution
+ * and scaled up (blurry pips and edges).
+ *  - "3d-high" (고화질; also 자동): up to 2× device pixels; MSAA only where it matters (screens
+ *    below 1.5×) — at 2× the extra pixels already smooth edges and MSAA would cost far more.
+ *  - "3d" (성능 우선): up to 1.5×, no MSAA.
+ *  - adaptive level (자동 only): 0 → 2×, 1 → 1.5×, 2 → 1.25× after repeatedly slow throws.
+ */
+export function renderPolicy(quality: Quality, dpr: number, level = 0): { pixelRatio: number; antialias: boolean } {
+  const cap = Math.min(quality === "3d-high" ? 2 : 1.5, [2, 1.5, 1.25][Math.max(0, Math.min(2, level))]);
+  const pixelRatio = Math.max(1, Math.min(dpr, cap));
+  return { pixelRatio, antialias: quality === "3d-high" && pixelRatio < 1.5 };
+}
+const LEVEL_KEY = "yachtlab.render.level";
+export function adaptiveLevel(): number {
+  try {
+    const n = Number(sessionStorage.getItem(LEVEL_KEY));
+    return Number.isInteger(n) && n >= 0 && n <= 2 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+function setAdaptiveLevel(level: number) {
+  try {
+    sessionStorage.setItem(LEVEL_KEY, String(level));
+  } catch {
+    /* private mode */
+  }
+}
 export type { Quat, SimResult };
 export type Pose = { x: number; y: number; z: number; quat: Quat };
 const QUARTER = new Set([1, 4, 5]);
@@ -71,7 +103,6 @@ export class DiceTable {
   private queued = 0;
   /** One running animation per die: a new one for the same die replaces the old one. */
   private moves = new Map<number, () => void>();
-  private loops = new Set<number>();
   private disposed = false;
   private warmed = false;
   width = 1;
@@ -82,16 +113,23 @@ export class DiceTable {
   /** Frame-time samples (ms) of the most recent roll. */
   frameTimes: number[] = [];
 
-  constructor(private host: HTMLElement, readonly quality: Quality) {
+  constructor(private host: HTMLElement, readonly quality: Quality, private readonly options: { adaptive?: boolean } = {}) {
     this.canvas = document.createElement("canvas");
     this.canvas.className = "dice-table-canvas";
     this.canvas.setAttribute("aria-hidden", "true");
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, alpha: true, antialias: quality === "3d-high", powerPreference: "high-performance" });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, quality === "3d-high" ? 2 : 1.25));
+    const policy = renderPolicy(quality, window.devicePixelRatio || 1, options.adaptive ? adaptiveLevel() : 0);
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, alpha: true, antialias: policy.antialias, powerPreference: "high-performance" });
+    this.renderer.setPixelRatio(policy.pixelRatio);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.setClearColor(0x000000, 0);
-    // Matte dice: high roughness, no metalness, no environment reflections.
-    this.materials = MATERIAL_ORDER.map((v) => new THREE.MeshStandardMaterial({ map: faceTexture(v, quality === "3d-high" ? 256 : 128), roughness: 0.62, metalness: 0 }));
+    // Matte dice: high roughness, no metalness, no environment reflections. Faces are always 256 px
+    // (cheap: six small textures) with mipmaps and the GPU's anisotropic filtering, so pips stay crisp.
+    const anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy?.() ?? 4);
+    this.materials = MATERIAL_ORDER.map((v) => {
+      const map = faceTexture(v, 256);
+      map.anisotropy = anisotropy;
+      return new THREE.MeshStandardMaterial({ map, roughness: 0.62, metalness: 0 });
+    });
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0xa8a8a8, 1.55));
     this.light = new THREE.DirectionalLight(0xffffff, 0.85);
     this.scene.add(this.light, this.light.target);
@@ -116,9 +154,16 @@ export class DiceTable {
     return m;
   }
 
+  /** Effective canvas pixels per CSS pixel (diagnostics / tests). */
+  get pixelRatio() {
+    return this.renderer.getPixelRatio();
+  }
+
+  private cssSize = { w: 1, h: 1 };
   layout(widthPx: number, heightPx: number, size: number) {
     this.width = widthPx / size;
     this.height = heightPx / size;
+    this.cssSize = { w: widthPx, h: heightPx };
     this.renderer.setSize(widthPx, heightPx, false);
     const distance = this.height / 2 / Math.tan(((this.camera.fov / 2) * Math.PI) / 180);
     this.cameraDistance = distance;
@@ -208,24 +253,57 @@ export class DiceTable {
     this.moves.delete(id);
   }
 
+  /**
+   * One animation ticker for the whole table: every running animation (a throw, several dice sliding
+   * to the shelf, a score effect) updates its dice, then the scene is drawn once for that frame.
+   * (Previously each animation rendered the full scene itself, so five sliding dice drew it five times.)
+   */
+  private steps = new Set<(now: number) => boolean>();
+  /** True while any animation is running on the table. */
+  get animating() {
+    return this.steps.size > 0;
+  }
+  private tickRaf = 0;
   private loop(step: (now: number) => boolean) {
-    let raf = 0;
-    const tick = (now: number) => {
-      this.loops.delete(raf);
-      if (this.disposed) return;
-      const more = step(now);
-      this.renderer.render(this.scene, this.camera);
-      if (more) {
-        raf = requestAnimationFrame(tick);
-        this.loops.add(raf);
-      }
-    };
-    raf = requestAnimationFrame(tick);
-    this.loops.add(raf);
+    this.steps.add(step);
+    if (!this.tickRaf && !this.disposed) this.tickRaf = requestAnimationFrame(this.tick);
     return () => {
-      cancelAnimationFrame(raf);
-      this.loops.delete(raf);
+      this.steps.delete(step);
     };
+  }
+  private tick = (now: number) => {
+    this.tickRaf = 0;
+    if (this.disposed) return;
+    for (const step of [...this.steps]) if (!step(now)) this.steps.delete(step);
+    if (this.queued) {
+      cancelAnimationFrame(this.queued);
+      this.queued = 0;
+    }
+    this.renderer.render(this.scene, this.camera);
+    if (this.steps.size) this.tickRaf = requestAnimationFrame(this.tick);
+  };
+
+  /**
+   * Adaptive quality ("자동"): after a throw whose frames were slow (p95 over ~22 ms, i.e. under
+   * ~45 fps) twice in a row, render with fewer canvas pixels from then on (2 → 1.5 → 1.25 per CSS px).
+   * Remembered for this browser session. Never changes what is shown, only how sharply.
+   */
+  private slowThrows = 0;
+  private adapt(frameTimes: number[]) {
+    if (!this.options.adaptive || frameTimes.length < 20) return;
+    const sorted = [...frameTimes].slice(1).sort((a, b) => a - b);
+    const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? 0;
+    this.slowThrows = p95 > 22 ? this.slowThrows + 1 : 0;
+    if (this.slowThrows < 2) return;
+    this.slowThrows = 0;
+    const level = Math.min(2, adaptiveLevel() + 1);
+    if (level === adaptiveLevel()) return;
+    setAdaptiveLevel(level);
+    const policy = renderPolicy(this.quality, window.devicePixelRatio || 1, level);
+    if (policy.pixelRatio >= this.renderer.getPixelRatio()) return;
+    this.renderer.setPixelRatio(policy.pixelRatio);
+    this.renderer.setSize(this.cssSize.w, this.cssSize.h, false);
+    this.requestRender();
   }
 
   /** Play a pre-simulated throw for the dice in `result.tracks`; they stay at their final pose. */
@@ -278,6 +356,7 @@ export class DiceTable {
       }
       opts.onFrame?.();
       if (f >= result.frameCount - 1) {
+        this.adapt(this.frameTimes);
         opts.onDone();
         return false;
       }
@@ -385,8 +464,8 @@ export class DiceTable {
     this.disposed = true;
     this.moves.forEach((stop) => stop());
     this.moves.clear();
-    this.loops.forEach((id) => cancelAnimationFrame(id));
-    this.loops.clear();
+    if (this.tickRaf) cancelAnimationFrame(this.tickRaf);
+    this.steps.clear();
     if (this.queued) cancelAnimationFrame(this.queued);
     this.renderer.dispose();
     this.renderer.forceContextLoss?.();

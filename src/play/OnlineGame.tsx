@@ -12,6 +12,9 @@ import { useGameSounds, useThrowGesture } from "../game-feel";
 import { useDiceBusy } from "../useDiceBusy";
 import { announceScore, clearScoreFx } from "../score-fx";
 import { toggleHoldOrder } from "../hold-order";
+import { useYachtReady } from "../yacht-moment";
+import { QuickPicks } from "../QuickPicks";
+import { playSfx } from "../sound";
 import { OnlineConnection, forgetSeat, inviteLink, savedSeat, setRoomInUrl, type ConnectionStatus } from "../online/client";
 import type { OnlineAction } from "../online/protocol";
 import type { PlayerView } from "../online/server-engine";
@@ -37,6 +40,10 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const [keep, setKeep] = useState<number[]>([]);
   /** Number of hold messages this screen has sent; an echo older than the latest one is ignored. */
   const holdSent = useRef(0);
+  /** Players whose arrival was announced with the join sound (each at most once). */
+  const announced = useRef(new Set<string>());
+  /** Bumped on every catch-up sync (welcome after load/reconnect): sounds stay silent for it. */
+  const [syncKey, setSyncKey] = useState(0);
   const [rollEvent, setRollEvent] = useState(0);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -75,6 +82,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           setKeep(hold.keep);
         };
         const nameOf = (id: string) => next.players.find((p) => p.playerId === id)?.name ?? "";
+        if (!live) setSyncKey((n) => n + 1);
         let rolled = false;
         let kept: number[] | null = null;
         if (live && prev) {
@@ -87,6 +95,10 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
               // The dice that made the combination rise (3D) — same effect as offline play.
               announceScore(e.dice.map((value, id) => ({ id, value })), e.category);
               setFeedback(`${e.playerId === me ? "나" : nameOf(e.playerId)} · ${names[e.category]} ${e.points}점 기록`);
+            } else if (e.type === "playerJoined" && e.playerId !== me && !announced.current.has(e.playerId)) {
+              // A new player entered while this screen was open (not a reconnect, not the first load).
+              announced.current.add(e.playerId);
+              playSfx("join");
             } else if (e.type === "playerForfeited") {
               setFeedback(e.reason === "timeout" ? `${nameOf(e.playerId)} 님의 제한 시간이 지났어요.` : `${nameOf(e.playerId)} 님이 기권했어요.`);
             }
@@ -200,7 +212,8 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   };
   const remaining = deadline !== null && playing ? deadline - now : null;
   const gesture = useThrowGesture(canRoll, roll);
-  const celebration = useGameSounds(game.cards, finished, outcome);
+  const yachtReady = useYachtReady(game.dice, rolls, myTurn && players[meIndex]?.card.yacht === undefined);
+  const celebration = useGameSounds(game.cards, finished, outcome, syncKey);
 
 
   if (!seat) return null;
@@ -395,6 +408,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                 {remaining !== null && <span className="turn-timer">남은 시간 {clock(remaining)}</span>}
                 {myTurn && !rolling && rolls === 3 ? " 점수 칸을 선택하세요" : ""}
               </p>
+              <QuickPicks values={game.dice.map((d) => d.value)} card={players[meIndex]?.card ?? {}} rolls={rolls} canScore={can} onScore={record} />
             </div>
             {finished && (
               <div className="game-result" role="status">
@@ -428,7 +442,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
               </div>
             )}
           </section>
-          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : rolls} canScore={can} />
+          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : rolls} canScore={can} yacht={yachtReady} />
           {mobileScoreOpen && (
             <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}>
               <MobileQuickScore cards={game.cards} dice={game.dice} rolls={rolling ? 0 : rolls} current={turnIndex} labels={labels} canScore={can} onScore={record} />

@@ -1,0 +1,312 @@
+/* ==========================================================================
+   Responsive play screens (phones, tablets, landscape). Loaded last.
+
+   Scoreboard clipping (tablets / ≤1440px desktops / landscape phones): the score table's
+   content needed ~431px but its side panel is 318–396px wide and clips (`overflow: hidden`),
+   so one or both player columns were cut off; in landscape the panel was also taller than the
+   viewport. The table now lays out to the panel width and the panel scrolls within the
+   dynamic viewport height.
+   ========================================================================== */
+.game-grid > .scoreboard {
+  min-width: 0;
+  container-type: inline-size;
+}
+.game-grid > .scoreboard table {
+  width: 100%;
+  table-layout: fixed;
+}
+.game-grid > .scoreboard thead th:first-child {
+  width: auto;
+}
+.game-grid > .scoreboard thead th:not(:first-child) {
+  width: 76px;
+}
+.game-grid > .scoreboard th,
+.game-grid > .scoreboard td {
+  min-width: 0;
+}
+.game-grid > .scoreboard tbody th,
+.game-grid > .scoreboard thead th {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.game-grid > .scoreboard tbody th .category-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.game-grid > .scoreboard thead th:not(:first-child) {
+  white-space: nowrap;
+}
+/* Narrow panels: the five-pip decoration goes, the category name and help stay. */
+@container (max-width: 420px) {
+  .scoreboard tbody th .category-pattern {
+    display: none;
+  }
+  .scoreboard th,
+  .scoreboard td {
+    padding-inline: 6px;
+  }
+}
+@container (max-width: 340px) {
+  .scoreboard thead th:not(:first-child) {
+    width: 64px;
+  }
+}
+
+/* Side-by-side layout (tablets, desktops, landscape phones): the scoreboard never extends past the
+   visible screen; it scrolls inside its panel (dvh follows the mobile browser's address bar). */
+@media (min-width: 761px) {
+  .shell-game .game-grid {
+    align-items: start;
+  }
+  .shell-game .game-grid > .scoreboard {
+    position: sticky;
+    top: 72px;
+    max-height: calc(100vh - 84px);
+    max-height: calc(100dvh - 84px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Landscape phones (short and wide): the dice table fits the screen height. */
+@media (min-width: 761px) and (max-height: 520px) {
+  .app-shell.shell-game .main {
+    padding-top: 6px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  }
+  .shell-game .game-grid > .scoreboard {
+    top: 58px;
+    max-height: calc(100dvh - 66px);
+  }
+  .shell-game .game-left > .score-summary,
+  .shell-game .game-left > .game-tools {
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+  }
+  .shell-game .score-summary strong {
+    font-size: 20px;
+  }
+  .app-shell.shell-game .game-board {
+    min-height: 0;
+    padding: 8px 10px 10px;
+  }
+  .app-shell.shell-game .game-board > .physical-dice {
+    flex: none;
+    height: calc(100dvh - 190px);
+    min-height: 170px;
+    margin: 0 0 8px;
+  }
+  .app-shell.shell-game .roll-button {
+    min-height: 44px;
+  }
+}
+
+/* ---------- redundant status text ----------
+   The roll button already says how many rolls are left and which player's turn it is, and the score
+   summary highlights the current player. The board header stays for screen readers only. */
+.page-play .game-board > .board-top,
+.page-online-room .game-board > .board-top {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+/* Local multiplayer keeps "OO의 차례" (several people share one screen) but not the roll count. */
+.board-top > .board-rolls {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- phones ---------- */
+@media (max-width: 760px) {
+  /* Bigger, clearly separated touch targets around the dice and actions. */
+  .app-shell .roll-button {
+    min-height: 56px;
+  }
+  .page-play .mobile-score-button,
+  .page-online-room .mobile-score-button,
+  .page-pvp .mobile-score-button {
+    min-height: 52px;
+  }
+  /* Bottom safe area (home indicator) is never covered. */
+  .app-shell.shell-game .main {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  .mobile-score-dialog {
+    max-height: 100dvh;
+  }
+  .mobile-score-scroll {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+}
+@media (max-width: 760px) {
+  /* An empty status line no longer leaves a gap under the roll button. */
+  .app-shell.shell-game .game-board > .roll-area p:empty {
+    display: none;
+  }
+}
+
+/* ---------- yacht moment (five of a kind; nothing is recorded automatically) ---------- */
+.yacht-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: grid;
+  place-items: center;
+  pointer-events: none; /* never blocks the dice, the roll button or the score sheet */
+  border-radius: inherit;
+  animation: yacht-glow 1.7s ease-out both;
+}
+.yacht-flash > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--red);
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.25);
+  animation: yacht-pop 1.7s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes yacht-glow {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(242, 140, 40, 0);
+  }
+  20% {
+    box-shadow: inset 0 0 0 4px rgba(242, 140, 40, 0.9), inset 0 0 60px rgba(242, 140, 40, 0.35);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(242, 140, 40, 0);
+  }
+}
+@keyframes yacht-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) translateY(8px);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(1.08) translateY(0);
+  }
+  30%,
+  80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1) translateY(-6px);
+  }
+}
+/* the yacht row stays highlighted until a score is chosen */
+.scoreboard tr.yacht-ready > th,
+.scoreboard tr.yacht-ready > td,
+.mobile-quick-row.yacht-ready {
+  background: #fff4e6 !important;
+}
+.scoreboard tr.yacht-ready > th {
+  box-shadow: inset 3px 0 0 var(--orange);
+}
+.mobile-quick-row.yacht-ready {
+  box-shadow: inset 3px 0 0 var(--orange);
+  animation: yacht-row 1.4s ease-in-out 2;
+}
+.mobile-score-button.yacht-ready {
+  background: linear-gradient(90deg, #d93636, #f28c28);
+}
+@keyframes yacht-row {
+  50% {
+    background: #ffe2bf;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yacht-flash,
+  .yacht-flash > span,
+  .mobile-quick-row.yacht-ready {
+    animation: none;
+  }
+  .yacht-flash {
+    box-shadow: inset 0 0 0 3px rgba(242, 140, 40, 0.9);
+  }
+}
+.sound-demo {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.sound-demo h2 {
+  margin: 0;
+}
+.sound-demo-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sound-demo-buttons button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---------- phones: one-tap quick picks under the roll button ---------- */
+.quick-picks {
+  display: none;
+}
+@media (max-width: 760px) {
+  .app-shell.shell-game .roll-area .quick-picks {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    margin-top: 10px;
+  }
+  .quick-pick {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 52px;
+    padding: 6px 8px;
+    border: 1px solid #4a4a4a;
+    border-radius: 12px;
+    background: #353535;
+    color: #f2f2f2;
+    font-size: 12px;
+  }
+  .quick-pick > span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #cfcfcf;
+  }
+  .quick-pick > strong {
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+  .quick-pick:active {
+    transform: scale(0.97);
+  }
+  .quick-pick.yacht {
+    border-color: var(--orange);
+    background: #4a3518;
+  }
+}

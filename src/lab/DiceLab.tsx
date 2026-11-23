@@ -7,6 +7,7 @@ import type { Die } from "../engine";
 import { useThrowGesture } from "../game-feel";
 import { useDiceBusy } from "../useDiceBusy";
 import { webglAvailable, type DiceRenderer } from "../settings";
+import SoundDemo from "./SoundDemo";
 
 const face = () => 1 + (crypto.getRandomValues(new Uint32Array(1))[0] % 6);
 type Batch = {
@@ -190,6 +191,7 @@ export default function DiceLab() {
           ) : (
             <p className="setup-note">굴리면 결과가 표시돼요.</p>
           )}
+          <SoundDemo />
           <h2>물리 일괄 검증</h2>
           <button type="button" className="secondary" onClick={runBatch} disabled={running}>
             {running ? <LoaderCircle size={16} className="spin" /> : <FlaskConical size={16} />} 이 트레이 크기로 300회 검증

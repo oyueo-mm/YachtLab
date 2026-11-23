@@ -47,12 +47,15 @@ export type Celebration = { kind: "yacht" | "bonus"; key: number } | null;
  * Sounds (and a short visual cue) for scoring events, derived from card changes so that human
  * and AI moves are treated identically. `outcome` is the result from the local viewer's side.
  */
-export function useGameSounds(cards: readonly Card[], done: boolean, outcome: "win" | "lose" | "draw" | null): Celebration {
-  const previous = useRef<{ cards: readonly Card[]; done: boolean }>({ cards, done });
+export function useGameSounds(cards: readonly Card[], done: boolean, outcome: "win" | "lose" | "draw" | null, sync = 0): Celebration {
+  const previous = useRef<{ cards: readonly Card[]; done: boolean; sync: number }>({ cards, done, sync });
   const [celebration, setCelebration] = useState<Celebration>(null);
   useEffect(() => {
     const before = previous.current;
-    previous.current = { cards, done };
+    previous.current = { cards, done, sync };
+    // A catch-up sync (first load, reconnect, refresh) adopts the state silently: scores made while
+    // this screen was away are not replayed as a burst of sounds.
+    if (sync !== before.sync) return;
     const filled = (list: readonly Card[]) => list.reduce((n, card) => n + Object.keys(card).length, 0);
     if (cards.length !== before.cards.length || filled(cards) < filled(before.cards)) return; // new game
     let cue: Celebration = null;
@@ -73,7 +76,7 @@ export function useGameSounds(cards: readonly Card[], done: boolean, outcome: "w
     });
     if (done && !before.done && outcome) playSfx(outcome, { delay: 0.45 });
     if (cue) setCelebration(cue);
-  }, [cards, done, outcome]);
+  }, [cards, done, outcome, sync]);
   useEffect(() => {
     if (!celebration) return;
     const timer = window.setTimeout(() => setCelebration(null), 1600);
