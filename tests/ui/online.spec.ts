@@ -592,7 +592,11 @@ for (const kind of ["node", "workers"] as const) {
         const code = (await a.getByLabel("초대 코드").textContent())!.trim();
         await b.goto(entry(code));
         expect(await fits(b)).toBe(true);
-        await b.getByLabel("닉네임").fill("ABCDEFGHIJKLMNOPQRSTUVWX");
+        // Nickname policy: 12 user-perceived characters at most (server-checked), widest Latin name fits.
+        await b.getByLabel("닉네임").fill("ABCDEFGHIJKLM");
+        await b.getByRole("button", { name: "입장하기" }).click();
+        await expect(b.getByText("닉네임은 12자까지 쓸 수 있어요.")).toBeVisible();
+        await b.getByLabel("닉네임").fill("WWWWWWWWWWWW");
         await b.getByRole("button", { name: "입장하기" }).click();
         await a.getByRole("button", { name: "게임 시작" }).click();
         await expect(b.locator(".roll-button")).toBeVisible();
