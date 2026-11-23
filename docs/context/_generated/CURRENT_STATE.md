@@ -115,7 +115,7 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45114528916) | success | e920a9c89d |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45125779857) | success | 9279800b4f |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45110224151) | success | 984cf8e882 |
 | [YachtLab Win DP v3.1 research and independent confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/45056759480) | success | 7e07bfab83 |
 
