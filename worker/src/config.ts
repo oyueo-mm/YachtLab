@@ -9,6 +9,8 @@ export type OnlineConfig = {
   /** Rooms alive at once (directory count). Creating beyond this returns 503. */
   maxRooms: number;
   createPerMinute: number;
+  /** Rooms that may be created per UTC day (persisted). Bounds daily free-tier usage; fail-closed. */
+  dailyRoomLimit: number;
   joinPerMinute: number;
   /** Rooms with no sockets are removed after this idle time. */
   lobbyIdleMs: number;
@@ -19,7 +21,7 @@ export type OnlineConfig = {
 };
 
 export type ConfigVars = Partial<Record<
-  "ALLOWED_ORIGINS" | "TURN_TIMEOUT_MS" | "MAX_ROOMS" | "CREATE_PER_MINUTE" | "JOIN_PER_MINUTE" | "LOBBY_IDLE_MS" | "FINISHED_IDLE_MS" | "PLAYING_IDLE_MS" | "ROOM_MAX_AGE_MS",
+  "ALLOWED_ORIGINS" | "TURN_TIMEOUT_MS" | "MAX_ROOMS" | "DAILY_ROOM_LIMIT" | "CREATE_PER_MINUTE" | "JOIN_PER_MINUTE" | "LOBBY_IDLE_MS" | "FINISHED_IDLE_MS" | "PLAYING_IDLE_MS" | "ROOM_MAX_AGE_MS",
   string
 >>;
 
@@ -33,8 +35,9 @@ export function readConfig(env: ConfigVars): OnlineConfig {
   return {
     allowedOrigins: (env.ALLOWED_ORIGINS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
     turnTimeoutMs: turn >= 1000 ? turn : null,
-    maxRooms: num(env.MAX_ROOMS, 200, 1),
-    createPerMinute: num(env.CREATE_PER_MINUTE, 10, 1),
+    maxRooms: num(env.MAX_ROOMS, 50, 1),
+    createPerMinute: num(env.CREATE_PER_MINUTE, 5, 1),
+    dailyRoomLimit: num(env.DAILY_ROOM_LIMIT, 300, 1),
     joinPerMinute: num(env.JOIN_PER_MINUTE, 30, 1),
     lobbyIdleMs: num(env.LOBBY_IDLE_MS, 30 * 60_000, 1000),
     finishedIdleMs: num(env.FINISHED_IDLE_MS, 30 * 60_000, 1000),

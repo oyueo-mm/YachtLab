@@ -39,7 +39,7 @@ type Attachment = { playerId: string | null; seenSeq: number; bucket: { tokens: 
 
 export const HELLO_TIMEOUT_MS = 10_000;
 /** Socket opens per room per minute (counted in memory; a soft guard against reconnect storms). */
-export const CONNECTS_PER_MINUTE = 40;
+export const CONNECTS_PER_MINUTE = 20;
 
 export type HostEvents = {
   /** The room was cleaned up (idle / max age). The shell tells the directory. */
@@ -200,8 +200,9 @@ export class RoomHost {
     this.gone.add(ws);
     if (!this.room || this.deleted) return;
     this.room.disconnect(conn);
-    // Idle cleanup counts from the last activity; one row write when the last socket leaves.
-    if (!this.open().length) await this.room.touch();
+    // No storage write here: the idle clock (touchedAt) is updated in memory and saved with the next
+    // command. After an eviction it falls back to the last saved activity — cleanup may come earlier,
+    // never later, and reconnect loops cannot spend SQLite row writes.
     this.rearm();
   }
 
@@ -230,14 +231,19 @@ export class RoomHost {
   }
 
   /** One alarm per object: the earliest of turn deadline, hello timeout and cleanup. Only rewritten when it changes. */
+  /**
+   * Each `setAlarm` is one SQLite row write, so the alarm is only ever moved *earlier* (or set when none
+   * is pending). An alarm that fires before anything is due simply re-evaluates and re-arms. This keeps
+   * socket connect/disconnect cycles from costing row writes.
+   */
   private rearm() {
     if (this.deleted) return;
     const candidates = [this.room?.match.status === "playing" ? this.turnDeadline : null, this.helloDeadline(), this.cleanupAt()].filter((x): x is number => x !== null);
-    const next = candidates.length ? Math.min(...candidates) : null;
-    if (next === this.alarmAt) return;
+    if (!candidates.length) return;
+    const next = Math.min(...candidates);
+    if (this.alarmAt !== null && this.alarmAt <= next) return;
     this.alarmAt = next;
-    if (next === null) this.storage.deleteAlarm();
-    else this.storage.setAlarm(next);
+    this.storage.setAlarm(next);
   }
 
   /** Alarm handler: turn timeout, stale unauthenticated sockets, retention cleanup. */

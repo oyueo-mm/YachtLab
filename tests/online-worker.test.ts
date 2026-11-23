@@ -194,6 +194,17 @@ describe("Online Phase 3 — Workers + SQLite Durable Objects (wrangler dev, loc
     expect((await api(w, "/api/rooms", { name: "셋째" })).status).toBe(201);
   }, 60_000);
 
+  it("하루 방 생성 한도(DAILY_ROOM_LIMIT)를 넘으면 실패로 닫히고, /usage로 현황을 볼 수 있다", async () => {
+    const w = await boot({ DAILY_ROOM_LIMIT: "2" });
+    expect((await api(w, "/api/rooms", { name: "a" })).status).toBe(201);
+    expect((await api(w, "/api/rooms", { name: "b" })).status).toBe(201);
+    const third = await api(w, "/api/rooms", { name: "c" });
+    expect(third.status).toBe(503);
+    expect(third.body.error.code).toBe("DAILY_LIMIT");
+    const usage = await api(w, "/usage");
+    expect(usage.body).toMatchObject({ roomsToday: 2, dailyRoomLimit: 2, liveRooms: 2 });
+  }, 60_000);
+
   it("방장 이탈 시 승계, 남용 방어: 출처·메시지 크기·생성 속도·메시지 폭주·인증 전 소켓", async () => {
     const w = await boot({ CREATE_PER_MINUTE: "3" });
     expect((await api(w, "/api/rooms", { name: "x" }, "https://evil.example")).status).toBe(403);

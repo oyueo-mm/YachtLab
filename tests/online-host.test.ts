@@ -80,7 +80,9 @@ describe("RoomHost (Durable Object logic, runtime-free)", () => {
     await host.message(a, JSON.stringify({ t: "cmd", id: "start", action: { type: "start" } }));
     await host.message(a, JSON.stringify({ t: "cmd", id: "r1", action: { type: "roll", keep: [] } }));
     const dice = a.last("view")!.view.turn!.dice;
-    expect(state.alarm).toBe(t + 60_000); // turn deadline is the earliest timer
+    // the alarm is only ever moved earlier: it is at or before the turn deadline
+    expect(state.alarm).not.toBeNull();
+    expect(state.alarm!).toBeLessThanOrEqual(t + 60_000);
 
     // ---- eviction: a brand-new host over the same storage and the same open sockets ----
     t += 5_000;
@@ -127,6 +129,8 @@ describe("RoomHost (Durable Object logic, runtime-free)", () => {
     open.splice(open.indexOf(lurker), 1);
     await host.closed(lurker);
     await host.message(a, JSON.stringify({ t: "cmd", id: "go", action: { type: "start" } }));
+    // an alarm that is already due fires right away and re-arms to the turn deadline
+    await host.alarm();
     expect(state.alarm).toBe(t + 60_000);
     t += 60_000;
     await host.alarm();
@@ -143,6 +147,30 @@ describe("RoomHost (Durable Object logic, runtime-free)", () => {
     expect(state.record).toBeNull();
     expect(deleted).toEqual(["QWERTY"]);
     expect(host.summary()).toBeNull();
+  });
+
+  it("재접속을 반복해도 SQLite 행 쓰기(레코드·알람)가 늘지 않는다", async () => {
+    let t = 5_000_000;
+    const { state, storage } = fakeStorage();
+    const open: FakeSocket[] = [];
+    const host = new RoomHost(storage, () => open, config, () => (t += 1000), seededDiceSource(2));
+    host.init();
+    const c = await host.create("HJKMNP", "A");
+    if (!c.ok) throw Error();
+    const ws0 = new FakeSocket();
+    open.push(ws0);
+    host.accepted(ws0);
+    await host.message(ws0, JSON.stringify({ t: "hello", token: c.token }));
+    const writes = state.writes;
+    for (let i = 0; i < 15; i++) {
+      const ws = new FakeSocket();
+      open.push(ws);
+      host.accepted(ws);
+      await host.message(ws, JSON.stringify({ t: "hello", token: c.token }));
+      open.splice(open.indexOf(ws), 1);
+      await host.closed(ws);
+    }
+    expect(state.writes - writes).toBe(0);
   });
 
   it("방당 연결 수·연결 속도 제한, 저장 비용: 명령 하나당 SQLite 행 쓰기 1회", async () => {
@@ -163,7 +191,7 @@ describe("RoomHost (Durable Object logic, runtime-free)", () => {
     open.length = 0;
     let admitted = 8;
     while (host.admit().ok) admitted++;
-    expect(admitted).toBe(40);
+    expect(admitted).toBe(20);
     expect(host.admit()).toEqual({ ok: false, status: 429 });
     // writes: record rows + alarm changes only
     const writes = state.writes;

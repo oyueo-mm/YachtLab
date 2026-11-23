@@ -33,7 +33,9 @@ export async function startLocalWorker(vars: Record<string, string> = {}, option
 
   const launch = async () => {
     const args = ["dev", "--config", join(ROOT, "worker/wrangler.toml"), "--local", "--ip", "127.0.0.1", "--port", String(port), "--persist-to", persistDir, "--show-interactive-dev-session=false", "--log-level", "warn"];
-    for (const [k, v] of Object.entries(vars)) args.push("--var", `${k}:${v}`);
+    // Production wrangler.toml only allows the Pages origin; local tests use the preview origin.
+    const all = { ALLOWED_ORIGINS: "http://127.0.0.1:5173,http://localhost:5173", MAX_ROOMS: "200", ...vars };
+    for (const [k, v] of Object.entries(all)) args.push("--var", `${k}:${v}`);
     child = spawn(WRANGLER, args, {
       cwd: ROOT,
       detached: true,

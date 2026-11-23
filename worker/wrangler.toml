@@ -1,10 +1,11 @@
-# YachtLab Online — Cloudflare Workers + SQLite-backed Durable Objects (Phase 3).
-# Local only for now: `npm run online:worker` (wrangler dev --local). Nothing here has been deployed;
-# see docs/online/ONLINE-V01-PHASE3.md before any `wrangler deploy`.
+# YachtLab Online — Cloudflare Workers + SQLite-backed Durable Objects.
+# Production values below (Workers Free). Local development overrides them with --var
+# (`npm run online:worker`, tests/helpers/wrangler.ts). See docs/online/ONLINE-V01-PHASE4.md.
 name = "yachtlab-online"
 main = "src/index.ts"
 compatibility_date = "2026-11-01"
-workers_dev = false
+# Public address: https://yachtlab-online.<account subdomain>.workers.dev (free). No custom routes.
+workers_dev = true
 preview_urls = false
 
 
@@ -25,10 +26,13 @@ tag = "v1"
 new_sqlite_classes = ["YachtRoom", "RoomDirectory"]
 
 [vars]
-ALLOWED_ORIGINS = "http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:4173,http://localhost:4173"
+# Only the GitHub Pages site may call this server (browsers always send Origin).
+ALLOWED_ORIGINS = "https://oyueo-mm.github.io"
 TURN_TIMEOUT_MS = "120000"
-MAX_ROOMS = "200"
-CREATE_PER_MINUTE = "10"
+# The account's free daily usage is shared with other Workers: keep this service well inside it.
+MAX_ROOMS = "50"
+DAILY_ROOM_LIMIT = "300"
+CREATE_PER_MINUTE = "5"
 JOIN_PER_MINUTE = "30"
 LOBBY_IDLE_MS = "1800000"
 FINISHED_IDLE_MS = "1800000"

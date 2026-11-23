@@ -124,29 +124,40 @@ export class RoomDirectory extends DurableObject<Env> {
     this.sql = ctx.storage.sql;
     ctx.blockConcurrencyWhile(async () => {
       this.sql.exec("CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, created_at INTEGER NOT NULL)");
-      this.sql.exec("CREATE TABLE IF NOT EXISTS hits (key TEXT PRIMARY KEY, window INTEGER NOT NULL, count INTEGER NOT NULL)");
-      if ((await ctx.storage.getAlarm()) === null) await ctx.storage.setAlarm(Date.now() + 3600_000);
+      this.sql.exec("CREATE TABLE IF NOT EXISTS daily (day INTEGER PRIMARY KEY, rooms INTEGER NOT NULL)");
+      if ((await ctx.storage.getAlarm()) === null) await ctx.storage.setAlarm(Date.now() + 6 * 3600_000);
     });
   }
 
+  /**
+   * Fixed one-minute windows kept in memory only: rate limiting must never spend SQLite row writes
+   * (the account's daily free write budget is shared with other Workers). If the object is evicted the
+   * counters restart, which only makes the limit softer for a moment.
+   */
+  private hits = new Map<string, { window: number; count: number }>();
   private limited(key: string, max: number): boolean {
     const window = Math.floor(Date.now() / 60_000);
-    const row = this.sql.exec<{ window: number; count: number }>("SELECT window, count FROM hits WHERE key = ?", key).toArray()[0];
+    const row = this.hits.get(key);
     const count = row && row.window === window ? row.count + 1 : 1;
-    if (count > max + 1) return true; // already over: no further writes
-    this.sql.exec("INSERT INTO hits (key, window, count) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET window = excluded.window, count = excluded.count", key, window, count);
+    this.hits.set(key, { window, count });
+    if (this.hits.size > 10_000) for (const [k, v] of this.hits) if (v.window < window) this.hits.delete(k);
     return count > max;
   }
 
   /** Reserve a fresh code for a new room. */
   async allocate(client: string): Promise<Verdict & { code?: string }> {
     if (this.limited("create:" + client, this.config.createPerMinute)) return { ok: false, status: 429, code: "RATE_LIMITED", message: "방을 너무 자주 만들었어요. 잠시 후 다시 시도해 주세요." };
+    // Daily cap (UTC day, persisted): bounds this service's share of the account's free daily usage.
+    const day = Math.floor(Date.now() / 86_400_000);
+    const today = this.sql.exec<{ rooms: number }>("SELECT rooms FROM daily WHERE day = ?", day).toArray()[0]?.rooms ?? 0;
+    if (today >= this.config.dailyRoomLimit) return { ok: false, status: 503, code: "DAILY_LIMIT", message: "오늘은 온라인 방을 더 만들 수 없어요. 내일 다시 시도해 주세요." };
     const count = this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM rooms").one().n;
     if (count >= this.config.maxRooms) return { ok: false, status: 503, code: "ROOM_LIMIT", message: "지금은 방을 더 만들 수 없어요. 잠시 후 다시 시도해 주세요." };
     for (let i = 0; i < 20; i++) {
       const code = newRoomCode();
       if (this.sql.exec("SELECT 1 FROM rooms WHERE code = ?", code).toArray().length) continue;
       this.sql.exec("INSERT INTO rooms (code, created_at) VALUES (?, ?)", code, Date.now());
+      this.sql.exec("INSERT INTO daily (day, rooms) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET rooms = rooms + 1", day);
       return { ok: true, code };
     }
     return { ok: false, status: 503, code: "ROOM_LIMIT", message: "방 코드를 만들지 못했어요." };
@@ -168,12 +179,19 @@ export class RoomDirectory extends DurableObject<Env> {
     return this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM rooms").one().n;
   }
 
-  /** Hourly: forget rate windows, and room codes older than the retention limit (their rooms delete themselves). */
+  /** Rooms created today (UTC) and the cap — for operations checks. */
+  async usage() {
+    const day = Math.floor(Date.now() / 86_400_000);
+    const today = this.sql.exec<{ rooms: number }>("SELECT rooms FROM daily WHERE day = ?", day).toArray()[0]?.rooms ?? 0;
+    return { roomsToday: today, dailyRoomLimit: this.config.dailyRoomLimit, liveRooms: await this.count(), maxRooms: this.config.maxRooms };
+  }
+
+  /** Every 6 hours: forget room codes past retention (their rooms delete themselves) and old day counters. */
   async alarm() {
     const now = Date.now();
-    this.sql.exec("DELETE FROM hits WHERE window < ?", Math.floor(now / 60_000) - 1);
     this.sql.exec("DELETE FROM rooms WHERE created_at < ?", now - this.config.maxAgeMs - 3600_000);
-    await this.ctx.storage.setAlarm(now + 3600_000);
+    this.sql.exec("DELETE FROM daily WHERE day < ?", Math.floor(now / 86_400_000) - 2);
+    await this.ctx.storage.setAlarm(now + 6 * 3600_000);
   }
 }
 
@@ -224,8 +242,9 @@ export default {
           "access-control-max-age": "600",
         },
       });
-    if (url.pathname === "/healthz") return json(200, { ok: true }, allowed);
     const directory = env.DIRECTORY.get(env.DIRECTORY.idFromName("directory"));
+    if (url.pathname === "/healthz") return json(200, { ok: true }, allowed);
+    if (url.pathname === "/usage" && request.method === "GET") return json(200, await directory.usage(), allowed);
     const roomStub = (code: string) => env.ROOMS.get(env.ROOMS.idFromName(code));
 
     try {
