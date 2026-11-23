@@ -50,6 +50,7 @@
 - [native12-dqn.yml](../../../.github/workflows/native12-dqn.yml)
 - [neural-selfplay.yml](../../../.github/workflows/neural-selfplay.yml)
 - [offpolicy-ppo-expanded.yml](../../../.github/workflows/offpolicy-ppo-expanded.yml)
+- [online-live-check.yml](../../../.github/workflows/online-live-check.yml)
 - [psro-extended.yml](../../../.github/workflows/psro-extended.yml)
 - [psro-ppo.yml](../../../.github/workflows/psro-ppo.yml)
 - [qr-20k.yml](../../../.github/workflows/qr-20k.yml)
@@ -99,16 +100,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [dd5fc72](https://github.com/oyueo-mm/YachtLab/commit/dd5fc72) | 2026-11-23 | Merge PR #44: YachtLab Online v0.1 (서버 권한형 엔진, 친구 초대형 온라인 대전, Workers·Durable Objects) |
+| [f410787](https://github.com/oyueo-mm/YachtLab/commit/f410787) | 2026-11-23 | ci(online): manual live check of the deployed Worker and the public site |
+| [0c77849](https://github.com/oyueo-mm/YachtLab/commit/0c77849) | 2026-11-23 | Merge remote-tracking branch 'origin/feat/online-v01-phase1' into feat/online-v01-phase1 |
+| [ad39984](https://github.com/oyueo-mm/YachtLab/commit/ad39984) | 2026-11-23 | fix(online): keep test builds unconfigured and fix 320px overflow of the online screens |
+| [f283141](https://github.com/oyueo-mm/YachtLab/commit/f283141) | 2026-11-23 | ci(online): test unconfigured preview while connecting production Pages to Worker |
+| [9b69578](https://github.com/oyueo-mm/YachtLab/commit/9b69578) | 2026-11-23 | ci(online): point Pages production build at deployed Cloudflare Worker |
 | [5a3ec59](https://github.com/oyueo-mm/YachtLab/commit/5a3ec59) | 2026-11-23 | ci: add guarded manual YachtLab Online Worker deploy (#47) |
-| [9279800](https://github.com/oyueo-mm/YachtLab/commit/9279800) | 2026-11-23 | Merge PR #46: 모바일 AI 대전 주사위판 우선 배치와 족보 연출 축소 |
-| [6597429](https://github.com/oyueo-mm/YachtLab/commit/6597429) | 2026-11-23 | feat(ui): refine mobile AI match layout and compact scoring dice effects |
-| [e920a9c](https://github.com/oyueo-mm/YachtLab/commit/e920a9c) | 2026-11-23 | Merge PR #45: YachtLab 게임 UI 1~4차 개편 |
-| [984cf8e](https://github.com/oyueo-mm/YachtLab/commit/984cf8e) | 2026-11-23 | feat: vigorous 3D throws, combination-effect for scored dice, matte table, button system, mobile controls fix |
-| [e32fea0](https://github.com/oyueo-mm/YachtLab/commit/e32fea0) | 2026-11-23 | feat: start-focused lobby, free-landing 3D dice with hold shelf, unified AI model picker, back-navigation guard |
-| [018ba2e](https://github.com/oyueo-mm/YachtLab/commit/018ba2e) | 2026-11-22 | chore(research): publish Win DP v3.1 fresh-shard evidence [skip ci] |
-| [308b358](https://github.com/oyueo-mm/YachtLab/commit/308b358) | 2026-11-23 | feat(ui): setup screens, game-only play view, lobby dice, quiet rule help and 3D physics dice |
-| [5ad7c33](https://github.com/oyueo-mm/YachtLab/commit/5ad7c33) | 2026-11-23 | feat(ui): game-first lobby, immersive game shell, research lab, 2.5D dice, sound and rule tooltips |
-| [31d9a00](https://github.com/oyueo-mm/YachtLab/commit/31d9a00) | 2026-11-22 | feat: five fixed game difficulties and compact one-tap mobile scoring |
+| [4a3b991](https://github.com/oyueo-mm/YachtLab/commit/4a3b991) | 2026-11-23 | ci(online): add guarded manual Cloudflare Worker deploy workflow |
+| [b8d2960](https://github.com/oyueo-mm/YachtLab/commit/b8d2960) | 2026-11-23 | fix(online): keep the Worker inside a shared free-tier budget before deployment |
+| [bbffa27](https://github.com/oyueo-mm/YachtLab/commit/bbffa27) | 2026-11-23 | feat(online): Phase 3 Cloudflare Workers + SQLite Durable Objects backend (local only) |
 
 ## 최근 GitHub Actions 상태
 
@@ -116,9 +117,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45163537845) | success | d222cc07ca |
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45110224151) | success | 984cf8e882 |
-| [YachtLab Win DP v3.1 research and independent confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/45056759480) | success | 7e07bfab83 |
+| [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45175468744) | success | f4107870ba |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45175450730) | success | f4107870ba |
+| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45170197533) | success | 4a3b991ded |
 
 ## 다음 채팅과 작업의 시작점
 
