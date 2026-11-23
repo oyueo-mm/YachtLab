@@ -157,3 +157,14 @@
 상세: [PR A 문서](../ui/PHASE-A-2026-11.md).
 
 **근거:** src/dice3d/table.ts, src/PhysicalDice.tsx, src/QuickPicks.tsx, src/mobile-play-v2.css, src/sound.ts, worker/src/host.ts, src/online/room.ts, scripts/measure-dice-perf.mjs, docs/ui/perf-2026-11-24/, tests/ui/mobile-play.spec.ts, tests/online-host.test.ts.
+
+## D-026. 재대결은 같은 방에서 새 matchId로, 채팅은 프리셋 ID만·저장 없음 (제품 Phase 3)
+
+**상태: 신규 (2026-11-24, PR B).**
+- **재대결:** 새 방을 만들지 않고 같은 방(같은 DO·초대 코드·좌석 토큰)에서 모든 좌석이 요청하면 새 무작위 matchId의 경기를 시작한다. 이벤트 로그는 새 경기로 교체하고, 이전 결과는 방 전적에 요약만 남긴다. 좌석 순서를 한 칸 회전해 2인은 선공이 번갈아 바뀐다. 재대결도 일일 한도(`DAILY_ROOM_LIMIT`)에 포함되어 하루 무료 사용 상한은 그대로다. 방당 20경기, 변경 저장은 플레이어당 1초 1회·경기당 40회.
+- **프리셋 채팅·이모티콘:** 자유 텍스트 없이 `src/social/catalog.ts`의 불변 ID만 허용하고 서버가 다시 검사한다. 연결별 속도 제한(3개 연속, 이후 2초 1개, 같은 항목 1.5초)을 두고, 실시간으로만 전달하며 저장·재생하지 않는다. 표시는 보낸 사람의 점수 칩 안에서만 한다. 각 항목에 tier·acquisition·style·retired를 두어 이후 상점·퀘스트·외형과 연결할 수 있게 했다(이번엔 무료 기본 항목만).
+- 새 경기의 matchId는 모두 무작위(`m_…`)이고 방 코드와 분리된다.
+
+상세: [소셜·계정 설계](../online/SOCIAL-AND-ACCOUNTS.md) §1–2.
+
+**근거:** src/online/room.ts, src/online/wire.ts, src/social/catalog.ts, src/play/Social.tsx, src/play/OnlineGame.tsx, worker/src/index.ts, tests/online-social.test.ts, tests/ui/online.spec.ts.
