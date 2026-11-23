@@ -196,6 +196,7 @@ export function PhysicalDice({
       ids: fx.ids,
       ms: fx.ms,
       grand: fx.grand,
+      compact: window.matchMedia("(max-width: 760px)").matches,
       onPeak: () => playSfx(fx.category === "large" ? "grand" : "combo", { pan: 0 }),
       onDone: () => {
         fade = t.fadeOut(170, () => {

@@ -48,6 +48,8 @@ export type CelebrateOptions = {
   ms: number;
   /** Bigger rise and a brief second pulse (large straight, yacht). */
   grand?: boolean;
+  /** Reduce the foreground scale on small screens while keeping the combo effect. */
+  compact?: boolean;
   /** Called once when the highlighted dice reach the top of the motion (for the sound). */
   onPeak?: () => void;
   onDone: () => void;
@@ -324,8 +326,8 @@ export class DiceTable {
       const p = this.pose(id);
       if (p) base.set(id, { ...p, y: 0.5 });
     }
-    const peak = opts.grand ? 3.4 : 2.5;
-    const grow = opts.grand ? 1.22 : 1.14;
+    const peak = opts.compact ? (opts.grand ? 2.0 : 1.5) : opts.grand ? 3.4 : 2.5;
+    const grow = opts.compact ? 1.0 : opts.grand ? 1.22 : 1.14;
     // How much perspective magnifies things at the peak height (relative to the top-face plane).
     // (measured at the top face of the raised cube, the part that reaches furthest out).
     const persp = this.cameraDistance / (1 + this.cameraDistance - (peak + 0.5 * grow));
