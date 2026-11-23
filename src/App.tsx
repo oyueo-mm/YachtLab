@@ -6,6 +6,9 @@ import { type Replay } from "./replay";
 import LocalGame from "./LocalGame";
 import MyGames from "./MyGames";
 import HumanGame from "./play/HumanGame";
+import OnlineEntry from "./play/OnlineEntry";
+import OnlineGame from "./play/OnlineGame";
+import { onlineServerUrl, roomFromUrl, setRoomInUrl } from "./online/client";
 import { currentRoute, routes, type Route } from "./routes";
 import { LabNav, SettingsDialog, TopBar } from "./shell/Chrome";
 import { Lobby, OfflineSelect, OnlineSoon } from "./shell/Lobby";
@@ -36,6 +39,10 @@ export default function App() {
   const [aiConfig, setAiConfig] = useState<AiMatchConfig>(() => aiMatchConfig(getAiSetup()));
   const [local, setLocal] = useState<LocalConfig>(localConfig);
   const [gameKey, setGameKey] = useState(0);
+  // Online play needs a configured server; without one the online screen stays "준비 중".
+  const [onlineServer] = useState(onlineServerUrl);
+  const [onlineCode, setOnlineCode] = useState<string | null>(roomFromUrl);
+  const [onlineNotice, setOnlineNotice] = useState("");
   const inProgress = useRef(false);
   const [leaveTo, setLeaveTo] = useState<Route | null>(null);
   // Browser history: every in-app move pushes an entry tagged with an index, so back/forward can be
@@ -134,7 +141,42 @@ export default function App() {
       <main className={`main page-${page}`}>
         {page === "home" && <Lobby navigate={navigate} />}
         {page === "offline" && <OfflineSelect navigate={navigate} />}
-        {page === "online" && <OnlineSoon navigate={navigate} />}
+        {(page === "online" || page === "online-room") && !onlineServer && <OnlineSoon navigate={navigate} />}
+        {page === "online" && onlineServer && (
+          <>
+            {onlineNotice && (
+              <p className="online-notice" role="status">
+                {onlineNotice}
+              </p>
+            )}
+            <OnlineEntry
+              key={gameKey}
+              server={onlineServer}
+              onBack={() => navigate("home")}
+              onEnter={(code) => {
+                setOnlineNotice("");
+                setOnlineCode(code);
+                go("online-room");
+              }}
+            />
+          </>
+        )}
+        {page === "online-room" && onlineServer && onlineCode && (
+          <OnlineGame
+            key={onlineCode}
+            server={onlineServer}
+            code={onlineCode}
+            onProgress={progress}
+            onLeave={(message) => {
+              inProgress.current = false;
+              setOnlineNotice(message ?? "");
+              setOnlineCode(null);
+              setRoomInUrl(null);
+              go("online");
+            }}
+          />
+        )}
+        {page === "online-room" && onlineServer && !onlineCode && <OnlineEntry server={onlineServer} onBack={() => navigate("home")} onEnter={(code) => { setOnlineCode(code); enter("online-room"); }} />}
         {page === "play-setup" && <AiSetupScreen onBack={() => navigate("offline")} onStart={() => go("play")} />}
         {page === "pvp-setup" && <LocalSetupScreen onBack={() => navigate("offline")} onStart={() => go("pvp")} />}
         {page === "play" && <HumanGame key={gameKey} config={aiConfig} onBranch={branch} onAnalyze={analyze} onChangeSetup={() => go("play-setup")} onProgress={progress} />}

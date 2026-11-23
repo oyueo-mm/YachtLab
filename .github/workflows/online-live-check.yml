@@ -1,0 +1,51 @@
+name: YachtLab Online live check (manual)
+# Exercises the deployed Worker (and optionally the public Pages site) from GitHub's network.
+# Never runs on ordinary pushes: start it manually, or add the `online-live-check` label to a PR.
+# Each run uses 3 rooms on the server (4 with the public-site check) — well inside the daily cap.
+on:
+  workflow_dispatch:
+    inputs:
+      public_site:
+        description: "Also play a two-browser game on https://oyueo-mm.github.io/YachtLab/"
+        type: boolean
+        default: false
+  pull_request:
+    types: [labeled]
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-online-live-check
+  cancel-in-progress: false
+env:
+  ONLINE_SERVER: https://yachtlab-online.hoho96385210.workers.dev
+  ONLINE_ORIGIN: https://oyueo-mm.github.io
+jobs:
+  live:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'online-live-check'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Server usage before
+        run: curl -fsS "$ONLINE_SERVER/usage" && echo
+      - name: Live server check (create, invite, WebSocket, reconnect, duplicate, wrong turn, seat security, turn timer)
+        run: npx tsx scripts/online-live-check.ts "$ONLINE_SERVER" "$ONLINE_ORIGIN"
+      - name: Install headless Chromium
+        if: inputs.public_site
+        run: npx playwright install --only-shell chromium
+      - name: Public site two-browser game
+        if: inputs.public_site
+        run: npx playwright test --config playwright.live.config.ts
+      - name: Server usage after
+        if: always()
+        run: curl -fsS "$ONLINE_SERVER/usage" && echo
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: live-results
+          path: test-results

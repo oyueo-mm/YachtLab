@@ -52,6 +52,12 @@
 
 **상태: 연구 전용 / 성능 미검증.** 마지막 3개 남았을 때 v3 상대분포 **근사**를 그대로 사용하되, 선공의 마지막 1칸과 후공의 마지막 1칸이 남고 알려진 상대가 Win DP v2(또는 끝 1칸을 v2에 위임하는 v3)일 때에만 엄밀한 최종턴 BR을 적용한다. 무명 상대에게 고정 BR 전이 금지. 기존 Win DP v2 및 배포 기본 모델 불변. 자세한 제약·검정은 [v3.1 연구 계획](./V31-RESEARCH.md).
 
+## D-010. 온라인 대전은 서버 권한형·이벤트 소싱 엔진, 매치 상태에 RNG 미저장
+
+**상태: 신규 (Online v0.1 Phase 1, 2026-11-22).** 온라인 경기에서는 클라이언트가 주사위·점수를 계산하지 않고, 서버 엔진(`src/online/`)이 명령을 검증해 이벤트를 만들고 단일 리듀서로 상태를 갱신한다. 점수 규칙은 `src/engine.ts`를 재사용(D-001). 주사위는 주입된 CSPRNG(`crypto.getRandomValues` + 거부 샘플링)에서 뽑고 seed/PRNG 상태를 매치 상태·뷰·로그에 저장하지 않는다(D-004 강화). 명령의 `playerId`는 인증된 연결에서만 받는다. `(playerId, commandId)` 멱등성과 `expectedVersion` 낙관적 동시성을 적용하며, 멱등성 키는 이벤트의 `by`에서 유도해 로그만으로 재시작 후에도 복구된다. 저장된 로그는 엔진 재실행으로 감사하되, 이는 **규칙 위반 탐지**이며 규칙상 가능한 위조(꾸며낸 눈, 꼬리 절단, 서명 없는 출처)의 진위 증명은 아니다 — 필요 시 HMAC 해시 체인·외부 anchoring·서명·검증 가능 난수를 별도 도입. 기존 로컬 엔진·AI·리플레이 형식은 변경하지 않는다. 클라우드 리소스 생성·유료 기능·실제 배포는 별도 승인 전까지 하지 않는다.
+
+**근거:** src/online/, tests/online-engine.test.ts, [Online v0.1 Phase 1 설계](../online/ONLINE-V01-PHASE1.md).
+
 ## D-011. 게임 중심 UI: 로비 + 몰입형 게임 화면, 연구 기능은 "연구실"로 분리
 
 **상태: 신규 (2026-11-23, `feat/game-lobby-redesign`).** 홈은 게임 모드 로비(온라인 대전·오프라인 대전)이며 사이드바를 없앴다. 온라인 대전은 서버 미연결 상태이므로 "준비 중" 안내 화면만 제공하고 실제 대전처럼 보이게 하지 않는다. AI 대전 관전·AI 토너먼트·전략 분석실은 삭제하지 않고 `src/lab/`(지연 로딩 청크)과 연구실 메뉴(`#lab`)로 옮겼다. `src/routes.ts`의 `tier: "core" | "lab"`은 향후 선택 요금제 가능성을 위한 **구조적 경계**일 뿐이며 결제·구독·권한 제한은 구현하지 않는다. 기존 해시 딥링크(`#play`, `#pvp`, `#records`, `#watch`, `#tournament`, `#analysis`)는 유지. 주사위 연출은 엔진이 확정한 값을 바꾸지 않는 장식이며(동작 줄이기 시 비활성), 효과음은 자산 없이 Web Audio로 합성한다. (D-010은 Online Phase 1 PR #44에서 사용.)
@@ -93,3 +99,16 @@
 **상태: 신규 (2026-11-23).** 화면 폭 760px 이하에서 사람 vs AI 화면은 주사위판·굴리기 → 모바일 점수판 버튼 → 점수 요약 → 기보·재대결·설정 변경 순서로 재배치한다. 게임판의 중복 정보(나의 차례/굴림 횟수)는 숨기지만 점수 요약의 현재 플레이어 강조와 굴리기 버튼의 남은 횟수는 유지한다. 3D 족보 연출은 모바일에서 상승 높이와 확대 비율을 줄이고 데스크톱은 기존 값을 유지한다. 로컬 사람 대전은 차례 확인이 중요하므로 화면·표시를 바꾸지 않는다. 게임 엔진·기보·AI 정책은 변경하지 않는다.
 
 **근거:** src/mobile-play.css, src/dice3d/table.ts, src/PhysicalDice.tsx, tests/ui/mobile-play.spec.ts.
+
+## D-020. 온라인 Phase 2: 방 단위 직렬 처리 + 좌석 토큰, 클라이언트는 확정 이벤트만 렌더
+
+**상태: 신규 (2026-11-23, Online v0.1 Phase 2, PR #44, 미배포).** 온라인 방은 런타임 무관 `OnlineRoom`(`src/online/room.ts`)이 Phase 1 엔진을 감싸 메시지를 하나씩 처리하고, **저장 성공 후에만** 상태를 반영·전파한다(fail-closed). 초대 코드는 대기실 빈 좌석 입장만 허용하고, 좌석은 1회 발급 비밀 토큰(서버엔 SHA-256 해시만 저장)으로만 재접속한다. 재접속은 `since` 동기화 + 같은 id 명령 재전송(멱등). 서버 턴 타이머 만료 시 서버가 대기 중 좌석 명의로 `claimTimeout`을 실행한다. 고정 미리보기는 비권한 표시용. 웹은 GitHub Pages 유지, 서버 주소는 빌드 변수 `VITE_ONLINE_SERVER_URL`(https)로만 설정하고 미설정 시 "준비 중"; 개발용 `?online-server=`는 루프백만 허용. 첫 MVP는 2인 초대방. 로컬 Node 서버(`server/online/`)로 검증했고 Cloudflare 리소스 생성·배포는 별도 승인 전 금지. 상세: [Phase 2 문서](../online/ONLINE-V01-PHASE2.md).
+
+**근거:** src/online/room.ts, src/online/client.ts, server/online/, tests/online-server.test.ts, tests/ui/online.spec.ts.
+
+## D-021. 온라인 서버는 Workers + SQLite Durable Objects(방당 1개) + Hibernation, 레코드는 한 행
+
+**상태: 신규 (2026-11-23, Online v0.1 Phase 3, PR #44, 미배포).** 방마다 `YachtRoom` DO(`idFromName(code)`)가 Phase 2 `OnlineRoom`을 그대로 감싸고, 방 레코드(이벤트 로그+토큰 해시)를 SQLite **한 행**에 저장한다(명령당 행 쓰기 1회, 원자적; Workers Free의 일일 행 쓰기 100,000이 가장 먼저 닿는 한도이기 때문). 소켓은 Hibernation API로 받고 신원·전달 seq·속도 버킷은 소켓 첨부 데이터에 둔다. keep-alive 핑은 `setWebSocketAutoResponse`로 처리. 턴 제한·인증 전 소켓·보존 기간 정리는 알람 1개(값이 바뀔 때만 `setAlarm`). 전역 `RoomDirectory` DO가 코드 유일성·방 수 한도·IP 해시별 속도 제한을 맡아, 없는 코드로는 방 DO를 만들지 않는다. 보존 기간: 빈 대기실/종료 30분, 진행 중 24시간, 모든 방 최대 48시간. Free 플랜에서 한도 초과는 과금이 아닌 실패이며, Paid 계정이면 지출 한도가 필요하다. 배포·계정 리소스 생성은 별도 승인 전 금지. 상세: [Phase 3 문서](../online/ONLINE-V01-PHASE3.md).
+
+**근거:** worker/, tests/online-worker.test.ts, tests/online-host.test.ts, tests/ui/online.spec.ts, Cloudflare 공식 요금·한도 문서(2026-11-13~19 갱신본).
+

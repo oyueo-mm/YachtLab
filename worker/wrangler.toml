@@ -1,0 +1,40 @@
+# YachtLab Online — Cloudflare Workers + SQLite-backed Durable Objects.
+# Production values below (Workers Free). Local development overrides them with --var
+# (`npm run online:worker`, tests/helpers/wrangler.ts). See docs/online/ONLINE-V01-PHASE4.md.
+name = "yachtlab-online"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+# Public address: https://yachtlab-online.<account subdomain>.workers.dev (free). No custom routes.
+workers_dev = true
+preview_urls = false
+
+
+[observability]
+enabled = false
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "YachtRoom"
+
+[[durable_objects.bindings]]
+name = "DIRECTORY"
+class_name = "RoomDirectory"
+
+# Workers Free supports only SQLite-backed Durable Objects.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["YachtRoom", "RoomDirectory"]
+
+[vars]
+# Only the GitHub Pages site may call this server (browsers always send Origin).
+ALLOWED_ORIGINS = "https://oyueo-mm.github.io"
+TURN_TIMEOUT_MS = "120000"
+# The account's free daily usage is shared with other Workers: keep this service well inside it.
+MAX_ROOMS = "50"
+DAILY_ROOM_LIMIT = "300"
+CREATE_PER_MINUTE = "5"
+JOIN_PER_MINUTE = "30"
+LOBBY_IDLE_MS = "1800000"
+FINISHED_IDLE_MS = "1800000"
+PLAYING_IDLE_MS = "86400000"
+ROOM_MAX_AGE_MS = "172800000"

@@ -151,6 +151,14 @@
 - 🔬 독립 비교: v3.1/v3 vs v2 동일 시드, v3.1 vs v3, DP Expert; 매주 신규 시드 감시·99% 근사 다중비교 구간. 연구 완성 및 확증 전 승률 우위 미확정.
 - 🔒 사용자 기본 AI 및 DP 테이블은 보존. v3의 상대 분포 근사·전역 게임 이론 최적성 문제는 미해결.
 
+## 2026-11-22: YachtLab Online v0.1
+
+- ✅ Phase 1 — 서버 권한형 게임 엔진(`src/online/`): 2~8인 로비/진행/종료, 명령 검증·오류 코드, 멱등성·낙관적 동시성, CSPRNG 주사위, 이벤트 로그 재구성·위변조 검출, 플레이어별 공개 뷰, 턴 제한·기권. [설계·검증](../online/ONLINE-V01-PHASE1.md). **미배포.**
+- ⏭ Phase 2 후보 — 방 단위 직렬 처리 전송 계층(WebSocket), 이벤트 로그 저장·스냅샷, 서버 알람 기반 턴 타이머, 인증·재접속, 온라인 UI. 플랫폼 리소스 생성·배포는 별도 승인 후.
+- ✅ Phase 2 MVP(로컬, 미배포) — 친구 초대형 1:1: 게스트 닉네임·방 생성·초대 코드/링크·입장·시작·실시간 턴 동기화·고정/재굴림·점수·종료, 새로고침/재접속/서버 재시작 복구, 서버 턴 타이머, 남용 제한. 로컬 Node WebSocket 서버 + 4차 게임판·3D 연출 재사용. [D-020](./DECISIONS.md), [Phase 2](../online/ONLINE-V01-PHASE2.md)
+- ✅ Phase 3(로컬, 미배포) — Workers + SQLite Durable Objects(방당 1개) + WebSocket Hibernation + 알람, 전역 디렉터리 DO(코드·방 수·속도 제한), 보존 기간 자동 정리. `wrangler dev --local`에서 두 브라우저 12라운드·재접속·재시작 복구 검증, 공식 무료 한도 기준 비용 분석. [D-021](./DECISIONS.md), [Phase 3](../online/ONLINE-V01-PHASE3.md)
+- ⏭ Phase 4 후보 — 계정 플랜 확인 후 배포 승인(`ALLOWED_ORIGINS`·서비스 주소·`VITE_ONLINE_SERVER_URL`), 실제 엣지 검증·지표 비교, WAF 속도 제한, 재대결·관전·3~8인 UI, 로그 HMAC/앵커링.
+
 ## 2026-11-23: 게임 중심 UI 개편 (`feat/game-lobby-redesign`)
 
 - ✅ 로비형 홈(온라인 대전 준비 중 / 오프라인 대전), 몰입형 게임 화면, 연구실 분리, 2.5D 주사위 연출·제스처, 합성 효과음·설정 저장, 족보 툴팁. [D-011](./DECISIONS.md)
