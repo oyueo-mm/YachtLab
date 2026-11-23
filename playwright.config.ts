@@ -10,6 +10,9 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:5173/YachtLab/",
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
+    // Functional tests run without dice motion (3D throws take ~1.3 s each). Tests that check
+    // animation opt back in with `withMotion()` from tests/ui/helpers.ts.
+    contextOptions: { reducedMotion: "reduce" },
   },
   projects: [
     {

@@ -1,0 +1,672 @@
+/* ==========================================================================
+   2nd pass (loaded after shell.css): setup screens, game-focused play screen,
+   lobby dice, quiet rule-help icons, 3D dice overlay, dice lab.
+   ========================================================================== */
+
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- lobby with dice tray ---------- */
+.page-home.main {
+  max-width: 1180px;
+  min-height: calc(100dvh - 60px);
+  display: flex;
+  align-items: center;
+  padding-top: 24px;
+}
+.lobby {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 22px;
+  align-items: stretch;
+}
+.lobby-menu {
+  display: flex;
+  flex-direction: column;
+}
+.lobby-menu .lobby-modes {
+  flex: 1;
+  grid-template-rows: 1.6fr 1fr;
+}
+.mode-primary {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.mode-cta {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* ---------- setup screens ---------- */
+.page-play-setup.main,
+.page-pvp-setup.main {
+  max-width: 760px;
+  padding-bottom: 120px;
+}
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.setup-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.setup-head h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+.setup-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 12px 0 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-weight: 600;
+}
+.setup-back:hover {
+  background: var(--soft);
+}
+.setup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.setup-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.setup-field legend,
+.setup-label {
+  display: block;
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.setup-field[disabled] .level-options {
+  opacity: 0.45;
+}
+.setup-text {
+  display: flex;
+  flex-direction: column;
+}
+.setup-text input,
+.name-grid input,
+.count-stepper input {
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 15px;
+  background: #fff;
+  color: var(--ink);
+  min-width: 0;
+}
+.setup-text input:focus,
+.name-grid input:focus,
+.count-stepper input:focus {
+  outline: 2px solid var(--ink);
+  outline-offset: -1px;
+}
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--soft);
+}
+.segmented label {
+  flex: 1;
+  position: relative;
+  cursor: pointer;
+}
+.rule-option:not(.unavailable) {
+  cursor: pointer;
+}
+.segmented input,
+.level-option input,
+.rule-option input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  /* the visible label is the hit target; the input only carries state and focus */
+  pointer-events: none;
+}
+.segmented span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 8px;
+  border-radius: 9px;
+  font-weight: 650;
+  color: var(--muted);
+  text-align: center;
+}
+.segmented label.checked span {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.segmented input:focus-visible + span,
+.level-option:has(input:focus-visible),
+.rule-option:has(input:focus-visible) {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+.level-options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.level-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+.level-option strong {
+  font-size: 14px;
+}
+.level-option small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+.level-option.checked {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.rule-options {
+  display: grid;
+  gap: 8px;
+}
+.rule-option {
+  position: relative;
+  display: flex;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.rule-option span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rule-option small {
+  color: var(--muted);
+}
+.rule-option.checked {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.rule-option.unavailable {
+  color: #9a9a9a;
+  border-style: dashed;
+}
+.rule-option.unavailable input {
+  cursor: not-allowed;
+}
+.setup-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.setup-advanced {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0 14px;
+}
+.setup-advanced > summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  cursor: pointer;
+}
+.setup-advanced[open] {
+  padding-bottom: 14px;
+}
+.setup-advanced[open] > :not(summary) + :not(summary) {
+  margin-top: 16px;
+}
+.setup-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.setup-check input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--red);
+}
+.setup-check span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.setup-check small {
+  color: var(--muted);
+}
+.setup-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.name-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.name-grid label {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+.name-grid label > span {
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 12px;
+}
+.name-scroll {
+  max-height: 320px;
+  overflow: auto;
+  padding-right: 4px;
+}
+.count-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.count-stepper input {
+  width: 84px;
+  text-align: center;
+}
+.count-stepper .icon-button {
+  border: 1px solid var(--line);
+}
+.setup-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin-top: 18px;
+  padding: 14px 0 calc(14px + env(safe-area-inset-bottom));
+  background: linear-gradient(rgba(255, 255, 255, 0), #fff 30%);
+}
+.setup-start {
+  width: 100%;
+  min-height: 54px;
+  font-size: 17px;
+  border-radius: 14px;
+}
+
+/* ---------- game screen: tools only, no settings ---------- */
+.shell-game .game-tools {
+  justify-content: flex-start;
+  gap: 18px;
+}
+.shell-game .game-tools .text-button {
+  font-size: 13px;
+}
+.multi-game-tools .multi-game-meta {
+  margin-right: auto;
+  font-weight: 700;
+  color: var(--ink);
+}
+.game-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.confirm-dialog {
+  width: min(380px, calc(100vw - 32px));
+  padding: 22px;
+  border: 0;
+  border-radius: 18px;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+}
+.confirm-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+.confirm-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.confirm-dialog p {
+  margin: 0 0 18px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.settings-dialog select {
+  height: 38px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+}
+.settings-game-note {
+  padding-top: 12px;
+  border-top: 1px solid #efefef;
+}
+
+/* ---------- category help: consistent placement, quiet styling ---------- */
+.category-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: middle;
+}
+.category-cell > .category-label {
+  min-width: 0;
+}
+.category-help,
+.scoreboard tbody th > .category-help,
+.mobile-quick-row > .category-help {
+  position: relative;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border-radius: 50%;
+  color: #b4b4b4;
+  background: transparent;
+}
+.category-help svg {
+  width: 13px;
+  height: 13px;
+}
+.category-help::after {
+  content: "";
+  position: absolute;
+  inset: -10px -8px;
+}
+.category-help:hover,
+.category-help[aria-expanded="true"] {
+  color: var(--muted);
+  background: transparent;
+}
+.category-help:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 1px;
+  color: var(--ink);
+}
+/* Mouse users get the description by hovering the category itself; no repeated icons. */
+@media (hover: hover) and (pointer: fine) {
+  .category-help:not(:focus-visible) {
+    opacity: 0;
+  }
+}
+.category-tooltip {
+  max-width: min(260px, calc(100vw - 16px));
+  padding: 10px 12px;
+  font-size: 12.5px;
+}
+.category-tooltip strong {
+  font-size: 13px;
+}
+.category-tooltip-dice svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Mobile score rows: name (with help) and the score button are separate controls; the score
+   button is stretched over the whole row so one tap still records, the help stays on top. */
+.mobile-quick-row-live,
+.mobile-quick-row-static {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 51px;
+  padding: 10px 12px;
+  background: #fff;
+}
+.mobile-quick-row > :not(.category-help) {
+  flex: 1;
+}
+.mobile-quick-name > span:not(.category-icon) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.mobile-quick-name .category-help {
+  position: relative;
+  z-index: 2;
+}
+.mobile-quick-score-button {
+  flex: none;
+  padding: 0;
+  background: transparent;
+  color: var(--red-deep);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.mobile-quick-score-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.mobile-quick-score-button > strong {
+  position: relative;
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 42px;
+  display: inline-block;
+  text-align: right;
+}
+.mobile-quick-row-live:has(.mobile-quick-score-button:active) {
+  background: #fff0ec;
+}
+.mobile-quick-score-button:focus-visible {
+  outline: none;
+}
+.mobile-quick-row-live:has(.mobile-quick-score-button:focus-visible) {
+  outline: 2px solid var(--red);
+  outline-offset: -2px;
+}
+.mobile-quick-bonus .category-cell {
+  gap: 2px;
+}
+
+/* ---------- 3D dice overlay ---------- */
+.dice3d-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 6;
+  pointer-events: none;
+  visibility: hidden;
+}
+.die-button.die-in-3d .die-stage {
+  visibility: hidden;
+}
+
+/* ---------- dice lab ---------- */
+.dice-lab-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
+}
+.dice-lab .game-board {
+  min-height: 380px;
+  overflow: hidden;
+  touch-action: pan-y;
+  background: radial-gradient(120% 90% at 50% 38%, #343434 0%, #282828 55%, #202020 100%);
+}
+.dice-lab .game-board .dice-row {
+  margin: auto 0 20px;
+}
+.dice-lab .game-board .roll-area {
+  margin-bottom: auto;
+}
+.dice-lab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.dice-lab-panel h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.dice-lab-targets {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+.dice-lab-targets select,
+.dice-lab-panel select {
+  width: 100%;
+  max-width: 100%;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  min-width: 0;
+}
+.dice-lab-stats {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 12.5px;
+}
+.dice-lab-stats dt {
+  color: var(--muted);
+}
+.dice-lab-stats dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 1000px) {
+  .lobby {
+    grid-template-columns: 1fr;
+  }
+  .dice-lab-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .page-home.main {
+    padding-top: 18px;
+    min-height: 0;
+    display: block;
+  }
+  .lobby-menu .lobby-modes {
+    grid-template-rows: none;
+  }
+  .lobby {
+    gap: 16px;
+  }
+  .mode-cta {
+    display: none;
+  }
+  .level-options {
+    grid-template-columns: 1fr;
+  }
+  .level-option {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 12px 14px;
+  }
+  .name-grid {
+    grid-template-columns: 1fr;
+  }
+  .setup-head h1 {
+    font-size: 19px;
+  }
+  .page-play .game-tools,
+  .page-pvp .game-tools {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .page-play .game-tools > .text-button,
+  .page-play .game-tools > .text-button:first-child,
+  .page-play .game-tools > .text-button:last-child,
+  .page-pvp .game-tools > .text-button {
+    flex: 1 1 0;
+    order: 0;
+    width: auto;
+    min-width: 0;
+    height: 40px;
+    padding: 0 6px;
+    margin: 0;
+    font-size: 12px;
+    display: inline-flex;
+    gap: 5px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--ink);
+  }
+  .multi-game-tools .multi-game-meta {
+    display: none;
+  }
+}
+@media (max-width: 360px) {
+  .page-play .game-tools > .text-button svg,
+  .page-pvp .game-tools > .text-button svg {
+    display: none;
+  }
+}

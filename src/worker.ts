@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
-import { decide, type Algorithm, type Options } from "./ai";
+import { type Algorithm, type Options } from "./ai";
+import { decideModel, modelNeedsDP, type ModelId } from "./ai-models";
 import { simulate, simulateFromState, result, type Result } from "./match";
 import { validateGameShape } from "./replay";
 import type { Game } from "./engine";
@@ -20,7 +21,7 @@ export type Request =
       id: number;
       type: "decide";
       state: Game;
-      algorithm: Algorithm;
+      algorithm: ModelId;
       options?: Options;
     }
   | {
@@ -45,7 +46,7 @@ self.onmessage = async ({ data: r }: MessageEvent<Request>) => {
     const needsDP =
       r.type === "compare" ||
       (r.type === "decide"
-        ? r.algorithm === "DP Expert" || r.algorithm === "Win DP" || r.algorithm === "Win DP v2" || r.algorithm === "Win DP v4-D"
+        ? modelNeedsDP(r.algorithm)
         : r.algorithms.includes("DP Expert") || r.algorithms.includes("Win DP") || r.algorithms.includes("Win DP v2") || r.algorithms.includes("Win DP v4-D"));
     if (needsDP) await loadDP();
     const selected = r.type === "decide" ? [r.algorithm] : r.algorithms;
@@ -64,7 +65,7 @@ self.onmessage = async ({ data: r }: MessageEvent<Request>) => {
     else if (r.type === "decide")
       self.postMessage({
         id: r.id,
-        result: decide(r.state, r.algorithm, r.options),
+        result: decideModel(r.state, r.algorithm, r.options),
       });
     else if (r.type === "match") {
       if (r.initialState) validateGameShape(r.initialState);
