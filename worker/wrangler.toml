@@ -20,10 +20,24 @@ class_name = "YachtRoom"
 name = "DIRECTORY"
 class_name = "RoomDirectory"
 
+# Phase 4 accounts: one SQLite object per account, one per linked guest id (same Worker, no new
+# account resource; still Workers Free). Sign-in stays OFF until the secrets below exist.
+[[durable_objects.bindings]]
+name = "USERS"
+class_name = "UserStore"
+
+[[durable_objects.bindings]]
+name = "GUESTS"
+class_name = "GuestLink"
+
 # Workers Free supports only SQLite-backed Durable Objects.
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["YachtRoom", "RoomDirectory"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["UserStore", "GuestLink"]
 
 [vars]
 # Only the GitHub Pages site may call this server (browsers always send Origin).
@@ -38,3 +52,7 @@ LOBBY_IDLE_MS = "1800000"
 FINISHED_IDLE_MS = "1800000"
 PLAYING_IDLE_MS = "86400000"
 ROOM_MAX_AGE_MS = "172800000"
+# Where the sign-in flow returns to (the Pages site). Sign-in additionally needs three Worker secrets,
+# set by the owner in the Cloudflare dashboard (never in this file): GOOGLE_CLIENT_ID,
+# GOOGLE_CLIENT_SECRET, AUTH_SECRET (>= 32 random characters). See docs/online/SOCIAL-AND-ACCOUNTS.md.
+APP_URL = "https://oyueo-mm.github.io/YachtLab/"

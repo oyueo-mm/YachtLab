@@ -12,6 +12,8 @@ import MobileQuickScore from "../MobileQuickScore";
 import { useHumanTurn } from "../human-turn";
 import MobileScoreSheet, { MobileScoreButton } from "../MobileScoreSheet";
 import { saveReplay } from "../replay-storage";
+import { newRecordId, saveLocalRecord } from "../identity/local";
+import { RULES_ID } from "../identity/records";
 import { newSeed, errorText, Thinking, ErrorMessage, DecisionView } from "../ui/common";
 import { useGameSounds, useThrowGesture } from "../game-feel";
 import { Celebrate } from "../ui/Celebrate";
@@ -71,6 +73,8 @@ export default function HumanGame({
   const [pending, setPending] = useState<PendingAction>(null);
   const pausedRef = useRef(false);
   const record = useRef(newReplay(state, seatPlayers(humanSeat), "요트 대국", 2));
+  /** Start of the current game (for this device's match record). */
+  const startedAt = useRef(Date.now());
   const stateRef = useRef(state);
   stateRef.current = state;
   const [aiTurn, setAiTurn] = useState(0),
@@ -86,7 +90,28 @@ export default function HumanGame({
     if (action.type === "score") announceScore(before.dice, action.category);
     record.current = updated;
     const next = updated.finalState;
-    if (next.done && !before.done) void saveReplay(updated).catch((e) => setError("기보 자동 저장 실패: " + errorText(e)));
+    if (next.done && !before.done) {
+      void saveReplay(updated).catch((e) => setError("기보 자동 저장 실패: " + errorText(e)));
+      // This device's record (profile/stats). Trust level: client-reported, never server-verified.
+      const mine = total(next.cards[humanSeat]),
+        theirs = total(next.cards[aiSeat]);
+      saveLocalRecord({
+        recordId: newRecordId(),
+        mode: "ai",
+        rules: RULES_ID,
+        source: "device",
+        verification: "client-reported",
+        startedAt: startedAt.current,
+        endedAt: Date.now(),
+        name: config.humanName,
+        score: mine,
+        card: { ...next.cards[humanSeat] },
+        outcome: mine > theirs ? "win" : mine < theirs ? "loss" : "draw",
+        endReason: "completed",
+        opponent: { name: aiName, kind: "ai", score: theirs, aiLevel: isPublicLevel ? difficultyLabel(algorithm as Algorithm) : algorithm },
+        aiLevel: isPublicLevel ? difficultyLabel(algorithm as Algorithm) : algorithm,
+      });
+    }
     if (action.type === "roll") setRollEvent((n) => n + 1);
     if (action.type === "score") setGameFeedback(labels[before.player] + " · " + names[action.category] + " " + (next.cards[before.player][action.category] ?? 0) + "점 기록");
     stateRef.current = next;
@@ -136,6 +161,7 @@ export default function HumanGame({
     const fresh = createGame(newSeed(), true);
     stateRef.current = fresh;
     record.current = newReplay(fresh, seatPlayers(seat), "요트 대국", 2);
+    startedAt.current = Date.now();
     setHumanSeat(seat);
     setState(fresh);
     setAiTurn((n) => n + 1); // re-arm the AI even when it is seat 0 and moves first

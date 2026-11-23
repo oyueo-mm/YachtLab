@@ -23,6 +23,8 @@ import {
   type SpectateState,
 } from "./wire";
 import { allowSocial, canSend, newSocialBucket, type SocialBucket } from "../social/catalog";
+import { validateNickname } from "../identity/nickname";
+import { RULES_ID, type MatchRecord } from "../identity/records";
 
 /**
  * YachtLab Online v0.1 Phase 2 — one game room (invite code + seats + authoritative match).
@@ -85,6 +87,10 @@ export type RoomRecord = {
   departed?: string[];
   /** Spectating consent per player and the current watch key (null = off / revoked). */
   spectate?: { allow: Record<string, boolean>; key: string | null };
+  /** Seats taken by signed-in players: playerId → account id (verified by the host at join time). */
+  identities?: Record<string, { userId: string }>;
+  /** Server-verified results not yet delivered to the players' accounts (retried; idempotent). */
+  outbox?: { userId: string; record: MatchRecord }[];
 };
 
 export type RoomDeps = {
@@ -251,11 +257,16 @@ export class OnlineRoom {
   }
 
   /** Take an open seat in the lobby. Returns the secret token exactly once. */
-  join(rawName: unknown): Promise<JoinResult> {
+  join(rawName: unknown, identity?: { userId: string } | null): Promise<JoinResult> {
     return this.serial(async () => {
       if (this.closed) return { ok: false, status: 410, error: { code: "ROOM_CLOSED", message: "닫힌 방입니다." } } as const;
-      const name = normalizeName(rawName);
-      if (!name) return { ok: false, status: 400, error: { code: "INVALID_COMMAND", message: "닉네임은 1~24자로 입력해 주세요." } } as const;
+      // Display names follow the shared nickname policy (src/identity/nickname.ts); the engine keeps its
+      // looser 1–24 check so logs written before this policy still replay.
+      const checked = validateNickname(rawName);
+      const name = checked.ok ? normalizeName(checked.name) : null;
+      if (!checked.ok || !name) return { ok: false, status: 400, error: { code: "INVALID_COMMAND", message: checked.ok ? "닉네임을 확인해 주세요." : checked.message } } as const;
+      if (identity && Object.values(this.record.identities ?? {}).some((i) => i.userId === identity.userId))
+        return { ok: false, status: 409, error: { code: "NAME_TAKEN", message: "이 계정은 이미 이 방에 있어요." } } as const;
       if (this.state.status === "lobby" && this.state.players.some((p) => p.name.toLocaleLowerCase() === name.toLocaleLowerCase()))
         return { ok: false, status: 409, error: { code: "NAME_TAKEN", message: "이미 방에 같은 닉네임이 있어요. 다른 닉네임을 써 주세요." } } as const;
       const playerId = "p_" + base64url(this.random(new Uint8Array(12)));
@@ -263,7 +274,11 @@ export class OnlineRoom {
       const result = this.apply(playerId, { commandId: "join", action: { type: "join", name } });
       if (!result.ok) return { ok: false, status: result.error.code === "MATCH_FULL" || result.error.code === "WRONG_PHASE" ? 409 : 400, error: result.error } as const;
       const tokenHash = await hashToken(token);
-      await this.commit(result.state, result.events, { ...this.record, credentials: { ...this.record.credentials, [playerId]: { tokenHash } } });
+      await this.commit(result.state, result.events, {
+        ...this.record,
+        credentials: { ...this.record.credentials, [playerId]: { tokenHash } },
+        ...(identity ? { identities: { ...(this.record.identities ?? {}), [playerId]: { userId: identity.userId } } } : {}),
+      });
       return { ok: true, playerId, token } as const;
     });
   }
@@ -346,7 +361,7 @@ export class OnlineRoom {
     if (finished && finished.type === "matchFinished") {
       // The running score of this room, stored with the same write as the final event.
       const entry: SeriesEntry = { matchId: next.matchId, finishedAt: finished.at, winners: [...finished.winners], points: Object.fromEntries(finished.standings.map((s) => [s.playerId, s.points])) };
-      this.record = { ...this.record, series: [...(this.record.series ?? []), entry].slice(-ROOM_LIMITS.maxMatches), rematch: null };
+      this.record = { ...this.record, series: [...(this.record.series ?? []), entry].slice(-ROOM_LIMITS.maxMatches), rematch: null, outbox: [...(this.record.outbox ?? []), ...this.accountRecords(next)] };
     }
     try {
       await this.persist();
@@ -361,7 +376,11 @@ export class OnlineRoom {
     // A finished match changes the room's running score (and opens rematch): tell every screen.
     if (finished) this.broadcastRematch();
     // Someone new took a seat (who has not agreed to spectators): stop watching now.
-    if (events.some((e) => e.type === "playerJoined" || e.type === "playerLeft")) this.enforceSpectate();
+    if (events.some((e) => e.type === "playerJoined" || e.type === "playerLeft")) {
+      this.enforceSpectate();
+      const members = this.members();
+      for (const c of this.connections) if (c.playerId) c.send({ t: "members", members });
+    }
   }
 
   private async run(playerId: string, raw: unknown): Promise<CommandResult> {
@@ -461,7 +480,7 @@ export class OnlineRoom {
       const since = Math.max(0, Math.min(msg.since ?? 0, this.state.log.length));
       const view = viewFor(this.state, playerId, this.deps.now(), since);
       conn.seenSeq = this.state.log.length;
-      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold(), rematch: this.rematchState(), series: this.seriesSummary(), spectate: this.spectateState() });
+      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold(), rematch: this.rematchState(), series: this.seriesSummary(), spectate: this.spectateState(), members: this.members() });
       this.broadcastPresence();
       return;
     }
@@ -598,6 +617,58 @@ export class OnlineRoom {
     conn.social ??= newSocialBucket(now);
     if (!allowSocial(conn.social, id, now)) return conn.send({ t: "error", code: "SOCIAL_RATE_LIMITED", message: "잠시 후 다시 보내 주세요." });
     for (const c of this.connections) if (c.playerId || c.spectator) c.send({ t: "said", from: playerId, id });
+  }
+
+  /** Account ids of signed-in seats (public profile ids; shown to the other players for "상대 프로필"). */
+  members(): Record<string, string> {
+    const ids = this.record.identities ?? {};
+    return Object.fromEntries(this.state.players.filter((p) => ids[p.playerId]).map((p) => [p.playerId, ids[p.playerId].userId]));
+  }
+
+  /** The official result of a finished match for each signed-in seat, from the engine's own state. */
+  private accountRecords(state: OnlineMatchState): { userId: string; record: MatchRecord }[] {
+    const ids = this.record.identities ?? {};
+    const started = state.log.find((e) => e.type === "matchStarted")?.at ?? state.log[0]?.at ?? this.deps.now();
+    const finished = [...state.log].reverse().find((e) => e.type === "matchFinished");
+    const forfeit = [...state.log].reverse().find((e) => e.type === "playerForfeited");
+    const totals = Object.fromEntries((state.standings ?? []).map((s) => [s.playerId, s.points]));
+    const out: { userId: string; record: MatchRecord }[] = [];
+    for (const p of state.players) {
+      const id = ids[p.playerId];
+      if (!id) continue;
+      const other = state.players.find((q) => q.playerId !== p.playerId);
+      if (!other) continue;
+      const outcome = state.winners.length !== 1 ? "draw" : state.winners[0] === p.playerId ? "win" : "loss";
+      out.push({
+        userId: id.userId,
+        record: {
+          recordId: state.matchId,
+          mode: "online",
+          rules: RULES_ID,
+          source: "server",
+          verification: "server-verified",
+          startedAt: started,
+          endedAt: finished?.at ?? this.deps.now(),
+          name: p.name,
+          score: totals[p.playerId] ?? 0,
+          card: { ...p.card },
+          outcome,
+          endReason: forfeit && forfeit.type === "playerForfeited" ? forfeit.reason : "completed",
+          opponent: { name: other.name, kind: ids[other.playerId] ? "member" : "guest", score: totals[other.playerId] ?? 0, ...(ids[other.playerId] ? { userId: ids[other.playerId].userId } : {}) },
+        },
+      });
+    }
+    return out;
+  }
+
+  /** Results waiting to be delivered to accounts. */
+  pendingRecords(): { userId: string; record: MatchRecord }[] {
+    return [...(this.record.outbox ?? [])];
+  }
+  /** Delivered (the account store ignores duplicates, so a lost acknowledgement is harmless). Saved with the next write. */
+  markDelivered(userId: string, recordId: string) {
+    const outbox = (this.record.outbox ?? []).filter((e) => !(e.userId === userId && e.record.recordId === recordId));
+    this.record = { ...this.record, outbox };
   }
 
   rematchState(): RematchState {

@@ -1,4 +1,5 @@
 import type { OnlineAction } from "./protocol";
+import { authHeader } from "../identity/account-client";
 import type { PlayerView } from "./server-engine";
 import type { ApiError, HoldState, JoinResponse, RematchOp, RematchState, RoomSummary, SeriesSummary, ServerMessage, SpectateState } from "./wire";
 
@@ -144,7 +145,8 @@ async function call<T>(base: string, path: string, body?: unknown): Promise<T> {
   try {
     res = await fetch(base + path, {
       method: body === undefined ? "GET" : "POST",
-      headers: body === undefined ? undefined : { "content-type": "application/json" },
+      // A signed-in player's seat is linked to the account (the server verifies the session itself).
+      headers: body === undefined ? undefined : { "content-type": "application/json", ...authHeader() },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
@@ -177,6 +179,8 @@ export type ConnectionEvents = {
   onNotice?(code: string, message: string): void;
   /** Players: spectating consent / watch key / spectator count. */
   onSpectate?(state: SpectateState): void;
+  /** Signed-in seats: playerId → public account id. */
+  onMembers?(members: Record<string, string>): void;
   /** Spectators: how many are watching (from the spectator welcome). */
   onWatching?(spectators: number): void;
   onPresence(online: string[]): void;
@@ -301,6 +305,7 @@ export class OnlineConnection {
         this.events.onView(msg.view, false, msg.hold ?? null);
         if (msg.rematch && msg.series) this.events.onRematch?.(msg.rematch, msg.series);
         if (msg.spectate) this.events.onSpectate?.(msg.spectate);
+        if (msg.members) this.events.onMembers?.(msg.members);
         // Commands whose ack was lost are sent again with the same id (applied at most once).
         for (const p of this.pending.values()) this.ws?.send(p.frame);
         return;
@@ -315,6 +320,9 @@ export class OnlineConnection {
         return;
       case "spectate":
         this.events.onSpectate?.(msg.spectate);
+        return;
+      case "members":
+        this.events.onMembers?.(msg.members);
         return;
       case "view":
         this.since = msg.view.version;

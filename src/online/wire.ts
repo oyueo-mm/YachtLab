@@ -31,7 +31,7 @@ export type ClientMessage =
 export type RematchOp = "request" | "cancel" | "decline";
 
 export type ServerMessage =
-  | { t: "welcome"; code: string; playerId: string; view: PlayerView; online: string[]; hold: HoldState | null; rematch?: RematchState; series?: SeriesSummary; spectate?: SpectateState }
+  | { t: "welcome"; code: string; playerId: string; view: PlayerView; online: string[]; hold: HoldState | null; rematch?: RematchState; series?: SeriesSummary; spectate?: SpectateState; members?: Record<string, string> }
   /** `hold` is present from servers that keep the shared hold order (older servers omit it). */
   | { t: "view"; view: PlayerView; hold?: HoldState | null }
   | { t: "ack"; id: string; ok: true; duplicate: boolean }
@@ -42,6 +42,8 @@ export type ServerMessage =
   | { t: "said"; from: string; id: string }
   /** Rematch status and this room's running score (sent when either changes). */
   | { t: "rematch"; rematch: RematchState; series: SeriesSummary }
+  /** Signed-in seats: playerId → public account id (for "상대 프로필"). Guests are absent. */
+  | { t: "members"; members: Record<string, string> }
   /** Players only: spectating consent, the watch key (when active) and how many are watching. */
   | { t: "spectate"; spectate: SpectateState }
   /** Spectator welcome: neutral view (`you` is null, no legal moves, no command ids, no tokens). */
