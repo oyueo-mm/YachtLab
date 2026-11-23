@@ -351,6 +351,8 @@ export class OnlineRoom {
     }
     this.armTimer();
     this.broadcast();
+    // A finished match changes the room's running score (and opens rematch): tell every screen.
+    if (finished) this.broadcastRematch();
   }
 
   private async run(playerId: string, raw: unknown): Promise<CommandResult> {
