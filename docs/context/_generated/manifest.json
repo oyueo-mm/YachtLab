@@ -111,6 +111,21 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "54c01a2",
+      "date": "2026-11-24",
+      "subject": "Merge PR #50: 첫 굴림 최악 프레임 개선·휴대폰 한 화면 UI·효과음 v3 후보·고정 순서 유실 대응"
+    },
+    {
+      "sha": "35ef5dc",
+      "date": "2026-11-23",
+      "subject": "docs: PR A measurements (emulated), root cause, mobile benchmarking, sfx v3, hold persistence (D-025)"
+    },
+    {
+      "sha": "be5f793",
+      "date": "2026-11-23",
+      "subject": "perf+mobile: GPU warm-up before the first throw, faster re-roll physics prep, thumb-reach phone layout, sfx v3 candidate, hold order survives DO eviction"
+    },
+    {
       "sha": "a438429",
       "date": "2026-11-24",
       "subject": "Merge pull request #49 from oyueo-mm/claude/yachtlab-mobile-ui-o0rd2b"
@@ -144,41 +159,26 @@
       "sha": "534b85a",
       "date": "2026-11-23",
       "subject": "Merge PR #48: 온라인 메인 홈·고정 선택 순서·두 화면 주사위 동기화·초대 링크 바로 입장"
-    },
-    {
-      "sha": "3f46d15",
-      "date": "2026-11-23",
-      "subject": "test(online): live check waits for the next player's view instead of a fixed delay"
-    },
-    {
-      "sha": "9a0f718",
-      "date": "2026-11-23",
-      "subject": "feat(online): online-first home, selection-ordered hold shelf, shared hold order, invite-link entry"
-    },
-    {
-      "sha": "ba2766a",
-      "date": "2026-11-23",
-      "subject": "docs(online): Phase 4 deployment, live verification, free-tier safety and operations"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
-      "head": "9587702c95",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45234371645"
+      "head": "35ef5dc3a7",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45288626586"
     },
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "9587702c95",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45234371455"
+      "head": "35ef5dc3a7",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45288626436"
     },
     {
       "name": "YachtLab Online live check (manual)",
       "status": "success",
-      "head": "458e0ecd52",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45202478379"
+      "head": "f8dc297d32",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45240898431"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",

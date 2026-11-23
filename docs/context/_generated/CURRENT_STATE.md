@@ -100,6 +100,9 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [54c01a2](https://github.com/oyueo-mm/YachtLab/commit/54c01a2) | 2026-11-24 | Merge PR #50: 첫 굴림 최악 프레임 개선·휴대폰 한 화면 UI·효과음 v3 후보·고정 순서 유실 대응 |
+| [35ef5dc](https://github.com/oyueo-mm/YachtLab/commit/35ef5dc) | 2026-11-23 | docs: PR A measurements (emulated), root cause, mobile benchmarking, sfx v3, hold persistence (D-025) |
+| [be5f793](https://github.com/oyueo-mm/YachtLab/commit/be5f793) | 2026-11-23 | perf+mobile: GPU warm-up before the first throw, faster re-roll physics prep, thumb-reach phone layout, sfx v3 candidate, hold order survives DO eviction |
 | [a438429](https://github.com/oyueo-mm/YachtLab/commit/a438429) | 2026-11-24 | Merge pull request #49 from oyueo-mm/claude/yachtlab-mobile-ui-o0rd2b |
 | [9587702](https://github.com/oyueo-mm/YachtLab/commit/9587702) | 2026-11-23 | docs: mobile UX, rendering measurements (emulated), sound design, yacht/join effects (D-024) |
 | [368472a](https://github.com/oyueo-mm/YachtLab/commit/368472a) | 2026-11-23 | feat(mobile): one-tap quick picks under the roll button on phones |
@@ -107,9 +110,6 @@
 | [6b0fa63](https://github.com/oyueo-mm/YachtLab/commit/6b0fa63) | 2026-11-23 | perf(dice3d): sharp dice on phones, one render per frame, physics prepared while dice rest |
 | [9936af4](https://github.com/oyueo-mm/YachtLab/commit/9936af4) | 2026-11-23 | fix(ui): scoreboard no longer clipped on tablets/landscape; leaner play screen on every size |
 | [534b85a](https://github.com/oyueo-mm/YachtLab/commit/534b85a) | 2026-11-23 | Merge PR #48: 온라인 메인 홈·고정 선택 순서·두 화면 주사위 동기화·초대 링크 바로 입장 |
-| [3f46d15](https://github.com/oyueo-mm/YachtLab/commit/3f46d15) | 2026-11-23 | test(online): live check waits for the next player's view instead of a fixed delay |
-| [9a0f718](https://github.com/oyueo-mm/YachtLab/commit/9a0f718) | 2026-11-23 | feat(online): online-first home, selection-ordered hold shelf, shared hold order, invite-link entry |
-| [ba2766a](https://github.com/oyueo-mm/YachtLab/commit/ba2766a) | 2026-11-23 | docs(online): Phase 4 deployment, live verification, free-tier safety and operations |
 
 ## 최근 GitHub Actions 상태
 
@@ -117,9 +117,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45234371645) | success | 9587702c95 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45234371455) | success | 9587702c95 |
-| [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45202478379) | success | 458e0ecd52 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45288626586) | success | 35ef5dc3a7 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45288626436) | success | 35ef5dc3a7 |
+| [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45240898431) | success | f8dc297d32 |
 | [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45195505313) | success | 9a0f7180b0 |
 
 ## 다음 채팅과 작업의 시작점
