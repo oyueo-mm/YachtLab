@@ -58,7 +58,7 @@
 .lobby-v3 .mode-card {
   min-height: 0;
 }
-.lobby-v3 .mode-offline {
+.lobby-v3 .mode-main {
   min-height: 132px;
   padding: 26px 24px;
   background: var(--tray);
@@ -66,20 +66,20 @@
   color: #fff;
   box-shadow: none;
 }
-.lobby-v3 .mode-offline .mode-icon {
+.lobby-v3 .mode-main .mode-icon {
   background: var(--red);
   color: #fff;
 }
-.lobby-v3 .mode-offline .mode-text strong {
+.lobby-v3 .mode-main .mode-text strong {
   font-size: 26px;
 }
-.lobby-v3 .mode-offline .mode-text span {
+.lobby-v3 .mode-main .mode-text span {
   color: #c9c9c9;
 }
-.lobby-v3 .mode-offline .mode-cta {
+.lobby-v3 .mode-main .mode-cta {
   display: inline-flex;
 }
-.lobby-v3 .mode-online {
+.lobby-v3 .mode-sub {
   min-height: 76px;
   padding: 16px 20px;
   align-items: center;
@@ -87,21 +87,24 @@
   border: 1px solid var(--line);
   color: var(--ink);
 }
-.lobby-v3 .mode-online .mode-icon {
+.lobby-v3 .mode-sub .mode-icon {
   width: 40px;
   height: 40px;
   border-radius: 12px;
   background: var(--soft);
-  color: var(--muted);
+  color: var(--ink);
 }
-.lobby-v3 .mode-online .mode-text strong {
+.lobby-v3 .mode-sub .mode-arrow {
+  margin-left: auto;
+}
+.lobby-v3 .mode-sub .mode-text strong {
   font-size: 17px;
-  color: var(--muted);
+  color: var(--ink);
 }
-.lobby-v3 .mode-online .mode-text span {
+.lobby-v3 .mode-sub .mode-text span {
   font-size: 13px;
 }
-.lobby-v3 .mode-online .mode-badge {
+.lobby-v3 .mode-sub .mode-badge {
   position: static;
   flex: none;
   background: var(--soft);
@@ -329,17 +332,28 @@
   .lobby.lobby-v3 {
     gap: 22px;
   }
-  .lobby-v3 .mode-offline {
+  .lobby-v3 .mode-main {
     min-height: 116px;
     padding: 20px 18px;
   }
-  .lobby-v3 .mode-offline .mode-text strong {
+  .lobby-v3 .mode-main .mode-text strong {
     font-size: 22px;
   }
-  .lobby-v3 .mode-offline .mode-cta {
-    display: none;
+  /* The main call to action stays visible on phones too (same priority as desktop). */
+  .lobby-v3 .mode-main {
+    flex-wrap: wrap;
+  }
+  .lobby-v3 .mode-main .mode-cta {
+    display: inline-flex;
+    width: 100%;
+    justify-content: center;
+    min-height: 46px;
   }
   .physical-dice {
     min-height: 290px;
   }
+}
+/* Online (main) card: content centred like the other cards. */
+.lobby-v3 .mode-main {
+  align-items: center;
 }

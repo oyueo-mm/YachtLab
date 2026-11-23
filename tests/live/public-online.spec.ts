@@ -25,8 +25,11 @@ test("공개 사이트: 두 브라우저가 초대 링크로 만나 12라운드�
   await a.getByRole("button", { name: "방 만들기" }).click();
   await expect(a.getByRole("heading", { name: "대기실" })).toBeVisible();
   const code = (await a.getByLabel("초대 코드").textContent())!.trim();
-  await b.goto(`?room=${code}#online`);
-  await expect(b.getByText("님의 방에 초대받았어요")).toBeVisible();
+  // The link from the waiting room is the public Pages URL with only the room code in it.
+  const link = await a.getByLabel("초대 링크").inputValue();
+  expect(link).toBe(`https://oyueo-mm.github.io/YachtLab/?room=${code}#online`);
+  await b.goto(link);
+  await expect(b.getByText("공개A 님의 방에 초대받았어요")).toBeVisible();
   await b.getByLabel("닉네임").fill("공개B");
   await b.getByRole("button", { name: "입장하기" }).click();
   await expect(a.getByRole("list", { name: "참가자" })).toContainText("공개B");
@@ -40,6 +43,14 @@ test("공개 사이트: 두 브라우저가 초대 링크로 만나 12라운드�
     const page = current!;
     await page.locator(".roll-button").click();
     await expect(page.locator(".board-top b")).toHaveText("1");
+    if (turn === 0) {
+      // hold C → A on one screen: both screens show the same dice, held set and shelf order
+      const other = page === a ? b : a;
+      for (const id of [2, 0]) await page.locator(`.game-board .die-button[aria-label^="주사위 ${id + 1},"]`).click();
+      for (const p of [page, other]) await expect(p.locator("[data-hold-order]")).toHaveAttribute("data-hold-order", "2,0");
+      const shown = (p: Page) => p.evaluate(() => [...document.querySelectorAll(".game-board .die-button")].map((d) => d.getAttribute("aria-label")).join("|"));
+      await expect.poll(() => shown(other)).toBe(await shown(page));
+    }
     if (turn === 1) {
       // refresh mid-turn: same seat, same roll
       await page.reload();

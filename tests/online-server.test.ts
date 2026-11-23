@@ -122,17 +122,62 @@ describe("Online Phase 2 — local WebSocket server", () => {
     if (!wrong.ok) expect(wrong.error.code).toBe("NOT_YOUR_TURN");
   });
 
-  it("고정 미리보기는 현재 차례인 플레이어만 보낼 수 있고 상대에게만 전달된다", async () => {
+  it("고정 순서는 서버가 공유한다: 선택 순서 그대로 양쪽에 전달되고, 굴린 뒤·재접속 후에도 같고, 턴이 바뀌면 비워진다", async () => {
     const s = await boot();
-    const { a, b } = await twoPlayerRoom(s);
+    const { code, a, b, tokens } = await twoPlayerRoom(s);
     await a.cmd({ type: "start" });
     await a.cmd({ type: "roll", keep: [] });
     await a.settled();
-    const hint = b.next((m) => m.t === "hold");
-    a.ws.send(JSON.stringify({ t: "hold", keep: [3, 1] }));
-    expect(await hint).toMatchObject({ t: "hold", keep: [1, 3], playerId: a.view!.you!.playerId });
-    b.ws.send(JSON.stringify({ t: "hold", keep: [0] }));
-    await expect(a.next((m) => m.t === "hold", 200)).rejects.toThrow();
+    // C(2) → A(0) → E(4): everyone, the sender included, gets the same ordered list
+    const toB = b.next((m) => m.t === "hold" && m.keep.length === 3);
+    const toA = a.next((m) => m.t === "hold" && m.n === 3);
+    a.ws.send(JSON.stringify({ t: "hold", keep: [2], n: 1 }));
+    a.ws.send(JSON.stringify({ t: "hold", keep: [2, 0], n: 2 }));
+    a.ws.send(JSON.stringify({ t: "hold", keep: [2, 0, 4], n: 3 }));
+    expect(await toB).toMatchObject({ t: "hold", playerId: a.view!.you!.playerId, keep: [2, 0, 4] });
+    expect(await toA).toMatchObject({ keep: [2, 0, 4], n: 3 });
+    // the opponent cannot change it
+    b.ws.send(JSON.stringify({ t: "hold", keep: [1] }));
+    await expect(a.next((m) => m.t === "hold" && m.keep[0] === 1, 200)).rejects.toThrow();
+    // re-roll with the same keep (any order in the command): views carry the selection order
+    const viewB = b.next((m) => m.t === "view" && m.view.turn?.rolls === 2);
+    expect((await a.cmd({ type: "roll", keep: [2, 0, 4] })).ok).toBe(true);
+    const v = (await viewB) as Extract<ServerMessage, { t: "view" }>;
+    expect(v.hold).toMatchObject({ keep: [2, 0, 4] });
+    expect(v.view.turn!.dice[2]).toBe(a.view!.turn!.dice[2]);
+    // release A(0): the rest keep their order; selecting it again appends it
+    a.ws.send(JSON.stringify({ t: "hold", keep: [2, 4], n: 4 }));
+    a.ws.send(JSON.stringify({ t: "hold", keep: [2, 4, 0], n: 5 }));
+    await b.next((m) => m.t === "hold" && m.keep.join() === "2,4,0");
+    // a reconnecting screen gets the same order
+    const b2 = new Client(s, code);
+    const w = (await b2.hello(tokens[1])) as Extract<ServerMessage, { t: "welcome" }>;
+    expect(w.hold).toMatchObject({ keep: [2, 4, 0] });
+    // scoring ends the turn: hold cleared for everyone
+    const cleared = b.next((m) => m.t === "view" && m.view.turn?.playerId === b.view!.you!.playerId);
+    await a.cmd({ type: "score", category: "choice" });
+    expect(((await cleared) as Extract<ServerMessage, { t: "view" }>).hold).toBeNull();
+    // malformed hold (duplicates) is refused
+    b.ws.send(JSON.stringify({ t: "hold", keep: [1, 1] }));
+    expect((await b.next((m) => m.t === "error")).t).toBe("error");
+  });
+
+  it("고정 순서는 다음 명령과 함께 저장되어 서버 재시작 후에도 복구된다(별도 저장 없음)", async () => {
+    const dataDir = await mkdtemp(join(tmpdir(), "yachtlab-hold-"));
+    const s = await boot({ dataDir });
+    const { code, a, tokens } = await twoPlayerRoom(s);
+    await a.cmd({ type: "start" });
+    await a.cmd({ type: "roll", keep: [] });
+    a.ws.send(JSON.stringify({ t: "hold", keep: [3, 1], n: 1 }));
+    await a.next((m) => m.t === "hold");
+    await a.cmd({ type: "roll", keep: [3, 1] });
+    await a.settled();
+    await s.close();
+    servers = servers.filter((x) => x !== s);
+    const s2 = await boot({ dataDir });
+    const a2 = new Client(s2, code);
+    const w = (await a2.hello(tokens[0])) as Extract<ServerMessage, { t: "welcome" }>;
+    expect(w.hold).toMatchObject({ keep: [3, 1] });
   });
 
   it("새로고침·재접속: 같은 토큰으로 다시 연결하면 sinceSeq 이후 이벤트와 현재 상태를 받는다", async () => {

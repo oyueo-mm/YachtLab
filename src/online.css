@@ -347,3 +347,66 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---------- invite link ---------- */
+.online-invite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.online-invite-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.online-invite-link {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  background: #1f1f1f;
+  color: #cfcfcf;
+  font-size: 12px;
+  text-align: center;
+}
+.online-invite-card {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border-radius: 16px;
+  background: var(--table);
+  color: #fff;
+}
+.online-invite-card > span {
+  color: #bdbdbd;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+.online-invite-card > strong {
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+.online-invite-form {
+  display: grid;
+  gap: 12px;
+}
+.online-invite-as {
+  margin: 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.online-invite-blocked {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fdecec;
+  color: #9d2222;
+}
+.online-invite-join .online-leave {
+  margin-top: 4px;
+}

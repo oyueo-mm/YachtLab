@@ -12,6 +12,8 @@ import { parseCommand } from "./protocol";
 import {
   WIRE_VERSION,
   parseClientMessage,
+  validKeep,
+  type HoldState,
   type ClientMessage,
   type RoomSummary,
   type ServerMessage,
@@ -54,6 +56,11 @@ export type RoomRecord = {
   /** playerId → SHA-256(token) (hex) and the seat name. Only hashes are stored. */
   credentials: Record<string, { tokenHash: string }>;
   log: OnlineEvent[];
+  /**
+   * Hold selection (selection order) of the current turn — presentation state shared by both
+   * screens, outside the engine log. Saved together with the next accepted command (no extra write).
+   */
+  hold?: HoldState | null;
 };
 
 export type RoomDeps = {
@@ -124,8 +131,8 @@ export class OnlineRoom {
   private readonly random: (b: Uint8Array) => Uint8Array;
   /** Serializes async work (token hashing) so commands are applied strictly one at a time. */
   private queue: Promise<unknown> = Promise.resolve();
-  /** Live (non-authoritative) hold hints of the player whose turn it is, for the opponent's view. */
-  private holdHint: { playerId: string; keep: number[]; seq: number } | null = null;
+  /** Ordered `keep` of the roll command being applied (the engine itself stores kept positions sorted). */
+  private rollOrder: number[] | null = null;
   private closed = false;
 
   private constructor(
@@ -233,12 +240,37 @@ export class OnlineRoom {
     return applyCommand(this.state, parsed.command, { now: this.deps.now(), dice: this.dice });
   }
 
+  /** The hold selection, if it belongs to the turn in progress (after at least one roll). */
+  private currentHold(): HoldState | null {
+    const hold = this.record.hold;
+    const turn = this.state.turn;
+    if (!hold || this.state.status !== "playing" || !turn || turn.playerId !== hold.playerId || turn.rolls === 0) return null;
+    return hold;
+  }
+
+  /** Hold state after these events: kept dice in selection order after a roll, cleared on a new turn. */
+  private holdAfter(events: OnlineEvent[]): HoldState | null | undefined {
+    let hold: HoldState | null | undefined = undefined;
+    for (const e of events) {
+      if (e.type === "turnStarted" || e.type === "matchFinished") hold = null;
+      if (e.type === "diceRolled") {
+        const prior = this.record.hold?.playerId === e.playerId ? this.record.hold : null;
+        const wanted = this.rollOrder ?? prior?.keep ?? [];
+        const keep = wanted.filter((i) => e.kept.includes(i));
+        for (const i of e.kept) if (!keep.includes(i)) keep.push(i);
+        hold = { playerId: e.playerId, keep, n: prior?.n ?? 0 };
+      }
+    }
+    return hold;
+  }
+
   /** Persist the new state (and record changes) together, then notify sockets and re-arm the timer. */
   private async commit(next: OnlineMatchState, events: OnlineEvent[], record: RoomRecord = this.record) {
     if (!events.length) return;
     const before = { state: this.state, record: this.record };
+    const hold = this.holdAfter(events);
     this.state = next;
-    this.record = record;
+    this.record = hold === undefined ? record : { ...record, hold };
     try {
       await this.persist();
     } catch (error) {
@@ -247,7 +279,6 @@ export class OnlineRoom {
       this.record = before.record;
       throw error;
     }
-    if (events.some((e) => e.type === "diceRolled" || e.type === "turnStarted" || e.type === "matchFinished")) this.holdHint = null;
     this.armTimer();
     this.broadcast();
   }
@@ -343,7 +374,7 @@ export class OnlineRoom {
       const since = Math.max(0, Math.min(msg.since ?? 0, this.state.log.length));
       const view = viewFor(this.state, playerId, this.deps.now(), since);
       conn.seenSeq = this.state.log.length;
-      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.holdHint && { playerId: this.holdHint.playerId, keep: this.holdHint.keep } });
+      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold() });
       this.broadcastPresence();
       return;
     }
@@ -353,20 +384,28 @@ export class OnlineRoom {
       return conn.close(4001, "not authenticated");
     }
     if (msg.t === "hold") {
-      // Presentation hint only: the authoritative keep set travels with the next `roll` command.
+      // Shared presentation state: the dice actually kept still travel with the next `roll` command
+      // and are validated by the engine. Kept in memory and saved with the next command (no row write).
       const turn = this.state.turn;
       if (this.state.status !== "playing" || turn?.playerId !== playerId || turn.rolls === 0 || turn.rolls >= 3) return;
-      this.holdHint = { playerId, keep: msg.keep, seq: this.state.log.length };
-      for (const other of this.connections) if (other !== conn && other.playerId) other.send({ t: "hold", playerId, keep: msg.keep });
+      const n = msg.n ?? (this.record.hold?.playerId === playerId ? this.record.hold.n : 0);
+      const hold: HoldState = { playerId, keep: msg.keep, n };
+      this.record = { ...this.record, hold };
+      // Everyone, the sender included, gets the same order (the sender matches its echo by `n`).
+      for (const c of this.connections) if (c.playerId) c.send({ t: "hold", ...hold });
       return;
     }
     // command
     let result: CommandResult;
     try {
+      // The engine stores kept positions sorted; the selection order is kept here for the shelf.
+      const keep = msg.action.type === "roll" ? (msg.action as { keep?: unknown }).keep : undefined;
+      this.rollOrder = validKeep(keep) ? [...keep] : null;
       result = await this.run(playerId, { commandId: msg.id, expectedVersion: msg.v, action: msg.action });
     } catch {
       return conn.send({ t: "ack", id: msg.id, ok: false, error: { code: "INVALID_COMMAND", message: "서버에서 명령을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요." } });
     }
+    this.rollOrder = null;
     if (!result.ok) {
       conn.send({ t: "ack", id: msg.id, ok: false, error: result.error });
       // A rejected command usually means the client view is behind: resend the full picture.
@@ -387,7 +426,7 @@ export class OnlineRoom {
 
   private sendView(conn: RoomConnection, since: number) {
     if (!conn.playerId) return;
-    conn.send({ t: "view", view: viewFor(this.state, conn.playerId, this.deps.now(), since) });
+    conn.send({ t: "view", view: viewFor(this.state, conn.playerId, this.deps.now(), since), hold: this.currentHold() });
     conn.seenSeq = this.state.log.length;
   }
 

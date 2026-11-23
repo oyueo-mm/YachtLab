@@ -100,10 +100,11 @@ async function createAndJoin(browser: Browser) {
   await expect(a.getByRole("heading", { name: "대기실" })).toBeVisible();
   const code = (await a.getByLabel("초대 코드").textContent())!.trim();
   expect(code).toMatch(/^[A-Z2-9]{6}$/);
-  // The invite link opens the entry screen with the code filled in and shows whose room it is.
+  // The invite link opens a join screen for exactly that room (no code to type) and shows whose room it is.
   await b.goto(entry(code));
-  await expect(b.getByText("님의 방에 초대받았어요")).toBeVisible();
-  await expect(b.getByLabel("초대 코드")).toHaveValue(code);
+  await expect(b.getByText("민수 님의 방에 초대받았어요")).toBeVisible();
+  await expect(b.getByText(`초대 코드 ${code}`)).toBeVisible();
+  await expect(b.getByLabel("초대 코드")).toHaveCount(0);
   await b.getByLabel("닉네임").fill("지민");
   await b.getByRole("button", { name: "입장하기" }).click();
   await expect(
@@ -266,9 +267,8 @@ for (const kind of ["node", "workers"] as const) {
         // Someone else with only the code cannot take a seat.
         const stranger = await device(browser, "desktop");
         await stranger.goto(entry(code));
-        await stranger.getByLabel("닉네임").fill("도윤");
-        await stranger.getByRole("button", { name: "입장하기" }).click();
-        await expect(stranger.getByRole("alert")).toContainText("이미");
+        await expect(stranger.getByRole("alert")).toContainText("이미 경기가 진행 중인 방이에요");
+        await expect(stranger.getByRole("button", { name: "입장하기" })).toHaveCount(0);
       });
 
       test("서버 재시작 후에도 저장된 경기가 복구되어 두 사람이 이어서 플레이한다", async ({
@@ -340,6 +340,114 @@ for (const kind of ["node", "workers"] as const) {
         await expect(c.getByRole("alert")).toContainText("방을 찾을 수 없어요");
       });
 
+      test("초대 링크로 바로 입장: 코드 입력 없이 저장된 닉네임으로 입장, #가 빠진 링크도 동작, 입장할 수 없는 방 안내", async ({
+        browser,
+      }, testInfo) => {
+        test.skip(
+          testInfo.project.name === "mobile",
+          "두 기기를 한 테스트에서 직접 만든다",
+        );
+        const a = await device(browser, "desktop");
+        const b = await device(browser, "phone");
+        await a.goto(entry());
+        await a.getByLabel("닉네임").fill("초대자");
+        await a.getByRole("button", { name: "방 만들기" }).click();
+        await expect(a.getByRole("heading", { name: "대기실" })).toBeVisible();
+        // the waiting room shows the full link (for in-app browsers without clipboard access)
+        const link = await a.getByLabel("초대 링크").inputValue();
+        const code = (await a.getByLabel("초대 코드").textContent())!.trim();
+        expect(link).toContain(`room=${code}`);
+        expect(link).not.toMatch(/token/i);
+        // B has played before (saved nickname) and opens the link with the #online part missing
+        await b.goto(entry());
+        await b.evaluate(() => localStorage.setItem("yachtlab.online.name", "예전닉"));
+        await b.goto(`?online-server=${encodeURIComponent(active.url)}&room=${code}`);
+        await expect(b.getByText("초대자 님의 방에 초대받았어요")).toBeVisible();
+        await expect(b.getByLabel("닉네임")).toHaveValue("예전닉");
+        await expect(b.getByText("‘예전닉’(으)로 입장해요.")).toBeVisible();
+        await b.getByRole("button", { name: "입장하기" }).click();
+        await expect(b.getByText("방장이 게임을 시작하면 바로 시작돼요.")).toBeVisible();
+        await expect(a.getByRole("list", { name: "참가자" })).toContainText("예전닉");
+        // refreshing the link afterwards goes straight back to the seat
+        await b.reload();
+        await expect(b.getByText("방장이 게임을 시작하면 바로 시작돼요.")).toBeVisible();
+        // a third browser: full room, then in progress; an unknown code says the room is gone
+        const c = await device(browser, "desktop");
+        await c.goto(entry(code));
+        await expect(c.getByRole("alert")).toContainText("이미 두 명이 모두 들어온 방이에요");
+        await a.getByRole("button", { name: "게임 시작" }).click();
+        await c.reload();
+        await expect(c.getByRole("alert")).toContainText("이미 경기가 진행 중인 방이에요");
+        await c.goto(entry("ZZZZZZ"));
+        await expect(c.getByRole("alert")).toContainText("방을 찾을 수 없어요");
+        // the code form is still there for people who prefer typing the code
+        await c.getByRole("button", { name: /코드로 입장/ }).click();
+        await expect(c.getByLabel("초대 코드")).toBeVisible();
+      });
+
+      test("두 화면의 주사위 상태(값·ID·고정·고정 순서·표시 순서·굴림 횟수)가 매 굴림·고정 후, 새로고침 후에도 같다", async ({
+        browser,
+      }, testInfo) => {
+        test.skip(
+          testInfo.project.name === "mobile",
+          "두 기기를 한 테스트에서 직접 만든다",
+        );
+        test.setTimeout(120_000);
+        const { a, b } = await createAndJoin(browser);
+        await a.getByRole("button", { name: "게임 시작" }).click();
+        /** What a screen shows: rolls, the dice row (id, value, held) in display order, and the shelf order. */
+        const shown = (p: Page) =>
+          p.evaluate(() => ({
+            rolls: document.querySelector(".board-top b")?.textContent ?? "",
+            dice: [...document.querySelectorAll(".game-board .die-button")].map((d) => d.getAttribute("aria-label")),
+            holdOrder: document.querySelector<HTMLElement>("[data-hold-order]")?.dataset.holdOrder ?? null,
+          }));
+        const same = async (rolls: string, holdOrder: string) => {
+          await expect(a.locator(".board-top b")).toHaveText(rolls);
+          await expect(b.locator(".board-top b")).toHaveText(rolls);
+          await expect(a.locator("[data-hold-order]")).toHaveAttribute("data-hold-order", holdOrder);
+          await expect(b.locator("[data-hold-order]")).toHaveAttribute("data-hold-order", holdOrder);
+          await expect.poll(async () => JSON.stringify(await shown(b))).toBe(JSON.stringify(await shown(a)));
+        };
+        const die = (p: Page, id: number) => p.locator(`.game-board .die-button[aria-label^="주사위 ${id + 1},"]`);
+        // A's turn: roll, hold C(2) → A(0) → E(4)
+        await a.locator(".roll-button").click();
+        await same("1", "");
+        for (const [id, order] of [
+          [2, "2"],
+          [0, "2,0"],
+          [4, "2,0,4"],
+        ] as const) {
+          await die(a, id).click();
+          await same("1", order);
+        }
+        const heldValues = await a.evaluate(() => [2, 0, 4].map((id) => document.querySelector(`.game-board .die-button[aria-label^="주사위 ${id + 1},"]`)!.getAttribute("aria-label")));
+        // re-roll: the held dice keep value and order on both screens
+        await a.locator(".roll-button").click();
+        await same("2", "2,0,4");
+        expect(await a.evaluate(() => [2, 0, 4].map((id) => document.querySelector(`.game-board .die-button[aria-label^="주사위 ${id + 1},"]`)!.getAttribute("aria-label")))).toEqual(heldValues);
+        // release A(0): the rest keep their order; selecting it again puts it last
+        await die(a, 0).click();
+        await same("2", "2,4");
+        await die(a, 0).click();
+        await same("2", "2,4,0");
+        // both screens refresh (reconnect): the same state comes back from the server
+        await b.reload();
+        await same("2", "2,4,0");
+        await a.reload();
+        await same("2", "2,4,0");
+        // opponent's view after a score and turn change
+        await a.locator('.scoreboard [data-category="choice"] .score-option').click();
+        await expect(b.locator(".roll-button")).toBeEnabled();
+        await b.locator(".roll-button").click();
+        await same("1", "");
+        await die(b, 3).click();
+        await die(b, 1).click();
+        await same("1", "3,1");
+        await b.locator(".roll-button").click();
+        await same("2", "3,1");
+      });
+
       test("320px 화면에서도 온라인 입장·대기실·게임판이 가로로 넘치지 않는다", async ({
         browser,
       }, testInfo) => {
@@ -381,16 +489,16 @@ for (const kind of ["node", "workers"] as const) {
   );
 }
 
-test("서버가 설정되지 않은 배포본은 온라인 대전을 '준비 중'으로 안내한다", async ({
+test("서버 주소가 없는 빌드는 온라인 서버에 연결되지 않았다고 안내한다", async ({
   page,
 }) => {
   await page.goto("#online");
   await expect(
-    page.getByRole("heading", { name: "온라인 대전은 준비 중이에요" }),
+    page.getByRole("heading", { name: "온라인 서버에 연결되어 있지 않아요" }),
   ).toBeVisible();
   // A non-loopback server parameter is ignored (links cannot send players to a foreign server).
   await page.goto("?online-server=https://evil.example#online");
   await expect(
-    page.getByRole("heading", { name: "온라인 대전은 준비 중이에요" }),
+    page.getByRole("heading", { name: "온라인 서버에 연결되어 있지 않아요" }),
   ).toBeVisible();
 });

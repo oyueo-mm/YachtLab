@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
+import { nextHoldOrder, shiftHoldOrder } from "./hold-order";
 import type { Game } from "./engine";
 import { Dice } from "./Dice";
 import { PhysicalDice } from "./PhysicalDice";
@@ -15,6 +16,11 @@ type Props = {
   rollEvent?: number;
   onToggle?: (id: number) => void;
   onOrder?: (ids: number[]) => void;
+  /**
+   * Held dice in the order they were selected (shelf order). Given by online play, where the server
+   * decides it so both players see the same shelf; otherwise tracked here from the `held` flags.
+   */
+  holdOrder?: readonly number[];
   /** Dice lab only. */
   forceRenderer?: DiceRenderer;
 };
@@ -39,18 +45,30 @@ export function DiceArea({ forceRenderer, ...props }: Props) {
     if (props.state.rolls === 0 || forceRenderer) setUse3d(want3d && !!mod);
   }, [props.state.rolls, want3d, mod, forceRenderer]);
   const fx = useScoreFx();
+  // Selection order of held dice (presentation only; the engine's values and held flags are untouched).
+  const auto = useRef<number[]>([]);
+  const [, rerender] = useReducer((n: number) => n + 1, 0);
+  const holdOrder = nextHoldOrder(props.holdOrder ?? auto.current, props.state.dice);
+  if (!props.holdOrder) auto.current = holdOrder;
+  /** Alt + arrow on a held die moves it on the shelf (only when this screen owns the order). */
+  const onShiftHold = props.holdOrder
+    ? undefined
+    : (id: number, step: -1 | 1) => {
+        auto.current = shiftHoldOrder(auto.current, id, step);
+        rerender();
+      };
   const physical = use3d && mod && !failed && (renderer === "3d" || renderer === "3d-high");
   if (physical)
     return (
       <>
-        <PhysicalDice key={renderer} module={mod} quality={renderer} state={props.state} interactive={!!props.interactive} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onFailure={() => setFailed(true)} />
+        <PhysicalDice key={renderer} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} interactive={!!props.interactive} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onFailure={() => setFailed(true)} />
         <ScoreFxLabel fx={fx} />
       </>
     );
   // Fallback row: plain 2.5D (or none) — the old 3D overlay is not used in games anymore.
   return (
     <>
-      <Dice {...props} forceRenderer={renderer === "none" ? "none" : "2.5d"} />
+      <Dice {...props} holdOrder={holdOrder} forceRenderer={renderer === "none" ? "none" : "2.5d"} />
       <ScoreFxFallback fx={fx} reduced={renderer === "none"} />
       <ScoreFxLabel fx={fx} />
     </>

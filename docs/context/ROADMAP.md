@@ -158,6 +158,7 @@
 - ✅ Phase 2 MVP(로컬, 미배포) — 친구 초대형 1:1: 게스트 닉네임·방 생성·초대 코드/링크·입장·시작·실시간 턴 동기화·고정/재굴림·점수·종료, 새로고침/재접속/서버 재시작 복구, 서버 턴 타이머, 남용 제한. 로컬 Node WebSocket 서버 + 4차 게임판·3D 연출 재사용. [D-020](./DECISIONS.md), [Phase 2](../online/ONLINE-V01-PHASE2.md)
 - ✅ Phase 3(로컬, 미배포) — Workers + SQLite Durable Objects(방당 1개) + WebSocket Hibernation + 알람, 전역 디렉터리 DO(코드·방 수·속도 제한), 보존 기간 자동 정리. `wrangler dev --local`에서 두 브라우저 12라운드·재접속·재시작 복구 검증, 공식 무료 한도 기준 비용 분석. [D-021](./DECISIONS.md), [Phase 3](../online/ONLINE-V01-PHASE3.md)
 - ✅ Phase 4 — 실제 배포(2026-11-23): `https://yachtlab-online.hoho96385210.workers.dev`, 공개 사이트 연결, 실서버·공개 사이트 두 브라우저 12라운드 검증, 공유 무료 한도 보호(하루 300방). [D-022](./DECISIONS.md), [Phase 4](../online/ONLINE-V01-PHASE4.md)
+- ✅ 온라인 UX(2026-11-23): 홈 메인을 온라인 대전으로, 고정 선반 선택 순서 배치, 두 화면 주사위 상태 동기화(서버 공유 고정 순서), 초대 링크 바로 입장. [D-023](./DECISIONS.md)
 - ⏭ 다음 후보 — Cloudflare 대시보드 지표로 실제 사용량 확인·`DAILY_ROOM_LIMIT` 조정, WAF 속도 제한, 재대결·관전·3~8인 UI, 로그 HMAC/앵커링, 재접속 시 효과음 일괄 재생 수정.
 
 ## 2026-11-23: 게임 중심 UI 개편 (`feat/game-lobby-redesign`)

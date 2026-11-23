@@ -197,6 +197,42 @@ for (const quality of ["3d-high", "3d"] as const)
     await expect(page.locator('[data-category="choice"] .fixed-score').first()).toHaveText(String(sum));
   });
 
+test("3D 고정 선반은 선택한 순서대로: C→A→E는 왼쪽부터 C, A, E / 해제하면 나머지 유지 / 다시 고르면 맨 뒤 / 재굴림에도 유지", async ({ page }) => {
+  await open3d(page);
+  await page.getByRole("button", { name: "주사위 굴리기" }).click();
+  await expect.poll(async () => Object.keys((await lastRoll(page))?.targets ?? {}).length, { timeout: 8000 }).toBe(5);
+  await settled(page);
+  /** Held dice, left to right as drawn on the shelf. */
+  const shelf = async () =>
+    (await tableState(page))
+      .filter((d) => d.zone === "hold")
+      .sort((x, y) => x.x! - y.x!)
+      .map((d) => d.id);
+  const values = Object.fromEntries((await tableState(page)).map((d) => [d.id, d.value]));
+  for (const id of [2, 0, 4]) await clickDie(page, id);
+  await settled(page);
+  expect(await shelf()).toEqual([2, 0, 4]);
+  await expect(page.locator(".physical-dice")).toHaveAttribute("data-hold-order", "2,0,4");
+  // the engine only knows which dice are held (values unchanged)
+  for (const id of [2, 0, 4]) await expect(page.locator(`.die-hit[data-die-id="${id}"]`)).toHaveAttribute("aria-pressed", "true");
+  await clickDie(page, 0);
+  await settled(page);
+  expect(await shelf()).toEqual([2, 4]);
+  await clickDie(page, 0);
+  await settled(page);
+  expect(await shelf()).toEqual([2, 4, 0]);
+  await page.getByRole("button", { name: "다시 굴리기" }).click();
+  await expect.poll(async () => Object.keys((await lastRoll(page))?.targets ?? {}).length, { timeout: 8000 }).toBe(2);
+  await settled(page);
+  expect(await shelf()).toEqual([2, 4, 0]);
+  const after = await tableState(page);
+  for (const id of [2, 4, 0]) expect(after.find((d) => d.id === id)).toMatchObject({ zone: "hold", value: values[id], top: values[id] });
+  // equal-looking slots: the three held dice sit in the three leftmost shelf slots
+  const slots = await page.evaluate(() => [...document.querySelectorAll(".hold-slot")].map((s) => s.getBoundingClientRect().left).sort((a, b) => a - b));
+  const held = await page.evaluate(() => [2, 4, 0].map((id) => document.querySelector(`.die-hit[data-die-id="${id}"]`)!.getBoundingClientRect().left));
+  for (let i = 0; i < 3; i++) expect(Math.abs(held[i] - slots[i])).toBeLessThan(4);
+});
+
 test("3D 주사위: 겹쳐 있어도 가장 가까운 주사위가 선택되고 키보드 Enter로도 고정한다", async ({ page }) => {
   await open3d(page);
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
@@ -296,18 +332,23 @@ test("3D 효과음은 실제 충돌에서 재생되고 개수가 제한되며 �
 
 /* ------------------------------------------------------------------ home & lab ------------------------------------------------------------------ */
 
-test("홈: 주사위 체험 영역 없이 제목·설명·오프라인(강조)·온라인(준비 중)만 보인다", async ({ page }) => {
+test("홈: 주사위 체험 영역 없이 제목·설명·온라인(강조, 첫 카드)·오프라인(보조)만 보인다", async ({ page }) => {
   await page.goto("");
   await expect(page.locator(".home-dice, [aria-label='주사위 굴려 보기']")).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("요트다이스를 플레이해보세요");
   await expect(page.locator(".lobby-hero")).toContainText("AI와 대결하거나 친구와 함께 즐겨보세요.");
   const cards = page.locator(".lobby .mode-card");
   await expect(cards).toHaveCount(2);
-  await expect(cards.nth(0)).toContainText("오프라인 대전");
+  await expect(cards.nth(0)).toContainText("온라인 대전");
   await expect(cards.nth(0)).toHaveClass(/mode-primary/);
-  await expect(cards.nth(1)).toContainText("준비 중");
-  const [offline, online] = [(await cards.nth(0).boundingBox())!, (await cards.nth(1).boundingBox())!];
-  expect(offline.height).toBeGreaterThan(online.height);
+  // the main call to action is visible on desktop and phones alike
+  await expect(cards.nth(0).locator(".mode-cta")).toBeVisible();
+  await expect(cards.nth(0).locator(".mode-cta")).toContainText("친구와 대전하기");
+  await expect(cards.nth(1)).toContainText("오프라인 대전");
+  await expect(page.locator(".lobby")).not.toContainText("준비 중");
+  const [online, offline] = [(await cards.nth(0).boundingBox())!, (await cards.nth(1).boundingBox())!];
+  expect(online.height).toBeGreaterThan(offline.height);
+  expect(online.y).toBeLessThan(offline.y);
   await expect(page.getByRole("button", { name: "내 기록" })).toBeVisible();
   await expect(page.getByRole("button", { name: "연구실" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
