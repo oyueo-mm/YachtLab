@@ -17,21 +17,42 @@ export type ClientMessage =
    * actually kept still travel with the next `roll` command and are validated by the engine.
    */
   | { t: "hold"; keep: number[]; n?: number }
+  /** Preset chat line or emote, by catalog id only (src/social/catalog.ts). Never free text. */
+  | { t: "say"; id: string }
+  /** After a match: ask for / take back / turn down a rematch in the same room. */
+  | { t: "rematch"; op: RematchOp }
+  /** Leave a finished room for good (no rematch with this seat any more). */
+  | { t: "bye" }
   | { t: "ping" };
+export type RematchOp = "request" | "cancel" | "decline";
 
 export type ServerMessage =
-  | { t: "welcome"; code: string; playerId: string; view: PlayerView; online: string[]; hold: HoldState | null }
+  | { t: "welcome"; code: string; playerId: string; view: PlayerView; online: string[]; hold: HoldState | null; rematch?: RematchState; series?: SeriesSummary }
   /** `hold` is present from servers that keep the shared hold order (older servers omit it). */
   | { t: "view"; view: PlayerView; hold?: HoldState | null }
   | { t: "ack"; id: string; ok: true; duplicate: boolean }
   | { t: "ack"; id: string; ok: false; error: OnlineError | { code: string; message: string } }
   | { t: "hold"; playerId: string; keep: number[]; n?: number }
   | { t: "presence"; online: string[] }
+  /** A preset chat line / emote, relayed live only (never stored, never replayed on reconnect). */
+  | { t: "said"; from: string; id: string }
+  /** Rematch status and this room's running score (sent when either changes). */
+  | { t: "rematch"; rematch: RematchState; series: SeriesSummary }
   | { t: "error"; code: string; message: string }
   | { t: "pong" };
 
 /** Held dice of the current turn, in the order they were selected — identical on every screen. */
 export type HoldState = { playerId: string; keep: number[]; n: number };
+
+/**
+ * Rematch negotiation for the finished match. `requests` are the players who asked (in order);
+ * when every seated player has asked, a new match starts in the same room. `departed` players left
+ * the room for good; `declinedBy` turned the last request down; `blocked` says why no rematch is
+ * possible (daily limit, room too old, match cap) — null when it is.
+ */
+export type RematchState = { requests: string[]; declinedBy: string | null; departed: string[]; blocked: string | null };
+/** Results of the matches already finished in this room (the running score between the same players). */
+export type SeriesSummary = { matchNo: number; games: number; draws: number; wins: Record<string, number> };
 
 /** Public info for an invite link (no tokens, no player ids). */
 export type RoomSummary = { code: string; status: MatchStatus; seats: number; players: string[] };
@@ -67,6 +88,14 @@ export function parseClientMessage(data: string): ClientMessage | null {
       if (!validKeep(raw.keep)) return null;
       if (raw.n !== undefined && (!Number.isSafeInteger(raw.n) || (raw.n as number) < 0)) return null;
       return { t: "hold", keep: [...raw.keep], ...(raw.n !== undefined ? { n: raw.n as number } : {}) };
+    case "say":
+      if (typeof raw.id !== "string" || raw.id.length > 40) return null;
+      return { t: "say", id: raw.id };
+    case "rematch":
+      if (raw.op !== "request" && raw.op !== "cancel" && raw.op !== "decline") return null;
+      return { t: "rematch", op: raw.op };
+    case "bye":
+      return { t: "bye" };
     case "cmd":
       if (!isValidId(raw.id) || !isRecord(raw.action)) return null;
       if (raw.v !== undefined && (!Number.isSafeInteger(raw.v) || (raw.v as number) < 0)) return null;

@@ -1,6 +1,7 @@
 import { OnlineRoom, ROOM_LIMITS, type JoinResult, type RoomConnection, type RoomRecord } from "../../src/online/room";
 import type { DiceSource } from "../../src/online/dice-source";
 import type { HoldState, RoomSummary, ServerMessage } from "../../src/online/wire";
+import type { SocialBucket } from "../../src/social/catalog";
 import type { OnlineConfig } from "./config";
 
 /**
@@ -41,7 +42,7 @@ export interface HostStorage {
  * only together with the next command, so without this copy an eviction between a hold toggle and
  * the next command would forget it. Attachments cost no storage writes.
  */
-type Attachment = { playerId: string | null; seenSeq: number; bucket: { tokens: number; at: number }; openedAt: number; hold?: { hold: HoldState; v: number } | null };
+type Attachment = { playerId: string | null; seenSeq: number; bucket: { tokens: number; at: number }; openedAt: number; hold?: { hold: HoldState; v: number } | null; social?: SocialBucket };
 
 export const HELLO_TIMEOUT_MS = 10_000;
 /** Socket opens per room per minute (counted in memory; a soft guard against reconnect storms). */
@@ -50,6 +51,8 @@ export const CONNECTS_PER_MINUTE = 20;
 export type HostEvents = {
   /** The room was cleaned up (idle / max age). The shell tells the directory. */
   onDeleted?: (code: string) => void | Promise<void>;
+  /** A rematch wants to start: null = allowed (and counted), otherwise the reason it is not. */
+  allowMatch?: (code: string) => Promise<string | null> | string | null;
 };
 
 export class RoomHost {
@@ -79,6 +82,13 @@ export class RoomHost {
       schedule: (at: number | null) => {
         this.turnDeadline = at;
         this.rearm();
+      },
+      allowMatch: () => {
+        const room = this.room;
+        if (!room) return "방을 찾을 수 없어요.";
+        // A rematch needs time to finish before the room's retention limit removes it.
+        if (this.now() > room.createdAt + this.config.maxAgeMs - 2 * 3600_000) return "이 방은 곧 정리돼요. 새 방을 만들어 주세요.";
+        return this.events.allowMatch?.(room.code) ?? null;
       },
     };
   }
@@ -149,6 +159,7 @@ export class RoomHost {
       playerId: a.playerId,
       seenSeq: a.seenSeq,
       bucket: { ...a.bucket },
+      ...(a.social ? { social: { ...a.social } } : {}),
       openedAt: a.openedAt,
       send: (message: ServerMessage) => {
         try {
@@ -174,7 +185,7 @@ export class RoomHost {
     const c = this.conns.get(ws) as (RoomConnection & { openedAt: number }) | undefined;
     if (!c) return;
     try {
-      ws.serializeAttachment({ playerId: c.playerId, seenSeq: c.seenSeq, bucket: c.bucket, openedAt: c.openedAt, hold: this.room?.holdSnapshot() ?? null } satisfies Attachment);
+      ws.serializeAttachment({ playerId: c.playerId, seenSeq: c.seenSeq, bucket: c.bucket, openedAt: c.openedAt, hold: this.room?.holdSnapshot() ?? null, ...(c.social ? { social: c.social } : {}) } satisfies Attachment);
     } catch {
       /* closed */
     }

@@ -50,6 +50,11 @@ export class YachtRoom extends DurableObject<Env> {
       onDeleted: async (code) => {
         await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).release(code);
       },
+      // Rematches reuse this room but still count toward the daily cap (one directory row write).
+      allowMatch: async () => {
+        const verdict = await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).allocateMatch();
+        return verdict.ok ? null : verdict.message;
+      },
     });
     // Keep-alive pings are answered by the runtime without waking the object (no duration, no request).
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(PING, PONG));
@@ -168,6 +173,18 @@ export class RoomDirectory extends DurableObject<Env> {
     if (this.limited(`${kind}:${client}`, kind === "join" ? this.config.joinPerMinute : this.config.joinPerMinute * 4))
       return { ok: false, status: 429, code: "RATE_LIMITED", message: "잠시 후 다시 시도해 주세요." };
     if (!this.sql.exec("SELECT 1 FROM rooms WHERE code = ?", code).toArray().length) return { ok: false, status: 404, code: "ROOM_NOT_FOUND", message: "방을 찾을 수 없어요. 초대 코드를 확인해 주세요." };
+    return { ok: true };
+  }
+
+  /**
+   * One more match in an existing room (rematch). Shares the daily cap with room creation, so the
+   * daily budget still bounds this service's share of the free plan; no new room code or object.
+   */
+  async allocateMatch(): Promise<Verdict> {
+    const day = Math.floor(Date.now() / 86_400_000);
+    const today = this.sql.exec<{ rooms: number }>("SELECT rooms FROM daily WHERE day = ?", day).toArray()[0]?.rooms ?? 0;
+    if (today >= this.config.dailyRoomLimit) return { ok: false, status: 503, code: "DAILY_LIMIT", message: "오늘은 온라인 경기를 더 할 수 없어요. 내일 다시 시도해 주세요." };
+    this.sql.exec("INSERT INTO daily (day, rooms) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET rooms = rooms + 1", day);
     return { ok: true };
   }
 

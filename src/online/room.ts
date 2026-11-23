@@ -15,9 +15,13 @@ import {
   validKeep,
   type HoldState,
   type ClientMessage,
+  type RematchOp,
+  type RematchState,
   type RoomSummary,
+  type SeriesSummary,
   type ServerMessage,
 } from "./wire";
+import { allowSocial, canSend, newSocialBucket, type SocialBucket } from "../social/catalog";
 
 /**
  * YachtLab Online v0.1 Phase 2 — one game room (invite code + seats + authoritative match).
@@ -45,7 +49,14 @@ export const ROOM_LIMITS = {
   /** Token bucket per connection: burst and refill per second. */
   burst: 30,
   refillPerSecond: 8,
+  /** Matches one room may host (first match + rematches). Each still counts toward the daily cap. */
+  maxMatches: 20,
+  /** Rematch request/cancel/decline: at most one stored change per player per second. */
+  rematchCooldownMs: 1000,
 } as const;
+
+/** One finished match of this room (kept for the running score; the event log itself is replaced). */
+export type SeriesEntry = { matchId: string; finishedAt: number; winners: string[]; points: Record<string, number> };
 
 export type RoomRecord = {
   wire: typeof WIRE_VERSION;
@@ -61,6 +72,14 @@ export type RoomRecord = {
    * screens, outside the engine log. Saved together with the next accepted command (no extra write).
    */
   hold?: HoldState | null;
+  /** Number of matches started in this room (1 = the first). Missing on records from before rematches. */
+  matchNo?: number;
+  /** Finished matches of this room, oldest first (at most ROOM_LIMITS.maxMatches). */
+  series?: SeriesEntry[];
+  /** Pending rematch requests for the finished match. */
+  rematch?: { requests: string[]; declinedBy: string | null } | null;
+  /** Players who left the finished room for good. */
+  departed?: string[];
 };
 
 export type RoomDeps = {
@@ -72,6 +91,11 @@ export type RoomDeps = {
   schedule: (at: number | null) => void;
   /** Random bytes (Web Crypto). */
   random?: (bytes: Uint8Array) => Uint8Array;
+  /**
+   * May one more match start in this room? Returns null when it may, otherwise a message for the
+   * players. The Durable Object host counts it toward the daily cap (rooms + rematches).
+   */
+  allowMatch?: () => Promise<string | null> | string | null;
 };
 
 /** A live socket, as seen by the room. `playerId` is set only after a successful `hello`. */
@@ -80,6 +104,8 @@ export interface RoomConnection {
   /** Highest event seq already delivered to this socket. */
   seenSeq: number;
   bucket: { tokens: number; at: number };
+  /** Preset chat / emote rate limit (created on first use). */
+  social?: SocialBucket;
   send(message: ServerMessage): void;
   close(code: number, reason: string): void;
 }
@@ -124,6 +150,11 @@ export const normalizeCode = (value: unknown): string | null => {
   return CODE_PATTERN.test(code) ? code : null;
 };
 
+/** Random match id, `m_` + 16 url-safe characters (96 bits). */
+export function newMatchId(random: (b: Uint8Array) => Uint8Array = (b) => crypto.getRandomValues(b)): string {
+  return "m_" + base64url(random(new Uint8Array(12)));
+}
+
 export class OnlineRoom {
   private state: OnlineMatchState;
   private readonly connections = new Set<RoomConnection>();
@@ -134,6 +165,12 @@ export class OnlineRoom {
   /** Ordered `keep` of the roll command being applied (the engine itself stores kept positions sorted). */
   private rollOrder: number[] | null = null;
   private closed = false;
+  /** Why the last rematch could not start (daily cap…), until the next request. Memory only. */
+  private rematchBlocked: string | null = null;
+  /** Last stored rematch change per player (cooldown against request/cancel write loops). Memory only. */
+  private rematchAt = new Map<string, number>();
+  /** Stored rematch changes since the last match started (cap against write loops). Memory only. */
+  private rematchOps = 0;
 
   private constructor(
     private record: RoomRecord,
@@ -149,8 +186,9 @@ export class OnlineRoom {
   static create(code: string, deps: RoomDeps, options: { turnTimeoutMs?: number | null } = {}): OnlineRoom {
     if (!CODE_PATTERN.test(code)) throw Error("잘못된 방 코드입니다.");
     const now = deps.now();
-    const state = createOnlineMatch({ matchId: code, seats: 2, turnTimeoutMs: options.turnTimeoutMs ?? null }, now);
-    const record: RoomRecord = { wire: WIRE_VERSION, code, createdAt: now, touchedAt: now, credentials: {}, log: state.log };
+    // Every match has its own random id (records, rematches); the room code is only the address.
+    const state = createOnlineMatch({ matchId: newMatchId(deps.random), seats: 2, turnTimeoutMs: options.turnTimeoutMs ?? null }, now);
+    const record: RoomRecord = { wire: WIRE_VERSION, code, createdAt: now, touchedAt: now, credentials: {}, log: state.log, matchNo: 1 };
     return new OnlineRoom(record, deps, state);
   }
 
@@ -297,6 +335,12 @@ export class OnlineRoom {
     const hold = this.holdAfter(events);
     this.state = next;
     this.record = hold === undefined ? record : { ...record, hold };
+    const finished = events.find((e) => e.type === "matchFinished");
+    if (finished && finished.type === "matchFinished") {
+      // The running score of this room, stored with the same write as the final event.
+      const entry: SeriesEntry = { matchId: next.matchId, finishedAt: finished.at, winners: [...finished.winners], points: Object.fromEntries(finished.standings.map((s) => [s.playerId, s.points])) };
+      this.record = { ...this.record, series: [...(this.record.series ?? []), entry].slice(-ROOM_LIMITS.maxMatches), rematch: null };
+    }
     try {
       await this.persist();
     } catch (error) {
@@ -400,7 +444,7 @@ export class OnlineRoom {
       const since = Math.max(0, Math.min(msg.since ?? 0, this.state.log.length));
       const view = viewFor(this.state, playerId, this.deps.now(), since);
       conn.seenSeq = this.state.log.length;
-      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold() });
+      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold(), rematch: this.rematchState(), series: this.seriesSummary() });
       this.broadcastPresence();
       return;
     }
@@ -409,6 +453,9 @@ export class OnlineRoom {
       conn.send({ t: "error", code: "BAD_TOKEN", message: "먼저 인증해야 합니다." });
       return conn.close(4001, "not authenticated");
     }
+    if (msg.t === "say") return this.say(conn, playerId, msg.id);
+    if (msg.t === "rematch") return this.rematch(conn, playerId, msg.op);
+    if (msg.t === "bye") return this.bye(playerId);
     if (msg.t === "hold") {
       // Shared presentation state: the dice actually kept still travel with the next `roll` command
       // and are validated by the engine. Kept in memory and saved with the next command (no row write).
@@ -448,6 +495,144 @@ export class OnlineRoom {
       for (const c of [...this.connections]) if (c.playerId === playerId) c.close(4002, "left");
       if (!this.state.players.length) this.closeRoom();
     }
+  }
+
+  /* ------------------------------------------------------------- social (Phase 3) ------------------------------------------------------------- */
+
+  /** Preset chat / emote: catalog ids only, rate-limited per connection, relayed live, never stored. */
+  private say(conn: RoomConnection, playerId: string, id: string) {
+    if (!canSend(id)) return conn.send({ t: "error", code: "INVALID_SOCIAL", message: "보낼 수 없는 메시지예요." });
+    const now = this.deps.now();
+    conn.social ??= newSocialBucket(now);
+    if (!allowSocial(conn.social, id, now)) return conn.send({ t: "error", code: "SOCIAL_RATE_LIMITED", message: "잠시 후 다시 보내 주세요." });
+    for (const c of this.connections) if (c.playerId) c.send({ t: "said", from: playerId, id });
+  }
+
+  rematchState(): RematchState {
+    const departed = this.record.departed ?? [];
+    const pending = this.record.rematch ?? { requests: [], declinedBy: null };
+    const finished = this.state.status === "finished";
+    const blocked = !finished
+      ? null
+      : departed.length
+        ? "상대가 방을 나갔어요."
+        : (this.record.matchNo ?? 1) >= ROOM_LIMITS.maxMatches
+          ? "이 방에서는 더 이상 경기를 할 수 없어요. 새 방을 만들어 주세요."
+          : this.rematchBlocked;
+    return { requests: finished ? [...pending.requests] : [], declinedBy: finished ? pending.declinedBy : null, departed: [...departed], blocked };
+  }
+
+  seriesSummary(): SeriesSummary {
+    const series = this.record.series ?? [];
+    const wins: Record<string, number> = {};
+    let draws = 0;
+    for (const m of series) {
+      if (m.winners.length === 1) wins[m.winners[0]] = (wins[m.winners[0]] ?? 0) + 1;
+      else draws++;
+    }
+    return { matchNo: this.record.matchNo ?? 1, games: series.length, draws, wins };
+  }
+
+  private broadcastRematch() {
+    const rematch = this.rematchState();
+    const series = this.seriesSummary();
+    for (const c of this.connections) if (c.playerId) c.send({ t: "rematch", rematch, series });
+  }
+
+  private async saveRecord(record: RoomRecord) {
+    const before = this.record;
+    this.record = { ...record, touchedAt: this.deps.now() };
+    try {
+      await this.deps.save(this.record);
+    } catch (error) {
+      this.record = before;
+      throw error;
+    }
+  }
+
+  /**
+   * Rematch in the same room (no new room, no new code, the same seat tokens): when every seated
+   * player has asked, a new match with a new id starts and the other player moves first.
+   */
+  private async rematch(conn: RoomConnection, playerId: string, op: RematchOp) {
+    const fail = (message: string) => conn.send({ t: "error", code: "REMATCH", message });
+    if (this.state.status !== "finished") return fail("경기가 끝난 뒤에 재대결할 수 있어요.");
+    const blocked = this.rematchState().blocked;
+    if (blocked && op === "request" && (this.record.departed?.length || (this.record.matchNo ?? 1) >= ROOM_LIMITS.maxMatches)) return fail(blocked);
+    const pending = this.record.rematch ?? { requests: [], declinedBy: null };
+    let next = pending;
+    if (op === "request") {
+      if (pending.requests.includes(playerId)) return this.broadcastRematchTo(conn); // double tap: nothing to store
+      next = { requests: [...pending.requests, playerId], declinedBy: null };
+    } else if (op === "cancel") {
+      if (!pending.requests.includes(playerId)) return this.broadcastRematchTo(conn);
+      next = { requests: pending.requests.filter((id) => id !== playerId), declinedBy: null };
+    } else {
+      if (!pending.requests.some((id) => id !== playerId)) return this.broadcastRematchTo(conn);
+      next = { requests: [], declinedBy: playerId };
+    }
+    const now = this.deps.now();
+    if (now - (this.rematchAt.get(playerId) ?? -Infinity) < ROOM_LIMITS.rematchCooldownMs) return fail("잠시 후 다시 눌러 주세요.");
+    if (this.rematchOps >= 40) return fail("재대결 요청을 너무 많이 보냈어요. 새 방을 만들어 주세요.");
+    this.rematchAt.set(playerId, now);
+    this.rematchOps++;
+    this.rematchBlocked = null;
+    const everyone = this.state.players.every((p) => next.requests.includes(p.playerId));
+    if (everyone) return this.startRematch();
+    await this.saveRecord({ ...this.record, rematch: next });
+    this.broadcastRematch();
+  }
+
+  private broadcastRematchTo(conn: RoomConnection) {
+    conn.send({ t: "rematch", rematch: this.rematchState(), series: this.seriesSummary() });
+  }
+
+  private async startRematch() {
+    const block = (await this.deps.allowMatch?.()) ?? null;
+    if (block) {
+      this.rematchBlocked = block;
+      await this.saveRecord({ ...this.record, rematch: null });
+      return this.broadcastRematch();
+    }
+    const now = this.deps.now();
+    const matchNo = (this.record.matchNo ?? 1) + 1;
+    // Alternate who starts: seats rotate by one (two players: swap).
+    const bySeat = [...this.state.players].sort((a, b) => a.seat - b.seat);
+    const order = [...bySeat.slice(1), bySeat[0]];
+    let next = createOnlineMatch({ matchId: newMatchId(this.random), seats: this.state.seats, turnTimeoutMs: this.state.turnTimeoutMs }, now);
+    const ctx = { now, dice: this.dice };
+    for (const [i, p] of order.entries()) {
+      const joined = applyCommand(next, { commandId: `rematch-${matchNo}-join-${i}`, playerId: p.playerId, action: { type: "join", name: p.name } }, ctx);
+      if (!joined.ok) throw Error(joined.error.message);
+      next = joined.state;
+    }
+    const started = applyCommand(next, { commandId: `rematch-${matchNo}-start`, playerId: order[0].playerId, action: { type: "start" } }, ctx);
+    if (!started.ok) throw Error(started.error.message);
+    const before = { state: this.state, record: this.record };
+    this.state = started.state;
+    try {
+      await this.saveRecord({ ...this.record, log: started.state.log, matchNo, rematch: null, hold: null });
+    } catch (error) {
+      this.state = before.state;
+      this.record = before.record;
+      throw error;
+    }
+    this.rematchOps = 0;
+    this.armTimer();
+    // A new match: every screen gets the whole (short) log of the new match.
+    for (const c of this.connections) if (c.playerId) this.sendView(c, 0);
+    this.broadcastRematch();
+  }
+
+  /** Leave a finished room for good: the seat token stops working, the other player is told. */
+  private async bye(playerId: string) {
+    if (this.state.status !== "finished") return;
+    const departed = [...new Set([...(this.record.departed ?? []), playerId])];
+    const { [playerId]: _gone, ...credentials } = this.record.credentials;
+    await this.saveRecord({ ...this.record, departed, credentials, rematch: null });
+    for (const c of [...this.connections]) if (c.playerId === playerId) c.close(4002, "left");
+    if (this.state.players.every((p) => departed.includes(p.playerId))) return this.closeRoom();
+    this.broadcastRematch();
   }
 
   private sendView(conn: RoomConnection, since: number) {
