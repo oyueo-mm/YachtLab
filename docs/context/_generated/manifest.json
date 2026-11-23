@@ -107,6 +107,36 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "e920a9c",
+      "date": "2026-11-23",
+      "subject": "Merge PR #45: YachtLab 게임 UI 1~4차 개편"
+    },
+    {
+      "sha": "984cf8e",
+      "date": "2026-11-23",
+      "subject": "feat: vigorous 3D throws, combination-effect for scored dice, matte table, button system, mobile controls fix"
+    },
+    {
+      "sha": "e32fea0",
+      "date": "2026-11-23",
+      "subject": "feat: start-focused lobby, free-landing 3D dice with hold shelf, unified AI model picker, back-navigation guard"
+    },
+    {
+      "sha": "018ba2e",
+      "date": "2026-11-22",
+      "subject": "chore(research): publish Win DP v3.1 fresh-shard evidence [skip ci]"
+    },
+    {
+      "sha": "308b358",
+      "date": "2026-11-23",
+      "subject": "feat(ui): setup screens, game-only play view, lobby dice, quiet rule help and 3D physics dice"
+    },
+    {
+      "sha": "5ad7c33",
+      "date": "2026-11-23",
+      "subject": "feat(ui): game-first lobby, immersive game shell, research lab, 2.5D dice, sound and rule tooltips"
+    },
+    {
       "sha": "31d9a00",
       "date": "2026-11-22",
       "subject": "feat: five fixed game difficulties and compact one-tap mobile scoring"
@@ -125,56 +155,26 @@
       "sha": "8b8a203",
       "date": "2026-11-22",
       "subject": "feat: player-first YachtLab gameplay UX, responsive score sheet and offline match records"
-    },
-    {
-      "sha": "7902c6d",
-      "date": "2026-11-22",
-      "subject": "test(mobile): regression for outside-tap closing categorized model picker"
-    },
-    {
-      "sha": "e44f132",
-      "date": "2026-11-22",
-      "subject": "fix(mobile): allow outside topbar clicks through model-picker scrim to close it"
-    },
-    {
-      "sha": "f6ee544",
-      "date": "2026-11-22",
-      "subject": "test(ui): open the intentionally collapsed player settings before editing names"
-    },
-    {
-      "sha": "19fb158",
-      "date": "2026-11-22",
-      "subject": "test(ui): open the intentionally collapsed player settings before editing names"
-    },
-    {
-      "sha": "0ba2b3c",
-      "date": "2026-11-22",
-      "subject": "style(feedback): add short non-random dice settle and accessible score confirmation animation"
-    },
-    {
-      "sha": "b0e3ef3",
-      "date": "2026-11-22",
-      "subject": "feat(feedback): display score commits in local 2–50 player matches"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "4c4c382735",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45024816221"
-    },
-    {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
-      "head": "4c4c382735",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45024816215"
+      "head": "984cf8e882",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45110224151"
     },
     {
-      "name": "Competitive research benchmark",
+      "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "4bffdba0a8",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45019765513"
+      "head": "984cf8e882",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45110224109"
+    },
+    {
+      "name": "YachtLab Win DP v3.1 research and independent confirmation",
+      "status": "success",
+      "head": "7e07bfab83",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45056759480"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
