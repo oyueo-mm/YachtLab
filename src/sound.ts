@@ -11,6 +11,10 @@ import { getSettings } from "./settings";
 export type Sfx =
   | "throw"
   | "impact"
+  | "clack"
+  | "roll"
+  | "combo"
+  | "grand"
   | "settle"
   | "hold"
   | "release"
@@ -144,9 +148,29 @@ export function playSfx(name: Sfx, options: SfxOptions = {}) {
     case "throw": // dice leaving the hand / sliding out of a cup
       burst(audio, out, t, 0.2, 0.22 * k, "bandpass", 700, 2600, 1.1);
       break;
-    case "impact": // die hitting the felt tray: a dull thud plus a short click
-      tone(audio, out, t, 150 + 40 * k, 0.07, 0.35 * k, "sine", 70);
-      burst(audio, out, t, 0.035, 0.28 * k, "highpass", 1800, undefined, 0.7);
+    case "impact": {
+      // Die hitting the matte tray. Hard hits: heavy thud + sharp tick; soft hits: a short muted tap.
+      const hard = Math.max(0, (k - 0.35) / 0.65);
+      tone(audio, out, t, 120 + 70 * k, 0.05 + 0.07 * k, (0.16 + 0.42 * k) * (0.9 + 0.2 * hard), "sine", 56);
+      burst(audio, out, t, 0.02 + 0.03 * hard, 0.1 + 0.32 * hard, "highpass", 1500 + 1500 * hard, undefined, 0.7);
+      if (hard > 0.5) burst(audio, out, t + 0.012, 0.06, 0.1 * hard, "lowpass", 900, 300);
+      break;
+    }
+    case "clack": // two dice knocking: higher, drier, shorter than a floor hit
+      tone(audio, out, t, 520 + 160 * k, 0.03, 0.18 * k, "square", 340);
+      burst(audio, out, t, 0.022, 0.22 * k, "bandpass", 3200, undefined, 2.2);
+      break;
+    case "roll": // a die rolling over its edges: a faint dry rumble
+      burst(audio, out, t, 0.1, 0.07 * k, "bandpass", 520, 360, 0.9);
+      break;
+    case "combo": // dice springing up: a bright two-note lift
+      tone(audio, out, t, 587.33, 0.13, 0.16, "triangle", 740);
+      tone(audio, out, t + 0.07, 880, 0.2, 0.15, "triangle", 1046.5);
+      burst(audio, out, t, 0.05, 0.06, "highpass", 3500);
+      break;
+    case "grand": // large straight / yacht: a fuller rising figure
+      notes(audio, out, t, [523.25, 659.25, 783.99, 1046.5], 0.06, 0.2, 0.15, "triangle");
+      [523.25, 783.99, 1046.5].forEach((f) => tone(audio, out, t + 0.28, f, 0.5, 0.07, "sine"));
       break;
     case "settle": // final tiny wobble
       burst(audio, out, t, 0.03, 0.12 * k, "bandpass", 2400, undefined, 2);

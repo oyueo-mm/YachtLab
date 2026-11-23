@@ -148,3 +148,52 @@ describe("free landing (3rd pass): dice stay where physics leaves them", () => {
       expect(rowLike).toBe(0);
     }, 60000);
 });
+
+describe("4th pass: vigorous throws", () => {
+  const run = (profile: "legacy" | "vigorous", W: number, H: number) => {
+    const rows = [];
+    for (let seed = 1; seed <= 40; seed++) {
+      const values = [0, 1, 2, 3, 4].map((id) => 1 + ((seed * 3 + id) % 6));
+      rows.push({
+        values,
+        sim: simulateThrow({ width: W, height: H, direction: seed % 2 ? 1 : -1, seed: seed * 911, landing: "free", maxAttempts: 14, profile, dice: values.map((value, id) => ({ id, value, held: false, x: W / 2, z: H / 2 })) }),
+      });
+    }
+    return rows;
+  };
+  const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
+
+  for (const [name, W, H] of [["desktop", 10, 5.4], ["mobile", 6.4, 4.8]] as const)
+    it(`is measurably more dynamic than the 3rd-pass profile and still exact (${name})`, () => {
+      const old = run("legacy", W, H),
+        now = run("vigorous", W, H);
+      // More speed, more spin, harder first hit, more collisions…
+      expect(mean(now.map((r) => r.sim.stats.peakSpeed))).toBeGreaterThan(mean(old.map((r) => r.sim.stats.peakSpeed)) * 1.25);
+      expect(mean(now.map((r) => r.sim.stats.spinDeg))).toBeGreaterThan(mean(old.map((r) => r.sim.stats.spinDeg)) * 1.4);
+      expect(mean(now.map((r) => r.sim.stats.firstImpact))).toBeGreaterThan(mean(old.map((r) => r.sim.stats.firstImpact)) * 1.4);
+      expect(mean(now.map((r) => r.sim.stats.impactCount))).toBeGreaterThan(mean(old.map((r) => r.sim.stats.impactCount)));
+      // …without hurting correctness, containment or length.
+      let ok = 0;
+      for (const { values, sim } of now) {
+        if (sim.ok) ok++;
+        for (const t of sim.tracks) expect(finalValue(t, sim.frameCount)).toBe(values[t.id]);
+        expect(sim.stats.inBounds).toBe(true);
+        expect(sim.stats.minDistance).toBeGreaterThan(0.95);
+        expect(sim.stats.maxEndStepDeg).toBeLessThan(12);
+        expect(sim.frameCount).toBeLessThanOrEqual(135);
+      }
+      expect(ok / now.length).toBeGreaterThanOrEqual(0.97);
+    }, 60000);
+
+  it("dice leave the hand with different speeds and spins, and land spread over the tray", () => {
+    const rows = run("vigorous", 10, 5.4);
+    const zs = rows.flatMap((r) => r.sim.tracks.map((t) => t.frames[(r.sim.frameCount - 1) * 7 + 2] / 5.4));
+    const top = zs.filter((z) => z < 0.33).length / zs.length,
+      bottom = zs.filter((z) => z > 0.66).length / zs.length;
+    expect(top).toBeLessThan(0.55); // not piled against the far wall
+    expect(bottom).toBeGreaterThan(0.08);
+    // different dice in the same throw settle at different times
+    const spread = rows.filter((r) => new Set(r.sim.tracks.map((t) => t.restFrame)).size > 1).length;
+    expect(spread / rows.length).toBeGreaterThan(0.9);
+  });
+});

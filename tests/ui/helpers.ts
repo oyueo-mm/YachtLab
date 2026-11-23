@@ -79,3 +79,19 @@ export async function withMotion(page: Page, quality: "auto" | "3d-high" | "3d" 
       }
     }, quality);
 }
+
+/** First-roll combinations (player 0) for fixed game seeds — found by search over the real engine. */
+export const SEEDS = { threes: 3, full: 20, large: 29, four: 45, yacht: 563, smallNoDup: 5900, none: 6515, small12341: 10173 } as const;
+/** Make every new game use this seed (the games read `crypto.getRandomValues(new Uint32Array(1))`). */
+export async function fixSeed(page: Page, seed: number) {
+  await page.addInitScript((value) => {
+    const original = crypto.getRandomValues.bind(crypto);
+    crypto.getRandomValues = ((array: ArrayBufferView) => {
+      if (array instanceof Uint32Array && array.length === 1) {
+        array[0] = value;
+        return array;
+      }
+      return original(array as Uint8Array);
+    }) as typeof crypto.getRandomValues;
+  }, seed);
+}

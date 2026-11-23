@@ -5,6 +5,7 @@ import "./styles.css";
 import "./shell.css";
 import "./game-flow.css";
 import "./play-table.css";
+import "./matte.css";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <App />

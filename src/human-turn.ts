@@ -67,6 +67,7 @@ export function useHumanTurn({
     (async () => {
       try {
         await playbackDelay(T.start, signal);
+        await waitForDice(signal); // let a score effect finish before the AI throws
         if (pendingRoll.current) {
           if (!valid()) return;
           commit({ type: "roll" });

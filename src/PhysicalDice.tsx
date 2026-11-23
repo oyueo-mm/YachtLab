@@ -3,13 +3,16 @@ import { arrayMove } from "@dnd-kit/sortable";
 import type { Game } from "./engine";
 import { beginDiceMotion, takeThrowDirection } from "./dice-motion";
 import { playSfx } from "./sound";
+import { getScoreFx, useScoreFx } from "./score-fx";
 import type { DiceTableModule } from "./dice3d-loader";
 import type { DebugRoll } from "./Dice";
 
 type Pose = { x: number; y: number; z: number; quat: [number, number, number, number] };
 type Table = InstanceType<DiceTableModule["DiceTable"]>;
 /** Height of the hold shelf below the tray, in die edges. */
-const HOLD_UNITS = 1.6;
+const HOLD_UNITS = 1.45;
+/** Smallest tray depth (die edges) that still gives the physics room to roll. */
+const MIN_TRAY = 4.3;
 const MOVE_MS = 260;
 
 type DebugWindow = Window & {
@@ -63,6 +66,12 @@ export function PhysicalDice({
   const prevOrder = useRef(state.order.join());
   const stateRef = useRef(state);
   stateRef.current = state;
+  const hitEls = useRef(new Map<number, HTMLElement>());
+  const dimsRef = useRef<typeof dims>(null);
+  dimsRef.current = dims;
+  const handledFx = useRef(0);
+  const activeFx = useRef<{ key: number; abort: () => void } | null>(null);
+  const fxNow = useScoreFx();
 
   // Size: dice scale with the board; the tray is at least ~4.7 die edges deep for clean physics.
   useLayoutEffect(() => {
@@ -72,7 +81,7 @@ export function PhysicalDice({
       const w = el.clientWidth,
         h = el.clientHeight;
       if (w < 120 || h < 160) return;
-      const size = Math.floor(Math.max(34, Math.min(92, w / 6.4, h / (4.7 + HOLD_UNITS))));
+      const size = Math.floor(Math.max(34, Math.min(112, w / 6.2, h / (MIN_TRAY + HOLD_UNITS))));
       setDims({ w, h, size, W: w / size, trayH: h / size - HOLD_UNITS });
     };
     measure();
@@ -141,6 +150,15 @@ export function PhysicalDice({
           tray.current.set(d.id, { x: dims.W / 2 + (state.order.indexOf(d.id) - 2) * gap, y: 0.5, z: dims.trayH / 2 + (i % 2 ? 0.25 : -0.25), quat: mod.uprightNear(d.value, mod.canonicalOrientation(d.value)) as Pose["quat"] });
         });
     }
+    // Hit targets follow what is drawn (also while a die slides), not just where it is going.
+    table.current.onPose = (id, p) => {
+      const el = hitEls.current.get(id),
+        d = dimsRef.current;
+      if (el && d) {
+        el.style.left = `${p.x * d.size - d.size / 2}px`;
+        el.style.top = `${p.z * d.size - d.size / 2}px`;
+      }
+    };
     table.current.layout(dims.w, dims.h, dims.size);
     for (const [id, p] of tray.current) {
       const fixed = { ...p, ...freeSpot(Math.min(p.x, dims.W - 0.65), Math.min(p.z, dims.trayH - 0.65), id) };
@@ -151,16 +169,60 @@ export function PhysicalDice({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dims, quality]);
 
-  // A new turn clears the tray.
+  // A new turn clears the tray — after the score effect, when the move was a scoring one.
   useEffect(() => {
     if (state.rolls !== 0) return;
-    tray.current.clear();
-    parked.current.clear();
-    table.current?.setPoses(new Map());
-    prevHeld.current = new Map(state.dice.map((d) => [d.id, d.held]));
-    refresh();
+    const t = table.current;
+    const clearAll = () => {
+      tray.current.clear();
+      parked.current.clear();
+      table.current?.setPoses(new Map());
+      prevHeld.current = new Map(stateRef.current.dice.map((d) => [d.id, d.held]));
+      refresh();
+    };
+    const fx = getScoreFx();
+    const fresh = !!fx && fx.key !== handledFx.current && performance.now() - fx.at < 400 && fx.ids.length > 0 && !!t && fx.ids.every((id) => !!t.pose(id));
+    if (!t || !fx || !fresh) {
+      clearAll();
+      return;
+    }
+    // Score effect: the dice that make the combination spring toward the camera. The roll button and
+    // dice stay locked until it ends (the engine has already scored the move).
+    handledFx.current = fx.key;
+    const done = beginDiceMotion(fx.ms + 900);
+    let fade = () => {};
+    let stopped = false;
+    const stop = t.celebrate({
+      ids: fx.ids,
+      ms: fx.ms,
+      grand: fx.grand,
+      onPeak: () => playSfx(fx.category === "large" ? "grand" : "combo", { pan: 0 }),
+      onDone: () => {
+        fade = t.fadeOut(170, () => {
+          clearAll();
+          activeFx.current = null;
+          done();
+        });
+      },
+    });
+    const abort = () => {
+      if (stopped) return;
+      stopped = true;
+      stop();
+      fade();
+      clearAll();
+      activeFx.current = null;
+      done();
+    };
+    activeFx.current = { key: fx.key, abort };
+    return abort;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.rolls]);
+
+  // The effect is cancelled when the score event is cleared (rematch, leaving the game).
+  useEffect(() => {
+    if (activeFx.current && fxNow?.key !== activeFx.current.key) activeFx.current.abort();
+  }, [fxNow]);
 
   // Throw: only the dice that are not held, starting from where they lie (or from the tray edge).
   useLayoutEffect(() => {
@@ -173,7 +235,8 @@ export function PhysicalDice({
     if (!moving.length) return;
     const starts: Record<number, { x: number; z: number; quat: Pose["quat"] }> = {};
     for (const d of moving) {
-      const p = tray.current.get(d.id);
+      // Where the die is drawn right now (a slide that has not finished yet still counts).
+      const p = t.pose(d.id) ?? tray.current.get(d.id);
       if (p) starts[d.id] = { x: p.x, z: p.z, quat: p.quat };
     }
     const targets = Object.fromEntries(moving.map((d) => [d.id, d.value]));
@@ -190,7 +253,7 @@ export function PhysicalDice({
     });
     for (const d of moving) tray.current.delete(d.id);
     setFlying(new Set(moving.map((d) => d.id)));
-    const rate = 1.15;
+    const rate = 1.25;
     const done = beginDiceMotion(((result.frameCount / result.fps) * 1000) / rate + 2000);
     playSfx("throw");
     let lastHit = -Infinity,
@@ -201,13 +264,15 @@ export function PhysicalDice({
       onFrame: () => {
         if (!firstFrameAt) firstFrameAt = performance.now();
       },
+      onRoll: (level) => playSfx("roll", { intensity: level, pan: 0 }),
       onImpact: ({ strength, kind, x }) => {
+        // Sound follows the rendered collision: louder and heavier for harder hits, dice knock drier.
         const now = performance.now();
-        if (hits >= 14 || (now - lastHit < 45 && strength < 5)) return;
+        if (hits >= 16 || (now - lastHit < 40 && strength < 6)) return;
         lastHit = now;
         hits++;
-        const intensity = Math.min(1, 0.12 + strength / 7) * (kind === "die" ? 0.75 : kind === "wall" ? 0.6 : 1);
-        playSfx("impact", { intensity, pan: (x - 0.5) * 1.2 });
+        const intensity = Math.min(1, 0.1 + strength / 9) * (kind === "wall" ? 0.65 : 1);
+        playSfx(kind === "die" ? "clack" : "impact", { intensity, pan: (x - 0.5) * 1.2 });
       },
       onDone: () => {
         const last = (result.frameCount - 1) * 7;
@@ -218,10 +283,9 @@ export function PhysicalDice({
           if (f[last + 1] > 0.62) {
             // Rare: a die came to rest on another one. Slide it down to free floor (top face unchanged).
             const spot = freeSpot(pose.x, pose.z, tr.id);
-            const from = { ...pose, y: f[last + 1] };
             const to = { ...pose, ...spot };
             tray.current.set(tr.id, to);
-            pending.push(() => t.moveTo(tr.id, from, to, MOVE_MS));
+            pending.push(() => t.moveTo(tr.id, to, MOVE_MS)); // slides from where it is drawn now
           } else tray.current.set(tr.id, pose);
         }
         pending.forEach((run) => run());
@@ -263,25 +327,24 @@ export function PhysicalDice({
       if (was === d.held) continue;
       const current = t.pose(d.id);
       if (d.held) {
-        const from = tray.current.get(d.id) ?? current;
+        const from = tray.current.get(d.id) ?? parked.current.get(d.id) ?? current;
         if (from) parked.current.set(d.id, from);
         tray.current.delete(d.id);
         const to = holdPose(d.id, from?.quat);
-        if (from) cancels.push(t.moveTo(d.id, from, to, MOVE_MS));
+        cancels.push(t.moveTo(d.id, to, MOVE_MS));
         playSfx("hold");
       } else {
         const back = parked.current.get(d.id);
         const spot = freeSpot(back?.x ?? dims.W / 2, back?.z ?? dims.trayH / 2, d.id);
         const to: Pose = { x: spot.x, y: 0.5, z: spot.z, quat: back?.quat ?? holdPose(d.id).quat };
         tray.current.set(d.id, to);
-        const from = current ?? holdPose(d.id);
-        cancels.push(t.moveTo(d.id, from, to, MOVE_MS));
+        cancels.push(t.moveTo(d.id, to, MOVE_MS));
         playSfx("release");
       }
     }
     prevHeld.current = new Map(state.dice.map((d) => [d.id, d.held]));
     refresh();
-    // Slides are never cut short by a quick next tap (that would leave a die mid-air); they end on their own.
+    // A newer slide for the same die replaces the older one (see DiceTable.moveTo); nothing to cancel here.
     void cancels;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.dice.map((d) => (d.held ? 1 : 0)).join(""), flying.size]);
@@ -297,7 +360,7 @@ export function PhysicalDice({
     for (const d of state.dice) {
       if (!d.held) continue;
       const from = t.pose(d.id);
-      if (from) cancels.push(t.moveTo(d.id, from, holdPose(d.id, from.quat), MOVE_MS));
+      if (from) cancels.push(t.moveTo(d.id, holdPose(d.id, from.quat), MOVE_MS));
     }
     refresh();
     void cancels;
@@ -332,7 +395,11 @@ export function PhysicalDice({
     let best: number | null = null,
       dist = reach;
     for (const t of targets) {
-      const dd = Math.hypot(t.cx - px, t.cy - py);
+      // Use where the die is drawn right now (it may still be sliding), not only where it is headed.
+      const live = table.current?.pose(t.id);
+      const cx = live ? live.x * dims.size : t.cx,
+        cy = live ? live.z * dims.size : t.cy;
+      const dd = Math.hypot(cx - px, cy - py);
       if (dd < dist) {
         dist = dd;
         best = t.id;
@@ -379,6 +446,10 @@ export function PhysicalDice({
           return (
             <button
               key={id}
+              ref={(el) => {
+                if (el) hitEls.current.set(id, el);
+                else hitEls.current.delete(id);
+              }}
               type="button"
               className={`die-button die-hit ${d.held ? "held" : ""} ${moving ? "dice-animating" : ""}`}
               data-die-id={id}

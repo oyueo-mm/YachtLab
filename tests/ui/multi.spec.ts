@@ -42,6 +42,7 @@ test("UI 간소화와 턴 전환 시 이전 주사위 눈 숨김", async ({ page
 });
 
 test("4인전: 48턴 완주, 공동 우승 가능 및 완성된 기보", async ({ page }) => {
+  test.setTimeout(180000); // each scored turn now plays a short (static, reduced-motion) score highlight
   await startLocal(page, { count: 4 });
   for (let i = 0; i < 48; i++) {
     await expect(page.locator(".turn-indicator")).toContainText("플레이어 " + (i % 4 + 1) + "의 차례");

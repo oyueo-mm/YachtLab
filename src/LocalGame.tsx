@@ -14,6 +14,7 @@ import { Celebrate } from "./ui/Celebrate";
 import { ConfirmDialog, type PendingAction } from "./ui/ConfirmDialog";
 import { orderPlayers, type LocalOrder } from "./setup";
 import { useDiceBusy } from "./useDiceBusy";
+import { announceScore, clearScoreFx } from "./score-fx";
 
 const newSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 const asPlayers = (names: string[]) => names.map((name) => ({ type: "human" as const, name }));
@@ -71,6 +72,7 @@ export default function LocalGame({
     if (!active) return;
     try {
       const next = appendMultiAction(record.current!, action);
+      if (action.type === "score") announceScore(state.dice, action.category);
       if (action.type === "score") setGameFeedback(current + " · " + categoryNames[action.category] + " " + (next.finalState.cards[state.player][action.category] ?? 0) + "점 기록");
       record.current = next;
       setState(next.finalState);
@@ -83,6 +85,7 @@ export default function LocalGame({
   };
   /** Same setup, new game: new seed and replay; a random start order is drawn again. */
   const restart = () => {
+    clearScoreFx();
     const seats = orderPlayers(inputNames, order);
     const fresh = createMultiGame(seats.length, newSeed());
     record.current = newMultiReplay(fresh, asPlayers(seats), "사람 vs 사람");
@@ -156,7 +159,7 @@ export default function LocalGame({
                 {state.rolls === 0 ? "주사위 굴리기" : "다시 굴리기"}
                 <span>{3 - state.rolls}회 남음</span>
               </button>
-              <p>{state.done || rolling ? "" : !state.rolls ? "주사위를 굴려 시작하세요" : state.rolls === 3 ? "점수판에서 점수를 선택하세요" : "주사위를 눌러 고정 · 다시 눌러 해제"}</p>
+              <p>{!state.done && !rolling && state.rolls === 3 ? "점수 칸을 선택하세요" : ""}</p>
             </div>
             {state.done && (
               <div className="game-result" role="status">

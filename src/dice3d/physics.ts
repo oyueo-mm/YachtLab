@@ -20,6 +20,7 @@ export type Quat = [number, number, number, number]; // x, y, z, w
 export const FPS = 60;
 const SUBSTEPS = 2;
 const GRAVITY = 52;
+const MAX_PHYSICS_FRAMES_VIGOROUS = 120;
 const MAX_PHYSICS_FRAMES = 96; // 1.6 s
 const CORRECTION_FRAMES = 10;
 const GLIDE_FRAMES = 15;
@@ -156,7 +157,15 @@ function randomQuat(r: () => number): Quat {
 /* ---------------------------------------------------------------- simulation ---------------------------------------------------------------- */
 
 export type SimDie = { id: number; value: number; held: boolean; x: number; z: number };
+/** Physical feel. `legacy` = 3rd pass (kept so before/after can be measured); `vigorous` = 4th pass default. */
+export type ThrowProfile = "legacy" | "vigorous";
+export const THROW_PROFILES = {
+  legacy: { gravity: 52, floor: { friction: 0.4, restitution: 0.3 }, wall: { friction: 0.08, restitution: 0.5 }, dice: { friction: 0.2, restitution: 0.3 }, linDamp: 0.2, angDamp: 0.26, height: 1.25, forward: [4.2, 2.6], lift: [0.6, 1.4], side: [1.2, 2.4], spin: [30, 18, 30], perDie: [1, 0], reroll: { lift: [3, 1.6], side: [0.8, 1.6] }, maxFrames: 96 },
+  vigorous: { gravity: 60, floor: { friction: 0.34, restitution: 0.42 }, wall: { friction: 0.06, restitution: 0.58 }, dice: { friction: 0.18, restitution: 0.44 }, linDamp: 0.1, angDamp: 0.17, height: 2.3, forward: [4.2, 2.8], lift: [1.8, 2.6], side: [1.6, 3.6], spin: [52, 30, 52], perDie: [0.8, 0.45], reroll: { lift: [5.2, 2.4], side: [1.6, 2.6] }, maxFrames: 118 },
+} as const;
 export type SimInput = {
+  /** Default "vigorous". */
+  profile?: ThrowProfile;
   width: number;
   height: number;
   dice: SimDie[];
@@ -194,7 +203,7 @@ export type SimResult = {
   ok: boolean;
   /** Dice that needed the short tip-over correction (were resting on an edge when time ran out). */
   corrected: number;
-  stats: { settled: boolean; minFlatness: number; minDistance: number; inBounds: boolean; maxEndStepDeg: number; simMs: number };
+  stats: { /** dice-edges per second at the fastest moment */ peakSpeed: number; /** mean total rotation per die before rest, degrees */ spinDeg: number; /** strength of the first floor impact (dice-edges per second) */ firstImpact: number; impactCount: number; settled: boolean; minFlatness: number; minDistance: number; inBounds: boolean; maxEndStepDeg: number; simMs: number };
 };
 
 type RawRun = {
@@ -211,15 +220,16 @@ type RawRun = {
 function runOnce(input: SimInput, seed: number): RawRun {
   const r = mulberry(seed);
   const { width: W, height: H } = input;
-  const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -GRAVITY, 0) });
+  const T = THROW_PROFILES[input.profile ?? "vigorous"];
+  const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -T.gravity, 0) });
   world.allowSleep = false;
   (world.solver as CANNON.GSSolver).iterations = 14;
   const dieMat = new CANNON.Material("die"),
     floorMat = new CANNON.Material("floor"),
     wallMat = new CANNON.Material("wall");
-  world.addContactMaterial(new CANNON.ContactMaterial(dieMat, floorMat, { friction: 0.4, restitution: 0.3 }));
-  world.addContactMaterial(new CANNON.ContactMaterial(dieMat, wallMat, { friction: 0.08, restitution: 0.5 }));
-  world.addContactMaterial(new CANNON.ContactMaterial(dieMat, dieMat, { friction: 0.2, restitution: 0.3 }));
+  world.addContactMaterial(new CANNON.ContactMaterial(dieMat, floorMat, { ...T.floor }));
+  world.addContactMaterial(new CANNON.ContactMaterial(dieMat, wallMat, { ...T.wall }));
+  world.addContactMaterial(new CANNON.ContactMaterial(dieMat, dieMat, { ...T.dice }));
   const kinds = new Map<CANNON.Body, Impact["kind"] | number>();
   const floor = new CANNON.Body({ mass: 0, material: floorMat, shape: new CANNON.Plane() });
   floor.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
@@ -255,8 +265,11 @@ function runOnce(input: SimInput, seed: number): RawRun {
   const crowd = (input.dice.length * 1.6) / (W * H);
   const span = Math.max(0, Math.min(W - 1.6, (n - 1) * 1.25));
   moving.forEach((d, i) => {
-    const body = new CANNON.Body({ mass: 1, material: dieMat, shape: new CANNON.Box(half), linearDamping: crowd > 0.5 ? 0.32 : 0.2, angularDamping: crowd > 0.5 ? 0.38 : 0.26 });
+    const crowdK = crowd > 0.5 ? 1.5 : 1;
+    const body = new CANNON.Body({ mass: 1, material: dieMat, shape: new CANNON.Box(half), linearDamping: T.linDamp * crowdK, angularDamping: T.angDamp * crowdK });
     const start = input.starts?.[d.id];
+    // Every die gets its own strength so they leave the hand at different speeds and spins.
+    const power = T.perDie[0] + r() * T.perDie[1] || 1;
     const speed = Math.min(1.4, Math.max(0.55, H / 5.5)) * (crowd > 0.5 ? 0.8 : 1);
     if (start) {
       // Re-roll from where the die lies: scooped up and tossed again inside the tray.
@@ -265,16 +278,18 @@ function runOnce(input: SimInput, seed: number): RawRun {
       body.quaternion.set(q[0], q[1], q[2], q[3]);
       const toCenterX = (W / 2 - start.x) * 0.6,
         toCenterZ = (H / 2 - start.z) * 0.6;
-      body.velocity.set(toCenterX + input.direction * (0.8 + r() * 1.6), 3 + r() * 1.6, toCenterZ + (r() - 0.5) * 2.4 * speed);
+      body.velocity.set((toCenterX + input.direction * (T.reroll.side[0] + r() * T.reroll.side[1])) * power, T.reroll.lift[0] + r() * T.reroll.lift[1], (toCenterZ + (r() - 0.5) * 2.4) * speed * power);
     } else {
       const x = W / 2 - span / 2 + (n > 1 ? (span * i) / (n - 1) : 0) - input.direction * 0.25 + (r() - 0.5) * 0.2;
       const layer = span < (n - 1) * 1.15 ? i % 2 : 0; // narrow trays: alternate heights
-      body.position.set(Math.min(W - 0.8, Math.max(0.8, x)), 1.25 + layer * 1.2 + r() * 0.3, H - 0.75 - r() * 0.25);
+      body.position.set(Math.min(W - 0.8, Math.max(0.8, x)), T.height + layer * 1.2 + r() * 0.4, H - 0.75 - r() * 0.25);
       const q = randomQuat(r);
       body.quaternion.set(q[0], q[1], q[2], q[3]);
-      body.velocity.set(input.direction * (1.2 + r() * 2.4), 0.6 + r() * 1.4, -(4.2 + r() * 2.6) * speed);
+      body.velocity.set(input.direction * (T.side[0] + r() * T.side[1]) * power, T.lift[0] + r() * T.lift[1], -(T.forward[0] + r() * T.forward[1]) * speed * power);
     }
-    body.angularVelocity.set((r() - 0.5) * 30, (r() - 0.5) * 18, (r() - 0.5) * 30);
+    // A different spin axis mix per die: some tumble end over end, some barrel-roll.
+    const spinK = power * (0.8 + r() * 0.4);
+    body.angularVelocity.set((r() - 0.5) * T.spin[0] * spinK, (r() - 0.5) * T.spin[1] * spinK, (r() - 0.5) * T.spin[2] * spinK);
     body.addEventListener("collide", (e: { body: CANNON.Body; contact: CANNON.ContactEquation }) => {
       const strength = Math.abs(e.contact.getImpactVelocityAlongNormal());
       if (strength < 0.6) return;
@@ -295,7 +310,7 @@ function runOnce(input: SimInput, seed: number): RawRun {
   record();
   let still = 0,
     settled = false;
-  for (frame = 1; frame <= MAX_PHYSICS_FRAMES; frame++) {
+  for (frame = 1; frame <= T.maxFrames; frame++) {
     for (let s = 0; s < SUBSTEPS; s++) world.step(1 / (FPS * SUBSTEPS));
     record();
     let allStill = true;
@@ -441,6 +456,7 @@ export function simulateThrow(input: SimInput): SimResult {
     ok: chosen !== null || (run.inBounds && moving.every((d) => (run.flat.get(d.id) ?? 1) > 0.6 && run.frames.get(d.id)!.at(-1)!.pos[1] < 0.62)),
     corrected,
     stats: {
+      ...motionStats(run, moving.map((d) => d.id)),
       settled: run.settled,
       minFlatness: Math.min(1, ...run.flat.values()),
       minDistance: run.minDistance,
@@ -453,3 +469,18 @@ export function simulateThrow(input: SimInput): SimResult {
 
 /** Final visible value of a track (what the renderer shows when the die stops). */
 export const finalValue = (track: DieTrack, frameCount: number) => topFace(Array.from(track.frames.subarray((frameCount - 1) * 7 + 3, frameCount * 7)) as Quat).value;
+
+/** Measured feel of a raw run: how fast, how much spin, how hard the first hit. */
+function motionStats(run: RawRun, ids: number[]) {
+  let peak = 0,
+    spin = 0;
+  for (const id of ids) {
+    const f = run.frames.get(id)!;
+    for (let i = 1; i < f.length; i++) {
+      peak = Math.max(peak, Math.hypot(f[i].pos[0] - f[i - 1].pos[0], f[i].pos[1] - f[i - 1].pos[1], f[i].pos[2] - f[i - 1].pos[2]) * FPS);
+      spin += (qAngle(f[i - 1].quat, f[i].quat) * 180) / Math.PI;
+    }
+  }
+  const floors = run.impacts.filter((i) => i.kind === "floor").sort((a, b) => a.frame - b.frame);
+  return { peakSpeed: peak, spinDeg: spin / Math.max(1, ids.length), firstImpact: floors[0]?.strength ?? 0, impactCount: run.impacts.length };
+}

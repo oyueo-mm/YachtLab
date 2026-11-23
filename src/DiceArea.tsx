@@ -4,6 +4,9 @@ import { Dice } from "./Dice";
 import { PhysicalDice } from "./PhysicalDice";
 import { diceTableModule, loadDiceTable, type DiceTableModule } from "./dice3d-loader";
 import { diceRenderer, useSettings, type DiceRenderer } from "./settings";
+import { useScoreFx, type ScoreFx } from "./score-fx";
+import { beginDiceMotion } from "./dice-motion";
+import { DieIcon } from "./Dice";
 
 type Props = {
   state: Pick<Game, "dice" | "order" | "rolls">;
@@ -35,8 +38,65 @@ export function DiceArea({ forceRenderer, ...props }: Props) {
   useEffect(() => {
     if (props.state.rolls === 0 || forceRenderer) setUse3d(want3d && !!mod);
   }, [props.state.rolls, want3d, mod, forceRenderer]);
-  if (use3d && mod && !failed && (renderer === "3d" || renderer === "3d-high"))
-    return <PhysicalDice key={renderer} module={mod} quality={renderer} state={props.state} interactive={!!props.interactive} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onFailure={() => setFailed(true)} />;
+  const fx = useScoreFx();
+  const physical = use3d && mod && !failed && (renderer === "3d" || renderer === "3d-high");
+  if (physical)
+    return (
+      <>
+        <PhysicalDice key={renderer} module={mod} quality={renderer} state={props.state} interactive={!!props.interactive} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onFailure={() => setFailed(true)} />
+        <ScoreFxLabel fx={fx} />
+      </>
+    );
   // Fallback row: plain 2.5D (or none) — the old 3D overlay is not used in games anymore.
-  return <Dice {...props} forceRenderer={renderer === "none" ? "none" : "2.5d"} />;
+  return (
+    <>
+      <Dice {...props} forceRenderer={renderer === "none" ? "none" : "2.5d"} />
+      <ScoreFxFallback fx={fx} reduced={renderer === "none"} />
+      <ScoreFxLabel fx={fx} />
+    </>
+  );
+}
+
+/** Combination name and points, shown for scores worth celebrating (never for 0 points). */
+function ScoreFxLabel({ fx }: { fx: ScoreFx | null }) {
+  if (!fx || fx.ids.length === 0) return null;
+  return (
+    <div key={fx.key} className={"score-fx-label" + (fx.grand ? " grand" : "")} role="status" style={{ animationDuration: `${fx.ms}ms` }}>
+      <strong>{fx.label}</strong>
+      <b>+{fx.points}</b>
+    </div>
+  );
+}
+
+/**
+ * Same meaning without WebGL: the dice that make the combination pop up in a strip (static for
+ * reduced motion). Input stays locked for the same time as the 3D effect.
+ */
+function ScoreFxFallback({ fx, reduced }: { fx: ScoreFx | null; reduced: boolean }) {
+  const [shown, setShown] = useState(0);
+  const fresh = !!fx && fx.ids.length > 0 && performance.now() - fx.at < 500;
+  const ms = reduced ? 450 : fx?.ms ?? 0;
+  useEffect(() => {
+    if (!fx || !fresh) return;
+    setShown(fx.key);
+    const done = beginDiceMotion(ms + 300);
+    const timer = window.setTimeout(() => {
+      setShown(0);
+      done(); // the lock lasts exactly as long as the effect
+    }, ms);
+    return () => {
+      window.clearTimeout(timer);
+      done();
+      setShown(0);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fx?.key]);
+  if (!fx || shown !== fx.key) return null;
+  return (
+    <div key={fx.key} className={"score-fx-strip" + (reduced ? " static" : "")} style={{ animationDuration: `${ms}ms` }} aria-hidden="true">
+      {fx.ids.map((id) => (
+        <DieIcon key={id} value={fx.values[id]} />
+      ))}
+    </div>
+  );
 }

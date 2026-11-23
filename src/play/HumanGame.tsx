@@ -18,6 +18,7 @@ import { Celebrate } from "../ui/Celebrate";
 import { ConfirmDialog, type PendingAction } from "../ui/ConfirmDialog";
 import { aiSpeedScale, resolveHumanSeat, type AiMatchConfig } from "../setup";
 import { useDiceBusy } from "../useDiceBusy";
+import { announceScore, clearScoreFx } from "../score-fx";
 
 /**
  * Human vs AI. All choices (difficulty, names, who starts, AI pace) come from the setup screen;
@@ -79,6 +80,8 @@ export default function HumanGame({
   const commit = (action: Parameters<typeof transition>[1], decision?: Decision) => {
     const before = stateRef.current;
     const updated = appendFrame(record.current, action, decision);
+    // Presentation only: tell the dice area which dice made this combination (the engine already scored it).
+    if (action.type === "score") announceScore(before.dice, action.category);
     record.current = updated;
     const next = updated.finalState;
     if (next.done && !before.done) void saveReplay(updated).catch((e) => setError("기보 자동 저장 실패: " + errorText(e)));
@@ -123,6 +126,7 @@ export default function HumanGame({
   const restart = () => {
     generation.current++;
     job.current?.cancel();
+    clearScoreFx();
     setBusy(false);
     setLast(null);
     setError("");
@@ -228,13 +232,7 @@ export default function HumanGame({
                 <span>{3 - state.rolls}회 남음</span>
               </button>
               <p>
-                {state.done || !mine || rolling
-                  ? ""
-                  : !state.rolls
-                    ? "주사위를 굴려 시작하세요"
-                    : state.rolls === 3
-                      ? "점수판에서 기록할 점수를 선택하세요"
-                      : "주사위를 눌러 고정 · 다시 눌러 해제"}
+                {!state.done && mine && !rolling && state.rolls === 3 ? "점수 칸을 선택하세요" : ""}
               </p>
             </div>
             {caption && (

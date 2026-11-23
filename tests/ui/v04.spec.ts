@@ -27,9 +27,11 @@ test("백그라운드에서는 AI 행동을 진행하지 않고 복귀하면 재
     });
     document.dispatchEvent(new Event("visibilitychange"));
   });
-  const before = await page.locator(".game-board").innerText();
+  // The timed score highlight (label/strip) is decoration and expires on its own; compare the game itself.
+  const board = () => page.locator(".game-board").evaluate((n) => { const c = n.cloneNode(true) as HTMLElement; c.querySelectorAll(".score-fx-label,.score-fx-strip").forEach((x) => x.remove()); return c.textContent ?? ""; });
+  const before = await board();
   await page.waitForTimeout(1200);
-  expect(await page.locator(".game-board").innerText()).toBe(before);
+  expect(await board()).toBe(before);
   await page.evaluate(() => {
     Object.defineProperty(document, "hidden", {
       configurable: true,
