@@ -6,6 +6,7 @@ import { createMultiGame, multiStandings, type MultiGame } from "./multi-engine"
 import { appendMultiAction, newMultiReplay, type MultiReplay } from "./multi-replay";
 import MultiReplayViewer from "./MultiReplayViewer";
 import MobileScoreSheet, { MobileScoreButton } from "./MobileScoreSheet";
+import { useYachtReady } from "./yacht-moment";
 import MobileQuickScore from "./MobileQuickScore";
 import { saveMultiReplay } from "./multi-replay-storage";
 import { total, names as categoryNames, type Action, type Category } from "./engine";
@@ -105,6 +106,7 @@ export default function LocalGame({
   };
   const standings = state.done ? multiStandings(state) : [];
   const gesture = useThrowGesture(canAct && state.rolls < 3, () => act({ type: "roll" }));
+  const yachtReady = useYachtReady(state.dice, state.rolls, !state.done && state.cards[state.player]?.yacht === undefined);
   const celebration = useGameSounds(state.cards, state.done, state.done ? "win" : null);
   return (
     <div className="multi-local-game">
@@ -177,7 +179,7 @@ export default function LocalGame({
               </div>
             )}
           </section>
-          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : state.rolls} canScore={canAct} />
+          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : state.rolls} canScore={canAct} yacht={yachtReady} />
           {mobileScoreOpen && (
             <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}>
               <MobileQuickScore cards={state.cards} dice={state.dice} rolls={rolling ? 0 : state.rolls} current={state.player} labels={names} canScore={canAct} onScore={recordScore} />

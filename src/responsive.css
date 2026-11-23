@@ -157,3 +157,108 @@
     display: none;
   }
 }
+
+/* ---------- yacht moment (five of a kind; nothing is recorded automatically) ---------- */
+.yacht-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: grid;
+  place-items: center;
+  pointer-events: none; /* never blocks the dice, the roll button or the score sheet */
+  border-radius: inherit;
+  animation: yacht-glow 1.7s ease-out both;
+}
+.yacht-flash > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--red);
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.25);
+  animation: yacht-pop 1.7s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes yacht-glow {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(242, 140, 40, 0);
+  }
+  20% {
+    box-shadow: inset 0 0 0 4px rgba(242, 140, 40, 0.9), inset 0 0 60px rgba(242, 140, 40, 0.35);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(242, 140, 40, 0);
+  }
+}
+@keyframes yacht-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) translateY(8px);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(1.08) translateY(0);
+  }
+  30%,
+  80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1) translateY(-6px);
+  }
+}
+/* the yacht row stays highlighted until a score is chosen */
+.scoreboard tr.yacht-ready > th,
+.scoreboard tr.yacht-ready > td,
+.mobile-quick-row.yacht-ready {
+  background: #fff4e6 !important;
+}
+.scoreboard tr.yacht-ready > th {
+  box-shadow: inset 3px 0 0 var(--orange);
+}
+.mobile-quick-row.yacht-ready {
+  box-shadow: inset 3px 0 0 var(--orange);
+  animation: yacht-row 1.4s ease-in-out 2;
+}
+.mobile-score-button.yacht-ready {
+  background: linear-gradient(90deg, #d93636, #f28c28);
+}
+@keyframes yacht-row {
+  50% {
+    background: #ffe2bf;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yacht-flash,
+  .yacht-flash > span,
+  .mobile-quick-row.yacht-ready {
+    animation: none;
+  }
+  .yacht-flash {
+    box-shadow: inset 0 0 0 3px rgba(242, 140, 40, 0.9);
+  }
+}
+.sound-demo {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.sound-demo h2 {
+  margin: 0;
+}
+.sound-demo-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sound-demo-buttons button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

@@ -24,7 +24,11 @@ export type Sfx =
   | "yacht"
   | "win"
   | "lose"
-  | "draw";
+  | "draw"
+  /** Five of a kind just came up (before any score is chosen). */
+  | "yachtHit"
+  /** Another player joined the online room. */
+  | "join";
 
 export type SfxOptions = {
   /** Seconds from now. Used to line sounds up with dice keyframes. */
@@ -44,6 +48,19 @@ let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let noise: AudioBuffer | null = null;
 
+/**
+ * "v2" (default): dice sounds modelled on real plastic dice — short resonant clicks with several
+ * damped modes, a table thud that grows with the impact, rolling as a train of tiny edge clicks and a
+ * settling rattle; every hit varies a little in pitch, level and pan. "v1" keeps the first synthesis
+ * for side-by-side comparison (주사위 실험실 → 효과음 시연).
+ */
+export type SfxVariant = "v1" | "v2";
+let variant: SfxVariant = "v2";
+export const sfxVariant = () => variant;
+export function setSfxVariant(v: SfxVariant) {
+  variant = v;
+}
+
 function context(): AudioContext | null {
   if (ctx) return ctx;
   const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -54,7 +71,14 @@ function context(): AudioContext | null {
     return null;
   }
   master = ctx.createGain();
-  master.connect(ctx.destination);
+  // A gentle compressor keeps bursts of collisions from clipping (no harsh distortion on phones).
+  const limiter = ctx.createDynamicsCompressor();
+  limiter.threshold.value = -14;
+  limiter.knee.value = 12;
+  limiter.ratio.value = 6;
+  limiter.attack.value = 0.003;
+  limiter.release.value = 0.15;
+  master.connect(limiter).connect(ctx.destination);
   const length = Math.floor(ctx.sampleRate * 0.5);
   noise = ctx.createBuffer(1, length, ctx.sampleRate);
   const data = noise.getChannelData(0);
@@ -131,6 +155,115 @@ function burst(audio: AudioContext, out: AudioNode, start: number, length: numbe
   src.stop(start + length + 0.02);
 }
 
+/* ------------------------------------------------------------------ v2 dice ------------------------------------------------------------------ */
+
+const jitter = (amount: number) => 1 + (Math.random() * 2 - 1) * amount;
+
+/** Damped sine modes: the ring of a small hard object (each mode: frequency Hz, decay s, level). */
+function modes(audio: AudioContext, out: AudioNode, start: number, list: [number, number, number][]) {
+  for (const [freq, decay, gain] of list) {
+    if (gain < 0.002) continue;
+    const osc = audio.createOscillator();
+    const env = audio.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, start);
+    env.gain.setValueAtTime(0.0001, start);
+    env.gain.linearRampToValueAtTime(gain, start + 0.0015);
+    env.gain.exponentialRampToValueAtTime(0.0001, start + decay * 4);
+    osc.connect(env).connect(out);
+    osc.start(start);
+    osc.stop(start + decay * 4 + 0.01);
+  }
+}
+
+/** A plastic die hitting the felt-and-wood tray: click modes + a body thud, both scaled by strength. */
+function dieOnTable(audio: AudioContext, out: AudioNode, t: number, k: number) {
+  const p = jitter(0.06);
+  const bright = 0.35 + 0.65 * k;
+  modes(audio, out, t, [
+    [1850 * p, 0.012, 0.22 * k],
+    [2950 * p * jitter(0.03), 0.008, 0.16 * k * bright],
+    [4420 * p * jitter(0.03), 0.005, 0.1 * k * bright],
+  ]);
+  tone(audio, out, t, 150 * jitter(0.12) + 70 * k, 0.04 + 0.06 * k, (0.08 + 0.34 * k) * jitter(0.15), "sine", 70);
+  burst(audio, out, t, 0.004 + 0.004 * k, 0.12 * k, "highpass", 2500, undefined, 0.7);
+}
+
+/** Two dice knocking: higher, drier, no thud. */
+function dieOnDie(audio: AudioContext, out: AudioNode, t: number, k: number) {
+  const p = jitter(0.08);
+  modes(audio, out, t, [
+    [3300 * p, 0.009, 0.2 * k],
+    [4950 * p * jitter(0.04), 0.006, 0.14 * k],
+    [6800 * p * jitter(0.04), 0.004, 0.08 * k],
+  ]);
+  burst(audio, out, t, 0.004, 0.1 * k, "bandpass", 5200, undefined, 1.4);
+}
+
+/** A die tumbling over its edges: a quick train of tiny ticks (count and level follow the speed). */
+function rolling(audio: AudioContext, out: AudioNode, t: number, k: number) {
+  const ticks = 2 + Math.round(3 * k);
+  let at = t;
+  for (let i = 0; i < ticks; i++) {
+    const g = (0.03 + 0.08 * k) * jitter(0.35);
+    modes(audio, out, at, [
+      [2300 * jitter(0.12), 0.005, g],
+      [3600 * jitter(0.12), 0.003, g * 0.6],
+    ]);
+    if (i % 2 === 0) tone(audio, out, at, 190 * jitter(0.1), 0.03, g * 0.7, "sine", 110);
+    at += (0.018 + Math.random() * 0.024) / (0.6 + k);
+  }
+}
+
+/** Coming to rest: two or three ever softer, ever slower ticks. */
+function settling(audio: AudioContext, out: AudioNode, t: number, k: number) {
+  let at = t,
+    gap = 0.035,
+    g = 0.12 * k;
+  for (let i = 0; i < 3; i++) {
+    modes(audio, out, at, [
+      [2100 * jitter(0.1), 0.007, g],
+      [3300 * jitter(0.1), 0.004, g * 0.5],
+    ]);
+    tone(audio, out, at, 170 * jitter(0.1), 0.035, g * 0.8, "sine", 100);
+    at += gap;
+    gap *= 1.7;
+    g *= 0.55;
+  }
+}
+
+/** Dice leaving the hand: a short rattle of dice against each other. */
+function shake(audio: AudioContext, out: AudioNode, t: number, k: number) {
+  for (let i = 0; i < 4; i++) dieOnDie(audio, out, t + i * (0.028 + Math.random() * 0.02), 0.25 * k * jitter(0.3));
+  burst(audio, out, t, 0.14, 0.05 * k, "bandpass", 1200, 3000, 0.8);
+}
+
+/**
+ * Voice budget: physics can report dozens of contacts per throw. At most MAX_VOICES dice sounds ring
+ * at once, and the same kind of sound is not repeated within a few milliseconds (louder hits win).
+ */
+export const MAX_VOICES = 10;
+const MIN_GAP: Partial<Record<Sfx, number>> = { impact: 0.018, clack: 0.024, roll: 0.06, settle: 0.08 };
+/** Pure admission control for collision sounds (times in seconds, on the audio clock). */
+export function createVoiceBudget(maxVoices = MAX_VOICES) {
+  let ends: number[] = [];
+  const last = new Map<string, { at: number; k: number }>();
+  return (name: Sfx, now: number, start: number, length: number, k: number): boolean => {
+    ends = ends.filter((end) => end > now);
+    const gap = MIN_GAP[name];
+    if (gap !== undefined) {
+      const prev = last.get(name);
+      if (prev && Math.abs(start - prev.at) < gap && k <= prev.k * 1.4) return false;
+      if (ends.length >= maxVoices) return false;
+      last.set(name, { at: start, k });
+    }
+    ends.push(start + length);
+    return true;
+  };
+}
+const budget = createVoiceBudget();
+const admit = (audio: AudioContext, name: Sfx, start: number, length: number, k: number) => budget(name, audio.currentTime, start, length, k);
+
 const notes = (audio: AudioContext, out: AudioNode, start: number, freqs: number[], step: number, length: number, gain: number, type: OscillatorType) =>
   freqs.forEach((f, i) => tone(audio, out, start + i * step, f, length, gain, type));
 
@@ -144,6 +277,26 @@ export function playSfx(name: Sfx, options: SfxOptions = {}) {
   const k = Math.max(0.15, Math.min(1, options.intensity ?? 1));
   const out = voice(audio, engine.out, options.pan ?? 0);
   const t = audio.currentTime + delay + 0.005;
+  if (variant === "v2") {
+    switch (name) {
+      case "impact":
+        if (k < 0.18 || !admit(audio, name, t, 0.12, k)) return;
+        return dieOnTable(audio, out, t, k);
+      case "clack":
+        if (k < 0.18 || !admit(audio, name, t, 0.05, k)) return;
+        return dieOnDie(audio, out, t, k);
+      case "roll":
+        if (!admit(audio, name, t, 0.12, k)) return;
+        return rolling(audio, out, t, k);
+      case "settle":
+        if (!admit(audio, name, t, 0.25, k)) return;
+        return settling(audio, out, t, k);
+      case "throw":
+        return shake(audio, out, t, k);
+      default:
+        break;
+    }
+  }
   switch (name) {
     case "throw": // dice leaving the hand / sliding out of a cup
       burst(audio, out, t, 0.2, 0.22 * k, "bandpass", 700, 2600, 1.1);
@@ -205,6 +358,16 @@ export function playSfx(name: Sfx, options: SfxOptions = {}) {
       break;
     case "draw":
       notes(audio, out, t, [523.25, 523.25], 0.16, 0.22, 0.12, "triangle");
+      break;
+    case "yachtHit": // five of a kind: a quick bright sparkle rising over a soft chord
+      notes(audio, out, t, [783.99, 987.77, 1174.66, 1567.98, 1975.53], 0.045, 0.18, 0.11, "triangle");
+      [783.99, 1174.66, 1567.98].forEach((f) => tone(audio, out, t + 0.22, f, 0.6, 0.05, "sine"));
+      for (let i = 0; i < 4; i++) burst(audio, out, t + 0.05 + i * 0.06, 0.03, 0.04, "highpass", 6000);
+      break;
+    case "join": // someone entered the room: a soft two-note chime
+      tone(audio, out, t, 880, 0.35, 0.12, "sine");
+      tone(audio, out, t + 0.14, 1318.51, 0.45, 0.11, "sine");
+      tone(audio, out, t + 0.14, 2637.02, 0.2, 0.02, "sine");
       break;
   }
 }

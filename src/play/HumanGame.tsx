@@ -18,6 +18,7 @@ import { Celebrate } from "../ui/Celebrate";
 import { ConfirmDialog, type PendingAction } from "../ui/ConfirmDialog";
 import { aiSpeedScale, resolveHumanSeat, type AiMatchConfig } from "../setup";
 import { useDiceBusy } from "../useDiceBusy";
+import { useYachtReady } from "../yacht-moment";
 import { announceScore, clearScoreFx } from "../score-fx";
 
 /**
@@ -145,6 +146,7 @@ export default function HumanGame({
   const guarded = (action: Exclude<PendingAction, null>) => (inProgress ? setPending(action) : action.run());
   const can = state.player === humanSeat && !state.done && !busy && !rolling;
   const gesture = useThrowGesture(can && state.rolls < 3, () => act({ type: "roll" }));
+  const yachtReady = useYachtReady(state.dice, state.rolls, state.player === humanSeat && !state.done && state.cards[humanSeat].yacht === undefined);
   const outcome = state.done ? (state.winner === "draw" ? "draw" : state.winner === humanSeat ? "win" : "lose") : null;
   const celebration = useGameSounds(state.cards, state.done, outcome);
   const recordScore = (category: Category) => {
@@ -260,7 +262,7 @@ export default function HumanGame({
               </div>
             )}
           </section>
-          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : state.rolls} canScore={can} />
+          <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : state.rolls} canScore={can} yacht={yachtReady} />
           {mobileScoreOpen && (
             <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}>
               <MobileQuickScore cards={state.cards} dice={state.dice} rolls={rolling ? 0 : state.rolls} current={state.player} labels={labels} canScore={can} onScore={recordScore} />

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { categories, names, score, type Card, type Category, type Die } from "./engine";
 import { BonusProgress, CategoryIcon } from "./Scoreboard";
 import { CategoryHelp } from "./CategoryHelp";
+import { isYachtDice } from "./yacht-moment";
 
 /**
  * One-player-at-a-time score sheet for phones.
@@ -29,7 +30,8 @@ export default function MobileQuickScore({
   useEffect(() => setView(current), [current]);
   const card = cards[view],
     canRecord = canScore && view === current && rolls > 0,
-    values = dice.map((d) => d.value);
+    values = dice.map((d) => d.value),
+    yachtReady = view === current && isYachtDice(dice, rolls) && card.yacht === undefined;
   return (
     <section className="mobile-quick-score" aria-label="모바일 점수표">
       <div className="mobile-score-player-picker">
@@ -79,7 +81,7 @@ export default function MobileQuickScore({
               </span>
             );
             return (
-              <div className={"mobile-quick-row" + (available ? " available" : "") + (fixed !== undefined ? " recorded" : "")} key={category} data-category={category}>
+              <div className={"mobile-quick-row" + (available ? " available" : "") + (fixed !== undefined ? " recorded" : "") + (yachtReady && category === "yacht" ? " yacht-ready" : "")} key={category} data-category={category}>
                 {available ? (
                   <div className="mobile-quick-row-live">
                     {name}

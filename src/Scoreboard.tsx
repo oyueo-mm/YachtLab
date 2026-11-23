@@ -1,3 +1,4 @@
+import { useYachtReady } from "./yacht-moment";
 import { Star, Shapes, Sigma } from "lucide-react";
 import {
   bonus,
@@ -60,6 +61,8 @@ export function Scoreboard({
   previewCategory?: Category | null;
   selectPlayer?: 0 | 1;
 }) {
+  // Five of a kind on the table: the current player's open yacht row lights up (nothing is recorded).
+  const yachtReady = useYachtReady(state.dice, state.rolls, !state.done && state.cards[state.player]?.yacht === undefined);
   return (
     <section className="scoreboard panel" aria-label="점수판">
       <div className="score-title">
@@ -97,6 +100,7 @@ export function Scoreboard({
               selected={selected}
               previewCategory={previewCategory}
               selectPlayer={selectPlayer}
+              yachtReady={yachtReady}
             />
           ))}
           <tr className="total-row">
@@ -126,6 +130,7 @@ function Rows({
   selected,
   previewCategory,
   selectPlayer,
+  yachtReady = false,
 }: {
   category: Category;
   index: number;
@@ -134,6 +139,7 @@ function Rows({
   selected?: Category | null;
   previewCategory?: Category | null;
   selectPlayer: 0 | 1;
+  yachtReady?: boolean;
 }) {
   return (
     <>
@@ -157,7 +163,7 @@ function Rows({
           </tr>
         </>
       )}
-      <tr data-category={c} className={`${selected === c ? "score-row-selected " : ""}${previewCategory === c ? "score-row-ai-preview " : ""}`}>
+      <tr data-category={c} className={`${selected === c ? "score-row-selected " : ""}${previewCategory === c ? "score-row-ai-preview " : ""}${yachtReady && c === "yacht" ? "yacht-ready " : ""}`}>
         <th scope="row">
           <span className="category-cell">
           {select && state.player === selectPlayer && state.rolls > 0 && !state.done && state.cards[selectPlayer][c] === undefined ? (
