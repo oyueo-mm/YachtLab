@@ -159,7 +159,8 @@
 - ✅ Phase 3(로컬, 미배포) — Workers + SQLite Durable Objects(방당 1개) + WebSocket Hibernation + 알람, 전역 디렉터리 DO(코드·방 수·속도 제한), 보존 기간 자동 정리. `wrangler dev --local`에서 두 브라우저 12라운드·재접속·재시작 복구 검증, 공식 무료 한도 기준 비용 분석. [D-021](./DECISIONS.md), [Phase 3](../online/ONLINE-V01-PHASE3.md)
 - ✅ Phase 4 — 실제 배포(2026-11-23): `https://yachtlab-online.hoho96385210.workers.dev`, 공개 사이트 연결, 실서버·공개 사이트 두 브라우저 12라운드 검증, 공유 무료 한도 보호(하루 300방). [D-022](./DECISIONS.md), [Phase 4](../online/ONLINE-V01-PHASE4.md)
 - ✅ 온라인 UX(2026-11-23): 홈 메인을 온라인 대전으로, 고정 선반 선택 순서 배치, 두 화면 주사위 상태 동기화(서버 공유 고정 순서), 초대 링크 바로 입장. [D-023](./DECISIONS.md)
-- ⏭ 다음 후보 — Cloudflare 대시보드 지표로 실제 사용량 확인·`DAILY_ROOM_LIMIT` 조정, WAF 속도 제한, 재대결·관전·3~8인 UI, 로그 HMAC/앵커링, 재접속 시 효과음 일괄 재생 수정.
+- ✅ 모바일 UX·연출(2026-11-23): 태블릿·가로 점수판 잘림 수정, 중복 문구 정리, 휴대폰 추천 점수 1탭 기록, 선명한 3D(적응형)·물리 사전 계산, 효과음 v2, 요트 자동 강조, 온라인 입장음, 재접속 효과음 일괄 재생 수정. [D-024](./DECISIONS.md), [문서](../ui/MOBILE-FEEL-2026-11.md)
+- ⏭ 다음 후보 — Cloudflare 대시보드 지표로 실제 사용량 확인·`DAILY_ROOM_LIMIT` 조정, WAF 속도 제한, 재대결·관전·3~8인 UI, 로그 HMAC/앵커링, 재접속 시 효과음 일괄 재생 수정. 실제 기기에서 3D fps·발열·효과음 청취 확인. 라지 스트레이트 약한 강조(제안).
 
 ## 2026-11-23: 게임 중심 UI 개편 (`feat/game-lobby-redesign`)
 
