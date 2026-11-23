@@ -42,7 +42,7 @@ export interface HostStorage {
  * only together with the next command, so without this copy an eviction between a hold toggle and
  * the next command would forget it. Attachments cost no storage writes.
  */
-type Attachment = { playerId: string | null; seenSeq: number; bucket: { tokens: number; at: number }; openedAt: number; hold?: { hold: HoldState; v: number } | null; social?: SocialBucket };
+type Attachment = { playerId: string | null; seenSeq: number; bucket: { tokens: number; at: number }; openedAt: number; hold?: { hold: HoldState; v: number } | null; social?: SocialBucket; spectator?: { key: string } };
 
 export const HELLO_TIMEOUT_MS = 10_000;
 /** Socket opens per room per minute (counted in memory; a soft guard against reconnect storms). */
@@ -160,6 +160,7 @@ export class RoomHost {
       seenSeq: a.seenSeq,
       bucket: { ...a.bucket },
       ...(a.social ? { social: { ...a.social } } : {}),
+      ...(a.spectator ? { spectator: { ...a.spectator } } : {}),
       openedAt: a.openedAt,
       send: (message: ServerMessage) => {
         try {
@@ -185,7 +186,7 @@ export class RoomHost {
     const c = this.conns.get(ws) as (RoomConnection & { openedAt: number }) | undefined;
     if (!c) return;
     try {
-      ws.serializeAttachment({ playerId: c.playerId, seenSeq: c.seenSeq, bucket: c.bucket, openedAt: c.openedAt, hold: this.room?.holdSnapshot() ?? null, ...(c.social ? { social: c.social } : {}) } satisfies Attachment);
+      ws.serializeAttachment({ playerId: c.playerId, seenSeq: c.seenSeq, bucket: c.bucket, openedAt: c.openedAt, hold: this.room?.holdSnapshot() ?? null, ...(c.social ? { social: c.social } : {}), ...(c.spectator ? { spectator: c.spectator } : {}) } satisfies Attachment);
     } catch {
       /* closed */
     }
@@ -246,7 +247,7 @@ export class RoomHost {
     let next: number | null = null;
     for (const s of this.open()) {
       const c = this.conns.get(s) as (RoomConnection & { openedAt: number }) | undefined;
-      if (c && !c.playerId) next = Math.min(next ?? Infinity, c.openedAt + HELLO_TIMEOUT_MS);
+      if (c && !c.playerId && !c.spectator) next = Math.min(next ?? Infinity, c.openedAt + HELLO_TIMEOUT_MS);
     }
     return next;
   }
@@ -276,7 +277,7 @@ export class RoomHost {
     await room.alarm();
     for (const s of this.open()) {
       const c = this.conns.get(s) ?? this.wrap(s);
-      if (!c.playerId && t >= (c as RoomConnection & { openedAt: number }).openedAt + HELLO_TIMEOUT_MS) c.close(4001, "hello timeout");
+      if (!c.playerId && !c.spectator && t >= (c as RoomConnection & { openedAt: number }).openedAt + HELLO_TIMEOUT_MS) c.close(4001, "hello timeout");
     }
     const cleanup = this.cleanupAt();
     if (cleanup !== null && t >= cleanup) return this.remove();

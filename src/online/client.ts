@@ -1,6 +1,6 @@
 import type { OnlineAction } from "./protocol";
 import type { PlayerView } from "./server-engine";
-import type { ApiError, HoldState, JoinResponse, RematchOp, RematchState, RoomSummary, SeriesSummary, ServerMessage } from "./wire";
+import type { ApiError, HoldState, JoinResponse, RematchOp, RematchState, RoomSummary, SeriesSummary, ServerMessage, SpectateState } from "./wire";
 
 /**
  * Browser side of YachtLab Online (Phase 2): server address, saved seats, HTTP calls and a
@@ -42,6 +42,28 @@ export function inviteLink(code: string): string {
   url.searchParams.set("room", code);
   url.hash = "online";
   return url.toString();
+}
+
+/**
+ * Watch (spectator) link: `?watch=CODE&k=KEY#spectate`. The key is a read-only credential the players
+ * created by allowing spectators; it never gives a seat and stops working when they turn spectating off.
+ */
+export function watchLink(code: string, key: string): string {
+  const url = new URL(location.href);
+  const server = url.searchParams.get("online-server");
+  url.search = "";
+  if (server) url.searchParams.set("online-server", server);
+  url.searchParams.set("watch", code);
+  url.searchParams.set("k", key);
+  url.hash = "spectate";
+  return url.toString();
+}
+export function watchFromUrl(): { code: string; key: string } | null {
+  if (typeof location === "undefined") return null;
+  const q = new URLSearchParams(location.search);
+  const code = q.get("watch"),
+    key = q.get("k");
+  return code && key && /^[A-Z2-9]{6}$/i.test(code) && /^[A-Za-z0-9_-]{16,64}$/.test(key) ? { code: code.toUpperCase(), key } : null;
 }
 
 /** Room code from the current URL (`?room=`), if any. */
@@ -153,6 +175,10 @@ export type ConnectionEvents = {
   onRematch?(rematch: RematchState, series: SeriesSummary): void;
   /** A non-fatal server notice (rate limit, rematch refused). */
   onNotice?(code: string, message: string): void;
+  /** Players: spectating consent / watch key / spectator count. */
+  onSpectate?(state: SpectateState): void;
+  /** Spectators: how many are watching (from the spectator welcome). */
+  onWatching?(spectators: number): void;
   onPresence(online: string[]): void;
   onStatus(status: ConnectionStatus): void;
   /** The seat is gone (bad token, left, room closed): stop and go back to the entry screen. */
@@ -176,10 +202,11 @@ export class OnlineConnection {
   private lastMessage = 0;
   status: ConnectionStatus = "connecting";
 
+  /** `token` = a seat (player); `{ watchKey }` = a read-only spectator. */
   constructor(
     private readonly base: string,
     private readonly code: string,
-    private readonly token: string,
+    private readonly token: string | { watchKey: string },
     private readonly events: ConnectionEvents,
   ) {}
 
@@ -226,7 +253,8 @@ export class OnlineConnection {
     if (this.stopped) return;
     const ws = new WebSocket(this.base.replace(/^http/, "ws") + "/ws/" + this.code);
     this.ws = ws;
-    ws.onopen = () => ws.send(JSON.stringify({ t: "hello", token: this.token, since: this.since }));
+    ws.onopen = () =>
+      ws.send(JSON.stringify(typeof this.token === "string" ? { t: "hello", token: this.token, since: this.since } : { t: "watch", key: this.token.watchKey, since: this.since }));
     ws.onmessage = (e) => {
       this.lastMessage = Date.now();
       let msg: ServerMessage;
@@ -241,10 +269,20 @@ export class OnlineConnection {
       if (this.ws !== ws) return;
       this.ws = null;
       if (this.stopped) return;
-      if (e.code === 4001 || e.code === 4002 || e.code === 4004) {
+      if (e.code === 4001 || e.code === 4002 || e.code === 4003 || e.code === 4004 || e.code === 4005) {
         this.stopped = true;
         this.setStatus("closed");
-        this.events.onFatal(e.code === 4004 ? "방이 닫혔어요." : e.code === 4002 ? "방에서 나왔어요." : "이 방에 다시 들어갈 수 없어요. 참가 정보가 만료되었어요.");
+        this.events.onFatal(
+          e.code === 4004
+            ? "방이 닫혔어요."
+            : e.code === 4002
+              ? "방에서 나왔어요."
+              : e.code === 4003
+                ? "관전이 종료되었어요. 플레이어가 관전을 허용하지 않았거나 링크가 바뀌었어요."
+                : e.code === 4005
+                  ? "관전 인원이 가득 찼어요. 잠시 후 다시 시도해 주세요."
+                  : "이 방에 다시 들어갈 수 없어요. 참가 정보가 만료되었어요.",
+        );
         return;
       }
       this.setStatus("reconnecting");
@@ -262,8 +300,21 @@ export class OnlineConnection {
         this.events.onPresence(msg.online);
         this.events.onView(msg.view, false, msg.hold ?? null);
         if (msg.rematch && msg.series) this.events.onRematch?.(msg.rematch, msg.series);
+        if (msg.spectate) this.events.onSpectate?.(msg.spectate);
         // Commands whose ack was lost are sent again with the same id (applied at most once).
         for (const p of this.pending.values()) this.ws?.send(p.frame);
+        return;
+      case "watching":
+        this.attempt = 0;
+        this.since = msg.view.version;
+        this.setStatus("online");
+        this.events.onPresence(msg.online);
+        this.events.onWatching?.(msg.spectators);
+        this.events.onView(msg.view, false, msg.hold ?? null);
+        this.events.onRematch?.({ requests: [], declinedBy: null, departed: [], blocked: null }, msg.series);
+        return;
+      case "spectate":
+        this.events.onSpectate?.(msg.spectate);
         return;
       case "view":
         this.since = msg.view.version;
@@ -316,6 +367,10 @@ export class OnlineConnection {
   }
   rematch(op: RematchOp) {
     return this.sendNow({ t: "rematch", op });
+  }
+  /** Players: allow / stop spectators. */
+  spectate(allow: boolean) {
+    return this.sendNow({ t: "spectate", allow });
   }
   /** Leave the finished room for good. */
   bye() {

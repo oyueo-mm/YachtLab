@@ -23,11 +23,15 @@ export type ClientMessage =
   | { t: "rematch"; op: RematchOp }
   /** Leave a finished room for good (no rematch with this seat any more). */
   | { t: "bye" }
+  /** Player: allow or stop spectators for this room (needs every seated player's consent). */
+  | { t: "spectate"; allow: boolean }
+  /** Spectator: first frame instead of `hello`. The key comes from a player's watch link. */
+  | { t: "watch"; key: string; since?: number }
   | { t: "ping" };
 export type RematchOp = "request" | "cancel" | "decline";
 
 export type ServerMessage =
-  | { t: "welcome"; code: string; playerId: string; view: PlayerView; online: string[]; hold: HoldState | null; rematch?: RematchState; series?: SeriesSummary }
+  | { t: "welcome"; code: string; playerId: string; view: PlayerView; online: string[]; hold: HoldState | null; rematch?: RematchState; series?: SeriesSummary; spectate?: SpectateState }
   /** `hold` is present from servers that keep the shared hold order (older servers omit it). */
   | { t: "view"; view: PlayerView; hold?: HoldState | null }
   | { t: "ack"; id: string; ok: true; duplicate: boolean }
@@ -38,6 +42,10 @@ export type ServerMessage =
   | { t: "said"; from: string; id: string }
   /** Rematch status and this room's running score (sent when either changes). */
   | { t: "rematch"; rematch: RematchState; series: SeriesSummary }
+  /** Players only: spectating consent, the watch key (when active) and how many are watching. */
+  | { t: "spectate"; spectate: SpectateState }
+  /** Spectator welcome: neutral view (`you` is null, no legal moves, no command ids, no tokens). */
+  | { t: "watching"; code: string; view: PlayerView; online: string[]; hold: HoldState | null; series: SeriesSummary; spectators: number }
   | { t: "error"; code: string; message: string }
   | { t: "pong" };
 
@@ -51,6 +59,12 @@ export type HoldState = { playerId: string; keep: number[]; n: number };
  * possible (daily limit, room too old, match cap) — null when it is.
  */
 export type RematchState = { requests: string[]; declinedBy: string | null; departed: string[]; blocked: string | null };
+/**
+ * Spectating is off until every seated player turns it on. `key` (players only) is the secret part of
+ * the watch link; it is replaced whenever spectating is turned off, so old links stop working.
+ */
+export type SpectateState = { allow: Record<string, boolean>; active: boolean; key: string | null; spectators: number; max: number };
+
 /** Results of the matches already finished in this room (the running score between the same players). */
 export type SeriesSummary = { matchNo: number; games: number; draws: number; wins: Record<string, number> };
 
@@ -96,6 +110,13 @@ export function parseClientMessage(data: string): ClientMessage | null {
       return { t: "rematch", op: raw.op };
     case "bye":
       return { t: "bye" };
+    case "spectate":
+      if (typeof raw.allow !== "boolean") return null;
+      return { t: "spectate", allow: raw.allow };
+    case "watch":
+      if (typeof raw.key !== "string" || raw.key.length < 16 || raw.key.length > 64) return null;
+      if (raw.since !== undefined && (!Number.isSafeInteger(raw.since) || (raw.since as number) < 0)) return null;
+      return { t: "watch", key: raw.key, ...(raw.since !== undefined ? { since: raw.since as number } : {}) };
     case "cmd":
       if (!isValidId(raw.id) || !isRecord(raw.action)) return null;
       if (raw.v !== undefined && (!Number.isSafeInteger(raw.v) || (raw.v as number) < 0)) return null;

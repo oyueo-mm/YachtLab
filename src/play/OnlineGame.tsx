@@ -15,11 +15,11 @@ import { toggleHoldOrder } from "../hold-order";
 import { useYachtReady } from "../yacht-moment";
 import { BonusChip, QuickPicks } from "../QuickPicks";
 import { playSfx } from "../sound";
-import { OnlineConnection, forgetSeat, inviteLink, savedSeat, setRoomInUrl, type ConnectionStatus } from "../online/client";
+import { OnlineConnection, forgetSeat, inviteLink, savedSeat, setRoomInUrl, watchLink, type ConnectionStatus } from "../online/client";
 import type { OnlineAction } from "../online/protocol";
 import type { PlayerView } from "../online/server-engine";
-import type { RematchState, SeriesSummary } from "../online/wire";
-import { ChipBubble, SocialPanel, useBubbles } from "./Social";
+import type { RematchState, SeriesSummary, SpectateState } from "../online/wire";
+import { ChipBubble, SocialPanel, SpectateControl, useBubbles } from "./Social";
 
 /** Every screen shows the dice in the same row order (no local drag reordering online). */
 const ROW = [0, 1, 2, 3, 4];
@@ -66,6 +66,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   hideRef.current = social.hideOpponent;
   const [rematch, setRematch] = useState<RematchState | null>(null);
   const [series, setSeries] = useState<SeriesSummary | null>(null);
+  const [spectate, setSpectate] = useState<SpectateState | null>(null);
 
   useEffect(() => {
     if (!seat) {
@@ -160,12 +161,15 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         if (from !== viewRef.current?.you?.playerId && hideRef.current) return;
         social.show(from, id);
       },
+      onSpectate: setSpectate,
       onRematch(r, sr) {
         setRematch(r);
         setSeries(sr);
       },
       onNotice(code, message) {
-        if (code === "REMATCH" || code === "SOCIAL_RATE_LIMITED" || code === "INVALID_SOCIAL") setError(message);
+        if (code === "REMATCH" || code === "SOCIAL_RATE_LIMITED" || code === "INVALID_SOCIAL" || code === "SPECTATE") setError(message);
+        // A refused toggle: show the server's state again (the switch moved optimistically).
+        if (code === "SPECTATE") setSpectate((s) => (s ? { ...s } : s));
       },
       onStatus: setStatus,
       onFatal: (message) => onLeave(message),
@@ -332,7 +336,10 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           </div>
           <input className="online-invite-link" aria-label="초대 링크" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
         </div>
-        <SocialPanel onSend={(id) => conn.current?.say(id) ?? false} hideOpponent={social.hideOpponent} setHideOpponent={social.setHideOpponent} disabled={status !== "online"} />
+        <div className="online-lobby-tools">
+          <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />
+          <SocialPanel onSend={(id) => conn.current?.say(id) ?? false} hideOpponent={social.hideOpponent} setHideOpponent={social.setHideOpponent} disabled={status !== "online"} />
+        </div>
         <ul className="online-players" aria-label="참가자">
           {[0, 1].map((i) => {
             const p = players[i];
@@ -390,6 +397,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
             <span className="online-code-chip">
               {status === "online" ? <Wifi size={14} /> : <WifiOff size={14} />} 방 {code}
             </span>
+            <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />
             <SocialPanel onSend={(id) => conn.current?.say(id) ?? false} hideOpponent={social.hideOpponent} setHideOpponent={social.setHideOpponent} disabled={status !== "online"} />
             {playing && (
               <button

@@ -566,3 +566,66 @@
   gap: 5px;
   min-height: 44px;
 }
+.online-lobby-tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  width: 100%;
+}
+.spectate-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  font-weight: 700;
+}
+.spectate-note {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.spectate-link {
+  display: flex;
+  gap: 6px;
+}
+.spectate-link input {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+}
+.spectate-link button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.watch-turn {
+  margin: 8px 0 0;
+  color: #e6e6e6;
+  text-align: center;
+}
+.watch-chip {
+  gap: 5px;
+}
+@media (max-width: 760px) {
+  .social-toggle-label {
+    font-size: 12px;
+  }
+  .page-spectate .game-left > .score-summary {
+    order: -1;
+  }
+}
+/* Phones: the chat / spectate panels open as a bottom sheet in thumb reach, never off-screen. */
+@media (max-width: 760px) {
+  .social-panel {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    left: 12px;
+    width: auto;
+    max-height: 70dvh;
+    overflow-y: auto;
+  }
+}
