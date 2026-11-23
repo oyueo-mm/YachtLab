@@ -97,6 +97,7 @@ export function diceRenderer(settings: Settings = current): DiceRenderer {
   const level = motionLevel(settings);
   if (level === "none") return "none";
   if (level === "lite" || settings.diceQuality === "2.5d" || !webglAvailable()) return "2.5d";
-  if (settings.diceQuality === "auto") return window.innerWidth <= 760 ? "3d" : "3d-high";
+  // "자동": sharp rendering on every screen (phones included), with adaptive resolution (see renderPolicy).
+  if (settings.diceQuality === "auto") return "3d-high";
   return settings.diceQuality;
 }

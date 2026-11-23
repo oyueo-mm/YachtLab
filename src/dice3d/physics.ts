@@ -341,9 +341,23 @@ function runOnce(input: SimInput, seed: number): RawRun {
   return { frames, impacts, physicsFrames, restFrame, settled, flat, inBounds, minDistance };
 }
 
-/** Pre-simulate a throw that lands on the given values. Deterministic for a given input + seed. */
-export function simulateThrow(input: SimInput): SimResult {
-  const started = typeof performance !== "undefined" ? performance.now() : Date.now();
+/**
+ * The physics of a throw does not depend on the values it must show: they are applied afterwards by
+ * relabelling the cube's faces (see `cubeTurn`). So the expensive part — trying seeds until every die
+ * lands flat inside the tray — can run ahead of time (e.g. while the dice are at rest) and be reused
+ * when the roll happens, as long as the table, the dice positions, the held set and the direction match.
+ */
+export type PreparedThrow = { key: string; run: RawRun; attempts: number; simMs: number };
+
+const r3 = (n: number) => Math.round(n * 1000) / 1000;
+/** Everything that changes the physics of a throw (not the dice values, not the seed). */
+export function throwKey(input: SimInput): string {
+  const dice = input.dice.map((d) => [d.id, d.held ? 1 : 0, r3(d.x), r3(d.z)]);
+  const starts = Object.entries(input.starts ?? {}).map(([id, s]) => [id, r3(s.x), r3(s.z), ...(s.quat ?? []).map(r3)]);
+  return JSON.stringify([input.profile ?? "vigorous", r3(input.width), r3(input.height), input.direction, input.maxAttempts ?? 10, dice, starts]);
+}
+
+function chooseRun(input: SimInput): { run: RawRun; attempts: number } {
   const moving = input.dice.filter((d) => !d.held);
   const attemptsAllowed = input.maxAttempts ?? 10;
   let chosen: RawRun | null = null,
@@ -360,7 +374,27 @@ export function simulateThrow(input: SimInput): SimResult {
       best = run;
     }
   }
-  const run = chosen ?? best!;
+  return { run: chosen ?? best!, attempts };
+}
+
+/** Run the physics for a throw ahead of time (values are not needed yet). */
+export function prepareThrow(input: SimInput): PreparedThrow {
+  const started = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const { run, attempts } = chooseRun(input);
+  return { key: throwKey(input), run, attempts, simMs: (typeof performance !== "undefined" ? performance.now() : Date.now()) - started };
+}
+
+/**
+ * Pre-simulate a throw that lands on the given values. Deterministic for a given input + seed.
+ * A matching `prepared` throw (same `throwKey`) skips the physics and only applies the values.
+ */
+export function simulateThrow(input: SimInput, prepared?: PreparedThrow | null): SimResult {
+  const started = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const moving = input.dice.filter((d) => !d.held);
+  const attemptsAllowed = input.maxAttempts ?? 10;
+  const reuse = prepared && prepared.key === throwKey(input) ? prepared : null;
+  const { run: chosenRun, attempts } = reuse ?? chooseRun(input);
+  const run = chosenRun;
   let corrected = 0;
   const tracks: DieTrack[] = [];
   const extra = moving.some((d) => (run.flat.get(d.id) ?? 1) <= 0.985) || !run.settled ? CORRECTION_FRAMES : 0;
@@ -453,7 +487,7 @@ export function simulateThrow(input: SimInput): SimResult {
     tracks,
     impacts: run.impacts.filter((i) => i.frame < glideStart),
     attempts: Math.min(attempts, attemptsAllowed),
-    ok: chosen !== null || (run.inBounds && moving.every((d) => (run.flat.get(d.id) ?? 1) > 0.6 && run.frames.get(d.id)!.at(-1)!.pos[1] < 0.62)),
+    ok: (run.settled && run.inBounds && moving.every((d) => (run.flat.get(d.id) ?? 0) > 0.985)) || (run.inBounds && moving.every((d) => (run.flat.get(d.id) ?? 1) > 0.6 && run.frames.get(d.id)!.at(-1)!.pos[1] < 0.62)),
     corrected,
     stats: {
       ...motionStats(run, moving.map((d) => d.id)),

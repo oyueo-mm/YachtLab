@@ -1,10 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { arrayMove } from "@dnd-kit/sortable";
 import type { Game } from "./engine";
-import { beginDiceMotion, takeThrowDirection } from "./dice-motion";
+import { beginDiceMotion, isDiceBusy, takeThrowDirection } from "./dice-motion";
 import { playSfx } from "./sound";
 import { getScoreFx, useScoreFx } from "./score-fx";
 import type { DiceTableModule } from "./dice3d-loader";
+import type { PreparedThrow } from "./dice3d/physics";
 import type { DebugRoll } from "./Dice";
 
 type Pose = { x: number; y: number; z: number; quat: [number, number, number, number] };
@@ -39,6 +40,7 @@ export function PhysicalDice({
   quality,
   state,
   holdOrder = [],
+  adaptive = false,
   interactive,
   rollEvent,
   onToggle,
@@ -53,6 +55,8 @@ export function PhysicalDice({
   holdOrder?: readonly number[];
   /** Alt + arrow on a held die (absent when the order is decided elsewhere, e.g. online). */
   onShiftHold?: (id: number, step: -1 | 1) => void;
+  /** "자동" quality: lower the canvas resolution after repeatedly slow throws. */
+  adaptive?: boolean;
   interactive: boolean;
   rollEvent: number;
   onToggle?: (id: number) => void;
@@ -148,7 +152,7 @@ export function PhysicalDice({
     if (!dims || !root.current) return;
     if (!table.current) {
       try {
-        table.current = new mod.DiceTable(root.current.querySelector<HTMLElement>(".dice-table-stage")!, quality);
+        table.current = new mod.DiceTable(root.current.querySelector<HTMLElement>(".dice-table-stage")!, quality, { adaptive });
       } catch {
         onFailure();
         return;
@@ -236,6 +240,62 @@ export function PhysicalDice({
     if (activeFx.current && fxNow?.key !== activeFx.current.key) activeFx.current.abort();
   }, [fxNow]);
 
+  /** Physics input for throwing every die that is not held, from where it is drawn now. */
+  const throwInput = (direction: -1 | 1, seed: number) => {
+    const t = table.current,
+      d = dimsRef.current;
+    if (!t || !d) return null;
+    const moving = stateRef.current.dice.filter((x) => !x.held);
+    const starts: Record<number, { x: number; z: number; quat: Pose["quat"] }> = {};
+    for (const die of moving) {
+      // Where the die is drawn right now (a slide that has not finished yet still counts).
+      const p = t.pose(die.id) ?? tray.current.get(die.id);
+      if (p) starts[die.id] = { x: p.x, z: p.z, quat: p.quat };
+    }
+    return {
+      width: d.W,
+      height: d.trayH,
+      direction,
+      seed,
+      landing: "free" as const,
+      maxAttempts: 14,
+      starts,
+      dice: moving.map((die) => ({ id: die.id, value: die.value, held: false, x: starts[die.id]?.x ?? d.W / 2, z: starts[die.id]?.z ?? d.trayH / 2 })),
+    };
+  };
+  // While the dice are at rest, run the physics of the next throw in idle time; the roll then only
+  // applies the values the engine/server decided (no simulation delay between the tap and the throw).
+  const prepared = useRef<PreparedThrow | null>(null);
+  const heldKey = state.dice.map((d) => (d.held ? 1 : 0)).join("");
+  useEffect(() => {
+    if (!dims || flying.size || state.rolls >= 3 || state.dice.every((d) => d.held)) return;
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+    const run = () => {
+      // Never during an animation (score effect, slides): a long task there would drop frames.
+      if (isDiceBusy() || (table.current?.animating ?? false)) {
+        idle = 0;
+        timer = window.setTimeout(schedule, 400);
+        return;
+      }
+      const input = throwInput((rollEvent + 1) % 2 ? 1 : -1, crypto.getRandomValues(new Uint32Array(1))[0]);
+      if (!input || !input.dice.length) return;
+      if (prepared.current?.key === mod.throwKey(input)) return;
+      prepared.current = mod.prepareThrow(input);
+    };
+    let idle = 0;
+    // Real idle time only (no forced timeout), after hold/release slides finished (final starting poses).
+    const schedule = () => {
+      if (w.requestIdleCallback) idle = w.requestIdleCallback(run);
+      else run();
+    };
+    let timer = window.setTimeout(schedule, MOVE_MS + 60);
+    return () => {
+      window.clearTimeout(timer);
+      if (idle) w.cancelIdleCallback?.(idle);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dims, flying.size, state.rolls, heldKey, rollEvent, holdOrder.join()]);
+
   // Throw: only the dice that are not held, starting from where they lie (or from the tray edge).
   useLayoutEffect(() => {
     if (rollEvent === handledRoll.current) return;
@@ -245,24 +305,14 @@ export function PhysicalDice({
     const moving = state.dice.filter((d) => !d.held);
     prevHeld.current = new Map(state.dice.map((d) => [d.id, d.held]));
     if (!moving.length) return;
-    const starts: Record<number, { x: number; z: number; quat: Pose["quat"] }> = {};
-    for (const d of moving) {
-      // Where the die is drawn right now (a slide that has not finished yet still counts).
-      const p = t.pose(d.id) ?? tray.current.get(d.id);
-      if (p) starts[d.id] = { x: p.x, z: p.z, quat: p.quat };
-    }
+    const input = throwInput(takeThrowDirection(rollEvent), (Math.imul(rollEvent, 2654435761) ^ crypto.getRandomValues(new Uint32Array(1))[0]) >>> 0);
+    if (!input) return;
     const targets = Object.fromEntries(moving.map((d) => [d.id, d.value]));
     const effectStart = performance.now();
-    const result = mod.simulateThrow({
-      width: dims.W,
-      height: dims.trayH,
-      direction: takeThrowDirection(rollEvent),
-      seed: (Math.imul(rollEvent, 2654435761) ^ crypto.getRandomValues(new Uint32Array(1))[0]) >>> 0,
-      landing: "free",
-      maxAttempts: 14,
-      starts,
-      dice: moving.map((d) => ({ id: d.id, value: d.value, held: false, x: starts[d.id]?.x ?? dims.W / 2, z: starts[d.id]?.z ?? dims.trayH / 2 })),
-    });
+    // Physics prepared while the dice were at rest is reused when nothing relevant changed since.
+    const ready = prepared.current;
+    prepared.current = null;
+    const result = mod.simulateThrow(input, ready);
     for (const d of moving) tray.current.delete(d.id);
     setFlying(new Set(moving.map((d) => d.id)));
     const rate = 1.25;
@@ -316,6 +366,8 @@ export function PhysicalDice({
           startedAfterMs: firstFrameAt - effectStart,
           attempts: result.attempts,
           corrected: result.corrected,
+          prepared: !!ready && ready.key === mod.throwKey(input),
+          pixelRatio: t.pixelRatio,
           ok: result.ok,
           frameMs: times.length ? { avg: times.reduce((a, b) => a + b, 0) / times.length, p95: times[Math.floor(times.length * 0.95)] ?? 0, max: times.at(-1) ?? 0 } : undefined,
           endedAt: performance.now(),

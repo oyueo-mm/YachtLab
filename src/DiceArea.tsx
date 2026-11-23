@@ -61,7 +61,7 @@ export function DiceArea({ forceRenderer, ...props }: Props) {
   if (physical)
     return (
       <>
-        <PhysicalDice key={renderer} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} interactive={!!props.interactive} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onFailure={() => setFailed(true)} />
+        <PhysicalDice key={renderer} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} adaptive={!forceRenderer && settings.diceQuality === "auto"} interactive={!!props.interactive} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onFailure={() => setFailed(true)} />
         <ScoreFxLabel fx={fx} />
       </>
     );
