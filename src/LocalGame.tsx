@@ -7,6 +7,7 @@ import { appendMultiAction, newMultiReplay, type MultiReplay } from "./multi-rep
 import MultiReplayViewer from "./MultiReplayViewer";
 import MobileScoreSheet, { MobileScoreButton } from "./MobileScoreSheet";
 import { useYachtReady } from "./yacht-moment";
+import { QuickPicks } from "./QuickPicks";
 import MobileQuickScore from "./MobileQuickScore";
 import { saveMultiReplay } from "./multi-replay-storage";
 import { total, names as categoryNames, type Action, type Category } from "./engine";
@@ -162,6 +163,7 @@ export default function LocalGame({
                 <span>{3 - state.rolls}회 남음</span>
               </button>
               <p>{!state.done && !rolling && state.rolls === 3 ? "점수 칸을 선택하세요" : ""}</p>
+              <QuickPicks values={state.dice.map((d) => d.value)} card={state.cards[state.player]} rolls={state.rolls} canScore={canAct && !state.done} onScore={recordScore} />
             </div>
             {state.done && (
               <div className="game-result" role="status">

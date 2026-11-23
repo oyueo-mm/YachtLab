@@ -13,6 +13,7 @@ import { useDiceBusy } from "../useDiceBusy";
 import { announceScore, clearScoreFx } from "../score-fx";
 import { toggleHoldOrder } from "../hold-order";
 import { useYachtReady } from "../yacht-moment";
+import { QuickPicks } from "../QuickPicks";
 import { playSfx } from "../sound";
 import { OnlineConnection, forgetSeat, inviteLink, savedSeat, setRoomInUrl, type ConnectionStatus } from "../online/client";
 import type { OnlineAction } from "../online/protocol";
@@ -407,6 +408,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                 {remaining !== null && <span className="turn-timer">남은 시간 {clock(remaining)}</span>}
                 {myTurn && !rolling && rolls === 3 ? " 점수 칸을 선택하세요" : ""}
               </p>
+              <QuickPicks values={game.dice.map((d) => d.value)} card={players[meIndex]?.card ?? {}} rolls={rolls} canScore={can} onScore={record} />
             </div>
             {finished && (
               <div className="game-result" role="status">

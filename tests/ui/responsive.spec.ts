@@ -82,3 +82,27 @@ for (const [w, h] of SIZES)
     // a score can be recorded in one step from wherever the scoreboard is
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
+
+test("휴대폰: 굴린 뒤 추천 점수를 한 번에 기록(자동 기록 없음), 넓은 화면에는 표시하지 않음", async ({ page }) => {
+  await page.goto("#play-setup");
+  await page.getByRole("radiogroup", { name: "선공" }).getByText("내가 먼저", { exact: true }).click();
+  await page.getByRole("button", { name: "게임 시작" }).click();
+  const picks = page.getByRole("group", { name: "추천 점수 바로 기록" });
+  await expect(picks).toHaveCount(0); // before the first roll
+  await page.getByRole("button", { name: "주사위 굴리기" }).click();
+  const mobile = (page.viewportSize()?.width ?? 1024) <= 760;
+  if (!mobile) {
+    await expect(picks).toBeHidden();
+    return;
+  }
+  await expect(picks).toBeVisible();
+  const first = picks.getByRole("button").first();
+  const label = (await first.getAttribute("aria-label"))!; // "초이스 21점 기록"
+  const points = label.match(/(\d+)점 기록$/)![1];
+  await expect(page.locator(".fixed-score")).toHaveCount(0); // nothing recorded until the tap
+  await first.click();
+  await expect(page.locator(".roll-button")).toBeDisabled(); // turn passed to the AI
+  await page.getByRole("button", { name: "점수판 열기" }).click();
+  const sheet = page.getByRole("dialog", { name: "점수판" });
+  await expect(sheet.locator(".fixed-score").first()).toHaveText(points + "점");
+});

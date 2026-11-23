@@ -262,3 +262,51 @@
   align-items: center;
   gap: 6px;
 }
+
+/* ---------- phones: one-tap quick picks under the roll button ---------- */
+.quick-picks {
+  display: none;
+}
+@media (max-width: 760px) {
+  .app-shell.shell-game .roll-area .quick-picks {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    margin-top: 10px;
+  }
+  .quick-pick {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 52px;
+    padding: 6px 8px;
+    border: 1px solid #4a4a4a;
+    border-radius: 12px;
+    background: #353535;
+    color: #f2f2f2;
+    font-size: 12px;
+  }
+  .quick-pick > span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #cfcfcf;
+  }
+  .quick-pick > strong {
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+  .quick-pick:active {
+    transform: scale(0.97);
+  }
+  .quick-pick.yacht {
+    border-color: var(--orange);
+    background: #4a3518;
+  }
+}

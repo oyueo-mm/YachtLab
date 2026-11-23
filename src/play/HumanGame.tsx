@@ -19,6 +19,7 @@ import { ConfirmDialog, type PendingAction } from "../ui/ConfirmDialog";
 import { aiSpeedScale, resolveHumanSeat, type AiMatchConfig } from "../setup";
 import { useDiceBusy } from "../useDiceBusy";
 import { useYachtReady } from "../yacht-moment";
+import { QuickPicks } from "../QuickPicks";
 import { announceScore, clearScoreFx } from "../score-fx";
 
 /**
@@ -236,6 +237,7 @@ export default function HumanGame({
               <p>
                 {!state.done && mine && !rolling && state.rolls === 3 ? "점수 칸을 선택하세요" : ""}
               </p>
+              <QuickPicks values={state.dice.map((d) => d.value)} card={state.cards[humanSeat]} rolls={state.rolls} canScore={can} onScore={recordScore} />
             </div>
             {caption && (
               <p className="ai-action-status" role="status">
