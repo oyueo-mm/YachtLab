@@ -240,6 +240,32 @@ export class OnlineRoom {
     return applyCommand(this.state, parsed.command, { now: this.deps.now(), dice: this.dice });
   }
 
+  /**
+   * Hold selection with the match version it was made at, for hosts that keep it outside the room
+   * record (Durable Object socket attachments survive hibernation without a storage write).
+   */
+  holdSnapshot(): { hold: HoldState; v: number } | null {
+    const hold = this.currentHold();
+    return hold ? { hold, v: this.state.version } : null;
+  }
+
+  /**
+   * Re-adopt a hold selection kept by the host while the object was evicted. Accepted only for the
+   * turn in progress, made at the current version (no command since), and newer than what is known.
+   */
+  adoptHold(snapshot: { hold: HoldState; v: number } | null | undefined): boolean {
+    if (!snapshot || snapshot.v !== this.state.version) return false;
+    const { hold } = snapshot;
+    const turn = this.state.turn;
+    if (this.state.status !== "playing" || !turn || turn.playerId !== hold.playerId || turn.rolls === 0 || !validKeep(hold.keep)) return false;
+    // The engine knows which dice the last roll kept; a selection is anything after that, so only
+    // the shape is checked here (like a live `hold` message).
+    const known = this.record.hold;
+    if (known && known.playerId === hold.playerId && known.n >= hold.n) return false;
+    this.record = { ...this.record, hold: { playerId: hold.playerId, keep: [...hold.keep], n: hold.n } };
+    return true;
+  }
+
   /** The hold selection, if it belongs to the turn in progress (after at least one roll). */
   private currentHold(): HoldState | null {
     const hold = this.record.hold;

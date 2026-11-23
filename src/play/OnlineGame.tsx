@@ -13,7 +13,7 @@ import { useDiceBusy } from "../useDiceBusy";
 import { announceScore, clearScoreFx } from "../score-fx";
 import { toggleHoldOrder } from "../hold-order";
 import { useYachtReady } from "../yacht-moment";
-import { QuickPicks } from "../QuickPicks";
+import { BonusChip, QuickPicks } from "../QuickPicks";
 import { playSfx } from "../sound";
 import { OnlineConnection, forgetSeat, inviteLink, savedSeat, setRoomInUrl, type ConnectionStatus } from "../online/client";
 import type { OnlineAction } from "../online/protocol";
@@ -40,6 +40,8 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const [keep, setKeep] = useState<number[]>([]);
   /** Number of hold messages this screen has sent; an echo older than the latest one is ignored. */
   const holdSent = useRef(0);
+  /** My latest selection and the match version it was made at (to restore it if the server forgot it). */
+  const mySelection = useRef<{ keep: number[]; v: number }>({ keep: [], v: -1 });
   /** Players whose arrival was announced with the join sound (each at most once). */
   const announced = useRef(new Set<string>());
   /** Bumped on every catch-up sync (welcome after load/reconnect): sounds stay silent for it. */
@@ -73,6 +75,14 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           const turn = next.turn;
           if (!turn || turn.rolls === 0 || next.status !== "playing") return setKeep([]);
           if (hold === undefined) return setKeep(fallback);
+          if (!hold && !live && turn.playerId === me && mySelection.current.v === next.version && mySelection.current.keep.length) {
+            // The server lost my selection (e.g. restarted before the next command) but nothing happened
+            // since I made it: keep it on screen and share it again (no storage write on the server).
+            const keepNow = mySelection.current.keep;
+            setKeep(keepNow);
+            queueMicrotask(() => conn.current?.hold(keepNow, ++holdSent.current));
+            return;
+          }
           if (!hold || hold.playerId !== turn.playerId) return setKeep([]);
           if (hold.playerId === me) {
             // My own selection: a server value older than my latest toggle is ignored.
@@ -203,6 +213,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
     if (!can || rolls === 0 || rolls >= 3) return;
     const next = toggleHoldOrder(keep, id);
     setKeep(next);
+    mySelection.current = { keep: next, v: view?.version ?? -1 };
     conn.current?.hold(next, ++holdSent.current);
   };
   const record = (category: Category) => {
@@ -384,6 +395,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                 <small>/ 12</small>
               </strong>
             </div>
+            {me && <BonusChip card={players[meIndex]?.card ?? {}} />}
           </div>
           {banner}
           <section className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "")} aria-label="게임 보드" {...gesture}>

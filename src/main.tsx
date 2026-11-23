@@ -9,6 +9,7 @@ import "./matte.css";
 import "./mobile-play.css";
 import "./online.css";
 import "./responsive.css";
+import "./mobile-play-v2.css";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <App />

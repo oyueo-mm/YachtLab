@@ -1,0 +1,1001 @@
+{
+ "cpu": 1,
+ "wait": 600,
+ "gap": 0,
+ "trials": 8,
+ "device": "Pixel 7 emulation (412x915, DPR 2.625), headless Chromium, SwiftShader",
+ "loadMs": {
+  "median": 292,
+  "min": 259,
+  "max": 359
+ },
+ "heapMB": {
+  "median": 15
+ },
+ "summary": {
+  "first": {
+   "n": 8,
+   "tapToFirstFrame": {
+    "median": 14.5,
+    "min": 14.1,
+    "max": 20.6
+   },
+   "avg": {
+    "median": 17.3,
+    "min": 17.2,
+    "max": 17.4
+   },
+   "median": {
+    "median": 16.7,
+    "min": 16.7,
+    "max": 16.7
+   },
+   "p95": {
+    "median": 16.8,
+    "min": 16.7,
+    "max": 16.8
+   },
+   "p99": {
+    "median": 50.1,
+    "min": 49.9,
+    "max": 66.7
+   },
+   "worst": {
+    "median": 50.1,
+    "min": 49.9,
+    "max": 66.7
+   },
+   "longTasks": {
+    "median": 1,
+    "min": 1,
+    "max": 1
+   },
+   "simMs": {
+    "median": 0.8,
+    "min": 0.7,
+    "max": 1
+   },
+   "animMs": {
+    "median": 1060.2,
+    "min": 833.2,
+    "max": 1215.7
+   },
+   "prepared": 8,
+   "pixelRatio": [
+    2
+   ]
+  },
+  "second": {
+   "n": 8,
+   "tapToFirstFrame": {
+    "median": 25.2,
+    "min": 14.3,
+    "max": 55.2
+   },
+   "avg": {
+    "median": 16.6,
+    "min": 16.6,
+    "max": 17
+   },
+   "median": {
+    "median": 16.7,
+    "min": 16.7,
+    "max": 16.7
+   },
+   "p95": {
+    "median": 16.8,
+    "min": 16.7,
+    "max": 16.8
+   },
+   "p99": {
+    "median": 16.8,
+    "min": 16.7,
+    "max": 50
+   },
+   "worst": {
+    "median": 16.8,
+    "min": 16.7,
+    "max": 50
+   },
+   "longTasks": {
+    "median": 0,
+    "min": 0,
+    "max": 1
+   },
+   "simMs": {
+    "median": 16.6,
+    "min": 7.1,
+    "max": 45.4
+   },
+   "animMs": {
+    "median": 1153.9,
+    "min": 864.8,
+    "max": 1470.4
+   },
+   "prepared": 0,
+   "pixelRatio": [
+    2
+   ]
+  },
+  "third": {
+   "n": 8,
+   "tapToFirstFrame": {
+    "median": 24.1,
+    "min": 13.1,
+    "max": 58.9
+   },
+   "avg": {
+    "median": 16.6,
+    "min": 16.6,
+    "max": 17.2
+   },
+   "median": {
+    "median": 16.7,
+    "min": 16.7,
+    "max": 16.7
+   },
+   "p95": {
+    "median": 16.8,
+    "min": 16.7,
+    "max": 16.8
+   },
+   "p99": {
+    "median": 16.8,
+    "min": 16.8,
+    "max": 50
+   },
+   "worst": {
+    "median": 16.8,
+    "min": 16.8,
+    "max": 50
+   },
+   "longTasks": {
+    "median": 0,
+    "min": 0,
+    "max": 1
+   },
+   "simMs": {
+    "median": 13,
+    "min": 7.2,
+    "max": 52.8
+   },
+   "animMs": {
+    "median": 1014.3,
+    "min": 839.9,
+    "max": 1571.7
+   },
+   "prepared": 0,
+   "pixelRatio": [
+    2
+   ]
+  },
+  "nextTurn": {
+   "n": 8,
+   "tapToFirstFrame": {
+    "median": 13.5,
+    "min": 12.9,
+    "max": 14
+   },
+   "avg": {
+    "median": 16.6,
+    "min": 16.6,
+    "max": 17.1
+   },
+   "median": {
+    "median": 16.7,
+    "min": 16.7,
+    "max": 16.7
+   },
+   "p95": {
+    "median": 16.7,
+    "min": 16.7,
+    "max": 16.8
+   },
+   "p99": {
+    "median": 16.8,
+    "min": 16.7,
+    "max": 50.1
+   },
+   "worst": {
+    "median": 16.8,
+    "min": 16.7,
+    "max": 50.1
+   },
+   "longTasks": {
+    "median": 0,
+    "min": 0,
+    "max": 1
+   },
+   "simMs": {
+    "median": 0.2,
+    "min": 0.1,
+    "max": 0.3
+   },
+   "animMs": {
+    "median": 1166.7,
+    "min": 900.2,
+    "max": 1500.4
+   },
+   "prepared": 8,
+   "pixelRatio": [
+    2
+   ]
+  }
+ },
+ "results": [
+  {
+   "trial": 0,
+   "loadMs": 350,
+   "heapMB": 16.4,
+   "rolls": [
+    {
+     "label": "first",
+     "tapToFirstFrame": 14.399999999906868,
+     "tapToEffect": 4.899999999906868,
+     "frames": 69,
+     "avg": 17.328985507247054,
+     "median": 16.700000000000045,
+     "p95": 16.799999999999955,
+     "p99": 50.10000000000002,
+     "worst": 50.10000000000002,
+     "longTasks": 1,
+     "longTaskMs": 66,
+     "longAt": [
+      [
+       13,
+       66
+      ]
+     ],
+     "slowFrames": [
+      [
+       1,
+       50
+      ]
+     ],
+     "simMs": 1,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 1182.8000000000466
+    },
+    {
+     "label": "second",
+     "tapToFirstFrame": 14.299999999813735,
+     "tapToEffect": 2.2999999998137355,
+     "frames": 57,
+     "avg": 16.603508771929825,
+     "median": 16.699999999999818,
+     "p95": 16.800000000000182,
+     "p99": 16.800000000000182,
+     "worst": 16.800000000000182,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 8.300000000046566,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 933
+    },
+    {
+     "label": "third",
+     "tapToFirstFrame": 14.300000000046566,
+     "tapToEffect": 1.8000000000465661,
+     "frames": 71,
+     "avg": 16.623943661972486,
+     "median": 16.699999999999818,
+     "p95": 16.700000000000728,
+     "p99": 16.800000000000182,
+     "worst": 16.800000000000182,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 7.199999999953434,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 1166.7999999998137
+    },
+    {
+     "label": "nextTurn",
+     "tapToFirstFrame": 12.900000000139698,
+     "tapToEffect": 2.5,
+     "frames": 55,
+     "avg": 16.58909090909431,
+     "median": 16.69999999999891,
+     "p95": 16.700000000000728,
+     "p99": 16.80000000000109,
+     "worst": 16.80000000000109,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 0.10000000009313226,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 900.3000000000466
+    }
+   ]
+  },
+  {
+   "trial": 1,
+   "loadMs": 292,
+   "heapMB": 14.2,
+   "rolls": [
+    {
+     "label": "first",
+     "tapToFirstFrame": 14.700000000186265,
+     "tapToEffect": 4.800000000046566,
+     "frames": 71,
+     "avg": 17.315492957748447,
+     "median": 16.700000000000045,
+     "p95": 16.700000000000273,
+     "p99": 66.70000000000005,
+     "worst": 66.70000000000005,
+     "longTasks": 1,
+     "longTaskMs": 68,
+     "longAt": [
+      [
+       13,
+       68
+      ]
+     ],
+     "slowFrames": [
+      [
+       1,
+       67
+      ]
+     ],
+     "simMs": 0.8000000000465661,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 1215.6999999999534
+    },
+    {
+     "label": "second",
+     "tapToFirstFrame": 27.100000000093132,
+     "tapToEffect": 2.4000000001396984,
+     "frames": 90,
+     "avg": 16.631111111112144,
+     "median": 16.699999999999818,
+     "p95": 16.799999999999727,
+     "p99": 16.800000000000182,
+     "worst": 16.800000000000182,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 19.199999999953434,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 1470.3999999999069
+    },
+    {
+     "label": "third",
+     "tapToFirstFrame": 13.100000000093132,
+     "tapToEffect": 2,
+     "frames": 64,
+     "avg": 16.606250000001452,
+     "median": 16.699999999999818,
+     "p95": 16.700000000000728,
+     "p99": 16.800000000000182,
+     "worst": 16.800000000000182,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 7.400000000139698,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 1050.8000000000466
+    },
+    {
+     "label": "nextTurn",
+     "tapToFirstFrame": 14,
+     "tapToEffect": 2.5999999998603016,
+     "frames": 71,
+     "avg": 16.62112676056272,
+     "median": 16.69999999999891,
+     "p95": 16.700000000000728,
+     "p99": 16.80000000000109,
+     "worst": 16.80000000000109,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 0.30000000004656613,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 1166.7999999998137
+    }
+   ]
+  },
+  {
+   "trial": 2,
+   "loadMs": 260,
+   "heapMB": 12.7,
+   "rolls": [
+    {
+     "label": "first",
+     "tapToFirstFrame": 14.100000000093132,
+     "tapToEffect": 4.699999999953434,
+     "frames": 59,
+     "avg": 17.162711864405992,
+     "median": 16.700000000000045,
+     "p95": 16.799999999999955,
+     "p99": 50,
+     "worst": 50,
+     "longTasks": 1,
+     "longTaskMs": 61,
+     "longAt": [
+      [
+       13,
+       61
+      ]
+     ],
+     "slowFrames": [
+      [
+       1,
+       50
+      ]
+     ],
+     "simMs": 0.7000000001862645,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 999.7999999998137
+    },
+    {
+     "label": "second",
+     "tapToFirstFrame": 25.300000000046566,
+     "tapToEffect": 2.699999999953434,
+     "frames": 64,
+     "avg": 16.61875,
+     "median": 16.699999999999818,
+     "p95": 16.700000000000273,
+     "p99": 16.700000000000273,
+     "worst": 16.700000000000273,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 16.600000000093132,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 1039.1999999999534
+    },
+    {
+     "label": "third",
+     "tapToFirstFrame": 25.600000000093132,
+     "tapToEffect": 2.300000000046566,
+     "frames": 96,
+     "avg": 16.629166666666663,
+     "median": 16.699999999999818,
+     "p95": 16.799999999999727,
+     "p99": 16.800000000000182,
+     "worst": 16.800000000000182,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 16.800000000046566,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 1571.6999999999534
+    },
+    {
+     "label": "nextTurn",
+     "tapToFirstFrame": 13.399999999906868,
+     "tapToEffect": 2.699999999953434,
+     "frames": 55,
+     "avg": 16.59999999999914,
+     "median": 16.69999999999891,
+     "p95": 16.799999999999272,
+     "p99": 16.80000000000109,
+     "worst": 16.80000000000109,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 0.19999999995343387,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 900.2000000001863
+    }
+   ]
+  },
+  {
+   "trial": 3,
+   "loadMs": 272,
+   "heapMB": 15.5,
+   "rolls": [
+    {
+     "label": "first",
+     "tapToFirstFrame": 20.600000000093132,
+     "tapToEffect": 6.699999999953434,
+     "frames": 62,
+     "avg": 17.41451612903301,
+     "median": 16.700000000000045,
+     "p95": 16.799999999999955,
+     "p99": 66.70000000000005,
+     "worst": 66.70000000000005,
+     "longTasks": 1,
+     "longTaskMs": 66,
+     "longAt": [
+      [
+       20,
+       66
+      ]
+     ],
+     "slowFrames": [
+      [
+       1,
+       67
+      ]
+     ],
+     "simMs": 1,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 1060.1999999999534
+    },
+    {
+     "label": "second",
+     "tapToFirstFrame": 24.699999999953434,
+     "tapToEffect": 2.699999999953434,
+     "frames": 71,
+     "avg": 16.588732394367508,
+     "median": 16.699999999999818,
+     "p95": 16.799999999999727,
+     "p99": 16.800000000000182,
+     "worst": 16.800000000000182,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 13.400000000139698,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 1153.9000000001397
+    },
+    {
+     "label": "third",
+     "tapToFirstFrame": 17.300000000046566,
+     "tapToEffect": 2.2000000001862645,
+     "frames": 61,
+     "avg": 16.608196721313764,
+     "median": 16.699999999999818,
+     "p95": 16.700000000000273,
+     "p99": 16.800000000000182,
+     "worst": 16.800000000000182,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 8.5,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 996.6000000000931
+    },
+    {
+     "label": "nextTurn",
+     "tapToFirstFrame": 13.5,
+     "tapToEffect": 2.5,
+     "frames": 59,
+     "avg": 16.60508474576192,
+     "median": 16.69999999999891,
+     "p95": 16.700000000000728,
+     "p99": 16.700000000000728,
+     "worst": 16.700000000000728,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 0.09999999986030161,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 967
+    }
+   ]
+  },
+  {
+   "trial": 4,
+   "loadMs": 359,
+   "heapMB": 13.7,
+   "rolls": [
+    {
+     "label": "first",
+     "tapToFirstFrame": 14.099999999860302,
+     "tapToEffect": 4.800000000046566,
+     "frames": 66,
+     "avg": 17.34242424242283,
+     "median": 16.699999999999818,
+     "p95": 16.799999999999955,
+     "p99": 66.69999999999982,
+     "worst": 66.69999999999982,
+     "longTasks": 1,
+     "longTaskMs": 78,
+     "longAt": [
+      [
+       12,
+       78
+      ]
+     ],
+     "slowFrames": [
+      [
+       1,
+       67
+      ]
+     ],
+     "simMs": 0.8000000000465661,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 1132.5
+    },
+    {
+     "label": "second",
+     "tapToFirstFrame": 15.700000000186265,
+     "tapToEffect": 2.4000000001396984,
+     "frames": 53,
+     "avg": 16.60000000000088,
+     "median": 16.699999999999818,
+     "p95": 16.700000000000273,
+     "p99": 16.700000000000273,
+     "worst": 16.700000000000273,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 7.099999999860302,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 864.7999999998137
+    },
+    {
+     "label": "third",
+     "tapToFirstFrame": 24.0999999998603,
+     "tapToEffect": 2.0999999998603016,
+     "frames": 51,
+     "avg": 16.927450980389413,
+     "median": 16.699999999999818,
+     "p95": 16.700000000000728,
+     "p99": 33.30000000000018,
+     "worst": 33.30000000000018,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 13,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 839.9000000001397
+    },
+    {
+     "label": "nextTurn",
+     "tapToFirstFrame": 14,
+     "tapToEffect": 2.300000000046566,
+     "frames": 91,
+     "avg": 16.63186813186865,
+     "median": 16.69999999999891,
+     "p95": 16.700000000000728,
+     "p99": 16.80000000000109,
+     "worst": 16.80000000000109,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 0.19999999995343387,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 1500.4000000001397
+    }
+   ]
+  },
+  {
+   "trial": 5,
+   "loadMs": 295,
+   "heapMB": 13.1,
+   "rolls": [
+    {
+     "label": "first",
+     "tapToFirstFrame": 14.5,
+     "tapToEffect": 4.800000000046566,
+     "frames": 49,
+     "avg": 17.27755102040816,
+     "median": 16.700000000000045,
+     "p95": 16.800000000000182,
+     "p99": 50.10000000000002,
+     "worst": 50.10000000000002,
+     "longTasks": 1,
+     "longTaskMs": 59,
+     "longAt": [
+      [
+       14,
+       59
+      ]
+     ],
+     "slowFrames": [
+      [
+       1,
+       50
+      ]
+     ],
+     "simMs": 0.9000000001396984,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 833.1999999999534
+    },
+    {
+     "label": "second",
+     "tapToFirstFrame": 16.0999999998603,
+     "tapToEffect": 2.300000000046566,
+     "frames": 60,
+     "avg": 16.623333333333335,
+     "median": 16.699999999999818,
+     "p95": 16.700000000000273,
+     "p99": 16.800000000000182,
+     "worst": 16.800000000000182,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 9.399999999906868,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 982.2000000001863
+    },
+    {
+     "label": "third",
+     "tapToFirstFrame": 35.799999999813735,
+     "tapToEffect": 2.199999999953434,
+     "frames": 62,
+     "avg": 16.870967741934734,
+     "median": 16.699999999999818,
+     "p95": 16.800000000000182,
+     "p99": 33.29999999999973,
+     "worst": 33.29999999999973,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 29.699999999953434,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 1014.3000000000466
+    },
+    {
+     "label": "nextTurn",
+     "tapToFirstFrame": 13.199999999953434,
+     "tapToEffect": 2.5999999998603016,
+     "frames": 64,
+     "avg": 16.60468750000001,
+     "median": 16.69999999999891,
+     "p95": 16.700000000000728,
+     "p99": 16.799999999999272,
+     "worst": 16.799999999999272,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 0.20000000018626451,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 1050.1000000000931
+    }
+   ]
+  },
+  {
+   "trial": 6,
+   "loadMs": 259,
+   "heapMB": 16.6,
+   "rolls": [
+    {
+     "label": "first",
+     "tapToFirstFrame": 14.5,
+     "tapToEffect": 5,
+     "frames": 58,
+     "avg": 17.17586206896712,
+     "median": 16.700000000000045,
+     "p95": 16.799999999999955,
+     "p99": 50,
+     "worst": 50,
+     "longTasks": 1,
+     "longTaskMs": 62,
+     "longAt": [
+      [
+       13,
+       62
+      ]
+     ],
+     "slowFrames": [
+      [
+       1,
+       50
+      ]
+     ],
+     "simMs": 0.7000000001862645,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 982.6999999999534
+    },
+    {
+     "label": "second",
+     "tapToFirstFrame": 25.199999999953434,
+     "tapToEffect": 2.800000000046566,
+     "frames": 72,
+     "avg": 16.620833333334627,
+     "median": 16.699999999999818,
+     "p95": 16.800000000000182,
+     "p99": 16.800000000000182,
+     "worst": 16.800000000000182,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 17.600000000093132,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 1173.1000000000931
+    },
+    {
+     "label": "third",
+     "tapToFirstFrame": 58.89999999990687,
+     "tapToEffect": 2.199999999953434,
+     "frames": 60,
+     "avg": 17.169999999999998,
+     "median": 16.699999999999818,
+     "p95": 16.800000000000182,
+     "p99": 50,
+     "worst": 50,
+     "longTasks": 1,
+     "longTaskMs": 58,
+     "longAt": [
+      [
+       0,
+       58
+      ]
+     ],
+     "slowFrames": [
+      [
+       1,
+       50
+      ]
+     ],
+     "simMs": 52.800000000046566,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 972.1999999999534
+    },
+    {
+     "label": "nextTurn",
+     "tapToFirstFrame": 13.5,
+     "tapToEffect": 2.6000000000931323,
+     "frames": 73,
+     "avg": 16.616438356166924,
+     "median": 16.69999999999891,
+     "p95": 16.80000000000109,
+     "p99": 16.80000000000109,
+     "worst": 16.80000000000109,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 0.19999999995343387,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 1200.3000000000466
+    }
+   ]
+  },
+  {
+   "trial": 7,
+   "loadMs": 267,
+   "heapMB": 15,
+   "rolls": [
+    {
+     "label": "first",
+     "tapToFirstFrame": 14.600000000093132,
+     "tapToEffect": 4.800000000046566,
+     "frames": 56,
+     "avg": 17.1839285714294,
+     "median": 16.700000000000045,
+     "p95": 16.799999999999955,
+     "p99": 49.89999999999998,
+     "worst": 49.89999999999998,
+     "longTasks": 1,
+     "longTaskMs": 64,
+     "longAt": [
+      [
+       13,
+       64
+      ]
+     ],
+     "slowFrames": [
+      [
+       1,
+       50
+      ]
+     ],
+     "simMs": 0.7999999998137355,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 948.8999999999069
+    },
+    {
+     "label": "second",
+     "tapToFirstFrame": 55.199999999953434,
+     "tapToEffect": 3.300000000046566,
+     "frames": 80,
+     "avg": 17.03875,
+     "median": 16.699999999999818,
+     "p95": 16.799999999999727,
+     "p99": 50,
+     "worst": 50,
+     "longTasks": 1,
+     "longTaskMs": 55,
+     "longAt": [
+      [
+       0,
+       55
+      ]
+     ],
+     "slowFrames": [
+      [
+       1,
+       50
+      ]
+     ],
+     "simMs": 45.39999999990687,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 1308.8999999999069
+    },
+    {
+     "label": "third",
+     "tapToFirstFrame": 14.199999999953434,
+     "tapToEffect": 2,
+     "frames": 59,
+     "avg": 16.61525423728971,
+     "median": 16.699999999999818,
+     "p95": 16.800000000000182,
+     "p99": 16.800000000000182,
+     "worst": 16.800000000000182,
+     "longTasks": 0,
+     "longTaskMs": 0,
+     "longAt": [],
+     "slowFrames": [],
+     "simMs": 7.699999999953434,
+     "prepared": false,
+     "pixelRatio": 2,
+     "animMs": 966.9000000001397
+    },
+    {
+     "label": "nextTurn",
+     "tapToFirstFrame": 13.599999999860302,
+     "tapToEffect": 2.699999999953434,
+     "frames": 69,
+     "avg": 17.097101449275375,
+     "median": 16.69999999999891,
+     "p95": 16.700000000000728,
+     "p99": 50.100000000000364,
+     "worst": 50.100000000000364,
+     "longTasks": 1,
+     "longTaskMs": 51,
+     "longAt": [
+      [
+       147,
+       51
+      ]
+     ],
+     "slowFrames": [
+      [
+       9,
+       50
+      ]
+     ],
+     "simMs": 0.30000000004656613,
+     "prepared": true,
+     "pixelRatio": 2,
+     "animMs": 1166.7000000001863
+    }
+   ]
+  }
+ ]
+}

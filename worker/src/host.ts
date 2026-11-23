@@ -1,6 +1,6 @@
 import { OnlineRoom, ROOM_LIMITS, type JoinResult, type RoomConnection, type RoomRecord } from "../../src/online/room";
 import type { DiceSource } from "../../src/online/dice-source";
-import type { RoomSummary, ServerMessage } from "../../src/online/wire";
+import type { HoldState, RoomSummary, ServerMessage } from "../../src/online/wire";
 import type { OnlineConfig } from "./config";
 
 /**
@@ -35,7 +35,13 @@ export interface HostStorage {
   clear(): void | Promise<void>;
 }
 
-type Attachment = { playerId: string | null; seenSeq: number; bucket: { tokens: number; at: number }; openedAt: number };
+/**
+ * Per-socket state that survives hibernation. `hold` is a copy of the room's shared hold order
+ * (selection order of held dice) with the match version it belongs to: the room saves it to SQLite
+ * only together with the next command, so without this copy an eviction between a hold toggle and
+ * the next command would forget it. Attachments cost no storage writes.
+ */
+type Attachment = { playerId: string | null; seenSeq: number; bucket: { tokens: number; at: number }; openedAt: number; hold?: { hold: HoldState; v: number } | null };
 
 export const HELLO_TIMEOUT_MS = 10_000;
 /** Socket opens per room per minute (counted in memory; a soft guard against reconnect storms). */
@@ -83,7 +89,11 @@ export class RoomHost {
     const record = this.storage.load();
     if (!record) return;
     this.room = OnlineRoom.restore(record, this.deps());
-    for (const ws of this.open()) this.room.adopt(this.wrap(ws));
+    for (const ws of this.open()) {
+      this.room.adopt(this.wrap(ws));
+      // The newest hold order any socket still carries (stale ones are rejected by the room).
+      this.room.adoptHold((ws.deserializeAttachment() as Attachment | null)?.hold);
+    }
     this.rearm();
   }
 
@@ -164,7 +174,7 @@ export class RoomHost {
     const c = this.conns.get(ws) as (RoomConnection & { openedAt: number }) | undefined;
     if (!c) return;
     try {
-      ws.serializeAttachment({ playerId: c.playerId, seenSeq: c.seenSeq, bucket: c.bucket, openedAt: c.openedAt } satisfies Attachment);
+      ws.serializeAttachment({ playerId: c.playerId, seenSeq: c.seenSeq, bucket: c.bucket, openedAt: c.openedAt, hold: this.room?.holdSnapshot() ?? null } satisfies Attachment);
     } catch {
       /* closed */
     }

@@ -266,6 +266,7 @@ export function PhysicalDice({
   // While the dice are at rest, run the physics of the next throw in idle time; the roll then only
   // applies the values the engine/server decided (no simulation delay between the tap and the throw).
   const prepared = useRef<PreparedThrow | null>(null);
+  const lastHeldKey = useRef("");
   const heldKey = state.dice.map((d) => (d.held ? 1 : 0)).join("");
   useEffect(() => {
     if (!dims || flying.size || state.rolls >= 3 || state.dice.every((d) => d.held)) return;
@@ -283,12 +284,16 @@ export function PhysicalDice({
       prepared.current = mod.prepareThrow(input);
     };
     let idle = 0;
-    // Real idle time only (no forced timeout), after hold/release slides finished (final starting poses).
+    // Idle time (at most ~250 ms later), once hold/release slides have finished (final starting poses).
+    // Right after a throw lands nothing is sliding, so preparation starts almost at once: a quick
+    // re-roll without holding anything no longer has to simulate on the tap.
     const schedule = () => {
-      if (w.requestIdleCallback) idle = w.requestIdleCallback(run);
+      if (w.requestIdleCallback) idle = w.requestIdleCallback(run, { timeout: 250 });
       else run();
     };
-    let timer = window.setTimeout(schedule, MOVE_MS + 60);
+    const sliding = table.current?.animating ?? false;
+    let timer = window.setTimeout(schedule, sliding || heldKey !== lastHeldKey.current ? MOVE_MS + 60 : 40);
+    lastHeldKey.current = heldKey;
     return () => {
       window.clearTimeout(timer);
       if (idle) w.cancelIdleCallback?.(idle);
@@ -364,6 +369,8 @@ export function PhysicalDice({
           frames: result.frameCount,
           simMs: result.stats.simMs,
           startedAfterMs: firstFrameAt - effectStart,
+          effectStartAt: effectStart,
+          firstFrameAt,
           attempts: result.attempts,
           corrected: result.corrected,
           prepared: !!ready && ready.key === mod.throwKey(input),

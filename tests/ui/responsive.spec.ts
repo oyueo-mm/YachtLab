@@ -100,6 +100,7 @@ test("휴대폰: 굴린 뒤 추천 점수를 한 번에 기록(자동 기록 없
   const label = (await first.getAttribute("aria-label"))!; // "초이스 21점 기록"
   const points = label.match(/(\d+)점 기록$/)![1];
   await expect(page.locator(".fixed-score")).toHaveCount(0); // nothing recorded until the tap
+  await page.waitForTimeout(400); // picks ignore taps for 350 ms after they appear (mis-tap guard)
   await first.click();
   await expect(page.locator(".roll-button")).toBeDisabled(); // turn passed to the AI
   await page.getByRole("button", { name: "점수판 열기" }).click();

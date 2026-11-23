@@ -53,8 +53,9 @@ let noise: AudioBuffer | null = null;
  * damped modes, a table thud that grows with the impact, rolling as a train of tiny edge clicks and a
  * settling rattle; every hit varies a little in pitch, level and pan. "v1" keeps the first synthesis
  * for side-by-side comparison (주사위 실험실 → 효과음 시연).
+ * "v3" (candidate, lab only until people have listened to it on phones): see the v3 section below.
  */
-export type SfxVariant = "v1" | "v2";
+export type SfxVariant = "v1" | "v2" | "v3";
 let variant: SfxVariant = "v2";
 export const sfxVariant = () => variant;
 export function setSfxVariant(v: SfxVariant) {
@@ -238,6 +239,64 @@ function shake(audio: AudioContext, out: AudioNode, t: number, k: number) {
   burst(audio, out, t, 0.14, 0.05 * k, "bandpass", 1200, 3000, 0.8);
 }
 
+
+/* ------------------------------------------------------------------ v3 candidate ------------------------------------------------------------------ */
+/*
+ * Candidate for a more natural plastic-dice sound, compared side by side in the lab (not the default):
+ *  - Attack from a very short band-passed noise impulse instead of pure sines (sines alone read "beepy").
+ *  - Inharmonic modes whose ratios are re-drawn per hit, so repeated hits never sound like one sample.
+ *  - The table body sits at ~380–520 Hz, where phone speakers still reproduce it (150 Hz thuds vanish on
+ *    most phone speakers); a little low end remains for headphones.
+ *  - Die-on-die contacts are a quick double tick (flam), as two edges rarely meet at the same instant.
+ *  - Rolling is friction noise with sparse edge ticks rather than a train of identical clicks.
+ * Whether this is actually better must be judged by listening (it has not been, on real phones).
+ */
+function impulse(audio: AudioContext, out: AudioNode, t: number, gain: number, freq: number, q: number, length = 0.003) {
+  burst(audio, out, t, length, gain, "bandpass", freq, undefined, q);
+}
+function v3Table(audio: AudioContext, out: AudioNode, t: number, k: number) {
+  impulse(audio, out, t, 0.2 * k, 3600 * jitter(0.15), 0.9);
+  const base = 1700 * jitter(0.08);
+  modes(audio, out, t, [
+    [base, 0.01, 0.13 * k],
+    [base * (1.55 + Math.random() * 0.15), 0.007, 0.09 * k],
+    [base * (2.35 + Math.random() * 0.25), 0.004, 0.06 * k],
+  ]);
+  tone(audio, out, t, (380 + 140 * k) * jitter(0.1), 0.025 + 0.02 * k, (0.06 + 0.16 * k) * jitter(0.2), "sine", 260);
+  if (k > 0.45) tone(audio, out, t, 140 * jitter(0.1), 0.06, 0.1 * k, "sine", 80);
+}
+function v3Die(audio: AudioContext, out: AudioNode, t: number, k: number) {
+  const flam = 0.003 + Math.random() * 0.004;
+  for (const [at, g] of [[t, 1], [t + flam, 0.55]] as const) {
+    impulse(audio, out, at, 0.16 * k * g, 5200 * jitter(0.12), 1.3, 0.0025);
+    const base = 3000 * jitter(0.1);
+    modes(audio, out, at, [
+      [base, 0.006, 0.12 * k * g],
+      [base * (1.45 + Math.random() * 0.2), 0.004, 0.07 * k * g],
+    ]);
+  }
+}
+function v3Roll(audio: AudioContext, out: AudioNode, t: number, k: number) {
+  burst(audio, out, t, 0.09, 0.035 + 0.05 * k, "bandpass", 1500 * jitter(0.2), 2200, 1.1);
+  const ticks = 1 + Math.round(2 * k);
+  for (let i = 0; i < ticks; i++) impulse(audio, out, t + Math.random() * 0.08, (0.05 + 0.07 * k) * jitter(0.3), 3000 * jitter(0.2), 1.1);
+}
+function v3Settle(audio: AudioContext, out: AudioNode, t: number, k: number) {
+  let at = t,
+    gap = 0.04,
+    g = 0.1 * k;
+  for (let i = 0; i < 3; i++) {
+    impulse(audio, out, at, g, 3000 * jitter(0.15), 1);
+    tone(audio, out, at, 420 * jitter(0.1), 0.02, g * 0.6, "sine", 300);
+    at += gap;
+    gap *= 1.6;
+    g *= 0.5;
+  }
+}
+function v3Shake(audio: AudioContext, out: AudioNode, t: number, k: number) {
+  for (let i = 0; i < 5; i++) v3Die(audio, out, t + i * (0.022 + Math.random() * 0.018), 0.22 * k * jitter(0.35));
+}
+
 /**
  * Voice budget: physics can report dozens of contacts per throw. At most MAX_VOICES dice sounds ring
  * at once, and the same kind of sound is not repeated within a few milliseconds (louder hits win).
@@ -277,6 +336,26 @@ export function playSfx(name: Sfx, options: SfxOptions = {}) {
   const k = Math.max(0.15, Math.min(1, options.intensity ?? 1));
   const out = voice(audio, engine.out, options.pan ?? 0);
   const t = audio.currentTime + delay + 0.005;
+  if (variant === "v3") {
+    switch (name) {
+      case "impact":
+        if (k < 0.18 || !admit(audio, name, t, 0.08, k)) return;
+        return v3Table(audio, out, t, k);
+      case "clack":
+        if (k < 0.18 || !admit(audio, name, t, 0.04, k)) return;
+        return v3Die(audio, out, t, k);
+      case "roll":
+        if (!admit(audio, name, t, 0.1, k)) return;
+        return v3Roll(audio, out, t, k);
+      case "settle":
+        if (!admit(audio, name, t, 0.2, k)) return;
+        return v3Settle(audio, out, t, k);
+      case "throw":
+        return v3Shake(audio, out, t, k);
+      default:
+        break;
+    }
+  }
   if (variant === "v2") {
     switch (name) {
       case "impact":

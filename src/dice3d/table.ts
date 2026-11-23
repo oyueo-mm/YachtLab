@@ -105,6 +105,7 @@ export class DiceTable {
   private moves = new Map<number, () => void>();
   private disposed = false;
   private warmed = false;
+  private warmTimer = 0;
   width = 1;
   height = 1;
   private cameraDistance = 16;
@@ -176,30 +177,54 @@ export class DiceTable {
     this.camera.updateProjectionMatrix();
     this.light.position.set(this.width / 2 - 2.5, 9, this.height / 2 - 4);
     this.light.target.position.set(this.width / 2, 0, this.height / 2);
-    this.warmUp();
+    this.scheduleWarmUp();
     this.requestRender();
   }
 
-  /** Compile shaders once with dice outside the view, so the first throw does not stall. */
-  private warmUp() {
-    if (this.warmed) return;
+  /** Warm up soon after the first layout, when the main thread is idle (never later than ~0.6 s). */
+  private scheduleWarmUp() {
+    if (this.warmed || this.warmTimer) return;
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+    const run = () => {
+      this.warmTimer = 0;
+      this.warmUp();
+    };
+    this.warmTimer = w.requestIdleCallback ? w.requestIdleCallback(run, { timeout: 600 }) : window.setTimeout(run, 120);
+  }
+
+  /**
+   * Prepare the GPU before the first throw, in idle time after the table is laid out:
+   * compile both programs (dice, contact shadows), upload the face/shadow textures with their mipmaps,
+   * and issue one real draw with every die in view, then clear the canvas in the same task (nothing is
+   * ever shown). GPU drivers (and Chrome's GPU process) finish linking a program and preparing a texture
+   * only on the first draw that uses them, so `compile()` alone left that work for the first thrown frame.
+   * Measured: the first throw's worst frame came from exactly this wait (docs/ui/PHASE-A-2026-11.md).
+   */
+  warmUp() {
+    if (this.warmed || this.disposed) return;
     this.warmed = true;
     const ids = [0, 1, 2, 3, 4];
     const hidden = ids.filter((id) => !this.meshes.get(id)?.visible);
-    for (const id of ids) {
+    hidden.forEach((id, k) => {
       const m = this.mesh(id);
-      if (hidden.includes(id)) {
-        m.visible = true;
-        m.position.set(this.width / 2, -40, this.height / 2);
-      }
-    }
+      this.setVisible(id, m, true);
+      m.position.set(this.width / 2 + (k - 2) * 1.2, 0.5, this.height / 2);
+      const b = this.blobs.get(id)!;
+      b.position.set(m.position.x, 0.002, m.position.z);
+    });
     try {
       this.renderer.compile(this.scene, this.camera);
-      this.renderer.render(this.scene, this.camera);
+      for (const m of this.materials) if (m.map) this.renderer.initTexture(m.map);
+      this.renderer.initTexture(this.blob);
+      if (hidden.length) {
+        this.renderer.render(this.scene, this.camera);
+        this.renderer.clear();
+      }
     } catch {
-      // compile is an optimization only
+      // an optimization only
     }
     for (const id of hidden) this.setVisible(id, this.meshes.get(id)!, false);
+    this.requestRender();
   }
 
   /** Place dice statically; dice not listed are removed from view. Running slides are stopped. */
@@ -308,6 +333,7 @@ export class DiceTable {
 
   /** Play a pre-simulated throw for the dice in `result.tracks`; they stay at their final pose. */
   play(result: SimResult, opts: { rate?: number; onFrame?: () => void; onRoll?: (level: number) => void; onImpact?: (i: { strength: number; kind: "floor" | "wall" | "die"; x: number }) => void; onDone: () => void }): () => void {
+    this.warmUp();
     for (const t of result.tracks) this.cancelMove(t.id);
     const rate = opts.rate ?? 1.2;
     const impacts = [...result.impacts].sort((a, b) => a.frame - b.frame);
