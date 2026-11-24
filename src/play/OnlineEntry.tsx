@@ -1,7 +1,30 @@
-import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, LoaderCircle, LogIn, Plus } from "lucide-react";
-import { createRoom, joinRoom, roomFromUrl, roomSummary, saveName, saveSeat, savedName, savedSeat, savedSeats, setRoomInUrl, type SavedSeat } from "../online/client";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Bot, Eye, LoaderCircle, LogIn, Plus, Search, Shuffle, UsersRound, X } from "lucide-react";
+import {
+  QuickMatch,
+  createRoom,
+  joinRoom,
+  pendingQuick,
+  publicRooms,
+  publicWatchKey,
+  roomFromUrl,
+  roomSummary,
+  saveName,
+  saveSeat,
+  savedName,
+  savedSeat,
+  savedSeats,
+  serverFeatures,
+  setRoomInUrl,
+  watchLink,
+  type Features,
+  type PublicRoom,
+  type SavedSeat,
+} from "../online/client";
 import type { RoomSummary } from "../online/wire";
+import { session } from "../identity/account-client";
+import { startServerAi } from "../identity/economy-client";
+import { PlayerTag } from "./Looks";
 
 type Seat = { code: string; playerId: string; token: string };
 
@@ -107,17 +130,47 @@ function InviteJoin({ server, code, onJoined, onOther }: { server: string; code:
   );
 }
 
+type Tab = "quick" | "friend" | "watch";
+const TAB_KEY = "yachtlab.online.tab";
+const PUBLIC_KEY = "yachtlab.online.public";
+const readTab = (): Tab => {
+  try {
+    const t = localStorage.getItem(TAB_KEY);
+    return t === "friend" || t === "watch" || t === "quick" ? t : "quick";
+  } catch {
+    return "quick";
+  }
+};
+const clock = (ms: number) => {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+
 /**
- * Online start screen: a guest nickname, then "create a room" or "join with a code".
- * An invite link (`?room=CODE`) opens InviteJoin for that room instead.
+ * Online start screen with three tabs: 빠른 대전 (random opponent), 친구 대전 (invite code), 관전방
+ * (public matches). An invite link (`?room=CODE`) opens InviteJoin for that room instead.
+ * A server without quick match (older Worker, local Node dev server) shows the friend tab only.
  */
-export default function OnlineEntry({ server, onEnter, onBack }: { server: string; onEnter: (code: string) => void; onBack: () => void }) {
+export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server: string; onEnter: (code: string) => void; onBack: () => void; onAi?: () => void }) {
   const [name, setName] = useState(savedName);
-  const [code, setCode] = useState("");
   const [inviteCode, setInviteCode] = useState<string | null>(roomFromUrl);
-  const [busy, setBusy] = useState<"create" | "join" | null>(null);
-  const [error, setError] = useState("");
-  const [resume] = useState<SavedSeat[]>(savedSeats);
+  const [features, setFeatures] = useState<Features | null>(null);
+  const [tab, setTabState] = useState<Tab>(() => (pendingQuick() ? "quick" : readTab()));
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    try {
+      localStorage.setItem(TAB_KEY, t);
+    } catch {
+      /* ignore */
+    }
+  };
+  useEffect(() => {
+    let live = true;
+    void serverFeatures(server).then((f) => live && setFeatures(f));
+    return () => {
+      live = false;
+    };
+  }, [server]);
 
   // Invite link: if this browser already sits in that room, go straight back in (refresh / second tab).
   useEffect(() => {
@@ -141,24 +194,13 @@ export default function OnlineEntry({ server, onEnter, onBack }: { server: strin
         onOther={() => {
           setRoomInUrl(null);
           setInviteCode(null);
+          // "다른 방 만들기 · 코드로 입장" means the friend tab.
+          setTab("friend");
         }}
       />
     );
-  const run = async (kind: "create" | "join") => {
-    if (!trimmed) return setError("닉네임을 입력해 주세요.");
-    const target = code.trim().toUpperCase();
-    if (kind === "join" && !/^[A-Z2-9]{6}$/.test(target)) return setError("초대 코드 6자리를 입력해 주세요.");
-    setBusy(kind);
-    setError("");
-    try {
-      enter(kind === "create" ? await createRoom(server, trimmed) : await joinRoom(server, target, trimmed));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(null);
-    }
-  };
-
+  const quickOn = !!features?.quickMatch;
+  const shown: Tab = !features ? tab : !quickOn && tab !== "friend" ? "friend" : tab;
   return (
     <section className="setup online-entry" aria-labelledby="online-title">
       <div className="setup-head">
@@ -168,72 +210,356 @@ export default function OnlineEntry({ server, onEnter, onBack }: { server: strin
         <h1 id="online-title">온라인 대전</h1>
       </div>
       <div className="setup-body">
-        <p className="online-lead">친구에게 초대 코드를 보내 각자의 기기에서 1:1로 대결해요. 가입 없이 닉네임만 정하면 돼요.</p>
-        <label className="setup-field setup-text">
-          <span className="setup-label">닉네임</span>
-          <input aria-label="닉네임" value={name} maxLength={24} autoComplete="nickname" placeholder="예: 요트왕" onChange={(e) => setName(e.target.value)} />
-        </label>
-        <div className="online-actions">
-          <form
-            className="online-card"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void run("join");
-            }}
-          >
-            <strong>초대 코드로 입장</strong>
-            <input
-              aria-label="초대 코드"
-              className="online-code-input"
-              value={code}
-              maxLength={6}
-              placeholder="ABC234"
-              autoCapitalize="characters"
-              autoComplete="off"
-              spellCheck={false}
-              onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
-            />
-            <button type="submit" className="secondary" disabled={!!busy}>
-              <LogIn size={16} /> {busy === "join" ? "입장 중…" : "입장하기"}
-            </button>
-          </form>
-          <div className="online-card">
-            <strong>새 방 만들기</strong>
-            <span>방을 만들고 친구에게 코드나 링크를 보내요.</span>
-            <button type="button" className="primary" disabled={!!busy} onClick={() => void run("create")}>
-              <Plus size={16} /> {busy === "create" ? "만드는 중…" : "방 만들기"}
-            </button>
-          </div>
-        </div>
-        {error && (
-          <p className="error-message" role="alert">
-            {error}
-          </p>
-        )}
-        {resume.length > 0 && (
-          <div className="online-resume">
-            <span className="setup-label">참가 중인 방</span>
-            {resume.slice(0, 3).map((seat) => (
-              <button
-                key={seat.code}
-                type="button"
-                className="online-resume-item"
-                onClick={() => {
-                  setRoomInUrl(seat.code);
-                  onEnter(seat.code);
-                }}
-              >
-                <span>
-                  <strong>{seat.code}</strong> · {seat.name}
-                </span>
-                <span>
-                  다시 들어가기 <ArrowRight size={14} />
-                </span>
+        {quickOn && (
+          <div className="online-tabs" role="tablist" aria-label="온라인 대전 메뉴">
+            {(
+              [
+                ["quick", "빠른 대전", Shuffle],
+                ["friend", "친구 대전", UsersRound],
+                ["watch", "관전방", Eye],
+              ] as const
+            ).map(([id, label, Icon]) => (
+              <button key={id} type="button" role="tab" aria-selected={shown === id} className={shown === id ? "active" : ""} onClick={() => setTab(id)}>
+                <Icon size={15} /> {label}
               </button>
             ))}
           </div>
         )}
+        {shown !== "watch" && (
+          <label className="setup-field setup-text">
+            <span className="setup-label">닉네임</span>
+            <input aria-label="닉네임" value={name} maxLength={24} autoComplete="nickname" placeholder="예: 요트왕" onChange={(e) => setName(e.target.value)} />
+          </label>
+        )}
+        {!features ? (
+          <p className="online-lead" role="status">
+            <LoaderCircle size={15} className="spin" /> 서버 정보를 불러오는 중…
+          </p>
+        ) : shown === "quick" ? (
+          <QuickPanel server={server} name={trimmed} serverAi={!!features.serverAi} onMatched={(seat, as) => enter(seat, as)} onAi={onAi} onReturn={(code) => (setRoomInUrl(code), onEnter(code))} />
+        ) : shown === "watch" ? (
+          <WatchRooms server={server} />
+        ) : (
+          <FriendPanel server={server} name={trimmed} enter={enter} onEnter={onEnter} />
+        )}
       </div>
     </section>
+  );
+}
+
+/** Invite a friend: create a room or join with a code (the original online screen). */
+function FriendPanel({ server, name, enter, onEnter }: { server: string; name: string; enter: (seat: Seat) => void; onEnter: (code: string) => void }) {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState<"create" | "join" | null>(null);
+  const [error, setError] = useState("");
+  const [resume] = useState<SavedSeat[]>(savedSeats);
+  const run = async (kind: "create" | "join") => {
+    if (!name) return setError("닉네임을 입력해 주세요.");
+    const target = code.trim().toUpperCase();
+    if (kind === "join" && !/^[A-Z2-9]{6}$/.test(target)) return setError("초대 코드 6자리를 입력해 주세요.");
+    setBusy(kind);
+    setError("");
+    try {
+      enter(kind === "create" ? await createRoom(server, name) : await joinRoom(server, target, name));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <>
+      <p className="online-lead">친구에게 초대 코드를 보내 각자의 기기에서 1:1로 대결해요. 가입 없이 닉네임만 정하면 돼요.</p>
+      <div className="online-actions">
+        <form
+          className="online-card"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void run("join");
+          }}
+        >
+          <strong>초대 코드로 입장</strong>
+          <input
+            aria-label="초대 코드"
+            className="online-code-input"
+            value={code}
+            maxLength={6}
+            placeholder="ABC234"
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+          />
+          <button type="submit" className="secondary" disabled={!!busy}>
+            <LogIn size={16} /> {busy === "join" ? "입장 중…" : "입장하기"}
+          </button>
+        </form>
+        <div className="online-card">
+          <strong>새 방 만들기</strong>
+          <span>방을 만들고 친구에게 코드나 링크를 보내요.</span>
+          <button type="button" className="primary" disabled={!!busy} onClick={() => void run("create")}>
+            <Plus size={16} /> {busy === "create" ? "만드는 중…" : "방 만들기"}
+          </button>
+        </div>
+      </div>
+      {error && (
+        <p className="error-message" role="alert">
+          {error}
+        </p>
+      )}
+      {resume.length > 0 && (
+        <div className="online-resume">
+          <span className="setup-label">참가 중인 방</span>
+          {resume.slice(0, 3).map((seat) => (
+            <button
+              key={seat.code}
+              type="button"
+              className="online-resume-item"
+              onClick={() => {
+                setRoomInUrl(seat.code);
+                onEnter(seat.code);
+              }}
+            >
+              <span>
+                <strong>{seat.code}</strong> · {seat.name}
+              </span>
+              <span>
+                다시 들어가기 <ArrowRight size={14} />
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+/**
+ * Quick match: wait for a random real player. The public-spectating choice is asked before waiting
+ * (off by default; only matches both players allowed are listed). After 20 s without an opponent the
+ * player may keep waiting or play an AI match instead — an AI is always shown as an AI.
+ */
+function QuickPanel({ server, name, serverAi, onMatched, onAi, onReturn }: { server: string; name: string; serverAi: boolean; onMatched: (seat: Seat, as: string) => void; onAi?: () => void; onReturn: (code: string) => void }) {
+  const [aiBusy, setAiBusy] = useState(false);
+  const member = !!session();
+  /** Server-verified AI match (members): the server rolls the dice and plays the AI seat. */
+  const startAi = async () => {
+    if (!name) return setError("닉네임을 입력해 주세요.");
+    qm.current?.cancel();
+    qm.current = null;
+    setSince(null);
+    setAiBusy(true);
+    setError("");
+    try {
+      const seat = await startServerAi(server, name);
+      saveName(name);
+      onMatched(seat, name);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAiBusy(false);
+    }
+  };
+  const [spectate, setSpectate] = useState(() => {
+    try {
+      return localStorage.getItem(PUBLIC_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [since, setSince] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now);
+  const [error, setError] = useState("");
+  const [inMatch, setInMatch] = useState<string | null>(null);
+  const qm = useRef<QuickMatch | null>(null);
+  const start = (resume = pendingQuick()) => {
+    if (!resume && !name) return setError("닉네임을 입력해 주세요.");
+    setError("");
+    setInMatch(null);
+    setSince(resume?.at ?? Date.now());
+    const as = resume?.name ?? name;
+    if (!resume) saveName(as);
+    const q = new QuickMatch(
+      server,
+      { name: as, spectate, resume },
+      {
+        onQueued: () => undefined,
+        onMatched: (m) => {
+          qm.current = null;
+          onMatched({ code: m.code, playerId: m.playerId, token: m.token }, m.name);
+        },
+        onEnd: (code, message, room) => {
+          qm.current = null;
+          setSince(null);
+          setError(message);
+          if (code === "IN_MATCH" && room && savedSeat(room)) setInMatch(room);
+        },
+      },
+    );
+    qm.current = q;
+    q.start();
+  };
+  // A refresh while waiting continues the same wait (same ticket, same place).
+  useEffect(() => {
+    if (pendingQuick()) start();
+    return () => qm.current?.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (since === null) return;
+    const t = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, [since]);
+  const cancel = () => {
+    qm.current?.cancel();
+    qm.current = null;
+    setSince(null);
+  };
+  const waited = since === null ? 0 : now - since;
+  if (since !== null)
+    return (
+      <div className="quick-wait" role="status" aria-live="polite">
+        <Search size={26} className="quick-wait-icon" aria-hidden="true" />
+        <strong>상대를 찾는 중이에요</strong>
+        <span className="quick-wait-time">{clock(waited)}</span>
+        <span className="quick-wait-note">{session() ? "회원으로 매칭돼요." : "게스트로 매칭돼요."} 상대를 찾으면 바로 경기 화면으로 이동해요.</span>
+        {waited >= 20_000 && (
+          <div className="quick-wait-alt">
+            <span>상대가 아직 없어요. 계속 기다리거나 AI와 대전할 수 있어요.</span>
+            {serverAi && member && (
+              <button type="button" className="secondary" disabled={aiBusy} onClick={() => void startAi()}>
+                <Bot size={16} /> 서버 AI와 대전하기
+              </button>
+            )}
+            {onAi && (
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => {
+                  cancel();
+                  onAi();
+                }}
+              >
+                <Bot size={16} /> {serverAi && member ? "로컬 AI와 대전하기" : "AI와 대전하기"}
+              </button>
+            )}
+          </div>
+        )}
+        <button type="button" className="secondary" onClick={cancel}>
+          <X size={15} /> 매칭 취소
+        </button>
+      </div>
+    );
+  return (
+    <>
+      <p className="online-lead">지금 접속한 다른 플레이어와 무작위로 1:1 대결해요. 가입 없이 게스트로도 할 수 있어요.</p>
+      <label className="quick-public">
+        <input
+          type="checkbox"
+          checked={spectate}
+          onChange={(e) => {
+            setSpectate(e.target.checked);
+            try {
+              localStorage.setItem(PUBLIC_KEY, e.target.checked ? "1" : "0");
+            } catch {
+              /* ignore */
+            }
+          }}
+        />
+        <span>
+          <strong>내 경기를 관전방에 공개</strong>
+          <small>두 사람 모두 허용한 경기만 관전방 목록에 올라가요. 경기 중에 언제든 끌 수 있어요.</small>
+        </span>
+      </label>
+      <button type="button" className="primary online-start" onClick={() => start(null)}>
+        <Shuffle size={17} /> 빠른 대전 시작
+      </button>
+      {serverAi && member && (
+        <button type="button" className="secondary" disabled={aiBusy} onClick={() => void startAi()}>
+          <Bot size={16} /> {aiBusy ? "AI 대전 준비 중…" : "서버 AI와 대전 (보통)"}
+        </button>
+      )}
+      {error && (
+        <p className="error-message" role="alert">
+          {error}
+        </p>
+      )}
+      {inMatch && (
+        <button type="button" className="secondary" onClick={() => onReturn(inMatch)}>
+          진행 중인 경기로 돌아가기 <ArrowRight size={15} />
+        </button>
+      )}
+    </>
+  );
+}
+
+/** Public spectating list: refreshed every 10 s while this tab is visible; the live connection opens only on 관전하기. */
+function WatchRooms({ server }: { server: string }) {
+  const [rooms, setRooms] = useState<PublicRoom[] | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    const load = () => {
+      if (document.visibilityState === "hidden") return;
+      publicRooms(server)
+        .then((r) => live && (setRooms(r), setError("")))
+        .catch((e: Error) => live && setError(e.message));
+    };
+    load();
+    const t = setInterval(load, 10_000);
+    return () => {
+      live = false;
+      clearInterval(t);
+    };
+  }, [server]);
+  const watch = async (code: string) => {
+    setBusy(code);
+    setError("");
+    try {
+      const { key } = await publicWatchKey(server, code);
+      location.assign(watchLink(code, key));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setBusy(null);
+    }
+  };
+  return (
+    <div className="watch-rooms">
+      <p className="online-lead">두 플레이어가 공개를 허용한 빠른 대전을 볼 수 있어요. 관전자는 보기만 할 수 있어요.</p>
+      {error && (
+        <p className="error-message" role="alert">
+          {error}
+        </p>
+      )}
+      {rooms === null ? (
+        <p className="online-lead" role="status">
+          <LoaderCircle size={15} className="spin" /> 불러오는 중…
+        </p>
+      ) : rooms.length === 0 ? (
+        <p className="watch-empty">지금 공개된 경기가 없어요.</p>
+      ) : (
+        <ul className="watch-list" aria-label="공개 경기">
+          {rooms.map((r) => (
+            <li key={r.code}>
+              <div className="watch-players">
+                {r.players.map((p, i) => (
+                  <span key={i} className="watch-player">
+                    <PlayerTag name={p.name} look={p.look} compact />
+                    <strong>{p.score}</strong>
+                  </span>
+                ))}
+              </div>
+              <span className="watch-meta">
+                {r.round}/12 라운드 · 관전 {r.spectators}/{r.max}
+              </span>
+              <button type="button" className="secondary" disabled={busy !== null || r.spectators >= r.max} onClick={() => void watch(r.code)}>
+                <Eye size={15} /> {r.spectators >= r.max ? "가득 참" : busy === r.code ? "연결 중…" : "관전하기"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

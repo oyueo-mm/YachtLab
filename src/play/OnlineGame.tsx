@@ -15,11 +15,14 @@ import { toggleHoldOrder } from "../hold-order";
 import { useYachtReady } from "../yacht-moment";
 import { BonusChip, QuickPicks } from "../QuickPicks";
 import { playSfx } from "../sound";
+import { useSettings } from "../settings";
 import { OnlineConnection, forgetSeat, inviteLink, savedSeat, setRoomInUrl, watchLink, type ConnectionStatus } from "../online/client";
 import type { OnlineAction } from "../online/protocol";
 import type { PlayerView } from "../online/server-engine";
 import type { RematchState, SeriesSummary, SpectateState } from "../online/wire";
-import { ChipBubble, SocialPanel, SpectateControl, useBubbles } from "./Social";
+import { ChipBubble, EmoteBar, SocialPanel, SpectateControl, useBubbles } from "./Social";
+import { PlayerTag, boardOf, diceLookOf } from "./Looks";
+import { GUEST_LOOK, type PublicLook } from "../economy/live/catalog";
 import { saveLocalRecord } from "../identity/local";
 import { RULES_ID } from "../identity/records";
 import { publicProfile, type PublicProfile } from "../identity/account-client";
@@ -99,6 +102,9 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const [series, setSeries] = useState<SeriesSummary | null>(null);
   const [spectate, setSpectate] = useState<SpectateState | null>(null);
   const [members, setMembers] = useState<Record<string, string>>({});
+  const [looks, setLooks] = useState<Record<string, PublicLook>>({});
+  const [aiSeat, setAiSeat] = useState<string | null>(null);
+  const settings = useSettings();
   const [profileOf, setProfileOf] = useState<string | null>(null);
 
   useEffect(() => {
@@ -197,6 +203,8 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
       },
       onSpectate: setSpectate,
       onMembers: setMembers,
+      onLooks: setLooks,
+      onKind: (_kind, ai) => setAiSeat(ai?.playerId ?? null),
       onRematch(r, sr) {
         setRematch(r);
         setSeries(sr);
@@ -245,6 +253,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
 
   const me = view?.you ?? null;
   const players = view?.players ?? [];
+  const myLook = (me && looks[me.playerId]) || GUEST_LOOK;
   const opponent = players.find((p) => p.playerId !== me?.playerId) ?? null;
   /* ------------------------------------------------- derived game table (hooks stay above early returns) ------------------------------------------------- */
   const turn = view?.turn ?? null;
@@ -291,6 +300,14 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
     setMobileScoreOpen(false);
   };
   const remaining = deadline !== null && playing ? deadline - now : null;
+  // The winner's special effect (presentation only). Others' effects follow the "상대 아이템 효과" setting.
+  const winnerLook = finished && winners.length === 1 ? looks[winners[0]] : undefined;
+  const winnerFxItem = winnerLook && winnerLook.fx !== "fx.none" && (winners[0] === me?.playerId || settings.opponentFx) ? winnerLook : undefined;
+  const winnerFx = winnerFxItem ? ` fx-confetti fx-lv${winnerFxItem.fxLv}` : "";
+  const fxSound = winnerFxItem?.fxLv === 3 && !!view?.matchId;
+  useEffect(() => {
+    if (fxSound) playSfx("bonus");
+  }, [fxSound, view?.matchId]);
   const gesture = useThrowGesture(canRoll, roll);
   const yachtReady = useYachtReady(game.dice, rolls, myTurn && players[meIndex]?.card.yacht === undefined);
   const celebration = useGameSounds(game.cards, finished, outcome, syncKey);
@@ -373,7 +390,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         </div>
         <div className="online-lobby-tools">
           <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />
-          <SocialPanel onSend={(id) => conn.current?.say(id) ?? false} hideOpponent={social.hideOpponent} setHideOpponent={social.setHideOpponent} disabled={status !== "online"} />
+          <SocialPanel look={myLook} onSend={(id) => conn.current?.say(id) ?? false} hideOpponent={social.hideOpponent} setHideOpponent={social.setHideOpponent} disabled={status !== "online"} />
         </div>
         <ul className="online-players" aria-label="참가자">
           {[0, 1].map((i) => {
@@ -383,8 +400,10 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                 {p ? (
                   <>
                     <span className={"online-dot" + (online.includes(p.playerId) ? " on" : "")} aria-hidden="true" />
-                    <strong>{p.name}</strong>
-                    <ChipBubble bubble={social.bubbles[p.playerId]} />
+                    <strong>
+                      <PlayerTag name={p.name} look={looks[p.playerId]} me={p.playerId === me?.playerId} />
+                    </strong>
+                    <ChipBubble bubble={social.bubbles[p.playerId]} look={looks[p.playerId]} mine={p.playerId === me?.playerId} />
                     {p.playerId === me?.playerId && <span className="online-tag">나</span>}
                     {i === 0 && (
                       <span className="online-tag host">
@@ -428,36 +447,44 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
     <>
       <div className="game-grid online-game">
         <div className="game-left">
-          <div className="game-tools">
+          <div className="game-tools online-tools">
             <span className="online-code-chip">
               {status === "online" ? <Wifi size={14} /> : <WifiOff size={14} />} 방 {code}
             </span>
-            <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />
-            <SocialPanel onSend={(id) => conn.current?.say(id) ?? false} hideOpponent={social.hideOpponent} setHideOpponent={social.setHideOpponent} disabled={status !== "online"} />
-            {playing && (
-              <button
-                type="button"
-                className="text-button"
-                onClick={() =>
-                  setConfirm({
-                    title: "기권할까요?",
-                    message: "기권하면 이 경기는 상대의 승리로 끝나요.",
-                    confirmLabel: "기권",
-                    run: () => void send({ type: "resign" }, false),
-                  })
-                }
-              >
-                <Flag size={15} /> 기권
-              </button>
-            )}
+            {/* Chat and emotes: right next to the board, always rendered (disabled while offline). */}
+            <div className="online-tool-group online-social-tools">
+              <EmoteBar look={myLook} onSend={(id) => conn.current?.say(id) ?? false} disabled={status !== "online"} />
+              <SocialPanel look={myLook} onSend={(id) => conn.current?.say(id) ?? false} hideOpponent={social.hideOpponent} setHideOpponent={social.setHideOpponent} disabled={status !== "online"} />
+            </div>
+            {/* Room settings, kept apart from the chat buttons. */}
+            <div className="online-tool-group online-room-tools">
+              {!aiSeat && <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />}
+              {playing && (
+                <button
+                  type="button"
+                  className="text-button online-resign"
+                  onClick={() =>
+                    setConfirm({
+                      title: "기권할까요?",
+                      message: "기권하면 이 경기는 상대의 승리로 끝나요.",
+                      confirmLabel: "기권",
+                      run: () => void send({ type: "resign" }, false),
+                    })
+                  }
+                >
+                  <Flag size={15} /> 기권
+                </button>
+              )}
+            </div>
           </div>
           <div className="score-summary">
             {players.map((p, seatIndex) => (
               <div key={p.playerId} className={!finished && turnIndex === seatIndex ? "selected" : ""} data-seat={seatIndex} data-role={p.playerId === me?.playerId ? "human" : "opponent"}>
-                <ChipBubble bubble={social.bubbles[p.playerId]} />
+                <ChipBubble bubble={social.bubbles[p.playerId]} look={looks[p.playerId]} mine={p.playerId === me?.playerId} />
                 <span>
-                  {p.name}
+                  <PlayerTag name={p.name} look={looks[p.playerId]} me={p.playerId === me?.playerId} compact />
                   {p.playerId === me?.playerId ? " (나)" : ""}
+                  {p.playerId === aiSeat && <span className="ai-badge">서버 AI</span>}
                 </span>
                 <strong>
                   {p.total}
@@ -475,7 +502,12 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
             {me && <BonusChip card={players[meIndex]?.card ?? {}} />}
           </div>
           {banner}
-          <section className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "")} aria-label="게임 보드" {...gesture}>
+          <section
+            className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (boardOf(myLook) ? " board-themed" : "")}
+            style={boardOf(myLook) ? ({ "--board-color": boardOf(myLook) } as React.CSSProperties) : undefined}
+            aria-label="게임 보드"
+            {...gesture}
+          >
             <Celebrate value={celebration} />
             <div className="board-top">
               <span className="turn-indicator">
@@ -486,7 +518,8 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                 굴림 <b>{rolls}</b> / 3
               </span>
             </div>
-            <DiceArea state={game} interactive={can && rolls > 0 && rolls < 3} animate rollEvent={rollEvent} onToggle={toggle} holdOrder={rolls > 0 ? keep : []} />
+            {/* The dice show the theme of the player whose turn it is — the same on both screens. */}
+            <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={can && rolls > 0 && rolls < 3} animate rollEvent={rollEvent} onToggle={toggle} holdOrder={rolls > 0 ? keep : []} />
             <div className="roll-area">
               <button className={"primary roll-button" + (myTurn ? "" : " waiting")} disabled={!canRoll} onClick={roll}>
                 <Dices size={20} />
@@ -500,7 +533,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
               <QuickPicks values={game.dice.map((d) => d.value)} card={players[meIndex]?.card ?? {}} rolls={rolls} canScore={can} onScore={record} />
             </div>
             {finished && (
-              <div className="game-result online-result" role="status">
+              <div className={"game-result online-result" + winnerFx} role="status">
                 <Trophy size={25} />
                 <h2>{outcome === "draw" ? "무승부입니다" : outcome === "win" ? "승리했습니다!" : `${players.find((p) => p.playerId === winners[0])?.name ?? "상대"} 님이 승리했습니다`}</h2>
                 <p className="online-final">

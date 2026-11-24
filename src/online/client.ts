@@ -1,7 +1,9 @@
 import type { OnlineAction } from "./protocol";
-import { authHeader } from "../identity/account-client";
+import { authHeader, session } from "../identity/account-client";
 import type { PlayerView } from "./server-engine";
-import type { ApiError, HoldState, JoinResponse, RematchOp, RematchState, RoomSummary, SeriesSummary, ServerMessage, SpectateState } from "./wire";
+import type { AiSeat, ApiError, HoldState, JoinResponse, RematchOp, RematchState, RoomSummary, SeriesSummary, ServerMessage, SpectateState } from "./wire";
+import type { PublicLook } from "../economy/live/catalog";
+import type { MatchKind } from "../economy/live/config";
 
 /**
  * Browser side of YachtLab Online (Phase 2): server address, saved seats, HTTP calls and a
@@ -160,6 +162,164 @@ export const createRoom = (base: string, name: string) => call<JoinResponse>(bas
 export const joinRoom = (base: string, code: string, name: string) => call<JoinResponse>(base, `/api/rooms/${code}/join`, { name });
 export const roomSummary = (base: string, code: string) => call<RoomSummary>(base, `/api/rooms/${code}`);
 
+/* ------------------------------------------------------------- features / public spectating ------------------------------------------------------------- */
+
+export type Features = { quickMatch: boolean; publicSpectate: boolean; signIn: boolean; serverAi?: boolean; economy?: boolean };
+const featureCache = new Map<string, Promise<Features>>();
+/** What the server offers. An older server (or the local Node dev server) answers 404: friend play only. */
+export function serverFeatures(base: string): Promise<Features> {
+  let p = featureCache.get(base);
+  if (!p) {
+    p = call<Features>(base, "/api/features").catch(() => ({ quickMatch: false, publicSpectate: false, signIn: false }));
+    featureCache.set(base, p);
+  }
+  return p;
+}
+export type PublicRoom = { code: string; players: { name: string; score: number; look: PublicLook }[]; round: number; spectators: number; max: number };
+export const publicRooms = (base: string) => call<{ rooms: PublicRoom[] }>(base, "/api/spectate/rooms").then((r) => r.rooms);
+/** Ask for the watch key of a listed match (only while it is listed and has room for one more viewer). */
+export const publicWatchKey = (base: string, code: string) => call<{ code: string; key: string }>(base, `/api/spectate/${code}/watch`, {});
+
+/* ------------------------------------------------------------------ quick match ------------------------------------------------------------------ */
+
+const DEVICE_KEY = "yachtlab.device";
+const QUICK_KEY = "yachtlab.quickmatch";
+const randomId = () => {
+  const b = crypto.getRandomValues(new Uint8Array(24));
+  return btoa(String.fromCharCode(...b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
+/** A random id of this browser (not secret): two tabs of one browser are never paired together. */
+export function deviceId(): string {
+  try {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id || !/^[A-Za-z0-9_-]{22,64}$/.test(id)) {
+      id = randomId();
+      localStorage.setItem(DEVICE_KEY, id);
+    }
+    return id;
+  } catch {
+    return randomId();
+  }
+}
+/** The wait in progress in this tab (survives a refresh; a tab is one ticket). */
+export type PendingQuick = { ticket: string; name: string; spectate: boolean; at: number };
+export function pendingQuick(): PendingQuick | null {
+  try {
+    const p = JSON.parse(sessionStorage.getItem(QUICK_KEY) ?? "null") as PendingQuick | null;
+    return p && typeof p.ticket === "string" && Date.now() - p.at < 5 * 60_000 ? p : null;
+  } catch {
+    return null;
+  }
+}
+function savePending(p: PendingQuick | null) {
+  try {
+    if (p) sessionStorage.setItem(QUICK_KEY, JSON.stringify(p));
+    else sessionStorage.removeItem(QUICK_KEY);
+  } catch {
+    /* private mode */
+  }
+}
+export type QuickMatched = { code: string; playerId: string; token: string; name: string; opponent: string; public: boolean };
+export type QuickEvents = {
+  onQueued(since: number): void;
+  onMatched(m: QuickMatched): void;
+  /** A final answer: refused, expired, server limit… (`room` = the match this player is already in). */
+  onEnd(code: string, message: string, room?: string): void;
+};
+
+/**
+ * Quick match: one WebSocket to the server's queue. Sends `alive` every 15 s (a silent socket is
+ * dropped as a ghost), reconnects with the same ticket after a network drop or a refresh, and gives up
+ * after 5 minutes. The server decides the pairing; this only shows it.
+ */
+export class QuickMatch {
+  private ws: WebSocket | null = null;
+  private alive: ReturnType<typeof setInterval> | undefined;
+  private retry: ReturnType<typeof setTimeout> | undefined;
+  private done = false;
+  private attempts = 0;
+  readonly pending: PendingQuick;
+  constructor(
+    private readonly base: string,
+    opts: { name: string; spectate: boolean; resume?: PendingQuick | null },
+    private readonly events: QuickEvents,
+  ) {
+    this.pending = opts.resume ?? { ticket: randomId(), name: opts.name, spectate: opts.spectate, at: Date.now() };
+  }
+  start() {
+    savePending(this.pending);
+    this.open();
+  }
+  private open() {
+    if (this.done) return;
+    const ws = new WebSocket(this.base.replace(/^http/, "ws") + "/ws/match");
+    this.ws = ws;
+    ws.onopen = () => {
+      this.attempts = 0;
+      ws.send(JSON.stringify({ t: "queue", name: this.pending.name, ticket: this.pending.ticket, device: deviceId(), spectate: this.pending.spectate, ...(session() ? { session: session() } : {}) }));
+      clearInterval(this.alive);
+      this.alive = setInterval(() => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify({ t: "alive" })), 15_000);
+    };
+    ws.onmessage = (e) => {
+      let m: Record<string, unknown>;
+      try {
+        m = JSON.parse(String(e.data));
+      } catch {
+        return;
+      }
+      if (m.t === "queued") this.events.onQueued(Number(m.since) || Date.now());
+      else if (m.t === "matched") {
+        this.finish();
+        this.events.onMatched(m as unknown as QuickMatched);
+      } else if (m.t === "expired") {
+        this.finish();
+        this.events.onEnd("EXPIRED", String(m.message ?? "상대를 찾지 못했어요."));
+      } else if (m.t === "error") {
+        this.finish();
+        this.events.onEnd(String(m.code), String(m.message), typeof m.room === "string" ? m.room : undefined);
+      }
+    };
+    ws.onclose = () => {
+      clearInterval(this.alive);
+      if (this.ws !== ws || this.done) return;
+      // Network drop: come back with the same ticket (the server keeps the place / the result).
+      if (++this.attempts > 6 || Date.now() - this.pending.at > 5 * 60_000) {
+        this.finish();
+        return this.events.onEnd("NETWORK", "서버와 연결이 끊어졌어요. 다시 시도해 주세요.");
+      }
+      this.retry = setTimeout(() => this.open(), Math.min(8000, 500 * 2 ** this.attempts));
+    };
+  }
+  private finish() {
+    this.done = true;
+    savePending(null);
+    clearInterval(this.alive);
+    clearTimeout(this.retry);
+  }
+  /** Leave the queue. */
+  cancel() {
+    const ws = this.ws;
+    this.finish();
+    try {
+      if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: "cancel" }));
+      ws?.close();
+    } catch {
+      /* closed */
+    }
+  }
+  /** The screen went away without cancelling (navigation): keep nothing running. */
+  stop() {
+    this.done = true;
+    clearInterval(this.alive);
+    clearTimeout(this.retry);
+    try {
+      this.ws?.close();
+    } catch {
+      /* closed */
+    }
+  }
+}
+
 /* ----------------------------------------------------------------- socket ----------------------------------------------------------------- */
 
 export type ConnectionStatus = "connecting" | "online" | "reconnecting" | "closed";
@@ -183,6 +343,9 @@ export type ConnectionEvents = {
   onMembers?(members: Record<string, string>): void;
   /** Spectators: how many are watching (from the spectator welcome). */
   onWatching?(spectators: number): void;
+  /** Server-validated looks of the seats (equipped items), and how the room was made. */
+  onLooks?(looks: Record<string, PublicLook>): void;
+  onKind?(kind: MatchKind, ai: AiSeat | null): void;
   onPresence(online: string[]): void;
   onStatus(status: ConnectionStatus): void;
   /** The seat is gone (bad token, left, room closed): stop and go back to the entry screen. */
@@ -306,6 +469,8 @@ export class OnlineConnection {
         if (msg.rematch && msg.series) this.events.onRematch?.(msg.rematch, msg.series);
         if (msg.spectate) this.events.onSpectate?.(msg.spectate);
         if (msg.members) this.events.onMembers?.(msg.members);
+        if (msg.looks) this.events.onLooks?.(msg.looks);
+        this.events.onKind?.(msg.kind ?? "friend", msg.ai ?? null);
         // Commands whose ack was lost are sent again with the same id (applied at most once).
         for (const p of this.pending.values()) this.ws?.send(p.frame);
         return;
@@ -315,6 +480,8 @@ export class OnlineConnection {
         this.setStatus("online");
         this.events.onPresence(msg.online);
         this.events.onWatching?.(msg.spectators);
+        if (msg.looks) this.events.onLooks?.(msg.looks);
+        this.events.onKind?.(msg.kind ?? "friend", msg.ai ?? null);
         this.events.onView(msg.view, false, msg.hold ?? null);
         this.events.onRematch?.({ requests: [], declinedBy: null, departed: [], blocked: null }, msg.series);
         return;
@@ -323,6 +490,9 @@ export class OnlineConnection {
         return;
       case "members":
         this.events.onMembers?.(msg.members);
+        return;
+      case "looks":
+        this.events.onLooks?.(msg.looks);
         return;
       case "view":
         this.since = msg.view.version;

@@ -80,6 +80,14 @@ test.afterAll(async () => {
 const entry = (room?: string) =>
   `?online-server=${encodeURIComponent(active.url)}${room ? `&room=${room}` : ""}#online`;
 
+/** Online entry on the 친구 대전 tab (servers with quick match open on 빠른 대전). */
+async function openFriend(p: Page) {
+  await p.goto(entry());
+  const friend = p.getByRole("tab", { name: "친구 대전" });
+  await expect(p.getByRole("button", { name: "방 만들기" }).or(friend)).toBeVisible();
+  if (await friend.count()) await friend.click();
+}
+
 async function device(browser: Browser, kind: "desktop" | "phone") {
   const context = await browser.newContext({
     ...(kind === "phone"
@@ -94,7 +102,7 @@ async function device(browser: Browser, kind: "desktop" | "phone") {
 async function createAndJoin(browser: Browser) {
   const a = await device(browser, "desktop");
   const b = await device(browser, "phone");
-  await a.goto(entry());
+  await openFriend(a);
   await a.getByLabel("닉네임").fill("민수");
   await a.getByRole("button", { name: "방 만들기" }).click();
   await expect(a.getByRole("heading", { name: "대기실" })).toBeVisible();
@@ -226,7 +234,7 @@ for (const kind of ["node", "workers"] as const) {
         // the sender's score chip; hiding the opponent's messages works; free text cannot be typed.
         await a.getByRole("button", { name: "채팅·이모티콘" }).click();
         await expect(a.getByRole("dialog", { name: "채팅·이모티콘" }).locator("input[type=text], textarea")).toHaveCount(0);
-        await a.getByRole("button", { name: "박수" }).click();
+        await a.getByRole("dialog", { name: "채팅·이모티콘" }).getByRole("button", { name: "박수" }).click();
         await expect(b.locator(".score-summary [data-role='opponent'] .chip-bubble")).toHaveText("👏");
         await expect(a.locator(".score-summary [data-role='human'] .chip-bubble")).toHaveText("👏");
         await b.getByRole("button", { name: "채팅·이모티콘" }).click();
@@ -424,7 +432,7 @@ for (const kind of ["node", "workers"] as const) {
         );
         const a = await device(browser, "desktop");
         const b = await device(browser, "phone");
-        await a.goto(entry());
+        await openFriend(a);
         await a.getByLabel("닉네임").fill("하늘");
         await a.getByRole("button", { name: "방 만들기" }).click();
         await expect(a.getByRole("heading", { name: "대기실" })).toBeVisible();
@@ -449,7 +457,7 @@ for (const kind of ["node", "workers"] as const) {
           "하늘",
         );
         const c = await device(browser, "desktop");
-        await c.goto(entry());
+        await openFriend(c);
         await c.getByLabel("닉네임").fill("손님");
         await c.getByLabel("초대 코드").fill("ZZZZZZ");
         await c.getByRole("button", { name: "입장하기" }).click();
@@ -465,7 +473,7 @@ for (const kind of ["node", "workers"] as const) {
         );
         const a = await device(browser, "desktop");
         const b = await device(browser, "phone");
-        await a.goto(entry());
+        await openFriend(a);
         await a.getByLabel("닉네임").fill("초대자");
         await a.getByRole("button", { name: "방 만들기" }).click();
         await expect(a.getByRole("heading", { name: "대기실" })).toBeVisible();
@@ -583,7 +591,7 @@ for (const kind of ["node", "workers"] as const) {
         };
         const a = await narrow();
         const b = await narrow();
-        await a.goto(entry());
+        await openFriend(a);
         expect(await fits(a)).toBe(true);
         await a.getByLabel("닉네임").fill("가나다라마바사아자차");
         await a.getByRole("button", { name: "방 만들기" }).click();

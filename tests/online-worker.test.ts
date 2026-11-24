@@ -243,3 +243,90 @@ describe("Online Phase 3 — Workers + SQLite Durable Objects (wrangler dev, loc
     expect(evil.status).toBe(403);
   });
 });
+
+/* ------------------------------------------------------------ Phase 4.5: quick match ------------------------------------------------------------ */
+import WebSocket from "ws";
+function queueSocket(w: LocalWorker, body: Record<string, unknown>) {
+  const ws = new WebSocket(w.url.replace("http", "ws") + "/ws/match", { origin: "http://127.0.0.1:5173" });
+  const messages: Record<string, any>[] = [];
+  const wait = (t: string, ms = 5000) =>
+    new Promise<Record<string, any>>((resolve, reject) => {
+      const found = messages.find((m) => m.t === t);
+      if (found) return resolve(found);
+      const timer = setTimeout(() => reject(new Error("timeout " + t)), ms);
+      ws.on("message", (d) => {
+        const m = JSON.parse(d.toString());
+        if (m.t === t) {
+          clearTimeout(timer);
+          resolve(m);
+        }
+      });
+    });
+  ws.on("message", (d) => messages.push(JSON.parse(d.toString())));
+  ws.on("open", () => ws.send(JSON.stringify({ t: "queue", ...body })));
+  return { ws, messages, wait };
+}
+const tk = (n: number) => ("tk" + n).padEnd(30, "q");
+
+describe("Phase 4.5 — 빠른 대전·공개 관전 (wrangler dev, local)", () => {
+  it("두 게스트가 매칭되어 시작된 방에 들어가고, 둘 다 공개를 허용하면 관전방 목록에 뜨며 관전자는 목록에서 바로 볼 수 있다", async () => {
+    const features = await (await fetch(main.url + "/api/features", { headers: { origin: "http://127.0.0.1:5173" } })).json();
+    expect(features).toMatchObject({ quickMatch: true, publicSpectate: true });
+    const a = queueSocket(main, { name: "민수", ticket: tk(1), device: tk(11), spectate: true });
+    await a.wait("queued");
+    const b = queueSocket(main, { name: "지민", ticket: tk(2), device: tk(12), spectate: true });
+    const [ma, mb] = await Promise.all([a.wait("matched"), b.wait("matched")]);
+    expect(ma.code).toBe(mb.code);
+    const ca = new Client(main.url, ma.code);
+    const cb = new Client(main.url, mb.code);
+    const wa = (await ca.hello(ma.token)) as Extract<ServerMessage, { t: "welcome" }>;
+    await cb.hello(mb.token);
+    expect(wa.kind).toBe("random");
+    expect(wa.view.status).toBe("playing");
+    expect(wa.spectate?.public).toBe(true);
+    // invite join into a quick-match room is refused
+    expect((await api(main, `/api/rooms/${ma.code}/join`, { name: "끼어들기" })).status).toBe(409);
+    // public list: names, scores, round — no tokens or keys
+    const list = await (await fetch(main.url + "/api/spectate/rooms", { headers: { origin: "http://127.0.0.1:5173" } })).json();
+    const entry = list.rooms.find((r: { code: string }) => r.code === ma.code);
+    expect(entry).toMatchObject({ round: 1, spectators: 0, max: 5 });
+    expect(JSON.stringify(list)).not.toContain(ma.token);
+    const watch = await api(main, `/api/spectate/${ma.code}/watch`, {});
+    expect(watch.status).toBe(200);
+    const spectator = new Client(main.url, ma.code);
+    await spectator.opened();
+    const watching = spectator.next((m) => m.t === "watching");
+    spectator.ws.send(JSON.stringify({ t: "watch", key: watch.body.key }));
+    expect((await watching).t).toBe("watching");
+    // a player withdraws: the spectator is disconnected and the room leaves the list
+    ca.ws.send(JSON.stringify({ t: "spectate", allow: false }));
+    await new Promise((r) => setTimeout(r, 400));
+    expect(spectator.closed?.code).toBe(4003);
+    const after = await (await fetch(main.url + "/api/spectate/rooms?x=1", { headers: { origin: "http://127.0.0.1:5173" } })).json();
+    expect(after.rooms.find((r: { code: string }) => r.code === ma.code)).toBeUndefined();
+    expect((await api(main, `/api/spectate/${ma.code}/watch`, {})).status).toBe(409);
+  }, 60_000);
+
+  it("서버 AI 대전은 회원 전용: 로그인이 꺼진 서버·세션 없는 요청은 방을 만들지 않는다", async () => {
+    const before = await (await fetch(main.url + "/usage")).json();
+    const r = await api(main, "/api/ai/start", { name: "민수" });
+    expect(r.status).toBe(404);
+    expect(r.body.error.code).toBe("AUTH_DISABLED");
+    const after = await (await fetch(main.url + "/usage")).json();
+    expect(after.roomsToday).toBe(before.roomsToday);
+    expect((await (await fetch(main.url + "/api/features", { headers: { origin: "http://127.0.0.1:5173" } })).json()).serverAi).toBe(false);
+  });
+
+  it("같은 기기의 두 탭은 서로 매칭되지 않고, 취소하면 대기열에서 빠진다", async () => {
+    const a = queueSocket(main, { name: "혼자", ticket: tk(3), device: tk(13) });
+    await a.wait("queued");
+    const b = queueSocket(main, { name: "혼자2", ticket: tk(4), device: tk(13) });
+    await b.wait("queued");
+    await new Promise((r) => setTimeout(r, 300));
+    expect(a.messages.find((m) => m.t === "matched")).toBeUndefined();
+    a.ws.send(JSON.stringify({ t: "cancel" }));
+    b.ws.send(JSON.stringify({ t: "cancel" }));
+    await new Promise((r) => setTimeout(r, 200));
+    expect(a.ws.readyState).toBeGreaterThanOrEqual(2);
+  }, 30_000);
+});

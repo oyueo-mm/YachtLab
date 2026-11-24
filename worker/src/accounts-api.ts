@@ -25,9 +25,15 @@ import type { PrivateProfile, PublicProfile } from "./account";
  * Worker's own origin during the Google redirect.
  */
 export type AuthConfig = { clientId: string; clientSecret: string; secret: string; appUrl: string; provider: OidcProvider } | null;
-export function authConfig(env: { GOOGLE_CLIENT_ID?: string; GOOGLE_CLIENT_SECRET?: string; AUTH_SECRET?: string; APP_URL?: string }): AuthConfig {
+export function authConfig(env: { GOOGLE_CLIENT_ID?: string; GOOGLE_CLIENT_SECRET?: string; AUTH_SECRET?: string; APP_URL?: string; TEST_OIDC_ISSUER?: string }): AuthConfig {
   const { GOOGLE_CLIENT_ID: id, GOOGLE_CLIENT_SECRET: secret, AUTH_SECRET: key, APP_URL: app } = env;
-  if (!id || !secret || !key || key.length < 32 || !app || !/^https:\/\//.test(app)) return null;
+  if (!id || !secret || !key || key.length < 32 || !app) return null;
+  // Local end-to-end tests only: a fake identity provider on this machine. It is honoured only when
+  // the app itself is a loopback http address, which a deployed Worker can never have (Google needs https).
+  const test = env.TEST_OIDC_ISSUER;
+  if (test && /^http:\/\/127\.0\.0\.1:\d+$/.test(test) && /^http:\/\/127\.0\.0\.1:\d+\//.test(app))
+    return { clientId: id, clientSecret: secret, secret: key, appUrl: app, provider: { name: "google", authorizationEndpoint: test + "/auth", tokenEndpoint: test + "/token", jwksUri: test + "/jwks", issuers: [test] } };
+  if (!/^https:\/\//.test(app)) return null;
   return { clientId: id, clientSecret: secret, secret: key, appUrl: app, provider: GOOGLE };
 }
 
@@ -43,7 +49,16 @@ export interface UserApi {
   logoutAll(): Promise<void>;
   deleteAccount(): Promise<string[]>;
   publicProfile(): Promise<PublicProfile | null>;
+  /* Phase 5/6 economy (optional: tests of the account API may omit them) */
+  economy?(): Promise<EconResult>;
+  buy?(itemId: unknown, currency: unknown, requestId: string): Promise<EconResult>;
+  upgrade?(itemId: unknown, requestId: string): Promise<EconResult>;
+  buySlot?(kind: unknown, currency: unknown, requestId: string): Promise<EconResult>;
+  setLoadout?(loadout: unknown): Promise<EconResult>;
+  rerollQuest?(index: number): Promise<EconResult>;
 }
+export type EconResult = { ok: true; snapshot: unknown; duplicate?: boolean } | { ok: false; code: string; message: string };
+const REQUEST_ID = /^[A-Za-z0-9_-]{8,64}$/;
 export interface GuestApi {
   /** First claim wins; the same account may claim again (retries). */
   claim(userId: string): Promise<"ok" | "taken">;
@@ -176,7 +191,21 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
   const user = b.user(me.userId);
   if (path === "/api/me" && method === "GET") return reply(200, { profile: await user.me() });
   if (path === "/api/me/records" && method === "GET") return reply(200, { records: await user.records(Number(url.searchParams.get("limit") ?? 300) || 300) });
+  /* ---------------- economy (server-side only; the client never sends amounts) ---------------- */
+  const econ = (r: EconResult) => (r.ok ? reply(200, { snapshot: r.snapshot, duplicate: r.duplicate ?? false }) : fail(r.code === "ECONOMY_OFF" ? 404 : r.code === "INSUFFICIENT" ? 402 : 400, r.code, r.message));
+  if (path === "/api/me/economy" && method === "GET" && user.economy) return econ(await user.economy());
   if (method !== "POST") return fail(404, "NOT_FOUND", "없는 주소입니다.");
+  if (path.startsWith("/api/me/shop/") || path === "/api/me/loadout" || path === "/api/me/quests/reroll") {
+    if (!user.buy) return fail(404, "ECONOMY_OFF", "재화 기능은 아직 준비 중이에요.");
+    const input = await body(request, 4096);
+    const rid = typeof input.requestId === "string" && REQUEST_ID.test(input.requestId) ? input.requestId : null;
+    if (path === "/api/me/loadout") return econ(await user.setLoadout!(input.loadout));
+    if (path === "/api/me/quests/reroll") return econ(await user.rerollQuest!(Number.isInteger(input.index) ? (input.index as number) : -1));
+    if (!rid) return fail(400, "INVALID", "요청 정보가 올바르지 않아요.");
+    if (path === "/api/me/shop/buy") return econ(await user.buy(input.itemId, input.currency, rid));
+    if (path === "/api/me/shop/upgrade") return econ(await user.upgrade!(input.itemId, rid));
+    if (path === "/api/me/shop/slot") return econ(await user.buySlot!(input.kind, input.currency, rid));
+  }
   if (path === "/api/me/nickname") {
     const result = await user.setNickname((await body(request, 1024)).nickname);
     return result.ok ? reply(200, result) : fail(400, "NICKNAME", result.message);

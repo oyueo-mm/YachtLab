@@ -10,6 +10,7 @@ import OnlineEntry from "./play/OnlineEntry";
 import OnlineGame from "./play/OnlineGame";
 import OnlineWatch from "./play/OnlineWatch";
 import Profile from "./shell/Profile";
+import { AchievementsPage, InventoryPage, QuestsPage, ShopPage } from "./shell/EconomyPages";
 import { completeSignIn } from "./identity/account-client";
 import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl } from "./online/client";
 import { currentRoute, routes, type Route } from "./routes";
@@ -18,6 +19,7 @@ import { Lobby, OfflineSelect, OnlineSoon } from "./shell/Lobby";
 import { AiSetupScreen, LocalSetupScreen } from "./shell/Setup";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { installAudioUnlock } from "./sound";
+import { useUpdateAvailable } from "./version";
 import { diceRenderer } from "./settings";
 import { preloadDiceTableWhenIdle } from "./dice3d-loader";
 import { aiMatchConfig, finalizeNames, getAiSetup, getLocalSetup, type AiMatchConfig, type LocalOrder } from "./setup";
@@ -145,6 +147,8 @@ export default function App() {
     document.title = page === "home" ? "YachtLab" : routes[page].title + " · YachtLab";
   }, [page]);
   const shell = routes[page].shell;
+  // Online screens need the latest page (server protocol); an old cached page asks for a reload.
+  const updateAvailable = useUpdateAvailable(page === "online" || page === "online-room" || page === "spectate" ? page : null);
   const progress = (value: boolean) => {
     inProgress.current = value;
   };
@@ -153,6 +157,14 @@ export default function App() {
       <TopBar route={page} navigate={navigate} openSettings={() => setSettingsOpen(true)} />
       {shell === "lab" && <LabNav route={page} navigate={navigate} />}
       <main className={`main page-${page}`}>
+        {updateAvailable && (page === "online" || page === "online-room" || page === "spectate" || page === "home") && (
+          <p className="update-banner" role="status">
+            새 버전이 나왔어요. 새로고침하면 최신 기능을 쓸 수 있어요.
+            <button type="button" className="secondary" onClick={() => location.reload()}>
+              새로고침
+            </button>
+          </p>
+        )}
         {page === "home" && <Lobby navigate={navigate} />}
         {page === "offline" && <OfflineSelect navigate={navigate} />}
         {(page === "online" || page === "online-room") && !onlineServer && <OnlineSoon navigate={navigate} />}
@@ -167,6 +179,7 @@ export default function App() {
               key={gameKey}
               server={onlineServer}
               onBack={() => navigate("home")}
+              onAi={() => navigate("play-setup")}
               onEnter={(code) => {
                 setOnlineNotice("");
                 setOnlineCode(code);
@@ -191,6 +204,10 @@ export default function App() {
           />
         )}
         {page === "profile" && <Profile key={profileNotice} server={onlineServer} notice={profileNotice} />}
+        {page === "shop" && <ShopPage server={onlineServer} go={navigate} />}
+        {page === "inventory" && <InventoryPage server={onlineServer} go={navigate} />}
+        {page === "quests" && <QuestsPage server={onlineServer} go={navigate} />}
+        {page === "achievements" && <AchievementsPage server={onlineServer} go={navigate} />}
         {page === "spectate" && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "spectate" && onlineServer && (watchTarget ? <OnlineWatch key={watchTarget.code + watchTarget.key} server={onlineServer} code={watchTarget.code} watchKey={watchTarget.key} onLeave={() => navigate("home")} /> : (
           <p className="online-connecting" role="alert">

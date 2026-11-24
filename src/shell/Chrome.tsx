@@ -156,6 +156,13 @@ export function SettingsDialog({ open, onClose, navigate, inGame = false }: { op
             </span>
             <input type="checkbox" role="switch" aria-label="모션 간단히" checked={settings.reducedEffects} onChange={(e) => updateSettings({ reducedEffects: e.target.checked })} />
           </label>
+          <label className="settings-row">
+            <span>
+              <strong>상대 아이템 효과</strong>
+              <small>온라인 대전에서 상대가 장착한 애니메이션·효과음을 보여 줘요</small>
+            </span>
+            <input type="checkbox" role="switch" aria-label="상대 아이템 효과" checked={settings.opponentFx} onChange={(e) => updateSettings({ opponentFx: e.target.checked })} />
+          </label>
           <p className="settings-note" data-renderer={renderer}>
             {systemReduced
               ? "기기의 '동작 줄이기' 설정이 켜져 있어 주사위가 움직이지 않고 바로 결과를 보여 줘요."

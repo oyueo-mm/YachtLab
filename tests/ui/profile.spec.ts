@@ -58,6 +58,6 @@ test("닉네임: 사칭·빈 이름 거부, 정상 이름 저장(긴 이름은 �
 
 test("홈에서 프로필로 바로 갈 수 있다", async ({ page }) => {
   await page.goto("#home");
-  await page.getByRole("button", { name: /내 프로필/ }).click();
+  await page.getByRole("navigation", { name: "내 메뉴" }).getByRole("button", { name: "프로필" }).click();
   await expect(page.locator(".profile")).toBeVisible();
 });

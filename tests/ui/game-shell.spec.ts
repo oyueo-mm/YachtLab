@@ -98,7 +98,7 @@ test("설정: 음소거·음량·애니메이션 품질·모션 간단히가 브
   await dialog.getByRole("button", { name: "설정 닫기" }).click();
   await expect(page.getByRole("button", { name: "효과음 켜기" })).toBeVisible();
   await page.reload();
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("yachtlab.settings.v1")!))).toEqual({ muted: true, volume: 0.3, reducedEffects: true, diceQuality: "2.5d" });
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("yachtlab.settings.v1")!))).toEqual({ muted: true, volume: 0.3, reducedEffects: true, diceQuality: "2.5d", opponentFx: true });
   await page.getByRole("button", { name: "설정", exact: true }).click();
   await expect(page.getByRole("switch", { name: "효과음" })).not.toBeChecked();
   await expect(page.getByRole("slider", { name: "효과음 음량" })).toHaveValue("30");

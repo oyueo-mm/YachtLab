@@ -36,6 +36,10 @@ export type MatchRecord = {
   opponent: Opponent;
   /** Public AI difficulty id for AI games (e.g. "보통"). */
   aiLevel?: string;
+  /** Server records only: how the online match was made (invite = friend, quick match = random, server AI = ai). */
+  kind?: "random" | "friend" | "ai";
+  /** Server records only: roll-level facts from the room's own event log (achievements). */
+  stats?: { firstRollYachts: number; firstRollLarge: number; finalRoundYacht: boolean; yachtFaces: number[]; comeback30: boolean };
 };
 
 /** Domain event emitted when a match result is final — the hook for quests/coins/achievements later. */

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { MATERIAL_ORDER, canonicalOrientation, finalValue, prepareThrow, throwKey, qAxisAngle, qDot, qMul, qSlerp, simulateThrow, topFace, type PreparedThrow, type Quat, type SimResult } from "./physics";
-import { blobTexture, faceTexture, type Quality } from "./stage";
+import { CLASSIC_DICE, blobTexture, faceTexture, type DiceColors, type Quality } from "./stage";
 
 /**
  * Persistent 3D dice table: a roll tray and a hold shelf below it, drawn on one canvas.
@@ -263,6 +263,24 @@ export class DiceTable {
       (b.material as THREE.MeshBasicMaterial).opacity = Math.max(0.1, 0.62 - h * 0.34);
     }
     this.onPose?.(id, p);
+  }
+
+  private colors = CLASSIC_DICE;
+  /** Dice theme of the player whose turn it is (repaints the six face textures; no physics change). */
+  setColors(colors: DiceColors | null) {
+    const next = colors ?? CLASSIC_DICE;
+    if (next.face === this.colors.face && next.pip === this.colors.pip && next.edge === this.colors.edge) return;
+    this.colors = next;
+    const anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy?.() ?? 4);
+    MATERIAL_ORDER.forEach((v, i) => {
+      const m = this.materials[i];
+      const map = faceTexture(v, 256, next);
+      map.anisotropy = anisotropy;
+      m.map?.dispose();
+      m.map = map;
+      m.needsUpdate = true;
+    });
+    this.requestRender();
   }
 
   requestRender() {

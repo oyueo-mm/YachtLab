@@ -343,7 +343,7 @@ test("홈: 주사위 체험 영역 없이 제목·설명·온라인(강조, 첫 
   await expect(cards.nth(0)).toHaveClass(/mode-primary/);
   // the main call to action is visible on desktop and phones alike
   await expect(cards.nth(0).locator(".mode-cta")).toBeVisible();
-  await expect(cards.nth(0).locator(".mode-cta")).toContainText("친구와 대전하기");
+  await expect(cards.nth(0).locator(".mode-cta")).toContainText("온라인 대전하기");
   await expect(cards.nth(1)).toContainText("오프라인 대전");
   await expect(page.locator(".lobby")).not.toContainText("준비 중");
   const [online, offline] = [(await cards.nth(0).boundingBox())!, (await cards.nth(1).boundingBox())!];

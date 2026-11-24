@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, Dices, Globe, Smartphone, UserRound, UsersRound } from "lucide-react";
+import { ArrowRight, Backpack, Bot, Dices, Globe, ListChecks, Smartphone, Store, Trophy, UserRound, UsersRound } from "lucide-react";
 import { DieIcon } from "../Dice";
 import type { Route } from "../routes";
 
@@ -26,10 +26,10 @@ export function Lobby({ navigate }: { navigate: Go }) {
           </span>
           <span className="mode-text">
             <strong>온라인 대전</strong>
-            <span>링크 하나로 친구와 실시간 1:1 대결</span>
+            <span>빠른 대전 · 친구 대전 · 관전방</span>
           </span>
           <span className="mode-cta">
-            친구와 대전하기 <ArrowRight size={16} aria-hidden="true" />
+            온라인 대전하기 <ArrowRight size={16} aria-hidden="true" />
           </span>
         </button>
         <button type="button" className="mode-card mode-offline mode-sub" onClick={() => navigate("offline")}>
@@ -43,9 +43,22 @@ export function Lobby({ navigate }: { navigate: Go }) {
           <ArrowRight className="mode-arrow" size={20} aria-hidden="true" />
         </button>
       </div>
-      <button type="button" className="text-button lobby-profile" onClick={() => navigate("profile")}>
-        <UserRound size={16} /> 내 프로필 · 전적
-      </button>
+      <nav className="lobby-menu" aria-label="내 메뉴">
+        {(
+          [
+            ["shop", "상점", Store],
+            ["inventory", "인벤토리", Backpack],
+            ["quests", "퀘스트", ListChecks],
+            ["achievements", "업적", Trophy],
+            ["profile", "프로필", UserRound],
+          ] as const
+        ).map(([route, label, Icon]) => (
+          <button key={route} type="button" className="lobby-menu-item" onClick={() => navigate(route)}>
+            <Icon size={18} aria-hidden="true" />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
     </section>
   );
 }

@@ -10,12 +10,14 @@ export type Settings = {
   reducedEffects: boolean;
   /** Dice renderer: auto (3D when WebGL is usable), 3D high/standard, or the original 2.5D CSS motion. */
   diceQuality: DiceQuality;
+  /** Show other players' showy item effects (animations, nickname effects) and their item sounds. */
+  opponentFx: boolean;
 };
 export type DiceQuality = "auto" | "3d-high" | "3d" | "2.5d";
 export const diceQualities: readonly DiceQuality[] = ["auto", "3d-high", "3d", "2.5d"];
 
 export const SETTINGS_KEY = "yachtlab.settings.v1";
-export const defaultSettings: Settings = { muted: false, volume: 0.7, reducedEffects: false, diceQuality: "auto" };
+export const defaultSettings: Settings = { muted: false, volume: 0.7, reducedEffects: false, diceQuality: "auto", opponentFx: true };
 
 function sanitize(raw: unknown): Settings {
   const value = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
@@ -25,6 +27,7 @@ function sanitize(raw: unknown): Settings {
     volume,
     reducedEffects: typeof value.reducedEffects === "boolean" ? value.reducedEffects : defaultSettings.reducedEffects,
     diceQuality: diceQualities.includes(value.diceQuality as DiceQuality) ? (value.diceQuality as DiceQuality) : defaultSettings.diceQuality,
+    opponentFx: typeof value.opponentFx === "boolean" ? value.opponentFx : defaultSettings.opponentFx,
   };
 }
 
