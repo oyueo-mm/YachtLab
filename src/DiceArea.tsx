@@ -24,6 +24,8 @@ type Props = {
   holdOrder?: readonly number[];
   /** Dice lab only. */
   forceRenderer?: DiceRenderer;
+  /** Dice theme (online play: the player whose turn it is; the same on every screen). */
+  colors?: { face: string; pip: string; edge: string } | null;
 };
 
 /**
@@ -32,7 +34,7 @@ type Props = {
  *  - otherwise the original DOM row with 2.5D motion (or no motion), same hold/re-roll/score rules.
  * The mode only changes between turns (before the first roll), never in the middle of one.
  */
-export function DiceArea({ forceRenderer, ...props }: Props) {
+export function DiceArea({ forceRenderer, colors = null, ...props }: Props) {
   const settings = useSettings();
   const renderer = forceRenderer ?? diceRenderer(settings);
   const want3d = !!props.animate && (renderer === "3d" || renderer === "3d-high");
@@ -62,7 +64,7 @@ export function DiceArea({ forceRenderer, ...props }: Props) {
   if (physical)
     return (
       <>
-        <PhysicalDice key={renderer} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} adaptive={!forceRenderer && settings.diceQuality === "auto"} interactive={!!props.interactive} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onFailure={() => setFailed(true)} />
+        <PhysicalDice key={renderer} colors={colors} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} adaptive={!forceRenderer && settings.diceQuality === "auto"} interactive={!!props.interactive} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onFailure={() => setFailed(true)} />
         <ScoreFxLabel fx={fx} />
         {props.animate && <YachtFlash dice={props.state.dice} rolls={props.state.rolls} rollEvent={props.rollEvent ?? 0} />}
       </>
@@ -70,7 +72,13 @@ export function DiceArea({ forceRenderer, ...props }: Props) {
   // Fallback row: plain 2.5D (or none) — the old 3D overlay is not used in games anymore.
   return (
     <>
-      <Dice {...props} holdOrder={holdOrder} forceRenderer={renderer === "none" ? "none" : "2.5d"} />
+      {colors ? (
+        <div className="dice-themed" style={{ "--die-face": colors.face, "--die-pip": colors.pip, "--die-edge": colors.edge } as React.CSSProperties}>
+          <Dice {...props} holdOrder={holdOrder} forceRenderer={renderer === "none" ? "none" : "2.5d"} />
+        </div>
+      ) : (
+        <Dice {...props} holdOrder={holdOrder} forceRenderer={renderer === "none" ? "none" : "2.5d"} />
+      )}
       <ScoreFxFallback fx={fx} reduced={renderer === "none"} />
       <ScoreFxLabel fx={fx} />
       {props.animate && <YachtFlash dice={props.state.dice} rolls={props.state.rolls} rollEvent={props.rollEvent ?? 0} />}

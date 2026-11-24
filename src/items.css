@@ -690,3 +690,37 @@
   font-size: 10.5px;
   font-weight: 700;
 }
+
+/* ---------- dice / board themes (presentation only) ---------- */
+.dice-themed {
+  display: contents;
+}
+.dice-themed .die-icon rect {
+  fill: var(--die-face);
+  stroke: var(--die-edge);
+}
+.dice-themed .die-icon circle {
+  fill: var(--die-pip);
+}
+.game-board.board-themed {
+  background: var(--board-color) !important;
+}
+.game-result.fx-confetti {
+  background-image: radial-gradient(circle at 20% 20%, rgba(243, 211, 107, 0.45) 0 6px, transparent 7px), radial-gradient(circle at 80% 30%, rgba(243, 211, 107, 0.4) 0 5px, transparent 6px), radial-gradient(circle at 60% 80%, rgba(242, 140, 40, 0.35) 0 4px, transparent 5px);
+  box-shadow: 0 0 0 2px #e7c768 inset;
+}
+.game-result.fx-confetti.fx-lv2,
+.game-result.fx-confetti.fx-lv3 {
+  animation: fx-shimmer 2.2s ease-in-out 2;
+}
+@keyframes fx-shimmer {
+  50% {
+    box-shadow: 0 0 0 3px #f3d36b inset, 0 0 24px rgba(243, 211, 107, 0.55);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-result.fx-confetti.fx-lv2,
+  .game-result.fx-confetti.fx-lv3 {
+    animation: none;
+  }
+}

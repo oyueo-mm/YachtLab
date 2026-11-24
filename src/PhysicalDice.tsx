@@ -47,7 +47,10 @@ export function PhysicalDice({
   onOrder,
   onShiftHold,
   onFailure,
+  colors = null,
 }: {
+  /** Dice theme (online: the current turn's player). */
+  colors?: { face: string; pip: string; edge: string } | null;
   module: DiceTableModule;
   quality: "3d" | "3d-high";
   state: Pick<Game, "dice" | "order" | "rolls">;
@@ -101,6 +104,10 @@ export function PhysicalDice({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  useEffect(() => {
+    table.current?.setColors(colors);
+  }, [colors?.face, colors?.pip, colors?.edge, dims]);
 
   useEffect(
     () => () => {

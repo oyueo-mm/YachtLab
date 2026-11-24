@@ -10,6 +10,7 @@ import OnlineEntry from "./play/OnlineEntry";
 import OnlineGame from "./play/OnlineGame";
 import OnlineWatch from "./play/OnlineWatch";
 import Profile from "./shell/Profile";
+import { AchievementsPage, InventoryPage, QuestsPage, ShopPage } from "./shell/EconomyPages";
 import { completeSignIn } from "./identity/account-client";
 import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl } from "./online/client";
 import { currentRoute, routes, type Route } from "./routes";
@@ -203,6 +204,10 @@ export default function App() {
           />
         )}
         {page === "profile" && <Profile key={profileNotice} server={onlineServer} notice={profileNotice} />}
+        {page === "shop" && <ShopPage server={onlineServer} go={navigate} />}
+        {page === "inventory" && <InventoryPage server={onlineServer} go={navigate} />}
+        {page === "quests" && <QuestsPage server={onlineServer} go={navigate} />}
+        {page === "achievements" && <AchievementsPage server={onlineServer} go={navigate} />}
         {page === "spectate" && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "spectate" && onlineServer && (watchTarget ? <OnlineWatch key={watchTarget.code + watchTarget.key} server={onlineServer} code={watchTarget.code} watchKey={watchTarget.key} onLeave={() => navigate("home")} /> : (
           <p className="online-connecting" role="alert">

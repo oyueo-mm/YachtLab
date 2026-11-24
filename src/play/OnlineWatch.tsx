@@ -8,7 +8,7 @@ import type { PlayerView } from "../online/server-engine";
 import type { SeriesSummary } from "../online/wire";
 import { announceScore, clearScoreFx } from "../score-fx";
 import { ChipBubble, useBubbles } from "./Social";
-import { PlayerTag } from "./Looks";
+import { PlayerTag, diceLookOf } from "./Looks";
 import type { PublicLook } from "../economy/live/catalog";
 
 const ROW = [0, 1, 2, 3, 4];
@@ -191,7 +191,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
               굴림 <b>{rolls}</b> / 3
             </span>
           </div>
-          <DiceArea state={game} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
+          <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
           <div className="roll-area">
             <p className="watch-turn" role="status">
               {finished ? "경기가 끝났어요" : view.status === "lobby" ? "경기가 곧 시작돼요" : `${players[turnIndex]?.name ?? ""} 님의 차례 · 굴림 ${rolls}/3`}

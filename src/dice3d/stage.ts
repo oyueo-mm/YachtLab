@@ -19,18 +19,21 @@ const PIPS: Record<number, number[][]> = {
   6: [[28, 25], [72, 25], [28, 50], [72, 50], [28, 75], [72, 75]],
 };
 
-export function faceTexture(value: number, px: number): THREE.CanvasTexture {
+/** Dice colours (presentation only: a theme never changes physics or results). */
+export type DiceColors = { face: string; pip: string; edge: string };
+export const CLASSIC_DICE: DiceColors = { face: "#ffffff", pip: "#202020", edge: "#d4d4d4" };
+export function faceTexture(value: number, px: number, colors: DiceColors = CLASSIC_DICE): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = px;
   const g = canvas.getContext("2d")!;
   const k = px / 100;
-  g.fillStyle = "#d4d4d4"; // edge tone, reads as a rounded bevel
+  g.fillStyle = colors.edge; // edge tone, reads as a rounded bevel
   g.fillRect(0, 0, px, px);
-  g.fillStyle = "#ffffff";
+  g.fillStyle = colors.face;
   g.beginPath();
   g.roundRect(3 * k, 3 * k, 94 * k, 94 * k, 18 * k);
   g.fill();
-  g.fillStyle = "#202020";
+  g.fillStyle = colors.pip;
   for (const [x, y] of PIPS[value]) {
     g.beginPath();
     g.arc(x * k, y * k, 7.4 * k, 0, Math.PI * 2);

@@ -15,12 +15,13 @@ import { toggleHoldOrder } from "../hold-order";
 import { useYachtReady } from "../yacht-moment";
 import { BonusChip, QuickPicks } from "../QuickPicks";
 import { playSfx } from "../sound";
+import { useSettings } from "../settings";
 import { OnlineConnection, forgetSeat, inviteLink, savedSeat, setRoomInUrl, watchLink, type ConnectionStatus } from "../online/client";
 import type { OnlineAction } from "../online/protocol";
 import type { PlayerView } from "../online/server-engine";
 import type { RematchState, SeriesSummary, SpectateState } from "../online/wire";
 import { ChipBubble, EmoteBar, SocialPanel, SpectateControl, useBubbles } from "./Social";
-import { PlayerTag } from "./Looks";
+import { PlayerTag, boardOf, diceLookOf } from "./Looks";
 import { GUEST_LOOK, type PublicLook } from "../economy/live/catalog";
 import { saveLocalRecord } from "../identity/local";
 import { RULES_ID } from "../identity/records";
@@ -103,6 +104,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const [members, setMembers] = useState<Record<string, string>>({});
   const [looks, setLooks] = useState<Record<string, PublicLook>>({});
   const [aiSeat, setAiSeat] = useState<string | null>(null);
+  const settings = useSettings();
   const [profileOf, setProfileOf] = useState<string | null>(null);
 
   useEffect(() => {
@@ -298,6 +300,14 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
     setMobileScoreOpen(false);
   };
   const remaining = deadline !== null && playing ? deadline - now : null;
+  // The winner's special effect (presentation only). Others' effects follow the "상대 아이템 효과" setting.
+  const winnerLook = finished && winners.length === 1 ? looks[winners[0]] : undefined;
+  const winnerFxItem = winnerLook && winnerLook.fx !== "fx.none" && (winners[0] === me?.playerId || settings.opponentFx) ? winnerLook : undefined;
+  const winnerFx = winnerFxItem ? ` fx-confetti fx-lv${winnerFxItem.fxLv}` : "";
+  const fxSound = winnerFxItem?.fxLv === 3 && !!view?.matchId;
+  useEffect(() => {
+    if (fxSound) playSfx("bonus");
+  }, [fxSound, view?.matchId]);
   const gesture = useThrowGesture(canRoll, roll);
   const yachtReady = useYachtReady(game.dice, rolls, myTurn && players[meIndex]?.card.yacht === undefined);
   const celebration = useGameSounds(game.cards, finished, outcome, syncKey);
@@ -492,7 +502,12 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
             {me && <BonusChip card={players[meIndex]?.card ?? {}} />}
           </div>
           {banner}
-          <section className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "")} aria-label="게임 보드" {...gesture}>
+          <section
+            className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (boardOf(myLook) ? " board-themed" : "")}
+            style={boardOf(myLook) ? ({ "--board-color": boardOf(myLook) } as React.CSSProperties) : undefined}
+            aria-label="게임 보드"
+            {...gesture}
+          >
             <Celebrate value={celebration} />
             <div className="board-top">
               <span className="turn-indicator">
@@ -503,7 +518,8 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                 굴림 <b>{rolls}</b> / 3
               </span>
             </div>
-            <DiceArea state={game} interactive={can && rolls > 0 && rolls < 3} animate rollEvent={rollEvent} onToggle={toggle} holdOrder={rolls > 0 ? keep : []} />
+            {/* The dice show the theme of the player whose turn it is — the same on both screens. */}
+            <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={can && rolls > 0 && rolls < 3} animate rollEvent={rollEvent} onToggle={toggle} holdOrder={rolls > 0 ? keep : []} />
             <div className="roll-area">
               <button className={"primary roll-button" + (myTurn ? "" : " waiting")} disabled={!canRoll} onClick={roll}>
                 <Dices size={20} />
@@ -517,7 +533,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
               <QuickPicks values={game.dice.map((d) => d.value)} card={players[meIndex]?.card ?? {}} rolls={rolls} canScore={can} onScore={record} />
             </div>
             {finished && (
-              <div className="game-result online-result" role="status">
+              <div className={"game-result online-result" + winnerFx} role="status">
                 <Trophy size={25} />
                 <h2>{outcome === "draw" ? "무승부입니다" : outcome === "win" ? "승리했습니다!" : `${players.find((p) => p.playerId === winners[0])?.name ?? "상대"} 님이 승리했습니다`}</h2>
                 <p className="online-final">
