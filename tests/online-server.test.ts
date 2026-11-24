@@ -297,3 +297,25 @@ describe("Online Phase 2 — local WebSocket server", () => {
     expect(r.a.closed?.code).toBe(1008);
   });
 });
+
+describe("종료(close)", () => {
+  it("브라우저가 미리 열어 두고 쓰지 않은 연결·유휴 keep-alive·열린 웹소켓이 있어도 바로 종료된다", async () => {
+    const { connect } = await import("node:net");
+    const { default: WebSocket } = await import("ws");
+    const srv = await startOnlineServer({ port: 0, dataDir: null, allowedOrigins: ["http://127.0.0.1:5173"], turnTimeoutMs: null });
+    // 1) a pre-opened socket that never sends a request (what Chromium's preconnect does)
+    const idle = connect(srv.port, "127.0.0.1");
+    await new Promise((r) => idle.once("connect", r));
+    // 2) a keep-alive HTTP connection after one request
+    await fetch(srv.url + "/healthz", { keepalive: true });
+    // 3) a WebSocket into a room
+    const created = await (await fetch(srv.url + "/api/rooms", { method: "POST", headers: { "content-type": "application/json", origin: "http://127.0.0.1:5173" }, body: JSON.stringify({ name: "민수" }) })).json();
+    const ws = new WebSocket(srv.url.replace("http", "ws") + "/ws/" + created.code, { origin: "http://127.0.0.1:5173" });
+    await new Promise((r) => ws.once("open", r));
+    const t = Date.now();
+    await srv.close();
+    expect(Date.now() - t).toBeLessThan(2000);
+    // nothing can connect afterwards
+    await expect(fetch(srv.url + "/healthz")).rejects.toThrow();
+  });
+});

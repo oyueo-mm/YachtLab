@@ -3,6 +3,7 @@ import {
   test,
   devices,
   type Browser,
+  type BrowserContext,
   type Page,
 } from "@playwright/test";
 import { mkdtemp } from "node:fs/promises";
@@ -74,13 +75,12 @@ test.beforeAll(async ({}, testInfo) => {
   };
 });
 test.afterAll(async () => {
-  await Promise.all(Object.entries(backends).map(async ([k, b]) => {
-    const t = Date.now();
-    const timer = setInterval(() => console.log(`DIAG stop ${k} still running after ${Date.now() - t} ms`), 5000);
-    await b?.stop();
-    clearInterval(timer);
-    console.log(`DIAG stop ${k} took ${Date.now() - t} ms`);
-  }));
+  await Promise.all(Object.values(backends).map((b) => b?.stop()));
+});
+/** Browser contexts made by a test are closed after it, so no page keeps sockets open into later tests. */
+const contexts: BrowserContext[] = [];
+test.afterEach(async () => {
+  await Promise.all(contexts.splice(0).map((c) => c.close().catch(() => undefined)));
 });
 
 const entry = (room?: string) =>
@@ -102,6 +102,7 @@ async function device(browser: Browser, kind: "desktop" | "phone") {
     baseURL: "http://127.0.0.1:5173/YachtLab/",
     reducedMotion: "reduce",
   });
+  contexts.push(context);
   return context.newPage();
 }
 
@@ -593,6 +594,7 @@ for (const kind of ["node", "workers"] as const) {
             baseURL: "http://127.0.0.1:5173/YachtLab/",
             reducedMotion: "reduce",
           });
+          contexts.push(ctx);
           return ctx.newPage();
         };
         const a = await narrow();

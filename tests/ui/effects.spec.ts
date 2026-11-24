@@ -62,12 +62,18 @@ test.beforeAll(async ({}, testInfo) => {
   if (testInfo.project.name === "mobile") return;
   server = await startOnlineServer({ port: 0, dataDir: null, allowedOrigins: ["http://127.0.0.1:5173"], turnTimeoutMs: null, dice: firstRollYacht() });
 });
+/** Browser contexts made by a test are closed after it (no page keeps sockets open into later tests). */
+const contexts: import("@playwright/test").BrowserContext[] = [];
+test.afterEach(async () => {
+  await Promise.all(contexts.splice(0).map((c) => c.close().catch(() => undefined)));
+});
 test.afterAll(async () => {
   await server?.close();
 });
 const entry = (room?: string) => `?online-server=${encodeURIComponent(server.url)}${room ? `&room=${room}` : ""}#online`;
 async function device(browser: Browser, phone = false) {
   const ctx = await browser.newContext({ ...(phone ? devices["Pixel 7"] : { viewport: { width: 1280, height: 900 } }), baseURL: "http://127.0.0.1:5173/YachtLab/", reducedMotion: "reduce" });
+  contexts.push(ctx);
   return ctx.newPage();
 }
 

@@ -12,12 +12,18 @@ test.beforeAll(async ({}, testInfo) => {
   test.setTimeout(120_000);
   worker = await startLocalWorker({ ALLOWED_ORIGINS: "http://127.0.0.1:5173", TURN_TIMEOUT_MS: "0", CREATE_PER_MINUTE: "500", JOIN_PER_MINUTE: "500" });
 });
+/** Browser contexts made by a test are closed after it (no page keeps sockets open into later tests). */
+const contexts: import("@playwright/test").BrowserContext[] = [];
+test.afterEach(async () => {
+  await Promise.all(contexts.splice(0).map((c) => c.close().catch(() => undefined)));
+});
 test.afterAll(async () => {
   await worker?.stop();
 });
 const entry = () => `?online-server=${encodeURIComponent(worker.url)}#online`;
 async function device(browser: Browser, kind: "desktop" | "phone", width = 1280) {
   const ctx = await browser.newContext({ ...(kind === "phone" ? devices["Pixel 7"] : { viewport: { width, height: 900 } }), baseURL: "http://127.0.0.1:5173/YachtLab/", reducedMotion: "reduce" });
+  contexts.push(ctx);
   return ctx.newPage();
 }
 async function quick(p: Page, name: string, publicWatch: boolean) {

@@ -168,8 +168,6 @@ export async function startOnlineServer(options: OnlineServerOptions = {}): Prom
     });
 
   const server = createServer(async (req, res) => {
-    inflight.add(req);
-    res.on("close", () => inflight.delete(req));
     const origin = req.headers.origin;
     const okOrigin = origin && allowed.has(origin) ? origin : undefined;
     // Browsers always send Origin on cross-origin fetches: unknown origins are refused (fail closed).
@@ -233,6 +231,8 @@ export async function startOnlineServer(options: OnlineServerOptions = {}): Prom
   /* ------------------------------------------------------------------ sockets ------------------------------------------------------------------ */
   const wss = new WebSocketServer({ noServer: true, maxPayload: ROOM_LIMITS.maxMessageBytes * 2 });
   server.on("upgrade", (req, socket, head) => {
+    // A reconnect that arrives while the server shuts down must not become a new, untracked client.
+    if (closing) return void socket.destroy();
     const origin = req.headers.origin;
     const parts = new URL(req.url ?? "/", "http://local").pathname.split("/").filter(Boolean);
     const code = parts[0] === "ws" && parts.length === 2 ? normalizeCode(parts[1]) : null;
@@ -292,7 +292,19 @@ export async function startOnlineServer(options: OnlineServerOptions = {}): Prom
     for (const [key, w] of windows) if (t - w.start >= 60_000) windows.delete(key);
   };
   const sweeper = setInterval(() => void sweep(), options.sweepEveryMs ?? 60_000);
-  const inflight = new Set<import("node:http").IncomingMessage>();
+  /**
+   * Every TCP connection, whatever state it is in. `server.close()` only drops connections that sit
+   * idle between HTTP requests; a socket a browser opened in advance and never used (Chromium
+   * preconnects to origins a page used before) is not one of them, so shutdown waits for the browser
+   * to drop it — forever while the page stays open. Shutdown destroys these explicitly.
+   */
+  const sockets = new Set<import("node:net").Socket>();
+  let closing = false;
+  server.on("connection", (socket) => {
+    if (closing) return void socket.destroy();
+    sockets.add(socket);
+    socket.on("close", () => sockets.delete(socket));
+  });
 
   await new Promise<void>((resolve) => server.listen(options.port ?? 8787, options.host ?? "127.0.0.1", resolve));
   const address = server.address();
@@ -304,13 +316,17 @@ export async function startOnlineServer(options: OnlineServerOptions = {}): Prom
     rooms,
     sweep,
     async close() {
+      // Order matters: stop accepting first (no new connection or upgrade can slip in while we wait
+      // for pending writes), then end every WebSocket and every remaining socket.
+      closing = true;
       clearInterval(sweeper);
       timers.forEach((t) => clearTimeout(t));
+      const closed = new Promise<void>((resolve) => server.close(() => resolve()));
       for (const client of wss.clients) client.terminate();
       await Promise.all([...writes.values()]);
-      const diag = setInterval(() => console.log(`DIAG node close waiting: ${[...inflight].map((r) => r.method + " " + r.url).join(", ") || "(no http request)"}; connections=${(server as unknown as { _connections: number })._connections}`), 3000);
-      await new Promise<void>((resolve) => server.close(() => resolve()));
-      clearInterval(diag);
+      server.closeAllConnections();
+      for (const socket of sockets) socket.destroy();
+      await closed;
     },
   };
 }
