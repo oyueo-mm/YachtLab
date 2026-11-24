@@ -152,7 +152,8 @@ export class HubCore {
     const me = this.att(ws);
     if (msg.t === "alive") {
       if (me) ws.serializeAttachment({ ...me, aliveAt: now });
-      return this.sweep(now);
+      // Re-try pairing: waiters held back by the repeat-pair rule become compatible after 20 s.
+      return this.pairAll();
     }
     if (msg.t === "cancel") {
       if (me?.state === "waiting") this.count("queue.cancel");

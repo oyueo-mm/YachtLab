@@ -629,6 +629,17 @@ const json = (status: number, body: unknown, origin: string | null, cache = "no-
   });
 const fail = (status: number, code: string, message: string, origin: string | null) => json(status, { error: { code, message } }, origin);
 
+/** Soft per-isolate fixed-window limiter (no storage, no Durable Object request). */
+const isolateHits = new Map<string, { window: number; count: number }>();
+function isolateLimited(key: string, perMinute: number): boolean {
+  const window = Math.floor(Date.now() / 60_000);
+  const row = isolateHits.get(key);
+  const count = row && row.window === window ? row.count + 1 : 1;
+  isolateHits.set(key, { window, count });
+  if (isolateHits.size > 5000) for (const [k, v] of isolateHits) if (v.window < window) isolateHits.delete(k);
+  return count > perMinute;
+}
+
 async function clientKey(request: Request): Promise<string> {
   const ip = request.headers.get("CF-Connecting-IP") ?? "local";
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("yachtlab:" + ip));
@@ -671,7 +682,10 @@ export default {
     const backends: AccountBackends = {
       user: (id) => env.USERS.get(env.USERS.idFromName(id)) as unknown as UserApi,
       guest: (id) => env.GUESTS.get(env.GUESTS.idFromName(id)) as unknown as GuestApi,
-      limited: (key, perMinute) => directory.hit(key, perMinute),
+      // Per-account limits ("me:") are counted in this isolate's memory: a signed-in call no longer
+      // costs an extra request to the global RoomDirectory (its duration was the largest on the
+      // 2026-11-24 dashboard). Limits by IP (login, exchange, profiles) stay global in the directory.
+      limited: (key, perMinute) => (key.startsWith("me:") ? Promise.resolve(isolateLimited(key, perMinute)) : directory.hit(key, perMinute)),
       fetcher: (input, init) => fetch(input, init),
       now: Date.now,
     };

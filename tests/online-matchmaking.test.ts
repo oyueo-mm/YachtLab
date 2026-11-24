@@ -197,9 +197,18 @@ describe("빠른 대전 매칭 큐", () => {
     expect([h.made[1].a.name, h.made[1].b.name]).toContain("수아");
     // the two old opponents meet again only after both waited 20 s (alive messages keep them in)
     const left = [a, b].find((s) => s.closed === null)!;
-    const c = h.connect();
-    await h.queue(c, { name: "민수", ticket: ticket(6), device: device(1) });
-    void left;
+    // the one paired with 수아 comes back after that match ended; the other is still waiting
+    const back = h.made[1].a.name === "수아" ? h.made[1].b.name : h.made[1].a.name;
+    h.hub().ended(h.made[1].code);
+    const other = h.connect();
+    await h.queue(other, { name: back, ticket: ticket(6), device: back === "민수" ? device(1) : device(2) });
+    expect(h.made).toHaveLength(2); // the same two people: not right away
+    for (let i = 0; i < 2; i++) {
+      h.advance(15_000);
+      await h.hub().message(left, JSON.stringify({ t: "alive" }));
+      await h.hub().message(other, JSON.stringify({ t: "alive" }));
+    }
+    expect(h.made).toHaveLength(3); // both waited ≥ 20 s: allowed (a heartbeat re-tries pairing)
   });
 
   it("유령 대기열: 신호가 끊긴 대기자와 5분 지난 대기자는 정리된다 (Hibernation 후에도)", async () => {
