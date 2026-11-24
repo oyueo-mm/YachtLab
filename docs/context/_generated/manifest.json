@@ -112,6 +112,41 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "25707cc",
+      "date": "2026-11-24",
+      "subject": "Merge PR #56: Phase 4.5~6 — 빠른 대전·관전방·서버 AI 대전·코인/보석 원장·퀘스트·업적·상점·인벤토리"
+    },
+    {
+      "sha": "8a192a4",
+      "date": "2026-11-24",
+      "subject": "test(ui): settings snapshot includes the opponent-effects setting"
+    },
+    {
+      "sha": "5eff878",
+      "date": "2026-11-24",
+      "subject": "fix(online): heartbeat retries pairing; per-account API limit in isolate memory; docs"
+    },
+    {
+      "sha": "d5a1b76",
+      "date": "2026-11-24",
+      "subject": "feat(ui): shop, inventory, quests, achievements pages; equipped looks in matches (Phase 6)"
+    },
+    {
+      "sha": "9b83567",
+      "date": "2026-11-24",
+      "subject": "feat(economy): coin/gem ledger, M3i-W30 rewards, quests, achievements, shop/inventory API (Phase 5/6)"
+    },
+    {
+      "sha": "bd8410d",
+      "date": "2026-11-24",
+      "subject": "feat(online): server-verified AI match (Phase 4.5)"
+    },
+    {
+      "sha": "786d370",
+      "date": "2026-11-24",
+      "subject": "feat(online): quick match, public spectating list, PC online tool row (Phase 4.5)"
+    },
+    {
       "sha": "603a49f",
       "date": "2026-11-24",
       "subject": "Merge PR #55: 경제 연구 — 시뮬레이터·퀘스트/업적 확률·M3 정수안·강화·Cloudflare 실측, 경제 연구실"
@@ -125,55 +160,20 @@
       "sha": "b556a61",
       "date": "2026-11-24",
       "subject": "research(economy): M3 follow-up — integer operating model, upgrade ratios, guest carry-over, measured room writes"
-    },
-    {
-      "sha": "b4963ab",
-      "date": "2026-11-24",
-      "subject": "docs(economy): record local verification results (vitest, build, full Playwright)"
-    },
-    {
-      "sha": "229db04",
-      "date": "2026-11-24",
-      "subject": "research(economy): reproducible coin/gem economy simulator, quest/achievement probabilities, pricing study"
-    },
-    {
-      "sha": "9e51568",
-      "date": "2026-11-24",
-      "subject": "Merge PR #54: 제품 Phase 1~4 통합 검증 기록·인수인계 문서"
-    },
-    {
-      "sha": "0786f4c",
-      "date": "2026-11-24",
-      "subject": "docs: product status, deployment and live verification record, roadmap/handoff for product Phases 1-4"
-    },
-    {
-      "sha": "c51ddbb",
-      "date": "2026-11-24",
-      "subject": "Merge PR #53: 게스트·닉네임·프로필·서버 검증 경기 기록·Google 로그인(설정 전 꺼짐) (제품 Phase 4)"
-    },
-    {
-      "sha": "db14bee",
-      "date": "2026-11-24",
-      "subject": "Merge PR #52: 실시간 관전 — 전원 동의·별도 관전 키·읽기 전용 (제품 Phase 3)"
-    },
-    {
-      "sha": "0845890",
-      "date": "2026-11-24",
-      "subject": "test(live): check the account API answers (sign-in on/off) on the deployed server"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "Deploy YachtLab Online Worker (manual)",
-      "status": "success",
-      "head": "786d370af5",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45369264003"
-    },
-    {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "603a49ff4b",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45348066654"
+      "head": "8a192a4e24",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45374563645"
+    },
+    {
+      "name": "Deploy YachtLab Online Worker (manual)",
+      "status": "success",
+      "head": "5eff8788bd",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45374492254"
     },
     {
       "name": "YachtLab Online live check (manual)",

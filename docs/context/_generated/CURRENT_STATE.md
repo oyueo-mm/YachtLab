@@ -101,16 +101,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [25707cc](https://github.com/oyueo-mm/YachtLab/commit/25707cc) | 2026-11-24 | Merge PR #56: Phase 4.5~6 — 빠른 대전·관전방·서버 AI 대전·코인/보석 원장·퀘스트·업적·상점·인벤토리 |
+| [8a192a4](https://github.com/oyueo-mm/YachtLab/commit/8a192a4) | 2026-11-24 | test(ui): settings snapshot includes the opponent-effects setting |
+| [5eff878](https://github.com/oyueo-mm/YachtLab/commit/5eff878) | 2026-11-24 | fix(online): heartbeat retries pairing; per-account API limit in isolate memory; docs |
+| [d5a1b76](https://github.com/oyueo-mm/YachtLab/commit/d5a1b76) | 2026-11-24 | feat(ui): shop, inventory, quests, achievements pages; equipped looks in matches (Phase 6) |
+| [9b83567](https://github.com/oyueo-mm/YachtLab/commit/9b83567) | 2026-11-24 | feat(economy): coin/gem ledger, M3i-W30 rewards, quests, achievements, shop/inventory API (Phase 5/6) |
+| [bd8410d](https://github.com/oyueo-mm/YachtLab/commit/bd8410d) | 2026-11-24 | feat(online): server-verified AI match (Phase 4.5) |
+| [786d370](https://github.com/oyueo-mm/YachtLab/commit/786d370) | 2026-11-24 | feat(online): quick match, public spectating list, PC online tool row (Phase 4.5) |
 | [603a49f](https://github.com/oyueo-mm/YachtLab/commit/603a49f) | 2026-11-24 | Merge PR #55: 경제 연구 — 시뮬레이터·퀘스트/업적 확률·M3 정수안·강화·Cloudflare 실측, 경제 연구실 |
 | [5d52ca2](https://github.com/oyueo-mm/YachtLab/commit/5d52ca2) | 2026-11-24 | docs(economy): point phase-1 reward table to the integer operating model |
 | [b556a61](https://github.com/oyueo-mm/YachtLab/commit/b556a61) | 2026-11-24 | research(economy): M3 follow-up — integer operating model, upgrade ratios, guest carry-over, measured room writes |
-| [b4963ab](https://github.com/oyueo-mm/YachtLab/commit/b4963ab) | 2026-11-24 | docs(economy): record local verification results (vitest, build, full Playwright) |
-| [229db04](https://github.com/oyueo-mm/YachtLab/commit/229db04) | 2026-11-24 | research(economy): reproducible coin/gem economy simulator, quest/achievement probabilities, pricing study |
-| [9e51568](https://github.com/oyueo-mm/YachtLab/commit/9e51568) | 2026-11-24 | Merge PR #54: 제품 Phase 1~4 통합 검증 기록·인수인계 문서 |
-| [0786f4c](https://github.com/oyueo-mm/YachtLab/commit/0786f4c) | 2026-11-24 | docs: product status, deployment and live verification record, roadmap/handoff for product Phases 1-4 |
-| [c51ddbb](https://github.com/oyueo-mm/YachtLab/commit/c51ddbb) | 2026-11-24 | Merge PR #53: 게스트·닉네임·프로필·서버 검증 경기 기록·Google 로그인(설정 전 꺼짐) (제품 Phase 4) |
-| [db14bee](https://github.com/oyueo-mm/YachtLab/commit/db14bee) | 2026-11-24 | Merge PR #52: 실시간 관전 — 전원 동의·별도 관전 키·읽기 전용 (제품 Phase 3) |
-| [0845890](https://github.com/oyueo-mm/YachtLab/commit/0845890) | 2026-11-24 | test(live): check the account API answers (sign-in on/off) on the deployed server |
 
 ## 최근 GitHub Actions 상태
 
@@ -118,8 +118,8 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45369264003) | success | 786d370af5 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45348066654) | success | 603a49ff4b |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45374563645) | success | 8a192a4e24 |
+| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45374492254) | success | 5eff8788bd |
 | [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45305164842) | success | 5d3c10df9d |
 
 ## 다음 채팅과 작업의 시작점
