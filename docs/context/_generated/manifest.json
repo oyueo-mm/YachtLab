@@ -112,6 +112,26 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "01b2deb",
+      "date": "2026-11-24",
+      "subject": "Merge PR #59: 온라인 친구 다인전 2~20명 — 순차·동시 진행"
+    },
+    {
+      "sha": "7c29ef9",
+      "date": "2026-11-24",
+      "subject": "docs(online): multiplayer load test on the deployed Worker (2-20 players, simultaneous)"
+    },
+    {
+      "sha": "c639522",
+      "date": "2026-11-24",
+      "subject": "test(load): run the multiplayer load test against a deployed Worker (--url/--origin/--sizes)"
+    },
+    {
+      "sha": "eff12d2",
+      "date": "2026-11-24",
+      "subject": "feat(online): friend rooms for 2-20 players with turn-by-turn and simultaneous modes"
+    },
+    {
       "sha": "f98566c",
       "date": "2026-11-24",
       "subject": "Merge PR #58: Phase 4.5~6 배포 기록·공개 사이트 검증 결과"
@@ -140,40 +160,20 @@
       "sha": "25707cc",
       "date": "2026-11-24",
       "subject": "Merge PR #56: Phase 4.5~6 — 빠른 대전·관전방·서버 AI 대전·코인/보석 원장·퀘스트·업적·상점·인벤토리"
-    },
-    {
-      "sha": "8a192a4",
-      "date": "2026-11-24",
-      "subject": "test(ui): settings snapshot includes the opponent-effects setting"
-    },
-    {
-      "sha": "5eff878",
-      "date": "2026-11-24",
-      "subject": "fix(online): heartbeat retries pairing; per-account API limit in isolate memory; docs"
-    },
-    {
-      "sha": "d5a1b76",
-      "date": "2026-11-24",
-      "subject": "feat(ui): shop, inventory, quests, achievements pages; equipped looks in matches (Phase 6)"
-    },
-    {
-      "sha": "9b83567",
-      "date": "2026-11-24",
-      "subject": "feat(economy): coin/gem ledger, M3i-W30 rewards, quests, achievements, shop/inventory API (Phase 5/6)"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "acf0c16111",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45397500287"
+      "head": "7c29ef915a",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45407673667"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
       "status": "success",
-      "head": "5eff8788bd",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45374492254"
+      "head": "eff12d24a3",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45406992672"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
