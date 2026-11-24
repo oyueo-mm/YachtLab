@@ -14,7 +14,16 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import WebSocket from "ws";
 import { startLocalWorker, type LocalWorker } from "../../tests/helpers/wrangler";
 
-const ORIGIN = "http://127.0.0.1:5173";
+// Optional: --url <deployed server> --origin <allowed page origin> --sizes 2,10 --modes simultaneous
+// runs against a deployed Worker instead (no process restart there; each match uses ⌈N/2⌉ daily units).
+const arg = (name: string) => {
+  const i = process.argv.indexOf("--" + name);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+};
+const REMOTE = arg("url");
+const ORIGIN = arg("origin") ?? "http://127.0.0.1:5173";
+const SIZES = (arg("sizes") ?? "2,4,6,10,20").split(",").map(Number);
+const MODES = (arg("modes") ?? "simultaneous,turns").split(",") as ("turns" | "simultaneous")[];
 type Msg = Record<string, any>;
 
 class Player {
@@ -71,7 +80,7 @@ async function api(base: string, path: string, body?: unknown) {
   return (await res.json()) as Msg;
 }
 
-async function play(w: LocalWorker, players: number, mode: "turns" | "simultaneous") {
+async function play(w: LocalWorker | { url: string; restart?: undefined }, players: number, mode: "turns" | "simultaneous") {
   const created = await api(w.url, "/api/rooms", { name: "p0", maxPlayers: players });
   const ps = [new Player(w.url, created.code, created.token, "p0")];
   for (let i = 1; i < players; i++) {
@@ -132,7 +141,7 @@ async function play(w: LocalWorker, players: number, mode: "turns" | "simultaneo
       await Promise.all(ps.map((p) => p.connect()));
       reconnectMs = performance.now() - r0;
     }
-    if (now.status === "playing" && now.round === 9 && round === 8 && !restartMs) {
+    if (w.restart && now.status === "playing" && now.round === 9 && round === 8 && !restartMs) {
       const r0 = performance.now();
       ps.forEach((p) => p.ws.terminate());
       await w.restart();
@@ -152,17 +161,17 @@ async function play(w: LocalWorker, players: number, mode: "turns" | "simultaneo
   return { players, mode, finished: ps[0].view.status === "finished", standingsAgree: allSame, cardsFull: full, commands: lat.length, ackMs: { p50: q(0.5), p95: q(0.95), p99: q(0.99), max: lat.at(-1) }, errors: [...new Set(errors)], errorCount: errors.length, reconnectStormMs: reconnectMs, restartRecoveryMs: restartMs, wallMs: wall };
 }
 
-const worker = await startLocalWorker({ ALLOWED_ORIGINS: ORIGIN, TURN_TIMEOUT_MS: "120000", CREATE_PER_MINUTE: "500", JOIN_PER_MINUTE: "500" });
+const worker = REMOTE ? { url: REMOTE } : await startLocalWorker({ ALLOWED_ORIGINS: ORIGIN, TURN_TIMEOUT_MS: "120000", CREATE_PER_MINUTE: "500", JOIN_PER_MINUTE: "500" });
 const rows = [];
 try {
-  for (const players of [2, 4, 6, 10, 20])
-    for (const mode of ["simultaneous", "turns"] as const) {
+  for (const players of SIZES)
+    for (const mode of MODES) {
       const row = await play(worker, players, mode);
       rows.push(row);
       console.log(JSON.stringify(row));
     }
 } finally {
-  await worker.stop();
+  if ("stop" in worker) await worker.stop();
 }
 mkdirSync("docs/online/results", { recursive: true });
-writeFileSync("docs/online/results/load-workers.json", JSON.stringify({ generatedAt: new Date().toISOString(), runtime: "wrangler dev --local (workerd)", rows }, null, 1));
+writeFileSync(REMOTE ? "docs/online/results/load-live.json" : "docs/online/results/load-workers.json", JSON.stringify({ generatedAt: new Date().toISOString(), runtime: REMOTE ? "deployed Worker (Workers Free)" : "wrangler dev --local (workerd)", rows }, null, 1));
