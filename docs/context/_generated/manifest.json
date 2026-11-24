@@ -57,6 +57,7 @@
     "FULLGAME-OFFPOLICY-RESEARCH.md",
     "HANDOFF.md",
     "LARGE-SCALE-V32-ROADMAP.md",
+    "PRODUCT-2026-11-24.md",
     "PSRO-PPO-PMF-2026-11-20-FINAL.md",
     "PSRO-PPO-PMF-RESEARCH.md",
     "QR-FOUR-PILLARS-INVALID-RUN.md",
@@ -111,6 +112,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "9e51568",
+      "date": "2026-11-24",
+      "subject": "Merge PR #54: 제품 Phase 1~4 통합 검증 기록·인수인계 문서"
+    },
+    {
+      "sha": "0786f4c",
+      "date": "2026-11-24",
+      "subject": "docs: product status, deployment and live verification record, roadmap/handoff for product Phases 1-4"
+    },
+    {
       "sha": "c51ddbb",
       "date": "2026-11-24",
       "subject": "Merge PR #53: 게스트·닉네임·프로필·서버 검증 경기 기록·Google 로그인(설정 전 꺼짐) (제품 Phase 4)"
@@ -149,42 +160,26 @@
       "sha": "2272b74",
       "date": "2026-11-23",
       "subject": "feat(accounts): guest identity, nickname policy, profile & stats, server-verified records, Google sign-in behind config (Phase 4)"
-    },
-    {
-      "sha": "dbf4e20",
-      "date": "2026-11-24",
-      "subject": "Merge PR #51: 재대결·프리셋 채팅·이모티콘 (제품 Phase 3)"
-    },
-    {
-      "sha": "e855ada",
-      "date": "2026-11-23",
-      "subject": "test(live): live check covers emote, refused free text, spectating, rematch on the same room"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "YachtLab Online live check (manual)",
-      "status": "success",
-      "head": "0845890d25",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45299396597"
-    },
-    {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "0845890d25",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45299155912"
+      "head": "0786f4cc61",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45305850754"
+    },
+    {
+      "name": "YachtLab Online live check (manual)",
+      "status": "success",
+      "head": "5d3c10df9d",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45305164842"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
       "status": "success",
       "head": "0845890d25",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45299154738"
-    },
-    {
-      "name": "YachtLab gameplay UI targeted smoke",
-      "status": "success",
-      "head": "35ef5dc3a7",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45288626586"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
