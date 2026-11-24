@@ -102,6 +102,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const [spectate, setSpectate] = useState<SpectateState | null>(null);
   const [members, setMembers] = useState<Record<string, string>>({});
   const [looks, setLooks] = useState<Record<string, PublicLook>>({});
+  const [aiSeat, setAiSeat] = useState<string | null>(null);
   const [profileOf, setProfileOf] = useState<string | null>(null);
 
   useEffect(() => {
@@ -201,6 +202,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
       onSpectate: setSpectate,
       onMembers: setMembers,
       onLooks: setLooks,
+      onKind: (_kind, ai) => setAiSeat(ai?.playerId ?? null),
       onRematch(r, sr) {
         setRematch(r);
         setSeries(sr);
@@ -446,7 +448,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
             </div>
             {/* Room settings, kept apart from the chat buttons. */}
             <div className="online-tool-group online-room-tools">
-              <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />
+              {!aiSeat && <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />}
               {playing && (
                 <button
                   type="button"
@@ -472,6 +474,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                 <span>
                   <PlayerTag name={p.name} look={looks[p.playerId]} me={p.playerId === me?.playerId} compact />
                   {p.playerId === me?.playerId ? " (나)" : ""}
+                  {p.playerId === aiSeat && <span className="ai-badge">서버 AI</span>}
                 </span>
                 <strong>
                   {p.total}

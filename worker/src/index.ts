@@ -3,6 +3,8 @@ import { newRoomCode, normalizeCode, ROOM_LIMITS, type RoomRecord } from "../../
 import { readConfig, type ConfigVars, type OnlineConfig } from "./config";
 import { RoomHost, type HostSocket, type HostStorage } from "./host";
 import { AccountStore, type Sql } from "./account";
+import { EconomyStore, type EconSql } from "./economy";
+import { validateNickname } from "../../src/identity/nickname";
 import { authConfig, handleAccountRoute, sessionUser, type AccountBackends, type GuestApi, type UserApi } from "./accounts-api";
 import type { MatchRecord } from "../../src/identity/records";
 import type { SeatSpec } from "../../src/online/room";
@@ -29,6 +31,8 @@ export interface Env extends ConfigVars {
   GUESTS: DurableObjectNamespace<GuestLink>;
   /** Phase 4.5: one global object — quick-match queue, public spectating list, operations counters. */
   HUB: DurableObjectNamespace<MatchHub>;
+  /** "off" disables server AI matches (kill switch, default on). */
+  SERVER_AI?: string;
   /** Operations metrics endpoint (`GET /api/admin/metrics`), off unless this secret (≥ 32 chars) is set. */
   ADMIN_TOKEN?: string;
   /** Sign-in (all four must be set, as Worker secrets / vars, or sign-in stays off). */
@@ -290,10 +294,29 @@ export class RoomDirectory extends DurableObject<Env> {
 /** One account (Phase 4): profile, hashed sessions, match records. Addressed by `idFromName(userId)`. */
 export class UserStore extends DurableObject<Env> implements UserApi {
   private store: AccountStore;
+  private econ: EconomyStore;
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.store = new AccountStore(ctx.storage.sql as unknown as Sql);
-    ctx.blockConcurrencyWhile(async () => this.store.init());
+    this.econ = new EconomyStore(this.econSql());
+    ctx.blockConcurrencyWhile(async () => {
+      this.store.init();
+      this.econ.init();
+    });
+  }
+  /** SQLite of this account with an atomic transaction (all of an economy action, or none of it). */
+  private econSql(): EconSql {
+    const sql = this.ctx.storage.sql;
+    return {
+      exec: (q: string, ...p: unknown[]) => sql.exec(q, ...(p as SqlStorageValue[])) as unknown as { toArray(): never[] },
+      transaction: <T>(fn: () => T) => this.ctx.storage.transactionSync(fn),
+    } as EconSql;
+  }
+  /** Count a server AI match start against this account's daily limit. */
+  async startAi() {
+    const p = this.store.profile();
+    if (!p) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+    return this.econ.startAi(p.userId, Date.now());
   }
   async ensureAndCode(userId: string, provider: string, clientStateHash: string) {
     this.store.ensureUser(userId, provider, Date.now());
@@ -338,7 +361,7 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   }
   /** What other players see of this account in a match (validated equipped items; null = default look). */
   async look(): Promise<PublicLook | null> {
-    return null;
+    return this.econ.look();
   }
   /** From a room: a server-verified result (idempotent by matchId). */
   async recordMatch(record: MatchRecord) {
@@ -538,7 +561,7 @@ export default {
       }
       // What this server offers (the page hides what is not available).
       if (url.pathname === "/api/features" && request.method === "GET")
-        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth }, allowed, "public, max-age=60");
+        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, serverAi: !!auth && env.SERVER_AI !== "off" }, allowed, "public, max-age=60");
       // Public spectating list: cheap, cached briefly; no tokens, no keys, no account ids in it.
       if (url.pathname === "/api/spectate/rooms" && request.method === "GET") {
         if (await directory.hit("list:" + (await clientKey(request)), 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
@@ -551,6 +574,32 @@ export default {
         if (!verdict.ok) return fail(verdict.status, verdict.code, verdict.message, allowed);
         const key = await roomStub(code).publicWatch();
         return key ? json(200, { code, key }, allowed) : fail(409, "NOT_PUBLIC", "지금은 이 경기를 관전할 수 없어요. 끝났거나 관전 인원이 가득 찼어요.", allowed);
+      }
+      // Server-verified AI match (Phase 4.5): members only, the room plays the AI seat itself.
+      if (url.pathname === "/api/ai/start" && request.method === "POST") {
+        if (!allowed) return fail(403, "ORIGIN", "허용되지 않은 출처입니다.", null);
+        if (env.SERVER_AI === "off") return fail(404, "AI_OFF", "서버 AI 대전은 지금 쉬고 있어요.", allowed);
+        if (!auth) return fail(404, "AUTH_DISABLED", "회원 로그인은 아직 준비 중이에요.", allowed);
+        const me = await sessionUser(request, backends);
+        if (!me) return fail(401, "UNAUTHENTICATED", "서버 AI 대전은 로그인한 회원만 할 수 있어요.", allowed);
+        if (await directory.hit("ai:" + me.userId, 6)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
+        const nick = validateNickname(await readName(request));
+        if (!nick.ok) return fail(400, "INVALID_COMMAND", nick.message, allowed);
+        const user = env.USERS.get(env.USERS.idFromName(me.userId));
+        const started = await user.startAi();
+        if (!started.ok) return fail(429, started.code, started.message, allowed);
+        const slot = await directory.allocateFor("ai");
+        if (!slot.ok) return fail(slot.status, slot.code, slot.message, allowed);
+        const human: SeatSpec = { name: nick.name, identity: { userId: me.userId }, look: await user.look().catch(() => null) };
+        const bot: SeatSpec = { name: "AI (보통)", ai: true };
+        const humanFirst = (crypto.getRandomValues(new Uint8Array(1))[0] & 1) === 0;
+        const made = await roomStub(slot.code!).createMatched(slot.code!, humanFirst ? [human, bot] : [bot, human], { kind: "ai", public: false });
+        if (!made.ok) {
+          await directory.release(slot.code!);
+          return fail(500, "SERVER", made.message, allowed);
+        }
+        const seat = made.seats[humanFirst ? 0 : 1];
+        return json(201, { code: slot.code, playerId: seat.playerId, token: seat.token }, allowed);
       }
       // WebSocket: /ws/:code — origin required, the room accepts it with the Hibernation API.
       if (parts[0] === "ws" && parts.length === 2) {

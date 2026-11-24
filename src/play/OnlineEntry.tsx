@@ -23,6 +23,7 @@ import {
 } from "../online/client";
 import type { RoomSummary } from "../online/wire";
 import { session } from "../identity/account-client";
+import { startServerAi } from "../identity/economy-client";
 import { PlayerTag } from "./Looks";
 
 type Seat = { code: string; playerId: string; token: string };
@@ -235,7 +236,7 @@ export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server:
             <LoaderCircle size={15} className="spin" /> 서버 정보를 불러오는 중…
           </p>
         ) : shown === "quick" ? (
-          <QuickPanel server={server} name={trimmed} onMatched={(seat, as) => enter(seat, as)} onAi={onAi} onReturn={(code) => (setRoomInUrl(code), onEnter(code))} />
+          <QuickPanel server={server} name={trimmed} serverAi={!!features.serverAi} onMatched={(seat, as) => enter(seat, as)} onAi={onAi} onReturn={(code) => (setRoomInUrl(code), onEnter(code))} />
         ) : shown === "watch" ? (
           <WatchRooms server={server} />
         ) : (
@@ -338,7 +339,27 @@ function FriendPanel({ server, name, enter, onEnter }: { server: string; name: s
  * (off by default; only matches both players allowed are listed). After 20 s without an opponent the
  * player may keep waiting or play an AI match instead — an AI is always shown as an AI.
  */
-function QuickPanel({ server, name, onMatched, onAi, onReturn }: { server: string; name: string; onMatched: (seat: Seat, as: string) => void; onAi?: () => void; onReturn: (code: string) => void }) {
+function QuickPanel({ server, name, serverAi, onMatched, onAi, onReturn }: { server: string; name: string; serverAi: boolean; onMatched: (seat: Seat, as: string) => void; onAi?: () => void; onReturn: (code: string) => void }) {
+  const [aiBusy, setAiBusy] = useState(false);
+  const member = !!session();
+  /** Server-verified AI match (members): the server rolls the dice and plays the AI seat. */
+  const startAi = async () => {
+    if (!name) return setError("닉네임을 입력해 주세요.");
+    qm.current?.cancel();
+    qm.current = null;
+    setSince(null);
+    setAiBusy(true);
+    setError("");
+    try {
+      const seat = await startServerAi(server, name);
+      saveName(name);
+      onMatched(seat, name);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAiBusy(false);
+    }
+  };
   const [spectate, setSpectate] = useState(() => {
     try {
       return localStorage.getItem(PUBLIC_KEY) === "1";
@@ -405,6 +426,11 @@ function QuickPanel({ server, name, onMatched, onAi, onReturn }: { server: strin
         {waited >= 20_000 && (
           <div className="quick-wait-alt">
             <span>상대가 아직 없어요. 계속 기다리거나 AI와 대전할 수 있어요.</span>
+            {serverAi && member && (
+              <button type="button" className="secondary" disabled={aiBusy} onClick={() => void startAi()}>
+                <Bot size={16} /> 서버 AI와 대전하기
+              </button>
+            )}
             {onAi && (
               <button
                 type="button"
@@ -414,7 +440,7 @@ function QuickPanel({ server, name, onMatched, onAi, onReturn }: { server: strin
                   onAi();
                 }}
               >
-                <Bot size={16} /> AI와 대전하기
+                <Bot size={16} /> {serverAi && member ? "로컬 AI와 대전하기" : "AI와 대전하기"}
               </button>
             )}
           </div>
@@ -448,6 +474,11 @@ function QuickPanel({ server, name, onMatched, onAi, onReturn }: { server: strin
       <button type="button" className="primary online-start" onClick={() => start(null)}>
         <Shuffle size={17} /> 빠른 대전 시작
       </button>
+      {serverAi && member && (
+        <button type="button" className="secondary" disabled={aiBusy} onClick={() => void startAi()}>
+          <Bot size={16} /> {aiBusy ? "AI 대전 준비 중…" : "서버 AI와 대전 (보통)"}
+        </button>
+      )}
       {error && (
         <p className="error-message" role="alert">
           {error}

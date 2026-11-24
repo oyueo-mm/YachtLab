@@ -65,6 +65,11 @@ export type HostEvents = {
 };
 export type PublicEntry = NonNullable<ReturnType<OnlineRoom["publicEntry"]>>;
 export const RECORD_RETRY_MS = 60_000;
+/**
+ * Server AI pacing: one action every `stepMs` (players see it roll, hold and score), and an alarm
+ * `fallbackMs` later in case the object was evicted between steps (the alarm wakes it and resumes).
+ */
+export const AI_TIMING = { stepMs: 700, fallbackMs: 5_000 };
 
 export class RoomHost {
   room: OnlineRoom | null = null;
@@ -118,6 +123,31 @@ export class RoomHost {
       this.room.adoptHold((ws.deserializeAttachment() as Attachment | null)?.hold);
     }
     this.rearm();
+    this.scheduleAi();
+  }
+
+  private aiTimer: ReturnType<typeof setTimeout> | null = null;
+  /** If it is the server AI's turn, play its next action shortly. */
+  private scheduleAi() {
+    if (this.deleted || !this.room?.aiToMove || this.aiTimer) return;
+    this.aiTimer = setTimeout(() => {
+      this.aiTimer = null;
+      void this.runAi();
+    }, AI_TIMING.stepMs);
+  }
+  /** One AI action, then the same bookkeeping as after a player's message. */
+  async runAi() {
+    const room = this.room;
+    if (!room || this.deleted || !room.aiToMove) return;
+    try {
+      await room.aiStep();
+    } catch {
+      /* storage failure: nothing was applied (fail-closed); the alarm retries */
+    }
+    await this.flushRecords();
+    for (const s of this.open()) this.remember(s);
+    this.rearm();
+    this.scheduleAi();
   }
 
   get code() {
@@ -150,6 +180,7 @@ export class RoomHost {
       this.room = made.room;
       this.rearm();
       await this.publishIfChanged();
+      this.scheduleAi();
       return { ok: true, seats: made.seats };
     } catch (error) {
       return { ok: false, message: error instanceof Error ? error.message : "경기를 만들지 못했어요." };
@@ -281,6 +312,7 @@ export class RoomHost {
     // A message may have advanced other sockets (broadcast): remember all of them.
     for (const s of this.open()) this.remember(s);
     this.rearm();
+    this.scheduleAi();
   }
 
   /** Delete all stored data and free the code (idle / max age / empty lobby). */
@@ -290,6 +322,7 @@ export class RoomHost {
     // Last attempt to hand results to accounts before the room's data is deleted.
     await this.flushRecords();
     this.deleted = true;
+    if (this.aiTimer) clearTimeout(this.aiTimer);
     if (room.isPublic) await Promise.resolve(this.events.publish?.(room.code, null)).catch(() => undefined);
     if (room.kind === "random" && !this.endedSent) await Promise.resolve(this.events.matchEnded?.(room.code)).catch(() => undefined);
     room.closeRoom();
@@ -344,7 +377,8 @@ export class RoomHost {
    */
   private rearm() {
     if (this.deleted) return;
-    const candidates = [this.room?.match.status === "playing" ? this.turnDeadline : null, this.helloDeadline(), this.cleanupAt(), this.retryAt].filter((x): x is number => x !== null);
+    const aiAt = this.room?.aiToMove ? this.now() + AI_TIMING.fallbackMs : null;
+    const candidates = [this.room?.match.status === "playing" ? this.turnDeadline : null, this.helloDeadline(), this.cleanupAt(), this.retryAt, aiAt].filter((x): x is number => x !== null);
     if (!candidates.length) return;
     const next = Math.min(...candidates);
     if (this.alarmAt !== null && this.alarmAt <= next) return;
@@ -367,6 +401,8 @@ export class RoomHost {
     }
     const cleanup = this.cleanupAt();
     if (cleanup !== null && t >= cleanup) return this.remove();
+    for (const s of this.open()) this.remember(s);
     this.rearm();
+    this.scheduleAi();
   }
 }

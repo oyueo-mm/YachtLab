@@ -681,3 +681,12 @@
     flex-wrap: wrap;
   }
 }
+.ai-badge {
+  margin-left: 4px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: #e9eefc;
+  color: #2a46a3;
+  font-size: 10.5px;
+  font-weight: 700;
+}

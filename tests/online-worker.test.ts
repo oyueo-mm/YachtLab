@@ -307,6 +307,16 @@ describe("Phase 4.5 — 빠른 대전·공개 관전 (wrangler dev, local)", () 
     expect((await api(main, `/api/spectate/${ma.code}/watch`, {})).status).toBe(409);
   }, 60_000);
 
+  it("서버 AI 대전은 회원 전용: 로그인이 꺼진 서버·세션 없는 요청은 방을 만들지 않는다", async () => {
+    const before = await (await fetch(main.url + "/usage")).json();
+    const r = await api(main, "/api/ai/start", { name: "민수" });
+    expect(r.status).toBe(404);
+    expect(r.body.error.code).toBe("AUTH_DISABLED");
+    const after = await (await fetch(main.url + "/usage")).json();
+    expect(after.roomsToday).toBe(before.roomsToday);
+    expect((await (await fetch(main.url + "/api/features", { headers: { origin: "http://127.0.0.1:5173" } })).json()).serverAi).toBe(false);
+  });
+
   it("같은 기기의 두 탭은 서로 매칭되지 않고, 취소하면 대기열에서 빠진다", async () => {
     const a = queueSocket(main, { name: "혼자", ticket: tk(3), device: tk(13) });
     await a.wait("queued");

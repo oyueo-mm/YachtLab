@@ -28,6 +28,7 @@ import { validateNickname } from "../identity/nickname";
 import { RULES_ID, type MatchRecord } from "../identity/records";
 import { GUEST_LOOK, sanitizeLook, sendableIds, type PublicLook } from "../economy/live/catalog";
 import { matchStats } from "../economy/live/rewards";
+import { SERVER_AI_LEVEL, serverAiMove } from "./server-ai";
 import type { MatchKind } from "../economy/live/config";
 
 /**
@@ -101,9 +102,11 @@ export type RoomRecord = {
   public?: boolean;
   /** What each seat shows to others (server-validated equipped items; guests: the default look). */
   looks?: Record<string, PublicLook>;
+  /** Server AI seat of an AI match: it has no token (nobody can connect as it); the room plays it. */
+  ai?: { playerId: string; level: string };
 };
 /** A seat given by the matchmaker (or the AI starter): name, verified account and its validated look. */
-export type SeatSpec = { name: string; identity?: { userId: string } | null; look?: PublicLook | null };
+export type SeatSpec = { name: string; identity?: { userId: string } | null; look?: PublicLook | null; ai?: boolean };
 
 export type RoomDeps = {
   now: () => number;
@@ -310,8 +313,10 @@ export class OnlineRoom {
     const looks: NonNullable<RoomRecord["looks"]> = {};
     const events: OnlineEvent[] = [];
     const ctx = { now: deps.now(), dice: room.dice };
+    let ai: RoomRecord["ai"];
     for (const [i, seat] of seats.entries()) {
-      const checked = validateNickname(seat.name);
+      // The AI seat's label is chosen by the server (always says it is an AI), not a player nickname.
+      const checked = seat.ai ? { ok: true as const, name: seat.name } : validateNickname(seat.name);
       const name = checked.ok ? normalizeName(checked.name) : null;
       if (!name) throw Error("닉네임을 확인해 주세요.");
       const playerId = "p_" + base64url(room.random(new Uint8Array(12)));
@@ -320,16 +325,17 @@ export class OnlineRoom {
       if (!joined.ok) throw Error(joined.error.message);
       state = joined.state;
       events.push(...joined.events);
-      credentials[playerId] = { tokenHash: await hashToken(token) };
-      if (seat.identity) identities[playerId] = { userId: seat.identity.userId };
+      if (seat.ai) ai = { playerId, level: SERVER_AI_LEVEL };
+      else credentials[playerId] = { tokenHash: await hashToken(token) };
+      if (seat.identity && !seat.ai) identities[playerId] = { userId: seat.identity.userId };
       looks[playerId] = seat.identity && seat.look ? sanitizeLook(seat.look) : GUEST_LOOK;
-      out.push({ playerId, token });
+      out.push({ playerId, token: seat.ai ? "" : token });
     }
     const started = applyCommand(state, { commandId: "match-start", playerId: out[0].playerId, action: { type: "start" } }, ctx);
     if (!started.ok) throw Error(started.error.message);
     events.push(...started.events);
     const spectate = options.public ? { allow: Object.fromEntries(out.map((s) => [s.playerId, true])), key: base64url(room.random(new Uint8Array(18))) } : undefined;
-    await room.commit(started.state, events, { ...room.record, credentials, identities, looks, kind: options.kind, ...(options.public ? { public: true, spectate } : {}) });
+    await room.commit(started.state, events, { ...room.record, credentials, identities, looks, kind: options.kind, ...(ai ? { ai } : {}), ...(options.public && !ai ? { public: true, spectate } : {}) });
     return { room, seats: out };
   }
 
@@ -450,6 +456,7 @@ export class OnlineRoom {
   alarm(): Promise<void> {
     return this.serial(async () => {
       const turn = this.state.turn;
+      if (!this.closed && this.state.status === "playing" && turn && turn.playerId === this.record.ai?.playerId) return this.aiAct();
       if (this.closed || this.state.status !== "playing" || !turn || turn.deadline === null) return;
       if (this.deps.now() < turn.deadline) return this.armTimer();
       const claimer = this.state.players.find((p) => p.status === "active" && p.playerId !== turn.playerId);
@@ -457,6 +464,38 @@ export class OnlineRoom {
       // Deterministic id: a repeated alarm for the same turn is an idempotent duplicate.
       await this.run(claimer.playerId, { commandId: `timeout-${this.state.version}`, action: { type: "claimTimeout" } });
     });
+  }
+
+  /* ------------------------------------------------------------- server AI ------------------------------------------------------------- */
+
+  /** The AI seat, if this is a server AI match. */
+  aiSeat(): { playerId: string; level: string } | null {
+    return this.record.ai ?? null;
+  }
+  /** True while it is the AI's turn (the host schedules `aiStep`). */
+  get aiToMove(): boolean {
+    return !this.closed && this.state.status === "playing" && !!this.record.ai && this.state.turn?.playerId === this.record.ai.playerId;
+  }
+  /** One AI action (roll or score), applied and stored exactly like a player's command. */
+  aiStep(): Promise<void> {
+    return this.serial(() => this.aiAct());
+  }
+  private async aiAct() {
+    const ai = this.record.ai;
+    const turn = this.state.turn;
+    if (!ai || this.closed || this.state.status !== "playing" || !turn || turn.playerId !== ai.playerId) return;
+    const me = this.state.players.find((p) => p.playerId === ai.playerId);
+    if (!me) return;
+    // It sees exactly what a player sees: its dice, roll count and card — never the dice source.
+    const move = turn.rolls === 0 ? ({ type: "roll", keep: [] } as const) : serverAiMove(turn.dice, turn.rolls, me.card);
+    const action = move.type === "roll" ? { type: "roll" as const, keep: move.keep } : { type: "score" as const, category: move.category };
+    // Deterministic id per state version: a repeated step (alarm + timer) is an idempotent duplicate.
+    this.rollOrder = move.type === "roll" ? [...move.keep] : null;
+    try {
+      await this.run(ai.playerId, { commandId: `ai-${this.state.version}`, expectedVersion: this.state.version, action });
+    } finally {
+      this.rollOrder = null;
+    }
   }
 
   /* --------------------------------------------------------------- sockets --------------------------------------------------------------- */
@@ -532,7 +571,7 @@ export class OnlineRoom {
       const since = Math.max(0, Math.min(msg.since ?? 0, this.state.log.length));
       const view = viewFor(this.state, playerId, this.deps.now(), since);
       conn.seenSeq = this.state.log.length;
-      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold(), rematch: this.rematchState(), series: this.seriesSummary(), spectate: this.spectateState(), members: this.members(), looks: this.looks(), kind: this.kind });
+      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold(), rematch: this.rematchState(), series: this.seriesSummary(), spectate: this.spectateState(), members: this.members(), looks: this.looks(), kind: this.kind, ai: this.aiSeat() });
       this.broadcastPresence();
       return;
     }
@@ -628,6 +667,7 @@ export class OnlineRoom {
   private spectateAt = new Map<string, number>();
   /** A player turns spectating on or off. Off by anyone revokes the link (a new key next time). */
   private async setSpectate(conn: RoomConnection, playerId: string, allow: boolean) {
+    if (this.record.ai) return conn.send({ t: "error", code: "SPECTATE", message: "AI 대전은 관전할 수 없어요." });
     const sp = this.record.spectate ?? { allow: {}, key: null };
     if ((sp.allow[playerId] === true) === allow && (!allow || sp.key)) return conn.send({ t: "spectate", spectate: this.spectateState() });
     // Turning spectating OFF is a privacy action: always honoured at once. Only turning it on (a new
@@ -656,7 +696,7 @@ export class OnlineRoom {
     conn.spectator = { key: sp.key };
     const from = Math.max(0, Math.min(since, this.state.log.length));
     conn.seenSeq = this.state.log.length;
-    conn.send({ t: "watching", code: this.code, view: viewFor(this.state, null, this.deps.now(), from), online: this.onlinePlayers(), hold: this.currentHold(), series: this.seriesSummary(), spectators: this.spectators().length, looks: this.looks(), kind: this.kind });
+    conn.send({ t: "watching", code: this.code, view: viewFor(this.state, null, this.deps.now(), from), online: this.onlinePlayers(), hold: this.currentHold(), series: this.seriesSummary(), spectators: this.spectators().length, looks: this.looks(), kind: this.kind, ai: this.aiSeat() });
     this.broadcastSpectate();
   }
 
@@ -732,7 +772,11 @@ export class OnlineRoom {
           card: { ...p.card },
           outcome,
           endReason: forfeit && forfeit.type === "playerForfeited" ? forfeit.reason : "completed",
-          opponent: { name: other.name, kind: ids[other.playerId] ? "member" : "guest", score: totals[other.playerId] ?? 0, ...(ids[other.playerId] ? { userId: ids[other.playerId].userId } : {}) },
+          opponent:
+            this.record.ai?.playerId === other.playerId
+              ? { name: other.name, kind: "ai", score: totals[other.playerId] ?? 0, aiLevel: this.record.ai.level }
+              : { name: other.name, kind: ids[other.playerId] ? "member" : "guest", score: totals[other.playerId] ?? 0, ...(ids[other.playerId] ? { userId: ids[other.playerId].userId } : {}) },
+          ...(this.record.ai ? { aiLevel: this.record.ai.level } : {}),
           kind: this.kind,
           stats: matchStats(state.log, p.playerId, other.playerId, state.winners),
         },
@@ -759,7 +803,9 @@ export class OnlineRoom {
       ? null
       : departed.length
         ? "상대가 방을 나갔어요."
-        : (this.record.matchNo ?? 1) >= ROOM_LIMITS.maxMatches
+        : this.record.ai
+          ? "AI 대전은 새로 시작해 주세요."
+          : (this.record.matchNo ?? 1) >= ROOM_LIMITS.maxMatches
           ? "이 방에서는 더 이상 경기를 할 수 없어요. 새 방을 만들어 주세요."
           : this.rematchBlocked;
     return { requests: finished ? [...pending.requests] : [], declinedBy: finished ? pending.declinedBy : null, departed: [...departed], blocked };
@@ -800,6 +846,7 @@ export class OnlineRoom {
   private async rematch(conn: RoomConnection, playerId: string, op: RematchOp) {
     const fail = (message: string) => conn.send({ t: "error", code: "REMATCH", message });
     if (this.state.status !== "finished") return fail("경기가 끝난 뒤에 재대결할 수 있어요.");
+    if (this.record.ai) return fail("AI 대전은 재대결 대신 새로 시작해 주세요.");
     const blocked = this.rematchState().blocked;
     if (blocked && op === "request" && (this.record.departed?.length || (this.record.matchNo ?? 1) >= ROOM_LIMITS.maxMatches)) return fail(blocked);
     const pending = this.record.rematch ?? { requests: [], declinedBy: null };
@@ -890,7 +937,10 @@ export class OnlineRoom {
   }
 
   private onlinePlayers() {
-    return [...new Set([...this.connections].map((c) => c.playerId).filter((id): id is string => !!id))];
+    const ids = [...this.connections].map((c) => c.playerId).filter((id): id is string => !!id);
+    // The server AI is always "connected".
+    if (this.record.ai) ids.push(this.record.ai.playerId);
+    return [...new Set(ids)];
   }
   private broadcastPresence() {
     const online = this.onlinePlayers();
