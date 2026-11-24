@@ -1,6 +1,6 @@
 import type { OnlineAction } from "./protocol";
 import type { PlayerView } from "./server-engine";
-import type { ApiError, HoldState, JoinResponse, RoomSummary, ServerMessage } from "./wire";
+import type { ApiError, HoldState, JoinResponse, RematchOp, RematchState, RoomSummary, SeriesSummary, ServerMessage } from "./wire";
 
 /**
  * Browser side of YachtLab Online (Phase 2): server address, saved seats, HTTP calls and a
@@ -147,6 +147,12 @@ export type ConnectionEvents = {
    */
   onView(view: PlayerView, live: boolean, hold: HoldState | null | undefined): void;
   onHold(hold: HoldState): void;
+  /** A preset chat line / emote arrived live (never replayed). Optional for older screens. */
+  onSaid?(from: string, id: string): void;
+  /** Rematch state + running score of the room (welcome and every change). */
+  onRematch?(rematch: RematchState, series: SeriesSummary): void;
+  /** A non-fatal server notice (rate limit, rematch refused). */
+  onNotice?(code: string, message: string): void;
   onPresence(online: string[]): void;
   onStatus(status: ConnectionStatus): void;
   /** The seat is gone (bad token, left, room closed): stop and go back to the entry screen. */
@@ -255,6 +261,7 @@ export class OnlineConnection {
         this.setStatus("online");
         this.events.onPresence(msg.online);
         this.events.onView(msg.view, false, msg.hold ?? null);
+        if (msg.rematch && msg.series) this.events.onRematch?.(msg.rematch, msg.series);
         // Commands whose ack was lost are sent again with the same id (applied at most once).
         for (const p of this.pending.values()) this.ws?.send(p.frame);
         return;
@@ -274,6 +281,15 @@ export class OnlineConnection {
       case "presence":
         this.events.onPresence(msg.online);
         return;
+      case "said":
+        this.events.onSaid?.(msg.from, msg.id);
+        return;
+      case "rematch":
+        this.events.onRematch?.(msg.rematch, msg.series);
+        return;
+      case "error":
+        this.events.onNotice?.(msg.code, msg.message);
+        return;
       default:
         return;
     }
@@ -287,6 +303,23 @@ export class OnlineConnection {
       this.pending.set(id, { frame, resolve });
       if (this.ws?.readyState === WebSocket.OPEN && this.status === "online") this.ws.send(frame);
     });
+  }
+
+  private sendNow(frame: object): boolean {
+    if (this.ws?.readyState !== WebSocket.OPEN || this.status !== "online") return false;
+    this.ws.send(JSON.stringify(frame));
+    return true;
+  }
+  /** Preset chat / emote by catalog id (best effort, never queued: a stale greeting is worse than none). */
+  say(id: string) {
+    return this.sendNow({ t: "say", id });
+  }
+  rematch(op: RematchOp) {
+    return this.sendNow({ t: "rematch", op });
+  }
+  /** Leave the finished room for good. */
+  bye() {
+    return this.sendNow({ t: "bye" });
   }
 
   /** Hold selection in selection order (best effort, never queued; the roll carries the real keep). */

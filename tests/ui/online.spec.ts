@@ -208,10 +208,10 @@ for (const kind of ["node", "workers"] as const) {
 
         for (const p of [a, b])
           await expect(p.locator(".game-result")).toBeVisible();
-        const scoreA = (await a.locator(".game-result p").textContent())!
+        const scoreA = (await a.locator(".game-result .online-final").textContent())!
           .split(":")
           .map((s) => Number(s.trim()));
-        const scoreB = (await b.locator(".game-result p").textContent())!
+        const scoreB = (await b.locator(".game-result .online-final").textContent())!
           .split(":")
           .map((s) => Number(s.trim()));
         expect(scoreB).toEqual([scoreA[1], scoreA[0]]);
@@ -221,6 +221,37 @@ for (const kind of ["node", "workers"] as const) {
             .locator(".score-summary [data-seat='0'] strong")
             .textContent(),
         ).toContain(String(scoreA[0]));
+
+        // Phase 3 — emote and preset chat after the match: shown live on the other screen, only inside
+        // the sender's score chip; hiding the opponent's messages works; free text cannot be typed.
+        await a.getByRole("button", { name: "채팅·이모티콘" }).click();
+        await expect(a.getByRole("dialog", { name: "채팅·이모티콘" }).locator("input[type=text], textarea")).toHaveCount(0);
+        await a.getByRole("button", { name: "박수" }).click();
+        await expect(b.locator(".score-summary [data-role='opponent'] .chip-bubble")).toHaveText("👏");
+        await expect(a.locator(".score-summary [data-role='human'] .chip-bubble")).toHaveText("👏");
+        await b.getByRole("button", { name: "채팅·이모티콘" }).click();
+        await b.getByLabel("상대 메시지 숨기기").check();
+        await b.keyboard.press("Escape");
+        await a.waitForTimeout(800);
+        await a.getByRole("button", { name: "채팅·이모티콘" }).click();
+        await a.getByRole("button", { name: "좋은 경기였어요!" }).click();
+        await expect(a.locator(".score-summary [data-role='human'] .chip-bubble")).toHaveText("좋은 경기였어요!");
+        await expect(b.locator(".chip-bubble")).toHaveCount(0);
+
+        // Rematch: request → the other screen is asked (also after a reload) → accept → a new match in the
+        // same room, the other player moves first, scores start from 0.
+        await a.getByRole("button", { name: "재대결", exact: true }).click();
+        await expect(a.getByText("지민 님의 응답을 기다리는 중…")).toBeVisible();
+        await expect(b.getByText("민수 님이 재대결을 요청했어요.")).toBeVisible();
+        await b.reload();
+        await expect(b.getByText("민수 님이 재대결을 요청했어요.")).toBeVisible();
+        await b.getByRole("button", { name: "수락" }).click();
+        for (const p of [a, b]) await expect(p.locator(".game-result")).toHaveCount(0);
+        await expect(b.locator(".turn-indicator")).toContainText("나의 차례");
+        await expect(a.locator(".roll-button")).toContainText("지민 님의 차례");
+        for (const p of [a, b]) await expect(p.locator(".score-summary [data-seat] strong").first()).toContainText("0");
+        await b.locator(".roll-button").click();
+        await expect(a.locator(".board-top b")).toHaveText("1");
       });
 
       test("새로고침·재접속·연결 끊김 후에도 같은 좌석으로 돌아와 경기를 이어간다", async ({

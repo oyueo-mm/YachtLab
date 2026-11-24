@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Copy, Crown, Dices, Flag, Home, LogOut, Play, Share2, Trophy, Wifi, WifiOff } from "lucide-react";
+import { ArrowRight, Copy, Crown, Dices, Flag, Home, LogOut, Play, RotateCcw, Share2, Trophy, Wifi, WifiOff, X } from "lucide-react";
 import { names, type Category, type Game } from "../engine";
 import { DiceArea } from "../DiceArea";
 import { Scoreboard } from "../Scoreboard";
@@ -18,6 +18,8 @@ import { playSfx } from "../sound";
 import { OnlineConnection, forgetSeat, inviteLink, savedSeat, setRoomInUrl, type ConnectionStatus } from "../online/client";
 import type { OnlineAction } from "../online/protocol";
 import type { PlayerView } from "../online/server-engine";
+import type { RematchState, SeriesSummary } from "../online/wire";
+import { ChipBubble, SocialPanel, useBubbles } from "./Social";
 
 /** Every screen shows the dice in the same row order (no local drag reordering online). */
 const ROW = [0, 1, 2, 3, 4];
@@ -59,6 +61,11 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const viewRef = useRef<PlayerView | null>(null);
   const lastDice = useRef<number[]>([1, 2, 3, 4, 5]);
   const rolling = useDiceBusy();
+  const social = useBubbles();
+  const hideRef = useRef(social.hideOpponent);
+  hideRef.current = social.hideOpponent;
+  const [rematch, setRematch] = useState<RematchState | null>(null);
+  const [series, setSeries] = useState<SeriesSummary | null>(null);
 
   useEffect(() => {
     if (!seat) {
@@ -92,6 +99,18 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           setKeep(hold.keep);
         };
         const nameOf = (id: string) => next.players.find((p) => p.playerId === id)?.name ?? "";
+        if (prev && prev.matchId !== next.matchId) {
+          // Rematch: a new match in the same room. Nothing from the previous match carries over.
+          live = false;
+          holdSent.current = 0;
+          mySelection.current = { keep: [], v: -1 };
+          lastDice.current = [1, 2, 3, 4, 5];
+          for (const p of next.players) announced.current.add(p.playerId);
+          clearScoreFx();
+          setFeedback("");
+          setError("");
+          setMobileScoreOpen(false);
+        }
         if (!live) setSyncKey((n) => n + 1);
         let rolled = false;
         let kept: number[] | null = null;
@@ -137,6 +156,17 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         setKeep(hold.keep);
       },
       onPresence: setOnline,
+      onSaid(from, id) {
+        if (from !== viewRef.current?.you?.playerId && hideRef.current) return;
+        social.show(from, id);
+      },
+      onRematch(r, sr) {
+        setRematch(r);
+        setSeries(sr);
+      },
+      onNotice(code, message) {
+        if (code === "REMATCH" || code === "SOCIAL_RATE_LIMITED" || code === "INVALID_SOCIAL") setError(message);
+      },
       onStatus: setStatus,
       onFatal: (message) => onLeave(message),
     });
@@ -302,6 +332,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           </div>
           <input className="online-invite-link" aria-label="초대 링크" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
         </div>
+        <SocialPanel onSend={(id) => conn.current?.say(id) ?? false} hideOpponent={social.hideOpponent} setHideOpponent={social.setHideOpponent} disabled={status !== "online"} />
         <ul className="online-players" aria-label="참가자">
           {[0, 1].map((i) => {
             const p = players[i];
@@ -311,6 +342,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                   <>
                     <span className={"online-dot" + (online.includes(p.playerId) ? " on" : "")} aria-hidden="true" />
                     <strong>{p.name}</strong>
+                    <ChipBubble bubble={social.bubbles[p.playerId]} />
                     {p.playerId === me?.playerId && <span className="online-tag">나</span>}
                     {i === 0 && (
                       <span className="online-tag host">
@@ -358,6 +390,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
             <span className="online-code-chip">
               {status === "online" ? <Wifi size={14} /> : <WifiOff size={14} />} 방 {code}
             </span>
+            <SocialPanel onSend={(id) => conn.current?.say(id) ?? false} hideOpponent={social.hideOpponent} setHideOpponent={social.setHideOpponent} disabled={status !== "online"} />
             {playing && (
               <button
                 type="button"
@@ -378,6 +411,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           <div className="score-summary">
             {players.map((p, seatIndex) => (
               <div key={p.playerId} className={!finished && turnIndex === seatIndex ? "selected" : ""} data-seat={seatIndex} data-role={p.playerId === me?.playerId ? "human" : "opponent"}>
+                <ChipBubble bubble={social.bubbles[p.playerId]} />
                 <span>
                   {p.name}
                   {p.playerId === me?.playerId ? " (나)" : ""}
@@ -423,16 +457,23 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
               <QuickPicks values={game.dice.map((d) => d.value)} card={players[meIndex]?.card ?? {}} rolls={rolls} canScore={can} onScore={record} />
             </div>
             {finished && (
-              <div className="game-result" role="status">
+              <div className="game-result online-result" role="status">
                 <Trophy size={25} />
                 <h2>{outcome === "draw" ? "무승부입니다" : outcome === "win" ? "승리했습니다!" : `${players.find((p) => p.playerId === winners[0])?.name ?? "상대"} 님이 승리했습니다`}</h2>
-                <p>
+                <p className="online-final">
                   {players[meIndex]?.total ?? 0} : {opponent?.total ?? 0}
                 </p>
+                {series && series.games > 1 && me && opponent && (
+                  <p className="online-series">
+                    이 방 전적 {series.wins[me.playerId] ?? 0}승 {series.wins[opponent.playerId] ?? 0}패{series.draws ? ` ${series.draws}무` : ""}
+                  </p>
+                )}
+                <RematchControls rematch={rematch} me={me?.playerId ?? ""} opponentName={opponent?.name ?? "상대"} onOp={(op) => conn.current?.rematch(op)} />
                 <div className="game-result-actions">
                   <button
-                    className="primary"
+                    className="secondary"
                     onClick={() => {
+                      conn.current?.bye();
                       forgetSeat(code);
                       onLeave();
                     }}
@@ -443,12 +484,13 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                   <button
                     className="secondary"
                     onClick={() => {
+                      conn.current?.bye();
                       forgetSeat(code);
                       setRoomInUrl(null);
                       location.hash = "home";
                     }}
                   >
-                    <Home size={15} /> 홈으로
+                    <Home size={15} /> 로비로
                   </button>
                 </div>
               </div>
@@ -482,5 +524,66 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         }}
       />
     </>
+  );
+}
+
+/** Rematch buttons on the result card. The server decides; this only shows its state. */
+function RematchControls({ rematch, me, opponentName, onOp }: { rematch: RematchState | null; me: string; opponentName: string; onOp: (op: "request" | "cancel" | "decline") => void }) {
+  const [pressed, setPressed] = useState(false);
+  // A new server state re-enables the buttons (the press was answered).
+  useEffect(() => setPressed(false), [rematch]);
+  if (!rematch) return null;
+  const mine = rematch.requests.includes(me);
+  const theirs = rematch.requests.some((id) => id !== me);
+  const press = (op: "request" | "cancel" | "decline") => {
+    if (pressed) return;
+    setPressed(true);
+    onOp(op);
+    setTimeout(() => setPressed(false), 1500);
+  };
+  if (rematch.blocked)
+    return (
+      <p className="rematch-status" role="status">
+        {rematch.blocked}
+      </p>
+    );
+  return (
+    <div className="rematch">
+      {theirs && !mine ? (
+        <>
+          <p className="rematch-status" role="status">
+            {opponentName} 님이 재대결을 요청했어요.
+          </p>
+          <div className="rematch-actions">
+            <button type="button" className="primary" disabled={pressed} onClick={() => press("request")}>
+              <RotateCcw size={16} /> 수락
+            </button>
+            <button type="button" className="secondary" disabled={pressed} onClick={() => press("decline")}>
+              <X size={15} /> 거절
+            </button>
+          </div>
+        </>
+      ) : mine ? (
+        <>
+          <p className="rematch-status" role="status">
+            {opponentName} 님의 응답을 기다리는 중…
+          </p>
+          <button type="button" className="secondary" disabled={pressed} onClick={() => press("cancel")}>
+            요청 취소
+          </button>
+        </>
+      ) : (
+        <>
+          {rematch.declinedBy && rematch.declinedBy !== me && (
+            <p className="rematch-status" role="status">
+              {opponentName} 님이 재대결을 거절했어요.
+            </p>
+          )}
+          <button type="button" className="primary" disabled={pressed} onClick={() => press("request")}>
+            <RotateCcw size={16} /> 재대결
+          </button>
+        </>
+      )}
+    </div>
   );
 }
