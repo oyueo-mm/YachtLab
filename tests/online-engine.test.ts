@@ -643,7 +643,8 @@ describe("OnlineMatchHost", () => {
 
   it("throws on invalid match options", () => {
     expect(() => createOnlineMatch({ matchId: "m", seats: 1 }, 0)).toThrow();
-    expect(() => createOnlineMatch({ matchId: "m", seats: 9 }, 0)).toThrow();
+    expect(() => createOnlineMatch({ matchId: "m", seats: 21 }, 0)).toThrow(); // 2..20 players
+    expect(createOnlineMatch({ matchId: "m", seats: 20 }, 0).seats).toBe(20);
     expect(() => createOnlineMatch({ matchId: "bad id" }, 0)).toThrow();
     expect(() => createOnlineMatch({ matchId: "m", turnTimeoutMs: 10 }, 0)).toThrow();
   });

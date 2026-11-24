@@ -22,6 +22,7 @@ import {
   type SeriesSummary,
   type ServerMessage,
   type SpectateState,
+  type LobbyState,
 } from "./wire";
 import { allowSocial, canSend, newSocialBucket, type SocialBucket } from "../social/catalog";
 import { validateNickname } from "../identity/nickname";
@@ -49,9 +50,9 @@ import type { MatchKind } from "../economy/live/config";
 
 export const ROOM_LIMITS = {
   /** Event log cap per match. A 2-player game needs ~130 events; the cap only stops abuse (fail-closed). */
-  maxEvents: 800,
-  /** Simultaneous sockets per room: players (a few tabs each) plus spectators. */
-  maxConnections: 14,
+  maxEvents: 4000,
+  /** Simultaneous sockets per room: up to 20 players (plus a spare tab or reconnect each) and spectators. */
+  maxConnections: 48,
   /** Spectators per room. Conservative: each one receives every view broadcast (docs/online/SOCIAL-AND-ACCOUNTS.md). */
   maxSpectators: 5,
   /** Largest accepted client message, bytes. */
@@ -63,7 +64,15 @@ export const ROOM_LIMITS = {
   maxMatches: 20,
   /** Rematch request/cancel/decline: at most one stored change per player per second. */
   rematchCooldownMs: 1000,
+  /** Lobby ready / settings / host changes: stored changes per room between two matches (write-loop cap). */
+  lobbyOps: 200,
 } as const;
+
+import { MAX_PLAYERS, ROUND_LIMITS, TURN_LIMITS } from "./wire";
+export { MAX_PLAYERS, ROUND_LIMITS, TURN_LIMITS };
+export type RoomSettings = { mode: "turns" | "simultaneous"; timeoutMs: number | null };
+/** What everyone in the lobby sees: who is host, who is ready, the match settings. */
+export type { LobbyState } from "./wire";
 
 /** One finished match of this room (kept for the running score; the event log itself is replaced). */
 export type SeriesEntry = { matchId: string; finishedAt: number; winners: string[]; points: Record<string, number> };
@@ -104,6 +113,12 @@ export type RoomRecord = {
   looks?: Record<string, PublicLook>;
   /** Server AI seat of an AI match: it has no token (nobody can connect as it); the room plays it. */
   ai?: { playerId: string; level: string };
+  /** Friend rooms: settings chosen by the host in the lobby (applied when the match starts). */
+  settings?: RoomSettings;
+  /** Friend rooms: lobby ready flags (reset when a match starts). */
+  ready?: Record<string, boolean>;
+  /** Host chosen by transfer; when absent or gone, the earliest remaining player is host. */
+  hostId?: string;
 };
 /** A seat given by the matchmaker (or the AI starter): name, verified account and its validated look. */
 export type SeatSpec = { name: string; identity?: { userId: string } | null; look?: PublicLook | null; ai?: boolean };
@@ -121,7 +136,7 @@ export type RoomDeps = {
    * May one more match start in this room? Returns null when it may, otherwise a message for the
    * players. The Durable Object host counts it toward the daily cap (rooms + rematches).
    */
-  allowMatch?: () => Promise<string | null> | string | null;
+  allowMatch?: (weight?: number) => Promise<string | null> | string | null;
 };
 
 /** A live socket, as seen by the room. `playerId` is set only after a successful `hello`. */
@@ -211,11 +226,12 @@ export class OnlineRoom {
     this.state = state ?? rebuildFromEvents(record.log);
   }
 
-  static create(code: string, deps: RoomDeps, options: { turnTimeoutMs?: number | null } = {}): OnlineRoom {
+  static create(code: string, deps: RoomDeps, options: { turnTimeoutMs?: number | null; seats?: number } = {}): OnlineRoom {
     if (!CODE_PATTERN.test(code)) throw Error("잘못된 방 코드입니다.");
     const now = deps.now();
+    const seats = Math.max(2, Math.min(MAX_PLAYERS, Math.floor(options.seats ?? 2)));
     // Every match has its own random id (records, rematches); the room code is only the address.
-    const state = createOnlineMatch({ matchId: newMatchId(deps.random), seats: 2, turnTimeoutMs: options.turnTimeoutMs ?? null }, now);
+    const state = createOnlineMatch({ matchId: newMatchId(deps.random), seats, turnTimeoutMs: options.turnTimeoutMs ?? null }, now);
     const record: RoomRecord = { wire: WIRE_VERSION, code, createdAt: now, touchedAt: now, credentials: {}, log: state.log, matchNo: 1 };
     return new OnlineRoom(record, deps, state);
   }
@@ -257,6 +273,7 @@ export class OnlineRoom {
       status: this.state.status,
       seats: this.state.seats,
       players: this.state.players.map((p) => p.name),
+      mode: this.settings().mode,
     };
   }
 
@@ -438,6 +455,7 @@ export class OnlineRoom {
       const looks = this.looks();
       for (const c of this.connections) if (c.playerId) c.send({ t: "members", members });
       for (const c of this.connections) if (c.playerId || c.spectator) c.send({ t: "looks", looks });
+      this.broadcastLobby();
     }
   }
 
@@ -448,7 +466,7 @@ export class OnlineRoom {
   }
 
   private armTimer() {
-    const deadline = this.state.status === "playing" ? this.state.turn?.deadline ?? null : null;
+    const deadline = this.state.status !== "playing" ? null : this.state.mode === "simultaneous" ? (this.state.roundDeadline ?? null) : (this.state.turn?.deadline ?? null);
     this.deps.schedule(deadline);
   }
 
@@ -457,6 +475,15 @@ export class OnlineRoom {
     return this.serial(async () => {
       const turn = this.state.turn;
       if (!this.closed && this.state.status === "playing" && turn && turn.playerId === this.record.ai?.playerId) return this.aiAct();
+      if (!this.closed && this.state.status === "playing" && this.state.mode === "simultaneous") {
+        const deadline = this.state.roundDeadline;
+        if (deadline == null) return;
+        if (this.deps.now() < deadline) return this.armTimer();
+        const claimer = this.state.players.find((p) => p.status === "active");
+        if (!claimer) return;
+        await this.run(claimer.playerId, { commandId: `timeout-${this.state.version}`, action: { type: "claimTimeout" } });
+        return;
+      }
       if (this.closed || this.state.status !== "playing" || !turn || turn.deadline === null) return;
       if (this.deps.now() < turn.deadline) return this.armTimer();
       const claimer = this.state.players.find((p) => p.status === "active" && p.playerId !== turn.playerId);
@@ -571,7 +598,7 @@ export class OnlineRoom {
       const since = Math.max(0, Math.min(msg.since ?? 0, this.state.log.length));
       const view = viewFor(this.state, playerId, this.deps.now(), since);
       conn.seenSeq = this.state.log.length;
-      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold(), rematch: this.rematchState(), series: this.seriesSummary(), spectate: this.spectateState(), members: this.members(), looks: this.looks(), kind: this.kind, ai: this.aiSeat() });
+      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold(), rematch: this.rematchState(), series: this.seriesSummary(), spectate: this.spectateState(), members: this.members(), looks: this.looks(), kind: this.kind, ai: this.aiSeat(), lobby: this.lobbyState() });
       this.broadcastPresence();
       return;
     }
@@ -584,6 +611,8 @@ export class OnlineRoom {
     if (msg.t === "rematch") return this.rematch(conn, playerId, msg.op);
     if (msg.t === "bye") return this.bye(playerId);
     if (msg.t === "spectate") return this.setSpectate(conn, playerId, msg.allow);
+    if (msg.t === "ready" || msg.t === "settings" || msg.t === "host") return this.lobbyChange(conn, playerId, msg);
+    if (msg.t === "cmd" && msg.action.type === "start" && this.kind === "friend") return this.startFromLobby(conn, playerId, msg.id);
     if (msg.t === "hold") {
       // Shared presentation state: the dice actually kept still travel with the next `roll` command
       // and are validated by the engine. Kept in memory and saved with the next command (no row write).
@@ -602,7 +631,10 @@ export class OnlineRoom {
       // The engine stores kept positions sorted; the selection order is kept here for the shelf.
       const keep = msg.action.type === "roll" ? (msg.action as { keep?: unknown }).keep : undefined;
       this.rollOrder = validKeep(keep) ? [...keep] : null;
-      result = await this.run(playerId, { commandId: msg.id, expectedVersion: msg.v, action: msg.action });
+      // Simultaneous rounds: other players' moves change the version all the time; each player's own
+      // turn state (roll count, round) is what the engine checks, so the version guard is not used.
+      const v = this.state.mode === "simultaneous" ? undefined : msg.v;
+      result = await this.run(playerId, { commandId: msg.id, expectedVersion: v, action: msg.action });
     } catch {
       return conn.send({ t: "ack", id: msg.id, ok: false, error: { code: "INVALID_COMMAND", message: "서버에서 명령을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요." } });
     }
@@ -618,11 +650,121 @@ export class OnlineRoom {
     if (msg.action.type === "leave") {
       // Leaving the lobby ends this seat's token.
       const { [playerId]: _gone, ...rest } = this.record.credentials;
-      this.record = { ...this.record, credentials: rest };
+      const { [playerId]: _r, ...ready } = this.record.ready ?? {};
+      this.record = { ...this.record, credentials: rest, ready, ...(this.record.hostId === playerId ? { hostId: undefined } : {}) };
       await this.deps.save(this.record);
       for (const c of [...this.connections]) if (c.playerId === playerId) c.close(4002, "left");
       if (!this.state.players.length) this.closeRoom();
+      else this.broadcastLobby();
     }
+  }
+
+  /* ------------------------------------------------------------- lobby (multiplayer) ------------------------------------------------------------- */
+
+  settings(): RoomSettings {
+    return this.record.settings ?? { mode: "turns", timeoutMs: this.state.turnTimeoutMs };
+  }
+  /** The host: the transferred host if still in the room, else the earliest remaining player. */
+  hostId(): string | null {
+    const departed = new Set(this.record.departed ?? []);
+    const present = this.state.players.filter((p) => !departed.has(p.playerId));
+    const chosen = this.record.hostId;
+    if (chosen && present.some((p) => p.playerId === chosen)) return chosen;
+    return present[0]?.playerId ?? null;
+  }
+  lobbyState(): LobbyState {
+    const ready = Object.fromEntries(this.state.players.map((p) => [p.playerId, this.record.ready?.[p.playerId] === true]));
+    return { hostId: this.hostId(), ready, settings: this.settings(), maxPlayers: this.state.seats };
+  }
+  private broadcastLobby() {
+    const lobby = this.lobbyState();
+    for (const c of this.connections) if (c.playerId || c.spectator) c.send({ t: "lobby", lobby });
+  }
+  private lobbyOps = 0;
+  private lobbyAt = new Map<string, number>();
+
+  /** Ready toggle (any player), match settings and host transfer (host only), in the lobby or after a match. */
+  private async lobbyChange(conn: RoomConnection, playerId: string, msg: Extract<ClientMessage, { t: "ready" | "settings" | "host" }>) {
+    const fail = (message: string) => conn.send({ t: "error", code: "LOBBY", message });
+    if (this.kind !== "friend") return fail("이 방에서는 바꿀 수 없어요.");
+    if (this.state.status === "playing") return fail("경기 중에는 바꿀 수 없어요.");
+    const host = this.hostId();
+    if (msg.t !== "ready" && host !== playerId) return fail("방장만 바꿀 수 있어요.");
+    const now = this.deps.now();
+    if (now - (this.lobbyAt.get(playerId) ?? -Infinity) < 300) return fail("잠시 후 다시 눌러 주세요.");
+    if (this.lobbyOps >= ROOM_LIMITS.lobbyOps) return fail("변경을 너무 많이 했어요. 잠시 후 다시 시도해 주세요.");
+    let next: RoomRecord;
+    if (msg.t === "ready") {
+      if ((this.record.ready?.[playerId] === true) === msg.ready) return conn.send({ t: "lobby", lobby: this.lobbyState() });
+      next = { ...this.record, ready: { ...(this.record.ready ?? {}), [playerId]: msg.ready } };
+    } else if (msg.t === "settings") {
+      const allowed = msg.mode === "simultaneous" ? ROUND_LIMITS.includes(msg.timeoutMs as number) : TURN_LIMITS.includes(msg.timeoutMs);
+      if (!allowed) return fail(msg.mode === "simultaneous" ? "동시 진행은 라운드 제한 시간이 필요해요." : "지원하지 않는 제한 시간이에요.");
+      next = { ...this.record, settings: { mode: msg.mode, timeoutMs: msg.timeoutMs } };
+    } else {
+      if (!this.state.players.some((p) => p.playerId === msg.to) || (this.record.departed ?? []).includes(msg.to)) return fail("방에 있는 사람에게만 넘길 수 있어요.");
+      next = { ...this.record, hostId: msg.to };
+    }
+    this.lobbyAt.set(playerId, now);
+    this.lobbyOps++;
+    await this.saveRecord(next);
+    this.broadcastLobby();
+  }
+
+  /**
+   * The host starts the match from the lobby: everyone else must be ready (a 1:1 room starts at once,
+   * as before). The match is rebuilt with the chosen settings (mode, time limit) and the host moves
+   * first; seat tokens and player ids stay the same.
+   */
+  private async startFromLobby(conn: RoomConnection, playerId: string, commandId: string) {
+    const nack = (code: string, message: string) => conn.send({ t: "ack", id: commandId, ok: false, error: { code, message } });
+    if (this.state.processedCommands.length && this.state.status === "playing") return conn.send({ t: "ack", id: commandId, ok: true, duplicate: true });
+    if (this.state.status !== "lobby") return nack("WRONG_PHASE", "이미 경기가 시작되었어요.");
+    if (this.hostId() !== playerId) return nack("NOT_HOST", "방장만 경기를 시작할 수 있어요.");
+    const players = this.state.players;
+    if (players.length < 2) return nack("NOT_ENOUGH_PLAYERS", "최소 2명이 필요해요.");
+    const notReady = players.filter((p) => p.playerId !== playerId && this.record.ready?.[p.playerId] !== true);
+    if (this.state.seats > 2 && notReady.length) return nack("NOT_READY", `아직 준비하지 않은 사람이 있어요: ${notReady.map((p) => p.name).join(", ")}`);
+    // Larger matches cost more of the shared daily budget (about one unit per two players; the room
+    // creation already used one).
+    const extra = Math.ceil(players.length / 2) - 1;
+    if (extra > 0) {
+      const block = (await this.deps.allowMatch?.(extra)) ?? null;
+      if (block) return nack("DAILY_LIMIT", block);
+    }
+    const ordered = [players.find((p) => p.playerId === playerId)!, ...players.filter((p) => p.playerId !== playerId).sort((a, b) => a.seat - b.seat)];
+    const started = this.buildMatch(ordered, `start-${commandId}`);
+    const before = { state: this.state, record: this.record };
+    this.state = started;
+    try {
+      await this.saveRecord({ ...this.record, log: started.log, ready: {}, hold: null, hostId: playerId });
+    } catch {
+      this.state = before.state;
+      this.record = before.record;
+      return nack("INVALID_COMMAND", "서버에서 명령을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    }
+    this.lobbyOps = 0;
+    this.armTimer();
+    // Same order as every other command: the new state first, then the acknowledgement.
+    for (const c of this.connections) if (c.playerId || c.spectator) this.sendView(c, 0);
+    this.broadcastLobby();
+    conn.send({ t: "ack", id: commandId, ok: true, duplicate: false });
+  }
+
+  /** A fresh match with these players (the first moves first), the room's settings, started. */
+  private buildMatch(order: { playerId: string; name: string }[], prefix: string): OnlineMatchState {
+    const now = this.deps.now();
+    const { mode, timeoutMs } = this.settings();
+    let next = createOnlineMatch({ matchId: newMatchId(this.random), seats: this.state.seats, turnTimeoutMs: timeoutMs, ...(mode === "simultaneous" ? { mode } : {}) }, now);
+    const ctx = { now, dice: this.dice };
+    for (const [i, p] of order.entries()) {
+      const joined = applyCommand(next, { commandId: `${prefix}-join-${i}`, playerId: p.playerId, action: { type: "join", name: p.name } }, ctx);
+      if (!joined.ok) throw Error(joined.error.message);
+      next = joined.state;
+    }
+    const started = applyCommand(next, { commandId: `${prefix}-go`.slice(0, 64), playerId: order[0].playerId, action: { type: "start" } }, ctx);
+    if (!started.ok) throw Error(started.error.message);
+    return started.state;
   }
 
   /* ------------------------------------------------------------- spectating (Phase 3) ------------------------------------------------------------- */
@@ -696,7 +838,7 @@ export class OnlineRoom {
     conn.spectator = { key: sp.key };
     const from = Math.max(0, Math.min(since, this.state.log.length));
     conn.seenSeq = this.state.log.length;
-    conn.send({ t: "watching", code: this.code, view: viewFor(this.state, null, this.deps.now(), from), online: this.onlinePlayers(), hold: this.currentHold(), series: this.seriesSummary(), spectators: this.spectators().length, looks: this.looks(), kind: this.kind, ai: this.aiSeat() });
+    conn.send({ t: "watching", code: this.code, view: viewFor(this.state, null, this.deps.now(), from), online: this.onlinePlayers(), hold: this.currentHold(), series: this.seriesSummary(), spectators: this.spectators().length, looks: this.looks(), kind: this.kind, ai: this.aiSeat(), lobby: this.lobbyState() });
     this.broadcastSpectate();
   }
 
@@ -751,12 +893,26 @@ export class OnlineRoom {
     const forfeit = [...state.log].reverse().find((e) => e.type === "playerForfeited");
     const totals = Object.fromEntries((state.standings ?? []).map((s) => [s.playerId, s.points]));
     const out: { userId: string; record: MatchRecord }[] = [];
+    const standings = state.standings ?? [];
     for (const p of state.players) {
       const id = ids[p.playerId];
       if (!id) continue;
-      const other = state.players.find((q) => q.playerId !== p.playerId);
-      if (!other) continue;
-      const outcome = state.winners.length !== 1 ? "draw" : state.winners[0] === p.playerId ? "win" : "loss";
+      const others = state.players.filter((q) => q.playerId !== p.playerId);
+      if (!others.length) continue;
+      // The opponent summary is the best other player (the only one in a 1:1 match).
+      const other = [...others].sort((a, b) => (totals[b.playerId] ?? 0) - (totals[a.playerId] ?? 0))[0];
+      const rank = standings.find((st) => st.playerId === p.playerId)?.rank ?? state.players.length;
+      const sharedFirst = state.winners.length > 1 && state.winners.includes(p.playerId);
+      const outcome = state.winners.length === 1 && state.winners[0] === p.playerId ? "win" : sharedFirst || (state.winners.length !== 1 && state.players.length === 2) ? "draw" : "loss";
+      // A forfeit by someone else does not change this player's end reason in a larger match.
+      const myForfeit = [...state.log].reverse().find((e) => e.type === "playerForfeited" && e.playerId === p.playerId);
+      // Larger matches: "completed" only with a full card; a match cut short because the others left is
+      // reported like an opponent forfeit (the reward rules then need ≥ 6 filled categories).
+      const fullCard = Object.keys(p.card).length >= 12;
+      const endReason =
+        state.players.length === 2
+          ? forfeit && forfeit.type === "playerForfeited" ? forfeit.reason : "completed"
+          : myForfeit && myForfeit.type === "playerForfeited" ? myForfeit.reason : fullCard ? "completed" : "resign";
       out.push({
         userId: id.userId,
         record: {
@@ -771,14 +927,15 @@ export class OnlineRoom {
           score: totals[p.playerId] ?? 0,
           card: { ...p.card },
           outcome,
-          endReason: forfeit && forfeit.type === "playerForfeited" ? forfeit.reason : "completed",
+          endReason,
           opponent:
             this.record.ai?.playerId === other.playerId
               ? { name: other.name, kind: "ai", score: totals[other.playerId] ?? 0, aiLevel: this.record.ai.level }
-              : { name: other.name, kind: ids[other.playerId] ? "member" : "guest", score: totals[other.playerId] ?? 0, ...(ids[other.playerId] ? { userId: ids[other.playerId].userId } : {}) },
+              : { name: others.length > 1 ? `${other.name} 외 ${others.length - 1}명` : other.name, kind: ids[other.playerId] ? "member" : "guest", score: totals[other.playerId] ?? 0, ...(ids[other.playerId] && others.length === 1 ? { userId: ids[other.playerId].userId } : {}) },
           ...(this.record.ai ? { aiLevel: this.record.ai.level } : {}),
           kind: this.kind,
-          stats: matchStats(state.log, p.playerId, other.playerId, state.winners),
+          stats: matchStats(state.log, p.playerId, others.length === 1 ? other.playerId : null, state.winners),
+          ...(state.players.length > 2 ? { field: { players: state.players.length, rank, mode: state.mode === "simultaneous" ? "simultaneous" : "turns" } } : {}),
         },
       });
     }
@@ -801,7 +958,7 @@ export class OnlineRoom {
     const finished = this.state.status === "finished";
     const blocked = !finished
       ? null
-      : departed.length
+      : this.state.players.length - departed.length < 2
         ? "상대가 방을 나갔어요."
         : this.record.ai
           ? "AI 대전은 새로 시작해 주세요."
@@ -848,7 +1005,7 @@ export class OnlineRoom {
     if (this.state.status !== "finished") return fail("경기가 끝난 뒤에 재대결할 수 있어요.");
     if (this.record.ai) return fail("AI 대전은 재대결 대신 새로 시작해 주세요.");
     const blocked = this.rematchState().blocked;
-    if (blocked && op === "request" && (this.record.departed?.length || (this.record.matchNo ?? 1) >= ROOM_LIMITS.maxMatches)) return fail(blocked);
+    if (blocked && (op === "request" || op === "start") && (this.state.players.length - (this.record.departed?.length ?? 0) < 2 || (this.record.matchNo ?? 1) >= ROOM_LIMITS.maxMatches)) return fail(blocked);
     const pending = this.record.rematch ?? { requests: [], declinedBy: null };
     let next = pending;
     if (op === "request") {
@@ -857,6 +1014,12 @@ export class OnlineRoom {
     } else if (op === "cancel") {
       if (!pending.requests.includes(playerId)) return this.broadcastRematchTo(conn);
       next = { requests: pending.requests.filter((id) => id !== playerId), declinedBy: null };
+    } else if (op === "start") {
+      // Larger rooms: the host starts the next match with everyone who asked (at least two).
+      if (this.hostId() !== playerId) return fail("방장만 바로 시작할 수 있어요.");
+      const requests = pending.requests.includes(playerId) ? pending.requests : [...pending.requests, playerId];
+      if (requests.length < 2) return fail("함께할 사람이 한 명 이상 재대결을 눌러야 해요.");
+      return this.startRematch(requests);
     } else {
       if (!pending.requests.some((id) => id !== playerId)) return this.broadcastRematchTo(conn);
       next = { requests: [], declinedBy: playerId };
@@ -867,8 +1030,9 @@ export class OnlineRoom {
     this.rematchAt.set(playerId, now);
     this.rematchOps++;
     this.rematchBlocked = null;
-    const everyone = this.state.players.every((p) => next.requests.includes(p.playerId));
-    if (everyone) return this.startRematch();
+    const departed = new Set(this.record.departed ?? []);
+    const everyone = this.state.players.filter((p) => !departed.has(p.playerId)).every((p) => next.requests.includes(p.playerId));
+    if (everyone && next.requests.length >= 2) return this.startRematch(next.requests);
     await this.saveRecord({ ...this.record, rematch: next });
     this.broadcastRematch();
   }
@@ -877,31 +1041,26 @@ export class OnlineRoom {
     conn.send({ t: "rematch", rematch: this.rematchState(), series: this.seriesSummary() });
   }
 
-  private async startRematch() {
-    const block = (await this.deps.allowMatch?.()) ?? null;
+  private async startRematch(requests: string[]) {
+    const joining = this.state.players.filter((p) => requests.includes(p.playerId));
+    const block = (await this.deps.allowMatch?.(Math.max(1, Math.ceil(joining.length / 2)))) ?? null;
     if (block) {
       this.rematchBlocked = block;
       await this.saveRecord({ ...this.record, rematch: null });
       return this.broadcastRematch();
     }
-    const now = this.deps.now();
     const matchNo = (this.record.matchNo ?? 1) + 1;
     // Alternate who starts: seats rotate by one (two players: swap).
-    const bySeat = [...this.state.players].sort((a, b) => a.seat - b.seat);
+    const bySeat = [...joining].sort((a, b) => a.seat - b.seat);
     const order = [...bySeat.slice(1), bySeat[0]];
-    let next = createOnlineMatch({ matchId: newMatchId(this.random), seats: this.state.seats, turnTimeoutMs: this.state.turnTimeoutMs }, now);
-    const ctx = { now, dice: this.dice };
-    for (const [i, p] of order.entries()) {
-      const joined = applyCommand(next, { commandId: `rematch-${matchNo}-join-${i}`, playerId: p.playerId, action: { type: "join", name: p.name } }, ctx);
-      if (!joined.ok) throw Error(joined.error.message);
-      next = joined.state;
-    }
-    const started = applyCommand(next, { commandId: `rematch-${matchNo}-start`, playerId: order[0].playerId, action: { type: "start" } }, ctx);
-    if (!started.ok) throw Error(started.error.message);
+    const started = { state: this.buildMatch(order, `rematch-${matchNo}`) };
+    // Players who did not ask (larger rooms) leave the room for good: their seat tokens stop working.
+    const dropped = this.state.players.filter((p) => !requests.includes(p.playerId)).map((p) => p.playerId);
+    const credentials = Object.fromEntries(Object.entries(this.record.credentials).filter(([id]) => !dropped.includes(id)));
     const before = { state: this.state, record: this.record };
     this.state = started.state;
     try {
-      await this.saveRecord({ ...this.record, log: started.state.log, matchNo, rematch: null, hold: null });
+      await this.saveRecord({ ...this.record, log: started.state.log, matchNo, rematch: null, hold: null, credentials, departed: [], ready: {} });
     } catch (error) {
       this.state = before.state;
       this.record = before.record;
@@ -909,9 +1068,11 @@ export class OnlineRoom {
     }
     this.rematchOps = 0;
     this.armTimer();
+    for (const c of [...this.connections]) if (c.playerId && dropped.includes(c.playerId)) c.close(4002, "left");
     // A new match: every screen gets the whole (short) log of the new match.
     for (const c of this.connections) if (c.playerId || c.spectator) this.sendView(c, 0);
     this.broadcastRematch();
+    this.broadcastLobby();
   }
 
   /** Leave a finished room for good: the seat token stops working, the other player is told. */
@@ -923,6 +1084,7 @@ export class OnlineRoom {
     for (const c of [...this.connections]) if (c.playerId === playerId) c.close(4002, "left");
     if (this.state.players.every((p) => departed.includes(p.playerId))) return this.closeRoom();
     this.broadcastRematch();
+    this.broadcastLobby();
   }
 
   private sendView(conn: RoomConnection, since: number) {

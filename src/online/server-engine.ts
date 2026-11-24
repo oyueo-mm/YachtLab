@@ -2,6 +2,7 @@ import { available, bonus, categories, score, total, upper, type Category } from
 import type { DiceSource } from "./dice-source";
 import {
   DICE_COUNT,
+  MAX_MISSED_ROUNDS,
   MAX_ROLLS,
   MAX_SEATS,
   MIN_SEATS,
@@ -11,6 +12,8 @@ import {
   parseCommand,
   type CommandEnvelope,
   type CommandResult,
+  type MatchMode,
+  type TurnState,
   type OnlineError,
   type OnlineErrorCode,
   type OnlineEvent,
@@ -32,7 +35,7 @@ import {
  */
 
 export type CommandContext = { now: number; dice: DiceSource };
-export type MatchOptions = { matchId: string; seats?: number; turnTimeoutMs?: number | null };
+export type MatchOptions = { matchId: string; seats?: number; turnTimeoutMs?: number | null; mode?: MatchMode };
 
 class Rejection extends Error {
   constructor(readonly code: OnlineErrorCode, message: string) {
@@ -52,6 +55,7 @@ export function createOnlineMatch(options: MatchOptions, now: number): OnlineMat
   if (turnTimeoutMs !== null && (!Number.isSafeInteger(turnTimeoutMs) || turnTimeoutMs < 1000))
     throw Error("턴 제한 시간은 1000ms 이상의 정수여야 합니다.");
   if (!Number.isFinite(now)) throw Error("잘못된 시각입니다.");
+  if (options.mode !== undefined && options.mode !== "turns" && options.mode !== "simultaneous") throw Error("알 수 없는 진행 방식입니다.");
   return applyEvent(emptyState(), {
     seq: 0,
     at: now,
@@ -60,6 +64,8 @@ export function createOnlineMatch(options: MatchOptions, now: number): OnlineMat
     seats,
     turnTimeoutMs,
     protocol: ONLINE_PROTOCOL_VERSION,
+    // Only written for the new mode, so logs of turn-by-turn matches stay byte-identical.
+    ...(options.mode === "simultaneous" ? { mode: "simultaneous" as const } : {}),
   });
 }
 
@@ -90,6 +96,11 @@ export function applyEvent(state: OnlineMatchState, event: OnlineEvent): OnlineM
       next.matchId = event.matchId;
       next.seats = event.seats;
       next.turnTimeoutMs = event.turnTimeoutMs;
+      if (event.mode === "simultaneous") {
+        next.mode = "simultaneous";
+        next.turns = {};
+        next.missed = {};
+      }
       break;
     case "playerJoined":
       // Join order is kept: players[0] is the host (earliest joiner still present). Turn order uses seats.
@@ -105,19 +116,44 @@ export function applyEvent(state: OnlineMatchState, event: OnlineEvent): OnlineM
       next.turn = { playerId: event.playerId, round: event.round, rolls: 0, dice: [], deadline: event.deadline };
       break;
     case "diceRolled":
-      next.turn = { ...state.turn!, rolls: event.roll, dice: [...event.dice] };
+      if (state.mode === "simultaneous") next.turns = { ...state.turns, [event.playerId]: { ...state.turns![event.playerId], rolls: event.roll, dice: [...event.dice] } };
+      else next.turn = { ...state.turn!, rolls: event.roll, dice: [...event.dice] };
       break;
     case "categoryScored":
       next.players = state.players.map((p) =>
         p.playerId === event.playerId ? { ...p, card: { ...p.card, [event.category]: event.points } } : p,
       );
+      if (state.mode === "simultaneous") {
+        const { [event.playerId]: _done, ...rest } = state.turns!;
+        next.turns = rest;
+        // Scoring yourself resets the missed-deadline count; an automatic record adds to it.
+        next.missed = { ...state.missed, [event.playerId]: event.auto ? (state.missed?.[event.playerId] ?? 0) + 1 : 0 };
+      }
+      break;
+    case "roundStarted": {
+      next.round = event.round;
+      next.roundDeadline = event.deadline;
+      const turns: Record<string, TurnState> = {};
+      for (const p of state.players) if (p.status === "active") turns[p.playerId] = { playerId: p.playerId, round: event.round, rolls: 0, dice: [], deadline: event.deadline };
+      next.turns = turns;
+      break;
+    }
+    case "roundTimedOut":
       break;
     case "playerForfeited":
       next.players = state.players.map((p) => (p.playerId === event.playerId ? { ...p, status: "forfeited" } : p));
+      if (state.mode === "simultaneous") {
+        const { [event.playerId]: _gone, ...rest } = state.turns!;
+        next.turns = rest;
+      }
       break;
     case "matchFinished":
       next.status = "finished";
       next.turn = null;
+      if (state.mode === "simultaneous") {
+        next.turns = {};
+        next.roundDeadline = null;
+      }
       next.standings = event.standings.map((s) => ({ ...s }));
       next.winners = [...event.winners];
       break;
@@ -176,9 +212,15 @@ function decide(
     if (state.status !== status) reject("WRONG_PHASE", phaseMessage(state.status));
   };
   const requireMember = () => me ?? reject("NOT_IN_MATCH", "이 경기의 참가자가 아닙니다.");
-  const requireTurn = () => {
+  const simultaneous = state.mode === "simultaneous";
+  const requireTurn = (): TurnState => {
     requirePhase("playing");
     requireMember();
+    if (simultaneous) {
+      const mine = state.turns?.[playerId];
+      if (!mine) reject("NOT_YOUR_TURN", me!.status === "active" ? "이번 라운드는 이미 기록했어요. 다른 사람을 기다리는 중이에요." : "기권한 참가자입니다.");
+      return mine!;
+    }
     if (state.turn?.playerId !== playerId) reject("NOT_YOUR_TURN", "현재 차례가 아닙니다.");
     return state.turn!;
   };
@@ -202,9 +244,11 @@ function decide(
       requireMember();
       if (state.players[0].playerId !== playerId) reject("NOT_HOST", "방장만 경기를 시작할 수 있습니다.");
       if (state.players.length < MIN_SEATS) reject("NOT_ENOUGH_PLAYERS", `최소 ${MIN_SEATS}명이 필요합니다.`);
+      if (simultaneous && state.turnTimeoutMs === null) reject("INVALID_COMMAND", "동시 진행에는 라운드 제한 시간이 필요합니다.");
       const order = [...state.players].sort((a, b) => a.seat - b.seat).map((p) => p.playerId);
       emit({ type: "matchStarted", order });
-      emit(turnStart(state, order[0], now));
+      if (simultaneous) emit(roundStart(state, 1, now));
+      else emit(turnStart(state, order[0], now));
       return;
     }
     case "roll": {
@@ -227,19 +271,44 @@ function decide(
       if (me!.card[action.category] !== undefined) reject("CATEGORY_TAKEN", "이미 기록한 점수 칸입니다.");
       const points = score(turn.dice, action.category);
       const after = emit({ type: "categoryScored", playerId, category: action.category, points, dice: [...turn.dice] });
-      advance(after, playerId, now, emit);
+      if (simultaneous) advanceRound(after, now, emit);
+      else advance(after, playerId, now, emit);
       return;
     }
     case "resign": {
       requirePhase("playing");
       if (requireMember().status !== "active") reject("WRONG_PHASE", "이미 기권 처리되었습니다.");
       const after = emit({ type: "playerForfeited", playerId, reason: "resign" });
-      if (state.turn?.playerId === playerId || activePlayers(after).length <= 1) advance(after, playerId, now, emit);
+      if (simultaneous) advanceRound(after, now, emit);
+      else if (state.turn?.playerId === playerId || activePlayers(after).length <= 1) advance(after, playerId, now, emit);
       return;
     }
     case "claimTimeout": {
       requirePhase("playing");
       requireMember();
+      if (simultaneous) {
+        if (state.roundDeadline === null || state.roundDeadline === undefined) reject("NO_DEADLINE", "이 경기에는 라운드 제한 시간이 없습니다.");
+        if (now < state.roundDeadline!) reject("TIMEOUT_NOT_REACHED", "아직 제한 시간이 남아 있습니다.");
+        const late = Object.keys(state.turns ?? {}).sort((a, b) => seatOf(state, a) - seatOf(state, b));
+        if (!late.length) reject("INVALID_COMMAND", "기다리는 참가자가 없습니다.");
+        let draft = emit({ type: "roundTimedOut", round: state.round!, players: late });
+        // Everyone who had not scored is recorded by the server: one roll if they had not rolled,
+        // then the open category worth the most points now (ties: the first in category order).
+        for (const id of late) {
+          let turn = draft.turns![id];
+          if (turn.rolls === 0) {
+            const values = Array.from({ length: DICE_COUNT }, () => drawFace(dice));
+            draft = emit({ type: "diceRolled", playerId: id, kept: [], dice: values, roll: 1 });
+            turn = draft.turns![id];
+          }
+          const card = draft.players.find((p) => p.playerId === id)!.card;
+          const best = available(card).reduce((b, c) => (score(turn.dice, c) > score(turn.dice, b) ? c : b), available(card)[0]);
+          draft = emit({ type: "categoryScored", playerId: id, category: best, points: score(turn.dice, best), dice: [...turn.dice], auto: true });
+          if ((draft.missed?.[id] ?? 0) >= MAX_MISSED_ROUNDS) draft = emit({ type: "playerForfeited", playerId: id, reason: "timeout" });
+        }
+        advanceRound(draft, now, emit);
+        return;
+      }
       const turn = state.turn!;
       if (turn.deadline === null) reject("NO_DEADLINE", "이 경기에는 턴 제한 시간이 없습니다.");
       if (now < turn.deadline!) reject("TIMEOUT_NOT_REACHED", "아직 제한 시간이 남아 있습니다.");
@@ -270,6 +339,25 @@ function turnStart(state: OnlineMatchState, playerId: string, now: number): Pend
     round: filled(player) + 1,
     deadline: state.turnTimeoutMs === null ? null : now + state.turnTimeoutMs,
   };
+}
+
+const seatOf = (state: OnlineMatchState, id: string) => state.players.find((p) => p.playerId === id)?.seat ?? 0;
+
+function roundStart(state: OnlineMatchState, round: number, now: number): PendingEvent {
+  return { type: "roundStarted", round, deadline: state.turnTimeoutMs === null ? null : now + state.turnTimeoutMs };
+}
+
+/** Simultaneous mode: when every active player has scored this round, start the next one or finish. */
+function advanceRound(state: OnlineMatchState, now: number, emit: (event: PendingEvent) => OnlineMatchState) {
+  const active = activePlayers(state);
+  if (active.length <= 1 || active.every((p) => filled(p) >= categories.length)) {
+    const standings = computeStandings(state);
+    const winners = standings.filter((s) => s.rank === 1 && s.status === "active").map((s) => s.playerId);
+    emit({ type: "matchFinished", standings, winners });
+    return;
+  }
+  if (Object.keys(state.turns ?? {}).length) return; // others are still playing this round
+  emit(roundStart(state, (state.round ?? 0) + 1, now));
 }
 
 /** After a score or forfeit: hand the turn to the next active seat, or finish the match. */
@@ -345,15 +433,25 @@ function actionFromEvent(event: Record<string, unknown>): unknown {
       return { type: "score", category: event.category };
     case "playerForfeited":
       return { type: event.reason === "timeout" ? "claimTimeout" : "resign" };
+    case "roundTimedOut":
+      return { type: "claimTimeout" };
     default:
       return null;
   }
 }
 
-/** Replays exactly the logged faces for the re-rolled positions, in the order the engine draws them. */
-function loggedDice(event: Record<string, unknown>) {
-  const kept = Array.isArray(event.kept) ? event.kept : [];
-  const faces = event.type === "diceRolled" && Array.isArray(event.dice) ? event.dice.filter((_, i) => !kept.includes(i)) : [];
+/**
+ * Replays exactly the logged faces for the re-rolled positions, in the order the engine draws them —
+ * over every diceRolled event of the command group (a simultaneous-round timeout rolls for each
+ * player who had not rolled; every other group has at most one roll, its first event).
+ */
+function loggedDice(group: unknown[]) {
+  const faces: unknown[] = [];
+  for (const raw of group) {
+    if (!isRecord(raw) || raw.type !== "diceRolled" || !Array.isArray(raw.dice)) continue;
+    const kept = Array.isArray(raw.kept) ? raw.kept : [];
+    faces.push(...raw.dice.filter((_, i) => !kept.includes(i)));
+  }
   let used = 0;
   const source: DiceSource = {
     rollDie() {
@@ -388,7 +486,7 @@ export function auditEventLog(events: unknown): LogAudit {
   let state: OnlineMatchState;
   try {
     state = createOnlineMatch(
-      { matchId: head.matchId as string, seats: head.seats as number, turnTimeoutMs: head.turnTimeoutMs as number | null },
+      { matchId: head.matchId as string, seats: head.seats as number, turnTimeoutMs: head.turnTimeoutMs as number | null, ...(head.mode === "simultaneous" ? { mode: "simultaneous" as const } : {}) },
       head.at as number,
     );
   } catch (error) {
@@ -406,7 +504,7 @@ export function auditEventLog(events: unknown): LogAudit {
     if (!action) return fail(start, `명령으로 시작할 수 없는 이벤트 유형입니다: ${String(first.type)}`);
     const parsed = parseCommand({ commandId: first.by.commandId, action }, first.by.playerId as string);
     if (!parsed.ok) return fail(start, `명령을 복원할 수 없습니다: ${parsed.error.message}`);
-    const dice = loggedDice(first);
+    const dice = loggedDice(group);
     let result: CommandResult;
     try {
       result = applyCommand(state, parsed.command, { now: first.at as number, dice: dice.source });
@@ -415,13 +513,13 @@ export function auditEventLog(events: unknown): LogAudit {
     }
     if (!result.ok) return fail(start, `규칙상 불가능한 명령입니다 (${result.error.code}): ${result.error.message}`);
     if (result.duplicate) return fail(start, "이미 처리된 명령 식별자가 다시 기록되었습니다.");
-    if (!dice.exhausted()) return fail(start, "기록된 주사위 수가 실제 재굴림 수와 다릅니다.");
     for (let k = 0; k < Math.max(group.length, result.events.length); k++)
       if (!sameJson(result.events[k], group[k]))
         return fail(
           start + k,
           k >= group.length ? "엔진이 만들어야 할 후속 이벤트가 누락되었습니다." : k >= result.events.length ? "명령으로 설명되지 않는 추가 이벤트입니다." : `엔진 출력과 다른 ${String((group[k] as { type?: unknown })?.type)} 이벤트입니다.`,
         );
+    if (!dice.exhausted()) return fail(start, "기록된 주사위 수가 실제 재굴림 수와 다릅니다.");
     state = result.state;
     start = end;
   }
@@ -445,6 +543,13 @@ export type PlayerView = {
   status: OnlineMatchState["status"];
   seats: number;
   turnTimeoutMs: number | null;
+  mode: MatchMode;
+  /** Current round (1..12). */
+  round: number;
+  /** Simultaneous mode: time left in the round. */
+  roundRemainingMs: number | null;
+  /** Simultaneous mode: players still playing this round → rolls used. */
+  progress: Record<string, { rolls: number }> | null;
   you: { playerId: string; seat: number; isHost: boolean } | null;
   players: {
     playerId: string;
@@ -470,8 +575,10 @@ export type PlayerView = {
  */
 export function viewFor(state: OnlineMatchState, viewerId: string | null, now?: number, sinceSeq = state.log.length): PlayerView {
   const me = viewerId ? state.players.find((p) => p.playerId === viewerId) : undefined;
-  const turn = state.turn;
-  const myTurn = !!me && state.status === "playing" && turn?.playerId === me.playerId;
+  const simultaneous = state.mode === "simultaneous";
+  // Simultaneous mode: the viewer's own turn (null after they scored this round, and for spectators).
+  const turn = simultaneous ? (viewerId ? (state.turns?.[viewerId] ?? null) : null) : state.turn;
+  const myTurn = !!me && state.status === "playing" && !!turn && turn.playerId === me.playerId;
   return {
     protocol: state.protocol,
     matchId: state.matchId,
@@ -479,6 +586,12 @@ export function viewFor(state: OnlineMatchState, viewerId: string | null, now?: 
     status: state.status,
     seats: state.seats,
     turnTimeoutMs: state.turnTimeoutMs,
+    mode: simultaneous ? "simultaneous" : "turns",
+    round: simultaneous ? (state.round ?? 0) : (state.turn?.round ?? 0),
+    roundRemainingMs: simultaneous && state.roundDeadline != null && now !== undefined ? Math.max(0, state.roundDeadline - now) : null,
+    // Who is still playing this round and how far (simultaneous). Rolled dice of others stay private
+    // to keep the message small; scores are public in the cards.
+    progress: simultaneous ? Object.fromEntries(Object.entries(state.turns ?? {}).map(([id, t]) => [id, { rolls: t.rolls }])) : null,
     you: me ? { playerId: me.playerId, seat: me.seat, isHost: state.players[0]?.playerId === me.playerId } : null,
     players: [...state.players].sort((a, b) => a.seat - b.seat).map((p) => ({
       playerId: p.playerId,

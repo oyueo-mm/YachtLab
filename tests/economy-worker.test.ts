@@ -4,7 +4,7 @@ import WebSocket from "ws";
 import { b64url } from "../worker/src/oidc";
 import { authConfig } from "../worker/src/accounts-api";
 import { Client, closeAllClients } from "./helpers/online-client";
-import { freePort, startLocalWorker, type LocalWorker } from "./helpers/wrangler";
+import { startLocalWorker, type LocalWorker } from "./helpers/wrangler";
 
 /**
  * Phase 4.5–6 end to end in the real Workers runtime (wrangler dev --local): sign-in through a FAKE
@@ -32,8 +32,6 @@ async function sign(claims: Record<string, unknown>) {
 beforeAll(async () => {
   keys = (await crypto.subtle.generateKey({ name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" }, true, ["sign", "verify"])) as CryptoKeyPair;
   jwk = (await crypto.subtle.exportKey("jwk", keys.publicKey)) as JsonWebKey;
-  const port = await freePort();
-  issuer = `http://127.0.0.1:${port}`;
   idp = createServer(async (req, res) => {
     if (req.url === "/jwks") return res.end(JSON.stringify({ keys: [{ ...jwk, kid: "k1", alg: "RS256", use: "sig" }] }));
     if (req.url === "/token") {
@@ -46,7 +44,10 @@ beforeAll(async () => {
     }
     res.statusCode = 404;
     res.end();
-  }).listen(port, "127.0.0.1");
+  });
+  // Port 0: the OS picks a free port atomically (no window where another server can take it).
+  await new Promise<void>((resolve) => idp.listen(0, "127.0.0.1", resolve));
+  issuer = `http://127.0.0.1:${(idp.address() as { port: number }).port}`;
   worker = await startLocalWorker({
     ALLOWED_ORIGINS: ORIGIN,
     TURN_TIMEOUT_MS: "0",

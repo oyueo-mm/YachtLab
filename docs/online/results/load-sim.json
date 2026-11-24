@@ -1,0 +1,577 @@
+{
+ "generatedAt": "2026-11-24T13:19:43.655Z",
+ "node": "v22.23.5",
+ "repeats": 3,
+ "rows": [
+  {
+   "players": 2,
+   "mode": "turns",
+   "commands": 71,
+   "events": 99,
+   "rowWritesLobby": 5,
+   "rowWritesMatch": 71,
+   "rowWritesTotal": 77,
+   "recordBytesMax": 17200,
+   "cpuMsPerCommand": {
+    "avg": 0.08241832394366305,
+    "p50": 0.0555219999999963,
+    "p95": 0.19084799999998836,
+    "max": 0.8526489999999853
+   },
+   "serializeMsTotal": 1.4494199999999182,
+   "rebuildMs": 0.9985210000000109,
+   "messagesOut": 228
+  },
+  {
+   "players": 2,
+   "mode": "turns",
+   "commands": 72,
+   "events": 100,
+   "rowWritesLobby": 5,
+   "rowWritesMatch": 72,
+   "rowWritesTotal": 78,
+   "recordBytesMax": 17388,
+   "cpuMsPerCommand": {
+    "avg": 0.06950416666666707,
+    "p50": 0.054846999999995205,
+    "p95": 0.12954000000001997,
+    "max": 0.6116900000000101
+   },
+   "serializeMsTotal": 1.3716160000000173,
+   "rebuildMs": 1.2582140000000095,
+   "messagesOut": 231
+  },
+  {
+   "players": 2,
+   "mode": "turns",
+   "commands": 72,
+   "events": 100,
+   "rowWritesLobby": 5,
+   "rowWritesMatch": 72,
+   "rowWritesTotal": 78,
+   "recordBytesMax": 17394,
+   "cpuMsPerCommand": {
+    "avg": 0.06874693055555486,
+    "p50": 0.054415000000005875,
+    "p95": 0.13364899999999125,
+    "max": 0.4155010000000061
+   },
+   "serializeMsTotal": 1.3944610000000068,
+   "rebuildMs": 0.8199140000000114,
+   "messagesOut": 231
+  },
+  {
+   "players": 2,
+   "mode": "simultaneous",
+   "commands": 71,
+   "events": 87,
+   "rowWritesLobby": 6,
+   "rowWritesMatch": 71,
+   "rowWritesTotal": 78,
+   "recordBytesMax": 15629,
+   "cpuMsPerCommand": {
+    "avg": 0.062438014084509025,
+    "p50": 0.0524819999999977,
+    "p95": 0.11423099999998954,
+    "max": 0.27705199999999763
+   },
+   "serializeMsTotal": 1.2894270000002166,
+   "rebuildMs": 1.4080319999999915,
+   "messagesOut": 230
+  },
+  {
+   "players": 2,
+   "mode": "simultaneous",
+   "commands": 72,
+   "events": 88,
+   "rowWritesLobby": 6,
+   "rowWritesMatch": 72,
+   "rowWritesTotal": 79,
+   "recordBytesMax": 15817,
+   "cpuMsPerCommand": {
+    "avg": 0.05495181944444422,
+    "p50": 0.049580000000020163,
+    "p95": 0.09576300000000515,
+    "max": 0.13411700000000337
+   },
+   "serializeMsTotal": 1.2522290000000282,
+   "rebuildMs": 1.2589040000000011,
+   "messagesOut": 233
+  },
+  {
+   "players": 2,
+   "mode": "simultaneous",
+   "commands": 72,
+   "events": 88,
+   "rowWritesLobby": 6,
+   "rowWritesMatch": 72,
+   "rowWritesTotal": 79,
+   "recordBytesMax": 15823,
+   "cpuMsPerCommand": {
+    "avg": 0.0638360416666666,
+    "p50": 0.05127000000001658,
+    "p95": 0.12180399999999736,
+    "max": 0.4012069999999994
+   },
+   "serializeMsTotal": 1.5182120000001191,
+   "rebuildMs": 0.9228920000000187,
+   "messagesOut": 233
+  },
+  {
+   "players": 4,
+   "mode": "turns",
+   "commands": 142,
+   "events": 196,
+   "rowWritesLobby": 9,
+   "rowWritesMatch": 142,
+   "rowWritesTotal": 152,
+   "recordBytesMax": 34111,
+   "cpuMsPerCommand": {
+    "avg": 0.11201938028168883,
+    "p50": 0.098733999999979,
+    "p95": 0.18935100000001626,
+    "max": 0.5574129999999968
+   },
+   "serializeMsTotal": 6.057887000000363,
+   "rebuildMs": 2.8147920000000113,
+   "messagesOut": 768
+  },
+  {
+   "players": 4,
+   "mode": "turns",
+   "commands": 143,
+   "events": 197,
+   "rowWritesLobby": 9,
+   "rowWritesMatch": 143,
+   "rowWritesTotal": 153,
+   "recordBytesMax": 34296,
+   "cpuMsPerCommand": {
+    "avg": 0.11109995804195563,
+    "p50": 0.09827200000000857,
+    "p95": 0.18131500000004053,
+    "max": 0.5796530000000075
+   },
+   "serializeMsTotal": 5.518568000000187,
+   "rebuildMs": 1.5460110000000213,
+   "messagesOut": 773
+  },
+  {
+   "players": 4,
+   "mode": "turns",
+   "commands": 144,
+   "events": 198,
+   "rowWritesLobby": 9,
+   "rowWritesMatch": 144,
+   "rowWritesTotal": 154,
+   "recordBytesMax": 34470,
+   "cpuMsPerCommand": {
+    "avg": 0.11489203472222442,
+    "p50": 0.10202100000003611,
+    "p95": 0.21189099999998007,
+    "max": 0.6498189999999795
+   },
+   "serializeMsTotal": 5.633042000000046,
+   "rebuildMs": 2.5124000000000137,
+   "messagesOut": 778
+  },
+  {
+   "players": 4,
+   "mode": "simultaneous",
+   "commands": 142,
+   "events": 160,
+   "rowWritesLobby": 10,
+   "rowWritesMatch": 142,
+   "rowWritesTotal": 153,
+   "recordBytesMax": 29954,
+   "cpuMsPerCommand": {
+    "avg": 0.0995806338028152,
+    "p50": 0.08866699999998673,
+    "p95": 0.13616700000000037,
+    "max": 0.5616170000000125
+   },
+   "serializeMsTotal": 4.477758000000563,
+   "rebuildMs": 2.4392240000000243,
+   "messagesOut": 772
+  },
+  {
+   "players": 4,
+   "mode": "simultaneous",
+   "commands": 143,
+   "events": 161,
+   "rowWritesLobby": 10,
+   "rowWritesMatch": 143,
+   "rowWritesTotal": 154,
+   "recordBytesMax": 30139,
+   "cpuMsPerCommand": {
+    "avg": 0.12335504895104613,
+    "p50": 0.10321200000004183,
+    "p95": 0.20630400000004556,
+    "max": 0.9528149999999869
+   },
+   "serializeMsTotal": 5.441916999999819,
+   "rebuildMs": 2.184278000000006,
+   "messagesOut": 777
+  },
+  {
+   "players": 4,
+   "mode": "simultaneous",
+   "commands": 144,
+   "events": 162,
+   "rowWritesLobby": 10,
+   "rowWritesMatch": 144,
+   "rowWritesTotal": 155,
+   "recordBytesMax": 30313,
+   "cpuMsPerCommand": {
+    "avg": 0.12009613194444392,
+    "p50": 0.09916700000002265,
+    "p95": 0.21708999999998468,
+    "max": 0.5423799999999801
+   },
+   "serializeMsTotal": 5.8027029999998945,
+   "rebuildMs": 3.123504999999966,
+   "messagesOut": 782
+  },
+  {
+   "players": 6,
+   "mode": "turns",
+   "commands": 215,
+   "events": 295,
+   "rowWritesLobby": 13,
+   "rowWritesMatch": 215,
+   "rowWritesTotal": 229,
+   "recordBytesMax": 51416,
+   "cpuMsPerCommand": {
+    "avg": 0.17872054418604597,
+    "p50": 0.15805100000000039,
+    "p95": 0.3242159999999785,
+    "max": 0.8106250000000159
+   },
+   "serializeMsTotal": 13.015928999999915,
+   "rebuildMs": 2.4318230000000085,
+   "messagesOut": 1634
+  },
+  {
+   "players": 6,
+   "mode": "turns",
+   "commands": 215,
+   "events": 295,
+   "rowWritesLobby": 13,
+   "rowWritesMatch": 215,
+   "rowWritesTotal": 229,
+   "recordBytesMax": 51400,
+   "cpuMsPerCommand": {
+    "avg": 0.17576121395348965,
+    "p50": 0.15242399999999634,
+    "p95": 0.3319500000000062,
+    "max": 0.8836139999999659
+   },
+   "serializeMsTotal": 13.29104699999948,
+   "rebuildMs": 2.868790000000047,
+   "messagesOut": 1634
+  },
+  {
+   "players": 6,
+   "mode": "turns",
+   "commands": 214,
+   "events": 294,
+   "rowWritesLobby": 13,
+   "rowWritesMatch": 214,
+   "rowWritesTotal": 228,
+   "recordBytesMax": 51225,
+   "cpuMsPerCommand": {
+    "avg": 0.14602216355140235,
+    "p50": 0.13417399999997315,
+    "p95": 0.21474100000000362,
+    "max": 0.6836660000000165
+   },
+   "serializeMsTotal": 11.20336400000025,
+   "rebuildMs": 2.548013000000026,
+   "messagesOut": 1627
+  },
+  {
+   "players": 6,
+   "mode": "simultaneous",
+   "commands": 215,
+   "events": 235,
+   "rowWritesLobby": 14,
+   "rowWritesMatch": 215,
+   "rowWritesTotal": 230,
+   "recordBytesMax": 44685,
+   "cpuMsPerCommand": {
+    "avg": 0.1418526372092983,
+    "p50": 0.133008000000018,
+    "p95": 0.20228599999995822,
+    "max": 1.0386180000000422
+   },
+   "serializeMsTotal": 9.682393999999192,
+   "rebuildMs": 1.9504160000000184,
+   "messagesOut": 1640
+  },
+  {
+   "players": 6,
+   "mode": "simultaneous",
+   "commands": 215,
+   "events": 235,
+   "rowWritesLobby": 14,
+   "rowWritesMatch": 215,
+   "rowWritesTotal": 230,
+   "recordBytesMax": 44669,
+   "cpuMsPerCommand": {
+    "avg": 0.14231559069767225,
+    "p50": 0.131574999999998,
+    "p95": 0.21189699999990808,
+    "max": 1.0030340000000706
+   },
+   "serializeMsTotal": 9.999714000000154,
+   "rebuildMs": 1.8164900000000443,
+   "messagesOut": 1640
+  },
+  {
+   "players": 6,
+   "mode": "simultaneous",
+   "commands": 214,
+   "events": 234,
+   "rowWritesLobby": 14,
+   "rowWritesMatch": 214,
+   "rowWritesTotal": 229,
+   "recordBytesMax": 44494,
+   "cpuMsPerCommand": {
+    "avg": 0.1424406495327098,
+    "p50": 0.13257599999997183,
+    "p95": 0.22161199999993642,
+    "max": 0.6752720000000636
+   },
+   "serializeMsTotal": 9.407080999999494,
+   "rebuildMs": 1.8696899999999914,
+   "messagesOut": 1633
+  },
+  {
+   "players": 10,
+   "mode": "turns",
+   "commands": 358,
+   "events": 490,
+   "rowWritesLobby": 21,
+   "rowWritesMatch": 358,
+   "rowWritesTotal": 380,
+   "recordBytesMax": 85460,
+   "cpuMsPerCommand": {
+    "avg": 0.2886002737430164,
+    "p50": 0.2783709999999928,
+    "p95": 0.43005200000004606,
+    "max": 0.8224079999999958
+   },
+   "serializeMsTotal": 31.249033000000168,
+   "rebuildMs": 4.470189000000005,
+   "messagesOut": 4293
+  },
+  {
+   "players": 10,
+   "mode": "turns",
+   "commands": 356,
+   "events": 488,
+   "rowWritesLobby": 21,
+   "rowWritesMatch": 356,
+   "rowWritesTotal": 378,
+   "recordBytesMax": 85136,
+   "cpuMsPerCommand": {
+    "avg": 0.2826121151685384,
+    "p50": 0.27193299999999,
+    "p95": 0.4317590000000564,
+    "max": 1.2219370000000254
+   },
+   "serializeMsTotal": 31.176475999999525,
+   "rebuildMs": 4.712466999999947,
+   "messagesOut": 4271
+  },
+  {
+   "players": 10,
+   "mode": "turns",
+   "commands": 357,
+   "events": 489,
+   "rowWritesLobby": 21,
+   "rowWritesMatch": 357,
+   "rowWritesTotal": 379,
+   "recordBytesMax": 85293,
+   "cpuMsPerCommand": {
+    "avg": 0.2893256050420163,
+    "p50": 0.28413000000000466,
+    "p95": 0.40304200000002766,
+    "max": 1.223306999999977
+   },
+   "serializeMsTotal": 31.221089000001143,
+   "rebuildMs": 4.891260000000102,
+   "messagesOut": 4282
+  },
+  {
+   "players": 10,
+   "mode": "simultaneous",
+   "commands": 358,
+   "events": 382,
+   "rowWritesLobby": 22,
+   "rowWritesMatch": 358,
+   "rowWritesTotal": 381,
+   "recordBytesMax": 73581,
+   "cpuMsPerCommand": {
+    "avg": 0.28848578491620436,
+    "p50": 0.2660950000000639,
+    "p95": 0.3946130000001631,
+    "max": 3.469883999999979
+   },
+   "serializeMsTotal": 28.06377899999802,
+   "rebuildMs": 4.244648999999981,
+   "messagesOut": 4303
+  },
+  {
+   "players": 10,
+   "mode": "simultaneous",
+   "commands": 356,
+   "events": 380,
+   "rowWritesLobby": 22,
+   "rowWritesMatch": 356,
+   "rowWritesTotal": 379,
+   "recordBytesMax": 73257,
+   "cpuMsPerCommand": {
+    "avg": 0.2920089775280889,
+    "p50": 0.2839719999999488,
+    "p95": 0.4857910000000629,
+    "max": 0.9727949999999055
+   },
+   "serializeMsTotal": 29.489869000000226,
+   "rebuildMs": 4.00897000000009,
+   "messagesOut": 4281
+  },
+  {
+   "players": 10,
+   "mode": "simultaneous",
+   "commands": 357,
+   "events": 381,
+   "rowWritesLobby": 22,
+   "rowWritesMatch": 357,
+   "rowWritesTotal": 380,
+   "recordBytesMax": 73414,
+   "cpuMsPerCommand": {
+    "avg": 0.26970379271708533,
+    "p50": 0.2599410000000262,
+    "p95": 0.3949009999998907,
+    "max": 0.8417719999999917
+   },
+   "serializeMsTotal": 27.25509199999965,
+   "rebuildMs": 4.454678000000058,
+   "messagesOut": 4292
+  },
+  {
+   "players": 20,
+   "mode": "turns",
+   "commands": 716,
+   "events": 978,
+   "rowWritesLobby": 41,
+   "rowWritesMatch": 716,
+   "rowWritesTotal": 758,
+   "recordBytesMax": 170685,
+   "cpuMsPerCommand": {
+    "avg": 0.8396359217877116,
+    "p50": 0.8126330000000053,
+    "p95": 1.2318450000000212,
+    "max": 2.0575129999999717
+   },
+   "serializeMsTotal": 144.17677000000322,
+   "rebuildMs": 15.687408999999889,
+   "messagesOut": 16446
+  },
+  {
+   "players": 20,
+   "mode": "turns",
+   "commands": 712,
+   "events": 974,
+   "rowWritesLobby": 41,
+   "rowWritesMatch": 712,
+   "rowWritesTotal": 754,
+   "recordBytesMax": 170044,
+   "cpuMsPerCommand": {
+    "avg": 0.8102223595505583,
+    "p50": 0.7928400000000693,
+    "p95": 1.169159000000036,
+    "max": 2.145698999999695
+   },
+   "serializeMsTotal": 136.1858419999985,
+   "rebuildMs": 12.208484000000226,
+   "messagesOut": 16362
+  },
+  {
+   "players": 20,
+   "mode": "turns",
+   "commands": 718,
+   "events": 980,
+   "rowWritesLobby": 41,
+   "rowWritesMatch": 718,
+   "rowWritesTotal": 760,
+   "recordBytesMax": 171082,
+   "cpuMsPerCommand": {
+    "avg": 0.7946337646239466,
+    "p50": 0.765950999999859,
+    "p95": 1.1468369999997776,
+    "max": 3.6897429999999076
+   },
+   "serializeMsTotal": 132.9855859999975,
+   "rebuildMs": 11.707749000000149,
+   "messagesOut": 16488
+  },
+  {
+   "players": 20,
+   "mode": "simultaneous",
+   "commands": 716,
+   "events": 750,
+   "rowWritesLobby": 42,
+   "rowWritesMatch": 716,
+   "rowWritesTotal": 759,
+   "recordBytesMax": 145936,
+   "cpuMsPerCommand": {
+    "avg": 0.7624005377094926,
+    "p50": 0.7581119999999828,
+    "p95": 1.0764450000001489,
+    "max": 3.2056099999999788
+   },
+   "serializeMsTotal": 106.71604500000467,
+   "rebuildMs": 9.993187000000034,
+   "messagesOut": 16466
+  },
+  {
+   "players": 20,
+   "mode": "simultaneous",
+   "commands": 712,
+   "events": 746,
+   "rowWritesLobby": 42,
+   "rowWritesMatch": 712,
+   "rowWritesTotal": 755,
+   "recordBytesMax": 145295,
+   "cpuMsPerCommand": {
+    "avg": 0.7610891488764057,
+    "p50": 0.7560320000002321,
+    "p95": 1.0649080000002868,
+    "max": 3.5850099999997838
+   },
+   "serializeMsTotal": 104.15232499999274,
+   "rebuildMs": 9.650179000000207,
+   "messagesOut": 16382
+  },
+  {
+   "players": 20,
+   "mode": "simultaneous",
+   "commands": 718,
+   "events": 752,
+   "rowWritesLobby": 42,
+   "rowWritesMatch": 718,
+   "rowWritesTotal": 761,
+   "recordBytesMax": 146333,
+   "cpuMsPerCommand": {
+    "avg": 0.8356035362116889,
+    "p50": 0.8284449999991921,
+    "p95": 1.2548829999996087,
+    "max": 4.064319000000069
+   },
+   "serializeMsTotal": 123.25765999999385,
+   "rebuildMs": 11.224637000000257,
+   "messagesOut": 16508
+  }
+ ]
+}

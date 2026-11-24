@@ -1,0 +1,196 @@
+{
+ "generatedAt": "2026-11-24T13:09:59.401Z",
+ "runtime": "wrangler dev --local (workerd)",
+ "rows": [
+  {
+   "players": 2,
+   "mode": "simultaneous",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 73,
+   "ackMs": {
+    "p50": 2.2793209999999817,
+    "p95": 4.64612800000009,
+    "p99": 7.8867159999999785,
+    "max": 7.8867159999999785
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 12.239454999999907,
+   "restartRecoveryMs": 1191.104734,
+   "wallMs": 2434.4528600000003
+  },
+  {
+   "players": 2,
+   "mode": "turns",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 71,
+   "ackMs": {
+    "p50": 2.2760220000000118,
+    "p95": 3.0388190000003306,
+    "p99": 5.419232000000193,
+    "max": 5.419232000000193
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 16.63898700000027,
+   "restartRecoveryMs": 1147.1923260000003,
+   "wallMs": 3477.330616
+  },
+  {
+   "players": 4,
+   "mode": "simultaneous",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 145,
+   "ackMs": {
+    "p50": 3.8414379999994708,
+    "p95": 8.216229999999996,
+    "p99": 13.12215599999945,
+    "max": 32.53649199999927
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 25.02005300000019,
+   "restartRecoveryMs": 1340.8366709999991,
+   "wallMs": 2708.2217089999995
+  },
+  {
+   "players": 4,
+   "mode": "turns",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 143,
+   "ackMs": {
+    "p50": 2.5844450000004144,
+    "p95": 4.150681999999506,
+    "p99": 4.730973000001541,
+    "max": 4.902447000000393
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 27.95157400000062,
+   "restartRecoveryMs": 1461.3705339999997,
+   "wallMs": 6202.739680999999
+  },
+  {
+   "players": 6,
+   "mode": "simultaneous",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 214,
+   "ackMs": {
+    "p50": 4.581743999999162,
+    "p95": 10.412640999998985,
+    "p99": 12.31111299999975,
+    "max": 12.606713000001037
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 36.320472999999765,
+   "restartRecoveryMs": 1421.957903999999,
+   "wallMs": 2811.465344
+  },
+  {
+   "players": 6,
+   "mode": "turns",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 215,
+   "ackMs": {
+    "p50": 2.9224280000016734,
+    "p95": 4.517830000000686,
+    "p99": 6.542546000000584,
+    "max": 8.099457000000257
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 20.892735999997967,
+   "restartRecoveryMs": 1431.058728,
+   "wallMs": 8607.128164999998
+  },
+  {
+   "players": 10,
+   "mode": "simultaneous",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 357,
+   "ackMs": {
+    "p50": 8.533568999999261,
+    "p95": 23.721800999999687,
+    "p99": 26.673970999996527,
+    "max": 31.46464399999968
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 44.135809999999765,
+   "restartRecoveryMs": 1747.0924280000036,
+   "wallMs": 3446.705071000004
+  },
+  {
+   "players": 10,
+   "mode": "turns",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 356,
+   "ackMs": {
+    "p50": 3.56362700000318,
+    "p95": 5.551285000001371,
+    "p99": 9.016915000000154,
+    "max": 15.547512999997707
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 46.535235999996075,
+   "restartRecoveryMs": 1471.161494,
+   "wallMs": 13633.142263999995
+  },
+  {
+   "players": 20,
+   "mode": "simultaneous",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 711,
+   "ackMs": {
+    "p50": 37.455089999995835,
+    "p95": 63.09909399999742,
+    "p99": 75.32291799999803,
+    "max": 83.19357799999852
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 106.18663400000514,
+   "restartRecoveryMs": 1455.1591889999982,
+   "wallMs": 4356.6042619999935
+  },
+  {
+   "players": 20,
+   "mode": "turns",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 708,
+   "ackMs": {
+    "p50": 5.662031999992905,
+    "p95": 7.9701009999989765,
+    "p99": 9.736841999998433,
+    "max": 17.067431000003126
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 98.97418400000606,
+   "restartRecoveryMs": 1583.8157890000002,
+   "wallMs": 27207.379818999994
+  }
+ ]
+}

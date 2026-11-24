@@ -9,11 +9,19 @@ import { categories, type Card, type Category } from "../engine";
 
 export const ONLINE_PROTOCOL_VERSION = 1 as const;
 export const MIN_SEATS = 2;
-export const MAX_SEATS = 8;
+export const MAX_SEATS = 20;
 export const DICE_COUNT = 5;
 export const MAX_ROLLS = 3;
 
 export type MatchStatus = "lobby" | "playing" | "finished";
+/**
+ * "turns": one player at a time in seat order (the original mode).
+ * "simultaneous": every active player plays the same round at once with their own dice; the next
+ * round starts when everyone has scored (or the round time limit passed).
+ */
+export type MatchMode = "turns" | "simultaneous";
+/** In simultaneous mode, a player who misses this many round deadlines in a row is forfeited. */
+export const MAX_MISSED_ROUNDS = 3;
 export type PlayerStatus = "active" | "forfeited";
 export type ForfeitReason = "resign" | "timeout";
 
@@ -56,13 +64,17 @@ export type CommandRef = { playerId: string; commandId: string };
 type EventBase = { seq: number; at: number; by?: CommandRef };
 export type OnlineEvent = EventBase &
   (
-    | { type: "matchCreated"; matchId: string; seats: number; turnTimeoutMs: number | null; protocol: number }
+    | { type: "matchCreated"; matchId: string; seats: number; turnTimeoutMs: number | null; protocol: number; mode?: "simultaneous" }
     | { type: "playerJoined"; playerId: string; name: string; seat: number }
     | { type: "playerLeft"; playerId: string }
     | { type: "matchStarted"; order: string[] }
     | { type: "turnStarted"; playerId: string; round: number; deadline: number | null }
     | { type: "diceRolled"; playerId: string; kept: number[]; dice: number[]; roll: number }
-    | { type: "categoryScored"; playerId: string; category: Category; points: number; dice: number[] }
+    | { type: "categoryScored"; playerId: string; category: Category; points: number; dice: number[]; auto?: true }
+    /** Simultaneous mode: a new round for every active player (time limit = the match's turnTimeoutMs). */
+    | { type: "roundStarted"; round: number; deadline: number | null }
+    /** Simultaneous mode: the round deadline passed; the players who had not scored are recorded by the server. */
+    | { type: "roundTimedOut"; round: number; players: string[] }
     | { type: "playerForfeited"; playerId: string; reason: ForfeitReason }
     | { type: "matchFinished"; standings: Standing[]; winners: string[] }
   );
@@ -92,6 +104,14 @@ export type OnlineMatchState = {
   standings: Standing[] | null;
   winners: string[];
   log: OnlineEvent[];
+  /** "turns" when absent. */
+  mode?: MatchMode;
+  /** Simultaneous mode: current round, its deadline, each active player's turn until they score. */
+  round?: number;
+  roundDeadline?: number | null;
+  turns?: Record<string, TurnState>;
+  /** Simultaneous mode: consecutive missed round deadlines per player. */
+  missed?: Record<string, number>;
   /**
    * Idempotency keys (`playerId` + NUL + `commandId`) of every command applied in this match.
    * Derived only from `by` in the log, so `rebuildFromEvents` restores it after a restart.

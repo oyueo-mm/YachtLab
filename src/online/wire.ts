@@ -8,6 +8,10 @@ import type { MatchKind } from "../economy/live/config";
  * The command payload (`action`) is validated again by the Phase 1 `parseCommand`.
  */
 export const WIRE_VERSION = 1 as const;
+/** Players per friend room (host chooses at creation) and the time limits a host may pick (ms; null = none). */
+export const MAX_PLAYERS = 20;
+export const TURN_LIMITS: readonly (number | null)[] = [null, 30_000, 60_000, 90_000, 120_000, 180_000];
+export const ROUND_LIMITS: readonly number[] = [60_000, 90_000, 120_000, 180_000];
 
 export type ClientMessage =
   /** First frame on every socket. The token is sent in the body, never in the URL (keeps it out of logs). */
@@ -29,11 +33,18 @@ export type ClientMessage =
   | { t: "spectate"; allow: boolean }
   /** Spectator: first frame instead of `hello`. The key comes from a player's watch link. */
   | { t: "watch"; key: string; since?: number }
+  /** Lobby: any player marks ready / not ready. */
+  | { t: "ready"; ready: boolean }
+  /** Lobby, host only: how the match is played (turn-by-turn or simultaneous rounds) and its time limit. */
+  | { t: "settings"; mode: "turns" | "simultaneous"; timeoutMs: number | null }
+  /** Host only: hand the host role to another player in the room. */
+  | { t: "host"; to: string }
   | { t: "ping" };
-export type RematchOp = "request" | "cancel" | "decline";
+/** "start": larger rooms — the host starts the next match with everyone who asked. */
+export type RematchOp = "request" | "cancel" | "decline" | "start";
 
 export type ServerMessage =
-  | { t: "welcome"; code: string; playerId: string; view: PlayerView; online: string[]; hold: HoldState | null; rematch?: RematchState; series?: SeriesSummary; spectate?: SpectateState; members?: Record<string, string>; looks?: Record<string, PublicLook>; kind?: MatchKind; ai?: AiSeat | null }
+  | { t: "welcome"; code: string; playerId: string; view: PlayerView; online: string[]; hold: HoldState | null; rematch?: RematchState; series?: SeriesSummary; spectate?: SpectateState; members?: Record<string, string>; looks?: Record<string, PublicLook>; kind?: MatchKind; ai?: AiSeat | null; lobby?: LobbyState }
   /** `hold` is present from servers that keep the shared hold order (older servers omit it). */
   | { t: "view"; view: PlayerView; hold?: HoldState | null }
   | { t: "ack"; id: string; ok: true; duplicate: boolean }
@@ -48,10 +59,12 @@ export type ServerMessage =
   | { t: "members"; members: Record<string, string> }
   /** What each seat shows (server-validated equipped items). Sent on welcome and when a seat changes. */
   | { t: "looks"; looks: Record<string, PublicLook> }
+  /** Host, ready flags and match settings (friend rooms). */
+  | { t: "lobby"; lobby: LobbyState }
   /** Players only: spectating consent, the watch key (when active) and how many are watching. */
   | { t: "spectate"; spectate: SpectateState }
   /** Spectator welcome: neutral view (`you` is null, no legal moves, no command ids, no tokens). */
-  | { t: "watching"; code: string; view: PlayerView; online: string[]; hold: HoldState | null; series: SeriesSummary; spectators: number; looks?: Record<string, PublicLook>; kind?: MatchKind; ai?: AiSeat | null }
+  | { t: "watching"; code: string; view: PlayerView; online: string[]; hold: HoldState | null; series: SeriesSummary; spectators: number; looks?: Record<string, PublicLook>; kind?: MatchKind; ai?: AiSeat | null; lobby?: LobbyState }
   | { t: "error"; code: string; message: string }
   | { t: "pong" };
 
@@ -77,7 +90,8 @@ export type AiSeat = { playerId: string; level: string };
 export type SeriesSummary = { matchNo: number; games: number; draws: number; wins: Record<string, number> };
 
 /** Public info for an invite link (no tokens, no player ids). */
-export type RoomSummary = { code: string; status: MatchStatus; seats: number; players: string[] };
+export type RoomSummary = { code: string; status: MatchStatus; seats: number; players: string[]; mode?: "turns" | "simultaneous" };
+export type LobbyState = { hostId: string | null; ready: Record<string, boolean>; settings: { mode: "turns" | "simultaneous"; timeoutMs: number | null }; maxPlayers: number };
 
 /** HTTP responses. */
 export type JoinResponse = { code: string; playerId: string; token: string };
@@ -114,10 +128,20 @@ export function parseClientMessage(data: string): ClientMessage | null {
       if (typeof raw.id !== "string" || raw.id.length > 40) return null;
       return { t: "say", id: raw.id };
     case "rematch":
-      if (raw.op !== "request" && raw.op !== "cancel" && raw.op !== "decline") return null;
+      if (raw.op !== "request" && raw.op !== "cancel" && raw.op !== "decline" && raw.op !== "start") return null;
       return { t: "rematch", op: raw.op };
     case "bye":
       return { t: "bye" };
+    case "ready":
+      if (typeof raw.ready !== "boolean") return null;
+      return { t: "ready", ready: raw.ready };
+    case "settings":
+      if (raw.mode !== "turns" && raw.mode !== "simultaneous") return null;
+      if (raw.timeoutMs !== null && !Number.isSafeInteger(raw.timeoutMs)) return null;
+      return { t: "settings", mode: raw.mode, timeoutMs: raw.timeoutMs as number | null };
+    case "host":
+      if (!isValidId(raw.to)) return null;
+      return { t: "host", to: raw.to as string };
     case "spectate":
       if (typeof raw.allow !== "boolean") return null;
       return { t: "spectate", allow: raw.allow };

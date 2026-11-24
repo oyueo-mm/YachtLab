@@ -19,7 +19,8 @@ import { useSettings } from "../settings";
 import { OnlineConnection, forgetSeat, inviteLink, savedSeat, setRoomInUrl, watchLink, type ConnectionStatus } from "../online/client";
 import type { OnlineAction } from "../online/protocol";
 import type { PlayerView } from "../online/server-engine";
-import type { RematchState, SeriesSummary, SpectateState } from "../online/wire";
+import type { LobbyState, RematchState, SeriesSummary, SpectateState } from "../online/wire";
+import { LobbyPanel, MultiTable } from "./OnlineMulti";
 import { ChipBubble, EmoteBar, SocialPanel, SpectateControl, useBubbles } from "./Social";
 import { PlayerTag, boardOf, diceLookOf } from "./Looks";
 import { GUEST_LOOK, type PublicLook } from "../economy/live/catalog";
@@ -104,6 +105,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const [members, setMembers] = useState<Record<string, string>>({});
   const [looks, setLooks] = useState<Record<string, PublicLook>>({});
   const [aiSeat, setAiSeat] = useState<string | null>(null);
+  const [lobby, setLobby] = useState<LobbyState | null>(null);
   const settings = useSettings();
   const [profileOf, setProfileOf] = useState<string | null>(null);
 
@@ -118,9 +120,13 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         const prev = viewRef.current;
         const me = next.you?.playerId;
         /** Shared hold order for this view (server value; for an older server, derived from the roll). */
+        const simultaneous = next.mode === "simultaneous";
         const applyHold = (fallback: (current: number[]) => number[]) => {
           const turn = next.turn;
           if (!turn || turn.rolls === 0 || next.status !== "playing") return setKeep([]);
+          // Simultaneous rounds: my selection is mine alone (no shared shelf); other players' moves
+          // must not touch it — only my own roll reorders it.
+          if (simultaneous) return setKeep(fallback);
           if (hold === undefined) return setKeep(fallback);
           if (!hold && !live && turn.playerId === me && mySelection.current.v === next.version && mySelection.current.keep.length) {
             // The server lost my selection (e.g. restarted before the next command) but nothing happened
@@ -157,13 +163,17 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         if (live && prev) {
           for (const e of next.events) {
             if (e.seq < prev.version) continue;
-            if (e.type === "diceRolled") {
+            // Simultaneous rounds: only my own dice move on my table (others play their own dice).
+            const mine = !simultaneous || ("playerId" in e && e.playerId === me);
+            if (e.type === "diceRolled" && mine) {
               rolled = true;
               kept = e.kept;
-            } else if (e.type === "categoryScored") {
+            } else if (e.type === "categoryScored" && mine) {
               // The dice that made the combination rise (3D) — same effect as offline play.
               announceScore(e.dice.map((value, id) => ({ id, value })), e.category);
-              setFeedback(`${e.playerId === me ? "나" : nameOf(e.playerId)} · ${names[e.category]} ${e.points}점 기록`);
+              setFeedback(`${e.playerId === me ? "나" : nameOf(e.playerId)} · ${names[e.category]} ${e.points}점 기록${e.auto ? " (시간 초과 자동 기록)" : ""}`);
+            } else if (e.type === "roundStarted" && e.round > 1) {
+              setFeedback(`${e.round}라운드 시작`);
             } else if (e.type === "playerJoined" && e.playerId !== me && !announced.current.has(e.playerId)) {
               // A new player entered while this screen was open (not a reconnect, not the first load).
               announced.current.add(e.playerId);
@@ -183,7 +193,8 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         if (next.status === "finished" && me && next.standings) recordOnDevice(next, me);
         viewRef.current = next;
         setView(next);
-        setDeadline(next.turn?.remainingMs != null ? Date.now() + next.turn.remainingMs : null);
+        const remainingMs = next.mode === "simultaneous" ? next.roundRemainingMs : next.turn?.remainingMs;
+        setDeadline(remainingMs != null ? Date.now() + remainingMs : null);
         if (rolled) setRollEvent((n) => n + 1);
       },
       onHold(hold) {
@@ -205,12 +216,13 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
       onMembers: setMembers,
       onLooks: setLooks,
       onKind: (_kind, ai) => setAiSeat(ai?.playerId ?? null),
+      onLobby: setLobby,
       onRematch(r, sr) {
         setRematch(r);
         setSeries(sr);
       },
       onNotice(code, message) {
-        if (code === "REMATCH" || code === "SOCIAL_RATE_LIMITED" || code === "INVALID_SOCIAL" || code === "SPECTATE") setError(message);
+        if (code === "LOBBY" || code === "REMATCH" || code === "SOCIAL_RATE_LIMITED" || code === "INVALID_SOCIAL" || code === "SPECTATE") setError(message);
         // A refused toggle: show the server's state again (the switch moved optimistically).
         if (code === "SPECTATE") setSpectate((s) => (s ? { ...s } : s));
       },
@@ -392,39 +404,26 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />
           <SocialPanel look={myLook} onSend={(id) => conn.current?.say(id) ?? false} hideOpponent={social.hideOpponent} setHideOpponent={social.setHideOpponent} disabled={status !== "online"} />
         </div>
-        <ul className="online-players" aria-label="참가자">
-          {[0, 1].map((i) => {
-            const p = players[i];
-            return (
-              <li key={i} className={p ? "" : "empty"}>
-                {p ? (
-                  <>
-                    <span className={"online-dot" + (online.includes(p.playerId) ? " on" : "")} aria-hidden="true" />
-                    <strong>
-                      <PlayerTag name={p.name} look={looks[p.playerId]} me={p.playerId === me?.playerId} />
-                    </strong>
-                    <ChipBubble bubble={social.bubbles[p.playerId]} look={looks[p.playerId]} mine={p.playerId === me?.playerId} />
-                    {p.playerId === me?.playerId && <span className="online-tag">나</span>}
-                    {i === 0 && (
-                      <span className="online-tag host">
-                        <Crown size={12} /> 방장
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <span>친구를 기다리는 중…</span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-        {me?.isHost ? (
-          <button type="button" className="primary online-start" disabled={players.length < 2 || sending || status !== "online"} onClick={() => void send({ type: "start" })}>
-            <Play size={17} /> 게임 시작
-          </button>
-        ) : (
-          <p className="online-wait">방장이 게임을 시작하면 바로 시작돼요.</p>
-        )}
+        <LobbyPanel
+          lobby={lobby}
+          seats={view.seats}
+          players={players}
+          me={me?.playerId ?? ""}
+          online={online}
+          renderTag={(p) => (
+            <>
+              <strong>
+                <PlayerTag name={p.name} look={looks[p.playerId]} me={p.playerId === me?.playerId} />
+              </strong>
+              <ChipBubble bubble={social.bubbles[p.playerId]} look={looks[p.playerId]} mine={p.playerId === me?.playerId} />
+            </>
+          )}
+          disabled={status !== "online" || sending}
+          onReady={(r) => conn.current?.ready(r)}
+          onSettings={(mode, t) => conn.current?.settings(mode, t)}
+          onTransfer={(to) => conn.current?.transferHost(to)}
+          onStart={() => void send({ type: "start" })}
+        />
         <ErrorMessage message={error} />
         <button
           type="button"
@@ -443,14 +442,8 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
     );
   }
 
-  return (
+  const toolGroups = (
     <>
-      <div className="game-grid online-game">
-        <div className="game-left">
-          <div className="game-tools online-tools">
-            <span className="online-code-chip">
-              {status === "online" ? <Wifi size={14} /> : <WifiOff size={14} />} 방 {code}
-            </span>
             {/* Chat and emotes: right next to the board, always rendered (disabled while offline). */}
             <div className="online-tool-group online-social-tools">
               <EmoteBar look={myLook} onSend={(id) => conn.current?.say(id) ?? false} disabled={status !== "online"} />
@@ -476,6 +469,66 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                 </button>
               )}
             </div>
+    </>
+  );
+  if (view.seats > 2 || view.mode === "simultaneous")
+    return (
+      <>
+        <MultiTable
+          view={view}
+          code={code}
+          me={me?.playerId ?? ""}
+          online={online}
+          looks={looks}
+          bubbles={social.bubbles}
+          status={status}
+          tools={toolGroups}
+          banner={banner}
+          dice={game.dice}
+          keep={keep}
+          rolls={rolls}
+          rollEvent={rollEvent}
+          can={can}
+          canRoll={canRoll}
+          remaining={remaining}
+          feedback={feedback}
+          error={<ErrorMessage message={error} />}
+          rematch={rematch}
+          isHost={(lobby?.hostId ?? players[0]?.playerId) === me?.playerId}
+          onToggle={toggle}
+          onRoll={roll}
+          onScore={record}
+          onRematch={(op) => conn.current?.rematch(op)}
+          onHome={() => {
+            conn.current?.bye();
+            forgetSeat(code);
+            setRoomInUrl(null);
+            location.hash = "home";
+          }}
+        />
+        <ConfirmDialog
+          open={!!confirm}
+          title={confirm?.title ?? ""}
+          message={confirm?.message ?? ""}
+          confirmLabel={confirm?.confirmLabel ?? "확인"}
+          onCancel={() => setConfirm(null)}
+          onConfirm={() => {
+            const run = confirm?.run;
+            setConfirm(null);
+            run?.();
+          }}
+        />
+      </>
+    );
+  return (
+    <>
+      <div className="game-grid online-game">
+        <div className="game-left">
+          <div className="game-tools online-tools">
+            <span className="online-code-chip">
+              {status === "online" ? <Wifi size={14} /> : <WifiOff size={14} />} 방 {code}
+            </span>
+            {toolGroups}
           </div>
           <div className="score-summary">
             {players.map((p, seatIndex) => (

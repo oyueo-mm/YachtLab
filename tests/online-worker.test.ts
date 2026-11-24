@@ -102,7 +102,7 @@ describe("Online Phase 3 — Workers + SQLite Durable Objects (wrangler dev, loc
     expect((await api(main, "/api/rooms", { name: "a\u0007b" })).status).toBe(400);
     expect((await api(main, "/api/rooms/ZZZZZZ/join", { name: "x" })).status).toBe(404);
     const summary = await api(main, `/api/rooms/${created.body.code}`);
-    expect(summary.body).toEqual({ code: created.body.code, status: "lobby", seats: 2, players: ["Mina"] });
+    expect(summary.body).toEqual({ code: created.body.code, status: "lobby", seats: 2, players: ["Mina"], mode: "turns" });
   });
 
   it("재접속: 같은 토큰으로 다시 연결하면 since 이후 이벤트를 받고, 중복 탭도 갱신된다; 핑은 자동 응답된다", async () => {

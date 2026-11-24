@@ -15,6 +15,8 @@
 
 > **재화·상점·퀘스트·업적을 다룬다면** [실서비스 경제](docs/economy/LIVE-ECONOMY.md)부터(M3i-W30 실제 구현·원장·가격표·퀘스트·업적, 결정 D-040~D-042). 연구 배경: [경제 연구 보고서](docs/economy/ECONOMY-RESEARCH.md)(D-029~D-037).
 >
+> **온라인 친구 다인전(2~20명, 동시 진행)** → [MULTIPLAYER](docs/online/MULTIPLAYER.md)(D-044).
+>
 > **빠른 대전·관전방·서버 AI 대전** → [MATCHMAKING](docs/online/MATCHMAKING.md)·[SERVER-AI-MATCH](docs/online/SERVER-AI-MATCH.md)(D-038·D-039).
 >
 > **게임·온라인·계정 기능을 개발한다면** 먼저 [제품 개발 현황](docs/context/PRODUCT-2026-11-24.md)을 읽으세요(제품 Phase 1~10, 완료/미검증/외부 설정 필요, 배포 기록).

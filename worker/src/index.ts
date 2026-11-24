@@ -50,6 +50,8 @@ export interface Env extends ConfigVars {
   APP_URL?: string;
   /** Local end-to-end tests only (see authConfig): ignored unless APP_URL is a loopback http address. */
   TEST_OIDC_ISSUER?: string;
+  /** Local tests only: echoed by /healthz so a test talks to its own server process. */
+  TEST_INSTANCE?: string;
 }
 
 const MAX_BODY = 1024;
@@ -86,8 +88,8 @@ export class YachtRoom extends DurableObject<Env> {
       },
       // Rematches reuse this room but still count toward the daily cap (one directory row write).
       deliverRecord: async (userId, record) => env.USERS.get(env.USERS.idFromName(userId)).recordMatch(record),
-      allowMatch: async () => {
-        const verdict = await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).allocateMatch();
+      allowMatch: async (_code, weight) => {
+        const verdict = await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).allocateMatch(weight ?? 1);
         return verdict.ok ? null : verdict.message;
       },
       publish: async (code, entry) => {
@@ -114,8 +116,8 @@ export class YachtRoom extends DurableObject<Env> {
 
   /* RPC from the Worker */
   /** `identity` is set only by the Worker after verifying the session (never taken from the client body). */
-  async create(code: string, name: unknown, identity?: { userId: string } | null, look?: PublicLook | null) {
-    return this.host.create(code, name, identity, look);
+  async create(code: string, name: unknown, identity?: { userId: string } | null, look?: PublicLook | null, maxPlayers = 2) {
+    return this.host.create(code, name, identity, look, maxPlayers);
   }
   async join(name: unknown, identity?: { userId: string } | null, look?: PublicLook | null) {
     return this.host.join(name, identity, look);
@@ -262,11 +264,13 @@ export class RoomDirectory extends DurableObject<Env> {
    * One more match in an existing room (rematch). Shares the daily cap with room creation, so the
    * daily budget still bounds this service's share of the free plan; no new room code or object.
    */
-  async allocateMatch(): Promise<Verdict> {
+  async allocateMatch(weight = 1): Promise<Verdict> {
+    // A larger match costs more units (about one per two players): its storage writes grow with players.
+    const w = Math.max(1, Math.min(10, Math.floor(weight)));
     const day = Math.floor(Date.now() / 86_400_000);
     const today = this.sql.exec<{ rooms: number }>("SELECT rooms FROM daily WHERE day = ?", day).toArray()[0]?.rooms ?? 0;
-    if (today >= this.config.dailyRoomLimit) return { ok: false, status: 503, code: "DAILY_LIMIT", message: "오늘은 온라인 경기를 더 할 수 없어요. 내일 다시 시도해 주세요." };
-    this.sql.exec("INSERT INTO daily (day, rooms) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET rooms = rooms + 1", day);
+    if (today + w > this.config.dailyRoomLimit) return { ok: false, status: 503, code: "DAILY_LIMIT", message: "오늘은 온라인 경기를 더 할 수 없어요. 내일 다시 시도해 주세요." };
+    this.sql.exec("INSERT INTO daily (day, rooms) VALUES (?, ?) ON CONFLICT(day) DO UPDATE SET rooms = rooms + ?", day, w, w);
     return { ok: true };
   }
 
@@ -646,14 +650,19 @@ async function clientKey(request: Request): Promise<string> {
   return [...new Uint8Array(digest).slice(0, 12)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function readName(request: Request): Promise<unknown> {
+async function readBody(request: Request): Promise<{ name?: unknown; maxPlayers?: unknown }> {
   const length = Number(request.headers.get("content-length") ?? "0");
   if (length > MAX_BODY) throw new Error("too large");
   const text = await request.text();
   if (text.length > MAX_BODY) throw new Error("too large");
-  const body = JSON.parse(text || "{}") as { name?: unknown };
-  return body?.name;
+  const body = JSON.parse(text || "{}") as { name?: unknown; maxPlayers?: unknown };
+  return body ?? {};
 }
+async function readName(request: Request): Promise<unknown> {
+  return (await readBody(request)).name;
+}
+/** 2..20 players (default 2: the original 1:1 room). */
+const maxPlayersOf = (v: unknown) => (Number.isInteger(v) && (v as number) >= 2 && (v as number) <= 20 ? (v as number) : 2);
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -675,7 +684,8 @@ export default {
         },
       });
     const directory = env.DIRECTORY.get(env.DIRECTORY.idFromName("directory"));
-    if (url.pathname === "/healthz") return json(200, { ok: true }, allowed);
+    // TEST_INSTANCE is set only by the local test helper (tells parallel test servers apart).
+    if (url.pathname === "/healthz") return json(200, { ok: true, ...(env.TEST_INSTANCE ? { instance: env.TEST_INSTANCE } : {}) }, allowed);
     if (url.pathname === "/usage" && request.method === "GET") return json(200, await directory.usage(), allowed);
     const roomStub = (code: string) => env.ROOMS.get(env.ROOMS.idFromName(code));
     const auth = authConfig(env);
@@ -695,6 +705,8 @@ export default {
       const user = await sessionUser(request, backends);
       return user ? { userId: user.userId } : null;
     };
+    /** A signed-in seat's validated look (equipped items), read from the account — never from the client. */
+    const seatLook = async (identity: { userId: string } | null) => (identity ? await env.USERS.get(env.USERS.idFromName(identity.userId)).look().catch(() => null) : null);
 
     const hub = () => env.HUB.get(env.HUB.idFromName("hub"));
     try {
@@ -775,10 +787,11 @@ export default {
       if (parts[0] !== "api" || parts[1] !== "rooms") return fail(404, "NOT_FOUND", "없는 주소입니다.", allowed);
 
       if (request.method === "POST" && parts.length === 2) {
-        const name = await readName(request);
+        const body = await readBody(request);
         const slot = await directory.allocate(await clientKey(request));
         if (!slot.ok) return fail(slot.status, slot.code, slot.message, allowed);
-        const joined = await roomStub(slot.code!).create(slot.code!, name, await seatIdentity());
+        const identity = await seatIdentity();
+        const joined = await roomStub(slot.code!).create(slot.code!, body.name, identity, await seatLook(identity), maxPlayersOf(body.maxPlayers));
         if (!joined.ok) {
           await directory.release(slot.code!);
           return fail(joined.status, joined.error.code, joined.error.message, allowed);
@@ -799,9 +812,10 @@ export default {
         const summary = await room.summary();
         return summary ? json(200, summary, allowed) : fail(404, "ROOM_NOT_FOUND", "방을 찾을 수 없어요. 초대 코드를 확인해 주세요.", allowed);
       }
-      const joined = await room.join(name, await seatIdentity());
+      const identity = await seatIdentity();
+      const joined = await room.join(name, identity, await seatLook(identity));
       if (!joined.ok) {
-        const message = joined.error.code === "MATCH_FULL" ? "이미 두 명이 모두 들어온 방이에요." : joined.error.code === "WRONG_PHASE" ? "이미 경기가 시작된 방이에요." : joined.error.message;
+        const message = joined.error.code === "MATCH_FULL" ? "방이 가득 찼어요." : joined.error.code === "WRONG_PHASE" ? "이미 경기가 시작된 방이에요." : joined.error.message;
         return fail(joined.status, joined.error.code, message, allowed);
       }
       return json(201, { code, playerId: joined.playerId, token: joined.token }, allowed);

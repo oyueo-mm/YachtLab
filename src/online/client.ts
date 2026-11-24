@@ -1,7 +1,7 @@
 import type { OnlineAction } from "./protocol";
 import { authHeader, session } from "../identity/account-client";
 import type { PlayerView } from "./server-engine";
-import type { AiSeat, ApiError, HoldState, JoinResponse, RematchOp, RematchState, RoomSummary, SeriesSummary, ServerMessage, SpectateState } from "./wire";
+import type { AiSeat, ApiError, HoldState, JoinResponse, LobbyState, RematchOp, RematchState, RoomSummary, SeriesSummary, ServerMessage, SpectateState } from "./wire";
 import type { PublicLook } from "../economy/live/catalog";
 import type { MatchKind } from "../economy/live/config";
 
@@ -158,7 +158,8 @@ async function call<T>(base: string, path: string, body?: unknown): Promise<T> {
   if (!res.ok || !data) throw new OnlineApiError((data as ApiError)?.error?.code ?? "SERVER", (data as ApiError)?.error?.message ?? "요청을 처리하지 못했어요.");
   return data as T;
 }
-export const createRoom = (base: string, name: string) => call<JoinResponse>(base, "/api/rooms", { name });
+/** A friend room for 2..20 players (the host picks the size; 2 = the classic 1:1 room). */
+export const createRoom = (base: string, name: string, maxPlayers = 2) => call<JoinResponse>(base, "/api/rooms", { name, maxPlayers });
 export const joinRoom = (base: string, code: string, name: string) => call<JoinResponse>(base, `/api/rooms/${code}/join`, { name });
 export const roomSummary = (base: string, code: string) => call<RoomSummary>(base, `/api/rooms/${code}`);
 
@@ -346,6 +347,8 @@ export type ConnectionEvents = {
   /** Server-validated looks of the seats (equipped items), and how the room was made. */
   onLooks?(looks: Record<string, PublicLook>): void;
   onKind?(kind: MatchKind, ai: AiSeat | null): void;
+  /** Host, ready flags and match settings (friend rooms). */
+  onLobby?(lobby: LobbyState): void;
   onPresence(online: string[]): void;
   onStatus(status: ConnectionStatus): void;
   /** The seat is gone (bad token, left, room closed): stop and go back to the entry screen. */
@@ -471,6 +474,7 @@ export class OnlineConnection {
         if (msg.members) this.events.onMembers?.(msg.members);
         if (msg.looks) this.events.onLooks?.(msg.looks);
         this.events.onKind?.(msg.kind ?? "friend", msg.ai ?? null);
+        if (msg.lobby) this.events.onLobby?.(msg.lobby);
         // Commands whose ack was lost are sent again with the same id (applied at most once).
         for (const p of this.pending.values()) this.ws?.send(p.frame);
         return;
@@ -493,6 +497,9 @@ export class OnlineConnection {
         return;
       case "looks":
         this.events.onLooks?.(msg.looks);
+        return;
+      case "lobby":
+        this.events.onLobby?.(msg.lobby);
         return;
       case "view":
         this.since = msg.view.version;
@@ -549,6 +556,18 @@ export class OnlineConnection {
   /** Players: allow / stop spectators. */
   spectate(allow: boolean) {
     return this.sendNow({ t: "spectate", allow });
+  }
+  /** Lobby: ready / not ready. */
+  ready(ready: boolean) {
+    return this.sendNow({ t: "ready", ready });
+  }
+  /** Host: match settings (mode and time limit). */
+  settings(mode: "turns" | "simultaneous", timeoutMs: number | null) {
+    return this.sendNow({ t: "settings", mode, timeoutMs });
+  }
+  /** Host: hand the host role to another player. */
+  transferHost(to: string) {
+    return this.sendNow({ t: "host", to });
   }
   /** Leave the finished room for good. */
   bye() {
