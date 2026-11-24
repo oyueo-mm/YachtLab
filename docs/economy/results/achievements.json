@@ -380,6 +380,7 @@
   "label": "상단 보너스 10회",
   "key": "upperBonus",
   "count": 10,
+  "onHold": "상단 보너스 관련 보류",
   "expectedMatches": {
    "beginner": 52.48,
    "casual": 29.07,
@@ -405,6 +406,7 @@
   "label": "상단 보너스 100회",
   "key": "upperBonus",
   "count": 100,
+  "onHold": "상단 보너스 관련 보류",
   "expectedMatches": {
    "beginner": 524.8,
    "casual": 290.7,
@@ -430,6 +432,7 @@
   "label": "상단 보너스 500회",
   "key": "upperBonus",
   "count": 500,
+  "onHold": "상단 보너스 관련 보류",
   "expectedMatches": {
    "beginner": 2624,
    "casual": 1454,
@@ -580,6 +583,7 @@
   "label": "상단 모든 칸 3개 이상(정석 보너스)",
   "key": "upperPerfectPath",
   "count": 1,
+  "onHold": "상단 보너스 관련 보류",
   "expectedMatches": {
    "beginner": 139.9,
    "casual": 64.31,

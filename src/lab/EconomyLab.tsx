@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { MODELS, scaleCoins } from "../economy/models";
 import { PERSONAS, ABUSE_VARIANTS } from "../economy/personas";
 import { buildCatalog, CURVE_PRESETS, DEFAULT_CATALOG, RARITY_LABEL, RARITIES, type PriceTable, type SlotConfig } from "../economy/pricing";
@@ -7,14 +7,17 @@ import { summary } from "../economy/rng";
 import { REJECTED_QUESTS, RANKED_IDEAS } from "../economy/content";
 import "./economy-lab.css";
 
+const EconomyFollowup = lazy(() => import("./EconomyFollowup"));
+
 /**
  * 경제 연구실: precomputed economy-study results (scripts/economy/run-experiments.ts) plus a small
  * in-browser re-run of the same simulator. Research only — no currency is granted anywhere.
  */
 type Lab = typeof import("../economy/data/lab-summary.json");
-type Tab = "overview" | "models" | "personas" | "quests" | "prices" | "abuse" | "sensitivity" | "run";
+type Tab = "overview" | "followup" | "models" | "personas" | "quests" | "prices" | "abuse" | "sensitivity" | "run";
 const TABS: [Tab, string][] = [
   ["overview", "요약·추천"],
+  ["followup", "추가 검증"],
   ["models", "모델 비교"],
   ["personas", "사용자 유형"],
   ["quests", "퀘스트·업적"],
@@ -108,6 +111,11 @@ export default function EconomyLab() {
       {lab && (
         <div role="tabpanel" data-testid="econ-panel">
           {tab === "overview" && <Overview lab={lab} />}
+          {tab === "followup" && (
+            <Suspense fallback={<p className="econ-muted" role="status">불러오는 중…</p>}>
+              <EconomyFollowup />
+            </Suspense>
+          )}
           {tab === "models" && <Models lab={lab} />}
           {tab === "personas" && <Personas lab={lab} />}
           {tab === "quests" && <Quests lab={lab} />}
@@ -135,6 +143,7 @@ function Overview({ lab }: { lab: Lab }) {
     <div className="econ-grid">
       <article className="econ-card wide">
         <h2>추천: M3 혼합·소프트캡</h2>
+        <p><b>2차 추가 검증 결론:</b> 정수 운영안 M3i-W30(완료 10·승리 +3), 신화는 모두 코인·보석 선택 결제, 강화 1:0.5:1·항상 코인. 상세는 ‘추가 검증’ 탭.</p>
         <p>경기 완료·승리 보상 + 일일/주간 퀘스트 + 일회성 업적 보석. 하루 10번째 보상 경기 이후 경기 코인은 25%로 줄고(차단 아님), 친구 대전은 승리 보상이 없으며 하루 10경기까지만 보상해요. 공식 재화는 서버 검증 기록에만 지급하고 로컬 AI·로컬 2인·게스트 기록에는 지급하지 않아요.</p>
         <dl className="econ-kpis">
           <div><dt>일반 유저 코인/일(중앙값)</dt><dd>{num(reg?.coinsPerDay.median)}</dd></div>

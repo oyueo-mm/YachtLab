@@ -242,22 +242,22 @@
     8000
    ],
    "regular": {
-    "maxUpgradeReach1y": 0.58,
-    "mythicMaxReach1y": 0.01,
-    "upgradeShareOfSpend": 0.07965,
-    "mythicReach1y": 0.39
+    "maxUpgradeReach1y": 0.62,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.06811,
+    "mythicReach1y": 0.38
    },
    "heavy": {
-    "maxUpgradeReach1y": 0.83,
+    "maxUpgradeReach1y": 0.85,
     "mythicMaxReach1y": 0.01,
-    "upgradeShareOfSpend": 0.128,
-    "mythicReach1y": 0.78
+    "upgradeShareOfSpend": 0.132,
+    "mythicReach1y": 0.67
    },
    "extreme": {
-    "maxUpgradeReach1y": 0.86,
-    "mythicMaxReach1y": 0.01,
-    "upgradeShareOfSpend": 0.1112,
-    "mythicReach1y": 1
+    "maxUpgradeReach1y": 0.92,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.1519,
+    "mythicReach1y": 0.99
    }
   },
   {
@@ -268,22 +268,22 @@
     15000
    ],
    "regular": {
-    "maxUpgradeReach1y": 0.09,
+    "maxUpgradeReach1y": 0.07,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.05575,
-    "mythicReach1y": 0.39
+    "upgradeShareOfSpend": 0.04427,
+    "mythicReach1y": 0.38
    },
    "heavy": {
-    "maxUpgradeReach1y": 0.36,
+    "maxUpgradeReach1y": 0.4,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.1606,
-    "mythicReach1y": 0.79
+    "upgradeShareOfSpend": 0.1307,
+    "mythicReach1y": 0.66
    },
    "extreme": {
-    "maxUpgradeReach1y": 0.31,
+    "maxUpgradeReach1y": 0.41,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.1665,
-    "mythicReach1y": 1
+    "upgradeShareOfSpend": 0.2041,
+    "mythicReach1y": 0.99
    }
   },
   {
@@ -296,20 +296,20 @@
    "regular": {
     "maxUpgradeReach1y": 0.06,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.01672,
-    "mythicReach1y": 0.39
+    "upgradeShareOfSpend": 0.0154,
+    "mythicReach1y": 0.38
    },
    "heavy": {
-    "maxUpgradeReach1y": 0.32,
+    "maxUpgradeReach1y": 0.33,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.07678,
-    "mythicReach1y": 0.8
+    "upgradeShareOfSpend": 0.03276,
+    "mythicReach1y": 0.68
    },
    "extreme": {
-    "maxUpgradeReach1y": 0.22,
+    "maxUpgradeReach1y": 0.31,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.1449,
-    "mythicReach1y": 1
+    "upgradeShareOfSpend": 0.1566,
+    "mythicReach1y": 0.99
    }
   },
   {
@@ -320,21 +320,21 @@
     12000
    ],
    "regular": {
-    "maxUpgradeReach1y": 0.51,
+    "maxUpgradeReach1y": 0.56,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.06317,
+    "upgradeShareOfSpend": 0.06823,
     "mythicReach1y": 0.38
    },
    "heavy": {
-    "maxUpgradeReach1y": 0.74,
+    "maxUpgradeReach1y": 0.78,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.1068,
-    "mythicReach1y": 0.78
+    "upgradeShareOfSpend": 0.1152,
+    "mythicReach1y": 0.67
    },
    "extreme": {
-    "maxUpgradeReach1y": 0.82,
+    "maxUpgradeReach1y": 0.91,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.1049,
+    "upgradeShareOfSpend": 0.1395,
     "mythicReach1y": 0.99
    }
   },
@@ -346,22 +346,22 @@
     20000
    ],
    "regular": {
-    "maxUpgradeReach1y": 0.08,
+    "maxUpgradeReach1y": 0.07,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.05745,
-    "mythicReach1y": 0.39
+    "upgradeShareOfSpend": 0.04846,
+    "mythicReach1y": 0.38
    },
    "heavy": {
-    "maxUpgradeReach1y": 0.34,
+    "maxUpgradeReach1y": 0.37,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.1621,
-    "mythicReach1y": 0.79
+    "upgradeShareOfSpend": 0.1324,
+    "mythicReach1y": 0.66
    },
    "extreme": {
-    "maxUpgradeReach1y": 0.27,
+    "maxUpgradeReach1y": 0.38,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.17,
-    "mythicReach1y": 1
+    "upgradeShareOfSpend": 0.2065,
+    "mythicReach1y": 0.99
    }
   },
   {
@@ -374,20 +374,20 @@
    "regular": {
     "maxUpgradeReach1y": 0.01,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.01119,
-    "mythicReach1y": 0.39
+    "upgradeShareOfSpend": 0.01106,
+    "mythicReach1y": 0.38
    },
    "heavy": {
     "maxUpgradeReach1y": 0,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.06519,
-    "mythicReach1y": 0.8
+    "upgradeShareOfSpend": 0.005641,
+    "mythicReach1y": 0.68
    },
    "extreme": {
     "maxUpgradeReach1y": 0,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.1341,
-    "mythicReach1y": 1
+    "upgradeShareOfSpend": 0.1356,
+    "mythicReach1y": 0.99
    }
   },
   {
@@ -398,21 +398,21 @@
     20000
    ],
    "regular": {
-    "maxUpgradeReach1y": 0.09,
+    "maxUpgradeReach1y": 0.06,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.04474,
-    "mythicReach1y": 0.39
+    "upgradeShareOfSpend": 0.04666,
+    "mythicReach1y": 0.38
    },
    "heavy": {
-    "maxUpgradeReach1y": 0.34,
+    "maxUpgradeReach1y": 0.36,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.09055,
-    "mythicReach1y": 0.77
+    "upgradeShareOfSpend": 0.09251,
+    "mythicReach1y": 0.69
    },
    "extreme": {
-    "maxUpgradeReach1y": 0.28,
+    "maxUpgradeReach1y": 0.38,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.09193,
+    "upgradeShareOfSpend": 0.1249,
     "mythicReach1y": 0.99
    }
   },
@@ -424,21 +424,21 @@
     40000
    ],
    "regular": {
-    "maxUpgradeReach1y": 0.03,
+    "maxUpgradeReach1y": 0.06,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.05121,
-    "mythicReach1y": 0.4
+    "upgradeShareOfSpend": 0.04532,
+    "mythicReach1y": 0.38
    },
    "heavy": {
-    "maxUpgradeReach1y": 0.31,
+    "maxUpgradeReach1y": 0.32,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.1673,
-    "mythicReach1y": 0.79
+    "upgradeShareOfSpend": 0.1342,
+    "mythicReach1y": 0.66
    },
    "extreme": {
-    "maxUpgradeReach1y": 0.23,
+    "maxUpgradeReach1y": 0.33,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.171,
+    "upgradeShareOfSpend": 0.2089,
     "mythicReach1y": 1
    }
   },
@@ -452,20 +452,20 @@
    "regular": {
     "maxUpgradeReach1y": 0,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.01049,
-    "mythicReach1y": 0.39
+    "upgradeShareOfSpend": 0.01035,
+    "mythicReach1y": 0.38
    },
    "heavy": {
     "maxUpgradeReach1y": 0,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.06519,
-    "mythicReach1y": 0.8
+    "upgradeShareOfSpend": 0.005641,
+    "mythicReach1y": 0.68
    },
    "extreme": {
     "maxUpgradeReach1y": 0,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.1341,
-    "mythicReach1y": 1
+    "upgradeShareOfSpend": 0.1356,
+    "mythicReach1y": 0.99
    }
   },
   {
@@ -476,21 +476,21 @@
     12000
    ],
    "regular": {
-    "maxUpgradeReach1y": 0.51,
+    "maxUpgradeReach1y": 0.56,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.06317,
+    "upgradeShareOfSpend": 0.06823,
     "mythicReach1y": 0.38
    },
    "heavy": {
-    "maxUpgradeReach1y": 0.74,
+    "maxUpgradeReach1y": 0.78,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.1068,
-    "mythicReach1y": 0.78
+    "upgradeShareOfSpend": 0.1152,
+    "mythicReach1y": 0.67
    },
    "extreme": {
-    "maxUpgradeReach1y": 0.82,
+    "maxUpgradeReach1y": 0.91,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.1049,
+    "upgradeShareOfSpend": 0.1395,
     "mythicReach1y": 0.99
    }
   },
@@ -502,22 +502,22 @@
     20000
    ],
    "regular": {
-    "maxUpgradeReach1y": 0.08,
+    "maxUpgradeReach1y": 0.07,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.05745,
-    "mythicReach1y": 0.39
+    "upgradeShareOfSpend": 0.04846,
+    "mythicReach1y": 0.38
    },
    "heavy": {
-    "maxUpgradeReach1y": 0.34,
+    "maxUpgradeReach1y": 0.37,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.1621,
-    "mythicReach1y": 0.79
+    "upgradeShareOfSpend": 0.1324,
+    "mythicReach1y": 0.66
    },
    "extreme": {
-    "maxUpgradeReach1y": 0.27,
+    "maxUpgradeReach1y": 0.38,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.17,
-    "mythicReach1y": 1
+    "upgradeShareOfSpend": 0.2065,
+    "mythicReach1y": 0.99
    }
   },
   {
@@ -530,20 +530,20 @@
    "regular": {
     "maxUpgradeReach1y": 0.01,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.01119,
-    "mythicReach1y": 0.39
+    "upgradeShareOfSpend": 0.01106,
+    "mythicReach1y": 0.38
    },
    "heavy": {
     "maxUpgradeReach1y": 0,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.06519,
-    "mythicReach1y": 0.8
+    "upgradeShareOfSpend": 0.005641,
+    "mythicReach1y": 0.68
    },
    "extreme": {
     "maxUpgradeReach1y": 0,
     "mythicMaxReach1y": 0,
-    "upgradeShareOfSpend": 0.1341,
-    "mythicReach1y": 1
+    "upgradeShareOfSpend": 0.1356,
+    "mythicReach1y": 0.99
    }
   }
  ]

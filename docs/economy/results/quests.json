@@ -146,6 +146,7 @@
   "label": "상단 보너스 1회 달성",
   "key": "upperBonus",
   "count": 1,
+  "onHold": "상단 보너스 관련 보류",
   "byTier": {
    "beginner": {
     "pPerMatch": 0.1905,
@@ -496,6 +497,7 @@
   "label": "상단 보너스 5회",
   "key": "upperBonus",
   "count": 5,
+  "onHold": "상단 보너스 관련 보류",
   "byTier": {
    "beginner": {
     "pPerMatch": 0.1905,

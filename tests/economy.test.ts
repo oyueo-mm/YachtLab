@@ -131,3 +131,60 @@ describe("경제 연구 — 가격·강화·서버", () => {
     expect(mulberry32(1)()).toBe(mulberry32(1)());
   });
 });
+
+import { integerM3, INTEGER_MODELS } from "../src/economy/models";
+import { ACTIVE_QUESTS } from "../src/economy/content";
+import { STEP_RATIOS } from "../src/economy/pricing";
+import { RECURRING_SOURCES, ONE_TIME_SOURCES, SOURCES } from "../src/economy/simulate";
+
+describe("경제 추가 검증 — 정수안·정책 후보", () => {
+  it("정수 운영안의 모든 지급량은 정수이고 승리 보너스 비율 변형을 가진다", () => {
+    for (const m of INTEGER_MODELS) {
+      const vals = [...Object.values(m.match).flatMap((r) => [r.complete, r.win, r.draw]), ...m.quests.dailyCoins, ...m.quests.weeklyCoins, m.quests.dailyAllBonus.coins, m.quests.weeklyAllBonus.coins, m.newUser.coins, m.events.rewardCoins, m.afterSoftCapFlat ?? 0, m.boostPerMatch ?? 0, m.eventPerMatch ?? 0, m.achievementCoinPerGem];
+      for (const v of vals) expect(Number.isInteger(v)).toBe(true);
+    }
+    expect(INTEGER_MODELS.map((m) => m.match.online_random.win)).toEqual([7, 3, 2, 1]);
+    expect(integerM3(0.3).match.online_friend.win).toBe(0);
+  });
+  it("상단 보너스 관련 퀘스트·업적은 보류되어 활성 목록에서 빠진다", () => {
+    expect(ACTIVE_QUESTS().some((q) => q.key === "upperBonus")).toBe(false);
+    expect(ACHIEVEMENTS.filter((a) => a.key === "upperBonus" || a.key === "upperPerfectPath").every((a) => a.onHold)).toBe(true);
+    const u = simulateUser(ctx("M3", { forceLoggedIn: true, forceF2P: true }), personaById("heavy"), 0, 400, 2);
+    expect(u.achievements.some((id) => id.startsWith("a.bonus") || id === "s.perfectpath")).toBe(false);
+  });
+  it("수급처는 반복·일회성·결제로 빠짐없이 나뉘고 연차 원장의 합이 전체와 같다", () => {
+    expect(new Set([...RECURRING_SOURCES, ...ONE_TIME_SOURCES, "purchase"]).size).toBe(SOURCES.length);
+    const u = simulateUser(ctx("M3"), personaById("regular"), 3, 800, 4);
+    for (const s of SOURCES) expect(u.coinsYear[s].reduce((a, b) => a + b, 0)).toBeCloseTo(u.coinsBySource[s], 6);
+  });
+  it("게스트 소급: 소급 없음이면 0, 상한이 있으면 상한 이하", () => {
+    const guest = { ...personaById("regular"), loggedInShare: 1, payer: null };
+    const none = simulateUser(ctx("M3", { model: { ...integerM3(0.3), guestCarryoverDays: 0 }, loginDay: 20, spending: false }), guest, 0, 40, 1);
+    expect(none.coinsBySource.guest_carryover).toBe(0);
+    const capped = simulateUser(ctx("M3", { model: { ...integerM3(0.3), guestCarryoverDays: 1e9, guestCarryoverMatchCap: 20 }, loginDay: 20, spending: false }), guest, 0, 40, 1);
+    expect(capped.guestMatchesCredited).toBeLessThanOrEqual(20);
+    expect(capped.coinsBySource.guest_carryover).toBeGreaterThan(0);
+  });
+  it("보석으로 산 신화의 강화: '구매 재화' 정책이면 보석, 기본은 코인으로 강화한다", () => {
+    const focus = { ...personaById("heavy"), spend: "focus" as const, focusCurrency: "gem" as const, upgradeAppetite: 1, goalShare: 0, wantByRarity: [0, 0, 0, 0, 0] as [number, number, number, number, number], payer: null };
+    const base = { forceF2P: true, forceLoggedIn: true, gemValueInCoins: 25 };
+    const same = simulateUser(ctx("M3", { ...base, upgradeCurrency: "same" }), focus, 0, 1500, 6);
+    const coin = simulateUser(ctx("M3", { ...base, upgradeCurrency: "coin" }), focus, 0, 1500, 6);
+    expect(same.gemsSpent.item).toBeGreaterThan(0);
+    expect(same.coinsSpent.upgrade).toBe(0);
+    expect(coin.gemsSpent.upgrade).toBe(0);
+  });
+  it("강화 비율 지정: 가격 × 비율, 단계가 오를수록 비싸다", () => {
+    for (const r of STEP_RATIOS) {
+      const c = upgradeCosts(10000, { curve: "linear", baseFraction: 1, maxLevel: 3, param: 1, steps: r.steps });
+      expect(c[1]).toBeGreaterThan(c[0]);
+    }
+    expect(upgradeCosts(25000, { curve: "linear", baseFraction: 1, maxLevel: 3, param: 1, steps: [0.5, 1.5] })).toEqual([12000, 40000]);
+  });
+  it("출시 시점에 등급마다 허용된 결제 경로(코인·보석·선택)가 최소 1개씩 있다", () => {
+    const cat = buildCatalog(DEFAULT_CATALOG, prices, 10, 99);
+    for (let k = 0; k < 5; k++) for (const [i, cur] of (["coin", "gem", "either"] as const).entries()) {
+      if (prices.currencyMix[k][i] > 0) expect(cat.some((it) => it.rarity === k && it.releaseDay === 0 && it.currency === cur)).toBe(true);
+    }
+  });
+});

@@ -56,13 +56,14 @@ export function crossScoreRate(a: TierId, b: TierId): number {
 // ---------------- quests ----------------
 export type Period = "daily" | "weekly" | "monthly";
 export type Difficulty = 0 | 1 | 2; // easy / medium / hard
-export type QuestDef = { id: string; period: Period; difficulty: Difficulty; label: string; key: EventKey; count: number };
+/** `onHold`: kept in the catalog for reference but excluded from simulations and recommendations (user decision 2026-11-24). */
+export type QuestDef = { id: string; period: Period; difficulty: Difficulty; label: string; key: EventKey; count: number; onHold?: string };
 export const QUESTS: QuestDef[] = [
   { id: "d.play3", period: "daily", difficulty: 0, label: "경기 3회 완료", key: "match", count: 3 },
   { id: "d.full1", period: "daily", difficulty: 0, label: "풀 하우스 1회 기록", key: "fullScored", count: 1 },
   { id: "d.small1", period: "daily", difficulty: 0, label: "스몰 스트레이트 1회 기록", key: "smallScored", count: 1 },
   { id: "d.win1", period: "daily", difficulty: 1, label: "1승", key: "win", count: 1 },
-  { id: "d.bonus1", period: "daily", difficulty: 1, label: "상단 보너스 1회 달성", key: "upperBonus", count: 1 },
+  { id: "d.bonus1", period: "daily", difficulty: 1, label: "상단 보너스 1회 달성", key: "upperBonus", count: 1, onHold: "상단 보너스 관련 보류" },
   { id: "d.large2", period: "daily", difficulty: 1, label: "라지 스트레이트 2회 기록", key: "largeScored", count: 2 },
   { id: "d.180", period: "daily", difficulty: 1, label: "180점 이상 1회", key: "t180", count: 1 },
   { id: "d.win2", period: "daily", difficulty: 2, label: "2승", key: "win", count: 2 },
@@ -72,7 +73,7 @@ export const QUESTS: QuestDef[] = [
   { id: "w.play15", period: "weekly", difficulty: 0, label: "경기 15회 완료", key: "match", count: 15 },
   { id: "w.full8", period: "weekly", difficulty: 0, label: "풀 하우스 8회", key: "fullScored", count: 8 },
   { id: "w.win7", period: "weekly", difficulty: 1, label: "7승", key: "win", count: 7 },
-  { id: "w.bonus5", period: "weekly", difficulty: 1, label: "상단 보너스 5회", key: "upperBonus", count: 5 },
+  { id: "w.bonus5", period: "weekly", difficulty: 1, label: "상단 보너스 5회", key: "upperBonus", count: 5, onHold: "상단 보너스 관련 보류" },
   { id: "w.yacht2", period: "weekly", difficulty: 1, label: "요트 2회", key: "yachtScored", count: 2 },
   { id: "w.220x2", period: "weekly", difficulty: 2, label: "220점 이상 2회", key: "t220", count: 2 },
   { id: "w.yacht4", period: "weekly", difficulty: 2, label: "요트 4회", key: "yachtScored", count: 4 },
@@ -80,6 +81,7 @@ export const QUESTS: QuestDef[] = [
   { id: "m.play60", period: "monthly", difficulty: 1, label: "경기 60회 완료", key: "match", count: 60 },
   { id: "m.yacht8", period: "monthly", difficulty: 2, label: "요트 8회", key: "yachtScored", count: 8 },
 ];
+export const ACTIVE_QUESTS = () => QUESTS.filter((q) => !q.onHold);
 /** Rejected quest ideas (policy): kept so the reasoning is visible in the lab and docs. */
 export const REJECTED_QUESTS = [
   { label: "N회 패배하기 / 0점 기록하기", reason: "고의 패배·고의 0점(샌드배깅)을 보상 — 상대 경험 훼손, 랭크 오염" },
@@ -90,6 +92,7 @@ export const REJECTED_QUESTS = [
   { label: "상점에서 구매하기 / 강화하기", reason: "소비·과금 유도 퀘스트 금지" },
   { label: "로컬 AI N승", reason: "클라이언트 기록은 조작 가능 — 공식 보상 불가" },
   { label: "특정 칸에 특정 점수(예: 에이스 5점)", reason: "점수 최대화와 반대되는 비정상 전략 유도(상대·AI 비교 왜곡)" },
+  { label: "매우 어려운 AI(전문가·Win DP v2) 승리", reason: "보류(합의) — 실력 상위만 가능하고 서버 AI 대전 미구현·AI 승률이 낮아(전문가 상대 중급 33%) 좌절 유도" },
 ];
 
 // ---------------- achievements ----------------
@@ -102,18 +105,19 @@ export type AchievementDef = {
   /** Symbolic tier items: achievement-only, never purchasable. */
   symbolic?: boolean;
   note?: string;
+  onHold?: string;
 };
 export const ACHIEVEMENTS: AchievementDef[] = [
   ...[10, 100, 500, 1000, 5000, 10000].map((n) => ({ id: `a.match.${n}`, group: "cumulative" as const, label: `경기 ${n}회 완료`, key: "match" as const, count: n })),
   ...[10, 100, 500, 2000].map((n) => ({ id: `a.win.${n}`, group: "cumulative" as const, label: `${n}승`, key: "win" as const, count: n })),
   ...[1, 10, 50, 200, 1000].map((n) => ({ id: `a.yacht.${n}`, group: "cumulative" as const, label: `요트 ${n}회`, key: "yachtScored" as const, count: n })),
-  ...[10, 100, 500].map((n) => ({ id: `a.bonus.${n}`, group: "cumulative" as const, label: `상단 보너스 ${n}회`, key: "upperBonus" as const, count: n })),
+  ...[10, 100, 500].map((n) => ({ id: `a.bonus.${n}`, group: "cumulative" as const, label: `상단 보너스 ${n}회`, key: "upperBonus" as const, count: n, onHold: "상단 보너스 관련 보류" })),
   { id: "s.200", group: "skill", label: "200점 이상 달성", key: "t200", count: 1 },
   { id: "s.200x25", group: "skill", label: "200점 이상 25회", key: "t200", count: 25 },
   { id: "s.250", group: "skill", label: "250점 이상 달성", key: "t250", count: 1 },
   { id: "s.270", group: "skill", label: "270점 이상 달성", key: "t270", count: 1 },
   { id: "s.nozero", group: "skill", label: "0점 칸 없이 경기 완료", key: "noZero", count: 1 },
-  { id: "s.perfectpath", group: "skill", label: "상단 모든 칸 3개 이상(정석 보너스)", key: "upperPerfectPath", count: 1 },
+  { id: "s.perfectpath", group: "skill", label: "상단 모든 칸 3개 이상(정석 보너스)", key: "upperPerfectPath", count: 1, onHold: "상단 보너스 관련 보류" },
   { id: "s.comeback", group: "skill", label: "9라운드 후 30점 이상 뒤지다 역전승", key: "comeback30", count: 1 },
   { id: "s.streak5", group: "skill", label: "온라인 무작위 대전 5연승", key: "streak", count: 5 },
   { id: "s.streak10", group: "skill", label: "온라인 무작위 대전 10연승", key: "streak", count: 10 },

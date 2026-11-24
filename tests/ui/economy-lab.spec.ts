@@ -7,11 +7,13 @@ test("경제 연구실은 결과 탭을 보여 주고 브라우저에서 시뮬�
   await page.goto("#economy-lab");
   await expect(page.getByRole("heading", { name: "경제 연구실" })).toBeVisible();
   await expect(page.getByRole("heading", { name: /추천: M3/ })).toBeVisible({ timeout: 15000 });
-  for (const tab of ["모델 비교", "사용자 유형", "퀘스트·업적", "가격·강화", "어뷰징·서버", "민감도"]) {
+  for (const tab of ["추가 검증", "모델 비교", "사용자 유형", "퀘스트·업적", "가격·강화", "어뷰징·서버", "민감도"]) {
     await page.getByRole("tab", { name: tab }).click();
     await expect(page.getByRole("tab", { name: tab })).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("econ-panel")).not.toBeEmpty();
   }
+  await page.getByRole("tab", { name: "추가 검증" }).click();
+  await expect(page.getByTestId("econ-fu-ratios").locator("tbody tr")).toHaveCount(6);
   await page.getByRole("tab", { name: "모델 비교" }).click();
   await expect(page.getByTestId("econ-model-table").locator("tbody tr")).toHaveCount(7);
   await page.getByRole("tab", { name: "직접 실행" }).click();

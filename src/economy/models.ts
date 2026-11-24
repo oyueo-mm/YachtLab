@@ -22,6 +22,11 @@ export type EconomyModel = {
   /** Full match coins for the first N reward-eligible matches per day, then `afterSoftCap` multiplier. */
   softCapMatches: number;
   afterSoftCap: number;
+  /** Integer operation: fixed coins per match after the soft cap (replaces the multiplier when set). */
+  afterSoftCapFlat?: number;
+  /** Integer operation: flat bonus per full-reward match during the new-user boost / events (replaces multipliers). */
+  boostPerMatch?: number;
+  eventPerMatch?: number;
   /** Reward-eligible matches per day that can earn match coins at all (after it: 0 match coins; quests/achievements still count). */
   dailyRewardedMatchLimit: number;
   /** Matches per day that advance cumulative achievements (anti-bot; quests are not limited). */
@@ -40,8 +45,10 @@ export type EconomyModel = {
   newUser: { coins: number; gems: number; boostDays: number; boostMultiplier: number };
   /** Special events: every N days, L days long; match coins multiplier and a one-time event reward if ≥k matches. */
   events: { everyDays: number; lengthDays: number; coinMultiplier: number; rewardGems: number; rewardCoins: number; minMatches: number };
-  /** Server-verified guest matches credited on account link (days, 0 = none). */
+  /** Server-verified guest matches credited on account link (days, 0 = none). Candidate policy, not decided. */
   guestCarryoverDays: number;
+  /** Cap on carried-over guest matches (undefined = no cap). */
+  guestCarryoverMatchCap?: number;
 };
 const pvp = (complete: number, win: number, draw: number): ModeReward => ({ complete, win, draw, quests: true, achievements: true });
 const none: ModeReward = { complete: 0, win: 0, draw: 0, quests: false, achievements: false };
@@ -135,3 +142,29 @@ export function scaleCoins(m: EconomyModel, k: number): EconomyModel {
     events: { ...m.events, rewardCoins: r(m.events.rewardCoins) },
   };
 }
+
+/**
+ * Integer operating version of M3 (follow-up study): completion = 10 coins, every amount an integer.
+ * `winPct` = win bonus as a share of the completion reward (phase-1 M3 was 10/15 ≈ 67%).
+ */
+export function integerM3(winPct: number, extra: Partial<EconomyModel> = {}): EconomyModel {
+  const win = Math.round(10 * winPct);
+  const draw = Math.ceil(win / 2);
+  const aiWin = Math.max(win > 0 ? 1 : 0, Math.round(win / 2));
+  const base = MODELS.find((m) => m.id === "M3")!;
+  return {
+    ...base,
+    id: `M3i-W${Math.round(winPct * 100)}`,
+    label: `M3 정수안 · 승리 +${win} (${Math.round(winPct * 100)}%)`,
+    summary: `완료 10 · 승리 +${win} · 무승부 +${draw}(무작위 대전), 친구 완료 10, 서버 AI 완료 7 · 승리 +${aiWin}. 10경기 이후 경기당 3, 30경기 이후 0. 신규 7일·이벤트 기간 경기당 +5.`,
+    match: { online_random: { complete: 10, win, draw, quests: true, achievements: true }, online_friend: { complete: 10, win: 0, draw: 0, quests: true, achievements: true }, server_ai: { complete: 7, win: aiWin, draw: 0, quests: true, achievements: true }, local_ai: { complete: 0, win: 0, draw: 0, quests: false, achievements: false }, local_pvp: { complete: 0, win: 0, draw: 0, quests: false, achievements: false } },
+    softCapMatches: 10, afterSoftCap: 0.3, afterSoftCapFlat: 3, dailyRewardedMatchLimit: 30, achievementDailyMatchLimit: 40, dailyMatchCoinCap: null, friendDailyLimit: 10,
+    quests: { dailyCoins: [15, 20, 30], dailyGems: [0, 0, 0], dailyAllBonus: { coins: 15, gems: 1 }, weeklyCoins: [70, 100, 130], weeklyGems: [2, 3, 5], weeklyAllBonus: { coins: 70, gems: 5 }, monthly: null },
+    achievementGemScale: 1, achievementCoinPerGem: 7,
+    newUser: { coins: 200, gems: 20, boostDays: 7, boostMultiplier: 1 }, boostPerMatch: 5,
+    events: { everyDays: 42, lengthDays: 7, coinMultiplier: 1, rewardGems: 10, rewardCoins: 150, minMatches: 10 }, eventPerMatch: 5,
+    guestCarryoverDays: 0,
+    ...extra,
+  };
+}
+export const INTEGER_MODELS: EconomyModel[] = [0.67, 0.3, 0.2, 0.1].map((w) => integerM3(w));

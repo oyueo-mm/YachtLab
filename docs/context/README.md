@@ -15,7 +15,7 @@
 
 ## 맥락 내비게이션
 
-**경제(재화·퀘스트·업적·가격) 연구:** [경제 연구 보고서](../economy/ECONOMY-RESEARCH.md) · [자동 생성 결과](../economy/RESULTS-GENERATED.md) · [온라인 매칭·관전방 계획](../online/MATCHMAKING-SPECTATE-PLAN.md) · 결정 D-029~D-033.
+**경제(재화·퀘스트·업적·가격) 연구:** [경제 연구 보고서](../economy/ECONOMY-RESEARCH.md) · [1차 결과](../economy/RESULTS-GENERATED.md) · [2차 추가 검증](../economy/FOLLOWUP-GENERATED.md) · [온라인 매칭·관전방 계획](../online/MATCHMAKING-SPECTATE-PLAN.md) · [저장 쓰기·AI 대전 보안](../online/STORAGE-AND-AI-MATCH-SECURITY.md) · 결정 D-029~D-037.
 
 **제품(게임·온라인·계정) 작업:** [제품 개발 현황 2026-11-24](./PRODUCT-2026-11-24.md) · [온라인 소셜·계정 설계](../online/SOCIAL-AND-ACCOUNTS.md) · [모바일 성능·UI (PR A)](../ui/PHASE-A-2026-11.md) · 결정 D-025~D-028.
 

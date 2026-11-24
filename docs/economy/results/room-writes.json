@@ -1,0 +1,72 @@
+{
+ "generatedBy": "scripts/economy/measure-room-writes.ts",
+ "method": "worker/src/host.ts RoomHost with a counting HostStorage; production default config (turn limit 120 s); DP Expert players; 4 s per action",
+ "matches": 20,
+ "perMatch": {
+  "recordSaves": 96.5,
+  "setAlarm": 7,
+  "deleteAlarm": 0,
+  "commands": 94.5,
+  "rolls": 69.5,
+  "alarmsFired": 5,
+  "holdMessages": 55.25,
+  "maxRecordBytes": 21811,
+  "saveByAction": {
+   "create": 1.0000000000000002,
+   "join": 1.0000000000000002,
+   "start": 1.0000000000000002,
+   "roll": 69.5,
+   "score": 23.999999999999993
+  }
+ },
+ "directory": {
+  "create": 3,
+  "cleanup": 2
+ },
+ "totalRoomRowWrites": 108.5,
+ "finished": [
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\"",
+  "\"finished\""
+ ],
+ "scoredPerMatch": [
+  24,
+  24,
+  24,
+  24,
+  24,
+  24,
+  24,
+  24,
+  24,
+  24,
+  24,
+  24,
+  24,
+  24,
+  24,
+  24,
+  24,
+  24,
+  24,
+  24
+ ],
+ "note": "Row-write billing: an UPSERT into a table with INTEGER PRIMARY KEY writes 1 row; a TEXT PRIMARY KEY adds an autoindex row; setAlarm/deleteAlarm are billed as row writes; deleteAll counts the rows it deletes. Hold toggles are not persisted (socket attachment)."
+}

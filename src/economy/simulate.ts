@@ -14,9 +14,12 @@ import type { Persona } from "./personas";
 import { upgradeCosts, type CatalogItem, type SlotConfig, type UpgradeConfig } from "./pricing";
 import { binomial, hashSeed, mulberry32, negBinomial, pickWeighted, type Rng } from "./rng";
 
-export const SOURCES = ["match", "quest_daily", "quest_weekly", "quest_monthly", "achievement", "event", "new_user", "purchase"] as const;
+export const SOURCES = ["match", "quest_daily", "quest_weekly", "quest_monthly", "achievement", "event", "new_user", "guest_carryover", "purchase"] as const;
+/** Recurring faucets (repeat every day/week/month) vs one-time faucets (finite per account). */
+export const RECURRING_SOURCES: Source[] = ["match", "quest_daily", "quest_weekly", "quest_monthly", "event"];
+export const ONE_TIME_SOURCES: Source[] = ["achievement", "new_user", "guest_carryover"];
 export type Source = (typeof SOURCES)[number];
-export const SOURCE_LABEL: Record<Source, string> = { match: "경기", quest_daily: "일일 퀘스트", quest_weekly: "주간 퀘스트", quest_monthly: "월간 도전", achievement: "업적", event: "특별 이벤트", new_user: "신규 사용자", purchase: "현금 구매" };
+export const SOURCE_LABEL: Record<Source, string> = { match: "경기", quest_daily: "일일 퀘스트", quest_weekly: "주간 퀘스트", quest_monthly: "월간 도전", achievement: "업적", event: "특별 이벤트", new_user: "신규 사용자", guest_carryover: "게스트 소급", purchase: "현금 구매" };
 export const SINKS = ["item", "upgrade", "slot"] as const;
 export type Sink = (typeof SINKS)[number];
 
@@ -37,6 +40,10 @@ export type SimContext = {
   forceLoggedIn?: boolean;
   /** Multiplier on activity (sensitivity). */
   activityMultiplier?: number;
+  /** Upgrade currency for items bought with gems: coin (default) / same currency / either. */
+  upgradeCurrency?: "coin" | "same" | "either";
+  /** The user plays as a guest until this day, then links an account (guest carry-over study). */
+  loginDay?: number;
 };
 export const DEFAULT_WIN_RATE: Record<Mode, number> = { online_random: 0.5, online_friend: 0.5, server_ai: 0.55, local_ai: 0.6, local_pvp: 0.5 };
 
@@ -71,12 +78,21 @@ export type UserResult = {
   emoteSlots: number;
   chatSlots: number;
   checkpoints: Record<number, { coins: number; gems: number; earnedCoins: number; earnedGems: number; owned: number }>;
+  /** Earnings by source for years 1..5 (index 0..4). */
+  coinsYear: Record<Source, number[]>;
+  gemsYear: Record<Source, number[]>;
+  firstMythicMatches: number;
+  guestMatchesCredited: number;
+  arrivalDay?: number;
+  churned?: boolean;
   daily?: { coinsEarned: Float32Array; gemsEarned: Float32Array; coinsSpent: Float32Array; gemsSpent: Float32Array; matches: Uint16Array; rewarded: Uint16Array; purchases: Uint8Array; byMode: Uint16Array[] };
 };
 
 const zeroRec = <K extends string>(keys: readonly K[]) => Object.fromEntries(keys.map((k) => [k, 0])) as Record<K, number>;
-const DAILY_BY_DIFF = [0, 1, 2].map((d) => QUESTS.filter((q) => q.period === "daily" && q.difficulty === d));
-const WEEKLY_BY_DIFF = [0, 1, 2].map((d) => QUESTS.filter((q) => q.period === "weekly" && q.difficulty === d));
+const DAILY_BY_DIFF = [0, 1, 2].map((d) => QUESTS.filter((q) => q.period === "daily" && q.difficulty === d && !q.onHold));
+const WEEKLY_BY_DIFF = [0, 1, 2].map((d) => QUESTS.filter((q) => q.period === "weekly" && q.difficulty === d && !q.onHold));
+const ACTIVE_ACHIEVEMENTS = ACHIEVEMENTS.filter((a) => !a.onHold);
+const yearRec = () => Object.fromEntries(SOURCES.map((k) => [k, [0, 0, 0, 0, 0]])) as Record<Source, number[]>;
 const EXTRA_KEYS: EventKey[] = ["t300", "t310", "perfect323", "firstRollYacht2", "firstRollYacht3"];
 const KEYS: EventKey[] = [...SIM_EVENT_KEYS, ...EXTRA_KEYS];
 const KEY_INDEX = new Map(KEYS.map((k, i) => [k, i]));
@@ -98,6 +114,7 @@ export function simulateUser(ctx: SimContext, persona: Persona, userIndex: numbe
     coinsBySource: zeroRec(SOURCES), gemsBySource: zeroRec(SOURCES), coinsSpent: zeroRec(SINKS), gemsSpent: zeroRec(SINKS), coins: 0, gems: 0,
     firstRarityDay: [-1, -1, -1, -1, -1], firstRarityMatches: [-1, -1, -1, -1, -1], ownedByRarity: [0, 0, 0, 0, 0], maxedItems: 0, firstMaxUpgradeDay: -1, firstMythicMaxDay: -1,
     achievements: [], achievementDay: {}, dailyQuestsDone: 0, emoteSlots: ctx.slots.emoteBase, chatSlots: ctx.slots.chatBase, checkpoints: {},
+    coinsYear: yearRec(), gemsYear: yearRec(), firstMythicMatches: -1, guestMatchesCredited: 0,
   };
   if (opts.recordDaily) {
     res.daily = { coinsEarned: new Float32Array(lifetime), gemsEarned: new Float32Array(lifetime), coinsSpent: new Float32Array(lifetime), gemsSpent: new Float32Array(lifetime), matches: new Uint16Array(lifetime), rewarded: new Uint16Array(lifetime), purchases: new Uint8Array(lifetime), byMode: MODES.map(() => new Uint16Array(lifetime)) };
@@ -108,6 +125,8 @@ export function simulateUser(ctx: SimContext, persona: Persona, userIndex: numbe
   // Items: wanted flags, ownership, level
   const want = ctx.catalog.map((it) => r() < persona.wantByRarity[it.rarity]);
   const level = new Int8Array(ctx.catalog.length); // 0 = not owned, else level
+  const paidGem = new Uint8Array(ctx.catalog.length);
+  let focusItem = -1;
   let ownedEmotes = 8, ownedChats = 10; // current free default set (src/social/catalog.ts)
   let saverTarget = -1;
   const pending: number[] = [], ownedList: number[] = [];
@@ -118,15 +137,21 @@ export function simulateUser(ctx: SimContext, persona: Persona, userIndex: numbe
   let goalCoins = 0, goalGems = 0, goalItem = -1;
   const earn = (coins: number, gems: number, src: Source) => {
     goalCoins += coins * persona.goalShare; goalGems += gems * persona.goalShare;
-    if (coins) { res.coins += coins; res.coinsBySource[src] += coins; if (res.daily) res.daily.coinsEarned[today] += coins; }
-    if (gems) { res.gems += gems; res.gemsBySource[src] += gems; if (res.daily) res.daily.gemsEarned[today] += gems; }
+    const y = Math.min(4, Math.floor(today / 365));
+    if (coins) { res.coins += coins; res.coinsBySource[src] += coins; if (today < 1825) res.coinsYear[src][y] += coins; if (res.daily) res.daily.coinsEarned[today] += coins; }
+    if (gems) { res.gems += gems; res.gemsBySource[src] += gems; if (today < 1825) res.gemsYear[src][y] += gems; if (res.daily) res.daily.gemsEarned[today] += gems; }
   };
   const spend = (coins: number, gems: number, sink: Sink) => {
     res.coins -= coins; res.gems -= gems; res.coinsSpent[sink] += coins; res.gemsSpent[sink] += gems;
     if (res.daily) { res.daily.coinsSpent[today] += coins; res.daily.gemsSpent[today] += gems; res.daily.purchases[today]++; }
   };
-  const canEarn = (mode: Mode) => loggedIn && (model.counterfactual || MODE_TRUST[mode] === "server-verified");
-  if (loggedIn) earn(model.newUser.coins, model.newUser.gems, "new_user");
+  const loginDay = loggedIn ? ctx.loginDay ?? 0 : Infinity;
+  let li = loggedIn && loginDay <= 0; // logged in today
+  const canEarn = (mode: Mode) => li && (model.counterfactual || MODE_TRUST[mode] === "server-verified");
+  // Guest period: server-verified matches are remembered (coins they would have earned) for a carry-over policy.
+  const guestPending: { day: number; coins: number; matches: number }[] = [];
+  const isGuestVerified = (mode: Mode) => !li && loggedIn && MODE_TRUST[mode] === "server-verified";
+  if (li) earn(model.newUser.coins, model.newUser.gems, "new_user");
   // Quests state
   let dailyQ: QuestDef[] = [], weeklyQ: QuestDef[] = [], weeklyDone = [false, false, false], weeklyBonus = false;
   const weekCount = new Float64Array(KEYS.length + 2); // + match, + win
@@ -137,6 +162,16 @@ export function simulateUser(ctx: SimContext, persona: Persona, userIndex: numbe
 
   for (let d = 0; d < lifetime; d++) {
     today = d;
+    if (!li && loggedIn && d >= loginDay) {
+      li = true;
+      earn(model.newUser.coins, model.newUser.gems, "new_user");
+      // carry-over of server-verified guest matches (candidate policies; capped)
+      const window = model.guestCarryoverDays, cap = model.guestCarryoverMatchCap ?? Infinity;
+      let coins = 0, matches = 0;
+      for (const g of guestPending) if (g.day >= d - window && matches < cap) { const k = Math.min(g.matches, cap - matches); coins += (g.coins * k) / Math.max(1, g.matches); matches += k; }
+      if (coins > 0) earn(Math.round(coins), 0, "guest_carryover");
+      res.guestMatchesCredited = matches;
+    }
     if (d % 7 === 0) {
       weeklyQ = WEEKLY_BY_DIFF.map((pool) => pool[Math.floor(r() * pool.length)]);
       weeklyDone = [false, false, false]; weeklyBonus = false; weekCount.fill(0); weekMatches = 0; weekWins = 0;
@@ -163,6 +198,12 @@ export function simulateUser(ctx: SimContext, persona: Persona, userIndex: numbe
           if (!k) continue;
           res.matches += k; res.matchesByMode[mode] += k;
           if (res.daily) { res.daily.matches[d] += k; res.daily.byMode[MODES.indexOf(mode)][d] += k; }
+          if (isGuestVerified(mode)) {
+            const rw = model.match[mode], wins = binomial(r, k, ctx.winRate[mode]);
+            const eq = Math.min(k, model.softCapMatches) + Math.max(0, Math.min(k, Math.max(model.softCapMatches, model.dailyRewardedMatchLimit)) - model.softCapMatches) * model.afterSoftCap;
+            guestPending.push({ day: d, coins: ((rw.complete * k + rw.win * wins) / k) * eq, matches: k });
+            continue;
+          }
           if (!canEarn(mode)) continue;
           let eligible = k;
           if (mode === "online_friend") { eligible = Math.min(k, Math.max(0, model.friendDailyLimit - friendUsed)); friendUsed += eligible; }
@@ -189,22 +230,22 @@ export function simulateUser(ctx: SimContext, persona: Persona, userIndex: numbe
       playBatch(n);
       // Quest chasers play up to 3 extra online matches to finish daily quests (only if they can earn)
       const dailyDone = () => dailyQ.map((q) => questCount(q, dayEligible, dayWins, dayCount) >= q.count);
-      if (persona.questChaser && loggedIn) for (let extra = 0; extra < 3 && dailyDone().some((x) => !x); extra++) { playBatch(1, "online_random"); n++; }
+      if (persona.questChaser && li) for (let extra = 0; extra < 3 && dailyDone().some((x) => !x); extra++) { playBatch(1, "online_random"); n++; }
       res.rewardedMatches += rewardedToday;
       if (res.daily) res.daily.rewarded[d] = rewardedToday;
       // Match coins with soft cap / hard cap / multipliers
       if (rewardedToday > 0) {
         const S = model.softCapMatches;
         const R = rewardedToday, lim = Math.max(S, model.dailyRewardedMatchLimit);
-        const equivalent = Math.min(R, S) + Math.max(0, Math.min(R, lim) - S) * model.afterSoftCap;
-        let coins = (matchCoinsBase / R) * equivalent;
-        if (d < model.newUser.boostDays) coins *= model.newUser.boostMultiplier;
-        if (inEvent) coins *= model.events.coinMultiplier;
+        const full = Math.min(R, S), reduced = Math.max(0, Math.min(R, lim) - S);
+        let coins = model.afterSoftCapFlat !== undefined ? (matchCoinsBase / R) * full + model.afterSoftCapFlat * reduced : (matchCoinsBase / R) * (full + reduced * model.afterSoftCap);
+        if (d < model.newUser.boostDays) coins = model.boostPerMatch !== undefined ? coins + model.boostPerMatch * full : coins * model.newUser.boostMultiplier;
+        if (inEvent) coins = model.eventPerMatch !== undefined ? coins + model.eventPerMatch * full : coins * model.events.coinMultiplier;
         if (model.dailyMatchCoinCap !== null) coins = Math.min(coins, model.dailyMatchCoinCap);
         earn(Math.round(coins), 0, "match");
       }
       // Daily quests (auto-claim, server-side)
-      if (loggedIn && dayEligible > 0) {
+      if (li && dayEligible > 0) {
         const done = dailyDone();
         done.forEach((ok, i) => { if (ok) earn(model.quests.dailyCoins[i], model.quests.dailyGems[i], "quest_daily"); });
         if (done.every(Boolean)) { earn(model.quests.dailyAllBonus.coins, model.quests.dailyAllBonus.gems, "quest_daily"); res.dailyQuestsDone++; monthDailyDays++; }
@@ -212,7 +253,7 @@ export function simulateUser(ctx: SimContext, persona: Persona, userIndex: numbe
       // Weekly quests
       weekMatches += dayEligible; weekWins += dayWins;
       for (let j = 0; j < KEYS.length; j++) weekCount[j] += dayCount[j];
-      if (loggedIn) {
+      if (li) {
         weeklyQ.forEach((q, i) => { if (!weeklyDone[i] && questCount(q, weekMatches, weekWins, weekCount) >= q.count) { weeklyDone[i] = true; earn(model.quests.weeklyCoins[i], model.quests.weeklyGems[i], "quest_weekly"); } });
         if (!weeklyBonus && weeklyDone.every(Boolean)) { weeklyBonus = true; earn(model.quests.weeklyAllBonus.coins, model.quests.weeklyAllBonus.gems, "quest_weekly"); }
         const mq = model.quests.monthly;
@@ -224,7 +265,7 @@ export function simulateUser(ctx: SimContext, persona: Persona, userIndex: numbe
       const achFrac = dayEligible > model.achievementDailyMatchLimit ? model.achievementDailyMatchLimit / dayEligible : 1;
       for (let j = 0; j < KEYS.length; j++) counters[j] += dayCount[j] * achFrac;
       cMatches += dayEligible * achFrac; cWins += dayWins * achFrac;
-      if (loggedIn) for (const a of ACHIEVEMENTS) {
+      if (li) for (const a of ACTIVE_ACHIEVEMENTS) {
         if (unlocked.has(a.id) || a.group === "ranked") continue;
         let v: number;
         if (a.key === "match") v = cMatches;
@@ -242,27 +283,35 @@ export function simulateUser(ctx: SimContext, persona: Persona, userIndex: numbe
       }
     }
     // Spending
-    if (ctx.spending && loggedIn) {
+    if (ctx.spending && li) {
       // add newly released wanted items to the pending list (catalog is in release order)
       let added = false;
       while (nextRelease < ctx.catalog.length && ctx.catalog[nextRelease].releaseDay <= d) { if (want[nextRelease]) { pending.push(nextRelease); added = true; } nextRelease++; }
       if (added) { pending.sort((a, b) => price(ctx.catalog[a]) - price(ctx.catalog[b])); if (persona.spend === "saver") saverTarget = -1; }
       const tryBuy = (i: number): boolean => {
         const it = ctx.catalog[i];
-        const payCoins = (it.currency === "coin" || it.currency === "either") && res.coins >= it.coinPrice;
+        const payCoins = (it.currency === "coin" || it.currency === "either") && res.coins >= it.coinPrice && !(persona.spend === "focus" && persona.focusCurrency === "gem");
         const payGems = (it.currency === "gem" || it.currency === "either") && res.gems >= it.gemPrice;
         if (!payCoins && !payGems) return false;
-        if (payGems && (payer || !payCoins)) spend(0, it.gemPrice, "item"); else spend(it.coinPrice, 0, "item");
+        const viaGem = payGems && (payer || !payCoins || persona.focusCurrency === "gem");
+        if (viaGem) spend(0, it.gemPrice, "item"); else spend(it.coinPrice, 0, "item");
         level[i] = 1;
+        paidGem[i] = viaGem ? 1 : 0;
+        if (it.rarity === 4 && res.firstMythicMatches < 0) res.firstMythicMatches = res.matches;
         ownedList.push(i);
         res.ownedByRarity[it.rarity]++;
         if (res.firstRarityDay[it.rarity] < 0) { res.firstRarityDay[it.rarity] = d; res.firstRarityMatches[it.rarity] = res.matches; }
         if (it.type === "emote") ownedEmotes++;
         if (it.type === "chat") ownedChats++;
-        pending.splice(pending.indexOf(i), 1);
+        const pi = pending.indexOf(i);
+        if (pi >= 0) pending.splice(pi, 1);
         return true;
       };
-      if (persona.spend === "saver") {
+      if (persona.spend === "focus") {
+        // Targets ONE mythic item (coin-buyable unless focusCurrency = gem), buys nothing else, then upgrades it.
+        if (focusItem < 0) focusItem = ctx.catalog.findIndex((it) => it.rarity === 4 && it.releaseDay <= d && (persona.focusCurrency === "gem" ? it.currency !== "coin" : it.currency !== "gem"));
+        if (focusItem >= 0 && level[focusItem] === 0) tryBuy(focusItem);
+      } else if (persona.spend === "saver") {
         if (saverTarget < 0 || level[saverTarget] > 0) saverTarget = pending.length ? pending[pending.length - 1] : -1;
         if (saverTarget >= 0 && tryBuy(saverTarget)) { saverTarget = -1; goalCoins = 0; goalGems = 0; }
       } else if (persona.spend !== "none") {
@@ -289,12 +338,19 @@ export function simulateUser(ctx: SimContext, persona: Persona, userIndex: numbe
       // Upgrades (coins only): highest rarity, then highest level, not yet maxed
       if (ownedList.length && r() < persona.upgradeAppetite) {
         let target = -1;
-        for (const i of ownedList) if (level[i] < ctx.upgrade.maxLevel && (target < 0 || ctx.catalog[i].rarity > ctx.catalog[target].rarity || (ctx.catalog[i].rarity === ctx.catalog[target].rarity && level[i] > level[target]))) target = i;
+        if (persona.spend === "focus") target = focusItem >= 0 && level[focusItem] > 0 && level[focusItem] < ctx.upgrade.maxLevel ? focusItem : -1;
+        else for (const i of ownedList) if (level[i] < ctx.upgrade.maxLevel && (target < 0 || ctx.catalog[i].rarity > ctx.catalog[target].rarity || (ctx.catalog[i].rarity === ctx.catalog[target].rarity && level[i] > level[target]))) target = i;
         if (target >= 0) {
           const it = ctx.catalog[target];
           const cost = upgradeCosts(price(it), ctx.upgrade)[level[target] - 1];
-          if (res.coins - (goalItem >= 0 ? goalCoins : 0) >= cost) {
-            spend(cost, 0, "upgrade");
+          const gemCost = Math.ceil(cost / ctx.gemValueInCoins);
+          const policy = ctx.upgradeCurrency ?? "coin";
+          const freeCoins = res.coins - (goalItem >= 0 ? goalCoins : 0);
+          let paid = false;
+          if (policy === "same" && paidGem[target]) { if (res.gems >= gemCost) { spend(0, gemCost, "upgrade"); paid = true; } }
+          else if (freeCoins >= cost) { spend(cost, 0, "upgrade"); paid = true; }
+          else if (policy === "either" && res.gems >= gemCost) { spend(0, gemCost, "upgrade"); paid = true; }
+          if (paid) {
             level[target]++;
             if (level[target] === ctx.upgrade.maxLevel) {
               res.maxedItems++;
@@ -306,7 +362,7 @@ export function simulateUser(ctx: SimContext, persona: Persona, userIndex: numbe
       }
       // Slots (permanent): buy when more items owned than slots
       const slotBuy = (have: number, slots: number, max: number, base: number): boolean => {
-        if (have <= slots || slots >= max || r() > 0.3) return false;
+        if (persona.spend === "focus" || have <= slots || slots >= max || r() > 0.3) return false;
         const k = slots - base;
         const cost = ctx.slots.costs[k], gemCost = ctx.slots.gemCosts[k];
         if (res.coins >= cost && !payer) { spend(cost, 0, "slot"); return true; }
@@ -349,6 +405,8 @@ export function simulatePopulation(ctx: SimContext, personas: Persona[], arrival
       for (const p of personas) { x -= p.arrivalShare; if (x <= 0) { persona = p; break; } }
       const lifetime = Math.max(1, Math.round(Math.exp(Math.log(persona.lifetimeMedianDays) + persona.lifetimeSigma * Math.sqrt(-2 * Math.log(Math.max(1e-12, r()))) * Math.cos(2 * Math.PI * r()))));
       const u = simulateUser(ctx, persona, idx++, days - day, seed, { lifetime, recordDaily: true });
+      u.arrivalDay = day;
+      u.churned = lifetime < days - day;
       const dly = u.daily!;
       for (let t = 0; t < dly.matches.length; t++) {
         const D = day + t;

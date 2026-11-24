@@ -2,39 +2,39 @@
  "coinUnit": 100,
  "normalization": {
   "M0": {
-   "rawMedianCoinsPerDay": 252.5,
-   "factor": 0.396,
-   "medianGemsPerDay": 4.482
+   "rawMedianCoinsPerDay": 251.2,
+   "factor": 0.398,
+   "medianGemsPerDay": 4.23
   },
   "M1": {
-   "rawMedianCoinsPerDay": 258,
-   "factor": 0.3875,
-   "medianGemsPerDay": 4.367
+   "rawMedianCoinsPerDay": 254.7,
+   "factor": 0.3926,
+   "medianGemsPerDay": 4.115
   },
   "M2": {
-   "rawMedianCoinsPerDay": 380.4,
-   "factor": 0.2629,
-   "medianGemsPerDay": 4.367
+   "rawMedianCoinsPerDay": 375,
+   "factor": 0.2667,
+   "medianGemsPerDay": 4.115
   },
   "M3": {
-   "rawMedianCoinsPerDay": 228.5,
-   "factor": 0.4376,
-   "medianGemsPerDay": 4.367
+   "rawMedianCoinsPerDay": 226,
+   "factor": 0.4424,
+   "medianGemsPerDay": 4.115
   },
   "M4": {
-   "rawMedianCoinsPerDay": 226.8,
-   "factor": 0.441,
-   "medianGemsPerDay": 4.367
+   "rawMedianCoinsPerDay": 224.5,
+   "factor": 0.4454,
+   "medianGemsPerDay": 4.115
   },
   "M5": {
-   "rawMedianCoinsPerDay": 247.6,
-   "factor": 0.4038,
-   "medianGemsPerDay": 12.9
+   "rawMedianCoinsPerDay": 243.4,
+   "factor": 0.4108,
+   "medianGemsPerDay": 12.36
   },
   "M6": {
-   "rawMedianCoinsPerDay": 237.3,
-   "factor": 0.4214,
-   "medianGemsPerDay": 4.805
+   "rawMedianCoinsPerDay": 234.4,
+   "factor": 0.4266,
+   "medianGemsPerDay": 4.542
   }
  },
  "models": [

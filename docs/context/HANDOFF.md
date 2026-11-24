@@ -4,7 +4,7 @@
 
 ## 새로운 ChatGPT/에이전트가 해야 할 일
 
-> **재화·퀘스트·업적·상점 작업이면 먼저 [경제 연구](../economy/ECONOMY-RESEARCH.md)** — 시뮬레이터 `src/economy/`, 재현 명령 §12, 추천 M3와 가정 목록, 공식 재화는 server-verified만(D-030).
+> **재화·퀘스트·업적·상점 작업이면 먼저 [경제 연구](../economy/ECONOMY-RESEARCH.md)** — 시뮬레이터 `src/economy/`, 재현 명령 §12·§16, 채택 후보 M3 정수안 `M3i-W30`(D-034), 가격·강화(D-035), 보류 항목(D-036), Cloudflare 실측(D-037), 공식 재화는 server-verified만(D-030). 다음 우선순위: Cloudflare 대시보드 Duration 실측 → 서버 원장(E1).
 >
 > **게임·온라인·계정(제품) 작업이면 먼저 [제품 개발 현황](./PRODUCT-2026-11-24.md)** — 제품 Phase 번호, 완료/미검증/외부 설정 필요 구분, 배포 기록, 백로그. 설계는 [소셜·계정](../online/SOCIAL-AND-ACCOUNTS.md), 모바일·성능은 [PR A 문서](../ui/PHASE-A-2026-11.md).
 

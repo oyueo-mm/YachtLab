@@ -7,7 +7,9 @@ import { mulberry32, type Rng } from "./rng";
 export const RARITIES = ["common", "advanced", "hero", "legendary", "mythic"] as const; // 일반..신화 (기본=무료, 특수=업적 전용)
 export type Rarity = (typeof RARITIES)[number];
 export const RARITY_LABEL: Record<Rarity | "basic" | "special", string> = { basic: "기본", common: "일반", advanced: "고급", hero: "영웅", legendary: "전설", mythic: "신화", special: "특수(업적 전용)" };
-export type ItemType = "dice" | "emote" | "chat" | "profile";
+/** Product families (user list 2026-11-24). Titles are mostly achievement-only; shop titles are optional. */
+export type ItemType = "dice" | "board" | "emote" | "chat" | "bubble" | "profile" | "nickname_fx" | "effect" | "title";
+export const ITEM_TYPE_LABEL: Record<ItemType, string> = { dice: "주사위", board: "보드판", emote: "이모티콘", chat: "채팅 프리셋", bubble: "말풍선", profile: "프로필", nickname_fx: "닉네임 효과", effect: "특수 연출", title: "칭호" };
 export type Currency = "coin" | "gem" | "either";
 export type CatalogItem = { id: number; rarity: number; type: ItemType; currency: Currency; coinPrice: number; gemPrice: number; releaseDay: number };
 
@@ -25,7 +27,7 @@ export type CatalogConfig = {
 export const DEFAULT_CATALOG: CatalogConfig = {
   initial: [20, 15, 10, 6, 3],
   perMonth: [3, 2, 1, 0.5, 0.17],
-  typeMix: { dice: 0.3, emote: 0.25, chat: 0.2, profile: 0.25 },
+  typeMix: { dice: 0.18, board: 0.1, emote: 0.15, chat: 0.1, bubble: 0.1, profile: 0.12, nickname_fx: 0.08, effect: 0.1, title: 0.07 },
 };
 export const DEFAULT_CURRENCY_MIX: [number, number, number][] = [
   [0.8, 0, 0.2], // common: mostly coins
@@ -56,6 +58,16 @@ export function buildCatalog(cfg: CatalogConfig, prices: PriceTable, days: numbe
     items.push({ id: items.length, rarity, type: pickType(), currency, coinPrice: prices.coin[rarity], gemPrice: prices.gem[rarity], releaseDay });
   };
   cfg.initial.forEach((n, rarity) => { for (let i = 0; i < n; i++) add(rarity, 0); });
+  // At launch every rarity offers each payment path its mix allows (so a coin-only or gem-only player always has a target).
+  cfg.initial.forEach((_n, rarity) => {
+    const launch = items.filter((it) => it.rarity === rarity && it.releaseDay === 0);
+    (["coin", "gem", "either"] as Currency[]).forEach((cur, k) => {
+      if (prices.currencyMix[rarity][k] > 0 && !launch.some((it) => it.currency === cur)) {
+        const victim = launch.find((it) => launch.filter((x) => x.currency === it.currency).length > 1);
+        if (victim) victim.currency = cur;
+      }
+    });
+  });
   const acc = [0, 0, 0, 0, 0];
   for (let month = 1; month * 30 < days; month++) cfg.perMonth.forEach((n, rarity) => { acc[rarity] += n; while (acc[rarity] >= 1) { acc[rarity]--; add(rarity, month * 30); } });
   return items;
@@ -63,7 +75,8 @@ export function buildCatalog(cfg: CatalogConfig, prices: PriceTable, days: numbe
 
 // ---------------- upgrade curves ----------------
 export type CurveKind = "linear" | "exponential" | "power" | "piecewise";
-export type UpgradeConfig = { curve: CurveKind; baseFraction: number; maxLevel: number; param: number };
+/** `steps` (optional) overrides the curve: cost of step k = price × steps[k] (e.g. 1:0.5:1.5 → [0.5, 1.5]). */
+export type UpgradeConfig = { curve: CurveKind; baseFraction: number; maxLevel: number; param: number; steps?: number[] };
 export const CURVE_LABEL: Record<CurveKind, string> = { linear: "선형", exponential: "기하급수", power: "멱함수", piecewise: "구간별" };
 /** Multiplier of the base cost for the step Lv k → Lv k+1 (k ≥ 1). */
 export function curveMultiplier(curve: CurveKind, k: number, param: number): number {
@@ -76,6 +89,7 @@ export function curveMultiplier(curve: CurveKind, k: number, param: number): num
 }
 /** Coin cost of each upgrade step for an item whose coin-equivalent price is `price`. */
 export function upgradeCosts(price: number, cfg: UpgradeConfig): number[] {
+  if (cfg.steps) return cfg.steps.slice(0, cfg.maxLevel - 1).map((k) => niceRound(price * k));
   return Array.from({ length: cfg.maxLevel - 1 }, (_, i) => niceRound(price * cfg.baseFraction * curveMultiplier(cfg.curve, i + 1, cfg.param)));
 }
 export const CURVE_PRESETS: UpgradeConfig[] = [
@@ -102,3 +116,13 @@ export function derivePrices(dailyCoins: number, dailyGems: number, targets = TA
 export function deriveSlots(dailyCoins: number, dailyGems: number, targetDays = [3, 6, 10, 15]): SlotConfig {
   return { ...SLOT_LIMITS, costs: targetDays.map((d) => niceRound(d * dailyCoins)), gemCosts: targetDays.map((d) => niceRound(d * 2 * dailyGems)), currency: "either" };
 }
+
+/** Price : (Lv1→2) : (Lv2→3) ratios compared in the follow-up study. 1:0.5:1.5 is the phase-1 recommendation. */
+export const STEP_RATIOS: { label: string; steps: [number, number] }[] = [
+  { label: "1:0.25:0.75", steps: [0.25, 0.75] },
+  { label: "1:0.5:1", steps: [0.5, 1] },
+  { label: "1:0.5:1.5", steps: [0.5, 1.5] },
+  { label: "1:1:2", steps: [1, 2] },
+  { label: "1:1:3", steps: [1, 3] },
+  { label: "1:2:4", steps: [2, 4] },
+];

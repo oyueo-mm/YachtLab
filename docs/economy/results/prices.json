@@ -1,7 +1,7 @@
 {
  "coinUnit": 100,
- "refGemsPerDay": 4.367,
- "gemValue": 22.9,
+ "refGemsPerDay": 4.115,
+ "gemValue": 24.3,
  "prices": {
   "coin": [
    200,
@@ -63,24 +63,24 @@
    },
    "daysByPersona": {
     "occasional": {
-     "coinDays": 34.13,
-     "gemDays": 100
+     "coinDays": 34.06,
+     "gemDays": 106.6
     },
     "light": {
-     "coinDays": 8.336,
-     "gemDays": 32.09
+     "coinDays": 8.421,
+     "gemDays": 34.76
     },
     "regular": {
-     "coinDays": 1.986,
-     "gemDays": 9.159
+     "coinDays": 2.002,
+     "gemDays": 9.682
     },
     "heavy": {
-     "coinDays": 1.211,
-     "gemDays": 6.816
+     "coinDays": 1.212,
+     "gemDays": 7.203
     },
     "extreme": {
-     "coinDays": 0.9385,
-     "gemDays": 6.051
+     "coinDays": 0.9372,
+     "gemDays": 6.271
     }
    }
   },
@@ -97,28 +97,28 @@
    "gem": {
     "low": 80,
     "mid": 120,
-    "high": 200
+    "high": 150
    },
    "daysByPersona": {
     "occasional": {
-     "coinDays": 102.4,
-     "gemDays": 300
+     "coinDays": 102.2,
+     "gemDays": 319.7
     },
     "light": {
-     "coinDays": 25.01,
-     "gemDays": 96.26
+     "coinDays": 25.26,
+     "gemDays": 104.3
     },
     "regular": {
-     "coinDays": 5.959,
-     "gemDays": 27.48
+     "coinDays": 6.005,
+     "gemDays": 29.05
     },
     "heavy": {
-     "coinDays": 3.632,
-     "gemDays": 20.45
+     "coinDays": 3.635,
+     "gemDays": 21.61
     },
     "extreme": {
-     "coinDays": 2.816,
-     "gemDays": 18.15
+     "coinDays": 2.811,
+     "gemDays": 18.81
     }
    }
   },
@@ -135,28 +135,28 @@
    "gem": {
     "low": 200,
     "mid": 300,
-    "high": 500
+    "high": 400
    },
    "daysByPersona": {
     "occasional": {
-     "coinDays": 341.3,
-     "gemDays": 750
+     "coinDays": 340.6,
+     "gemDays": 799.3
     },
     "light": {
-     "coinDays": 83.36,
-     "gemDays": 240.7
+     "coinDays": 84.21,
+     "gemDays": 260.7
     },
     "regular": {
-     "coinDays": 19.86,
-     "gemDays": 68.7
+     "coinDays": 20.02,
+     "gemDays": 72.61
     },
     "heavy": {
-     "coinDays": 12.11,
-     "gemDays": 51.12
+     "coinDays": 12.12,
+     "gemDays": 54.02
     },
     "extreme": {
-     "coinDays": 9.385,
-     "gemDays": 45.38
+     "coinDays": 9.372,
+     "gemDays": 47.04
     }
    }
   },
@@ -177,24 +177,24 @@
    },
    "daysByPersona": {
     "occasional": {
-     "coinDays": 1024,
-     "gemDays": 1500
+     "coinDays": 1022,
+     "gemDays": 1599
     },
     "light": {
-     "coinDays": 250.1,
-     "gemDays": 481.3
+     "coinDays": 252.6,
+     "gemDays": 521.4
     },
     "regular": {
-     "coinDays": 59.59,
-     "gemDays": 137.4
+     "coinDays": 60.05,
+     "gemDays": 145.2
     },
     "heavy": {
-     "coinDays": 36.32,
-     "gemDays": 102.2
+     "coinDays": 36.35,
+     "gemDays": 108
     },
     "extreme": {
-     "coinDays": 28.16,
-     "gemDays": 90.76
+     "coinDays": 28.11,
+     "gemDays": 94.07
     }
    }
   },
@@ -215,24 +215,24 @@
    },
    "daysByPersona": {
     "occasional": {
-     "coinDays": 2560,
-     "gemDays": 3000
+     "coinDays": 2555,
+     "gemDays": 3197
     },
     "light": {
-     "coinDays": 625.2,
-     "gemDays": 962.6
+     "coinDays": 631.6,
+     "gemDays": 1043
     },
     "regular": {
-     "coinDays": 149,
-     "gemDays": 274.8
+     "coinDays": 150.1,
+     "gemDays": 290.5
     },
     "heavy": {
-     "coinDays": 90.79,
-     "gemDays": 204.5
+     "coinDays": 90.88,
+     "gemDays": 216.1
     },
     "extreme": {
-     "coinDays": 70.39,
-     "gemDays": 181.5
+     "coinDays": 70.29,
+     "gemDays": 188.1
     }
    }
   }
@@ -259,9 +259,9 @@
  "symbolic": {
   "coinPrice": 80000,
   "daysFor": {
-   "regular": 794.5,
-   "heavy": 484.2,
-   "extreme": 375.4
+   "regular": 800.7,
+   "heavy": 484.7,
+   "extreme": 374.9
   },
   "note": "코인 전용, 업적 아이템 아님. 결제 코인으로도 살 수 있으므로 능력치가 없는 순수 외형이어야 함."
  },
@@ -300,27 +300,27 @@
  "reference": {
   "coinsPerDay": {
    "n": 184,
-   "mean": 100.3,
-   "p10": 93.87,
-   "p25": 97.52,
-   "median": 100.7,
-   "p75": 103.7,
-   "p90": 106.4,
-   "p99": 110,
-   "min": 81.96,
-   "max": 110.6
+   "mean": 99.71,
+   "p10": 93.42,
+   "p25": 95.76,
+   "median": 99.91,
+   "p75": 103.5,
+   "p90": 105.9,
+   "p99": 109.3,
+   "min": 80.87,
+   "max": 110.8
   },
   "gemsPerDay": {
    "n": 184,
-   "mean": 4.225,
-   "p10": 3.63,
-   "p25": 3.912,
-   "median": 4.367,
-   "p75": 4.545,
-   "p90": 4.729,
-   "p99": 4.945,
-   "min": 2.723,
-   "max": 5.027
+   "mean": 3.997,
+   "p10": 3.362,
+   "p25": 3.644,
+   "median": 4.132,
+   "p75": 4.332,
+   "p90": 4.458,
+   "p99": 4.619,
+   "min": 2.696,
+   "max": 4.89
   }
  }
 }

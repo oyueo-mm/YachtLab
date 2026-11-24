@@ -5,7 +5,7 @@
 import type { TierId } from "./content";
 import type { Mode } from "./models";
 
-export type SpendStyle = "spender" | "collector" | "saver" | "upgrader" | "none";
+export type SpendStyle = "spender" | "collector" | "saver" | "upgrader" | "focus" | "none";
 export type AbuseKind = "none" | "bot_server_ai" | "win_trade_friend" | "forge_local" | "multi_account";
 export type Persona = {
   id: string;
@@ -28,6 +28,8 @@ export type Persona = {
   upgradeAppetite: number; // 0..1
   /** Share of every earning reserved for the current legendary/mythic goal item (saver = 1). */
   goalShare: number;
+  /** Focus spenders: buy the target mythic with coins (default) or gems. */
+  focusCurrency?: "coin" | "gem";
   payer: null | { monthlyPurchaseProb: number; coinsPerPurchase: number; gemsPerPurchase: number };
   abuse: AbuseKind;
   /** Population: lifetime days ~ lognormal(median, sigma) and arrival share. */
