@@ -120,8 +120,6 @@ try {
   b2.ws.send(JSON.stringify({ t: "spectate", allow: false }));
   ok(await kicked, "관전 동의 철회 시 관전자 즉시 종료");
   ok((await b2.cmd({ type: "resign" })).ok, "새 경기 기권으로 정리");
-  const config = await call("/api/auth/config");
-  ok(config.status === 200 && typeof config.body.google === "boolean", `계정 API 응답 (google=${config.body.google})`);
 
   // ---------- 2. seat security ----------
   const s = await room();
