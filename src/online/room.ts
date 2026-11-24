@@ -1,4 +1,5 @@
 import { cryptoDiceSource, type DiceSource } from "./dice-source";
+import { total } from "../engine";
 import {
   isRecord,
   normalizeName,
@@ -25,6 +26,9 @@ import {
 import { allowSocial, canSend, newSocialBucket, type SocialBucket } from "../social/catalog";
 import { validateNickname } from "../identity/nickname";
 import { RULES_ID, type MatchRecord } from "../identity/records";
+import { GUEST_LOOK, sanitizeLook, sendableIds, type PublicLook } from "../economy/live/catalog";
+import { matchStats } from "../economy/live/rewards";
+import type { MatchKind } from "../economy/live/config";
 
 /**
  * YachtLab Online v0.1 Phase 2 — one game room (invite code + seats + authoritative match).
@@ -91,7 +95,15 @@ export type RoomRecord = {
   identities?: Record<string, { userId: string }>;
   /** Server-verified results not yet delivered to the players' accounts (retried; idempotent). */
   outbox?: { userId: string; record: MatchRecord }[];
+  /** How the room was made: invite code ("friend", the default), quick match ("random"), server AI ("ai"). */
+  kind?: MatchKind;
+  /** Quick match whose players both agreed to the public spectating list. */
+  public?: boolean;
+  /** What each seat shows to others (server-validated equipped items; guests: the default look). */
+  looks?: Record<string, PublicLook>;
 };
+/** A seat given by the matchmaker (or the AI starter): name, verified account and its validated look. */
+export type SeatSpec = { name: string; identity?: { userId: string } | null; look?: PublicLook | null };
 
 export type RoomDeps = {
   now: () => number;
@@ -257,7 +269,7 @@ export class OnlineRoom {
   }
 
   /** Take an open seat in the lobby. Returns the secret token exactly once. */
-  join(rawName: unknown, identity?: { userId: string } | null): Promise<JoinResult> {
+  join(rawName: unknown, identity?: { userId: string } | null, look?: PublicLook | null): Promise<JoinResult> {
     return this.serial(async () => {
       if (this.closed) return { ok: false, status: 410, error: { code: "ROOM_CLOSED", message: "닫힌 방입니다." } } as const;
       // Display names follow the shared nickname policy (src/identity/nickname.ts); the engine keeps its
@@ -278,9 +290,47 @@ export class OnlineRoom {
         ...this.record,
         credentials: { ...this.record.credentials, [playerId]: { tokenHash } },
         ...(identity ? { identities: { ...(this.record.identities ?? {}), [playerId]: { userId: identity.userId } } } : {}),
+        looks: { ...(this.record.looks ?? {}), [playerId]: identity && look ? sanitizeLook(look) : GUEST_LOOK },
       });
       return { ok: true, playerId, token } as const;
     });
+  }
+
+  /**
+   * Quick match: a room whose two seats are given by the matchmaker and whose match starts at once
+   * (seat order = move order, chosen at random by the matchmaker). One storage write for all of it.
+   * When both players agreed, spectating is on and the room is listed publicly.
+   */
+  static async createMatched(code: string, deps: RoomDeps, options: { turnTimeoutMs?: number | null; kind: MatchKind; public: boolean }, seats: SeatSpec[]): Promise<{ room: OnlineRoom; seats: { playerId: string; token: string }[] }> {
+    const room = OnlineRoom.create(code, deps, options);
+    const out: { playerId: string; token: string }[] = [];
+    let state = room.state;
+    const credentials: RoomRecord["credentials"] = {};
+    const identities: NonNullable<RoomRecord["identities"]> = {};
+    const looks: NonNullable<RoomRecord["looks"]> = {};
+    const events: OnlineEvent[] = [];
+    const ctx = { now: deps.now(), dice: room.dice };
+    for (const [i, seat] of seats.entries()) {
+      const checked = validateNickname(seat.name);
+      const name = checked.ok ? normalizeName(checked.name) : null;
+      if (!name) throw Error("닉네임을 확인해 주세요.");
+      const playerId = "p_" + base64url(room.random(new Uint8Array(12)));
+      const token = base64url(room.random(new Uint8Array(32)));
+      const joined = applyCommand(state, { commandId: `match-join-${i}`, playerId, action: { type: "join", name } }, ctx);
+      if (!joined.ok) throw Error(joined.error.message);
+      state = joined.state;
+      events.push(...joined.events);
+      credentials[playerId] = { tokenHash: await hashToken(token) };
+      if (seat.identity) identities[playerId] = { userId: seat.identity.userId };
+      looks[playerId] = seat.identity && seat.look ? sanitizeLook(seat.look) : GUEST_LOOK;
+      out.push({ playerId, token });
+    }
+    const started = applyCommand(state, { commandId: "match-start", playerId: out[0].playerId, action: { type: "start" } }, ctx);
+    if (!started.ok) throw Error(started.error.message);
+    events.push(...started.events);
+    const spectate = options.public ? { allow: Object.fromEntries(out.map((s) => [s.playerId, true])), key: base64url(room.random(new Uint8Array(18))) } : undefined;
+    await room.commit(started.state, events, { ...room.record, credentials, identities, looks, kind: options.kind, ...(options.public ? { public: true, spectate } : {}) });
+    return { room, seats: out };
   }
 
   /** Validate a token; returns the seat's player id if it is still in the match. */
@@ -379,7 +429,9 @@ export class OnlineRoom {
     if (events.some((e) => e.type === "playerJoined" || e.type === "playerLeft")) {
       this.enforceSpectate();
       const members = this.members();
+      const looks = this.looks();
       for (const c of this.connections) if (c.playerId) c.send({ t: "members", members });
+      for (const c of this.connections) if (c.playerId || c.spectator) c.send({ t: "looks", looks });
     }
   }
 
@@ -480,7 +532,7 @@ export class OnlineRoom {
       const since = Math.max(0, Math.min(msg.since ?? 0, this.state.log.length));
       const view = viewFor(this.state, playerId, this.deps.now(), since);
       conn.seenSeq = this.state.log.length;
-      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold(), rematch: this.rematchState(), series: this.seriesSummary(), spectate: this.spectateState(), members: this.members() });
+      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold(), rematch: this.rematchState(), series: this.seriesSummary(), spectate: this.spectateState(), members: this.members(), looks: this.looks(), kind: this.kind });
       this.broadcastPresence();
       return;
     }
@@ -551,7 +603,7 @@ export class OnlineRoom {
     const sp = this.record.spectate ?? { allow: {}, key: null };
     const active = this.spectateActive();
     const allow = Object.fromEntries(this.state.players.map((p) => [p.playerId, sp.allow[p.playerId] === true]));
-    return { allow, active, key: active ? sp.key : null, spectators: this.spectators().length, max: ROOM_LIMITS.maxSpectators };
+    return { allow, active, key: active ? sp.key : null, spectators: this.spectators().length, max: ROOM_LIMITS.maxSpectators, public: this.isPublic && active };
   }
 
   private broadcastSpectate() {
@@ -604,7 +656,7 @@ export class OnlineRoom {
     conn.spectator = { key: sp.key };
     const from = Math.max(0, Math.min(since, this.state.log.length));
     conn.seenSeq = this.state.log.length;
-    conn.send({ t: "watching", code: this.code, view: viewFor(this.state, null, this.deps.now(), from), online: this.onlinePlayers(), hold: this.currentHold(), series: this.seriesSummary(), spectators: this.spectators().length });
+    conn.send({ t: "watching", code: this.code, view: viewFor(this.state, null, this.deps.now(), from), online: this.onlinePlayers(), hold: this.currentHold(), series: this.seriesSummary(), spectators: this.spectators().length, looks: this.looks(), kind: this.kind });
     this.broadcastSpectate();
   }
 
@@ -612,7 +664,7 @@ export class OnlineRoom {
 
   /** Preset chat / emote: catalog ids only, rate-limited per connection, relayed live, never stored. */
   private say(conn: RoomConnection, playerId: string, id: string) {
-    if (!canSend(id)) return conn.send({ t: "error", code: "INVALID_SOCIAL", message: "보낼 수 없는 메시지예요." });
+    if (!canSend(id, sendableIds(this.lookOf(playerId)))) return conn.send({ t: "error", code: "INVALID_SOCIAL", message: "보낼 수 없는 메시지예요." });
     const now = this.deps.now();
     conn.social ??= newSocialBucket(now);
     if (!allowSocial(conn.social, id, now)) return conn.send({ t: "error", code: "SOCIAL_RATE_LIMITED", message: "잠시 후 다시 보내 주세요." });
@@ -623,6 +675,32 @@ export class OnlineRoom {
   members(): Record<string, string> {
     const ids = this.record.identities ?? {};
     return Object.fromEntries(this.state.players.filter((p) => ids[p.playerId]).map((p) => [p.playerId, ids[p.playerId].userId]));
+  }
+
+  /** A seat's public look (default for guests and for records written before looks existed). */
+  lookOf(playerId: string): PublicLook {
+    return this.record.looks?.[playerId] ?? GUEST_LOOK;
+  }
+  looks(): Record<string, PublicLook> {
+    return Object.fromEntries(this.state.players.map((p) => [p.playerId, this.lookOf(p.playerId)]));
+  }
+  get kind(): MatchKind {
+    return this.record.kind ?? "friend";
+  }
+  get isPublic(): boolean {
+    return this.record.public === true;
+  }
+
+  /** Public list entry while a public match is being played and spectating is on, else null. */
+  publicEntry(): { code: string; players: { name: string; score: number; look: PublicLook }[]; round: number; spectators: number; max: number } | null {
+    if (!this.isPublic || this.closed || this.state.status !== "playing" || !this.spectateActive()) return null;
+    const players = [...this.state.players].sort((a, b) => a.seat - b.seat);
+    return { code: this.code, players: players.map((p) => ({ name: p.name, score: total(p.card), look: this.lookOf(p.playerId) })), round: this.state.turn?.round ?? 12, spectators: this.spectators().length, max: ROOM_LIMITS.maxSpectators };
+  }
+  /** The watch key for someone who picked this room from the public list (only while it is listed). */
+  publicWatchKey(): string | null {
+    if (!this.publicEntry() || this.spectators().length >= ROOM_LIMITS.maxSpectators) return null;
+    return this.record.spectate?.key ?? null;
   }
 
   /** The official result of a finished match for each signed-in seat, from the engine's own state. */
@@ -655,6 +733,8 @@ export class OnlineRoom {
           outcome,
           endReason: forfeit && forfeit.type === "playerForfeited" ? forfeit.reason : "completed",
           opponent: { name: other.name, kind: ids[other.playerId] ? "member" : "guest", score: totals[other.playerId] ?? 0, ...(ids[other.playerId] ? { userId: ids[other.playerId].userId } : {}) },
+          kind: this.kind,
+          stats: matchStats(state.log, p.playerId, other.playerId, state.winners),
         },
       });
     }

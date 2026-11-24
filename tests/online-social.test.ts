@@ -190,12 +190,15 @@ describe("프리셋 채팅·이모티콘", () => {
     room.connect(c);
     await room.message(c, JSON.stringify({ t: "hello", token: (await Promise.resolve(ja)).token }));
     expect(c.all("said")).toHaveLength(0);
-    expect(JSON.stringify(store.record)).not.toContain("chat.hello");
+    // Nothing said is stored (the stored looks list what may be sent, not what was sent).
+    const { looks: _looks, ...stored } = store.record as Record<string, unknown>;
+    expect(JSON.stringify(stored)).not.toContain("chat.hello");
+    expect(JSON.stringify(store.record)).not.toContain("said");
   });
 
   it("도배 제한: 연속 3개 후 2초당 1개, 같은 항목은 1.5초 안에 반복 불가", async () => {
     const { room, a, b, clock } = await setup();
-    for (const id of ["emote.clap", "emote.fire", "chat.nice", "chat.great"]) await room.message(a, JSON.stringify({ t: "say", id }));
+    for (const id of ["emote.clap", "emote.smile", "chat.thanks", "chat.great"]) await room.message(a, JSON.stringify({ t: "say", id }));
     expect(b.all("said")).toHaveLength(3);
     expect(a.last("error")!.code).toBe("SOCIAL_RATE_LIMITED");
     clock.advance(2100);
@@ -213,8 +216,15 @@ describe("프리셋 채팅·이모티콘", () => {
     for (const item of SOCIAL_ITEMS) {
       expect(item.id).toMatch(/^(chat|emote)\.[a-z_]+$/);
       expect(item.id.startsWith(item.kind + ".")).toBe(true);
-      expect(canSend(item.id)).toBe(true);
+      // Without an equipped set only the free default items can be sent.
+      expect(canSend(item.id)).toBe(item.acquisition === "default");
     }
+    // Phase 3 ids keep their meaning (inventories and old clients refer to them).
+    for (const [id, text] of [["chat.hello", "안녕하세요!"], ["chat.nice", "잘했어요!"], ["chat.rematch", "한 판 더?"], ["emote.clap", "👏"], ["emote.fire", "🔥"], ["emote.handshake", "🤝"]])
+      expect(SOCIAL_ITEMS.find((i) => i.id === id)?.text).toBe(text);
+    expect(SOCIAL_ITEMS.filter((i) => i.acquisition === "default" && i.kind === "emote").map((i) => i.text)).toEqual(["🙂", "🎉", "👏", "👍"]);
+    expect(SOCIAL_ITEMS.filter((i) => i.acquisition === "default" && i.kind === "chat").map((i) => i.text)).toEqual(["안녕하세요!", "화이팅!", "대단해요!", "감사합니다!", "좋은 경기였어요!", "잘 부탁해요!"]);
+    expect(canSend("chat.nice", new Set(["chat.nice"]))).toBe(true); // equipped shop item
     expect(canSend("chat.hello", new Set())).toBe(false); // not owned
     expect(canSend(42)).toBe(false);
   });
@@ -263,8 +273,8 @@ describe("실시간 관전 (읽기 전용)", () => {
     expect(w.all("error").every((e) => e.code === "SPECTATOR")).toBe(true);
     expect(b.all("said")).toHaveLength(0);
     // players' chat is visible to spectators
-    await room.message(b, JSON.stringify({ t: "say", id: "emote.wow" }));
-    expect(w.last("said")!.id).toBe("emote.wow");
+    await room.message(b, JSON.stringify({ t: "say", id: "emote.clap" }));
+    expect(w.last("said")!.id).toBe("emote.clap");
   });
 
   it("관전자 수 제한, 동의 철회 시 즉시 종료·이전 링크 무효, 재대결도 이어서 관전", async () => {

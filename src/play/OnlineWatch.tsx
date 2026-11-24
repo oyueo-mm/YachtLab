@@ -8,6 +8,8 @@ import type { PlayerView } from "../online/server-engine";
 import type { SeriesSummary } from "../online/wire";
 import { announceScore, clearScoreFx } from "../score-fx";
 import { ChipBubble, useBubbles } from "./Social";
+import { PlayerTag } from "./Looks";
+import type { PublicLook } from "../economy/live/catalog";
 
 const ROW = [0, 1, 2, 3, 4];
 const clock = (ms: number) => {
@@ -29,6 +31,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
   const [feedback, setFeedback] = useState("");
   const [series, setSeries] = useState<SeriesSummary | null>(null);
   const [watchers, setWatchers] = useState(0);
+  const [looks, setLooks] = useState<Record<string, PublicLook>>({});
   const [fatal, setFatal] = useState("");
   const [deadline, setDeadline] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now);
@@ -71,6 +74,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
       onSaid: (from, id) => !social.hideOpponent && social.show(from, id),
       onRematch: (_r, s) => setSeries(s),
       onWatching: setWatchers,
+      onLooks: setLooks,
       onFatal: (message) => setFatal(message),
     });
     c.start();
@@ -153,9 +157,9 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
         <div className="score-summary">
           {players.map((p, seatIndex) => (
             <div key={p.playerId} className={!finished && turnIndex === seatIndex ? "selected" : ""} data-seat={seatIndex} data-role="player">
-              <ChipBubble bubble={social.bubbles[p.playerId]} />
+              <ChipBubble bubble={social.bubbles[p.playerId]} look={looks[p.playerId]} />
               <span>
-                {p.name}
+                <PlayerTag name={p.name} look={looks[p.playerId]} compact />
                 {!online.includes(p.playerId) && view.status === "playing" ? " (연결 끊김)" : ""}
               </span>
               <strong>

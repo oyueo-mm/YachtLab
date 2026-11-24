@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Copy, Eye, MessageCircle, X } from "lucide-react";
-import { SOCIAL_ITEMS, socialItem } from "../social/catalog";
+import { socialItem } from "../social/catalog";
 import { useSettings } from "../settings";
 import type { SpectateState } from "../online/wire";
+import { GUEST_LOOK, itemById, type PublicLook } from "../economy/live/catalog";
+import { playSfx } from "../sound";
 
 const HIDE_KEY = "yachtlab.social.hideOpponent";
 export const BUBBLE_MS = 2600;
@@ -48,15 +50,57 @@ export function useBubbles() {
   return { bubbles, show, clear, hideOpponent, setHideOpponent };
 }
 
-/** The bubble inside a score chip: covers only that chip, never the dice or the scoreboard. */
-export function ChipBubble({ bubble }: { bubble?: { id: string; key: number } }) {
-  const { reducedEffects } = useSettings();
+/**
+ * The bubble inside a score chip: covers only that chip, never the dice or the scoreboard.
+ * Its style and the emote's level effect come from the sender's server-validated look; other
+ * players' effects (and Lv.3 sounds) follow the "상대 아이템 효과" setting.
+ */
+export function ChipBubble({ bubble, look, mine = false }: { bubble?: { id: string; key: number }; look?: PublicLook; mine?: boolean }) {
+  const { reducedEffects, opponentFx } = useSettings();
   const item = bubble ? socialItem(bubble.id) : null;
+  const fxOn = mine || opponentFx;
+  const level = item?.kind === "emote" ? (look?.emotes.find((e) => e.id === item.id)?.lv ?? 1) : 1;
+  const bubbleCss = fxOn ? (itemById(look?.bubble)?.look.css ?? "") : "";
+  useEffect(() => {
+    if (item && level >= 3 && fxOn) playSfx("yachtHit");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bubble?.key]);
   if (!item) return null;
+  const lv = fxOn && !reducedEffects ? ` emote-lv${level}` : "";
   return (
-    <span key={bubble!.key} className={"chip-bubble " + item.kind + (reducedEffects ? " static" : "")} role="status" aria-label={item.kind === "emote" ? item.label : item.text}>
+    <span key={bubble!.key} className={"chip-bubble " + item.kind + (reducedEffects ? " static" : "") + (bubbleCss ? " " + bubbleCss : "") + lv} role="status" aria-label={item.kind === "emote" ? item.label : item.text}>
       {item.text}
     </span>
+  );
+}
+
+/** Equipped emotes as one-tap buttons next to the board (desktop; phones use the panel). */
+export function EmoteBar({ look, onSend, disabled }: { look: PublicLook; onSend: (id: string) => boolean; disabled?: boolean }) {
+  const [cooling, setCooling] = useState(false);
+  return (
+    <div className="emote-bar" role="group" aria-label="이모티콘 보내기">
+      {look.emotes.map(({ id }) => {
+        const i = socialItem(id);
+        if (!i) return null;
+        return (
+          <button
+            key={id}
+            type="button"
+            aria-label={i.label}
+            title={i.label}
+            disabled={disabled || cooling}
+            onClick={() => {
+              if (onSend(id)) {
+                setCooling(true);
+                setTimeout(() => setCooling(false), 700);
+              }
+            }}
+          >
+            {i.text}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -64,7 +108,7 @@ export function ChipBubble({ bubble }: { bubble?: { id: string; key: number } })
  * Preset chat + emotes in one small panel (a button in the tool row opens it). Only catalog items can
  * be sent; the server checks the id again and limits the rate.
  */
-export function SocialPanel({ onSend, hideOpponent, setHideOpponent, disabled }: { onSend: (id: string) => boolean; hideOpponent: boolean; setHideOpponent: (v: boolean) => void; disabled?: boolean }) {
+export function SocialPanel({ onSend, hideOpponent, setHideOpponent, disabled, look = GUEST_LOOK }: { onSend: (id: string) => boolean; hideOpponent: boolean; setHideOpponent: (v: boolean) => void; disabled?: boolean; look?: PublicLook }) {
   const [open, setOpen] = useState(false);
   const [cooling, setCooling] = useState(false);
   const panel = useRef<HTMLDivElement | null>(null);
@@ -90,8 +134,9 @@ export function SocialPanel({ onSend, hideOpponent, setHideOpponent, disabled }:
       setTimeout(() => setCooling(false), 700);
     }
   };
-  const emotes = SOCIAL_ITEMS.filter((i) => i.kind === "emote" && !i.retired);
-  const lines = SOCIAL_ITEMS.filter((i) => i.kind === "chat" && !i.retired);
+  // Only what this player has equipped (the server refuses anything else).
+  const emotes = look.emotes.map((e) => socialItem(e.id)).filter((i) => !!i && !i.retired) as NonNullable<ReturnType<typeof socialItem>>[];
+  const lines = look.chats.map((id) => socialItem(id)).filter((i) => !!i && !i.retired) as NonNullable<ReturnType<typeof socialItem>>[];
   return (
     <div className="social" ref={panel}>
       <button type="button" className="text-button social-toggle" aria-expanded={open} aria-label="채팅·이모티콘" disabled={disabled} onClick={() => setOpen((v) => !v)}>
@@ -147,7 +192,17 @@ export function SpectateControl({ state, me, onToggle, linkFor, disabled }: { st
     document.addEventListener("pointerdown", close, true);
     return () => document.removeEventListener("pointerdown", close, true);
   }, [open]);
-  if (!state) return null;
+  // Until the server answers (or an older server that never sends it), the button is shown disabled
+  // rather than hidden, so the tool row keeps its shape on every screen.
+  if (!state)
+    return (
+      <div className="social spectate-control">
+        <button type="button" className="text-button social-toggle" aria-label="관전 설정" disabled>
+          <Eye size={16} />
+          <span className="social-toggle-label">관전</span>
+        </button>
+      </div>
+    );
   const mine = optimistic ?? state.allow[me] === true;
   const link = state.active && state.key ? linkFor(state.key) : "";
   const copy = async () => {
@@ -178,7 +233,7 @@ export function SpectateControl({ state, me, onToggle, linkFor, disabled }: { st
           {state.active ? (
             <>
               <p className="spectate-note">
-                관전 링크가 있는 사람은 이 경기를 볼 수만 있어요 ({state.spectators}/{state.max}명). 끄면 링크가 바로 막혀요.
+                {state.public ? "관전방 목록에 공개된 경기예요. " : ""}관전 링크가 있는 사람은 이 경기를 볼 수만 있어요 ({state.spectators}/{state.max}명). 끄면 링크가 바로 막혀요.
               </p>
               <div className="spectate-link">
                 <input aria-label="관전 링크" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />

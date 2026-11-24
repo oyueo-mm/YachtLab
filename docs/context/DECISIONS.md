@@ -228,3 +228,9 @@
 ## D-037. Cloudflare: 실측 경기당 약 110행, 무료 규모 판단은 DO 실행 시간 실측 후
 
 **상태: 신규 (2026-11-24), 분석(서버 코드 변경 없음).** 실제 `RoomHost` 코드 실측으로 온라인 1경기 ≈ 110.5행 쓰기(기존 추정 120). 서버 권위·fail-closed를 유지한 채 가능한 절감은 "턴 첫 굴림을 직전 점수 저장과 병합"(약 −21%). 턴 내부 상태를 저장 없이 두는 안은 분기 공격 위험으로 연구 후보만. 서버 검증 AI 대전의 무상태 서명 상태 방식은 재사용·분기 공격 때문에 기각, PvP와 같은 저장 DO + 시작 횟수 기준 일일 한도 + 완료 경기만 집계. 무료 플랜에서 DO 실행 시간(13,000 GB-s/일)이 하루 약 270~550경기에서 먼저 닿을 수 있으므로 대시보드 Duration 실측 전에는 `DAILY_ROOM_LIMIT` 300을 올리지 않는다. 유료 전환·신규 유료 리소스 생성 없음. 상세: docs/online/STORAGE-AND-AI-MATCH-SECURITY.md.
+
+## D-038. 빠른 대전·공개 관전방은 전역 MatchHub DO(소켓 첨부 대기열·메모리 목록), PC 도구 줄 재배치·구버전 페이지 안내 (제품 Phase 4.5)
+
+**상태: 신규 (2026-11-24, PR A).** 무작위 매칭은 같은 Worker의 새 SQLite DO `MatchHub`(마이그레이션 v3)에서 한다. 대기자는 Hibernation WebSocket이고 대기 정보는 소켓 첨부 데이터에만 두어 대기 중 저장소 쓰기가 0이다. 두 사람을 고르고 표시하는 구간에 `await`를 두지 않아 동시 요청에서도 한 사람이 두 경기에 배정되지 않는다. 같은 티켓·계정·기기 ID는 짝짓지 않고 같은 IP는 막지 않는다. 같은 두 사람은 10분 안에 다시 짝짓지 않되 둘 다 20초 이상 기다리면 허용한다. 매칭 결과는 티켓 해시로 5분 보관(새로고침·끊김 대비), 무응답 45초·대기 5분이면 제거. 매칭 방은 두 좌석+시작을 저장 1회로 만들고 일일 한도 300의 95%부터 빠른 대전 생성을 멈춘다. 공개 관전은 두 사람 모두 동의한 빠른 대전만, 허브 메모리 목록(손실 허용, 라운드·점수·관전자 변경 시 갱신, 종료·철회 시 삭제, 3분 TTL)이며 목록에는 토큰·키·계정 ID가 없다. 실시간 연결은 관전하기를 누를 때만. PC 도구 줄은 `방 코드 | 이모티콘 바·채팅 | 관전·기권`으로 나누고 휴대폰 배치는 유지, 관전 버튼은 상태가 오기 전에도 비활성으로 표시, 빌드 ID(`version.json`) 비교로 오래된 캐시 페이지에 새로고침을 안내한다. 기본 이모티콘 4·채팅 6으로 축소(기존 ID 의미 유지, 나머지는 상점 후보)와 장착 외형(look) 전달 구조를 함께 넣었다(경제 PR에서 실제 장착 연결).
+
+**근거:** worker/src/hub.ts, worker/src/index.ts, worker/src/host.ts, src/online/room.ts, src/play/OnlineEntry.tsx, src/play/OnlineGame.tsx, src/play/Social.tsx, src/version.ts, vite.config.ts, src/social/catalog.ts, src/economy/live/catalog.ts, tests/online-matchmaking.test.ts, tests/online-worker.test.ts, tests/ui/quick-match.spec.ts, docs/online/MATCHMAKING.md.

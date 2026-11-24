@@ -1,4 +1,6 @@
-import { OnlineRoom, ROOM_LIMITS, type JoinResult, type RoomConnection, type RoomRecord } from "../../src/online/room";
+import { OnlineRoom, ROOM_LIMITS, type JoinResult, type RoomConnection, type RoomRecord, type SeatSpec } from "../../src/online/room";
+import type { PublicLook } from "../../src/economy/live/catalog";
+import type { MatchKind } from "../../src/economy/live/config";
 import type { DiceSource } from "../../src/online/dice-source";
 import type { HoldState, RoomSummary, ServerMessage } from "../../src/online/wire";
 import type { SocialBucket } from "../../src/social/catalog";
@@ -56,7 +58,12 @@ export type HostEvents = {
   allowMatch?: (code: string) => Promise<string | null> | string | null;
   /** Deliver a server-verified result to an account; true when stored (or already there). */
   deliverRecord?: (userId: string, record: MatchRecord) => Promise<boolean>;
+  /** Public spectating list: the room's entry (or null to remove it). Best effort. */
+  publish?: (code: string, entry: ReturnType<OnlineRoom["publicEntry"]>) => Promise<void> | void;
+  /** A quick match finished (its players may queue again). */
+  matchEnded?: (code: string) => Promise<void> | void;
 };
+export type PublicEntry = NonNullable<ReturnType<OnlineRoom["publicEntry"]>>;
 export const RECORD_RETRY_MS = 60_000;
 
 export class RoomHost {
@@ -118,10 +125,10 @@ export class RoomHost {
   }
 
   /** First seat of a brand-new room (called once by the Worker after the directory allocated the code). */
-  async create(code: string, name: unknown, identity?: { userId: string } | null): Promise<JoinResult> {
+  async create(code: string, name: unknown, identity?: { userId: string } | null, look?: PublicLook | null): Promise<JoinResult> {
     if (this.room) return { ok: false, status: 409, error: { code: "ROOM_CLOSED", message: "이미 사용 중인 방 코드입니다." } };
     const room = OnlineRoom.create(code, this.deps(), { turnTimeoutMs: this.config.turnTimeoutMs });
-    const joined = await room.join(name, identity);
+    const joined = await room.join(name, identity, look);
     if (joined.ok) {
       this.room = room;
       this.rearm();
@@ -129,9 +136,48 @@ export class RoomHost {
     return joined;
   }
 
-  join(name: unknown, identity?: { userId: string } | null): Promise<JoinResult> | JoinResult {
+  join(name: unknown, identity?: { userId: string } | null, look?: PublicLook | null): Promise<JoinResult> | JoinResult {
     if (!this.room || this.deleted) return { ok: false, status: 404, error: { code: "ROOM_CLOSED", message: "방을 찾을 수 없어요. 초대 코드를 확인해 주세요." } };
-    return this.room.join(name, identity);
+    if (this.room.kind !== "friend") return { ok: false, status: 409, error: { code: "WRONG_PHASE", message: "초대로 들어갈 수 없는 방이에요." } };
+    return this.room.join(name, identity, look);
+  }
+
+  /** Quick match / AI match: a room created with its seats already taken and the match started. */
+  async createMatched(code: string, seats: SeatSpec[], options: { kind: MatchKind; public: boolean }): Promise<{ ok: true; seats: { playerId: string; token: string }[] } | { ok: false; message: string }> {
+    if (this.room) return { ok: false, message: "이미 사용 중인 방 코드입니다." };
+    try {
+      const made = await OnlineRoom.createMatched(code, this.deps(), { turnTimeoutMs: this.config.turnTimeoutMs, kind: options.kind, public: options.public }, seats);
+      this.room = made.room;
+      this.rearm();
+      await this.publishIfChanged();
+      return { ok: true, seats: made.seats };
+    } catch (error) {
+      return { ok: false, message: error instanceof Error ? error.message : "경기를 만들지 못했어요." };
+    }
+  }
+
+  /** Watch key for a viewer coming from the public list (null when the room is not listed / full). */
+  publicWatch(): string | null {
+    return this.room && !this.deleted ? this.room.publicWatchKey() : null;
+  }
+
+  private published = "";
+  private endedSent = false;
+  /** Push the public list entry when it changed (round, scores, spectators) — at most a few times per round. */
+  async publishIfChanged() {
+    const room = this.room;
+    if (!room) return;
+    if (room.kind === "random" && room.match.status === "finished" && !this.endedSent) {
+      this.endedSent = true;
+      await Promise.resolve(this.events.matchEnded?.(room.code)).catch(() => undefined);
+    }
+    if (room.match.status === "playing") this.endedSent = false;
+    if (!room.isPublic || !this.events.publish) return;
+    const entry = this.deleted ? null : room.publicEntry();
+    const sig = entry ? JSON.stringify([entry.round, entry.players.map((p) => p.score), entry.spectators]) : "";
+    if (sig === this.published) return;
+    this.published = sig;
+    await Promise.resolve(this.events.publish(room.code, entry)).catch(() => undefined);
   }
 
   private delivering = false;
@@ -228,6 +274,7 @@ export class RoomHost {
     if (typeof data !== "string") return conn.close(1003, "text only");
     await this.room.message(conn, data);
     await this.flushRecords();
+    await this.publishIfChanged();
     // Everyone left the lobby: the room is over, remove its data now.
     if (!this.room || this.deleted) return;
     if (this.room.isClosed) return this.remove();
@@ -243,6 +290,8 @@ export class RoomHost {
     // Last attempt to hand results to accounts before the room's data is deleted.
     await this.flushRecords();
     this.deleted = true;
+    if (room.isPublic) await Promise.resolve(this.events.publish?.(room.code, null)).catch(() => undefined);
+    if (room.kind === "random" && !this.endedSent) await Promise.resolve(this.events.matchEnded?.(room.code)).catch(() => undefined);
     room.closeRoom();
     this.storage.deleteAlarm();
     await this.storage.clear();
@@ -256,6 +305,7 @@ export class RoomHost {
     this.gone.add(ws);
     if (!this.room || this.deleted) return;
     this.room.disconnect(conn);
+    if (conn.spectator) void this.publishIfChanged();
     // No storage write here: the idle clock (touchedAt) is updated in memory and saved with the next
     // command. After an eviction it falls back to the last saved activity — cleanup may come earlier,
     // never later, and reconnect loops cannot spend SQLite row writes.
@@ -310,6 +360,7 @@ export class RoomHost {
     const t = this.now();
     await room.alarm();
     await this.flushRecords();
+    await this.publishIfChanged();
     for (const s of this.open()) {
       const c = this.conns.get(s) ?? this.wrap(s);
       if (!c.playerId && !c.spectator && t >= (c as RoomConnection & { openedAt: number }).openedAt + HELLO_TIMEOUT_MS) c.close(4001, "hello timeout");

@@ -5,6 +5,10 @@ import { RoomHost, type HostSocket, type HostStorage } from "./host";
 import { AccountStore, type Sql } from "./account";
 import { authConfig, handleAccountRoute, sessionUser, type AccountBackends, type GuestApi, type UserApi } from "./accounts-api";
 import type { MatchRecord } from "../../src/identity/records";
+import type { SeatSpec } from "../../src/online/room";
+import type { PublicLook } from "../../src/economy/live/catalog";
+import type { MatchKind } from "../../src/economy/live/config";
+import { HubCore, type HubSql, type QueueSeat } from "./hub";
 
 /**
  * YachtLab Online — Cloudflare Worker + SQLite-backed Durable Objects (Phase 3).
@@ -23,6 +27,10 @@ export interface Env extends ConfigVars {
   USERS: DurableObjectNamespace<UserStore>;
   /** One tiny object per linked guest id: which account claimed it. */
   GUESTS: DurableObjectNamespace<GuestLink>;
+  /** Phase 4.5: one global object — quick-match queue, public spectating list, operations counters. */
+  HUB: DurableObjectNamespace<MatchHub>;
+  /** Operations metrics endpoint (`GET /api/admin/metrics`), off unless this secret (≥ 32 chars) is set. */
+  ADMIN_TOKEN?: string;
   /** Sign-in (all four must be set, as Worker secrets / vars, or sign-in stays off). */
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
@@ -68,6 +76,11 @@ export class YachtRoom extends DurableObject<Env> {
         const verdict = await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).allocateMatch();
         return verdict.ok ? null : verdict.message;
       },
+      publish: async (code, entry) => {
+        const hub = env.HUB.get(env.HUB.idFromName("hub"));
+        await (entry ? hub.publish(entry) : hub.unpublish(code));
+      },
+      matchEnded: async (code) => env.HUB.get(env.HUB.idFromName("hub")).ended(code),
     });
     // Keep-alive pings are answered by the runtime without waking the object (no duration, no request).
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(PING, PONG));
@@ -82,11 +95,18 @@ export class YachtRoom extends DurableObject<Env> {
 
   /* RPC from the Worker */
   /** `identity` is set only by the Worker after verifying the session (never taken from the client body). */
-  async create(code: string, name: unknown, identity?: { userId: string } | null) {
-    return this.host.create(code, name, identity);
+  async create(code: string, name: unknown, identity?: { userId: string } | null, look?: PublicLook | null) {
+    return this.host.create(code, name, identity, look);
   }
-  async join(name: unknown, identity?: { userId: string } | null) {
-    return this.host.join(name, identity);
+  async join(name: unknown, identity?: { userId: string } | null, look?: PublicLook | null) {
+    return this.host.join(name, identity, look);
+  }
+  /** Quick match / AI match (seats and looks are given by trusted server code, never by a client). */
+  async createMatched(code: string, seats: SeatSpec[], options: { kind: MatchKind; public: boolean }) {
+    return this.host.createMatched(code, seats, options);
+  }
+  async publicWatch() {
+    return this.host.publicWatch();
   }
   async summary() {
     return this.host.summary();
@@ -182,6 +202,35 @@ export class RoomDirectory extends DurableObject<Env> {
     return { ok: false, status: 503, code: "ROOM_LIMIT", message: "방 코드를 만들지 못했어요." };
   }
 
+  /**
+   * A room made by the server itself (quick match, AI match): same daily and concurrent caps as an
+   * invite room, without the per-IP creation limit (the matchmaker paces it). `kind` "ai" also has
+   * its own daily sub-budget so AI matches can never use up the whole day.
+   */
+  async allocateFor(kind: "random" | "ai"): Promise<Verdict & { code?: string }> {
+    const day = Math.floor(Date.now() / 86_400_000);
+    const today = this.sql.exec<{ rooms: number }>("SELECT rooms FROM daily WHERE day = ?", day).toArray()[0]?.rooms ?? 0;
+    if (today >= this.config.dailyRoomLimit) return { ok: false, status: 503, code: "DAILY_LIMIT", message: "오늘은 온라인 경기를 더 만들 수 없어요. 내일 다시 시도해 주세요." };
+    // Keep a reserve for matches already in progress to finish with rematches / reconnects.
+    if (kind === "random" && today >= Math.floor(this.config.dailyRoomLimit * 0.95)) return { ok: false, status: 503, code: "DAILY_LIMIT", message: "오늘은 빠른 대전을 더 할 수 없어요. 내일 다시 시도해 주세요." };
+    if (kind === "ai") {
+      this.sql.exec("CREATE TABLE IF NOT EXISTS daily_ai (day INTEGER PRIMARY KEY, rooms INTEGER NOT NULL)");
+      const ai = this.sql.exec<{ rooms: number }>("SELECT rooms FROM daily_ai WHERE day = ?", day).toArray()[0]?.rooms ?? 0;
+      if (ai >= this.config.dailyAiLimit) return { ok: false, status: 503, code: "DAILY_LIMIT", message: "오늘은 서버 AI 대전을 더 할 수 없어요. 로컬 AI 대전을 이용해 주세요." };
+    }
+    const count = this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM rooms").one().n;
+    if (count >= this.config.maxRooms) return { ok: false, status: 503, code: "ROOM_LIMIT", message: "지금은 경기를 더 만들 수 없어요. 잠시 후 다시 시도해 주세요." };
+    for (let i = 0; i < 20; i++) {
+      const code = newRoomCode();
+      if (this.sql.exec("SELECT 1 FROM rooms WHERE code = ?", code).toArray().length) continue;
+      this.sql.exec("INSERT INTO rooms (code, created_at) VALUES (?, ?)", code, Date.now());
+      this.sql.exec("INSERT INTO daily (day, rooms) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET rooms = rooms + 1", day);
+      if (kind === "ai") this.sql.exec("INSERT INTO daily_ai (day, rooms) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET rooms = rooms + 1", day);
+      return { ok: true, code };
+    }
+    return { ok: false, status: 503, code: "ROOM_LIMIT", message: "방 코드를 만들지 못했어요." };
+  }
+
   /** Rate-limited existence check before touching a room (join / invite preview / socket). */
   async check(client: string, code: string, kind: "join" | "peek"): Promise<Verdict> {
     if (this.limited(`${kind}:${client}`, kind === "join" ? this.config.joinPerMinute : this.config.joinPerMinute * 4))
@@ -219,7 +268,9 @@ export class RoomDirectory extends DurableObject<Env> {
   async usage() {
     const day = Math.floor(Date.now() / 86_400_000);
     const today = this.sql.exec<{ rooms: number }>("SELECT rooms FROM daily WHERE day = ?", day).toArray()[0]?.rooms ?? 0;
-    return { roomsToday: today, dailyRoomLimit: this.config.dailyRoomLimit, liveRooms: await this.count(), maxRooms: this.config.maxRooms };
+    this.sql.exec("CREATE TABLE IF NOT EXISTS daily_ai (day INTEGER PRIMARY KEY, rooms INTEGER NOT NULL)");
+    const ai = this.sql.exec<{ rooms: number }>("SELECT rooms FROM daily_ai WHERE day = ?", day).toArray()[0]?.rooms ?? 0;
+    return { roomsToday: today, dailyRoomLimit: this.config.dailyRoomLimit, aiRoomsToday: ai, dailyAiLimit: this.config.dailyAiLimit, liveRooms: await this.count(), maxRooms: this.config.maxRooms };
   }
 
   /** Every 6 hours: forget room codes past retention (their rooms delete themselves) and old day counters. */
@@ -227,6 +278,8 @@ export class RoomDirectory extends DurableObject<Env> {
     const now = Date.now();
     this.sql.exec("DELETE FROM rooms WHERE created_at < ?", now - this.config.maxAgeMs - 3600_000);
     this.sql.exec("DELETE FROM daily WHERE day < ?", Math.floor(now / 86_400_000) - 2);
+    this.sql.exec("CREATE TABLE IF NOT EXISTS daily_ai (day INTEGER PRIMARY KEY, rooms INTEGER NOT NULL)");
+    this.sql.exec("DELETE FROM daily_ai WHERE day < ?", Math.floor(now / 86_400_000) - 2);
     await this.ctx.storage.setAlarm(now + 6 * 3600_000);
   }
 }
@@ -283,6 +336,10 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   async publicProfile() {
     return this.store.publicProfile();
   }
+  /** What other players see of this account in a match (validated equipped items; null = default look). */
+  async look(): Promise<PublicLook | null> {
+    return null;
+  }
   /** From a room: a server-verified result (idempotent by matchId). */
   async recordMatch(record: MatchRecord) {
     this.store.recordMatch(record);
@@ -310,14 +367,108 @@ export class GuestLink extends DurableObject<Env> implements GuestApi {
   }
 }
 
+/* ------------------------------------------------------------------ hub ------------------------------------------------------------------ */
+
+/**
+ * Quick-match queue, public spectating list and operations counters (Phase 4.5). One object for the
+ * service (`idFromName("hub")`). Waiting players are hibernatable WebSockets whose attachments hold
+ * their place in the queue; see worker/src/hub.ts.
+ */
+export class MatchHub extends DurableObject<Env> {
+  private core: HubCore;
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    const config = readConfig(env);
+    this.core = new HubCore({
+      now: Date.now,
+      sockets: () => ctx.getWebSockets() as unknown as HostSocket[],
+      sql: ctx.storage.sql as unknown as HubSql,
+      setAlarm: (at) => void ctx.storage.setAlarm(at),
+      auth: async (session) => {
+        const m = /^s1\.(u_[A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{43})$/.exec(session);
+        if (!m || !authConfig(env)) return null;
+        return (await env.USERS.get(env.USERS.idFromName(m[1])).authenticate(m[2])) ? m[1] : null;
+      },
+      createMatch: async (a: QueueSeat, b: QueueSeat, options) => {
+        const directory = env.DIRECTORY.get(env.DIRECTORY.idFromName("directory"));
+        const slot = await directory.allocateFor("random");
+        if (!slot.ok) return { ok: false, message: slot.message };
+        const seats: SeatSpec[] = [];
+        for (const p of [a, b]) {
+          const look = p.userId ? await env.USERS.get(env.USERS.idFromName(p.userId)).look().catch(() => null) : null;
+          seats.push({ name: p.name, identity: p.userId ? { userId: p.userId } : null, look });
+        }
+        const made = await env.ROOMS.get(env.ROOMS.idFromName(slot.code!)).createMatched(slot.code!, seats, { kind: "random", public: options.public });
+        if (!made.ok) {
+          await directory.release(slot.code!);
+          return { ok: false, message: made.message };
+        }
+        return { ok: true, code: slot.code!, seats: [made.seats[0], made.seats[1]] };
+      },
+    });
+    ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(PING, PONG));
+    ctx.blockConcurrencyWhile(async () => this.core.init());
+    void config;
+  }
+  async fetch(request: Request): Promise<Response> {
+    if (request.headers.get("Upgrade") !== "websocket") return new Response("expected websocket", { status: 426 });
+    if (this.core.waiting() >= 200) return new Response(null, { status: 503 });
+    const pair = new WebSocketPair();
+    this.ctx.acceptWebSocket(pair[1]);
+    return new Response(null, { status: 101, webSocket: pair[0] });
+  }
+  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer) {
+    await this.core.message(ws as unknown as HostSocket, message);
+  }
+  async webSocketClose(ws: WebSocket, code: number) {
+    this.core.closed(ws as unknown as HostSocket);
+    try {
+      ws.close(code === 1005 || code === 1006 ? 1000 : code, "closed");
+    } catch {
+      /* already closed */
+    }
+  }
+  async webSocketError(ws: WebSocket) {
+    this.core.closed(ws as unknown as HostSocket);
+  }
+  async alarm() {
+    this.core.flush();
+  }
+  /* RPC from rooms and the Worker */
+  async publish(entry: unknown) {
+    this.core.publish(entry);
+  }
+  async unpublish(code: string) {
+    this.core.unpublish(code);
+  }
+  async ended(code: string) {
+    this.core.ended(code);
+  }
+  async list() {
+    return this.core.list();
+  }
+  async waiting() {
+    return this.core.waiting();
+  }
+  async count(name: string, n = 1) {
+    this.core.count(name, n);
+  }
+  async peak(name: string, value: number) {
+    this.core.peak(name, value);
+  }
+  async report(days: number) {
+    return this.core.report(days);
+  }
+}
+
 /* ------------------------------------------------------------------ worker ------------------------------------------------------------------ */
 
-const json = (status: number, body: unknown, origin: string | null) =>
+const json = (status: number, body: unknown, origin: string | null, cache = "no-store") =>
   new Response(JSON.stringify(body), {
     status,
     headers: {
       "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store",
+      "cache-control": cache,
       ...(origin ? { "access-control-allow-origin": origin, vary: "Origin" } : {}),
     },
   });
@@ -376,7 +527,31 @@ export default {
       return user ? { userId: user.userId } : null;
     };
 
+    const hub = () => env.HUB.get(env.HUB.idFromName("hub"));
     try {
+      // Quick match queue (Phase 4.5): one hibernatable socket per waiting player on the hub object.
+      if (url.pathname === "/ws/match") {
+        if (request.headers.get("Upgrade") !== "websocket") return new Response("expected websocket", { status: 426 });
+        if (!allowed) return new Response("forbidden", { status: 403 });
+        if (await directory.hit("queue:" + (await clientKey(request)), config.joinPerMinute)) return new Response(null, { status: 429 });
+        return hub().fetch(request);
+      }
+      // What this server offers (the page hides what is not available).
+      if (url.pathname === "/api/features" && request.method === "GET")
+        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth }, allowed, "public, max-age=60");
+      // Public spectating list: cheap, cached briefly; no tokens, no keys, no account ids in it.
+      if (url.pathname === "/api/spectate/rooms" && request.method === "GET") {
+        if (await directory.hit("list:" + (await clientKey(request)), 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
+        return json(200, { rooms: await hub().list() }, allowed, "public, max-age=5");
+      }
+      if (parts[0] === "api" && parts[1] === "spectate" && parts.length === 4 && parts[3] === "watch" && request.method === "POST") {
+        const code = normalizeCode(parts[2]);
+        if (!code) return fail(404, "ROOM_NOT_FOUND", "경기를 찾을 수 없어요.", allowed);
+        const verdict = await directory.check(await clientKey(request), code, "peek");
+        if (!verdict.ok) return fail(verdict.status, verdict.code, verdict.message, allowed);
+        const key = await roomStub(code).publicWatch();
+        return key ? json(200, { code, key }, allowed) : fail(409, "NOT_PUBLIC", "지금은 이 경기를 관전할 수 없어요. 끝났거나 관전 인원이 가득 찼어요.", allowed);
+      }
       // WebSocket: /ws/:code — origin required, the room accepts it with the Hibernation API.
       if (parts[0] === "ws" && parts.length === 2) {
         if (request.headers.get("Upgrade") !== "websocket") return new Response("expected websocket", { status: 426 });

@@ -1,5 +1,7 @@
 import { isRecord, isValidId, DICE_COUNT, type MatchStatus, type OnlineAction, type OnlineError } from "./protocol";
 import type { PlayerView } from "./server-engine";
+import type { PublicLook } from "../economy/live/catalog";
+import type { MatchKind } from "../economy/live/config";
 
 /**
  * Socket messages between the online client and a room (Phase 2). Plain JSON text frames.
@@ -31,7 +33,7 @@ export type ClientMessage =
 export type RematchOp = "request" | "cancel" | "decline";
 
 export type ServerMessage =
-  | { t: "welcome"; code: string; playerId: string; view: PlayerView; online: string[]; hold: HoldState | null; rematch?: RematchState; series?: SeriesSummary; spectate?: SpectateState; members?: Record<string, string> }
+  | { t: "welcome"; code: string; playerId: string; view: PlayerView; online: string[]; hold: HoldState | null; rematch?: RematchState; series?: SeriesSummary; spectate?: SpectateState; members?: Record<string, string>; looks?: Record<string, PublicLook>; kind?: MatchKind; ai?: AiSeat | null }
   /** `hold` is present from servers that keep the shared hold order (older servers omit it). */
   | { t: "view"; view: PlayerView; hold?: HoldState | null }
   | { t: "ack"; id: string; ok: true; duplicate: boolean }
@@ -44,10 +46,12 @@ export type ServerMessage =
   | { t: "rematch"; rematch: RematchState; series: SeriesSummary }
   /** Signed-in seats: playerId → public account id (for "상대 프로필"). Guests are absent. */
   | { t: "members"; members: Record<string, string> }
+  /** What each seat shows (server-validated equipped items). Sent on welcome and when a seat changes. */
+  | { t: "looks"; looks: Record<string, PublicLook> }
   /** Players only: spectating consent, the watch key (when active) and how many are watching. */
   | { t: "spectate"; spectate: SpectateState }
   /** Spectator welcome: neutral view (`you` is null, no legal moves, no command ids, no tokens). */
-  | { t: "watching"; code: string; view: PlayerView; online: string[]; hold: HoldState | null; series: SeriesSummary; spectators: number }
+  | { t: "watching"; code: string; view: PlayerView; online: string[]; hold: HoldState | null; series: SeriesSummary; spectators: number; looks?: Record<string, PublicLook>; kind?: MatchKind; ai?: AiSeat | null }
   | { t: "error"; code: string; message: string }
   | { t: "pong" };
 
@@ -65,7 +69,9 @@ export type RematchState = { requests: string[]; declinedBy: string | null; depa
  * Spectating is off until every seated player turns it on. `key` (players only) is the secret part of
  * the watch link; it is replaced whenever spectating is turned off, so old links stop working.
  */
-export type SpectateState = { allow: Record<string, boolean>; active: boolean; key: string | null; spectators: number; max: number };
+export type SpectateState = { allow: Record<string, boolean>; active: boolean; key: string | null; spectators: number; max: number; public?: boolean };
+/** The server AI seat of an AI match (shown as AI, never as a person). */
+export type AiSeat = { playerId: string; level: string };
 
 /** Results of the matches already finished in this room (the running score between the same players). */
 export type SeriesSummary = { matchNo: number; games: number; draws: number; wins: Record<string, number> };

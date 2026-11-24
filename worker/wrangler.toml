@@ -30,6 +30,12 @@ class_name = "UserStore"
 name = "GUESTS"
 class_name = "GuestLink"
 
+# Phase 4.5: one global object — quick-match queue (hibernatable sockets), public spectating list,
+# operations counters. Same Worker, SQLite-backed (Workers Free), no new account resource.
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "MatchHub"
+
 # Workers Free supports only SQLite-backed Durable Objects.
 [[migrations]]
 tag = "v1"
@@ -39,6 +45,10 @@ new_sqlite_classes = ["YachtRoom", "RoomDirectory"]
 tag = "v2"
 new_sqlite_classes = ["UserStore", "GuestLink"]
 
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["MatchHub"]
+
 [vars]
 # Only the GitHub Pages site may call this server (browsers always send Origin).
 ALLOWED_ORIGINS = "https://oyueo-mm.github.io"
@@ -46,6 +56,8 @@ TURN_TIMEOUT_MS = "120000"
 # The account's free daily usage is shared with other Workers: keep this service well inside it.
 MAX_ROOMS = "50"
 DAILY_ROOM_LIMIT = "300"
+# Server AI matches per day: a sub-budget of DAILY_ROOM_LIMIT (quick and invite matches keep the rest).
+DAILY_AI_LIMIT = "100"
 CREATE_PER_MINUTE = "5"
 JOIN_PER_MINUTE = "30"
 LOBBY_IDLE_MS = "1800000"
