@@ -101,6 +101,9 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [42a3071](https://github.com/oyueo-mm/YachtLab/commit/42a3071) | 2026-11-24 | Merge PR #57: 테스트 서버 종료가 미사용 사전 연결을 기다리던 main CI afterAll 시간 초과 수정 |
+| [d21194a](https://github.com/oyueo-mm/YachtLab/commit/d21194a) | 2026-11-24 | fix(test-server): shutdown no longer waits for pre-opened browser sockets; close test contexts |
+| [838cf45](https://github.com/oyueo-mm/YachtLab/commit/838cf45) | 2026-11-24 | test(diag): time online backend teardown and list what the Node test server waits for |
 | [25707cc](https://github.com/oyueo-mm/YachtLab/commit/25707cc) | 2026-11-24 | Merge PR #56: Phase 4.5~6 — 빠른 대전·관전방·서버 AI 대전·코인/보석 원장·퀘스트·업적·상점·인벤토리 |
 | [8a192a4](https://github.com/oyueo-mm/YachtLab/commit/8a192a4) | 2026-11-24 | test(ui): settings snapshot includes the opponent-effects setting |
 | [5eff878](https://github.com/oyueo-mm/YachtLab/commit/5eff878) | 2026-11-24 | fix(online): heartbeat retries pairing; per-account API limit in isolate memory; docs |
@@ -108,9 +111,6 @@
 | [9b83567](https://github.com/oyueo-mm/YachtLab/commit/9b83567) | 2026-11-24 | feat(economy): coin/gem ledger, M3i-W30 rewards, quests, achievements, shop/inventory API (Phase 5/6) |
 | [bd8410d](https://github.com/oyueo-mm/YachtLab/commit/bd8410d) | 2026-11-24 | feat(online): server-verified AI match (Phase 4.5) |
 | [786d370](https://github.com/oyueo-mm/YachtLab/commit/786d370) | 2026-11-24 | feat(online): quick match, public spectating list, PC online tool row (Phase 4.5) |
-| [603a49f](https://github.com/oyueo-mm/YachtLab/commit/603a49f) | 2026-11-24 | Merge PR #55: 경제 연구 — 시뮬레이터·퀘스트/업적 확률·M3 정수안·강화·Cloudflare 실측, 경제 연구실 |
-| [5d52ca2](https://github.com/oyueo-mm/YachtLab/commit/5d52ca2) | 2026-11-24 | docs(economy): point phase-1 reward table to the integer operating model |
-| [b556a61](https://github.com/oyueo-mm/YachtLab/commit/b556a61) | 2026-11-24 | research(economy): M3 follow-up — integer operating model, upgrade ratios, guest carry-over, measured room writes |
 
 ## 최근 GitHub Actions 상태
 
@@ -118,7 +118,7 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45374563645) | success | 8a192a4e24 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45389122343) | success | d21194af0f |
 | [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45374492254) | success | 5eff8788bd |
 | [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45305164842) | success | 5d3c10df9d |
 

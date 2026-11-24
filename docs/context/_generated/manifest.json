@@ -112,6 +112,21 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "42a3071",
+      "date": "2026-11-24",
+      "subject": "Merge PR #57: 테스트 서버 종료가 미사용 사전 연결을 기다리던 main CI afterAll 시간 초과 수정"
+    },
+    {
+      "sha": "d21194a",
+      "date": "2026-11-24",
+      "subject": "fix(test-server): shutdown no longer waits for pre-opened browser sockets; close test contexts"
+    },
+    {
+      "sha": "838cf45",
+      "date": "2026-11-24",
+      "subject": "test(diag): time online backend teardown and list what the Node test server waits for"
+    },
+    {
       "sha": "25707cc",
       "date": "2026-11-24",
       "subject": "Merge PR #56: Phase 4.5~6 — 빠른 대전·관전방·서버 AI 대전·코인/보석 원장·퀘스트·업적·상점·인벤토리"
@@ -145,29 +160,14 @@
       "sha": "786d370",
       "date": "2026-11-24",
       "subject": "feat(online): quick match, public spectating list, PC online tool row (Phase 4.5)"
-    },
-    {
-      "sha": "603a49f",
-      "date": "2026-11-24",
-      "subject": "Merge PR #55: 경제 연구 — 시뮬레이터·퀘스트/업적 확률·M3 정수안·강화·Cloudflare 실측, 경제 연구실"
-    },
-    {
-      "sha": "5d52ca2",
-      "date": "2026-11-24",
-      "subject": "docs(economy): point phase-1 reward table to the integer operating model"
-    },
-    {
-      "sha": "b556a61",
-      "date": "2026-11-24",
-      "subject": "research(economy): M3 follow-up — integer operating model, upgrade ratios, guest carry-over, measured room writes"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "8a192a4e24",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45374563645"
+      "head": "d21194af0f",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45389122343"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
