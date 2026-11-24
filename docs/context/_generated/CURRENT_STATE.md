@@ -100,16 +100,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [db14bee](https://github.com/oyueo-mm/YachtLab/commit/db14bee) | 2026-11-24 | Merge PR #52: 실시간 관전 — 전원 동의·별도 관전 키·읽기 전용 (제품 Phase 3) |
+| [8dbddb5](https://github.com/oyueo-mm/YachtLab/commit/8dbddb5) | 2026-11-24 | test(live): the account check belongs to the accounts change, not spectating |
 | [dbf4e20](https://github.com/oyueo-mm/YachtLab/commit/dbf4e20) | 2026-11-24 | Merge PR #51: 재대결·프리셋 채팅·이모티콘 (제품 Phase 3) |
+| [e855ada](https://github.com/oyueo-mm/YachtLab/commit/e855ada) | 2026-11-23 | test(live): live check covers emote, refused free text, spectating, rematch on the same room |
 | [9ab0c00](https://github.com/oyueo-mm/YachtLab/commit/9ab0c00) | 2026-11-23 | test(online): the finished match announces the room score |
+| [6848caf](https://github.com/oyueo-mm/YachtLab/commit/6848caf) | 2026-11-23 | docs: spectating permissions, limits, verification (D-027) |
+| [cf95ba5](https://github.com/oyueo-mm/YachtLab/commit/cf95ba5) | 2026-11-23 | feat(online): read-only live spectating with player consent (Phase 3) |
 | [6c298bc](https://github.com/oyueo-mm/YachtLab/commit/6c298bc) | 2026-11-23 | fix(online): send the room's running score when a match finishes (not only on rematch changes) |
 | [54c01a2](https://github.com/oyueo-mm/YachtLab/commit/54c01a2) | 2026-11-24 | Merge PR #50: 첫 굴림 최악 프레임 개선·휴대폰 한 화면 UI·효과음 v3 후보·고정 순서 유실 대응 |
 | [3bebeff](https://github.com/oyueo-mm/YachtLab/commit/3bebeff) | 2026-11-23 | docs: rematch & preset chat design, limits, verification (D-026) |
-| [22770de](https://github.com/oyueo-mm/YachtLab/commit/22770de) | 2026-11-23 | feat(online): rematch in the same room, preset chat and emotes (Phase 3) |
-| [35ef5dc](https://github.com/oyueo-mm/YachtLab/commit/35ef5dc) | 2026-11-23 | docs: PR A measurements (emulated), root cause, mobile benchmarking, sfx v3, hold persistence (D-025) |
-| [be5f793](https://github.com/oyueo-mm/YachtLab/commit/be5f793) | 2026-11-23 | perf+mobile: GPU warm-up before the first throw, faster re-roll physics prep, thumb-reach phone layout, sfx v3 candidate, hold order survives DO eviction |
-| [a438429](https://github.com/oyueo-mm/YachtLab/commit/a438429) | 2026-11-24 | Merge pull request #49 from oyueo-mm/claude/yachtlab-mobile-ui-o0rd2b |
-| [9587702](https://github.com/oyueo-mm/YachtLab/commit/9587702) | 2026-11-23 | docs: mobile UX, rendering measurements (emulated), sound design, yacht/join effects (D-024) |
 
 ## 최근 GitHub Actions 상태
 
@@ -117,9 +117,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45292431126) | success | 9ab0c00659 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45292415176) | success | 9ab0c00659 |
-| [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45291569841) | success | 3bebefff9e |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45296434190) | success | 8dbddb5b9f |
+| [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45296430602) | success | 8dbddb5b9f |
+| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45295760099) | success | e855ada598 |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45288626586) | success | 35ef5dc3a7 |
 
 ## 다음 채팅과 작업의 시작점

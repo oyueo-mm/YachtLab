@@ -111,14 +111,39 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "db14bee",
+      "date": "2026-11-24",
+      "subject": "Merge PR #52: 실시간 관전 — 전원 동의·별도 관전 키·읽기 전용 (제품 Phase 3)"
+    },
+    {
+      "sha": "8dbddb5",
+      "date": "2026-11-24",
+      "subject": "test(live): the account check belongs to the accounts change, not spectating"
+    },
+    {
       "sha": "dbf4e20",
       "date": "2026-11-24",
       "subject": "Merge PR #51: 재대결·프리셋 채팅·이모티콘 (제품 Phase 3)"
     },
     {
+      "sha": "e855ada",
+      "date": "2026-11-23",
+      "subject": "test(live): live check covers emote, refused free text, spectating, rematch on the same room"
+    },
+    {
       "sha": "9ab0c00",
       "date": "2026-11-23",
       "subject": "test(online): the finished match announces the room score"
+    },
+    {
+      "sha": "6848caf",
+      "date": "2026-11-23",
+      "subject": "docs: spectating permissions, limits, verification (D-027)"
+    },
+    {
+      "sha": "cf95ba5",
+      "date": "2026-11-23",
+      "subject": "feat(online): read-only live spectating with player consent (Phase 3)"
     },
     {
       "sha": "6c298bc",
@@ -134,51 +159,26 @@
       "sha": "3bebeff",
       "date": "2026-11-23",
       "subject": "docs: rematch & preset chat design, limits, verification (D-026)"
-    },
-    {
-      "sha": "22770de",
-      "date": "2026-11-23",
-      "subject": "feat(online): rematch in the same room, preset chat and emotes (Phase 3)"
-    },
-    {
-      "sha": "35ef5dc",
-      "date": "2026-11-23",
-      "subject": "docs: PR A measurements (emulated), root cause, mobile benchmarking, sfx v3, hold persistence (D-025)"
-    },
-    {
-      "sha": "be5f793",
-      "date": "2026-11-23",
-      "subject": "perf+mobile: GPU warm-up before the first throw, faster re-roll physics prep, thumb-reach phone layout, sfx v3 candidate, hold order survives DO eviction"
-    },
-    {
-      "sha": "a438429",
-      "date": "2026-11-24",
-      "subject": "Merge pull request #49 from oyueo-mm/claude/yachtlab-mobile-ui-o0rd2b"
-    },
-    {
-      "sha": "9587702",
-      "date": "2026-11-23",
-      "subject": "docs: mobile UX, rendering measurements (emulated), sound design, yacht/join effects (D-024)"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "Deploy YachtLab Online Worker (manual)",
-      "status": "success",
-      "head": "9ab0c00659",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45292431126"
-    },
-    {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "9ab0c00659",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45292415176"
+      "head": "8dbddb5b9f",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45296434190"
     },
     {
       "name": "YachtLab Online live check (manual)",
       "status": "success",
-      "head": "3bebefff9e",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45291569841"
+      "head": "8dbddb5b9f",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45296430602"
+    },
+    {
+      "name": "Deploy YachtLab Online Worker (manual)",
+      "status": "success",
+      "head": "e855ada598",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45295760099"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
