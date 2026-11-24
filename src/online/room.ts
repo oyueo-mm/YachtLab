@@ -20,6 +20,7 @@ import {
   type RoomSummary,
   type SeriesSummary,
   type ServerMessage,
+  type SpectateState,
 } from "./wire";
 import { allowSocial, canSend, newSocialBucket, type SocialBucket } from "../social/catalog";
 
@@ -42,8 +43,10 @@ import { allowSocial, canSend, newSocialBucket, type SocialBucket } from "../soc
 export const ROOM_LIMITS = {
   /** Event log cap per match. A 2-player game needs ~130 events; the cap only stops abuse (fail-closed). */
   maxEvents: 800,
-  /** Simultaneous sockets per room (two players with a couple of duplicate tabs each). */
-  maxConnections: 8,
+  /** Simultaneous sockets per room: players (a few tabs each) plus spectators. */
+  maxConnections: 14,
+  /** Spectators per room. Conservative: each one receives every view broadcast (docs/online/SOCIAL-AND-ACCOUNTS.md). */
+  maxSpectators: 5,
   /** Largest accepted client message, bytes. */
   maxMessageBytes: 2048,
   /** Token bucket per connection: burst and refill per second. */
@@ -80,6 +83,8 @@ export type RoomRecord = {
   rematch?: { requests: string[]; declinedBy: string | null } | null;
   /** Players who left the finished room for good. */
   departed?: string[];
+  /** Spectating consent per player and the current watch key (null = off / revoked). */
+  spectate?: { allow: Record<string, boolean>; key: string | null };
 };
 
 export type RoomDeps = {
@@ -101,6 +106,8 @@ export type RoomDeps = {
 /** A live socket, as seen by the room. `playerId` is set only after a successful `hello`. */
 export interface RoomConnection {
   playerId: string | null;
+  /** Set for read-only spectator sockets (playerId stays null). The key they were admitted with. */
+  spectator?: { key: string };
   /** Highest event seq already delivered to this socket. */
   seenSeq: number;
   bucket: { tokens: number; at: number };
@@ -353,6 +360,8 @@ export class OnlineRoom {
     this.broadcast();
     // A finished match changes the room's running score (and opens rematch): tell every screen.
     if (finished) this.broadcastRematch();
+    // Someone new took a seat (who has not agreed to spectators): stop watching now.
+    if (events.some((e) => e.type === "playerJoined" || e.type === "playerLeft")) this.enforceSpectate();
   }
 
   private async run(playerId: string, raw: unknown): Promise<CommandResult> {
@@ -397,7 +406,10 @@ export class OnlineRoom {
    * Hibernation). Its identity, delivered seq and rate bucket come from the socket's attachment.
    */
   adopt(conn: RoomConnection) {
-    if (!this.closed) this.connections.add(conn);
+    if (this.closed) return;
+    // A spectator whose link was revoked while the object slept is not re-admitted.
+    if (conn.spectator && (!this.spectateActive() || !sameHash(conn.spectator.key, this.record.spectate!.key!))) return conn.close(4003, "spectating off");
+    this.connections.add(conn);
   }
 
   /** Record activity without a game event (e.g. a socket closed) so idle cleanup counts from now. */
@@ -409,6 +421,7 @@ export class OnlineRoom {
   disconnect(conn: RoomConnection) {
     if (!this.connections.delete(conn)) return;
     this.record = { ...this.record, touchedAt: this.deps.now() };
+    if (conn.spectator) this.broadcastSpectate();
     if (conn.playerId) this.broadcastPresence();
   }
 
@@ -436,6 +449,8 @@ export class OnlineRoom {
 
   private async dispatch(conn: RoomConnection, msg: ClientMessage) {
     if (msg.t === "ping") return conn.send({ t: "pong" });
+    if (msg.t === "watch") return this.watch(conn, msg.key, msg.since ?? 0);
+    if (conn.spectator) return conn.send({ t: "error", code: "SPECTATOR", message: "관전 중에는 게임을 조작할 수 없어요." });
     if (msg.t === "hello") {
       const playerId = await this.authenticate(msg.token);
       if (!playerId) {
@@ -446,7 +461,7 @@ export class OnlineRoom {
       const since = Math.max(0, Math.min(msg.since ?? 0, this.state.log.length));
       const view = viewFor(this.state, playerId, this.deps.now(), since);
       conn.seenSeq = this.state.log.length;
-      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold(), rematch: this.rematchState(), series: this.seriesSummary() });
+      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold(), rematch: this.rematchState(), series: this.seriesSummary(), spectate: this.spectateState() });
       this.broadcastPresence();
       return;
     }
@@ -458,6 +473,7 @@ export class OnlineRoom {
     if (msg.t === "say") return this.say(conn, playerId, msg.id);
     if (msg.t === "rematch") return this.rematch(conn, playerId, msg.op);
     if (msg.t === "bye") return this.bye(playerId);
+    if (msg.t === "spectate") return this.setSpectate(conn, playerId, msg.allow);
     if (msg.t === "hold") {
       // Shared presentation state: the dice actually kept still travel with the next `roll` command
       // and are validated by the engine. Kept in memory and saved with the next command (no row write).
@@ -467,7 +483,7 @@ export class OnlineRoom {
       const hold: HoldState = { playerId, keep: msg.keep, n };
       this.record = { ...this.record, hold };
       // Everyone, the sender included, gets the same order (the sender matches its echo by `n`).
-      for (const c of this.connections) if (c.playerId) c.send({ t: "hold", ...hold });
+      for (const c of this.connections) if (c.playerId || c.spectator) c.send({ t: "hold", ...hold });
       return;
     }
     // command
@@ -499,6 +515,80 @@ export class OnlineRoom {
     }
   }
 
+  /* ------------------------------------------------------------- spectating (Phase 3) ------------------------------------------------------------- */
+
+  private spectators() {
+    return [...this.connections].filter((c) => c.spectator);
+  }
+
+  /** Spectating is on only while every seated player allows it and a key exists. */
+  private spectateActive(): boolean {
+    const sp = this.record.spectate;
+    if (!sp?.key || !this.state.players.length) return false;
+    return this.state.players.every((p) => sp.allow[p.playerId] === true);
+  }
+
+  spectateState(): SpectateState {
+    const sp = this.record.spectate ?? { allow: {}, key: null };
+    const active = this.spectateActive();
+    const allow = Object.fromEntries(this.state.players.map((p) => [p.playerId, sp.allow[p.playerId] === true]));
+    return { allow, active, key: active ? sp.key : null, spectators: this.spectators().length, max: ROOM_LIMITS.maxSpectators };
+  }
+
+  private broadcastSpectate() {
+    const spectate = this.spectateState();
+    for (const c of this.connections) if (c.playerId) c.send({ t: "spectate", spectate });
+  }
+
+  /** Close spectator sockets that are no longer allowed (consent withdrawn, key replaced, new player). */
+  private enforceSpectate() {
+    const active = this.spectateActive();
+    const key = this.record.spectate?.key ?? "";
+    let kicked = false;
+    for (const c of this.spectators())
+      if (!active || c.spectator!.key !== key) {
+        this.connections.delete(c);
+        c.close(4003, "spectating off");
+        kicked = true;
+      }
+    if (kicked) this.broadcastSpectate();
+  }
+
+  private spectateAt = new Map<string, number>();
+  /** A player turns spectating on or off. Off by anyone revokes the link (a new key next time). */
+  private async setSpectate(conn: RoomConnection, playerId: string, allow: boolean) {
+    const sp = this.record.spectate ?? { allow: {}, key: null };
+    if ((sp.allow[playerId] === true) === allow && (!allow || sp.key)) return conn.send({ t: "spectate", spectate: this.spectateState() });
+    // Turning spectating OFF is a privacy action: always honoured at once. Only turning it on (a new
+    // key) is paced, which also bounds on/off write loops to one pair per second per player.
+    const now = this.deps.now();
+    if (allow && now - (this.spectateAt.get(playerId) ?? -Infinity) < ROOM_LIMITS.rematchCooldownMs) return conn.send({ t: "error", code: "SPECTATE", message: "잠시 후 다시 눌러 주세요." });
+    if (allow) this.spectateAt.set(playerId, now);
+    const key = allow ? (sp.key ?? base64url(this.random(new Uint8Array(18)))) : null;
+    await this.saveRecord({ ...this.record, spectate: { allow: { ...sp.allow, [playerId]: allow }, key } });
+    this.enforceSpectate();
+    this.broadcastSpectate();
+  }
+
+  /** A spectator socket: read-only, admitted with the watch key while every player allows it. */
+  private watch(conn: RoomConnection, key: string, since: number) {
+    if (conn.playerId || conn.spectator) return conn.send({ t: "error", code: "SPECTATOR", message: "이미 연결된 화면이에요." });
+    const sp = this.record.spectate;
+    if (!this.spectateActive() || !sp?.key || !sameHash(key, sp.key)) {
+      conn.send({ t: "error", code: "SPECTATE_OFF", message: "지금은 이 경기를 관전할 수 없어요." });
+      return conn.close(4003, "spectating off");
+    }
+    if (this.spectators().length >= ROOM_LIMITS.maxSpectators) {
+      conn.send({ t: "error", code: "SPECTATORS_FULL", message: "관전 인원이 가득 찼어요." });
+      return conn.close(4005, "spectators full");
+    }
+    conn.spectator = { key: sp.key };
+    const from = Math.max(0, Math.min(since, this.state.log.length));
+    conn.seenSeq = this.state.log.length;
+    conn.send({ t: "watching", code: this.code, view: viewFor(this.state, null, this.deps.now(), from), online: this.onlinePlayers(), hold: this.currentHold(), series: this.seriesSummary(), spectators: this.spectators().length });
+    this.broadcastSpectate();
+  }
+
   /* ------------------------------------------------------------- social (Phase 3) ------------------------------------------------------------- */
 
   /** Preset chat / emote: catalog ids only, rate-limited per connection, relayed live, never stored. */
@@ -507,7 +597,7 @@ export class OnlineRoom {
     const now = this.deps.now();
     conn.social ??= newSocialBucket(now);
     if (!allowSocial(conn.social, id, now)) return conn.send({ t: "error", code: "SOCIAL_RATE_LIMITED", message: "잠시 후 다시 보내 주세요." });
-    for (const c of this.connections) if (c.playerId) c.send({ t: "said", from: playerId, id });
+    for (const c of this.connections) if (c.playerId || c.spectator) c.send({ t: "said", from: playerId, id });
   }
 
   rematchState(): RematchState {
@@ -538,7 +628,7 @@ export class OnlineRoom {
   private broadcastRematch() {
     const rematch = this.rematchState();
     const series = this.seriesSummary();
-    for (const c of this.connections) if (c.playerId) c.send({ t: "rematch", rematch, series });
+    for (const c of this.connections) if (c.playerId || c.spectator) c.send({ t: "rematch", rematch, series });
   }
 
   private async saveRecord(record: RoomRecord) {
@@ -622,7 +712,7 @@ export class OnlineRoom {
     this.rematchOps = 0;
     this.armTimer();
     // A new match: every screen gets the whole (short) log of the new match.
-    for (const c of this.connections) if (c.playerId) this.sendView(c, 0);
+    for (const c of this.connections) if (c.playerId || c.spectator) this.sendView(c, 0);
     this.broadcastRematch();
   }
 
@@ -638,13 +728,14 @@ export class OnlineRoom {
   }
 
   private sendView(conn: RoomConnection, since: number) {
-    if (!conn.playerId) return;
+    if (!conn.playerId && !conn.spectator) return;
+    // Spectators get the neutral projection (viewer null): no legal moves, no command ids.
     conn.send({ t: "view", view: viewFor(this.state, conn.playerId, this.deps.now(), since), hold: this.currentHold() });
     conn.seenSeq = this.state.log.length;
   }
 
   private broadcast() {
-    for (const conn of this.connections) if (conn.playerId) this.sendView(conn, conn.seenSeq);
+    for (const conn of this.connections) if (conn.playerId || conn.spectator) this.sendView(conn, conn.seenSeq);
   }
 
   private onlinePlayers() {
@@ -652,7 +743,7 @@ export class OnlineRoom {
   }
   private broadcastPresence() {
     const online = this.onlinePlayers();
-    for (const conn of this.connections) if (conn.playerId) conn.send({ t: "presence", online });
+    for (const conn of this.connections) if (conn.playerId || conn.spectator) conn.send({ t: "presence", online });
   }
 
   /** Close every socket; the host then drops the room and its stored record. */

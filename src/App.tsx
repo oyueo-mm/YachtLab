@@ -8,7 +8,8 @@ import MyGames from "./MyGames";
 import HumanGame from "./play/HumanGame";
 import OnlineEntry from "./play/OnlineEntry";
 import OnlineGame from "./play/OnlineGame";
-import { onlineServerUrl, roomFromUrl, setRoomInUrl } from "./online/client";
+import OnlineWatch from "./play/OnlineWatch";
+import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl } from "./online/client";
 import { currentRoute, routes, type Route } from "./routes";
 import { LabNav, SettingsDialog, TopBar } from "./shell/Chrome";
 import { Lobby, OfflineSelect, OnlineSoon } from "./shell/Lobby";
@@ -43,6 +44,7 @@ export default function App() {
   const [onlineServer] = useState(onlineServerUrl);
   const [onlineCode, setOnlineCode] = useState<string | null>(roomFromUrl);
   const [onlineNotice, setOnlineNotice] = useState("");
+  const [watchTarget] = useState(watchFromUrl);
   const inProgress = useRef(false);
   const [leaveTo, setLeaveTo] = useState<Route | null>(null);
   // Browser history: every in-app move pushes an entry tagged with an index, so back/forward can be
@@ -176,6 +178,12 @@ export default function App() {
             }}
           />
         )}
+        {page === "spectate" && !onlineServer && <OnlineSoon navigate={navigate} />}
+        {page === "spectate" && onlineServer && (watchTarget ? <OnlineWatch key={watchTarget.code + watchTarget.key} server={onlineServer} code={watchTarget.code} watchKey={watchTarget.key} onLeave={() => navigate("home")} /> : (
+          <p className="online-connecting" role="alert">
+            관전 링크가 올바르지 않아요.
+          </p>
+        ))}
         {page === "online-room" && onlineServer && !onlineCode && <OnlineEntry server={onlineServer} onBack={() => navigate("home")} onEnter={(code) => { setOnlineCode(code); enter("online-room"); }} />}
         {page === "play-setup" && <AiSetupScreen onBack={() => navigate("offline")} onStart={() => go("play")} />}
         {page === "pvp-setup" && <LocalSetupScreen onBack={() => navigate("offline")} onStart={() => go("pvp")} />}

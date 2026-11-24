@@ -5,7 +5,7 @@
  * The tier is a structural boundary only (lab screens live in src/lab and load lazily) so they
  * could become an optional plan later. No payment, subscription or access control exists.
  */
-export type Route = "home" | "offline" | "online" | "online-room" | "play-setup" | "pvp-setup" | "play" | "pvp" | "records" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab";
+export type Route = "home" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "records" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab";
 export type Shell = "lobby" | "game" | "lab" | "page";
 
 export const routes: Record<Route, { title: string; shell: Shell; tier: "core" | "lab" }> = {
@@ -13,6 +13,7 @@ export const routes: Record<Route, { title: string; shell: Shell; tier: "core" |
   offline: { title: "오프라인 대전", shell: "page", tier: "core" },
   online: { title: "온라인 대전", shell: "page", tier: "core" },
   "online-room": { title: "온라인 대전", shell: "game", tier: "core" },
+  spectate: { title: "관전", shell: "game", tier: "core" },
   "play-setup": { title: "사람 vs AI 설정", shell: "page", tier: "core" },
   "pvp-setup": { title: "사람 vs 사람 설정", shell: "page", tier: "core" },
   play: { title: "사람 vs AI", shell: "game", tier: "core" },
@@ -31,6 +32,8 @@ export const isRoute = (value: string): value is Route => Object.prototype.hasOw
 export const currentRoute = (): Route => {
   const id = location.hash.slice(1);
   if (isRoute(id)) return id;
+  // A watch link whose #spectate was dropped still opens the spectator screen.
+  if (new URLSearchParams(location.search).get("watch")) return "spectate";
   // An invite link whose #online was dropped by a messenger still opens the online screen.
   if (/^[A-Z2-9]{6}$/i.test(new URLSearchParams(location.search).get("room") ?? "")) return "online";
   return "home";

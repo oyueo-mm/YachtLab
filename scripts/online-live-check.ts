@@ -1,6 +1,7 @@
 /**
  * Live check of a deployed YachtLab Online server (Phase 4). Uses 3 rooms in total:
- *   1) full 12-round game for two players + reconnect (since) + duplicate command + wrong turn
+ *   1) full 12-round game for two players + reconnect (since) + duplicate command + wrong turn,
+ *      then (same room) emote, refused free text, spectating, rematch with swapped first player
  *   2) seat security: bad token, full room, forged playerId, unknown code
  *   3) server-side turn timer (waits for TURN_TIMEOUT_MS, 120 s in production)
  * Usage: npx tsx scripts/online-live-check.ts https://<worker host> https://<allowed origin>
@@ -80,6 +81,45 @@ try {
   await g.a.settled();
   ok(g.a.view!.status === "finished" && JSON.stringify(g.a.view!.standings) === JSON.stringify(b2.view!.standings), "12라운드 완주·양쪽 결과 일치");
   console.log("     결과:", g.a.view!.players.map((p) => `${p.name} ${p.total}`).join(" : "));
+
+  // ---------- 1b. Phase 3 social on the same room (no extra room): chat, spectating, rematch ----------
+  const said = b2.next((m) => m.t === "said" && m.id === "emote.clap");
+  g.a.ws.send(JSON.stringify({ t: "say", id: "emote.clap" }));
+  ok(!!(await said), "이모티콘 실시간 전달");
+  const refused = g.a.next((m) => m.t === "error" && m.code === "INVALID_SOCIAL");
+  g.a.ws.send(JSON.stringify({ t: "say", id: "아무 말" }));
+  ok(!!(await refused), "임의 문자열 채팅 거부");
+  const allowA = g.a.next((m) => m.t === "spectate");
+  g.a.ws.send(JSON.stringify({ t: "spectate", allow: true }));
+  await allowA;
+  const active = g.a.next((m) => m.t === "spectate" && m.spectate.active);
+  b2.ws.send(JSON.stringify({ t: "spectate", allow: true }));
+  const key = ((await active) as Extract<ServerMessage, { t: "spectate" }>).spectate.key!;
+  const watcher = new Client(base, g.code, origin);
+  await watcher.opened();
+  const watching = watcher.next((m) => m.t === "watching");
+  watcher.ws.send(JSON.stringify({ t: "watch", key }));
+  const wv = (await watching) as Extract<ServerMessage, { t: "watching" }>;
+  ok(wv.view.you === null && wv.view.legal === null && !JSON.stringify(wv).includes(g.tokens[0]), "관전: 중립 시점·토큰 미노출");
+  const denied = watcher.next((m) => m.t === "error" && m.code === "SPECTATOR");
+  watcher.ws.send(JSON.stringify({ t: "cmd", id: "w1", action: { type: "start" } }));
+  ok(!!(await denied), "관전자 조작 거부");
+  const req = b2.next((m) => m.t === "rematch" && m.rematch.requests.length === 1);
+  g.a.ws.send(JSON.stringify({ t: "rematch", op: "request" }));
+  await req;
+  const firstMatch = g.a.view!.matchId;
+  const newMatch = g.a.next((m) => m.t === "view" && m.view.matchId !== firstMatch);
+  const watcherNew = watcher.next((m) => m.t === "view" && m.view.matchId !== firstMatch);
+  await new Promise((r) => setTimeout(r, 1100));
+  b2.ws.send(JSON.stringify({ t: "rematch", op: "request" }));
+  const nv = (await newMatch) as Extract<ServerMessage, { t: "view" }>;
+  ok(nv.view.status === "playing" && nv.view.turn!.playerId === b2.view!.you!.playerId, `재대결: 같은 방 새 경기(${nv.view.matchId}), 선공 교대`);
+  ok(!!(await watcherNew), "재대결 경기도 이어서 관전");
+  const kicked = new Promise<boolean>((resolve) => watcher.ws.once("close", (code) => resolve(code === 4003)));
+  await new Promise((r) => setTimeout(r, 300));
+  b2.ws.send(JSON.stringify({ t: "spectate", allow: false }));
+  ok(await kicked, "관전 동의 철회 시 관전자 즉시 종료");
+  ok((await b2.cmd({ type: "resign" })).ok, "새 경기 기권으로 정리");
 
   // ---------- 2. seat security ----------
   const s = await room();

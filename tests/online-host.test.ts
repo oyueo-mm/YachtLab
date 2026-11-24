@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { seededDiceSource } from "../src/online";
-import type { RoomRecord } from "../src/online/room";
+import { ROOM_LIMITS, type RoomRecord } from "../src/online/room";
 import type { ServerMessage } from "../src/online/wire";
 import { RoomHost, HELLO_TIMEOUT_MS, type HostSocket, type HostStorage } from "../worker/src/host";
 import { readConfig } from "../worker/src/config";
@@ -181,7 +181,7 @@ describe("RoomHost (Durable Object logic, runtime-free)", () => {
     host.init();
     const created = await host.create("ZXCVBN", "A");
     if (!created.ok) throw Error();
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < ROOM_LIMITS.maxConnections; i++) {
       expect(host.admit().ok).toBe(true);
       const ws = new FakeSocket();
       open.push(ws);
@@ -189,7 +189,7 @@ describe("RoomHost (Durable Object logic, runtime-free)", () => {
     }
     expect(host.admit()).toEqual({ ok: false, status: 503 });
     open.length = 0;
-    let admitted = 8;
+    let admitted = ROOM_LIMITS.maxConnections;
     while (host.admit().ok) admitted++;
     expect(admitted).toBe(20);
     expect(host.admit()).toEqual({ ok: false, status: 429 });

@@ -168,3 +168,11 @@
 상세: [소셜·계정 설계](../online/SOCIAL-AND-ACCOUNTS.md) §1–2.
 
 **근거:** src/online/room.ts, src/online/wire.ts, src/social/catalog.ts, src/play/Social.tsx, src/play/OnlineGame.tsx, worker/src/index.ts, tests/online-social.test.ts, tests/ui/online.spec.ts.
+
+## D-027. 관전은 모든 플레이어 동의 + 별도 관전 키, 읽기 전용, 방당 5명, 저장 쓰기 0 (제품 Phase 3)
+
+**상태: 신규 (2026-11-24, PR C).** 관전은 기본 꺼짐이다. 모든 좌석이 허용해야 무작위 관전 키(좌석 토큰과 별개)로 만든 링크 `?watch=CODE&k=KEY#spectate`가 동작한다. 누구든 끄면 즉시 키를 폐기하고 관전자를 끊는다(끄기에는 쿨다운 없음). 대기실에 새 플레이어가 앉아도 관전이 멈춘다. 관전 소켓은 중립 시점 뷰(`viewFor(state, null)`)만 받고 모든 조작·채팅·좌석 인증 메시지를 거부한다. 관전자 수는 방당 5명이다(송신은 DO 요청이 아니지만 공유 무료 한도를 고려해 보수적으로 정함). 관전 상태는 메모리와 소켓 첨부 데이터에만 둔다. 관전 MVP에서 관전자 채팅·감정 표현·공개 목록·리플레이는 제외했다.
+
+상세: [소셜·계정 설계](../online/SOCIAL-AND-ACCOUNTS.md) §3.
+
+**근거:** src/online/room.ts, src/online/wire.ts, src/online/client.ts, src/play/OnlineWatch.tsx, src/play/Social.tsx, worker/src/host.ts, tests/online-social.test.ts, tests/ui/online.spec.ts.

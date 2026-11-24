@@ -254,6 +254,45 @@ for (const kind of ["node", "workers"] as const) {
         await expect(a.locator(".board-top b")).toHaveText("1");
       });
 
+      test("관전: 두 플레이어 동의 후 링크로 읽기 전용 관전, 새로고침 유지, 동의 철회 시 종료·링크 무효", async ({ browser }, testInfo) => {
+        test.skip(testInfo.project.name === "mobile", "두 기기를 직접 만든다");
+        test.setTimeout(120_000);
+        const { a, b } = await createAndJoin(browser);
+        await a.getByRole("button", { name: "관전 설정" }).click();
+        await a.getByRole("switch").check();
+        await expect(a.getByText("상대도 관전을 허용하면 관전 링크가 만들어져요.")).toBeVisible();
+        await b.getByRole("button", { name: "관전 설정" }).click();
+        await b.getByRole("switch").check();
+        const link = await a.getByLabel("관전 링크").inputValue();
+        expect(link).toContain("watch=");
+        expect(link).not.toContain("room=");
+        await a.keyboard.press("Escape");
+        await a.locator("h1").click();
+        await a.getByRole("button", { name: "게임 시작" }).click();
+        const w = await device(browser, "phone");
+        await w.goto(link);
+        await expect(w.getByText(/관전 중/)).toBeVisible();
+        await expect(w.locator(".score-summary")).toContainText("민수");
+        await expect(w.locator(".score-summary")).toContainText("지민");
+        // read-only: no roll button, no score options, no chat button
+        await expect(w.locator(".roll-button")).toHaveCount(0);
+        await expect(w.locator(".score-option")).toHaveCount(0);
+        await expect(w.getByRole("button", { name: "채팅·이모티콘" })).toHaveCount(0);
+        await a.locator(".roll-button").click();
+        await expect(w.locator(".board-top b")).toHaveText("1");
+        const dice = async (p: Page) => p.locator(".die-button").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")!.split(", ")[1]).sort());
+        await expect.poll(() => dice(w)).toEqual(await dice(a));
+        await w.reload();
+        await expect(w.locator(".board-top b")).toHaveText("1");
+        await expect(a.getByRole("button", { name: "관전 설정" })).toContainText("관전 1");
+        // b withdraws consent: the spectator is disconnected and the old link stops working
+        await b.getByRole("button", { name: "관전 설정" }).click();
+        await b.getByRole("switch").uncheck();
+        await expect(w.getByText(/관전이 종료되었어요/)).toBeVisible();
+        await w.goto(link);
+        await expect(w.getByText(/관전이 종료되었어요/)).toBeVisible();
+      });
+
       test("새로고침·재접속·연결 끊김 후에도 같은 좌석으로 돌아와 경기를 이어간다", async ({
         browser,
       }, testInfo) => {

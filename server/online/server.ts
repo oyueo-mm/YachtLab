@@ -258,7 +258,7 @@ export async function startOnlineServer(options: OnlineServerOptions = {}): Prom
     if (!room.connect(conn)) return;
     // Unauthenticated sockets are dropped quickly.
     const helloTimer = setTimeout(() => {
-      if (!conn.playerId) ws.close(4001, "hello timeout");
+      if (!conn.playerId && !conn.spectator) ws.close(4001, "hello timeout");
     }, 10_000);
     ws.on("message", (data, isBinary) => {
       if (isBinary) return ws.close(1003, "text only");
