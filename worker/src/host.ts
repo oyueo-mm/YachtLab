@@ -2,6 +2,7 @@ import { OnlineRoom, ROOM_LIMITS, type JoinResult, type RoomConnection, type Roo
 import type { DiceSource } from "../../src/online/dice-source";
 import type { HoldState, RoomSummary, ServerMessage } from "../../src/online/wire";
 import type { SocialBucket } from "../../src/social/catalog";
+import type { MatchRecord } from "../../src/identity/records";
 import type { OnlineConfig } from "./config";
 
 /**
@@ -53,7 +54,10 @@ export type HostEvents = {
   onDeleted?: (code: string) => void | Promise<void>;
   /** A rematch wants to start: null = allowed (and counted), otherwise the reason it is not. */
   allowMatch?: (code: string) => Promise<string | null> | string | null;
+  /** Deliver a server-verified result to an account; true when stored (or already there). */
+  deliverRecord?: (userId: string, record: MatchRecord) => Promise<boolean>;
 };
+export const RECORD_RETRY_MS = 60_000;
 
 export class RoomHost {
   room: OnlineRoom | null = null;
@@ -99,6 +103,8 @@ export class RoomHost {
     const record = this.storage.load();
     if (!record) return;
     this.room = OnlineRoom.restore(record, this.deps());
+    // Results that could not be delivered before the eviction are retried soon.
+    if (this.room.pendingRecords().length) this.retryAt = this.now() + 5_000;
     for (const ws of this.open()) {
       this.room.adopt(this.wrap(ws));
       // The newest hold order any socket still carries (stale ones are rejected by the room).
@@ -112,10 +118,10 @@ export class RoomHost {
   }
 
   /** First seat of a brand-new room (called once by the Worker after the directory allocated the code). */
-  async create(code: string, name: unknown): Promise<JoinResult> {
+  async create(code: string, name: unknown, identity?: { userId: string } | null): Promise<JoinResult> {
     if (this.room) return { ok: false, status: 409, error: { code: "ROOM_CLOSED", message: "이미 사용 중인 방 코드입니다." } };
     const room = OnlineRoom.create(code, this.deps(), { turnTimeoutMs: this.config.turnTimeoutMs });
-    const joined = await room.join(name);
+    const joined = await room.join(name, identity);
     if (joined.ok) {
       this.room = room;
       this.rearm();
@@ -123,9 +129,33 @@ export class RoomHost {
     return joined;
   }
 
-  join(name: unknown): Promise<JoinResult> | JoinResult {
+  join(name: unknown, identity?: { userId: string } | null): Promise<JoinResult> | JoinResult {
     if (!this.room || this.deleted) return { ok: false, status: 404, error: { code: "ROOM_CLOSED", message: "방을 찾을 수 없어요. 초대 코드를 확인해 주세요." } };
-    return this.room.join(name);
+    return this.room.join(name, identity);
+  }
+
+  private delivering = false;
+  private retryAt: number | null = null;
+  /**
+   * Send finished-match results to the players' accounts. Each account store ignores a record it
+   * already has (matchId), so retries after a crash or a lost reply never count a match twice.
+   */
+  async flushRecords() {
+    const room = this.room;
+    if (!room || this.delivering || !this.events.deliverRecord) return;
+    const pending = room.pendingRecords();
+    if (!pending.length) return void (this.retryAt = null);
+    this.delivering = true;
+    try {
+      for (const { userId, record } of pending) {
+        const ok = await this.events.deliverRecord(userId, record).catch(() => false);
+        if (ok) room.markDelivered(userId, record.recordId);
+      }
+    } finally {
+      this.delivering = false;
+    }
+    this.retryAt = room.pendingRecords().length ? this.now() + RECORD_RETRY_MS : null;
+    this.rearm();
   }
 
   summary(): RoomSummary | null {
@@ -197,7 +227,9 @@ export class RoomHost {
     if (!this.room || this.deleted) return conn.close(4004, "room closed");
     if (typeof data !== "string") return conn.close(1003, "text only");
     await this.room.message(conn, data);
+    await this.flushRecords();
     // Everyone left the lobby: the room is over, remove its data now.
+    if (!this.room || this.deleted) return;
     if (this.room.isClosed) return this.remove();
     // A message may have advanced other sockets (broadcast): remember all of them.
     for (const s of this.open()) this.remember(s);
@@ -208,6 +240,8 @@ export class RoomHost {
   private async remove() {
     const room = this.room;
     if (!room || this.deleted) return;
+    // Last attempt to hand results to accounts before the room's data is deleted.
+    await this.flushRecords();
     this.deleted = true;
     room.closeRoom();
     this.storage.deleteAlarm();
@@ -260,7 +294,7 @@ export class RoomHost {
    */
   private rearm() {
     if (this.deleted) return;
-    const candidates = [this.room?.match.status === "playing" ? this.turnDeadline : null, this.helloDeadline(), this.cleanupAt()].filter((x): x is number => x !== null);
+    const candidates = [this.room?.match.status === "playing" ? this.turnDeadline : null, this.helloDeadline(), this.cleanupAt(), this.retryAt].filter((x): x is number => x !== null);
     if (!candidates.length) return;
     const next = Math.min(...candidates);
     if (this.alarmAt !== null && this.alarmAt <= next) return;
@@ -275,6 +309,7 @@ export class RoomHost {
     if (!room || this.deleted) return;
     const t = this.now();
     await room.alarm();
+    await this.flushRecords();
     for (const s of this.open()) {
       const c = this.conns.get(s) ?? this.wrap(s);
       if (!c.playerId && !c.spectator && t >= (c as RoomConnection & { openedAt: number }).openedAt + HELLO_TIMEOUT_MS) c.close(4001, "hello timeout");

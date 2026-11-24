@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Copy, Crown, Dices, Flag, Home, LogOut, Play, RotateCcw, Share2, Trophy, Wifi, WifiOff, X } from "lucide-react";
+import { ArrowRight, Copy, Crown, Dices, Flag, Home, LogOut, Play, RotateCcw, Share2, Trophy, UserRound, Wifi, WifiOff, X } from "lucide-react";
 import { names, type Category, type Game } from "../engine";
 import { DiceArea } from "../DiceArea";
 import { Scoreboard } from "../Scoreboard";
@@ -20,6 +20,9 @@ import type { OnlineAction } from "../online/protocol";
 import type { PlayerView } from "../online/server-engine";
 import type { RematchState, SeriesSummary, SpectateState } from "../online/wire";
 import { ChipBubble, SocialPanel, SpectateControl, useBubbles } from "./Social";
+import { saveLocalRecord } from "../identity/local";
+import { RULES_ID } from "../identity/records";
+import { publicProfile, type PublicProfile } from "../identity/account-client";
 
 /** Every screen shows the dice in the same row order (no local drag reordering online). */
 const ROW = [0, 1, 2, 3, 4];
@@ -33,6 +36,34 @@ const clock = (ms: number) => {
  * score sheet). Everything shown comes from server-confirmed state; the only local state is the
  * hold selection before a roll (sent with the roll, and as a live preview to the opponent).
  */
+/**
+ * This device's copy of a finished online match (profile on this device / guests). The account copy
+ * is written by the server itself (server-verified); this one is client-reported. Idempotent by matchId.
+ */
+function recordOnDevice(view: PlayerView, me: string) {
+  const mine = view.players.find((p) => p.playerId === me);
+  const other = view.players.find((p) => p.playerId !== me);
+  if (!mine || !other) return;
+  const started = view.events.find((e) => e.type === "matchStarted")?.at;
+  const finished = view.events.find((e) => e.type === "matchFinished")?.at;
+  const forfeit = [...view.events].reverse().find((e) => e.type === "playerForfeited");
+  saveLocalRecord({
+    recordId: view.matchId,
+    mode: "online",
+    rules: RULES_ID,
+    source: "device",
+    verification: "client-reported",
+    startedAt: started ?? finished ?? Date.now(),
+    endedAt: finished ?? Date.now(),
+    name: mine.name,
+    score: mine.total,
+    card: { ...mine.card },
+    outcome: view.winners.length !== 1 ? "draw" : view.winners[0] === me ? "win" : "loss",
+    endReason: forfeit && forfeit.type === "playerForfeited" ? forfeit.reason : "completed",
+    opponent: { name: other.name, kind: "guest", score: other.total },
+  });
+}
+
 export default function OnlineGame({ server, code, onLeave, onProgress }: { server: string; code: string; onLeave: (message?: string) => void; onProgress?: (inProgress: boolean) => void }) {
   const seat = useMemo(() => savedSeat(code), [code]);
   const [view, setView] = useState<PlayerView | null>(null);
@@ -67,6 +98,8 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const [rematch, setRematch] = useState<RematchState | null>(null);
   const [series, setSeries] = useState<SeriesSummary | null>(null);
   const [spectate, setSpectate] = useState<SpectateState | null>(null);
+  const [members, setMembers] = useState<Record<string, string>>({});
+  const [profileOf, setProfileOf] = useState<string | null>(null);
 
   useEffect(() => {
     if (!seat) {
@@ -141,6 +174,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           return ordered;
         });
         if (next.turn?.dice.length) lastDice.current = next.turn.dice;
+        if (next.status === "finished" && me && next.standings) recordOnDevice(next, me);
         viewRef.current = next;
         setView(next);
         setDeadline(next.turn?.remainingMs != null ? Date.now() + next.turn.remainingMs : null);
@@ -162,6 +196,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         social.show(from, id);
       },
       onSpectate: setSpectate,
+      onMembers: setMembers,
       onRematch(r, sr) {
         setRematch(r);
         setSeries(sr);
@@ -476,6 +511,11 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                     이 방 전적 {series.wins[me.playerId] ?? 0}승 {series.wins[opponent.playerId] ?? 0}패{series.draws ? ` ${series.draws}무` : ""}
                   </p>
                 )}
+                {opponent && members[opponent.playerId] && (
+                  <button type="button" className="text-button" onClick={() => setProfileOf(members[opponent.playerId])}>
+                    <UserRound size={15} /> {opponent.name} 님 프로필
+                  </button>
+                )}
                 <RematchControls rematch={rematch} me={me?.playerId ?? ""} opponentName={opponent?.name ?? "상대"} onOp={(op) => conn.current?.rematch(op)} />
                 <div className="game-result-actions">
                   <button
@@ -519,6 +559,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         </div>
         <Scoreboard state={game} labels={labels} selectPlayer={meIndex} select={can ? record : undefined} />
       </div>
+      {profileOf && <OpponentProfile server={server} userId={profileOf} onClose={() => setProfileOf(null)} />}
       <ConfirmDialog
         open={!!confirm}
         title={confirm?.title ?? ""}
@@ -592,6 +633,40 @@ function RematchControls({ rematch, me, opponentName, onOp }: { rematch: Rematch
           </button>
         </>
       )}
+    </div>
+  );
+}
+
+/** An opponent's public profile: nickname, join month and server-verified online totals only. */
+function OpponentProfile({ server, userId, onClose }: { server: string; userId: string; onClose: () => void }) {
+  const [p, setP] = useState<PublicProfile | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    publicProfile(server, userId)
+      .then(setP)
+      .catch((e) => setError(e.message));
+  }, [server, userId]);
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <div className="modal opponent-profile" role="dialog" aria-label="상대 프로필" onClick={(e) => e.stopPropagation()}>
+        {error ? (
+          <p>{error}</p>
+        ) : !p ? (
+          <p>불러오는 중…</p>
+        ) : (
+          <>
+            <h2>{p.nickname}</h2>
+            <p className="profile-fine">{new Date(p.joinedAt).toLocaleDateString("ko-KR", { year: "numeric", month: "long" })} 가입 · 서버가 확인한 온라인 경기 기준</p>
+            <p>
+              {p.online.games}경기 · {p.online.wins}승 {p.online.losses}패{p.online.draws ? ` ${p.online.draws}무` : ""}
+              {p.online.best !== null ? ` · 최고 ${p.online.best}점` : ""}
+            </p>
+          </>
+        )}
+        <button type="button" className="secondary" onClick={onClose}>
+          닫기
+        </button>
+      </div>
     </div>
   );
 }

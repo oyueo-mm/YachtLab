@@ -278,3 +278,79 @@ describe("RoomHost (Durable Object logic, runtime-free)", () => {
     expect(host.room!.adoptHold({ hold: { playerId: created.playerId, keep: [1], n: 9 }, v: 0 })).toBe(false);
   });
 });
+
+describe("회원 좌석의 서버 검증 경기 기록 (Phase 4)", () => {
+  it("경기 종료 시 회원마다 server-verified 기록 1건, 전달 실패는 알람으로 재시도, 재대결은 새 기록, 중복 집계 없음", async () => {
+    let t = 5_000_000;
+    const { storage } = fakeStorage();
+    const open: FakeSocket[] = [];
+    const delivered: { userId: string; recordId: string; outcome: string; kind: string; verification: string }[] = [];
+    let failNext = true;
+    const host = new RoomHost(storage, () => open, config, () => t, seededDiceSource(21), {
+      deliverRecord: async (userId, record) => {
+        if (failNext) {
+          failNext = false;
+          return false; // the account store was unreachable once
+        }
+        if (!delivered.some((d) => d.userId === userId && d.recordId === record.recordId))
+          delivered.push({ userId, recordId: record.recordId, outcome: record.outcome, kind: record.opponent.kind, verification: record.verification });
+        return true;
+      },
+    });
+    host.init();
+    const A = "u_" + "A".repeat(22);
+    const created = await host.create("RECRDS", "민수", { userId: A });
+    const joined = await host.join("지민"); // a guest
+    if (!created.ok || !joined.ok) throw Error();
+    const [a, b] = [new FakeSocket(), new FakeSocket()];
+    for (const ws of [a, b]) {
+      host.admit();
+      open.push(ws);
+      host.accepted(ws);
+    }
+    await host.message(a, JSON.stringify({ t: "hello", token: created.token }));
+    await host.message(b, JSON.stringify({ t: "hello", token: joined.token }));
+    expect(b.last("welcome")!.members).toEqual({ [created.playerId]: A }); // opponent can open the member's public profile
+    let n = 0;
+    const play = async () => {
+      for (let i = 0; i < 40 && host.room!.match.status === "playing"; i++) {
+        const turn = host.room!.match.turn!;
+        const ws = turn.playerId === created.playerId ? a : b;
+        t += 10;
+        await host.message(ws, JSON.stringify({ t: "cmd", id: "x" + ++n, action: { type: "roll", keep: [] } }));
+        const me = host.room!.match.players.find((p) => p.playerId === turn.playerId)!;
+        const cat = (["aces", "deuces", "threes", "fours", "fives", "sixes", "choice", "four", "full", "small", "large", "yacht"] as const).find((c) => me.card[c] === undefined);
+        await host.message(ws, JSON.stringify({ t: "cmd", id: "x" + ++n, action: { type: "score", category: cat } }));
+      }
+    };
+    await host.message(a, JSON.stringify({ t: "cmd", id: "start", action: { type: "start" } }));
+    const first = host.room!.match.matchId;
+    await play();
+    expect(delivered).toHaveLength(0); // first delivery failed
+    expect(host.room!.pendingRecords()).toHaveLength(1); // only the member seat gets an account record
+    t += 61_000;
+    await host.alarm();
+    expect(delivered).toEqual([{ userId: A, recordId: first, outcome: expect.any(String), kind: "guest", verification: "server-verified" }]);
+    expect(host.room!.pendingRecords()).toHaveLength(0);
+    t += 2000;
+    await host.message(a, JSON.stringify({ t: "rematch", op: "request" }));
+    t += 2000;
+    await host.message(b, JSON.stringify({ t: "rematch", op: "request" }));
+    const second = host.room!.match.matchId;
+    expect(second).not.toBe(first);
+    await play();
+    expect(delivered.map((d) => d.recordId)).toEqual([first, second]);
+  });
+
+  it("세션 없이 들어온 좌석은 회원으로 기록되지 않고, 같은 계정은 한 방에 두 좌석을 가질 수 없다", async () => {
+    const { storage } = fakeStorage();
+    const host = new RoomHost(storage, () => [], config, () => 1, seededDiceSource(2));
+    host.init();
+    const A = "u_" + "B".repeat(22);
+    expect((await host.create("NQRDS2", "하나", { userId: A })).ok).toBe(true);
+    const dup = await host.join("둘", { userId: A });
+    expect(dup.ok).toBe(false);
+    expect((await host.join("둘")).ok).toBe(true);
+    expect(Object.values(host.room!.members())).toEqual([A]);
+  });
+});

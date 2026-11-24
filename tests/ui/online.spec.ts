@@ -293,6 +293,52 @@ for (const kind of ["node", "workers"] as const) {
         await expect(w.getByText(/관전이 종료되었어요/)).toBeVisible();
       });
 
+      test("통합: 초대·관전·채팅·12라운드(중간 새로고침)·종료·기기 기록·재대결·두 번째 경기 기록 분리", async ({ browser }, testInfo) => {
+        test.skip(testInfo.project.name === "mobile", "세 기기를 직접 만든다");
+        test.setTimeout(240_000);
+        const { a, b } = await createAndJoin(browser);
+        for (const p of [a, b]) {
+          await p.getByRole("button", { name: "관전 설정" }).click();
+          await p.getByRole("switch").check();
+        }
+        const link = await b.getByLabel("관전 링크").inputValue();
+        for (const p of [a, b]) await p.keyboard.press("Escape");
+        await a.locator("h1").click();
+        await a.getByRole("button", { name: "게임 시작" }).click();
+        const w = await device(browser, "phone");
+        await w.goto(link);
+        await expect(w.getByText(/관전 중/)).toBeVisible();
+        await a.getByRole("button", { name: "채팅·이모티콘" }).click();
+        await a.getByRole("button", { name: "잘 부탁해요!" }).click();
+        await expect(b.locator(".chip-bubble")).toHaveText("잘 부탁해요!");
+        await expect(w.locator(".chip-bubble")).toHaveText("잘 부탁해요!");
+        for (let turn = 0; turn < 24; turn++) {
+          if (turn === 7) {
+            await b.reload();
+            await expect(b.locator(".score-summary")).toBeVisible();
+          }
+          await playTurn([a, b]);
+        }
+        for (const p of [a, b, w]) await expect(p.locator(".game-result")).toBeVisible();
+        const records = (p: Page) => p.evaluate(() => JSON.parse(localStorage.getItem("yachtlab.records.v1") ?? "[]") as { recordId: string; mode: string; verification: string; score: number }[]);
+        const first = await records(a);
+        expect(first).toHaveLength(1);
+        expect(first[0]).toMatchObject({ mode: "online", verification: "client-reported" });
+        expect((await records(b))[0].recordId).toBe(first[0].recordId);
+        await a.getByRole("button", { name: "재대결", exact: true }).click();
+        await b.getByRole("button", { name: "수락" }).click();
+        await expect(b.locator(".turn-indicator")).toContainText("나의 차례");
+        await expect(w.locator(".game-result")).toHaveCount(0);
+        for (let turn = 0; turn < 24; turn++) await playTurn([a, b]);
+        for (const p of [a, b, w]) await expect(p.locator(".game-result")).toBeVisible();
+        const second = await records(a);
+        expect(second).toHaveLength(2);
+        expect(second[0].recordId).not.toBe(second[1].recordId);
+        await expect(a.locator(".online-series")).toContainText("이 방 전적");
+        await a.goto("#profile");
+        await expect(a.locator(".profile-recent li")).toHaveCount(2);
+      });
+
       test("새로고침·재접속·연결 끊김 후에도 같은 좌석으로 돌아와 경기를 이어간다", async ({
         browser,
       }, testInfo) => {
@@ -546,7 +592,11 @@ for (const kind of ["node", "workers"] as const) {
         const code = (await a.getByLabel("초대 코드").textContent())!.trim();
         await b.goto(entry(code));
         expect(await fits(b)).toBe(true);
-        await b.getByLabel("닉네임").fill("ABCDEFGHIJKLMNOPQRSTUVWX");
+        // Nickname policy: 12 user-perceived characters at most (server-checked), widest Latin name fits.
+        await b.getByLabel("닉네임").fill("ABCDEFGHIJKLM");
+        await b.getByRole("button", { name: "입장하기" }).click();
+        await expect(b.getByText("닉네임은 12자까지 쓸 수 있어요.")).toBeVisible();
+        await b.getByLabel("닉네임").fill("WWWWWWWWWWWW");
         await b.getByRole("button", { name: "입장하기" }).click();
         await a.getByRole("button", { name: "게임 시작" }).click();
         await expect(b.locator(".roll-button")).toBeVisible();

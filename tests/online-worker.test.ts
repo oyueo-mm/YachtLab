@@ -225,4 +225,21 @@ describe("Online Phase 3 — Workers + SQLite Durable Objects (wrangler dev, loc
     await new Promise((res) => setTimeout(res, 300));
     expect(r.a.closed?.code).toBe(1008);
   }, 60_000);
+
+  it("Phase 4: 로그인 설정이 없으면 계정 API는 꺼져 있고(성공한 척 없음) 방 생성·입장은 그대로 동작한다", async () => {
+    const cfg = await fetch(main.url + "/api/auth/config");
+    expect(await cfg.json()).toEqual({ google: false });
+    const start = await fetch(main.url + "/auth/google/start?cs=" + "a".repeat(43), { redirect: "manual" });
+    expect(start.status).toBe(404);
+    const me = await fetch(main.url + "/api/me", { headers: { authorization: "Bearer s1.u_" + "a".repeat(22) + "." + "b".repeat(43) } });
+    expect(me.status).toBe(404);
+    // A forged session header on room join is ignored: the seat is simply a guest seat.
+    const created = await fetch(main.url + "/api/rooms", { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer s1.u_" + "a".repeat(22) + "." + "b".repeat(43) }, body: JSON.stringify({ name: "손님" }) });
+    expect(created.status).toBe(201);
+    // CORS preflight for signed-in calls allows the authorization header only for allowed origins.
+    const pre = await fetch(main.url + "/api/rooms", { method: "OPTIONS", headers: { origin: "http://127.0.0.1:5173", "access-control-request-headers": "authorization" } });
+    expect(pre.headers.get("access-control-allow-headers")).toContain("authorization");
+    const evil = await fetch(main.url + "/api/me/delete", { method: "POST", headers: { origin: "https://evil.example", "content-type": "application/json" }, body: "{}" });
+    expect(evil.status).toBe(403);
+  });
 });

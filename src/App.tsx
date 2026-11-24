@@ -9,6 +9,8 @@ import HumanGame from "./play/HumanGame";
 import OnlineEntry from "./play/OnlineEntry";
 import OnlineGame from "./play/OnlineGame";
 import OnlineWatch from "./play/OnlineWatch";
+import Profile from "./shell/Profile";
+import { completeSignIn } from "./identity/account-client";
 import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl } from "./online/client";
 import { currentRoute, routes, type Route } from "./routes";
 import { LabNav, SettingsDialog, TopBar } from "./shell/Chrome";
@@ -45,6 +47,16 @@ export default function App() {
   const [onlineCode, setOnlineCode] = useState<string | null>(roomFromUrl);
   const [onlineNotice, setOnlineNotice] = useState("");
   const [watchTarget] = useState(watchFromUrl);
+  const [profileNotice, setProfileNotice] = useState("");
+  // Coming back from Google sign-in (#login=… / #login-error=…): finish it, then show the profile.
+  useEffect(() => {
+    void completeSignIn(onlineServer).then((r) => {
+      if (!r) return;
+      setProfileNotice(r.message);
+      enter("profile");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const inProgress = useRef(false);
   const [leaveTo, setLeaveTo] = useState<Route | null>(null);
   // Browser history: every in-app move pushes an entry tagged with an index, so back/forward can be
@@ -178,6 +190,7 @@ export default function App() {
             }}
           />
         )}
+        {page === "profile" && <Profile key={profileNotice} server={onlineServer} notice={profileNotice} />}
         {page === "spectate" && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "spectate" && onlineServer && (watchTarget ? <OnlineWatch key={watchTarget.code + watchTarget.key} server={onlineServer} code={watchTarget.code} watchKey={watchTarget.key} onLeave={() => navigate("home")} /> : (
           <p className="online-connecting" role="alert">

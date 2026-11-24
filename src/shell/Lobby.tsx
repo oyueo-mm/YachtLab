@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, Dices, Globe, Smartphone, UsersRound } from "lucide-react";
+import { ArrowRight, Bot, Dices, Globe, Smartphone, UserRound, UsersRound } from "lucide-react";
 import { DieIcon } from "../Dice";
 import type { Route } from "../routes";
 
@@ -43,6 +43,9 @@ export function Lobby({ navigate }: { navigate: Go }) {
           <ArrowRight className="mode-arrow" size={20} aria-hidden="true" />
         </button>
       </div>
+      <button type="button" className="text-button lobby-profile" onClick={() => navigate("profile")}>
+        <UserRound size={16} /> 내 프로필 · 전적
+      </button>
     </section>
   );
 }

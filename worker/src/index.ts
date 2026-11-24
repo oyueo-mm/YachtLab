@@ -2,6 +2,9 @@ import { DurableObject } from "cloudflare:workers";
 import { newRoomCode, normalizeCode, ROOM_LIMITS, type RoomRecord } from "../../src/online/room";
 import { readConfig, type ConfigVars, type OnlineConfig } from "./config";
 import { RoomHost, type HostSocket, type HostStorage } from "./host";
+import { AccountStore, type Sql } from "./account";
+import { authConfig, handleAccountRoute, sessionUser, type AccountBackends, type GuestApi, type UserApi } from "./accounts-api";
+import type { MatchRecord } from "../../src/identity/records";
 
 /**
  * YachtLab Online — Cloudflare Worker + SQLite-backed Durable Objects (Phase 3).
@@ -16,6 +19,15 @@ import { RoomHost, type HostSocket, type HostStorage } from "./host";
 export interface Env extends ConfigVars {
   ROOMS: DurableObjectNamespace<YachtRoom>;
   DIRECTORY: DurableObjectNamespace<RoomDirectory>;
+  /** One SQLite object per account (Phase 4). */
+  USERS: DurableObjectNamespace<UserStore>;
+  /** One tiny object per linked guest id: which account claimed it. */
+  GUESTS: DurableObjectNamespace<GuestLink>;
+  /** Sign-in (all four must be set, as Worker secrets / vars, or sign-in stays off). */
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  AUTH_SECRET?: string;
+  APP_URL?: string;
 }
 
 const MAX_BODY = 1024;
@@ -51,6 +63,7 @@ export class YachtRoom extends DurableObject<Env> {
         await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).release(code);
       },
       // Rematches reuse this room but still count toward the daily cap (one directory row write).
+      deliverRecord: async (userId, record) => env.USERS.get(env.USERS.idFromName(userId)).recordMatch(record),
       allowMatch: async () => {
         const verdict = await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).allocateMatch();
         return verdict.ok ? null : verdict.message;
@@ -68,11 +81,12 @@ export class YachtRoom extends DurableObject<Env> {
   }
 
   /* RPC from the Worker */
-  async create(code: string, name: unknown) {
-    return this.host.create(code, name);
+  /** `identity` is set only by the Worker after verifying the session (never taken from the client body). */
+  async create(code: string, name: unknown, identity?: { userId: string } | null) {
+    return this.host.create(code, name, identity);
   }
-  async join(name: unknown) {
-    return this.host.join(name);
+  async join(name: unknown, identity?: { userId: string } | null) {
+    return this.host.join(name, identity);
   }
   async summary() {
     return this.host.summary();
@@ -188,6 +202,11 @@ export class RoomDirectory extends DurableObject<Env> {
     return { ok: true };
   }
 
+  /** Generic in-memory rate limit for account routes (no storage writes). */
+  async hit(key: string, perMinute: number): Promise<boolean> {
+    return this.limited(key, perMinute);
+  }
+
   async release(code: string) {
     this.sql.exec("DELETE FROM rooms WHERE code = ?", code);
   }
@@ -209,6 +228,85 @@ export class RoomDirectory extends DurableObject<Env> {
     this.sql.exec("DELETE FROM rooms WHERE created_at < ?", now - this.config.maxAgeMs - 3600_000);
     this.sql.exec("DELETE FROM daily WHERE day < ?", Math.floor(now / 86_400_000) - 2);
     await this.ctx.storage.setAlarm(now + 6 * 3600_000);
+  }
+}
+
+
+/* ---------------------------------------------------------------- accounts ---------------------------------------------------------------- */
+
+/** One account (Phase 4): profile, hashed sessions, match records. Addressed by `idFromName(userId)`. */
+export class UserStore extends DurableObject<Env> implements UserApi {
+  private store: AccountStore;
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    this.store = new AccountStore(ctx.storage.sql as unknown as Sql);
+    ctx.blockConcurrencyWhile(async () => this.store.init());
+  }
+  async ensureAndCode(userId: string, provider: string, clientStateHash: string) {
+    this.store.ensureUser(userId, provider, Date.now());
+    return this.store.createLoginCode(clientStateHash, Date.now());
+  }
+  async exchange(code: string, clientState: string) {
+    return this.store.exchange(code, clientState, Date.now());
+  }
+  async authenticate(session: string) {
+    return this.store.authenticate(session, Date.now());
+  }
+  async me() {
+    return this.store.profile();
+  }
+  async records(limit: number) {
+    return this.store.records(limit);
+  }
+  async setNickname(nickname: unknown) {
+    return this.store.setNickname(nickname, Date.now());
+  }
+  async importRecords(records: MatchRecord[], source: "device" | "guest-import", guestId: string | null) {
+    const result = this.store.importRecords(records, source, Date.now());
+    if (guestId && !("error" in result)) this.store.linkGuest(guestId, Date.now());
+    return result;
+  }
+  async logout(session: string) {
+    await this.store.logout(session);
+  }
+  async logoutAll() {
+    this.store.logoutAll();
+  }
+  /** Delete everything this account stores; returns linked guest ids so their claims can be released. */
+  async deleteAccount() {
+    const guests = this.store.exists() ? this.store.guests() : [];
+    await this.ctx.storage.deleteAll();
+    this.store = new AccountStore(this.ctx.storage.sql as unknown as Sql);
+    this.store.init();
+    return guests;
+  }
+  async publicProfile() {
+    return this.store.publicProfile();
+  }
+  /** From a room: a server-verified result (idempotent by matchId). */
+  async recordMatch(record: MatchRecord) {
+    this.store.recordMatch(record);
+    return true;
+  }
+}
+
+/** Which account linked a guest's device records (first claim wins). Addressed by `idFromName(guestId)`. */
+export class GuestLink extends DurableObject<Env> implements GuestApi {
+  private sql: SqlStorage;
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    this.sql = ctx.storage.sql;
+    ctx.blockConcurrencyWhile(async () => void this.sql.exec("CREATE TABLE IF NOT EXISTS claim (id INTEGER PRIMARY KEY CHECK (id = 1), user_id TEXT NOT NULL, at INTEGER NOT NULL)"));
+  }
+  async claim(userId: string): Promise<"ok" | "taken"> {
+    const row = this.sql.exec<{ user_id: string }>("SELECT user_id FROM claim WHERE id = 1").toArray()[0];
+    if (row) return row.user_id === userId ? "ok" : "taken";
+    this.sql.exec("INSERT INTO claim (id, user_id, at) VALUES (1, ?, ?)", userId, Date.now());
+    return "ok";
+  }
+  async release(userId: string) {
+    const row = this.sql.exec<{ user_id: string }>("SELECT user_id FROM claim WHERE id = 1").toArray()[0];
+    if (row?.user_id === userId) await this.ctx.storage.deleteAll();
   }
 }
 
@@ -255,7 +353,7 @@ export default {
         headers: {
           ...(allowed ? { "access-control-allow-origin": allowed, vary: "Origin" } : {}),
           "access-control-allow-methods": "GET, POST",
-          "access-control-allow-headers": "content-type",
+          "access-control-allow-headers": "content-type, authorization",
           "access-control-max-age": "600",
         },
       });
@@ -263,6 +361,20 @@ export default {
     if (url.pathname === "/healthz") return json(200, { ok: true }, allowed);
     if (url.pathname === "/usage" && request.method === "GET") return json(200, await directory.usage(), allowed);
     const roomStub = (code: string) => env.ROOMS.get(env.ROOMS.idFromName(code));
+    const auth = authConfig(env);
+    const backends: AccountBackends = {
+      user: (id) => env.USERS.get(env.USERS.idFromName(id)) as unknown as UserApi,
+      guest: (id) => env.GUESTS.get(env.GUESTS.idFromName(id)) as unknown as GuestApi,
+      limited: (key, perMinute) => directory.hit(key, perMinute),
+      fetcher: (input, init) => fetch(input, init),
+      now: Date.now,
+    };
+    /** Signed-in identity for a seat (an invalid or expired session simply plays as a guest). */
+    const seatIdentity = async () => {
+      if (!auth) return null;
+      const user = await sessionUser(request, backends);
+      return user ? { userId: user.userId } : null;
+    };
 
     try {
       // WebSocket: /ws/:code — origin required, the room accepts it with the Hibernation API.
@@ -275,13 +387,19 @@ export default {
         if (!verdict.ok) return new Response(null, { status: verdict.status });
         return roomStub(code).fetch(request);
       }
+      // Account routes (Phase 4). Browser API calls need an allowed Origin; the Google redirect pages do not.
+      if (url.pathname.startsWith("/auth/") || (parts[0] === "api" && parts[1] !== "rooms")) {
+        if (url.pathname.startsWith("/api/") && !allowed && request.method !== "GET") return fail(403, "ORIGIN", "허용되지 않은 출처입니다.", null);
+        const res = await handleAccountRoute(request, url, auth, backends, await clientKey(request), (status, body) => json(status, body, allowed));
+        if (res) return res;
+      }
       if (parts[0] !== "api" || parts[1] !== "rooms") return fail(404, "NOT_FOUND", "없는 주소입니다.", allowed);
 
       if (request.method === "POST" && parts.length === 2) {
         const name = await readName(request);
         const slot = await directory.allocate(await clientKey(request));
         if (!slot.ok) return fail(slot.status, slot.code, slot.message, allowed);
-        const joined = await roomStub(slot.code!).create(slot.code!, name);
+        const joined = await roomStub(slot.code!).create(slot.code!, name, await seatIdentity());
         if (!joined.ok) {
           await directory.release(slot.code!);
           return fail(joined.status, joined.error.code, joined.error.message, allowed);
@@ -302,7 +420,7 @@ export default {
         const summary = await room.summary();
         return summary ? json(200, summary, allowed) : fail(404, "ROOM_NOT_FOUND", "방을 찾을 수 없어요. 초대 코드를 확인해 주세요.", allowed);
       }
-      const joined = await room.join(name);
+      const joined = await room.join(name, await seatIdentity());
       if (!joined.ok) {
         const message = joined.error.code === "MATCH_FULL" ? "이미 두 명이 모두 들어온 방이에요." : joined.error.code === "WRONG_PHASE" ? "이미 경기가 시작된 방이에요." : joined.error.message;
         return fail(joined.status, joined.error.code, message, allowed);
@@ -310,7 +428,7 @@ export default {
       return json(201, { code, playerId: joined.playerId, token: joined.token }, allowed);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      if (msg === "too large" || error instanceof SyntaxError) return fail(400, "INVALID_COMMAND", "요청 형식이 올바르지 않습니다.", allowed);
+      if (msg === "too large" || error instanceof SyntaxError || error instanceof TypeError) return fail(400, "INVALID_COMMAND", "요청 형식이 올바르지 않습니다.", allowed);
       console.error("online worker error", msg);
       return fail(500, "SERVER", "서버 오류가 발생했어요.", allowed);
     }

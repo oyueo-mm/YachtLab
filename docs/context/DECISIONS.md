@@ -176,3 +176,17 @@
 상세: [소셜·계정 설계](../online/SOCIAL-AND-ACCOUNTS.md) §3.
 
 **근거:** src/online/room.ts, src/online/wire.ts, src/online/client.ts, src/play/OnlineWatch.tsx, src/play/Social.tsx, worker/src/host.ts, tests/online-social.test.ts, tests/ui/online.spec.ts.
+
+## D-028. 계정은 선택(가입 강제 없음), Worker OIDC(PKCE)+베어러 세션, 사용자별 SQLite DO, 기록은 출처·검증 수준 명시 (제품 Phase 4)
+
+**상태: 신규 (2026-11-24, PR D). 로그인은 시크릿 설정 전까지 꺼짐(기능 플래그).**
+- **원칙:** 닉네임만으로 모든 게임·초대·소셜 기능을 쓸 수 있다. 계정은 기록 보관·기기 간 동기화·프로필을 위한 선택 기능이다. 좌석 토큰·게스트 키·계정 세션·관전 키는 서로 다른 자격이다.
+- **인증:** Worker가 Google OIDC 코드 흐름을 처리한다(confidential client, PKCE S256, state·nonce를 봉인 1st-party 쿠키에 저장, scope `openid`만, ID 토큰 RS256/JWKS·iss·aud·exp·iat·nonce 검증). 페이지로는 탭 비밀값에 묶인 일회용 코드(URL 조각)를 돌려주고, 이를 30일 베어러 세션으로 바꾼다(github.io와 workers.dev는 다른 사이트라 서드파티 쿠키를 쓰지 않음). 자체 비밀번호는 없다. `GOOGLE_CLIENT_ID`·`GOOGLE_CLIENT_SECRET`·`AUTH_SECRET`·`APP_URL`이 모두 있어야 켜지며, 없으면 `{google:false}`를 돌려주고 성공한 척하지 않는다. 테스트는 가짜 OIDC 제공자로만 한다.
+- **저장:** 계정당 SQLite Durable Object(`UserStore`)와 게스트 ID당 `GuestLink`(첫 연결 계정)를 쓴다. 새 클라우드 리소스 없이 마이그레이션 v2로 추가했다. 이메일·이름·사진·토큰은 저장하지 않는다. 사용자 간 쿼리(랭킹)가 필요해지면 D1을 별도 승인으로 검토한다.
+- **기록 신뢰 수준:** `server/server-verified`는 방이 자기 엔진 상태로 작성하며 종료 이벤트와 같은 쓰기의 아웃박스에 넣어 matchId로 멱등 전달·재시도한다. `device/client-reported`(기기 업로드)와 `guest-import/client-reported`(게스트 이전)는 서버가 다시 검사하고 절대 승격하지 않는다. 공개 프로필과 향후 레이팅·코인·업적은 server-verified만 쓴다.
+- **닉네임:** grapheme 1~12자, UTF-8 48바이트, 제어·형식·HTML 문자 금지, 사칭·소수 욕설 차단. 서버·브라우저 공용이며 온라인 방 입장에도 적용한다.
+- **삭제·보존:** 계정 삭제 시 계정 DO 전체를 지우고 게스트 연결을 해제한다. 세션 30일, 로그인 코드 2분, 기록은 삭제 요청 시까지 보존한다.
+
+상세·비용·외부 설정: [소셜·계정 설계](../online/SOCIAL-AND-ACCOUNTS.md) §4–6.
+
+**근거:** src/identity/, worker/src/oidc.ts, worker/src/account.ts, worker/src/accounts-api.ts, worker/src/index.ts, worker/wrangler.toml, src/online/room.ts, worker/src/host.ts, src/shell/Profile.tsx, tests/accounts.test.ts, tests/online-host.test.ts, tests/online-worker.test.ts, tests/ui/profile.spec.ts.
