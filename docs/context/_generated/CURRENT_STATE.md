@@ -100,16 +100,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [c51ddbb](https://github.com/oyueo-mm/YachtLab/commit/c51ddbb) | 2026-11-24 | Merge PR #53: 게스트·닉네임·프로필·서버 검증 경기 기록·Google 로그인(설정 전 꺼짐) (제품 Phase 4) |
 | [db14bee](https://github.com/oyueo-mm/YachtLab/commit/db14bee) | 2026-11-24 | Merge PR #52: 실시간 관전 — 전원 동의·별도 관전 키·읽기 전용 (제품 Phase 3) |
+| [0845890](https://github.com/oyueo-mm/YachtLab/commit/0845890) | 2026-11-24 | test(live): check the account API answers (sign-in on/off) on the deployed server |
+| [bd9b94e](https://github.com/oyueo-mm/YachtLab/commit/bd9b94e) | 2026-11-23 | test(e2e): narrow-screen online test follows the 12-character nickname policy |
 | [8dbddb5](https://github.com/oyueo-mm/YachtLab/commit/8dbddb5) | 2026-11-24 | test(live): the account check belongs to the accounts change, not spectating |
+| [6ca5d9a](https://github.com/oyueo-mm/YachtLab/commit/6ca5d9a) | 2026-11-23 | test(e2e): integrated scenario — invite, spectator, chat, 12 rounds with a reload, finish, device records, rematch, second record |
+| [115495b](https://github.com/oyueo-mm/YachtLab/commit/115495b) | 2026-11-23 | docs: accounts architecture, storage comparison, trust levels, privacy, Cloudflare usage, sign-in setup (D-028) |
+| [2272b74](https://github.com/oyueo-mm/YachtLab/commit/2272b74) | 2026-11-23 | feat(accounts): guest identity, nickname policy, profile & stats, server-verified records, Google sign-in behind config (Phase 4) |
 | [dbf4e20](https://github.com/oyueo-mm/YachtLab/commit/dbf4e20) | 2026-11-24 | Merge PR #51: 재대결·프리셋 채팅·이모티콘 (제품 Phase 3) |
 | [e855ada](https://github.com/oyueo-mm/YachtLab/commit/e855ada) | 2026-11-23 | test(live): live check covers emote, refused free text, spectating, rematch on the same room |
-| [9ab0c00](https://github.com/oyueo-mm/YachtLab/commit/9ab0c00) | 2026-11-23 | test(online): the finished match announces the room score |
-| [6848caf](https://github.com/oyueo-mm/YachtLab/commit/6848caf) | 2026-11-23 | docs: spectating permissions, limits, verification (D-027) |
-| [cf95ba5](https://github.com/oyueo-mm/YachtLab/commit/cf95ba5) | 2026-11-23 | feat(online): read-only live spectating with player consent (Phase 3) |
-| [6c298bc](https://github.com/oyueo-mm/YachtLab/commit/6c298bc) | 2026-11-23 | fix(online): send the room's running score when a match finishes (not only on rematch changes) |
-| [54c01a2](https://github.com/oyueo-mm/YachtLab/commit/54c01a2) | 2026-11-24 | Merge PR #50: 첫 굴림 최악 프레임 개선·휴대폰 한 화면 UI·효과음 v3 후보·고정 순서 유실 대응 |
-| [3bebeff](https://github.com/oyueo-mm/YachtLab/commit/3bebeff) | 2026-11-23 | docs: rematch & preset chat design, limits, verification (D-026) |
 
 ## 최근 GitHub Actions 상태
 
@@ -117,9 +117,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45296434190) | success | 8dbddb5b9f |
-| [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45296430602) | success | 8dbddb5b9f |
-| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45295760099) | success | e855ada598 |
+| [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45299396597) | success | 0845890d25 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45299155912) | success | 0845890d25 |
+| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45299154738) | success | 0845890d25 |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45288626586) | success | 35ef5dc3a7 |
 
 ## 다음 채팅과 작업의 시작점

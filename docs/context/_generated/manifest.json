@@ -111,14 +111,44 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "c51ddbb",
+      "date": "2026-11-24",
+      "subject": "Merge PR #53: 게스트·닉네임·프로필·서버 검증 경기 기록·Google 로그인(설정 전 꺼짐) (제품 Phase 4)"
+    },
+    {
       "sha": "db14bee",
       "date": "2026-11-24",
       "subject": "Merge PR #52: 실시간 관전 — 전원 동의·별도 관전 키·읽기 전용 (제품 Phase 3)"
     },
     {
+      "sha": "0845890",
+      "date": "2026-11-24",
+      "subject": "test(live): check the account API answers (sign-in on/off) on the deployed server"
+    },
+    {
+      "sha": "bd9b94e",
+      "date": "2026-11-23",
+      "subject": "test(e2e): narrow-screen online test follows the 12-character nickname policy"
+    },
+    {
       "sha": "8dbddb5",
       "date": "2026-11-24",
       "subject": "test(live): the account check belongs to the accounts change, not spectating"
+    },
+    {
+      "sha": "6ca5d9a",
+      "date": "2026-11-23",
+      "subject": "test(e2e): integrated scenario — invite, spectator, chat, 12 rounds with a reload, finish, device records, rematch, second record"
+    },
+    {
+      "sha": "115495b",
+      "date": "2026-11-23",
+      "subject": "docs: accounts architecture, storage comparison, trust levels, privacy, Cloudflare usage, sign-in setup (D-028)"
+    },
+    {
+      "sha": "2272b74",
+      "date": "2026-11-23",
+      "subject": "feat(accounts): guest identity, nickname policy, profile & stats, server-verified records, Google sign-in behind config (Phase 4)"
     },
     {
       "sha": "dbf4e20",
@@ -129,56 +159,26 @@
       "sha": "e855ada",
       "date": "2026-11-23",
       "subject": "test(live): live check covers emote, refused free text, spectating, rematch on the same room"
-    },
-    {
-      "sha": "9ab0c00",
-      "date": "2026-11-23",
-      "subject": "test(online): the finished match announces the room score"
-    },
-    {
-      "sha": "6848caf",
-      "date": "2026-11-23",
-      "subject": "docs: spectating permissions, limits, verification (D-027)"
-    },
-    {
-      "sha": "cf95ba5",
-      "date": "2026-11-23",
-      "subject": "feat(online): read-only live spectating with player consent (Phase 3)"
-    },
-    {
-      "sha": "6c298bc",
-      "date": "2026-11-23",
-      "subject": "fix(online): send the room's running score when a match finishes (not only on rematch changes)"
-    },
-    {
-      "sha": "54c01a2",
-      "date": "2026-11-24",
-      "subject": "Merge PR #50: 첫 굴림 최악 프레임 개선·휴대폰 한 화면 UI·효과음 v3 후보·고정 순서 유실 대응"
-    },
-    {
-      "sha": "3bebeff",
-      "date": "2026-11-23",
-      "subject": "docs: rematch & preset chat design, limits, verification (D-026)"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "8dbddb5b9f",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45296434190"
-    },
-    {
       "name": "YachtLab Online live check (manual)",
       "status": "success",
-      "head": "8dbddb5b9f",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45296430602"
+      "head": "0845890d25",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45299396597"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "0845890d25",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45299155912"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
       "status": "success",
-      "head": "e855ada598",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45295760099"
+      "head": "0845890d25",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45299154738"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
