@@ -74,7 +74,13 @@ test.beforeAll(async ({}, testInfo) => {
   };
 });
 test.afterAll(async () => {
-  await Promise.all(Object.values(backends).map((b) => b?.stop()));
+  await Promise.all(Object.entries(backends).map(async ([k, b]) => {
+    const t = Date.now();
+    const timer = setInterval(() => console.log(`DIAG stop ${k} still running after ${Date.now() - t} ms`), 5000);
+    await b?.stop();
+    clearInterval(timer);
+    console.log(`DIAG stop ${k} took ${Date.now() - t} ms`);
+  }));
 });
 
 const entry = (room?: string) =>
