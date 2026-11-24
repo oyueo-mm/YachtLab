@@ -1,0 +1,49 @@
+/* 경제 연구실 — achromatic + red palette (see redesign tests), white background, no horizontal page scroll. */
+.econ-lab { max-width: 1180px; margin: 0 auto; padding: 0 0 48px; }
+.econ-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 18px; }
+.econ-tabs button { padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font-weight: 600; font-size: 13px; cursor: pointer; }
+.econ-tabs button.active { border-color: var(--ink); background: var(--ink); color: #fff; }
+.econ-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.econ-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+.econ-card { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.econ-card.wide { grid-column: 1 / -1; }
+.econ-lab h2 { margin: 0 0 10px; font-size: 16px; color: var(--ink); }
+.econ-muted { color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+.econ-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 10px; margin: 12px 0; }
+.econ-kpis div { padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); }
+.econ-kpis dt { font-size: 12px; color: var(--muted); }
+.econ-kpis dd { margin: 4px 0 0; font-size: 20px; font-weight: 700; color: var(--ink); }
+.econ-table { display: block; width: 100%; overflow-x: auto; border-collapse: collapse; font-size: 12.5px; }
+.econ-table th, .econ-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; vertical-align: top; }
+.econ-table th { color: var(--muted); font-weight: 600; background: var(--soft); }
+.econ-table td small { color: var(--muted); white-space: normal; }
+.econ-table tr.hot td { font-weight: 700; }
+.econ-table tr.hot td:first-child { box-shadow: inset 3px 0 0 var(--red); }
+.econ-table tr.muted td { color: var(--muted); }
+.econ-table.compact td { white-space: normal; }
+.econ-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.econ-controls label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.econ-controls select, .econ-controls input { min-width: 0; max-width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); font-size: 13px; }
+.econ-controls input { width: 110px; }
+.econ-bars { display: flex; flex-direction: column; gap: 6px; }
+.econ-bar { display: grid; grid-template-columns: minmax(70px, 34%) 1fr auto; gap: 8px; align-items: center; font-size: 12.5px; }
+.econ-bar > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.econ-bar > div { height: 10px; border-radius: 5px; background: var(--soft); overflow: hidden; }
+.econ-bar i { display: block; height: 100%; background: #6b6b6b; }
+.econ-bar i.hot { background: var(--red); }
+.econ-bar b { font-weight: 600; color: var(--ink); }
+.econ-stacked { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: center; margin: 5px 0; font-size: 12px; }
+.econ-stacked > div { display: flex; height: 14px; border-radius: 4px; overflow: hidden; background: var(--soft); }
+.econ-stacked i { display: block; height: 100%; }
+.econ-legend, .econ-chart figcaption { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 8px 0 0; font-size: 11.5px; color: var(--muted); }
+.econ-legend i, .econ-chart figcaption i { display: inline-block; width: 10px; height: 10px; margin-right: 4px; border-radius: 2px; vertical-align: -1px; }
+.econ-chart figcaption .hot { color: var(--ink); font-weight: 700; }
+.econ-chart { margin: 0; min-width: 0; max-width: 760px; }
+.econ-chart svg { display: block; width: 100%; height: auto; }
+.econ-chart text { font-size: 10px; fill: #6b6b6b; }
+.econ-chart .grid { stroke: #e5e5e5; stroke-width: 1; }
+.econ-notes { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: var(--ink); }
+@media (max-width: 760px) {
+  .econ-lab { padding: 0 2px 40px; }
+  .econ-kpis dd { font-size: 17px; }
+}

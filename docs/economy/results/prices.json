@@ -1,0 +1,326 @@
+{
+ "coinUnit": 100,
+ "refGemsPerDay": 4.115,
+ "gemValue": 24.3,
+ "prices": {
+  "coin": [
+   200,
+   600,
+   2000,
+   6000,
+   15000
+  ],
+  "gem": [
+   40,
+   120,
+   300,
+   600,
+   1200
+  ],
+  "currencyMix": [
+   [
+    0.8,
+    0,
+    0.2
+   ],
+   [
+    0.5,
+    0.2,
+    0.3
+   ],
+   [
+    0.3,
+    0.3,
+    0.4
+   ],
+   [
+    0.2,
+    0.3,
+    0.5
+   ],
+   [
+    0,
+    0.4,
+    0.6
+   ]
+  ]
+ },
+ "priceRanges": [
+  {
+   "rarity": "common",
+   "label": "일반",
+   "targetDaysCoin": 2,
+   "targetDaysGem": 10,
+   "coin": {
+    "low": 120,
+    "mid": 200,
+    "high": 300
+   },
+   "gem": {
+    "low": 30,
+    "mid": 40,
+    "high": 60
+   },
+   "daysByPersona": {
+    "occasional": {
+     "coinDays": 34.06,
+     "gemDays": 106.6
+    },
+    "light": {
+     "coinDays": 8.421,
+     "gemDays": 34.76
+    },
+    "regular": {
+     "coinDays": 2.002,
+     "gemDays": 9.682
+    },
+    "heavy": {
+     "coinDays": 1.212,
+     "gemDays": 7.203
+    },
+    "extreme": {
+     "coinDays": 0.9372,
+     "gemDays": 6.271
+    }
+   }
+  },
+  {
+   "rarity": "advanced",
+   "label": "고급",
+   "targetDaysCoin": 7,
+   "targetDaysGem": 28,
+   "coin": {
+    "low": 500,
+    "mid": 600,
+    "high": 1000
+   },
+   "gem": {
+    "low": 80,
+    "mid": 120,
+    "high": 150
+   },
+   "daysByPersona": {
+    "occasional": {
+     "coinDays": 102.2,
+     "gemDays": 319.7
+    },
+    "light": {
+     "coinDays": 25.26,
+     "gemDays": 104.3
+    },
+    "regular": {
+     "coinDays": 6.005,
+     "gemDays": 29.05
+    },
+    "heavy": {
+     "coinDays": 3.635,
+     "gemDays": 21.61
+    },
+    "extreme": {
+     "coinDays": 2.811,
+     "gemDays": 18.81
+    }
+   }
+  },
+  {
+   "rarity": "hero",
+   "label": "영웅",
+   "targetDaysCoin": 21,
+   "targetDaysGem": 70,
+   "coin": {
+    "low": 1500,
+    "mid": 2000,
+    "high": 3000
+   },
+   "gem": {
+    "low": 200,
+    "mid": 300,
+    "high": 400
+   },
+   "daysByPersona": {
+    "occasional": {
+     "coinDays": 340.6,
+     "gemDays": 799.3
+    },
+    "light": {
+     "coinDays": 84.21,
+     "gemDays": 260.7
+    },
+    "regular": {
+     "coinDays": 20.02,
+     "gemDays": 72.61
+    },
+    "heavy": {
+     "coinDays": 12.12,
+     "gemDays": 54.02
+    },
+    "extreme": {
+     "coinDays": 9.372,
+     "gemDays": 47.04
+    }
+   }
+  },
+  {
+   "rarity": "legendary",
+   "label": "전설",
+   "targetDaysCoin": 60,
+   "targetDaysGem": 150,
+   "coin": {
+    "low": 4000,
+    "mid": 6000,
+    "high": 8000
+   },
+   "gem": {
+    "low": 400,
+    "mid": 600,
+    "high": 1000
+   },
+   "daysByPersona": {
+    "occasional": {
+     "coinDays": 1022,
+     "gemDays": 1599
+    },
+    "light": {
+     "coinDays": 252.6,
+     "gemDays": 521.4
+    },
+    "regular": {
+     "coinDays": 60.05,
+     "gemDays": 145.2
+    },
+    "heavy": {
+     "coinDays": 36.35,
+     "gemDays": 108
+    },
+    "extreme": {
+     "coinDays": 28.11,
+     "gemDays": 94.07
+    }
+   }
+  },
+  {
+   "rarity": "mythic",
+   "label": "신화",
+   "targetDaysCoin": 150,
+   "targetDaysGem": 300,
+   "coin": {
+    "low": 10000,
+    "mid": 15000,
+    "high": 20000
+   },
+   "gem": {
+    "low": 800,
+    "mid": 1200,
+    "high": 2000
+   },
+   "daysByPersona": {
+    "occasional": {
+     "coinDays": 2555,
+     "gemDays": 3197
+    },
+    "light": {
+     "coinDays": 631.6,
+     "gemDays": 1043
+    },
+    "regular": {
+     "coinDays": 150.1,
+     "gemDays": 290.5
+    },
+    "heavy": {
+     "coinDays": 90.88,
+     "gemDays": 216.1
+    },
+    "extreme": {
+     "coinDays": 70.29,
+     "gemDays": 188.1
+    }
+   }
+  }
+ ],
+ "slots": {
+  "emoteBase": 4,
+  "emoteMax": 8,
+  "chatBase": 6,
+  "chatMax": 10,
+  "costs": [
+   300,
+   600,
+   1000,
+   1500
+  ],
+  "gemCosts": [
+   25,
+   50,
+   80,
+   120
+  ],
+  "currency": "either"
+ },
+ "symbolic": {
+  "coinPrice": 80000,
+  "daysFor": {
+   "regular": 800.7,
+   "heavy": 484.7,
+   "extreme": 374.9
+  },
+  "note": "코인 전용, 업적 아이템 아님. 결제 코인으로도 살 수 있으므로 능력치가 없는 순수 외형이어야 함."
+ },
+ "upgradeRec": {
+  "curve": "exponential",
+  "baseFraction": 0.5,
+  "maxLevel": 3,
+  "costs": [
+   {
+    "rarity": "일반",
+    "l1to2": 100,
+    "l2to3": 300
+   },
+   {
+    "rarity": "고급",
+    "l1to2": 300,
+    "l2to3": 800
+   },
+   {
+    "rarity": "영웅",
+    "l1to2": 1000,
+    "l2to3": 3000
+   },
+   {
+    "rarity": "전설",
+    "l1to2": 3000,
+    "l2to3": 8000
+   },
+   {
+    "rarity": "신화",
+    "l1to2": 8000,
+    "l2to3": 20000
+   }
+  ]
+ },
+ "reference": {
+  "coinsPerDay": {
+   "n": 184,
+   "mean": 99.71,
+   "p10": 93.42,
+   "p25": 95.76,
+   "median": 99.91,
+   "p75": 103.5,
+   "p90": 105.9,
+   "p99": 109.3,
+   "min": 80.87,
+   "max": 110.8
+  },
+  "gemsPerDay": {
+   "n": 184,
+   "mean": 3.997,
+   "p10": 3.362,
+   "p25": 3.644,
+   "median": 4.132,
+   "p75": 4.332,
+   "p90": 4.458,
+   "p99": 4.619,
+   "min": 2.696,
+   "max": 4.89
+  }
+ }
+}

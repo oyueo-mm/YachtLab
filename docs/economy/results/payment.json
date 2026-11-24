@@ -1,0 +1,62 @@
+[
+ {
+  "persona": "small_payer",
+  "paidOwned1y": {
+   "n": 100,
+   "mean": 47.64,
+   "p10": 41,
+   "p25": 44,
+   "median": 48,
+   "p75": 50,
+   "p90": 55,
+   "p99": 63,
+   "min": 37,
+   "max": 65
+  },
+  "f2pOwned1y": {
+   "n": 100,
+   "mean": 46.52,
+   "p10": 39,
+   "p25": 42,
+   "median": 47,
+   "p75": 51,
+   "p90": 55,
+   "p99": 60,
+   "min": 28,
+   "max": 60
+  },
+  "paidMythicDay": 366,
+  "f2pMythicDay": 366,
+  "paidGemShare": 0.2902
+ },
+ {
+  "persona": "big_payer",
+  "paidOwned1y": {
+   "n": 100,
+   "mean": 134,
+   "p10": 134,
+   "p25": 134,
+   "median": 134,
+   "p75": 134,
+   "p90": 134,
+   "p99": 134,
+   "min": 133,
+   "max": 134
+  },
+  "f2pOwned1y": {
+   "n": 100,
+   "mean": 92.32,
+   "p10": 91,
+   "p25": 92,
+   "median": 92,
+   "p75": 93,
+   "p90": 93,
+   "p99": 95,
+   "min": 89,
+   "max": 95
+  },
+  "paidMythicDay": 1,
+  "f2pMythicDay": 366,
+  "paidGemShare": 0.9081
+ }
+]

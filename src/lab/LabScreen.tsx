@@ -1,4 +1,5 @@
-import { Bot, Box, FlaskConical, Trophy, type LucideIcon } from "lucide-react";
+import { lazy, Suspense } from "react";
+import { Bot, Box, Coins, FlaskConical, Trophy, type LucideIcon } from "lucide-react";
 import DiceLab from "./DiceLab";
 import HomeDemo from "../HomeDemo";
 import type { Match } from "../match";
@@ -6,6 +7,9 @@ import type { Replay } from "../replay";
 import type { AnalysisSource } from "../ReplayViewer";
 import { routes, type Route } from "../routes";
 import { Analysis, Spectator, Tournament } from "./LabPages";
+
+// The economy study (simulator + results) is its own lazily loaded chunk.
+const EconomyLab = lazy(() => import("./EconomyLab"));
 
 /**
  * Research lab entry (lazy-loaded chunk). Everything here is an advanced/research tool,
@@ -36,11 +40,18 @@ export default function LabScreen({
   if (route === "tournament") return <Tournament openReplay={openReplay} />;
   if (route === "analysis") return <Analysis initial={analysisSource} />;
   if (route === "dice-lab") return <DiceLab />;
+  if (route === "economy-lab")
+    return (
+      <Suspense fallback={<p className="lab-loading" role="status">경제 연구실을 불러오는 중…</p>}>
+        <EconomyLab />
+      </Suspense>
+    );
   const tools: { id: Route; icon: LucideIcon; text: string }[] = [
     { id: "watch", icon: Bot, text: "두 AI 알고리즘의 대국을 한 수씩 재생하고 판단 근거를 확인해요." },
     { id: "tournament", icon: Trophy, text: "여러 알고리즘을 같은 시드로 겨루게 해 승률과 점수를 비교해요." },
     { id: "analysis", icon: FlaskConical, text: "특정 상황에서 전략별 기대 점수를 DP로 비교해요." },
     { id: "dice-lab", icon: Box, text: "3D 물리 주사위 프로토타입을 기존 2.5D 연출과 비교하고 검증해요." },
+    { id: "economy-lab", icon: Coins, text: "코인·보석 경제 후보 모델을 게임 데이터 기반 시뮬레이션으로 비교해요(연구용, 실제 재화 없음)." },
   ];
   return (
     <section className="lab-hub" aria-labelledby="lab-title">

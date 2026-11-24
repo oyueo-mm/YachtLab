@@ -197,7 +197,7 @@ test("점수판 아이콘은 실제 눈 조합이고 작은 화면에서도 겹�
 test("모든 메뉴의 흰 배경과 무채색·레드 팔레트, 차트 구분", async ({
   page,
 }) => {
-  for (const route of ["home", "offline", "online", "play-setup", "pvp-setup", "play", "pvp", "records", "lab", "watch", "tournament", "analysis", "dice-lab"]) {
+  for (const route of ["home", "offline", "online", "play-setup", "pvp-setup", "play", "pvp", "records", "lab", "watch", "tournament", "analysis", "dice-lab", "economy-lab"]) {
     await page.goto(`#${route}`);
     expect(
       await page
@@ -238,7 +238,7 @@ test("모든 메뉴의 흰 배경과 무채색·레드 팔레트, 차트 구분"
 
 test("320px 화면에서도 홈·점수판·분석실이 잘리지 않음", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
-  for (const route of ["home", "offline", "online", "play-setup", "pvp-setup", "play", "pvp", "records", "lab", "analysis", "watch", "dice-lab"]) {
+  for (const route of ["home", "offline", "online", "play-setup", "pvp-setup", "play", "pvp", "records", "lab", "analysis", "watch", "dice-lab", "economy-lab"]) {
     await page.goto(`#${route}`);
     expect(
       await page.evaluate(

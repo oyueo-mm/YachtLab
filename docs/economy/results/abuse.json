@@ -1,0 +1,373 @@
+[
+ {
+  "model": "M0",
+  "heavyCoins30d": 6469,
+  "extremeCoins30d": 13825,
+  "heavyGems30d": 347,
+  "variants": [
+   {
+    "id": "abuser",
+    "label": "어뷰징 사용자(서버 AI 봇)",
+    "coins30d": 76961,
+    "gems30d": 910,
+    "ratioVsHeavy": 11.9,
+    "ratioVsExtreme": 5.567,
+    "gemRatioVsHeavy": 2.622,
+    "hoursPerDay": 22.5
+   },
+   {
+    "id": "abuse_win_trade",
+    "label": "승리 거래(친구 대전 2계정)",
+    "coins30d": 28515,
+    "gems30d": 620,
+    "ratioVsHeavy": 4.408,
+    "ratioVsExtreme": 2.063,
+    "gemRatioVsHeavy": 1.787,
+    "hoursPerDay": 7.5
+   },
+   {
+    "id": "abuse_forge_local",
+    "label": "로컬 AI 기록 위조",
+    "coins30d": 103176,
+    "gems30d": 1410,
+    "ratioVsHeavy": 15.95,
+    "ratioVsExtreme": 7.463,
+    "gemRatioVsHeavy": 4.063,
+    "hoursPerDay": 75
+   },
+   {
+    "id": "abuse_random_bot",
+    "label": "온라인 무작위 대전 봇(24시간)",
+    "coins30d": 46476,
+    "gems30d": 990,
+    "ratioVsHeavy": 7.184,
+    "ratioVsExtreme": 3.362,
+    "gemRatioVsHeavy": 2.853,
+    "hoursPerDay": 24
+   }
+  ],
+  "multi": {
+   "coinsPerAccount": 119,
+   "gemsPerAccount": 20,
+   "transferable": false
+  }
+ },
+ {
+  "model": "M1",
+  "heavyCoins30d": 7340,
+  "extremeCoins30d": 18604,
+  "heavyGems30d": 347,
+  "variants": [
+   {
+    "id": "abuser",
+    "label": "어뷰징 사용자(서버 AI 봇)",
+    "coins30d": 92013,
+    "gems30d": 910,
+    "ratioVsHeavy": 12.54,
+    "ratioVsExtreme": 4.946,
+    "gemRatioVsHeavy": 2.622,
+    "hoursPerDay": 22.5
+   },
+   {
+    "id": "abuse_win_trade",
+    "label": "승리 거래(친구 대전 2계정)",
+    "coins30d": 6158,
+    "gems30d": 430,
+    "ratioVsHeavy": 0.839,
+    "ratioVsExtreme": 0.331,
+    "gemRatioVsHeavy": 1.239,
+    "hoursPerDay": 7.5
+   },
+   {
+    "id": "abuse_forge_local",
+    "label": "로컬 AI 기록 위조",
+    "coins30d": 118,
+    "gems30d": 20,
+    "ratioVsHeavy": 0.01608,
+    "ratioVsExtreme": 0.006343,
+    "gemRatioVsHeavy": 0.05764,
+    "hoursPerDay": 75
+   },
+   {
+    "id": "abuse_random_bot",
+    "label": "온라인 무작위 대전 봇(24시간)",
+    "coins30d": 84697,
+    "gems30d": 990,
+    "ratioVsHeavy": 11.54,
+    "ratioVsExtreme": 4.553,
+    "gemRatioVsHeavy": 2.853,
+    "hoursPerDay": 24
+   }
+  ],
+  "multi": {
+   "coinsPerAccount": 118,
+   "gemsPerAccount": 20,
+   "transferable": false
+  }
+ },
+ {
+  "model": "M2",
+  "heavyCoins30d": 5109,
+  "extremeCoins30d": 7408,
+  "heavyGems30d": 347,
+  "variants": [
+   {
+    "id": "abuser",
+    "label": "어뷰징 사용자(서버 AI 봇)",
+    "coins30d": 15906,
+    "gems30d": 910,
+    "ratioVsHeavy": 3.113,
+    "ratioVsExtreme": 2.147,
+    "gemRatioVsHeavy": 2.622,
+    "hoursPerDay": 22.5
+   },
+   {
+    "id": "abuse_win_trade",
+    "label": "승리 거래(친구 대전 2계정)",
+    "coins30d": 5354,
+    "gems30d": 430,
+    "ratioVsHeavy": 1.048,
+    "ratioVsExtreme": 0.7227,
+    "gemRatioVsHeavy": 1.239,
+    "hoursPerDay": 7.5
+   },
+   {
+    "id": "abuse_forge_local",
+    "label": "로컬 AI 기록 위조",
+    "coins30d": 80,
+    "gems30d": 20,
+    "ratioVsHeavy": 0.01566,
+    "ratioVsExtreme": 0.0108,
+    "gemRatioVsHeavy": 0.05764,
+    "hoursPerDay": 75
+   },
+   {
+    "id": "abuse_random_bot",
+    "label": "온라인 무작위 대전 봇(24시간)",
+    "coins30d": 16790,
+    "gems30d": 990,
+    "ratioVsHeavy": 3.286,
+    "ratioVsExtreme": 2.266,
+    "gemRatioVsHeavy": 2.853,
+    "hoursPerDay": 24
+   }
+  ],
+  "multi": {
+   "coinsPerAccount": 80,
+   "gemsPerAccount": 20,
+   "transferable": false
+  }
+ },
+ {
+  "model": "M3",
+  "heavyCoins30d": 5904,
+  "extremeCoins30d": 8118,
+  "heavyGems30d": 347,
+  "variants": [
+   {
+    "id": "abuser",
+    "label": "어뷰징 사용자(서버 AI 봇)",
+    "coins30d": 7833,
+    "gems30d": 620,
+    "ratioVsHeavy": 1.327,
+    "ratioVsExtreme": 0.9649,
+    "gemRatioVsHeavy": 1.787,
+    "hoursPerDay": 22.5
+   },
+   {
+    "id": "abuse_win_trade",
+    "label": "승리 거래(친구 대전 2계정)",
+    "coins30d": 6288,
+    "gems30d": 430,
+    "ratioVsHeavy": 1.065,
+    "ratioVsExtreme": 0.7746,
+    "gemRatioVsHeavy": 1.239,
+    "hoursPerDay": 7.5
+   },
+   {
+    "id": "abuse_forge_local",
+    "label": "로컬 AI 기록 위조",
+    "coins30d": 133,
+    "gems30d": 20,
+    "ratioVsHeavy": 0.02253,
+    "ratioVsExtreme": 0.01638,
+    "gemRatioVsHeavy": 0.05764,
+    "hoursPerDay": 75
+   },
+   {
+    "id": "abuse_random_bot",
+    "label": "온라인 무작위 대전 봇(24시간)",
+    "coins30d": 9799,
+    "gems30d": 700,
+    "ratioVsHeavy": 1.66,
+    "ratioVsExtreme": 1.207,
+    "gemRatioVsHeavy": 2.017,
+    "hoursPerDay": 24
+   }
+  ],
+  "multi": {
+   "coinsPerAccount": 133,
+   "gemsPerAccount": 20,
+   "transferable": false
+  }
+ },
+ {
+  "model": "M4",
+  "heavyCoins30d": 5690,
+  "extremeCoins30d": 7203,
+  "heavyGems30d": 347,
+  "variants": [
+   {
+    "id": "abuser",
+    "label": "어뷰징 사용자(서버 AI 봇)",
+    "coins30d": 7713,
+    "gems30d": 620,
+    "ratioVsHeavy": 1.356,
+    "ratioVsExtreme": 1.071,
+    "gemRatioVsHeavy": 1.787,
+    "hoursPerDay": 22.5
+   },
+   {
+    "id": "abuse_win_trade",
+    "label": "승리 거래(친구 대전 2계정)",
+    "coins30d": 6270,
+    "gems30d": 430,
+    "ratioVsHeavy": 1.102,
+    "ratioVsExtreme": 0.8705,
+    "gemRatioVsHeavy": 1.239,
+    "hoursPerDay": 7.5
+   },
+   {
+    "id": "abuse_forge_local",
+    "label": "로컬 AI 기록 위조",
+    "coins30d": 134,
+    "gems30d": 20,
+    "ratioVsHeavy": 0.02355,
+    "ratioVsExtreme": 0.0186,
+    "gemRatioVsHeavy": 0.05764,
+    "hoursPerDay": 75
+   },
+   {
+    "id": "abuse_random_bot",
+    "label": "온라인 무작위 대전 봇(24시간)",
+    "coins30d": 8070,
+    "gems30d": 700,
+    "ratioVsHeavy": 1.418,
+    "ratioVsExtreme": 1.12,
+    "gemRatioVsHeavy": 2.017,
+    "hoursPerDay": 24
+   }
+  ],
+  "multi": {
+   "coinsPerAccount": 134,
+   "gemsPerAccount": 20,
+   "transferable": false
+  }
+ },
+ {
+  "model": "M5",
+  "heavyCoins30d": 6475,
+  "extremeCoins30d": 9171,
+  "heavyGems30d": 889,
+  "variants": [
+   {
+    "id": "abuser",
+    "label": "어뷰징 사용자(서버 AI 봇)",
+    "coins30d": 9268,
+    "gems30d": 1450,
+    "ratioVsHeavy": 1.431,
+    "ratioVsExtreme": 1.011,
+    "gemRatioVsHeavy": 1.631,
+    "hoursPerDay": 22.5
+   },
+   {
+    "id": "abuse_win_trade",
+    "label": "승리 거래(친구 대전 2계정)",
+    "coins30d": 7104,
+    "gems30d": 1063,
+    "ratioVsHeavy": 1.097,
+    "ratioVsExtreme": 0.7746,
+    "gemRatioVsHeavy": 1.196,
+    "hoursPerDay": 7.5
+   },
+   {
+    "id": "abuse_forge_local",
+    "label": "로컬 AI 기록 위조",
+    "coins30d": 123,
+    "gems30d": 50,
+    "ratioVsHeavy": 0.019,
+    "ratioVsExtreme": 0.01341,
+    "gemRatioVsHeavy": 0.05624,
+    "hoursPerDay": 75
+   },
+   {
+    "id": "abuse_random_bot",
+    "label": "온라인 무작위 대전 봇(24시간)",
+    "coins30d": 11420,
+    "gems30d": 1610,
+    "ratioVsHeavy": 1.764,
+    "ratioVsExtreme": 1.245,
+    "gemRatioVsHeavy": 1.811,
+    "hoursPerDay": 24
+   }
+  ],
+  "multi": {
+   "coinsPerAccount": 123,
+   "gemsPerAccount": 50,
+   "transferable": false
+  }
+ },
+ {
+  "model": "M6",
+  "heavyCoins30d": 5893,
+  "extremeCoins30d": 8033,
+  "heavyGems30d": 367,
+  "variants": [
+   {
+    "id": "abuser",
+    "label": "어뷰징 사용자(서버 AI 봇)",
+    "coins30d": 7757,
+    "gems30d": 640,
+    "ratioVsHeavy": 1.316,
+    "ratioVsExtreme": 0.9656,
+    "gemRatioVsHeavy": 1.744,
+    "hoursPerDay": 22.5
+   },
+   {
+    "id": "abuse_win_trade",
+    "label": "승리 거래(친구 대전 2계정)",
+    "coins30d": 6273,
+    "gems30d": 450,
+    "ratioVsHeavy": 1.064,
+    "ratioVsExtreme": 0.7809,
+    "gemRatioVsHeavy": 1.226,
+    "hoursPerDay": 7.5
+   },
+   {
+    "id": "abuse_forge_local",
+    "label": "로컬 AI 기록 위조",
+    "coins30d": 128,
+    "gems30d": 20,
+    "ratioVsHeavy": 0.02172,
+    "ratioVsExtreme": 0.01593,
+    "gemRatioVsHeavy": 0.0545,
+    "hoursPerDay": 75
+   },
+   {
+    "id": "abuse_random_bot",
+    "label": "온라인 무작위 대전 봇(24시간)",
+    "coins30d": 9654,
+    "gems30d": 720,
+    "ratioVsHeavy": 1.638,
+    "ratioVsExtreme": 1.202,
+    "gemRatioVsHeavy": 1.962,
+    "hoursPerDay": 24
+   }
+  ],
+  "multi": {
+   "coinsPerAccount": 128,
+   "gemsPerAccount": 20,
+   "transferable": false
+  }
+ }
+]

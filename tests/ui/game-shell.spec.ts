@@ -63,8 +63,8 @@ test("연구 기능은 연구실/설정에서 접근하고 기존 딥링크와 �
   await page.goto("");
   await page.getByRole("button", { name: "연구실" }).click();
   await expect(page.getByRole("heading", { name: "연구실" })).toBeVisible();
-  await expect(page.locator(".lab-tool")).toHaveCount(4);
-  for (const name of ["AI 대전 관전", "AI 토너먼트", "전략 분석실", "주사위 실험실"]) {
+  await expect(page.locator(".lab-tool")).toHaveCount(5);
+  for (const name of ["AI 대전 관전", "AI 토너먼트", "전략 분석실", "주사위 실험실", "경제 연구실"]) {
     await page.getByRole("navigation", { name: "연구실 메뉴" }).getByRole("link", { name, exact: true }).click();
     await expect(page.getByRole("heading", { name })).toBeVisible();
   }
