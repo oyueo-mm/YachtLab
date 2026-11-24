@@ -101,6 +101,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [f98566c](https://github.com/oyueo-mm/YachtLab/commit/f98566c) | 2026-11-24 | Merge PR #58: Phase 4.5~6 배포 기록·공개 사이트 검증 결과 |
+| [acf0c16](https://github.com/oyueo-mm/YachtLab/commit/acf0c16) | 2026-11-24 | docs(product): Phase 4.5-6 deployment record and public site verification |
 | [42a3071](https://github.com/oyueo-mm/YachtLab/commit/42a3071) | 2026-11-24 | Merge PR #57: 테스트 서버 종료가 미사용 사전 연결을 기다리던 main CI afterAll 시간 초과 수정 |
 | [d21194a](https://github.com/oyueo-mm/YachtLab/commit/d21194a) | 2026-11-24 | fix(test-server): shutdown no longer waits for pre-opened browser sockets; close test contexts |
 | [838cf45](https://github.com/oyueo-mm/YachtLab/commit/838cf45) | 2026-11-24 | test(diag): time online backend teardown and list what the Node test server waits for |
@@ -109,8 +111,6 @@
 | [5eff878](https://github.com/oyueo-mm/YachtLab/commit/5eff878) | 2026-11-24 | fix(online): heartbeat retries pairing; per-account API limit in isolate memory; docs |
 | [d5a1b76](https://github.com/oyueo-mm/YachtLab/commit/d5a1b76) | 2026-11-24 | feat(ui): shop, inventory, quests, achievements pages; equipped looks in matches (Phase 6) |
 | [9b83567](https://github.com/oyueo-mm/YachtLab/commit/9b83567) | 2026-11-24 | feat(economy): coin/gem ledger, M3i-W30 rewards, quests, achievements, shop/inventory API (Phase 5/6) |
-| [bd8410d](https://github.com/oyueo-mm/YachtLab/commit/bd8410d) | 2026-11-24 | feat(online): server-verified AI match (Phase 4.5) |
-| [786d370](https://github.com/oyueo-mm/YachtLab/commit/786d370) | 2026-11-24 | feat(online): quick match, public spectating list, PC online tool row (Phase 4.5) |
 
 ## 최근 GitHub Actions 상태
 
@@ -118,9 +118,8 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45389122343) | success | d21194af0f |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45397500287) | success | acf0c16111 |
 | [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45374492254) | success | 5eff8788bd |
-| [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45305164842) | success | 5d3c10df9d |
 
 ## 다음 채팅과 작업의 시작점
 

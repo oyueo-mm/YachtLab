@@ -112,6 +112,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "f98566c",
+      "date": "2026-11-24",
+      "subject": "Merge PR #58: Phase 4.5~6 배포 기록·공개 사이트 검증 결과"
+    },
+    {
+      "sha": "acf0c16",
+      "date": "2026-11-24",
+      "subject": "docs(product): Phase 4.5-6 deployment record and public site verification"
+    },
+    {
       "sha": "42a3071",
       "date": "2026-11-24",
       "subject": "Merge PR #57: 테스트 서버 종료가 미사용 사전 연결을 기다리던 main CI afterAll 시간 초과 수정"
@@ -150,36 +160,20 @@
       "sha": "9b83567",
       "date": "2026-11-24",
       "subject": "feat(economy): coin/gem ledger, M3i-W30 rewards, quests, achievements, shop/inventory API (Phase 5/6)"
-    },
-    {
-      "sha": "bd8410d",
-      "date": "2026-11-24",
-      "subject": "feat(online): server-verified AI match (Phase 4.5)"
-    },
-    {
-      "sha": "786d370",
-      "date": "2026-11-24",
-      "subject": "feat(online): quick match, public spectating list, PC online tool row (Phase 4.5)"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "d21194af0f",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45389122343"
+      "head": "acf0c16111",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45397500287"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
       "status": "success",
       "head": "5eff8788bd",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45374492254"
-    },
-    {
-      "name": "YachtLab Online live check (manual)",
-      "status": "success",
-      "head": "5d3c10df9d",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45305164842"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
