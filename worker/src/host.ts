@@ -62,6 +62,8 @@ export type HostEvents = {
   publish?: (code: string, entry: ReturnType<OnlineRoom["publicEntry"]>) => Promise<void> | void;
   /** A quick match finished (its players may queue again). */
   matchEnded?: (code: string) => Promise<void> | void;
+  /** Operations counters for a finished match (mode, completed or not, duration). No player data. */
+  finished?: (info: { kind: string; completed: boolean; durationMs: number; members: number }) => Promise<void> | void;
 };
 export type PublicEntry = NonNullable<ReturnType<OnlineRoom["publicEntry"]>>;
 export const RECORD_RETRY_MS = 60_000;
@@ -145,6 +147,7 @@ export class RoomHost {
       /* storage failure: nothing was applied (fail-closed); the alarm retries */
     }
     await this.flushRecords();
+    await this.publishIfChanged();
     for (const s of this.open()) this.remember(s);
     this.rearm();
     this.scheduleAi();
@@ -194,10 +197,19 @@ export class RoomHost {
 
   private published = "";
   private endedSent = false;
+  private finishedFor = "";
   /** Push the public list entry when it changed (round, scores, spectators) — at most a few times per round. */
   async publishIfChanged() {
     const room = this.room;
     if (!room) return;
+    if (room.match.status === "finished" && this.finishedFor !== room.match.matchId && this.events.finished) {
+      this.finishedFor = room.match.matchId;
+      const log = room.match.log;
+      const started = log.find((e) => e.type === "matchStarted")?.at ?? log[0]?.at ?? 0;
+      const end = log[log.length - 1]?.at ?? started;
+      const completed = !log.some((e) => e.type === "playerForfeited");
+      await Promise.resolve(this.events.finished({ kind: room.kind, completed, durationMs: Math.max(0, end - started), members: Object.keys(room.members()).length })).catch(() => undefined);
+    }
     if (room.kind === "random" && room.match.status === "finished" && !this.endedSent) {
       this.endedSent = true;
       await Promise.resolve(this.events.matchEnded?.(room.code)).catch(() => undefined);

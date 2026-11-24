@@ -9,8 +9,12 @@ workers_dev = true
 preview_urls = false
 
 
+# Workers Logs (included in Workers Free: 200k log events/day, 3-day retention; no paid resource).
+# Turned on to find the cause of the YachtRoom error count seen on the dashboard (2026-11-24).
+# Nothing personal is logged (no tokens, ids or IPs).
 [observability]
-enabled = false
+enabled = true
+head_sampling_rate = 1
 
 [[durable_objects.bindings]]
 name = "ROOMS"
@@ -58,6 +62,9 @@ MAX_ROOMS = "50"
 DAILY_ROOM_LIMIT = "300"
 # Server AI matches per day: a sub-budget of DAILY_ROOM_LIMIT (quick and invite matches keep the rest).
 DAILY_AI_LIMIT = "100"
+# Phase 5/6: official coins / gems / quests / achievements / shop (M3i-W30). "off" stops all grants
+# and purchases at once (balances are kept). Rewards only from server-verified matches of members.
+ECONOMY = "on"
 CREATE_PER_MINUTE = "5"
 JOIN_PER_MINUTE = "30"
 LOBBY_IDLE_MS = "1800000"

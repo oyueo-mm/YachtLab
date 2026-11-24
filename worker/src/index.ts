@@ -4,7 +4,13 @@ import { readConfig, type ConfigVars, type OnlineConfig } from "./config";
 import { RoomHost, type HostSocket, type HostStorage } from "./host";
 import { AccountStore, type Sql } from "./account";
 import { EconomyStore, type EconSql } from "./economy";
+import { ECONOMY } from "../../src/economy/live/config";
+import { itemById } from "../../src/economy/live/catalog";
+
+/** Coin balance bucket for the privacy-light balance distribution. */
+const bucket = (c: number) => (c < 100 ? "0-99" : c < 500 ? "100-499" : c < 2000 ? "500-1999" : c < 10000 ? "2000-9999" : c < 50000 ? "10k-49k" : "50k+");
 import { validateNickname } from "../../src/identity/nickname";
+import { sameText } from "./oidc";
 import { authConfig, handleAccountRoute, sessionUser, type AccountBackends, type GuestApi, type UserApi } from "./accounts-api";
 import type { MatchRecord } from "../../src/identity/records";
 import type { SeatSpec } from "../../src/online/room";
@@ -31,6 +37,8 @@ export interface Env extends ConfigVars {
   GUESTS: DurableObjectNamespace<GuestLink>;
   /** Phase 4.5: one global object — quick-match queue, public spectating list, operations counters. */
   HUB: DurableObjectNamespace<MatchHub>;
+  /** "on" enables official coins/gems/quests/achievements/shop (feature flag). */
+  ECONOMY?: string;
   /** "off" disables server AI matches (kill switch, default on). */
   SERVER_AI?: string;
   /** Operations metrics endpoint (`GET /api/admin/metrics`), off unless this secret (≥ 32 chars) is set. */
@@ -40,6 +48,8 @@ export interface Env extends ConfigVars {
   GOOGLE_CLIENT_SECRET?: string;
   AUTH_SECRET?: string;
   APP_URL?: string;
+  /** Local end-to-end tests only (see authConfig): ignored unless APP_URL is a loopback http address. */
+  TEST_OIDC_ISSUER?: string;
 }
 
 const MAX_BODY = 1024;
@@ -85,6 +95,11 @@ export class YachtRoom extends DurableObject<Env> {
         await (entry ? hub.publish(entry) : hub.unpublish(code));
       },
       matchEnded: async (code) => env.HUB.get(env.HUB.idFromName("hub")).ended(code),
+      finished: async (info) => {
+        const hub = env.HUB.get(env.HUB.idFromName("hub"));
+        await hub.count(`finished.${info.kind}.${info.completed ? "completed" : "forfeit"}`);
+        if (info.completed) await hub.count(`duration.${info.kind}.totalSec`, Math.round(info.durationMs / 1000));
+      },
     });
     // Keep-alive pings are answered by the runtime without waking the object (no duration, no request).
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair(PING, PONG));
@@ -305,12 +320,81 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     });
   }
   /** SQLite of this account with an atomic transaction (all of an economy action, or none of it). */
+  private depth = 0;
   private econSql(): EconSql {
     const sql = this.ctx.storage.sql;
     return {
       exec: (q: string, ...p: unknown[]) => sql.exec(q, ...(p as SqlStorageValue[])) as unknown as { toArray(): never[] },
-      transaction: <T>(fn: () => T) => this.ctx.storage.transactionSync(fn),
+      // Re-entrant: an economy action inside the match-record transaction joins it.
+      transaction: <T>(fn: () => T) => {
+        if (this.depth > 0) return fn();
+        this.depth++;
+        try {
+          return this.ctx.storage.transactionSync(fn);
+        } finally {
+          this.depth--;
+        }
+      },
     } as EconSql;
+  }
+  private get economyOn() {
+    return this.env.ECONOMY === "on";
+  }
+  private hub() {
+    return this.env.HUB.get(this.env.HUB.idFromName("hub"));
+  }
+  /** Re-joining within 30 days of a deletion: no second new-member grant (only a timestamp is kept). */
+  private rejoinBlockedUntil(): number | null {
+    this.ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS tomb (id INTEGER PRIMARY KEY CHECK (id = 1), deleted_at INTEGER NOT NULL)");
+    const row = this.ctx.storage.sql.exec<{ deleted_at: number }>("SELECT deleted_at FROM tomb WHERE id = 1").toArray()[0];
+    return row ? row.deleted_at + ECONOMY.rejoinWelcomeCooldownMs : null;
+  }
+  private welcome(now: number) {
+    const p = this.store.profile();
+    if (!p || !this.economyOn) return [];
+    return this.econ.welcome(p.userId, now, this.rejoinBlockedUntil());
+  }
+  /** Economy snapshot (grants the new-member reward on first use). */
+  async economy() {
+    if (!this.economyOn) return { ok: false as const, code: "ECONOMY_OFF", message: "재화 기능은 아직 준비 중이에요." };
+    const p = this.store.profile();
+    if (!p) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+    const g = this.welcome(Date.now());
+    if (g.length) await this.hub().count("econ.welcome").catch(() => undefined);
+    return { ok: true as const, snapshot: this.econ.snapshot(p.userId, Date.now()) };
+  }
+  private async econAction(kind: string, fn: (userId: string, now: number) => { ok: true; duplicate?: boolean; snapshot: unknown } | { ok: false; code: string; message: string }, metric?: (r: { ok: true; duplicate?: boolean }) => string | null) {
+    if (!this.economyOn) return { ok: false as const, code: "ECONOMY_OFF", message: "재화 기능은 아직 준비 중이에요." };
+    const p = this.store.profile();
+    if (!p) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+    this.welcome(Date.now());
+    const r = fn(p.userId, Date.now());
+    if (r.ok && !r.duplicate) {
+      const m = metric?.(r);
+      if (m) await this.hub().count(m).catch(() => undefined);
+    }
+    void kind;
+    return r;
+  }
+  async buy(itemId: unknown, currency: unknown, requestId: string) {
+    const tier = itemById(itemId)?.tier ?? "unknown";
+    return this.econAction("buy", (u, n) => this.econ.buy(u, itemId, currency, requestId, n), () => `buy.${tier}.${currency === "gems" ? "gems" : "coins"}`);
+  }
+  async upgrade(itemId: unknown, requestId: string) {
+    return this.econAction("upgrade", (u, n) => this.econ.upgrade(u, itemId, requestId, n), () => "upgrade");
+  }
+  async buySlot(kind: unknown, currency: unknown, requestId: string) {
+    return this.econAction("slot", (u, n) => this.econ.buySlot(u, kind, currency, requestId, n), () => `slot.${kind === "chat" ? "chat" : "emote"}`);
+  }
+  async setLoadout(loadout: unknown) {
+    return this.econAction("loadout", (u, n) => this.econ.setLoadout(u, loadout, n));
+  }
+  async rerollQuest(index: number) {
+    return this.econAction("reroll", (u, n) => this.econ.rerollQuest(u, index, n), () => "quest.reroll");
+  }
+  /** Ledger ↔ balance check (administrator). */
+  async verifyLedger() {
+    return this.econ.verify();
   }
   /** Count a server AI match start against this account's daily limit. */
   async startAi() {
@@ -354,6 +438,14 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     await this.ctx.storage.deleteAll();
     this.store = new AccountStore(this.ctx.storage.sql as unknown as Sql);
     this.store.init();
+    this.econ = new EconomyStore(this.econSql());
+    this.econ.init();
+    // Everything is gone. Only "deleted at" is kept for 30 days so a delete-and-rejoin loop cannot
+    // collect the new-member grant again; an alarm removes it afterwards.
+    const now = Date.now();
+    this.ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS tomb (id INTEGER PRIMARY KEY CHECK (id = 1), deleted_at INTEGER NOT NULL)");
+    this.ctx.storage.sql.exec("INSERT OR REPLACE INTO tomb (id, deleted_at) VALUES (1, ?)", now);
+    await this.ctx.storage.setAlarm(now + ECONOMY.rejoinWelcomeCooldownMs + 60_000);
     return guests;
   }
   async publicProfile() {
@@ -365,8 +457,48 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   }
   /** From a room: a server-verified result (idempotent by matchId). */
   async recordMatch(record: MatchRecord) {
-    this.store.recordMatch(record);
+    const p = this.store.profile();
+    const now = Date.now();
+    // The record and its rewards are stored in ONE transaction, keyed by the match id: a repeated
+    // delivery finds the record and grants nothing; a crash leaves neither.
+    const result = this.econSql().transaction(() => {
+      if (!this.store.recordMatch(record)) return null;
+      if (!p || !this.economyOn) return null;
+      this.welcome(now);
+      return this.econ.applyMatch(
+        p.userId,
+        p.createdAt,
+        { matchId: record.recordId, kind: record.kind ?? "friend", outcome: record.outcome, endReason: record.endReason, score: record.score, card: record.card, opponentUserId: record.opponent.userId, stats: record.stats, endedAt: record.endedAt },
+        now,
+      );
+    });
+    if (result) {
+      // Privacy-light operations counters (no ids): issuance, quests, achievements, daily actives.
+      const coins = result.grants.reduce((a, g) => a + g.coins, 0);
+      const gems = result.grants.reduce((a, g) => a + g.gems, 0);
+      const hub = this.hub();
+      const counts: [string, number][] = [
+        ["econ.coins", coins],
+        ["econ.gems", gems],
+        [`reward.${record.kind ?? "friend"}.${result.reason}`, 1],
+        ["quest.done", result.grants.filter((g) => g.kind === "quest").length],
+        ["quest.allDaily", result.grants.filter((g) => g.key.startsWith("qb:daily")).length],
+        ["achievement.unlock", result.grants.filter((g) => g.kind === "achievement").length],
+        ["dau.members", result.firstToday ? 1 : 0],
+      ];
+      await Promise.all(counts.filter(([, n]) => n > 0).map(([k, n]) => hub.count(k, n))).catch(() => undefined);
+      if (result.firstToday && result.wallet) await hub.count("balance." + bucket(result.wallet.coins)).catch(() => undefined);
+      await hub.peak("econ.maxCoinsOneAccount", this.econ.earnedToday(now).coins).catch(() => undefined);
+    }
     return true;
+  }
+  async alarm() {
+    // Forget the deletion timestamp once the re-join cooldown is over.
+    const until = this.rejoinBlockedUntil();
+    if (until !== null && Date.now() >= until) {
+      if (!this.store.exists()) await this.ctx.storage.deleteAll();
+      else this.ctx.storage.sql.exec("DELETE FROM tomb WHERE id = 1");
+    }
   }
 }
 
@@ -561,7 +693,7 @@ export default {
       }
       // What this server offers (the page hides what is not available).
       if (url.pathname === "/api/features" && request.method === "GET")
-        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, serverAi: !!auth && env.SERVER_AI !== "off" }, allowed, "public, max-age=60");
+        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, serverAi: !!auth && env.SERVER_AI !== "off", economy: !!auth && env.ECONOMY === "on" }, allowed, "public, max-age=60");
       // Public spectating list: cheap, cached briefly; no tokens, no keys, no account ids in it.
       if (url.pathname === "/api/spectate/rooms" && request.method === "GET") {
         if (await directory.hit("list:" + (await clientKey(request)), 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
@@ -574,6 +706,15 @@ export default {
         if (!verdict.ok) return fail(verdict.status, verdict.code, verdict.message, allowed);
         const key = await roomStub(code).publicWatch();
         return key ? json(200, { code, key }, allowed) : fail(409, "NOT_PUBLIC", "지금은 이 경기를 관전할 수 없어요. 끝났거나 관전 인원이 가득 찼어요.", allowed);
+      }
+      // Operations metrics (administrator only: a Worker secret, never in the web bundle).
+      if (parts[0] === "api" && parts[1] === "admin") {
+        const token = env.ADMIN_TOKEN;
+        const given = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+        if (!token || token.length < 32 || given.length !== token.length || !sameText(given, token)) return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
+        if (url.pathname === "/api/admin/metrics" && request.method === "GET") return json(200, { usage: await directory.usage(), hub: await hub().report(Math.min(60, Number(url.searchParams.get("days") ?? 14) || 14)) }, null);
+        if (parts[2] === "ledger" && parts.length === 4 && /^u_[A-Za-z0-9_-]{22}$/.test(parts[3])) return json(200, await env.USERS.get(env.USERS.idFromName(parts[3])).verifyLedger(), null);
+        return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
       }
       // Server-verified AI match (Phase 4.5): members only, the room plays the AI seat itself.
       if (url.pathname === "/api/ai/start" && request.method === "POST") {
