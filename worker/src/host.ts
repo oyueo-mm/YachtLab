@@ -49,13 +49,13 @@ type Attachment = { playerId: string | null; seenSeq: number; bucket: { tokens: 
 
 export const HELLO_TIMEOUT_MS = 10_000;
 /** Socket opens per room per minute (counted in memory; a soft guard against reconnect storms). */
-export const CONNECTS_PER_MINUTE = 20;
+export const CONNECTS_PER_MINUTE = 120; // 20-player rooms: everyone may reconnect at once after a network blip
 
 export type HostEvents = {
   /** The room was cleaned up (idle / max age). The shell tells the directory. */
   onDeleted?: (code: string) => void | Promise<void>;
   /** A rematch wants to start: null = allowed (and counted), otherwise the reason it is not. */
-  allowMatch?: (code: string) => Promise<string | null> | string | null;
+  allowMatch?: (code: string, weight?: number) => Promise<string | null> | string | null;
   /** Deliver a server-verified result to an account; true when stored (or already there). */
   deliverRecord?: (userId: string, record: MatchRecord) => Promise<boolean>;
   /** Public spectating list: the room's entry (or null to remove it). Best effort. */
@@ -67,6 +67,8 @@ export type HostEvents = {
 };
 export type PublicEntry = NonNullable<ReturnType<OnlineRoom["publicEntry"]>>;
 export const RECORD_RETRY_MS = 60_000;
+/** Rooms for 3+ players with nobody connected during a match are removed after this long. */
+export const ABANDONED_MULTI_MS = 2 * 3600_000;
 /**
  * Server AI pacing: one action every `stepMs` (players see it roll, hold and score), and an alarm
  * `fallbackMs` later in case the object was evicted between steps (the alarm wakes it and resumes).
@@ -101,12 +103,12 @@ export class RoomHost {
         this.turnDeadline = at;
         this.rearm();
       },
-      allowMatch: () => {
+      allowMatch: (weight?: number) => {
         const room = this.room;
         if (!room) return "방을 찾을 수 없어요.";
         // A rematch needs time to finish before the room's retention limit removes it.
         if (this.now() > room.createdAt + this.config.maxAgeMs - 2 * 3600_000) return "이 방은 곧 정리돼요. 새 방을 만들어 주세요.";
-        return this.events.allowMatch?.(room.code) ?? null;
+        return this.events.allowMatch?.(room.code, weight) ?? null;
       },
     };
   }
@@ -158,9 +160,9 @@ export class RoomHost {
   }
 
   /** First seat of a brand-new room (called once by the Worker after the directory allocated the code). */
-  async create(code: string, name: unknown, identity?: { userId: string } | null, look?: PublicLook | null): Promise<JoinResult> {
+  async create(code: string, name: unknown, identity?: { userId: string } | null, look?: PublicLook | null, maxPlayers = 2): Promise<JoinResult> {
     if (this.room) return { ok: false, status: 409, error: { code: "ROOM_CLOSED", message: "이미 사용 중인 방 코드입니다." } };
-    const room = OnlineRoom.create(code, this.deps(), { turnTimeoutMs: this.config.turnTimeoutMs });
+    const room = OnlineRoom.create(code, this.deps(), { turnTimeoutMs: this.config.turnTimeoutMs, seats: maxPlayers });
     const joined = await room.join(name, identity, look);
     if (joined.ok) {
       this.room = room;
@@ -368,7 +370,10 @@ export class RoomHost {
     const hardStop = room.createdAt + this.config.maxAgeMs;
     if (this.open().length) return hardStop;
     const status = room.match.status;
-    const idle = status === "lobby" ? this.config.lobbyIdleMs : status === "finished" ? this.config.finishedIdleMs : this.config.playingIdleMs;
+    // A larger room that everyone left mid-match is cleaned up after 2 hours (1:1 rooms keep the
+    // long pause allowance: two friends may come back to the same game the next day).
+    const playing = room.match.seats > 2 ? Math.min(this.config.playingIdleMs, ABANDONED_MULTI_MS) : this.config.playingIdleMs;
+    const idle = status === "lobby" ? this.config.lobbyIdleMs : status === "finished" ? this.config.finishedIdleMs : playing;
     return Math.min(hardStop, room.touchedAt + idle);
   }
 

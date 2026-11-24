@@ -724,3 +724,179 @@
     animation: none;
   }
 }
+
+/* ---------- friend rooms for 2–20 players ---------- */
+.room-size {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.room-size select,
+.lobby-time select {
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+}
+.invite-size {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.lobby-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lobby-count {
+  color: var(--muted);
+  font-size: 13px;
+}
+.lobby-panel .online-players {
+  max-height: 46vh;
+  overflow-y: auto;
+}
+.online-tag.ready {
+  background: var(--soft);
+  color: var(--muted);
+}
+.online-tag.ready.on {
+  background: #eaf7ef;
+  color: #1d6b3b;
+}
+.lobby-transfer {
+  margin-left: auto;
+  font-size: 12px;
+}
+.lobby-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.lobby-settings legend {
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.segmented-choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--soft);
+}
+.segmented-choice label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border-radius: 8px;
+  font-weight: 650;
+  font-size: 14px;
+  cursor: pointer;
+}
+.segmented-choice label.on {
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.segmented-choice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.lobby-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.lobby-time select {
+  margin-left: auto;
+}
+.lobby-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.online-standings {
+  margin-top: 12px;
+}
+.online-standing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.online-standing-list li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 38px 10px minmax(0, 1fr) auto 44px 56px;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 13.5px;
+}
+.online-standing-list li.me {
+  background: var(--soft);
+}
+.online-standing-list li.active {
+  box-shadow: inset 3px 0 0 var(--red);
+}
+.online-standing-list li.out {
+  opacity: 0.55;
+}
+.online-standing-name {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.online-standing-state {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.online-standing-list strong {
+  text-align: right;
+}
+.online-multi .game-board .board-top {
+  display: flex;
+}
+@media (max-width: 760px) {
+  .online-standing-list li {
+    grid-template-columns: 32px 8px minmax(0, 1fr) auto 48px;
+  }
+  .online-standing-list .multi-standing-progress {
+    display: none;
+  }
+  .page-online-room .online-multi .game-board > .board-top {
+    display: flex;
+  }
+}
+/* The score sheet scrolls inside its own area; it must never widen the page. */
+.online-multi.game-grid > * {
+  min-width: 0;
+}
+@media (max-width: 760px) {
+  .page-online-room .online-multi.game-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .online-multi .multi-score-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { seededDiceSource } from "../src/online";
 import { ROOM_LIMITS, type RoomRecord } from "../src/online/room";
 import type { ServerMessage } from "../src/online/wire";
-import { RoomHost, HELLO_TIMEOUT_MS, type HostSocket, type HostStorage } from "../worker/src/host";
+import { RoomHost, HELLO_TIMEOUT_MS, CONNECTS_PER_MINUTE, type HostSocket, type HostStorage } from "../worker/src/host";
 import { readConfig } from "../worker/src/config";
 
 /**
@@ -191,7 +191,7 @@ describe("RoomHost (Durable Object logic, runtime-free)", () => {
     open.length = 0;
     let admitted = ROOM_LIMITS.maxConnections;
     while (host.admit().ok) admitted++;
-    expect(admitted).toBe(20);
+    expect(admitted).toBe(CONNECTS_PER_MINUTE);
     expect(host.admit()).toEqual({ ok: false, status: 429 });
     // writes: record rows + alarm changes only
     const writes = state.writes;

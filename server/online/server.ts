@@ -194,7 +194,9 @@ export async function startOnlineServer(options: OnlineServerOptions = {}): Prom
         let code = newRoomCode();
         for (let i = 0; rooms.has(code) && i < 20; i++) code = newRoomCode();
         if (rooms.has(code)) return fail(res, 503, "ROOM_LIMIT", "방 코드를 만들지 못했어요.", okOrigin);
-        const room = OnlineRoom.create(code, depsFor(code), { turnTimeoutMs });
+        const maxPlayers = (body as { maxPlayers?: unknown })?.maxPlayers;
+        const seats = Number.isInteger(maxPlayers) && (maxPlayers as number) >= 2 && (maxPlayers as number) <= 20 ? (maxPlayers as number) : 2;
+        const room = OnlineRoom.create(code, depsFor(code), { turnTimeoutMs, seats });
         const joined = await room.join((body as { name?: unknown })?.name);
         if (!joined.ok) return fail(res, joined.status, joined.error.code, joined.error.message, okOrigin);
         rooms.set(code, room);

@@ -40,6 +40,8 @@ export type MatchRecord = {
   kind?: "random" | "friend" | "ai";
   /** Server records only: roll-level facts from the room's own event log (achievements). */
   stats?: { firstRollYachts: number; firstRollLarge: number; finalRoundYacht: boolean; yachtFaces: number[]; comeback30: boolean };
+  /** Server records of matches with more than two players: how many played, my final rank, the mode. */
+  field?: { players: number; rank: number; mode: "turns" | "simultaneous" };
 };
 
 /** Domain event emitted when a match result is final — the hook for quests/coins/achievements later. */

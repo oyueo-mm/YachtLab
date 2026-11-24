@@ -96,7 +96,7 @@ describe("Online Phase 2 — local WebSocket server", () => {
     expect((await api(s, "/api/rooms", { name: "a\u0007b" })).status).toBe(400);
     expect((await api(s, "/api/rooms/ZZZZZZ/join", { name: "x" })).status).toBe(404);
     const summary = await api(s, `/api/rooms/${created.body.code}`);
-    expect(summary.body).toEqual({ code: created.body.code, status: "lobby", seats: 2, players: ["Mina"] });
+    expect(summary.body).toEqual({ code: created.body.code, status: "lobby", seats: 2, players: ["Mina"], mode: "turns" });
     expect(JSON.stringify(summary.body)).not.toContain("token");
   });
 

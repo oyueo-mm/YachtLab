@@ -25,16 +25,20 @@ export async function freePort(): Promise<number> {
 }
 
 export async function startLocalWorker(vars: Record<string, string> = {}, options: { persistDir?: string; port?: number } = {}): Promise<LocalWorker> {
-  const port = options.port ?? (await freePort());
+  let port = options.port ?? (await freePort());
   const persistDir = options.persistDir ?? (await mkdtemp(join(tmpdir(), "yachtlab-worker-")));
-  const url = `http://127.0.0.1:${port}`;
+  let url = `http://127.0.0.1:${port}`;
   let child: ChildProcess | null = null;
   let output = "";
+  // `freePort` releases the port before wrangler binds it, so a test file starting in parallel can
+  // take the same number. The instance marker makes sure the health check reached THIS process, and
+  // a lost race is retried on a new port.
+  const instance = "i" + Math.random().toString(36).slice(2);
 
-  const launch = async () => {
+  const launchOnce = async () => {
     const args = ["dev", "--config", join(ROOT, "worker/wrangler.toml"), "--local", "--ip", "127.0.0.1", "--port", String(port), "--persist-to", persistDir, "--show-interactive-dev-session=false", "--log-level", "warn"];
     // Production wrangler.toml only allows the Pages origin; local tests use the preview origin.
-    const all = { ALLOWED_ORIGINS: "http://127.0.0.1:5173,http://localhost:5173", MAX_ROOMS: "200", ...vars };
+    const all = { ALLOWED_ORIGINS: "http://127.0.0.1:5173,http://localhost:5173", MAX_ROOMS: "200", ...vars, TEST_INSTANCE: instance };
     for (const [k, v] of Object.entries(all)) args.push("--var", `${k}:${v}`);
     child = spawn(WRANGLER, args, {
       cwd: ROOT,
@@ -49,13 +53,27 @@ export async function startLocalWorker(vars: Record<string, string> = {}, option
       if (child.exitCode !== null) throw new Error("wrangler dev exited:\n" + output);
       try {
         const res = await fetch(url + "/healthz");
-        if (res.ok) return;
+        if (res.ok && ((await res.json()) as { instance?: string }).instance === instance) return;
       } catch {
         /* not ready */
       }
       await new Promise((r) => setTimeout(r, 250));
     }
     throw new Error("wrangler dev did not start:\n" + output);
+  };
+  const launch = async () => {
+    for (let attempt = 0; ; attempt++) {
+      output = "";
+      try {
+        return await launchOnce();
+      } catch (error) {
+        const taken = /Address already in use/.test(output);
+        if (!taken || options.port !== undefined || attempt >= 4) throw error;
+        await stop();
+        port = await freePort();
+        url = `http://127.0.0.1:${port}`;
+      }
+    }
   };
 
   const stop = async () => {
@@ -79,8 +97,12 @@ export async function startLocalWorker(vars: Record<string, string> = {}, option
 
   await launch();
   return {
-    url,
-    port,
+    get url() {
+      return url;
+    },
+    get port() {
+      return port;
+    },
     persistDir,
     stop,
     async restart() {

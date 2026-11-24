@@ -75,7 +75,7 @@ function InviteJoin({ server, code, onJoined, onOther }: { server: string; code:
           : room && room.status === "finished"
             ? "이미 끝난 경기예요."
             : room && !joinable
-              ? "이미 두 명이 모두 들어온 방이에요."
+              ? room.seats > 2 ? "방이 가득 찼어요." : "이미 두 명이 모두 들어온 방이에요."
               : "";
   return (
     <section className="setup online-entry online-invite-join" aria-labelledby="online-title">
@@ -92,6 +92,11 @@ function InviteJoin({ server, code, onJoined, onOther }: { server: string; code:
             <div className="online-invite-card">
               <span>초대 코드 {code}</span>
               <strong>{room?.players[0] ? `${room.players[0]} 님의 방에 초대받았어요` : "온라인 대전 방"}</strong>
+              {room && room.seats > 2 && (
+                <span className="invite-size">
+                  {room.players.length}/{room.seats}명 · {room.mode === "simultaneous" ? "동시 진행" : "순서대로"}
+                </span>
+              )}
             </div>
             {blocked ? (
               <p className="online-invite-blocked" role="alert">
@@ -250,6 +255,14 @@ export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server:
 /** Invite a friend: create a room or join with a code (the original online screen). */
 function FriendPanel({ server, name, enter, onEnter }: { server: string; name: string; enter: (seat: Seat) => void; onEnter: (code: string) => void }) {
   const [code, setCode] = useState("");
+  const [size, setSize] = useState(() => {
+    try {
+      const n = Number(localStorage.getItem("yachtlab.online.size"));
+      return Number.isInteger(n) && n >= 2 && n <= 20 ? n : 2;
+    } catch {
+      return 2;
+    }
+  });
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
   const [error, setError] = useState("");
   const [resume] = useState<SavedSeat[]>(savedSeats);
@@ -260,7 +273,12 @@ function FriendPanel({ server, name, enter, onEnter }: { server: string; name: s
     setBusy(kind);
     setError("");
     try {
-      enter(kind === "create" ? await createRoom(server, name) : await joinRoom(server, target, name));
+      try {
+        localStorage.setItem("yachtlab.online.size", String(size));
+      } catch {
+        /* ignore */
+      }
+      enter(kind === "create" ? await createRoom(server, name, size) : await joinRoom(server, target, name));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -269,7 +287,7 @@ function FriendPanel({ server, name, enter, onEnter }: { server: string; name: s
   };
   return (
     <>
-      <p className="online-lead">친구에게 초대 코드를 보내 각자의 기기에서 1:1로 대결해요. 가입 없이 닉네임만 정하면 돼요.</p>
+      <p className="online-lead">친구에게 초대 코드를 보내 각자의 기기에서 대결해요(2~20명). 가입 없이 닉네임만 정하면 돼요.</p>
       <div className="online-actions">
         <form
           className="online-card"
@@ -297,6 +315,16 @@ function FriendPanel({ server, name, enter, onEnter }: { server: string; name: s
         <div className="online-card">
           <strong>새 방 만들기</strong>
           <span>방을 만들고 친구에게 코드나 링크를 보내요.</span>
+          <label className="room-size">
+            최대 인원
+            <select aria-label="최대 인원" value={size} onChange={(e) => setSize(Number(e.target.value))}>
+              {Array.from({ length: 19 }, (_, i) => i + 2).map((n) => (
+                <option key={n} value={n}>
+                  {n === 2 ? "2명 (1:1)" : `${n}명`}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="button" className="primary" disabled={!!busy} onClick={() => void run("create")}>
             <Plus size={16} /> {busy === "create" ? "만드는 중…" : "방 만들기"}
           </button>
