@@ -1,0 +1,550 @@
+{
+ "curveTable": [
+  {
+   "curve": "linear",
+   "label": "선형",
+   "costs": [
+    [
+     100,
+     200
+    ],
+    [
+     300,
+     600
+    ],
+    [
+     1000,
+     2000
+    ],
+    [
+     3000,
+     6000
+    ],
+    [
+     8000,
+     15000
+    ]
+   ],
+   "extendedTo5": [
+    [
+     100,
+     200,
+     300,
+     400
+    ],
+    [
+     300,
+     600,
+     800,
+     1200
+    ],
+    [
+     1000,
+     2000,
+     3000,
+     4000
+    ],
+    [
+     3000,
+     6000,
+     8000,
+     12000
+    ],
+    [
+     8000,
+     15000,
+     20000,
+     30000
+    ]
+   ]
+  },
+  {
+   "curve": "exponential",
+   "label": "기하급수",
+   "costs": [
+    [
+     100,
+     300
+    ],
+    [
+     300,
+     800
+    ],
+    [
+     1000,
+     3000
+    ],
+    [
+     3000,
+     8000
+    ],
+    [
+     8000,
+     20000
+    ]
+   ],
+   "extendedTo5": [
+    [
+     100,
+     300,
+     800,
+     2500
+    ],
+    [
+     300,
+     800,
+     2500,
+     8000
+    ],
+    [
+     1000,
+     3000,
+     8000,
+     25000
+    ],
+    [
+     3000,
+     8000,
+     25000,
+     80000
+    ],
+    [
+     8000,
+     20000,
+     60000,
+     200000
+    ]
+   ]
+  },
+  {
+   "curve": "power",
+   "label": "멱함수",
+   "costs": [
+    [
+     100,
+     600
+    ],
+    [
+     300,
+     1500
+    ],
+    [
+     1000,
+     6000
+    ],
+    [
+     3000,
+     15000
+    ],
+    [
+     8000,
+     40000
+    ]
+   ],
+   "extendedTo5": [
+    [
+     100,
+     600,
+     1500,
+     3000
+    ],
+    [
+     300,
+     1500,
+     5000,
+     10000
+    ],
+    [
+     1000,
+     6000,
+     15000,
+     30000
+    ],
+    [
+     3000,
+     15000,
+     50000,
+     100000
+    ],
+    [
+     8000,
+     40000,
+     120000,
+     250000
+    ]
+   ]
+  },
+  {
+   "curve": "piecewise",
+   "label": "구간별",
+   "costs": [
+    [
+     100,
+     300
+    ],
+    [
+     300,
+     800
+    ],
+    [
+     1000,
+     3000
+    ],
+    [
+     3000,
+     8000
+    ],
+    [
+     8000,
+     20000
+    ]
+   ],
+   "extendedTo5": [
+    [
+     100,
+     300,
+     800,
+     2000
+    ],
+    [
+     300,
+     800,
+     2500,
+     6000
+    ],
+    [
+     1000,
+     3000,
+     8000,
+     20000
+    ],
+    [
+     3000,
+     8000,
+     25000,
+     60000
+    ],
+    [
+     8000,
+     20000,
+     60000,
+     150000
+    ]
+   ]
+  }
+ ],
+ "curveRuns": [
+  {
+   "curve": "linear",
+   "baseFraction": 0.25,
+   "costsMythic": [
+    4000,
+    8000
+   ],
+   "regular": {
+    "maxUpgradeReach1y": 0.58,
+    "mythicMaxReach1y": 0.01,
+    "upgradeShareOfSpend": 0.07965,
+    "mythicReach1y": 0.39
+   },
+   "heavy": {
+    "maxUpgradeReach1y": 0.83,
+    "mythicMaxReach1y": 0.01,
+    "upgradeShareOfSpend": 0.128,
+    "mythicReach1y": 0.78
+   },
+   "extreme": {
+    "maxUpgradeReach1y": 0.86,
+    "mythicMaxReach1y": 0.01,
+    "upgradeShareOfSpend": 0.1112,
+    "mythicReach1y": 1
+   }
+  },
+  {
+   "curve": "linear",
+   "baseFraction": 0.5,
+   "costsMythic": [
+    8000,
+    15000
+   ],
+   "regular": {
+    "maxUpgradeReach1y": 0.09,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.05575,
+    "mythicReach1y": 0.39
+   },
+   "heavy": {
+    "maxUpgradeReach1y": 0.36,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.1606,
+    "mythicReach1y": 0.79
+   },
+   "extreme": {
+    "maxUpgradeReach1y": 0.31,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.1665,
+    "mythicReach1y": 1
+   }
+  },
+  {
+   "curve": "linear",
+   "baseFraction": 1,
+   "costsMythic": [
+    15000,
+    30000
+   ],
+   "regular": {
+    "maxUpgradeReach1y": 0.06,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.01672,
+    "mythicReach1y": 0.39
+   },
+   "heavy": {
+    "maxUpgradeReach1y": 0.32,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.07678,
+    "mythicReach1y": 0.8
+   },
+   "extreme": {
+    "maxUpgradeReach1y": 0.22,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.1449,
+    "mythicReach1y": 1
+   }
+  },
+  {
+   "curve": "exponential",
+   "baseFraction": 0.25,
+   "costsMythic": [
+    4000,
+    12000
+   ],
+   "regular": {
+    "maxUpgradeReach1y": 0.51,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.06317,
+    "mythicReach1y": 0.38
+   },
+   "heavy": {
+    "maxUpgradeReach1y": 0.74,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.1068,
+    "mythicReach1y": 0.78
+   },
+   "extreme": {
+    "maxUpgradeReach1y": 0.82,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.1049,
+    "mythicReach1y": 0.99
+   }
+  },
+  {
+   "curve": "exponential",
+   "baseFraction": 0.5,
+   "costsMythic": [
+    8000,
+    20000
+   ],
+   "regular": {
+    "maxUpgradeReach1y": 0.08,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.05745,
+    "mythicReach1y": 0.39
+   },
+   "heavy": {
+    "maxUpgradeReach1y": 0.34,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.1621,
+    "mythicReach1y": 0.79
+   },
+   "extreme": {
+    "maxUpgradeReach1y": 0.27,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.17,
+    "mythicReach1y": 1
+   }
+  },
+  {
+   "curve": "exponential",
+   "baseFraction": 1,
+   "costsMythic": [
+    15000,
+    40000
+   ],
+   "regular": {
+    "maxUpgradeReach1y": 0.01,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.01119,
+    "mythicReach1y": 0.39
+   },
+   "heavy": {
+    "maxUpgradeReach1y": 0,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.06519,
+    "mythicReach1y": 0.8
+   },
+   "extreme": {
+    "maxUpgradeReach1y": 0,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.1341,
+    "mythicReach1y": 1
+   }
+  },
+  {
+   "curve": "power",
+   "baseFraction": 0.25,
+   "costsMythic": [
+    4000,
+    20000
+   ],
+   "regular": {
+    "maxUpgradeReach1y": 0.09,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.04474,
+    "mythicReach1y": 0.39
+   },
+   "heavy": {
+    "maxUpgradeReach1y": 0.34,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.09055,
+    "mythicReach1y": 0.77
+   },
+   "extreme": {
+    "maxUpgradeReach1y": 0.28,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.09193,
+    "mythicReach1y": 0.99
+   }
+  },
+  {
+   "curve": "power",
+   "baseFraction": 0.5,
+   "costsMythic": [
+    8000,
+    40000
+   ],
+   "regular": {
+    "maxUpgradeReach1y": 0.03,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.05121,
+    "mythicReach1y": 0.4
+   },
+   "heavy": {
+    "maxUpgradeReach1y": 0.31,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.1673,
+    "mythicReach1y": 0.79
+   },
+   "extreme": {
+    "maxUpgradeReach1y": 0.23,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.171,
+    "mythicReach1y": 1
+   }
+  },
+  {
+   "curve": "power",
+   "baseFraction": 1,
+   "costsMythic": [
+    15000,
+    80000
+   ],
+   "regular": {
+    "maxUpgradeReach1y": 0,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.01049,
+    "mythicReach1y": 0.39
+   },
+   "heavy": {
+    "maxUpgradeReach1y": 0,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.06519,
+    "mythicReach1y": 0.8
+   },
+   "extreme": {
+    "maxUpgradeReach1y": 0,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.1341,
+    "mythicReach1y": 1
+   }
+  },
+  {
+   "curve": "piecewise",
+   "baseFraction": 0.25,
+   "costsMythic": [
+    4000,
+    12000
+   ],
+   "regular": {
+    "maxUpgradeReach1y": 0.51,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.06317,
+    "mythicReach1y": 0.38
+   },
+   "heavy": {
+    "maxUpgradeReach1y": 0.74,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.1068,
+    "mythicReach1y": 0.78
+   },
+   "extreme": {
+    "maxUpgradeReach1y": 0.82,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.1049,
+    "mythicReach1y": 0.99
+   }
+  },
+  {
+   "curve": "piecewise",
+   "baseFraction": 0.5,
+   "costsMythic": [
+    8000,
+    20000
+   ],
+   "regular": {
+    "maxUpgradeReach1y": 0.08,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.05745,
+    "mythicReach1y": 0.39
+   },
+   "heavy": {
+    "maxUpgradeReach1y": 0.34,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.1621,
+    "mythicReach1y": 0.79
+   },
+   "extreme": {
+    "maxUpgradeReach1y": 0.27,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.17,
+    "mythicReach1y": 1
+   }
+  },
+  {
+   "curve": "piecewise",
+   "baseFraction": 1,
+   "costsMythic": [
+    15000,
+    40000
+   ],
+   "regular": {
+    "maxUpgradeReach1y": 0.01,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.01119,
+    "mythicReach1y": 0.39
+   },
+   "heavy": {
+    "maxUpgradeReach1y": 0,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.06519,
+    "mythicReach1y": 0.8
+   },
+   "extreme": {
+    "maxUpgradeReach1y": 0,
+    "mythicMaxReach1y": 0,
+    "upgradeShareOfSpend": 0.1341,
+    "mythicReach1y": 1
+   }
+  }
+ ]
+}

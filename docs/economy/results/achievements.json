@@ -1,0 +1,1111 @@
+[
+ {
+  "id": "a.match.10",
+  "group": "cumulative",
+  "label": "경기 10회 완료",
+  "key": "match",
+  "count": 10,
+  "expectedMatches": {
+   "beginner": 10,
+   "casual": 10,
+   "intermediate": 10,
+   "strong": 10,
+   "expert": 10
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "E",
+  "bandLabel": "쉬움",
+  "rewardGems": 5,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.match.100",
+  "group": "cumulative",
+  "label": "경기 100회 완료",
+  "key": "match",
+  "count": 100,
+  "expectedMatches": {
+   "beginner": 100,
+   "casual": 100,
+   "intermediate": 100,
+   "strong": 100,
+   "expert": 100
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "N",
+  "bandLabel": "보통",
+  "rewardGems": 15,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.match.500",
+  "group": "cumulative",
+  "label": "경기 500회 완료",
+  "key": "match",
+  "count": 500,
+  "expectedMatches": {
+   "beginner": 500,
+   "casual": 500,
+   "intermediate": 500,
+   "strong": 500,
+   "expert": 500
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "H",
+  "bandLabel": "어려움",
+  "rewardGems": 30,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.match.1000",
+  "group": "cumulative",
+  "label": "경기 1000회 완료",
+  "key": "match",
+  "count": 1000,
+  "expectedMatches": {
+   "beginner": 1000,
+   "casual": 1000,
+   "intermediate": 1000,
+   "strong": 1000,
+   "expert": 1000
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "H",
+  "bandLabel": "어려움",
+  "rewardGems": 50,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.match.5000",
+  "group": "cumulative",
+  "label": "경기 5000회 완료",
+  "key": "match",
+  "count": 5000,
+  "expectedMatches": {
+   "beginner": 5000,
+   "casual": 5000,
+   "intermediate": 5000,
+   "strong": 5000,
+   "expert": 5000
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "VH",
+  "bandLabel": "매우 어려움",
+  "rewardGems": 100,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.match.10000",
+  "group": "cumulative",
+  "label": "경기 10000회 완료",
+  "key": "match",
+  "count": 10000,
+  "expectedMatches": {
+   "beginner": 10000,
+   "casual": 10000,
+   "intermediate": 10000,
+   "strong": 10000,
+   "expert": 10000
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "VH",
+  "bandLabel": "매우 어려움",
+  "rewardGems": 100,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.win.10",
+  "group": "cumulative",
+  "label": "10승",
+  "key": "win",
+  "count": 10,
+  "expectedMatches": {
+   "beginner": 20,
+   "casual": 20,
+   "intermediate": 20,
+   "strong": 20,
+   "expert": 20
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "N",
+  "bandLabel": "보통",
+  "rewardGems": 5,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.win.100",
+  "group": "cumulative",
+  "label": "100승",
+  "key": "win",
+  "count": 100,
+  "expectedMatches": {
+   "beginner": 200,
+   "casual": 200,
+   "intermediate": 200,
+   "strong": 200,
+   "expert": 200
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "H",
+  "bandLabel": "어려움",
+  "rewardGems": 20,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.win.500",
+  "group": "cumulative",
+  "label": "500승",
+  "key": "win",
+  "count": 500,
+  "expectedMatches": {
+   "beginner": 1000,
+   "casual": 1000,
+   "intermediate": 1000,
+   "strong": 1000,
+   "expert": 1000
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "H",
+  "bandLabel": "어려움",
+  "rewardGems": 50,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.win.2000",
+  "group": "cumulative",
+  "label": "2000승",
+  "key": "win",
+  "count": 2000,
+  "expectedMatches": {
+   "beginner": 4000,
+   "casual": 4000,
+   "intermediate": 4000,
+   "strong": 4000,
+   "expert": 4000
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "VH",
+  "bandLabel": "매우 어려움",
+  "rewardGems": 90,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.yacht.1",
+  "group": "cumulative",
+  "label": "요트 1회",
+  "key": "yachtScored",
+  "count": 1,
+  "expectedMatches": {
+   "beginner": 12.21,
+   "casual": 7.477,
+   "intermediate": 5.195,
+   "strong": 3.928,
+   "expert": 3.545
+  },
+  "pPerMatch": {
+   "beginner": 0.08192,
+   "casual": 0.1338,
+   "intermediate": 0.1925,
+   "strong": 0.2546,
+   "expert": 0.2821
+  },
+  "band": "E",
+  "bandLabel": "쉬움",
+  "rewardGems": 5,
+  "matchesFor90pct": 11
+ },
+ {
+  "id": "a.yacht.10",
+  "group": "cumulative",
+  "label": "요트 10회",
+  "key": "yachtScored",
+  "count": 10,
+  "expectedMatches": {
+   "beginner": 122.1,
+   "casual": 74.77,
+   "intermediate": 51.95,
+   "strong": 39.28,
+   "expert": 35.45
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "N",
+  "bandLabel": "보통",
+  "rewardGems": 10,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.yacht.50",
+  "group": "cumulative",
+  "label": "요트 50회",
+  "key": "yachtScored",
+  "count": 50,
+  "expectedMatches": {
+   "beginner": 610.3,
+   "casual": 373.8,
+   "intermediate": 259.8,
+   "strong": 196.4,
+   "expert": 177.2
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "H",
+  "bandLabel": "어려움",
+  "rewardGems": 20,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.yacht.200",
+  "group": "cumulative",
+  "label": "요트 200회",
+  "key": "yachtScored",
+  "count": 200,
+  "expectedMatches": {
+   "beginner": 2441,
+   "casual": 1495,
+   "intermediate": 1039,
+   "strong": 785.6,
+   "expert": 708.9
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "VH",
+  "bandLabel": "매우 어려움",
+  "rewardGems": 50,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.yacht.1000",
+  "group": "cumulative",
+  "label": "요트 1000회",
+  "key": "yachtScored",
+  "count": 1000,
+  "expectedMatches": {
+   "beginner": 12210,
+   "casual": 7477,
+   "intermediate": 5195,
+   "strong": 3928,
+   "expert": 3545
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "VH",
+  "bandLabel": "매우 어려움",
+  "rewardGems": 100,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.bonus.10",
+  "group": "cumulative",
+  "label": "상단 보너스 10회",
+  "key": "upperBonus",
+  "count": 10,
+  "expectedMatches": {
+   "beginner": 52.48,
+   "casual": 29.07,
+   "intermediate": 20.45,
+   "strong": 15.94,
+   "expert": 14.53
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "N",
+  "bandLabel": "보통",
+  "rewardGems": 5,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.bonus.100",
+  "group": "cumulative",
+  "label": "상단 보너스 100회",
+  "key": "upperBonus",
+  "count": 100,
+  "expectedMatches": {
+   "beginner": 524.8,
+   "casual": 290.7,
+   "intermediate": 204.5,
+   "strong": 159.4,
+   "expert": 145.3
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "H",
+  "bandLabel": "어려움",
+  "rewardGems": 20,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "a.bonus.500",
+  "group": "cumulative",
+  "label": "상단 보너스 500회",
+  "key": "upperBonus",
+  "count": 500,
+  "expectedMatches": {
+   "beginner": 2624,
+   "casual": 1454,
+   "intermediate": 1023,
+   "strong": 797,
+   "expert": 726.7
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "VH",
+  "bandLabel": "매우 어려움",
+  "rewardGems": 50,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "s.200",
+  "group": "skill",
+  "label": "200점 이상 달성",
+  "key": "t200",
+  "count": 1,
+  "expectedMatches": {
+   "beginner": 46.14,
+   "casual": 12.43,
+   "intermediate": 5.307,
+   "strong": 2.947,
+   "expert": 2.415
+  },
+  "pPerMatch": {
+   "beginner": 0.02167,
+   "casual": 0.08042,
+   "intermediate": 0.1884,
+   "strong": 0.3393,
+   "expert": 0.4141
+  },
+  "band": "E",
+  "bandLabel": "쉬움",
+  "rewardGems": 5,
+  "matchesFor90pct": 12
+ },
+ {
+  "id": "s.200x25",
+  "group": "skill",
+  "label": "200점 이상 25회",
+  "key": "t200",
+  "count": 25,
+  "expectedMatches": {
+   "beginner": 1153,
+   "casual": 310.8,
+   "intermediate": 132.7,
+   "strong": 73.68,
+   "expert": 60.37
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "H",
+  "bandLabel": "어려움",
+  "rewardGems": 15,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "s.250",
+  "group": "skill",
+  "label": "250점 이상 달성",
+  "key": "t250",
+  "count": 1,
+  "expectedMatches": {
+   "beginner": 2105,
+   "casual": 245.4,
+   "intermediate": 61.82,
+   "strong": 21.99,
+   "expert": 14.47
+  },
+  "pPerMatch": {
+   "beginner": 0.000475,
+   "casual": 0.004075,
+   "intermediate": 0.01617,
+   "strong": 0.04548,
+   "expert": 0.0691
+  },
+  "band": "N",
+  "bandLabel": "보통",
+  "rewardGems": 10,
+  "matchesFor90pct": 142
+ },
+ {
+  "id": "s.270",
+  "group": "skill",
+  "label": "270점 이상 달성",
+  "key": "t270",
+  "count": 1,
+  "expectedMatches": {
+   "beginner": null,
+   "casual": 2105,
+   "intermediate": 370.4,
+   "strong": 86.58,
+   "expert": 47.9
+  },
+  "pPerMatch": {
+   "beginner": 0,
+   "casual": 0.000475,
+   "intermediate": 0.0027,
+   "strong": 0.01155,
+   "expert": 0.02088
+  },
+  "band": "H",
+  "bandLabel": "어려움",
+  "rewardGems": 30,
+  "matchesFor90pct": 852
+ },
+ {
+  "id": "s.nozero",
+  "group": "skill",
+  "label": "0점 칸 없이 경기 완료",
+  "key": "noZero",
+  "count": 1,
+  "expectedMatches": {
+   "beginner": 500,
+   "casual": 93.68,
+   "intermediate": 38.57,
+   "strong": 17.5,
+   "expert": 12.98
+  },
+  "pPerMatch": {
+   "beginner": 0.002,
+   "casual": 0.01068,
+   "intermediate": 0.02593,
+   "strong": 0.05715,
+   "expert": 0.07702
+  },
+  "band": "N",
+  "bandLabel": "보통",
+  "rewardGems": 10,
+  "matchesFor90pct": 88
+ },
+ {
+  "id": "s.perfectpath",
+  "group": "skill",
+  "label": "상단 모든 칸 3개 이상(정석 보너스)",
+  "key": "upperPerfectPath",
+  "count": 1,
+  "expectedMatches": {
+   "beginner": 139.9,
+   "casual": 64.31,
+   "intermediate": 33.33,
+   "strong": 19.28,
+   "expert": 13.54
+  },
+  "pPerMatch": {
+   "beginner": 0.00715,
+   "casual": 0.01555,
+   "intermediate": 0.03,
+   "strong": 0.05187,
+   "expert": 0.07387
+  },
+  "band": "N",
+  "bandLabel": "보통",
+  "rewardGems": 10,
+  "matchesFor90pct": 76
+ },
+ {
+  "id": "s.comeback",
+  "group": "skill",
+  "label": "9라운드 후 30점 이상 뒤지다 역전승",
+  "key": "comeback30",
+  "count": 1,
+  "expectedMatches": {
+   "beginner": 91.62,
+   "casual": 54.83,
+   "intermediate": 45.91,
+   "strong": 38.32,
+   "expert": 37.4
+  },
+  "pPerMatch": {
+   "beginner": 0.01092,
+   "casual": 0.01824,
+   "intermediate": 0.02178,
+   "strong": 0.0261,
+   "expert": 0.02673
+  },
+  "band": "N",
+  "bandLabel": "보통",
+  "rewardGems": 10,
+  "matchesFor90pct": 105
+ },
+ {
+  "id": "s.streak5",
+  "group": "skill",
+  "label": "온라인 무작위 대전 5연승",
+  "key": "streak",
+  "count": 5,
+  "expectedMatches": {
+   "beginner": 62,
+   "casual": 62,
+   "intermediate": 62,
+   "strong": 62,
+   "expert": 62
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "N",
+  "bandLabel": "보통",
+  "rewardGems": 10,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "s.streak10",
+  "group": "skill",
+  "label": "온라인 무작위 대전 10연승",
+  "key": "streak",
+  "count": 10,
+  "expectedMatches": {
+   "beginner": 2046,
+   "casual": 2046,
+   "intermediate": 2046,
+   "strong": 2046,
+   "expert": 2046
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "VH",
+  "bandLabel": "매우 어려움",
+  "rewardGems": 70,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "l.firstyacht",
+  "group": "luck",
+  "label": "첫 굴림 요트",
+  "key": "firstRollYacht",
+  "count": 1,
+  "expectedMatches": {
+   "beginner": 104.7,
+   "casual": 101.3,
+   "intermediate": 115.6,
+   "strong": 112,
+   "expert": 105
+  },
+  "pPerMatch": {
+   "beginner": 0.00955,
+   "casual": 0.009875,
+   "intermediate": 0.00865,
+   "strong": 0.008925,
+   "expert": 0.009525
+  },
+  "band": "H",
+  "bandLabel": "어려움",
+  "rewardGems": 15,
+  "matchesFor90pct": 266
+ },
+ {
+  "id": "l.sixes30",
+  "group": "luck",
+  "label": "헥사 30점(6 다섯 개)",
+  "key": "sixesMax",
+  "count": 1,
+  "expectedMatches": {
+   "beginner": 113.6,
+   "casual": 92.38,
+   "intermediate": 84.39,
+   "strong": 82.3,
+   "expert": 68.03
+  },
+  "pPerMatch": {
+   "beginner": 0.0088,
+   "casual": 0.01082,
+   "intermediate": 0.01185,
+   "strong": 0.01215,
+   "expert": 0.0147
+  },
+  "band": "N",
+  "bandLabel": "보통",
+  "rewardGems": 15,
+  "matchesFor90pct": 194
+ },
+ {
+  "id": "l.finalyacht",
+  "group": "luck",
+  "label": "마지막 라운드 요트",
+  "key": "finalRoundYacht",
+  "count": 1,
+  "expectedMatches": {
+   "beginner": 5714,
+   "casual": 4000,
+   "intermediate": 1212,
+   "strong": 563.4,
+   "expert": 253.2
+  },
+  "pPerMatch": {
+   "beginner": 0.000175,
+   "casual": 0.00025,
+   "intermediate": 0.000825,
+   "strong": 0.001775,
+   "expert": 0.00395
+  },
+  "band": "VH",
+  "bandLabel": "매우 어려움",
+  "rewardGems": 50,
+  "matchesFor90pct": 2790
+ },
+ {
+  "id": "l.firstlarge10",
+  "group": "luck",
+  "label": "첫 굴림 라지 스트레이트 10회",
+  "key": "largeFirstRoll",
+  "count": 10,
+  "expectedMatches": {
+   "beginner": 27.25,
+   "casual": 27,
+   "intermediate": 26.88,
+   "strong": 27.22,
+   "expert": 27.24
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "N",
+  "bandLabel": "보통",
+  "rewardGems": 10,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "x.firstyacht2",
+  "group": "special",
+  "label": "한 경기 첫 굴림 요트 2회",
+  "key": "firstRollYacht2",
+  "count": 1,
+  "symbolic": true,
+  "expectedMatches": {
+   "beginner": 25580,
+   "casual": 25580,
+   "intermediate": 25580,
+   "strong": 25580,
+   "expert": 25580
+  },
+  "pPerMatch": {
+   "beginner": 0.00003909,
+   "casual": 0.00003909,
+   "intermediate": 0.00003909,
+   "strong": 0.00003909,
+   "expert": 0.00003909
+  },
+  "band": "X",
+  "bandLabel": "극한",
+  "rewardGems": 100,
+  "matchesFor90pct": 58899
+ },
+ {
+  "id": "x.300",
+  "group": "special",
+  "label": "300점 이상",
+  "key": "t300",
+  "count": 1,
+  "symbolic": true,
+  "expectedMatches": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": 1455000,
+   "expert": 436500
+  },
+  "pPerMatch": {
+   "beginner": 0,
+   "casual": 0,
+   "intermediate": 0,
+   "strong": 6.873e-7,
+   "expert": 0.000002291
+  },
+  "band": "X",
+  "bandLabel": "극한",
+  "rewardGems": 100,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "x.firstyacht3",
+  "group": "special",
+  "label": "한 경기 첫 굴림 요트 3회",
+  "key": "firstRollYacht3",
+  "count": 1,
+  "symbolic": true,
+  "note": "정확 확률 ≈1.0×10⁻⁷/경기",
+  "expectedMatches": {
+   "beginner": 9946000,
+   "casual": 9946000,
+   "intermediate": 9946000,
+   "strong": 9946000,
+   "expert": 9946000
+  },
+  "pPerMatch": {
+   "beginner": 1.005e-7,
+   "casual": 1.005e-7,
+   "intermediate": 1.005e-7,
+   "strong": 1.005e-7,
+   "expert": 1.005e-7
+  },
+  "band": "S",
+  "bandLabel": "상징(사실상 불가능)",
+  "rewardGems": 100,
+  "matchesFor90pct": 22901834
+ },
+ {
+  "id": "x.310",
+  "group": "special",
+  "label": "310점 이상",
+  "key": "t310",
+  "count": 1,
+  "symbolic": true,
+  "expectedMatches": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": 150300000
+  },
+  "pPerMatch": {
+   "beginner": 0,
+   "casual": 0,
+   "intermediate": 0,
+   "strong": 0,
+   "expert": 6.652e-9
+  },
+  "band": "S",
+  "bandLabel": "상징(사실상 불가능)",
+  "rewardGems": 100,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "x.perfect",
+  "group": "special",
+  "label": "323점 완벽한 경기",
+  "key": "perfect323",
+  "count": 1,
+  "symbolic": true,
+  "note": "DP Expert 4.4×10⁻¹⁶, 목표 최적 3.2×10⁻¹⁴ — 사실상 상징(숨김 권장)",
+  "expectedMatches": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": 2269000000000000
+  },
+  "pPerMatch": {
+   "beginner": 0,
+   "casual": 0,
+   "intermediate": 0,
+   "strong": 0,
+   "expert": 4.407e-16
+  },
+  "band": "S",
+  "bandLabel": "상징(사실상 불가능)",
+  "rewardGems": 100,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "c.yachtfaces",
+  "group": "collection",
+  "label": "1~6 모든 눈으로 요트",
+  "key": "yachtFaces",
+  "count": 6,
+  "expectedMatches": {
+   "beginner": 197.5,
+   "casual": 124.8,
+   "intermediate": 89.89,
+   "strong": 66.25,
+   "expert": 58.47
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "N",
+  "bandLabel": "보통",
+  "rewardGems": 15,
+  "matchesFor90pct": null,
+  "p50": 78,
+  "p90": 154
+ },
+ {
+  "id": "c.days.30",
+  "group": "collection",
+  "label": "서버 검증 경기를 한 날 30일",
+  "key": "activeDays",
+  "count": 30,
+  "expectedMatches": {
+   "beginner": 180,
+   "casual": 180,
+   "intermediate": 180,
+   "strong": 180,
+   "expert": 180
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "H",
+  "bandLabel": "어려움",
+  "rewardGems": 20,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "c.days.100",
+  "group": "collection",
+  "label": "서버 검증 경기를 한 날 100일",
+  "key": "activeDays",
+  "count": 100,
+  "expectedMatches": {
+   "beginner": 600,
+   "casual": 600,
+   "intermediate": 600,
+   "strong": 600,
+   "expert": 600
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "H",
+  "bandLabel": "어려움",
+  "rewardGems": 40,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "c.days.365",
+  "group": "collection",
+  "label": "서버 검증 경기를 한 날 365일",
+  "key": "activeDays",
+  "count": 365,
+  "expectedMatches": {
+   "beginner": 2190,
+   "casual": 2190,
+   "intermediate": 2190,
+   "strong": 2190,
+   "expert": 2190
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "VH",
+  "bandLabel": "매우 어려움",
+  "rewardGems": 70,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "c.days.1000",
+  "group": "collection",
+  "label": "서버 검증 경기를 한 날 1000일",
+  "key": "activeDays",
+  "count": 1000,
+  "expectedMatches": {
+   "beginner": 6000,
+   "casual": 6000,
+   "intermediate": 6000,
+   "strong": 6000,
+   "expert": 6000
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "VH",
+  "bandLabel": "매우 어려움",
+  "rewardGems": 100,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "c.dq.30",
+  "group": "collection",
+  "label": "일일 퀘스트 30회 완료",
+  "key": "dailyQuests",
+  "count": 30,
+  "expectedMatches": {
+   "beginner": 375,
+   "casual": 375,
+   "intermediate": 375,
+   "strong": 375,
+   "expert": 375
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "H",
+  "bandLabel": "어려움",
+  "rewardGems": 30,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "c.dq.180",
+  "group": "collection",
+  "label": "일일 퀘스트 180회 완료",
+  "key": "dailyQuests",
+  "count": 180,
+  "expectedMatches": {
+   "beginner": 2250,
+   "casual": 2250,
+   "intermediate": 2250,
+   "strong": 2250,
+   "expert": 2250
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "VH",
+  "bandLabel": "매우 어려움",
+  "rewardGems": 70,
+  "matchesFor90pct": null
+ },
+ {
+  "id": "c.dq.365",
+  "group": "collection",
+  "label": "일일 퀘스트 365회 완료",
+  "key": "dailyQuests",
+  "count": 365,
+  "expectedMatches": {
+   "beginner": 4563,
+   "casual": 4563,
+   "intermediate": 4563,
+   "strong": 4563,
+   "expert": 4563
+  },
+  "pPerMatch": {
+   "beginner": null,
+   "casual": null,
+   "intermediate": null,
+   "strong": null,
+   "expert": null
+  },
+  "band": "VH",
+  "bandLabel": "매우 어려움",
+  "rewardGems": 100,
+  "matchesFor90pct": null
+ }
+]

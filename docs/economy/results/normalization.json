@@ -1,0 +1,84 @@
+{
+ "coinUnit": 100,
+ "normalization": {
+  "M0": {
+   "rawMedianCoinsPerDay": 252.5,
+   "factor": 0.396,
+   "medianGemsPerDay": 4.482
+  },
+  "M1": {
+   "rawMedianCoinsPerDay": 258,
+   "factor": 0.3875,
+   "medianGemsPerDay": 4.367
+  },
+  "M2": {
+   "rawMedianCoinsPerDay": 380.4,
+   "factor": 0.2629,
+   "medianGemsPerDay": 4.367
+  },
+  "M3": {
+   "rawMedianCoinsPerDay": 228.5,
+   "factor": 0.4376,
+   "medianGemsPerDay": 4.367
+  },
+  "M4": {
+   "rawMedianCoinsPerDay": 226.8,
+   "factor": 0.441,
+   "medianGemsPerDay": 4.367
+  },
+  "M5": {
+   "rawMedianCoinsPerDay": 247.6,
+   "factor": 0.4038,
+   "medianGemsPerDay": 12.9
+  },
+  "M6": {
+   "rawMedianCoinsPerDay": 237.3,
+   "factor": 0.4214,
+   "medianGemsPerDay": 4.805
+  }
+ },
+ "models": [
+  {
+   "id": "M0",
+   "label": "M0 단순 신뢰(반례)",
+   "summary": "모든 모드(로컬 AI 포함 클라이언트 기록)에 보상, 상한 없음. 어뷰징 위험을 측정하기 위한 반례 — 채택 후보 아님.",
+   "counterfactual": true
+  },
+  {
+   "id": "M1",
+   "label": "M1 경기 중심",
+   "summary": "경기 보상이 주 수급원(완료+승리), 퀘스트는 작게, 상한 없음. 많이 할수록 선형으로 더 받음.",
+   "counterfactual": false
+  },
+  {
+   "id": "M2",
+   "label": "M2 퀘스트 중심",
+   "summary": "경기당 보상은 작고 일일·주간 퀘스트가 주 수급원. 하루 소수 경기로 대부분 획득.",
+   "counterfactual": false
+  },
+  {
+   "id": "M3",
+   "label": "M3 혼합·소프트캡",
+   "summary": "경기 보상 + 퀘스트 균형, 하루 10경기 이후 경기 코인 25%, 30경기 이후 경기 코인 0(퀘스트는 계속, 업적 진행은 하루 40경기까지). 친구 대전은 승리 보상 없음·일 10경기.",
+   "counterfactual": false
+  },
+  {
+   "id": "M4",
+   "label": "M4 하드캡",
+   "summary": "M3와 같으나 경기 코인 하루 상한(소프트캡 없음). 상한 이후 경기 코인 0.",
+   "counterfactual": false
+  },
+  {
+   "id": "M5",
+   "label": "M5 보석 확대",
+   "summary": "M3 + 일일 보석·주간 보석·업적 보석 2배. 보석 희소성 유지 여부를 시험.",
+   "counterfactual": false
+  },
+  {
+   "id": "M6",
+   "label": "M6 혼합+월간 도전",
+   "summary": "M3 + 월간 도전(한 달에 일일 퀘스트를 15일 이상 완료 시 보석·코인). 장기 복귀 동기 시험.",
+   "counterfactual": false
+  }
+ ]
+}

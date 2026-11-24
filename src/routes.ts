@@ -5,7 +5,7 @@
  * The tier is a structural boundary only (lab screens live in src/lab and load lazily) so they
  * could become an optional plan later. No payment, subscription or access control exists.
  */
-export type Route = "home" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "records" | "profile" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab";
+export type Route = "home" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "records" | "profile" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab" | "economy-lab";
 export type Shell = "lobby" | "game" | "lab" | "page";
 
 export const routes: Record<Route, { title: string; shell: Shell; tier: "core" | "lab" }> = {
@@ -25,9 +25,10 @@ export const routes: Record<Route, { title: string; shell: Shell; tier: "core" |
   tournament: { title: "AI 토너먼트", shell: "lab", tier: "lab" },
   analysis: { title: "전략 분석실", shell: "lab", tier: "lab" },
   "dice-lab": { title: "주사위 실험실", shell: "lab", tier: "lab" },
+  "economy-lab": { title: "경제 연구실", shell: "lab", tier: "lab" },
 };
 
-export const labTools = ["watch", "tournament", "analysis", "dice-lab"] as const satisfies readonly Route[];
+export const labTools = ["watch", "tournament", "analysis", "dice-lab", "economy-lab"] as const satisfies readonly Route[];
 
 export const isRoute = (value: string): value is Route => Object.prototype.hasOwnProperty.call(routes, value);
 export const currentRoute = (): Route => {

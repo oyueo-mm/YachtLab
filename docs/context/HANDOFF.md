@@ -4,6 +4,8 @@
 
 ## 새로운 ChatGPT/에이전트가 해야 할 일
 
+> **재화·퀘스트·업적·상점 작업이면 먼저 [경제 연구](../economy/ECONOMY-RESEARCH.md)** — 시뮬레이터 `src/economy/`, 재현 명령 §12, 추천 M3와 가정 목록, 공식 재화는 server-verified만(D-030).
+>
 > **게임·온라인·계정(제품) 작업이면 먼저 [제품 개발 현황](./PRODUCT-2026-11-24.md)** — 제품 Phase 번호, 완료/미검증/외부 설정 필요 구분, 배포 기록, 백로그. 설계는 [소셜·계정](../online/SOCIAL-AND-ACCOUNTS.md), 모바일·성능은 [PR A 문서](../ui/PHASE-A-2026-11.md).
 
 1. 우선 [맥락 허브](./README.md), [자동 생성 현재 상태](./_generated/CURRENT_STATE.md), [검증 결과](./RESULTS.md), [연구 로드맵](./ROADMAP.md), [전체 기법 도감](./TECHNIQUES.md)을 읽는다.

@@ -1,0 +1,737 @@
+[
+ {
+  "id": "d.play3",
+  "period": "daily",
+  "difficulty": 0,
+  "label": "경기 3회 완료",
+  "key": "match",
+  "count": 3,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 1,
+    "expectedMatches": 3,
+    "completionProb": 0.7734
+   },
+   "casual": {
+    "pPerMatch": 1,
+    "expectedMatches": 3,
+    "completionProb": 0.7734
+   },
+   "intermediate": {
+    "pPerMatch": 1,
+    "expectedMatches": 3,
+    "completionProb": 0.7734
+   },
+   "strong": {
+    "pPerMatch": 1,
+    "expectedMatches": 3,
+    "completionProb": 0.7734
+   },
+   "expert": {
+    "pPerMatch": 1,
+    "expectedMatches": 3,
+    "completionProb": 0.7734
+   }
+  }
+ },
+ {
+  "id": "d.full1",
+  "period": "daily",
+  "difficulty": 0,
+  "label": "풀 하우스 1회 기록",
+  "key": "fullScored",
+  "count": 1,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.5121,
+    "expectedMatches": 1.953,
+    "completionProb": 0.8905
+   },
+   "casual": {
+    "pPerMatch": 0.6494,
+    "expectedMatches": 1.54,
+    "completionProb": 0.9357
+   },
+   "intermediate": {
+    "pPerMatch": 0.7519,
+    "expectedMatches": 1.33,
+    "completionProb": 0.9598
+   },
+   "strong": {
+    "pPerMatch": 0.8224,
+    "expectedMatches": 1.216,
+    "completionProb": 0.9733
+   },
+   "expert": {
+    "pPerMatch": 0.8403,
+    "expectedMatches": 1.19,
+    "completionProb": 0.9764
+   }
+  }
+ },
+ {
+  "id": "d.small1",
+  "period": "daily",
+  "difficulty": 0,
+  "label": "스몰 스트레이트 1회 기록",
+  "key": "smallScored",
+  "count": 1,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.8376,
+    "expectedMatches": 1.194,
+    "completionProb": 0.9759
+   },
+   "casual": {
+    "pPerMatch": 0.9181,
+    "expectedMatches": 1.089,
+    "completionProb": 0.9887
+   },
+   "intermediate": {
+    "pPerMatch": 0.9553,
+    "expectedMatches": 1.047,
+    "completionProb": 0.994
+   },
+   "strong": {
+    "pPerMatch": 0.966,
+    "expectedMatches": 1.035,
+    "completionProb": 0.9955
+   },
+   "expert": {
+    "pPerMatch": 0.959,
+    "expectedMatches": 1.043,
+    "completionProb": 0.9945
+   }
+  }
+ },
+ {
+  "id": "d.win1",
+  "period": "daily",
+  "difficulty": 1,
+  "label": "1승",
+  "key": "win",
+  "count": 1,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 2,
+    "completionProb": 0.8855
+   },
+   "casual": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 2,
+    "completionProb": 0.8855
+   },
+   "intermediate": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 2,
+    "completionProb": 0.8855
+   },
+   "strong": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 2,
+    "completionProb": 0.8855
+   },
+   "expert": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 2,
+    "completionProb": 0.8855
+   }
+  }
+ },
+ {
+  "id": "d.bonus1",
+  "period": "daily",
+  "difficulty": 1,
+  "label": "상단 보너스 1회 달성",
+  "key": "upperBonus",
+  "count": 1,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.1905,
+    "expectedMatches": 5.248,
+    "completionProb": 0.621
+   },
+   "casual": {
+    "pPerMatch": 0.344,
+    "expectedMatches": 2.907,
+    "completionProb": 0.796
+   },
+   "intermediate": {
+    "pPerMatch": 0.489,
+    "expectedMatches": 2.045,
+    "completionProb": 0.8807
+   },
+   "strong": {
+    "pPerMatch": 0.6273,
+    "expectedMatches": 1.594,
+    "completionProb": 0.9296
+   },
+   "expert": {
+    "pPerMatch": 0.688,
+    "expectedMatches": 1.453,
+    "completionProb": 0.9455
+   }
+  }
+ },
+ {
+  "id": "d.large2",
+  "period": "daily",
+  "difficulty": 1,
+  "label": "라지 스트레이트 2회 기록",
+  "key": "largeScored",
+  "count": 2,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.6359,
+    "expectedMatches": 3.145,
+    "completionProb": 0.7556
+   },
+   "casual": {
+    "pPerMatch": 0.7075,
+    "expectedMatches": 2.827,
+    "completionProb": 0.7875
+   },
+   "intermediate": {
+    "pPerMatch": 0.7465,
+    "expectedMatches": 2.679,
+    "completionProb": 0.8025
+   },
+   "strong": {
+    "pPerMatch": 0.7778,
+    "expectedMatches": 2.571,
+    "completionProb": 0.8135
+   },
+   "expert": {
+    "pPerMatch": 0.7807,
+    "expectedMatches": 2.562,
+    "completionProb": 0.8144
+   }
+  }
+ },
+ {
+  "id": "d.180",
+  "period": "daily",
+  "difficulty": 1,
+  "label": "180점 이상 1회",
+  "key": "t180",
+  "count": 1,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.07742,
+    "expectedMatches": 12.92,
+    "completionProb": 0.3519
+   },
+   "casual": {
+    "pPerMatch": 0.2244,
+    "expectedMatches": 4.457,
+    "completionProb": 0.6721
+   },
+   "intermediate": {
+    "pPerMatch": 0.4033,
+    "expectedMatches": 2.479,
+    "completionProb": 0.8366
+   },
+   "strong": {
+    "pPerMatch": 0.5821,
+    "expectedMatches": 1.718,
+    "completionProb": 0.9159
+   },
+   "expert": {
+    "pPerMatch": 0.6442,
+    "expectedMatches": 1.552,
+    "completionProb": 0.9343
+   }
+  }
+ },
+ {
+  "id": "d.win2",
+  "period": "daily",
+  "difficulty": 2,
+  "label": "2승",
+  "key": "win",
+  "count": 2,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 4,
+    "completionProb": 0.6742
+   },
+   "casual": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 4,
+    "completionProb": 0.6742
+   },
+   "intermediate": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 4,
+    "completionProb": 0.6742
+   },
+   "strong": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 4,
+    "completionProb": 0.6742
+   },
+   "expert": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 4,
+    "completionProb": 0.6742
+   }
+  }
+ },
+ {
+  "id": "d.200",
+  "period": "daily",
+  "difficulty": 2,
+  "label": "200점 이상 1회",
+  "key": "t200",
+  "count": 1,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.02167,
+    "expectedMatches": 46.14,
+    "completionProb": 0.1205
+   },
+   "casual": {
+    "pPerMatch": 0.08042,
+    "expectedMatches": 12.43,
+    "completionProb": 0.3619
+   },
+   "intermediate": {
+    "pPerMatch": 0.1884,
+    "expectedMatches": 5.307,
+    "completionProb": 0.6175
+   },
+   "strong": {
+    "pPerMatch": 0.3393,
+    "expectedMatches": 2.947,
+    "completionProb": 0.7924
+   },
+   "expert": {
+    "pPerMatch": 0.4141,
+    "expectedMatches": 2.415,
+    "completionProb": 0.843
+   }
+  }
+ },
+ {
+  "id": "d.yacht1",
+  "period": "daily",
+  "difficulty": 2,
+  "label": "요트 1회 기록",
+  "key": "yachtScored",
+  "count": 1,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.08192,
+    "expectedMatches": 12.21,
+    "completionProb": 0.3668
+   },
+   "casual": {
+    "pPerMatch": 0.1338,
+    "expectedMatches": 7.477,
+    "completionProb": 0.5096
+   },
+   "intermediate": {
+    "pPerMatch": 0.1925,
+    "expectedMatches": 5.195,
+    "completionProb": 0.6242
+   },
+   "strong": {
+    "pPerMatch": 0.2546,
+    "expectedMatches": 3.928,
+    "completionProb": 0.7105
+   },
+   "expert": {
+    "pPerMatch": 0.2821,
+    "expectedMatches": 3.545,
+    "completionProb": 0.7408
+   }
+  }
+ },
+ {
+  "id": "d.four2",
+  "period": "daily",
+  "difficulty": 2,
+  "label": "포커 2회 기록",
+  "key": "fourScored",
+  "count": 2,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.2148,
+    "expectedMatches": 9.311,
+    "completionProb": 0.3476
+   },
+   "casual": {
+    "pPerMatch": 0.2863,
+    "expectedMatches": 6.985,
+    "completionProb": 0.4569
+   },
+   "intermediate": {
+    "pPerMatch": 0.3695,
+    "expectedMatches": 5.413,
+    "completionProb": 0.5585
+   },
+   "strong": {
+    "pPerMatch": 0.4792,
+    "expectedMatches": 4.173,
+    "completionProb": 0.6587
+   },
+   "expert": {
+    "pPerMatch": 0.5297,
+    "expectedMatches": 3.776,
+    "completionProb": 0.6948
+   }
+  }
+ },
+ {
+  "id": "w.play15",
+  "period": "weekly",
+  "difficulty": 0,
+  "label": "경기 15회 완료",
+  "key": "match",
+  "count": 15,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 1,
+    "expectedMatches": 15,
+    "completionProb": 0.6635
+   },
+   "casual": {
+    "pPerMatch": 1,
+    "expectedMatches": 15,
+    "completionProb": 0.6635
+   },
+   "intermediate": {
+    "pPerMatch": 1,
+    "expectedMatches": 15,
+    "completionProb": 0.6635
+   },
+   "strong": {
+    "pPerMatch": 1,
+    "expectedMatches": 15,
+    "completionProb": 0.6635
+   },
+   "expert": {
+    "pPerMatch": 1,
+    "expectedMatches": 15,
+    "completionProb": 0.6635
+   }
+  }
+ },
+ {
+  "id": "w.full8",
+  "period": "weekly",
+  "difficulty": 0,
+  "label": "풀 하우스 8회",
+  "key": "fullScored",
+  "count": 8,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.5121,
+    "expectedMatches": 15.62,
+    "completionProb": 0.6872
+   },
+   "casual": {
+    "pPerMatch": 0.6494,
+    "expectedMatches": 12.32,
+    "completionProb": 0.7625
+   },
+   "intermediate": {
+    "pPerMatch": 0.7519,
+    "expectedMatches": 10.64,
+    "completionProb": 0.799
+   },
+   "strong": {
+    "pPerMatch": 0.8224,
+    "expectedMatches": 9.727,
+    "completionProb": 0.8222
+   },
+   "expert": {
+    "pPerMatch": 0.8403,
+    "expectedMatches": 9.52,
+    "completionProb": 0.8283
+   }
+  }
+ },
+ {
+  "id": "w.win7",
+  "period": "weekly",
+  "difficulty": 1,
+  "label": "7승",
+  "key": "win",
+  "count": 7,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 14,
+    "completionProb": 0.7244
+   },
+   "casual": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 14,
+    "completionProb": 0.7244
+   },
+   "intermediate": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 14,
+    "completionProb": 0.7244
+   },
+   "strong": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 14,
+    "completionProb": 0.7244
+   },
+   "expert": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 14,
+    "completionProb": 0.7244
+   }
+  }
+ },
+ {
+  "id": "w.bonus5",
+  "period": "weekly",
+  "difficulty": 1,
+  "label": "상단 보너스 5회",
+  "key": "upperBonus",
+  "count": 5,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.1905,
+    "expectedMatches": 26.24,
+    "completionProb": 0.4765
+   },
+   "casual": {
+    "pPerMatch": 0.344,
+    "expectedMatches": 14.54,
+    "completionProb": 0.7118
+   },
+   "intermediate": {
+    "pPerMatch": 0.489,
+    "expectedMatches": 10.23,
+    "completionProb": 0.8095
+   },
+   "strong": {
+    "pPerMatch": 0.6273,
+    "expectedMatches": 7.97,
+    "completionProb": 0.8616
+   },
+   "expert": {
+    "pPerMatch": 0.688,
+    "expectedMatches": 7.267,
+    "completionProb": 0.8794
+   }
+  }
+ },
+ {
+  "id": "w.yacht2",
+  "period": "weekly",
+  "difficulty": 1,
+  "label": "요트 2회",
+  "key": "yachtScored",
+  "count": 2,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.08192,
+    "expectedMatches": 24.41,
+    "completionProb": 0.5456
+   },
+   "casual": {
+    "pPerMatch": 0.1338,
+    "expectedMatches": 14.95,
+    "completionProb": 0.7142
+   },
+   "intermediate": {
+    "pPerMatch": 0.1925,
+    "expectedMatches": 10.39,
+    "completionProb": 0.8148
+   },
+   "strong": {
+    "pPerMatch": 0.2546,
+    "expectedMatches": 7.856,
+    "completionProb": 0.8758
+   },
+   "expert": {
+    "pPerMatch": 0.2821,
+    "expectedMatches": 7.089,
+    "completionProb": 0.8949
+   }
+  }
+ },
+ {
+  "id": "w.220x2",
+  "period": "weekly",
+  "difficulty": 2,
+  "label": "220점 이상 2회",
+  "key": "t220",
+  "count": 2,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.006675,
+    "expectedMatches": 299.6,
+    "completionProb": 0.02022
+   },
+   "casual": {
+    "pPerMatch": 0.02873,
+    "expectedMatches": 69.63,
+    "completionProb": 0.1969
+   },
+   "intermediate": {
+    "pPerMatch": 0.0789,
+    "expectedMatches": 25.35,
+    "completionProb": 0.5317
+   },
+   "strong": {
+    "pPerMatch": 0.1631,
+    "expectedMatches": 12.26,
+    "completionProb": 0.772
+   },
+   "expert": {
+    "pPerMatch": 0.213,
+    "expectedMatches": 9.391,
+    "completionProb": 0.8384
+   }
+  }
+ },
+ {
+  "id": "w.yacht4",
+  "period": "weekly",
+  "difficulty": 2,
+  "label": "요트 4회",
+  "key": "yachtScored",
+  "count": 4,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.08192,
+    "expectedMatches": 48.83,
+    "completionProb": 0.2304
+   },
+   "casual": {
+    "pPerMatch": 0.1338,
+    "expectedMatches": 29.91,
+    "completionProb": 0.4277
+   },
+   "intermediate": {
+    "pPerMatch": 0.1925,
+    "expectedMatches": 20.78,
+    "completionProb": 0.5819
+   },
+   "strong": {
+    "pPerMatch": 0.2546,
+    "expectedMatches": 15.71,
+    "completionProb": 0.687
+   },
+   "expert": {
+    "pPerMatch": 0.2821,
+    "expectedMatches": 14.18,
+    "completionProb": 0.721
+   }
+  }
+ },
+ {
+  "id": "w.win12",
+  "period": "weekly",
+  "difficulty": 2,
+  "label": "12승",
+  "key": "win",
+  "count": 12,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 24,
+    "completionProb": 0.5001
+   },
+   "casual": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 24,
+    "completionProb": 0.5001
+   },
+   "intermediate": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 24,
+    "completionProb": 0.5001
+   },
+   "strong": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 24,
+    "completionProb": 0.5001
+   },
+   "expert": {
+    "pPerMatch": 0.5,
+    "expectedMatches": 24,
+    "completionProb": 0.5001
+   }
+  }
+ },
+ {
+  "id": "m.play60",
+  "period": "monthly",
+  "difficulty": 1,
+  "label": "경기 60회 완료",
+  "key": "match",
+  "count": 60,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 1,
+    "expectedMatches": 60,
+    "completionProb": 0.6635
+   },
+   "casual": {
+    "pPerMatch": 1,
+    "expectedMatches": 60,
+    "completionProb": 0.6635
+   },
+   "intermediate": {
+    "pPerMatch": 1,
+    "expectedMatches": 60,
+    "completionProb": 0.6635
+   },
+   "strong": {
+    "pPerMatch": 1,
+    "expectedMatches": 60,
+    "completionProb": 0.6635
+   },
+   "expert": {
+    "pPerMatch": 1,
+    "expectedMatches": 60,
+    "completionProb": 0.6635
+   }
+  }
+ },
+ {
+  "id": "m.yacht8",
+  "period": "monthly",
+  "difficulty": 2,
+  "label": "요트 8회",
+  "key": "yachtScored",
+  "count": 8,
+  "byTier": {
+   "beginner": {
+    "pPerMatch": 0.08192,
+    "expectedMatches": 97.65,
+    "completionProb": 0.5267
+   },
+   "casual": {
+    "pPerMatch": 0.1338,
+    "expectedMatches": 59.81,
+    "completionProb": 0.7153
+   },
+   "intermediate": {
+    "pPerMatch": 0.1925,
+    "expectedMatches": 41.56,
+    "completionProb": 0.8122
+   },
+   "strong": {
+    "pPerMatch": 0.2546,
+    "expectedMatches": 31.42,
+    "completionProb": 0.866
+   },
+   "expert": {
+    "pPerMatch": 0.2821,
+    "expectedMatches": 28.36,
+    "completionProb": 0.8834
+   }
+  }
+ }
+]
