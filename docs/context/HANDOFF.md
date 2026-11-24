@@ -4,6 +4,8 @@
 
 ## 새로운 ChatGPT/에이전트가 해야 할 일
 
+> **게임·온라인·계정(제품) 작업이면 먼저 [제품 개발 현황](./PRODUCT-2026-11-24.md)** — 제품 Phase 번호, 완료/미검증/외부 설정 필요 구분, 배포 기록, 백로그. 설계는 [소셜·계정](../online/SOCIAL-AND-ACCOUNTS.md), 모바일·성능은 [PR A 문서](../ui/PHASE-A-2026-11.md).
+
 1. 우선 [맥락 허브](./README.md), [자동 생성 현재 상태](./_generated/CURRENT_STATE.md), [검증 결과](./RESULTS.md), [연구 로드맵](./ROADMAP.md), [전체 기법 도감](./TECHNIQUES.md)을 읽는다.
 2. 작업이 특정 AI와 관계된다면 **현재 GitHub main의 실제 코드**(src/ai.ts, src/engine.ts, src/dp.ts, src/win-dp.ts, src/competitive-v2.ts)를 확인한다. 문서만 보고 현재 구현을 추측하지 않는다.
 3. 이전 대화에서 유래한 정보는 최신 GitHub 상태와 충돌할 수 있다. 충돌 시 **현재 코드 및 실험 아티팩트**가 우선하며, 불일치를 기록한다.

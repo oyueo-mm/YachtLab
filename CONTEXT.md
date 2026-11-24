@@ -13,6 +13,8 @@
 
 ## 맥락 읽는 순서
 
+> **게임·온라인·계정 기능을 개발한다면** 먼저 [제품 개발 현황](docs/context/PRODUCT-2026-11-24.md)을 읽으세요(제품 Phase 1~10, 완료/미검증/외부 설정 필요, 배포 기록).
+
 1. **[맥락 허브](docs/context/README.md)** — 전체 문서 목차와 현재 방향.
 2. **[자동 생성 현재 상태](docs/context/_generated/CURRENT_STATE.md)** — 코드의 실제 AI 이름·카테고리·커밋·CI 내역.
 3. **[전체게임 오프폴리시 강화학습·PPO 학습량 2배](docs/context/FULLGAME-OFFPOLICY-RESEARCH.md)** — 5계열 구현과 전체게임 실험, 기존 Win DP v2 보존.
