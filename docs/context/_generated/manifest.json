@@ -112,6 +112,31 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "603a49f",
+      "date": "2026-11-24",
+      "subject": "Merge PR #55: 경제 연구 — 시뮬레이터·퀘스트/업적 확률·M3 정수안·강화·Cloudflare 실측, 경제 연구실"
+    },
+    {
+      "sha": "5d52ca2",
+      "date": "2026-11-24",
+      "subject": "docs(economy): point phase-1 reward table to the integer operating model"
+    },
+    {
+      "sha": "b556a61",
+      "date": "2026-11-24",
+      "subject": "research(economy): M3 follow-up — integer operating model, upgrade ratios, guest carry-over, measured room writes"
+    },
+    {
+      "sha": "b4963ab",
+      "date": "2026-11-24",
+      "subject": "docs(economy): record local verification results (vitest, build, full Playwright)"
+    },
+    {
+      "sha": "229db04",
+      "date": "2026-11-24",
+      "subject": "research(economy): reproducible coin/gem economy simulator, quest/achievement probabilities, pricing study"
+    },
+    {
       "sha": "9e51568",
       "date": "2026-11-24",
       "subject": "Merge PR #54: 제품 Phase 1~4 통합 검증 기록·인수인계 문서"
@@ -135,39 +160,14 @@
       "sha": "0845890",
       "date": "2026-11-24",
       "subject": "test(live): check the account API answers (sign-in on/off) on the deployed server"
-    },
-    {
-      "sha": "bd9b94e",
-      "date": "2026-11-23",
-      "subject": "test(e2e): narrow-screen online test follows the 12-character nickname policy"
-    },
-    {
-      "sha": "8dbddb5",
-      "date": "2026-11-24",
-      "subject": "test(live): the account check belongs to the accounts change, not spectating"
-    },
-    {
-      "sha": "6ca5d9a",
-      "date": "2026-11-23",
-      "subject": "test(e2e): integrated scenario — invite, spectator, chat, 12 rounds with a reload, finish, device records, rematch, second record"
-    },
-    {
-      "sha": "115495b",
-      "date": "2026-11-23",
-      "subject": "docs: accounts architecture, storage comparison, trust levels, privacy, Cloudflare usage, sign-in setup (D-028)"
-    },
-    {
-      "sha": "2272b74",
-      "date": "2026-11-23",
-      "subject": "feat(accounts): guest identity, nickname policy, profile & stats, server-verified records, Google sign-in behind config (Phase 4)"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "0786f4cc61",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45305850754"
+      "head": "5d52ca2b13",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45345412710"
     },
     {
       "name": "YachtLab Online live check (manual)",
