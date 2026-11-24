@@ -101,6 +101,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [f82c989](https://github.com/oyueo-mm/YachtLab/commit/f82c989) | 2026-11-25 | Merge PR #60: 온라인 친구 다인전 배포·공개 사이트 검증 기록 |
+| [24820a6](https://github.com/oyueo-mm/YachtLab/commit/24820a6) | 2026-11-24 | docs: 온라인 친구 다인전 배포·공개 사이트 검증 기록 |
 | [01b2deb](https://github.com/oyueo-mm/YachtLab/commit/01b2deb) | 2026-11-24 | Merge PR #59: 온라인 친구 다인전 2~20명 — 순차·동시 진행 |
 | [7c29ef9](https://github.com/oyueo-mm/YachtLab/commit/7c29ef9) | 2026-11-24 | docs(online): multiplayer load test on the deployed Worker (2-20 players, simultaneous) |
 | [c639522](https://github.com/oyueo-mm/YachtLab/commit/c639522) | 2026-11-24 | test(load): run the multiplayer load test against a deployed Worker (--url/--origin/--sizes) |
@@ -109,8 +111,6 @@
 | [acf0c16](https://github.com/oyueo-mm/YachtLab/commit/acf0c16) | 2026-11-24 | docs(product): Phase 4.5-6 deployment record and public site verification |
 | [42a3071](https://github.com/oyueo-mm/YachtLab/commit/42a3071) | 2026-11-24 | Merge PR #57: 테스트 서버 종료가 미사용 사전 연결을 기다리던 main CI afterAll 시간 초과 수정 |
 | [d21194a](https://github.com/oyueo-mm/YachtLab/commit/d21194a) | 2026-11-24 | fix(test-server): shutdown no longer waits for pre-opened browser sockets; close test contexts |
-| [838cf45](https://github.com/oyueo-mm/YachtLab/commit/838cf45) | 2026-11-24 | test(diag): time online backend teardown and list what the Node test server waits for |
-| [25707cc](https://github.com/oyueo-mm/YachtLab/commit/25707cc) | 2026-11-24 | Merge PR #56: Phase 4.5~6 — 빠른 대전·관전방·서버 AI 대전·코인/보석 원장·퀘스트·업적·상점·인벤토리 |
 
 ## 최근 GitHub Actions 상태
 
@@ -118,7 +118,7 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45407673667) | success | 7c29ef915a |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45417677602) | success | 24820a6b8a |
 | [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45406992672) | success | eff12d24a3 |
 
 ## 다음 채팅과 작업의 시작점
