@@ -1,0 +1,101 @@
+{
+ "generatedAt": "2026-11-24T13:50:32.191Z",
+ "runtime": "deployed Worker (Workers Free)",
+ "rows": [
+  {
+   "players": 2,
+   "mode": "simultaneous",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 72,
+   "ackMs": {
+    "p50": 49.628705999999966,
+    "p95": 57.43572200000017,
+    "p99": 70.81416499999978,
+    "max": 70.81416499999978
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 177.97476700000016,
+   "restartRecoveryMs": 0,
+   "wallMs": 3187.479417
+  },
+  {
+   "players": 4,
+   "mode": "simultaneous",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 144,
+   "ackMs": {
+    "p50": 36.40823300000011,
+    "p95": 42.07532600000013,
+    "p99": 54.41246599999977,
+    "max": 70.86660000000029
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 120.12393100000008,
+   "restartRecoveryMs": 0,
+   "wallMs": 2691.6980459999995
+  },
+  {
+   "players": 6,
+   "mode": "simultaneous",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 216,
+   "ackMs": {
+    "p50": 36.08071899999959,
+    "p95": 48.144358000001375,
+    "p99": 58.91419499999938,
+    "max": 67.32764099999986
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 154.86751899999945,
+   "restartRecoveryMs": 0,
+   "wallMs": 2805.580072999999
+  },
+  {
+   "players": 10,
+   "mode": "simultaneous",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 354,
+   "ackMs": {
+    "p50": 48.65367499999775,
+    "p95": 69.06010400000014,
+    "p99": 74.9489539999995,
+    "max": 112.8792680000006
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 166.31543099999908,
+   "restartRecoveryMs": 0,
+   "wallMs": 3385.191547999999
+  },
+  {
+   "players": 20,
+   "mode": "simultaneous",
+   "finished": true,
+   "standingsAgree": true,
+   "cardsFull": true,
+   "commands": 712,
+   "ackMs": {
+    "p50": 113.98669099999825,
+    "p95": 194.89453199999843,
+    "p99": 204.64841800000067,
+    "max": 307.0562600000012
+   },
+   "errors": [],
+   "errorCount": 0,
+   "reconnectStormMs": 174.24376199999824,
+   "restartRecoveryMs": 0,
+   "wallMs": 6104.287354
+  }
+ ]
+}
