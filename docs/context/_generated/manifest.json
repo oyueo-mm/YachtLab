@@ -164,22 +164,22 @@
   ],
   "recentWorkflowRuns": [
     {
+      "name": "Deploy YachtLab Online Worker (manual)",
+      "status": "success",
+      "head": "786d370af5",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45369264003"
+    },
+    {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "5d52ca2b13",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45345412710"
+      "head": "603a49ff4b",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45348066654"
     },
     {
       "name": "YachtLab Online live check (manual)",
       "status": "success",
       "head": "5d3c10df9d",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45305164842"
-    },
-    {
-      "name": "Deploy YachtLab Online Worker (manual)",
-      "status": "success",
-      "head": "0845890d25",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45299154738"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

@@ -118,9 +118,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45345412710) | success | 5d52ca2b13 |
+| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45369264003) | success | 786d370af5 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45348066654) | success | 603a49ff4b |
 | [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45305164842) | success | 5d3c10df9d |
-| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45299154738) | success | 0845890d25 |
 
 ## 다음 채팅과 작업의 시작점
 
