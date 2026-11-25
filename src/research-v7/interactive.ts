@@ -32,15 +32,21 @@
 //                  followed by DP Expert defines ONE opponent final-score PMF (a mixture
 //                  over its turn outcomes); I take the best lambda policy against it
 //                  (= v6-P against a reaction-aware opponent distribution). ~6x cheaper leaf.
+//   I2  / I2R      TWO-PLY REACTION: the opponent's reactive turn (objective as I1 / I1R), then MY
+//                  next turn played exactly with P stop values (my policy set vs the opponent's DP
+//                  future from its new state), i.e. the value of v6-P at my next turn start,
+//                  averaged over the opponent's turn outcomes. Research/regret only (slow: ~N^2 turn solves).
+//   I1RO1          I1RO with a single bank (DP Expert only): lightweight derivative for the product track
+//                  (with one policy I1 = I1R = I1O = I1RO, see tests).
 // Fairness boundary: only public scorecards are used (callers pass masks/totals).
 import { canonicalUpper, nextUpper, UPPER_CAP } from "../research-v5/kernel";
 import { creditTable, type PolicyPmfBank } from "../research-v5/policy-pmf";
 import { DISTINCT, bonusGain } from "../research-v6/risk";
-import { TurnBuffers, turnOutcomesFromVal } from "../research-v6/turn";
+import { TurnBuffers, turnOutcomesFromVal, turnStartValue } from "../research-v6/turn";
 
 export const V7_VERSION = "v7-research-2026-11-25.1";
-export type V7Kind = "R" | "P" | "L" | "Lm" | "N" | "MM" | "I1" | "I1D" | "I1R" | "I1O" | "I1RO";
-export const V7_KINDS: V7Kind[] = ["R", "P", "L", "Lm", "N", "MM", "I1", "I1D", "I1R", "I1O", "I1RO"];
+export type V7Kind = "R" | "P" | "L" | "Lm" | "N" | "MM" | "I1" | "I1D" | "I1R" | "I1O" | "I1RO" | "I2" | "I2R" | "I1RO1";
+export const V7_KINDS: V7Kind[] = ["R", "P", "L", "Lm", "N", "MM", "I1", "I1D", "I1R", "I1O", "I1RO", "I2", "I2R", "I1RO1"];
 
 type Credit = ReturnType<typeof creditTable>;
 const ONE = Float64Array.of(1);
@@ -108,7 +114,7 @@ const oppVal = new Float64Array(12 * 64);
  * I1R (opp reactive, v5-R objective).
  */
 const mixBuf = new Float64Array(1024);
-function oneReactiveOppTurn(B: V7Banks, me: Side, op: Side, kind: "I1" | "I1D" | "I1R" | "I1O" | "I1RO"): number {
+function oneReactiveOppTurn(B: V7Banks, me: Side, op: Side, kind: "I1" | "I1D" | "I1R" | "I1O" | "I1RO" | "I2" | "I2R"): number {
   if (!op.mask) return dotCredit(me.mask ? B.dp.get(me.mask, me.u) : ONE, me.x, creditTable(op.x, ONE)); // unreachable in alternation, kept total
   // opponent stop values
   const myDp = pmfOf(B.dp, me.mask, me.u);
@@ -121,7 +127,7 @@ function oneReactiveOppTurn(B: V7Banks, me: Side, op: Side, kind: "I1" | "I1D" |
       let v: number;
       if (kind === "I1D") v = g + (next ? B.dp.meanOf(next, u2) : 0); // DP Expert: expected points
       else if (!next) v = dotCredit(ONE, x2, ctMeForOpp);
-      else if (kind === "I1R" || kind === "I1RO") v = dotCredit(B.dp.get(next, u2), x2, ctMeForOpp);
+      else if (kind === "I1R" || kind === "I1RO" || kind === "I2R") v = dotCredit(B.dp.get(next, u2), x2, ctMeForOpp);
       else { v = -Infinity; for (const b of B.banks) { const w = dotCredit(b.get(next, u2), x2, ctMeForOpp); if (w > v) v = w; } }
       oppVal[c * 64 + p] = v;
     }
@@ -140,15 +146,32 @@ function oneReactiveOppTurn(B: V7Banks, me: Side, op: Side, kind: "I1" | "I1D" |
     }
     return policySetLeaf(B, me, creditTable(op.x, mixBuf.subarray(0, hi)));
   }
+  // copy: the opponent outcome buffers are reused by the nested my-turn solve of I2
+  const keys = Int32Array.from(out.keys), prob = Float64Array.from(out.prob);
   let s = 0;
-  for (let i = 0; i < out.keys.length; i++) {
-    const k = out.keys[i], c = k >> 6, p = k & 63;
+  for (let i = 0; i < keys.length; i++) {
+    const k = keys[i], c = k >> 6, p = k & 63;
     const next = op.mask ^ (1 << c), g = bonusGain(c, p, op.u);
     const u2 = canonicalUpper(next, nextUpper(c, p, op.u));
     const opCt = creditTable(op.x + g, pmfOf(B.dp, next, u2));
-    s += out.prob[i] * policySetLeaf(B, me, opCt);
+    s += prob[i] * (kind === "I2" || kind === "I2R" ? myTurnP(B, me, opCt) : policySetLeaf(B, me, opCt));
   }
   return s;
+}
+
+/** Exact value of MY next turn with P stop values (policy set after it) vs a fixed opponent credit table. */
+const myBufs = new TurnBuffers(), myVal = new Float64Array(12 * 64);
+function myTurnP(B: V7Banks, me: Side, opCt: Credit): number {
+  if (!me.mask) return dotCredit(ONE, me.x, opCt);
+  for (let c = 0; c < 12; c++) {
+    if (!(me.mask & (1 << c))) continue;
+    const next = me.mask ^ (1 << c);
+    for (const p of DISTINCT[c]) {
+      const g = bonusGain(c, p, me.u);
+      myVal[c * 64 + p] = policySetLeaf(B, { mask: next, u: canonicalUpper(next, nextUpper(c, p, me.u)), x: me.x + g }, opCt);
+    }
+  }
+  return turnStartValue(me.mask, myVal, myBufs);
 }
 
 /**
@@ -156,6 +179,7 @@ function oneReactiveOppTurn(B: V7Banks, me: Side, op: Side, kind: "I1" | "I1D" |
  * me = (mask, u, base) of the mover, op = opponent. Returns val (same buffer).
  */
 export function fillStopValues(kind: V7Kind, B: V7Banks, me: Side, op: Side, val: Float64Array): Float64Array {
+  if (kind === "I1RO1") return fillStopValues("I1RO", { banks: [B.dp], dp: B.dp }, me, op, val);
   const u = Math.min(UPPER_CAP, me.u);
   const opDpCt = creditTable(op.x, pmfOf(B.dp, op.mask, op.u));
   const needSet = kind === "L" || kind === "Lm" || kind === "N" || kind === "MM";
@@ -170,7 +194,7 @@ export function fillStopValues(kind: V7Kind, B: V7Banks, me: Side, op: Side, val
       switch (kind) {
         case "R": v = dotCredit(pmfOf(B.dp, next, u2), x2, opDpCt); break;
         case "P": v = policySetLeaf(B, { mask: next, u: u2, x: x2 }, opDpCt); break;
-        case "I1": case "I1D": case "I1R": case "I1O": case "I1RO":
+        case "I1": case "I1D": case "I1R": case "I1O": case "I1RO": case "I2": case "I2R":
           v = op.mask ? oneReactiveOppTurn(B, { mask: next, u: u2, x: x2 }, op, kind) : policySetLeaf(B, { mask: next, u: u2, x: x2 }, opDpCt);
           break;
         default: {
