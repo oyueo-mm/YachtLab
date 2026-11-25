@@ -82,13 +82,13 @@ export function MultiScoreboard({
                 <button
                   className="score-option"
                   aria-pressed={selected === category}
-                  aria-label={names[category] + " " + score(state.dice.map((d) => d.value), category) + "점 선택"}
+                  aria-label={names[category] + " " + score(state.dice.map((d) => d.value), category) + (onConfirm ? "점 선택" : "점 기록")}
                   onClick={() => select?.(category)}
                 >
                   {score(state.dice.map((d) => d.value), category)}
                 </button>
               ) : state.cards[i][category] !== undefined ? (
-                <span className="fixed-score">{state.cards[i][category]}</span>
+                <span className="fixed-score" aria-label={`${state.cards[i][category]}점 기록됨`}>{state.cards[i][category]}</span>
               ) : (<span className="empty-score">—</span>)}
             </td>
           ))}

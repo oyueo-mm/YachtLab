@@ -5,6 +5,7 @@ import { type AnalysisSource } from "./ReplayViewer";
 import { type Replay } from "./replay";
 import LocalGame from "./LocalGame";
 import MyGames from "./MyGames";
+import Tutorial from "./play/Tutorial";
 import HumanGame from "./play/HumanGame";
 import OnlineEntry from "./play/OnlineEntry";
 import OnlineGame from "./play/OnlineGame";
@@ -192,6 +193,7 @@ export default function App() {
           </p>
         )}
         {page === "home" && <Lobby navigate={navigate} />}
+        {page === "tutorial" && <Tutorial onHome={() => navigate("home")} />}
         {page === "offline" && <OfflineSelect navigate={navigate} />}
         {(page === "online" || page === "online-room") && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "online" && onlineServer && (
