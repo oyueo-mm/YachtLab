@@ -248,13 +248,13 @@ export default function App() {
               if (account) setPendingReward({ matchId, account });
             }}
             onProgress={progress}
-            onLeave={(message) => {
+            onLeave={(message, destination) => {
               inProgress.current = false;
               setOnlineNotice(message ?? "");
               setOnlineCode(null);
               setQuickIntro(null);
               setRoomInUrl(null);
-              go("online");
+              go(destination ?? "online");
             }}
           />
         )}

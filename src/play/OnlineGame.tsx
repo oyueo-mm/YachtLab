@@ -80,7 +80,7 @@ function recordOnDevice(view: PlayerView, me: string) {
   });
 }
 
-export default function OnlineGame({ server, code, quickIntro = false, onLeave, onProgress, onFinished }: { server: string; code: string; quickIntro?: boolean; onFinished?: (matchId: string) => void; onLeave: (message?: string) => void; onProgress?: (inProgress: boolean) => void }) {
+export default function OnlineGame({ server, code, quickIntro = false, onLeave, onProgress, onFinished }: { server: string; code: string; quickIntro?: boolean; onFinished?: (matchId: string) => void; onLeave: (message?: string, destination?: "home") => void; onProgress?: (inProgress: boolean) => void }) {
   const seat = useMemo(() => savedSeat(code), [code]);
   const [view, setView] = useState<PlayerView | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
@@ -543,7 +543,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const leaveFinishedMatch = () => {
     conn.current?.bye();
     forgetSeat(code);
-    onLeave();
+    onLeave(undefined, "home");
   };
   const toolGroups = (
     <>
