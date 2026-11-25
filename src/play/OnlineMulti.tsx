@@ -1,3 +1,4 @@
+import { MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useState } from "react";
 import { Check, Crown, Dices, Flag, Home, Play, RotateCcw, Timer, Trophy, Wifi, WifiOff } from "lucide-react";
 import { categories, type Category } from "../engine";
@@ -9,6 +10,8 @@ import type { LobbyState, RematchState } from "../online/wire";
 import { ROUND_LIMITS, TURN_LIMITS } from "../online/wire";
 import type { PublicLook } from "../economy/live/catalog";
 import { PlayerTag, boardCssOf, boardOf, diceLookOf } from "./Looks";
+import { Celebrate } from "../ui/Celebrate";
+import type { Celebration } from "../game-feel";
 import { QuickPicks } from "../QuickPicks";
 
 type ViewPlayer = PlayerView["players"][number];
@@ -158,7 +161,7 @@ export function OnlineStandings({ view, me, online, looks, final = false, select
               </span>
               <span className="online-standing-state">{state}</span>
               <span className="multi-standing-progress">{filled}/12</span>
-              <strong>{p.total}점</strong>
+              <strong><ScoreTotal value={p.total} />점</strong>
             </li>
           );
         })}
@@ -191,6 +194,8 @@ export function MultiTable(p: {
   canRoll: boolean;
   remaining: number | null;
   feedback: string;
+  milestones: { best: boolean; comeback: boolean };
+  celebration: Celebration;
   error: React.ReactNode;
   rematch: RematchState | null;
   isHost: boolean;
@@ -227,10 +232,11 @@ export function MultiTable(p: {
         </div>
         {p.banner}
         <section
-          className={"game-board throw-tray" + (p.rolls === 0 ? " dice-ready" : "") + (boardOf(p.looks[p.me]) ? " board-themed" : "") + (boardCssOf(p.looks[p.me]) ? " " + boardCssOf(p.looks[p.me]) : "")}
+          className={"game-board throw-tray" + (p.canRoll && nearYacht(game.dice, p.rolls, players[meIndex]?.card) ? " yacht-near" : "") + (p.rolls === 0 ? " dice-ready" : "") + (boardOf(p.looks[p.me]) ? " board-themed" : "") + (boardCssOf(p.looks[p.me]) ? " " + boardCssOf(p.looks[p.me]) : "")}
           style={boardOf(p.looks[p.me]) ? ({ "--board-color": boardOf(p.looks[p.me]) } as React.CSSProperties) : undefined}
           aria-label="게임 보드"
         >
+          <Celebrate value={p.celebration} />
           <div className="board-top">
             <span className="turn-indicator">
               <i />
@@ -255,6 +261,7 @@ export function MultiTable(p: {
               <Trophy size={25} />
               <h2>{resultTitle(view, p.me)}</h2>
               <MultiRematch rematch={p.rematch} isHost={p.isHost} mine={mine} onOp={p.onRematch} />
+              <MatchMilestones {...p.milestones} />
               <div className="game-result-actions">
                 <button className="secondary" onClick={p.onHome}>
                   <Home size={15} /> 나가기

@@ -1,3 +1,4 @@
+import { ScoreTotal } from "./ui/GameMoments";
 import { useYachtReady } from "./yacht-moment";
 import { Star, Shapes, Sigma } from "lucide-react";
 import {
@@ -117,7 +118,7 @@ export function Scoreboard({
               <Sigma size={17} /> 총점
             </th>
             {state.cards.map((c, i) => (
-              <td key={i}>{total(c)}</td>
+              <td key={i}><ScoreTotal value={total(c)} /></td>
             ))}
           </tr>
         </tbody>

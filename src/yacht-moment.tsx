@@ -35,10 +35,13 @@ export function YachtFlash({ dice, rolls, rollEvent }: { dice: readonly { value:
     log(entry);
     setActive(entry);
     playSfx("yachtHit");
-    const timer = window.setTimeout(() => setActive(null), 1700);
-    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yacht, busy, rollEvent]);
+  useEffect(() => {
+    if (!active) return;
+    const timer = window.setTimeout(() => setActive(null), 1700);
+    return () => window.clearTimeout(timer);
+  }, [active]);
   if (!active) return null;
   return (
     <div key={active.key} className="yacht-flash" role="status" aria-live="polite">
@@ -84,10 +87,13 @@ export function StraightFlash({ dice, rolls, rollEvent }: { dice: readonly { val
     if (typeof window !== "undefined") ((window as unknown as { __yachtlabStraight?: StraightShown[] }).__yachtlabStraight ??= []).push(entry);
     setActive(entry);
     playSfx("straightHit");
-    const timer = window.setTimeout(() => setActive(null), STRAIGHT_MS);
-    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!values, busy, rollEvent]);
+  useEffect(() => {
+    if (!active) return;
+    const timer = window.setTimeout(() => setActive(null), STRAIGHT_MS);
+    return () => window.clearTimeout(timer);
+  }, [active]);
   if (!active) return null;
   return (
     <div key={active.key} className={"straight-flash" + (reducedEffects ? " static" : "")} role="status" aria-live="polite">
