@@ -1,7 +1,8 @@
 // Host-side driver of training/v6-wasm/pmf_wasm.c (freestanding wasm32, no imports).
 // Works in Node and in a browser Web Worker: pass the wasm bytes and the DP table.
 // The kernel tables come from src/research-v5/kernel.ts so that tie order matches the TS bank.
-import { POINTS, PROB, CHILD, HOLD_START, HOLD_LIST } from "../research-v5/kernel";
+import { POINTS, PROB, CHILD, HOLD_START, HOLD_LIST, canonicalUpper } from "../research-v5/kernel";
+import { PolicyPmfBank } from "../research-v5/policy-pmf";
 
 export const KERNEL_ARRAYS = { POINTS, PROB, CHILD, HOLD_START, HOLD_LIST };
 export const BANK_FLOATS = 37_256_480; // canonical floats of the DP Expert bank (v5 §2.1)
@@ -28,4 +29,22 @@ export async function buildBankWasm(wasm: BufferSource, T: Float64Array, opts: {
   if (floats < 0) throw Error("bank capacity too small");
   const buf = ex.memory.buffer;
   return { data: opts.f32 ? new Float32Array(buf, pData, floats) : new Float64Array(buf, pData, floats), index: new Int32Array(buf, pIdx, 4096 * 64 * 2), floats, buildMs, memoryBytes: buf.byteLength };
+}
+
+/**
+ * Wrap a WASM build result as the PolicyPmfBank-shaped object that winDPv5Decision (v5-R)
+ * and winDPv6Decision read: pmf[mask*64+u] views (aliased for non-canonical u), mean table.
+ * Float32 builds return Float32Array views; the decision code only indexes them.
+ */
+export function bankFromWasm(r: WasmBank, name = "DP Expert (wasm)"): PolicyPmfBank {
+  const bank = new PolicyPmfBank(name, () => NaN);
+  for (let mask = 0; mask < 4096; mask++) for (let u = 0; u < 64; u++) {
+    const cu = canonicalUpper(mask, u), ck = mask * 64 + cu, len = r.index[ck * 2 + 1];
+    if (!len) throw Error(`state ${mask}:${cu} missing from wasm bank`);
+    const view = r.data.subarray(r.index[ck * 2], r.index[ck * 2] + len) as unknown as Float64Array;
+    bank.pmf[mask * 64 + u] = view;
+    let mu = 0; for (let g = 0; g < len; g++) mu += g * view[g];
+    bank.mean[mask * 64 + u] = mu;
+  }
+  return bank;
 }

@@ -1,0 +1,2 @@
+{"kind":"f32","rawMB":143.6,"gzipMB":111.7,"encodeMs":148,"decodeMs":85,"maxAbsError":2.934168885637689e-8,"maxMeanError":0.0000023576160259608514}
+{"kind":"int16","rawMB":73.3,"gzipMB":42.6,"encodeMs":486,"decodeMs":158,"maxAbsError":0.0000053752345823034064,"maxMeanError":0.0024164793214325186}

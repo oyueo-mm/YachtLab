@@ -14,6 +14,7 @@
 
 > **AI 승률 연구를 이어간다면** [Win DP v5 연구](./V5-APEX-RESEARCH.md)부터: 전 상태 정확 DP Expert PMF 은행(`src/research-v5/`), 정확 2인 종반 솔버, v5-R 확증 결과, 실패한 시도(depth-2·Bayesian), 결정 D-V5-1. 새 후보는 시드 family 9001~(개발)/9501~(확증) 규칙을 따른다.
 > **v6 이후:** [V6-APEX-RESEARCH](./V6-APEX-RESEARCH.md) — v6-P(지수효용 정책군 롤아웃)가 확증 9511·재현 9512에서 v5-R과의 직접 대결 50.131%/50.209%로 작지만 유의하게 이겼다. 공통 상대 v2에 대한 이득은 미확정이다. 더 깊은 BR과 잔차·Bayesian 변형은 이득이 없었고, 원인으로 상대 반응을 무시한 낙관 편향(§3.2)이 측정되었다. 다음 연구의 핵심은 **상대 반응 모델**이다. 실행 최적화 산출물(WASM/Rust 생성기, 단일 복사 로더, Float32/INT16)은 바로 재사용 가능. 시드: 개발 9011~9049, 확증 9511/9512는 사용 완료 → 다음 확증은 9521~.
+> **제품 통합(Codex):** [V6-INTEGRATION-HANDOFF](./V6-INTEGRATION-HANDOFF.md) — v5-R(제품용 경량 후보) 호출법, WASM 은행 생성기(`buildBankWasm`·`bankFromWasm`), Float32/INT16 `YPB1` 은행 형식(`bank-codec.ts`), 분석 API v6 사용법과 표시 규칙, 통합 전 점검 목록. 기본 AI·난이도는 바꾸지 않는다.
 
 1. 우선 [맥락 허브](./README.md), [자동 생성 현재 상태](./_generated/CURRENT_STATE.md), [검증 결과](./RESULTS.md), [연구 로드맵](./ROADMAP.md), [전체 기법 도감](./TECHNIQUES.md)을 읽는다.
 2. 작업이 특정 AI와 관계된다면 **현재 GitHub main의 실제 코드**(src/ai.ts, src/engine.ts, src/dp.ts, src/win-dp.ts, src/competitive-v2.ts)를 확인한다. 문서만 보고 현재 구현을 추측하지 않는다.

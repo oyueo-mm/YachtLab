@@ -58,7 +58,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: v5/v6 unit tests (PMF mass/mean, solver cross-checks, RNG invariance, analysis API, risk family)
-        run: npx vitest run tests/research-v5.test.ts tests/research-v6.test.ts
+        run: npx vitest run tests/research-v5.test.ts tests/research-v6.test.ts tests/research-v6-integration.test.ts
       - name: Native C++ bank build and TypeScript cross-check
         run: |
           g++ -O3 -std=c++17 training/v5-native/pmf_bank.cpp -o pmf_bank
