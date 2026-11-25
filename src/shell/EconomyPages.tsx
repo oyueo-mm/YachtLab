@@ -1,5 +1,5 @@
 import ShopRail from "./ShopRail";
-import DrawPanel from "./DrawPanel";
+import DrawPanel, { DrawOdds } from "./DrawPanel";
 import { SEASONS, seasonActive } from "../economy/live/seasons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Check, Coins, Gem, RefreshCw, Sparkles, X } from "lucide-react";
@@ -67,6 +67,7 @@ function Gate({ server, go, children }: { server: string | null; go: Go; childre
 
 const ownedMap = (snap: Snapshot | null) => new Map((snap?.inventory ?? []).map((i) => [i.id, i.level]));
 const fmt = (n: number) => n.toLocaleString();
+const saleDate = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Seoul" });
 type Owned = ReadonlyMap<string, number>;
 const isOwned = (i: ItemDef, owned: Owned) => i.acquisition === "default" || owned.has(i.id);
 
@@ -113,6 +114,7 @@ const stageDescriptions = {
 /** The detail sheet: large real preview (level tabs), facts, and the action buttons given by the page. */
 function ItemDetail({ item, initialLevel, unlocked, onClose, children }: { item: ItemDef; initialLevel: number; unlocked?: number; onClose: () => void; children: (previewLevel: number) => React.ReactNode }) {
   const [level, setLevel] = useState(initialLevel);
+  const season = item.season && SEASONS[item.season];
   const descriptions = item.category === "board" || item.category === "emote" ? stageDescriptions[item.category] : item.levels;
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -144,7 +146,7 @@ function ItemDetail({ item, initialLevel, unlocked, onClose, children }: { item:
             <X size={18} />
           </button>
         </div>
-        {item.season && <p className="item-level-note">{SEASONS[item.season].name} · 시즌 이후에도 소유 상품을 쓸 수 있어요.</p>}
+        {season && <p className="item-level-note">{season.name} · {saleDate.format(season.start)} ~ {saleDate.format(season.end)} (한국 시간). 시즌 이후에도 소유 상품을 쓸 수 있어요.</p>}
         <ItemStage item={item} level={level} />
         <LevelTabs item={item} level={level} setLevel={setLevel} unlocked={unlocked} />
         {descriptions && <p className="item-level-note">Lv.{level} · {descriptions[level - 1]}</p>}
@@ -171,7 +173,10 @@ export function ItemsPage({ server, go, route }: { server: string | null; go: Go
       <button type="button" role="tab" aria-selected={route === "inventory"} onClick={() => route !== "inventory" && go("inventory")}>인벤토리</button>
     </div>
     <ShopPage server={server} go={go} economyState={economyState} active={route === "shop"} />
-    {route === "draw" && <Gate server={server} go={go}>{server && <DrawPanel server={server} onWallet={economyState.setSnap} />}</Gate>}
+    {route === "draw" && <>
+      {(!server || !signedIn()) && <div role="tabpanel" aria-label="뽑기 확률"><DrawOdds pool="standard" /></div>}
+      <Gate server={server} go={go}>{server && <DrawPanel server={server} onWallet={economyState.setSnap} />}</Gate>
+    </>}
     <InventoryPage server={server} go={go} economyState={economyState} active={route === "inventory"} />
   </section>;
 }
@@ -629,7 +634,7 @@ export function QuestsPage({ server, go, achievements }: { server: string | null
       </Gate>
       <ConfirmDialog open={!!replace} title="미완료 퀘스트를 모두 바꿀까요?"
         message="완료한 퀘스트와 받은 보상은 그대로예요. 교체되는 퀘스트는 처음부터 진행해요."
-        confirmLabel="전체 교체" onCancel={() => setReplace(null)} onConfirm={() => {
+        confirmLabel="전체 교체" cancelLabel="취소" onCancel={() => setReplace(null)} onConfirm={() => {
           if (replace) void act(() => rerollQuest(server!, "all", replace.period, replace.expected));
           setReplace(null);
         }} />

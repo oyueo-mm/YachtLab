@@ -32,13 +32,22 @@ const offlineFiles = (): Plugin => ({
   generateBundle: {
     order: "post",
     handler(_options, bundle) {
-      const assets = Object.keys(bundle).filter((file) => /^assets\/(?:(?:index|worker|product-worker|review-worker|ReviewPage|EconomyPages|stage|table)-.*\.(?:js|css)|pmf-.*\.wasm)$/.test(file));
-      assets.push(`ai/${dpManifest.asset}`, "icons/online-yacht.svg", "icons/online-yacht-wordmark.svg", "icons/santa-penguin.svg", "icons/rudolph.svg", "icons/harbor-snowman.svg", "guide/index.html");
+      const roots = Object.keys(bundle).filter((file) => /^assets\/(?:(?:index|worker|product-worker|review-worker|ReviewPage|EconomyPages|stage|table)-.*\.(?:js|css)|pmf-.*\.wasm)$/.test(file));
+      const assets = new Set<string>();
+      const include = (file: string) => {
+        if (assets.has(file)) return;
+        assets.add(file);
+        const chunk = bundle[file];
+        if (chunk?.type === "chunk") for (const dependency of chunk.imports) include(dependency);
+      };
+      for (const file of roots) include(file);
+      for (const file of [`ai/${dpManifest.asset}`, "icons/online-yacht.svg", "icons/online-yacht-wordmark.svg",
+        "icons/santa-penguin.svg", "icons/rudolph.svg", "icons/harbor-snowman.svg", "guide/index.html"]) include(file);
       const source = readFileSync(new URL("./src/pwa-worker.js", import.meta.url), "utf8");
       this.emitFile({
         type: "asset",
         fileName: "sw.js",
-        source: `const BUILD = ${JSON.stringify(BUILD_ID)};\nconst ASSETS = ${JSON.stringify(assets)};\n${source}`,
+        source: `const BUILD = ${JSON.stringify(BUILD_ID)};\nconst ASSETS = ${JSON.stringify([...assets])};\n${source}`,
       });
     },
   },

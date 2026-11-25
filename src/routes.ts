@@ -37,6 +37,18 @@ export const routes: Record<Route, { title: string; shell: Shell; tier: "core" |
   "economy-lab": { title: "경제 연구실", shell: "lab", tier: "lab" },
 };
 
+export const homeDescription = "친구나 AI와 무료로 요트다이스를 플레이하세요. 12칸 규칙과 족보, 상단 보너스, 초보 전략을 안내합니다.";
+export const routeDescription: Partial<Record<Route, string>> = {
+  online: "빠른 대전에서 상대를 만나거나 초대 링크로 친구와 온라인 요트다이스를 플레이하세요.",
+  offline: "요트다이스 AI 대전, 한 기기에서 함께하는 로컬 대전, 반복 가능한 한 차례 연습을 시작하세요.",
+  practice: "주사위를 굴리고 킵을 선택해 요트다이스에서 첫 점수를 기록하는 방법을 연습하세요.",
+  records: "요트다이스 전적과 상세 통계, 완료한 경기의 리뷰와 기보를 확인하세요.",
+  shop: "주사위·보드·프로필과 다양한 요트다이스 꾸미기 상품을 둘러보세요.",
+  inventory: "보유한 요트다이스 꾸미기 상품의 외형을 확인하고 장착하거나 강화하세요.",
+  draw: "주사위 다섯 개의 족보에 따른 게임 내 뽑기와 확률을 확인하세요.",
+  quests: "일일·주간 요트다이스 퀘스트의 진행도와 보상을 확인하세요.",
+};
+
 export const labTools = ["watch", "tournament", "analysis", "dice-lab", "economy-lab"] as const satisfies readonly Route[];
 
 export const isRoute = (value: string): value is Route => Object.prototype.hasOwnProperty.call(routes, value);

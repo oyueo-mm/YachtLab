@@ -297,6 +297,9 @@ test("상점 미리보기는 소재별 굴림 소리와 강화 전 이모티콘 
   const account = await open(page, "shop");
   await page.getByRole("tab", { name: /^주사위/ }).click();
   await page.getByRole("button", { name: "황금 자세히" }).click();
+  const previewSound = page.getByRole("checkbox", { name: "미리보기 효과음" });
+  await expect(previewSound).not.toBeChecked();
+  await previewSound.check();
   await page.getByRole("button", { name: "굴려 보기" }).click();
   const sound = () => page.evaluate(() => (window as any).__yachtlabSound.log.map(({ name, pack }: { name: string; pack?: string }) => [name, pack]));
   await expect.poll(sound).toContainEqual(["impact", "gold"]);

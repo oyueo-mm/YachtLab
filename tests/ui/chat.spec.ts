@@ -54,7 +54,7 @@ async function watchFeed(p: Page) {
   const seen: string[] = [];
   await p.exposeFunction("__feed", (t: string) => seen.push(t));
   await p.evaluate(() => {
-    const report = () => document.querySelectorAll(".table-feed .feed-msg").forEach((n) => (window as unknown as { __feed(t: string): void }).__feed((n.querySelector(".feed-from")?.textContent ?? "") + "|" + (n.querySelector(".feed-text")?.textContent ?? "")));
+    const report = () => document.querySelectorAll(".table-feed .feed-msg").forEach((n) => (window as unknown as { __feed(t: string): void }).__feed(((n.querySelector(".feed-from .player-name") ?? n.querySelector(".feed-from"))?.textContent ?? "") + "|" + (n.querySelector(".feed-text")?.textContent ?? "")));
     new MutationObserver(report).observe(document.body, { subtree: true, childList: true });
   });
   return seen;

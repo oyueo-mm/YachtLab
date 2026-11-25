@@ -35,20 +35,25 @@ export default function DrawPanel({ server, onWallet }: { server: string; onWall
   const [receipt, setReceipt] = useState<DrawReceipt | null>(null);
   const [animating, setAnimating] = useState(false);
   const [rollEvent, setRollEvent] = useState(0);
-  const [counts] = useState(enumerateDrawHands);
+  const requestVersion = useRef(0);
   const sending = useRef(false);
 
   const load = async () => {
+    const version = ++requestVersion.current;
     setError("");
     try {
       const result = await drawStatus(server);
+      if (version !== requestVersion.current) return;
       setStatus(result.draw);
       setSnapshot(result.snapshot);
     } catch (error) {
-      setError(error instanceof Error ? error.message : "뽑기 정보를 불러오지 못했어요.");
+      if (version === requestVersion.current) setError(error instanceof Error ? error.message : "뽑기 정보를 불러오지 못했어요.");
     }
   };
-  useEffect(() => { void load(); }, [server]);
+  useEffect(() => {
+    void load();
+    return () => { requestVersion.current++; };
+  }, [server]);
   useEffect(() => {
     let live = true;
     void pendingKey(server).then((key) => {
@@ -76,12 +81,13 @@ export default function DrawPanel({ server, onWallet }: { server: string; onWall
   }, [animating, rollEvent]);
 
   const clearPending = () => {
-    if (key) sessionStorage.removeItem(key);
+    try { if (key) sessionStorage.removeItem(key); } catch { /* 서버 기록에서 다시 조회할 수 있다. */ }
     setPending(null);
   };
   const draw = async (retry = pending) => {
     if (!key || sending.current) return;
     sending.current = true;
+    requestVersion.current++;
     setBusy(true);
     setError("");
     const request = retry ?? { requestId: economyRequestId(), pool };
@@ -130,7 +136,7 @@ export default function DrawPanel({ server, onWallet }: { server: string; onWall
     <section className="game-board throw-tray stage-board" aria-label="뽑기 주사위">
       <DiceArea state={{ dice, order, rolls: receipt ? 1 : 0 }} animate={!receipt || animating} rollEvent={rollEvent} />
     </section>
-    {busy && <p role="status" className="econ-note"><BrandMark /> 뽑기 결과를 불러오는 중…</p>}
+    {(busy || !status && !error) && <p role="status" className="econ-note"><BrandMark /> {busy ? "뽑기 결과를 불러오는 중…" : "뽑기 정보를 불러오는 중…"}</p>}
     {error && <p className="error-message" role="alert">{error}</p>}
     {status && !active && pool !== "standard" && <p className="econ-note">시즌 중에만 참여할 수 있어요.</p>}
     {!status && error && <button className="secondary" type="button" onClick={() => void load()}>다시 불러오기</button>}
@@ -142,6 +148,20 @@ export default function DrawPanel({ server, onWallet }: { server: string; onWall
       <div><strong>{won.name}</strong><p>{HANDS[receipt.hand].title} · {tierLabel(won.tier)} · {receipt.dice.join(" · ")}</p>
         {receipt.duplicateCoins > 0 && <small>보유한 상품 · {receipt.duplicateCoins}코인 지급</small>}</div>
     </div>}
+    <DrawOdds pool={pool} />
+    {status && <details className="draw-history">
+      <summary>최근 뽑기 기록</summary>
+      {status.history.length ? <ol>{status.history.map((entry) =>
+        <li key={entry.requestId}>{format.format(entry.at)} · {HANDS[entry.hand].title} · {itemById(entry.itemId)?.name ?? entry.itemId} · {entry.dice.join("·")}{entry.duplicateCoins ? ` · 중복 +${entry.duplicateCoins}코인` : ""}</li>)}</ol> : <p>아직 뽑기 기록이 없어요.</p>}
+    </details>}
+    <ConfirmDialog open={confirm} title="주사위를 굴릴까요?" message={`${DRAW_COST}코인을 사용해 ${season?.name ?? "일반 뽑기"}를 1회 진행해요.`}
+      confirmLabel="뽑기" cancelLabel="취소" onCancel={() => setConfirm(false)} onConfirm={() => { setConfirm(false); void draw(null); }} />
+  </section>;
+}
+
+export function DrawOdds({ pool }: { pool: DrawPool }) {
+  const [counts] = useState(enumerateDrawHands);
+  return (
     <details className="draw-odds">
       <summary>족보와 상품별 확률</summary>
       <p>요트 → 라지 → 포카드 → 풀 하우스 → 스몰 → 트리플 → 투 페어 → 원 페어 → 노 페어 순서로 한 가지만 인정해요. 등급 내 상품은 같은 확률이에요.</p>
@@ -156,12 +176,5 @@ export default function DrawPanel({ server, onWallet }: { server: string; onWall
         </details>;
       })}
     </details>
-    {status && <details className="draw-history">
-      <summary>최근 뽑기 기록</summary>
-      {status.history.length ? <ol>{status.history.map((entry) =>
-        <li key={entry.requestId}>{format.format(entry.at)} · {HANDS[entry.hand].title} · {itemById(entry.itemId)?.name ?? entry.itemId} · {entry.dice.join("·")}{entry.duplicateCoins ? ` · 중복 +${entry.duplicateCoins}코인` : ""}</li>)}</ol> : <p>아직 뽑기 기록이 없어요.</p>}
-    </details>}
-    <ConfirmDialog open={confirm} title="주사위를 굴릴까요?" message={`${DRAW_COST}코인을 사용해 ${season?.name ?? "일반 뽑기"}를 1회 진행해요.`}
-      confirmLabel="뽑기" onCancel={() => setConfirm(false)} onConfirm={() => { setConfirm(false); void draw(null); }} />
-  </section>;
+  );
 }

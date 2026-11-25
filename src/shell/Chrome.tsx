@@ -325,7 +325,7 @@ export function TopBar({ route, server, profile, navigate, openSettings }: {
         ))}
         {profile.signedIn && <div className="top-wallet" aria-label="보유 재화">
           {([{ label: "코인", value: wallet?.coins, Icon: Coins, kind: "coin" }, { label: "보석", value: wallet?.gems, Icon: Gem, kind: "gem" }]).map(({ label, value, Icon, kind }) => (
-            <span key={kind} className={kind} title={`${label} ${value?.toLocaleString() ?? "–"}`} aria-label={`${label} ${value?.toLocaleString() ?? "–"}`}>
+            <span key={kind} className={kind} role="group" title={`${label} ${value?.toLocaleString() ?? "–"}`} aria-label={`${label} ${value?.toLocaleString() ?? "–"}`}>
               <Icon size={15} aria-hidden="true" />
               <b aria-hidden="true" className="balance-full" data-testid={kind === "coin" ? "coins" : "gems"}>{value?.toLocaleString() ?? "–"}</b>
               <b aria-hidden="true" className="balance-compact">{value === undefined ? "–" : compactBalance.format(value)}</b>

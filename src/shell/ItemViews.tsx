@@ -116,8 +116,9 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
   const [rolls, setRolls] = useState(0);
   const [rollEvent, setRollEvent] = useState(0);
   const [replay, setReplay] = useState(0);
+  const [previewSound, setPreviewSound] = useState(false);
   const previewGrand = () => {
-    unlockAudio();
+    if (previewSound) unlockAudio();
     const example = [1, 2, 3, 4, 5].map((value, id) => ({ value, id, held: false }));
     setDice(example);
     setRolls(1);
@@ -127,7 +128,7 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
     if (item.category === "board") return clearScoreFx;
   }, [item]);
   const roll = () => {
-    unlockAudio();
+    if (previewSound) unlockAudio();
     setDice((previous) => randomDice().map((die, index) => previous[index].held ? previous[index] : die));
     setRolls((r) => Math.min(3, r + 1));
     setRollEvent((n) => n + 1);
@@ -141,8 +142,14 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
     return (
       <div className="item-stage">
         <section className={"game-board throw-tray stage-board" + theme.className} style={theme.style} aria-label="미리보기 보드">
-          <DiceArea state={state} forceRenderer={renderer} colors={item.category === "dice" ? (look.dice ?? null) : null} material={diceMaterial(item.id, look.dice)} interactive animate rollEvent={rollEvent} onToggle={(id) => setDice((previous) => previous.map((die) => die.id === id ? { ...die, held: !die.held } : die))} />
+          <DiceArea state={state} soundEnabled={previewSound} forceRenderer={renderer} colors={item.category === "dice" ? (look.dice ?? null) : null} material={diceMaterial(item.id, look.dice)} interactive animate rollEvent={rollEvent} onToggle={(id) => setDice((previous) => previous.map((die) => die.id === id ? { ...die, held: !die.held } : die))} />
         </section>
+        <label className="stage-sound-toggle">
+          <input type="checkbox" checked={previewSound} onChange={(event) => {
+            setPreviewSound(event.target.checked);
+            if (event.target.checked) unlockAudio();
+          }} /> 미리보기 효과음
+        </label>
         <div className="stage-actions">
           <button type="button" className="primary stage-action" onClick={roll}>
             <Dices size={17} /> 굴려 보기
@@ -189,13 +196,21 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
     return (
       <div className="item-stage">
         <div className="stage-result" role="img" aria-label="승리 연출 미리보기">
-          <FxBurst key={replay} fx={look.fx} level={level} seed={`preview-${item.id}-${replay}`} sound={replay > 0} />
+          <FxBurst key={replay} fx={look.fx} level={level} seed={`preview-${item.id}-${replay}`} sound={replay > 0 && previewSound} />
           <strong>승리했습니다!</strong>
           <small>{level >= 2 ? "요트를 기록할 때도 나와요" : "승리하면 나와요"}{level >= 3 ? " · 전용 효과음" : ""}</small>
         </div>
-        <button type="button" className="primary stage-action" onClick={() => (unlockAudio(), setReplay((n) => n + 1))}>
-          <Play size={15} /> 연출 재생
-        </button>
+        <div className="stage-actions">
+          <button type="button" className="primary stage-action" onClick={() => {
+            setPreviewSound(false);
+            setReplay((n) => n + 1);
+          }}><Play size={15} /> 연출 재생</button>
+          {level >= 3 && look.fx.sound && <button type="button" className="secondary" onClick={() => {
+            unlockAudio();
+            setPreviewSound(true);
+            setReplay((n) => n + 1);
+          }}><Volume2 size={15} /> 소리 듣기</button>}
+        </div>
       </div>
     );
   }

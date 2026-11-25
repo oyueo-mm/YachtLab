@@ -17,7 +17,7 @@ import { completeSignIn, session } from "./identity/account-client";
 import { syncAccountNickname } from "./identity/display-name";
 import { FriendsPage, InviteToasts, refreshInbox, startInbox } from "./shell/Friends";
 import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl } from "./online/client";
-import { currentRoute, researchToolsEnabled, routes, type Route } from "./routes";
+import { currentRoute, homeDescription, researchToolsEnabled, routeDescription, routes, type Route } from "./routes";
 import { useProfileEconomy } from "./shell/profile-economy";
 import { LabNav, SettingsDialog, TopBar } from "./shell/Chrome";
 import InstallBanner from "./shell/InstallBanner";
@@ -179,6 +179,8 @@ export default function App() {
   useEffect(() => {
     window.scrollTo?.(0, 0);
     document.title = page === "home" ? "온라인 요트다이스 · Online Yacht" : routes[page].title + " · Online Yacht";
+    document.querySelector('meta[name="description"]')?.setAttribute("content", routeDescription[page] ??
+      (page === "home" ? homeDescription : `Online Yacht의 ${routes[page].title} 화면입니다.`));
   }, [page]);
   const shell = routes[page].shell;
   // Online screens need the latest page (server protocol); an old cached page asks for a reload.
@@ -266,7 +268,7 @@ export default function App() {
             }}
           />
         )}
-        {(page === "profile" || page === "account") && <Profile key={profileNotice} server={onlineServer} notice={profileNotice} snapshot={profile.snapshot} accountSettings={page === "account"} />}
+        {(page === "profile" || page === "account") && <Profile key={JSON.stringify([session(), profileNotice])} server={onlineServer} notice={profileNotice} snapshot={profile.snapshot} accountSettings={page === "account"} />}
         {(page === "shop" || page === "inventory" || page === "draw" || page === "quests" || page === "achievements") && (
           <Suspense fallback={<p className="econ-note" role="status"><BrandMark /> 불러오는 중…</p>}>
             {(page === "shop" || page === "inventory" || page === "draw") && <ItemsPage key={session() ?? "guest"} server={onlineServer} go={navigate} route={page} />}

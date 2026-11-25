@@ -22,7 +22,7 @@ const log = (entry: Shown) => {
  * (keyed by the roll event, so a refresh, a reconnect or a re-render never replays it). It waits until
  * the dice have visibly stopped, never intercepts input, and never records a score.
  */
-export function YachtFlash({ dice, rolls, rollEvent }: { dice: readonly { value: number }[]; rolls: number; rollEvent: number }) {
+export function YachtFlash({ dice, rolls, rollEvent, soundEnabled = true }: { soundEnabled?: boolean; dice: readonly { value: number }[]; rolls: number; rollEvent: number }) {
   const busy = useDiceBusy();
   const shownFor = useRef(rollEvent); // a screen opened on an existing yacht does not flash
   const [active, setActive] = useState<Shown | null>(null);
@@ -34,7 +34,7 @@ export function YachtFlash({ dice, rolls, rollEvent }: { dice: readonly { value:
     const entry = { key: rollEvent, value: dice[0].value };
     log(entry);
     setActive(entry);
-    playSfx("yachtHit");
+    if (soundEnabled) playSfx("yachtHit");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yacht, busy, rollEvent]);
   useEffect(() => {
@@ -74,7 +74,7 @@ type StraightShown = { key: number; values: number[] };
  * replays it), after the dice have stopped; never intercepts input; shown on every screen that shows
  * these dice (both players and spectators). "효과 줄이기" keeps only a still label.
  */
-export function StraightFlash({ dice, rolls, rollEvent }: { dice: readonly { value: number }[]; rolls: number; rollEvent: number }) {
+export function StraightFlash({ dice, rolls, rollEvent, soundEnabled = true }: { soundEnabled?: boolean; dice: readonly { value: number }[]; rolls: number; rollEvent: number }) {
   const busy = useDiceBusy();
   const { reducedEffects } = useSettings();
   const shownFor = useRef(rollEvent);
@@ -86,7 +86,7 @@ export function StraightFlash({ dice, rolls, rollEvent }: { dice: readonly { val
     const entry = { key: rollEvent, values };
     if (typeof window !== "undefined") ((window as unknown as { __yachtlabStraight?: StraightShown[] }).__yachtlabStraight ??= []).push(entry);
     setActive(entry);
-    playSfx("straightHit");
+    if (soundEnabled) playSfx("straightHit");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!values, busy, rollEvent]);
   useEffect(() => {

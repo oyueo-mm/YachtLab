@@ -691,7 +691,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
               </span>
             </div>
             {/* The dice show the theme of the player whose turn it is — the same on both screens. */}
-            <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} material={diceMaterialOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={can && rolls > 0 && rolls < 3} animate rollEvent={rollEvent} onToggle={toggle} holdOrder={rolls > 0 ? keep : []} />
+            <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""], turnIndex === meIndex || settings.opponentFx)} material={diceMaterialOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={can && rolls > 0 && rolls < 3} animate rollEvent={rollEvent} onToggle={toggle} holdOrder={rolls > 0 ? keep : []} />
             <div className="roll-area">
               <button className={"primary roll-button" + (myTurn ? "" : " waiting")} disabled={!canRoll} onClick={roll}>
                 <Dices size={20} />
