@@ -65,7 +65,11 @@ test("경기 후 홈에서 서버 보상 진행률을 확인하고 닫을 때까
       });
       observer.observe(document.body, { attributes: true, childList: true, subtree: true });
     });
-    await page.getByRole("button", { name: "로비로" }).click();
+    const result = page.getByRole("dialog", { name: "승리" });
+    const summary = result.getByRole("region", { name: "이번 경기 보상" });
+    await expect(summary).toContainText("+37코인");
+    await expect(summary).toContainText("+1보석");
+    await result.getByRole("button", { name: "나가기", exact: true }).click();
     const earned = page.getByRole("region", { name: "이번 경기 보상" });
     await expect(earned).toContainText("+37코인");
     await expect(earned).toContainText("+1보석");

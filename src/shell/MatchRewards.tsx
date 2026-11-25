@@ -57,10 +57,10 @@ export function MatchRewardSummary({ server, matchId }: { server: string; matchI
   const coins = receipt.after.coins - receipt.before.coins;
   const gems = receipt.after.gems - receipt.before.gems;
   if (!(coins > 0 || gems > 0)) return null;
-  return <div className="match-reward-wallet" aria-label="이번 경기 보상">
+  return <section className="match-reward-wallet" aria-label="이번 경기 보상">
     {coins > 0 && <span><Coins size={16} aria-hidden="true" /> +{coins.toLocaleString()}코인</span>}
     {gems > 0 && <span><Gem size={16} aria-hidden="true" /> +{gems.toLocaleString()}보석</span>}
-  </div>;
+  </section>;
 }
 
 export default function MatchRewards({ server, pending, consume }: { server: string; pending: PendingReward; consume: () => void }) {
