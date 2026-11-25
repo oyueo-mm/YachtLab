@@ -121,5 +121,8 @@ export const AGENTS: Record<string, { v5: boolean; bayes?: boolean; v6?: string[
   "v7-N": { v5: true, v6: ["all"], describe: "v7-N: value of the 7x7 policy matrix game (mixed Nash) at each outcome", act: v7("N") },
   "v7-I1O": { v5: true, v6: ["all"], describe: "v7-I1O: reactive opponent turn (policy-set objective) -> opponent final-score mixture PMF; my open-loop policy-set best response to it", act: v7("I1O") },
   "v7-I1RO": { v5: true, v6: ["all"], describe: "v7-I1RO: as v7-I1O but the opponent's turn uses the v5-R objective", act: v7("I1RO") },
+  "v7-I2": { v5: true, v6: ["all"], describe: "v7-I2: reactive opponent turn (policy-set objective), then my exact next turn with P stop values (two-ply reaction)", act: v7("I2") },
+  "v7-I2R": { v5: true, v6: ["all"], describe: "v7-I2R: as v7-I2 but the opponent's turn uses the v5-R objective", act: v7("I2R") },
+  "v7-I1RO1": { v5: true, v6: ["all"], describe: "v7-I1RO1: I1RO with the DP Expert bank only (lightweight derivative; product-track candidate)", act: v7("I1RO1") },
   "v7-I1B3": { v5: true, v6: ["all"], describe: "v7-I1 + exact interactive minimax when both <= 3", act: v7("I1", { endgame: "minimax", minimaxWindow: 3 }) },
 };
