@@ -19,6 +19,7 @@ const workerSrc = bundle + "\nonmessage = async (e) => { try { postMessage(await
   const page = await ctx.newPage();
   if (mode === "mobile-main") { const cdp = await ctx.newCDPSession(page); await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 }); }
   await page.setContent("<html><body>bench</body></html>");
+  if (mode === "mobile-main") await page.addScriptTag({ content: bundle });
   const msg = { kind, games: Number(games), seed0: 97000, window: win ? Number(win) : undefined, fallback: fb };
   const res = await page.evaluate(async ({ src, wasmB64, dpB64, msg, inWorker }) => {
     const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0)).buffer;
@@ -31,7 +32,7 @@ const workerSrc = bundle + "\nonmessage = async (e) => { try { postMessage(await
       const w = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
       out = await new Promise((r) => { w.onmessage = (e) => r(e.data); w.postMessage(data); });
       w.terminate();
-    } else { (0, eval)(src.replace(/\nonmessage[\s\S]*$/, "")); out = await self.BENCH.run(data); }
+    } else { out = await window.BENCH.run(data); }
     running = false;
     return { ...out, mainThreadMaxFrameGapMs: inWorker ? maxGap : null, userAgent: navigator.userAgent, cores: navigator.hardwareConcurrency };
   }, { src: workerSrc, wasmB64: wasm.toString("base64"), dpB64: dp.toString("base64"), msg, inWorker: mode !== "mobile-main" });
