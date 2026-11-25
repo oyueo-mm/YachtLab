@@ -13,7 +13,7 @@
 
 ## 맥락 읽는 순서
 
-> **AI 승률 연구(Win DP v5, 정확 PMF·정확 2인 종반)** → [V5-APEX-RESEARCH](docs/context/V5-APEX-RESEARCH.md) (연구 브랜치, 기본 AI 불변, D-V5-1).
+> **AI 승률 연구(Win DP v5, 정확 PMF·정확 2인 종반)** → [V5-APEX-RESEARCH](docs/context/V5-APEX-RESEARCH.md) (연구 브랜치, 기본 AI 불변, D-V5-1). 확증: v5-R vs Win DP v2 **50.626%**(100k, 99% CI 50.372–50.879), vs v3 50.479%, vs DP Expert 51.223%.
 >
 > **재화·상점·퀘스트·업적을 다룬다면** [실서비스 경제](docs/economy/LIVE-ECONOMY.md)부터(M3i-W30 실제 구현·원장·가격표·퀘스트·업적, 결정 D-040~D-042). 연구 배경: [경제 연구 보고서](docs/economy/ECONOMY-RESEARCH.md)(D-029~D-037).
 >
