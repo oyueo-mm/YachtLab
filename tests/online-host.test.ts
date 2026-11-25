@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { seededDiceSource } from "../src/online";
 import { ROOM_LIMITS, type RoomRecord } from "../src/online/room";
 import type { ServerMessage } from "../src/online/wire";
-import { RoomHost, HELLO_TIMEOUT_MS, CONNECTS_PER_MINUTE, type HostSocket, type HostStorage } from "../worker/src/host";
+import { RoomHost, HELLO_TIMEOUT_MS, CONNECTS_PER_MINUTE, LIFECYCLE, type HostSocket, type HostStorage } from "../worker/src/host";
 import { readConfig } from "../worker/src/config";
 
 /**
@@ -135,13 +135,13 @@ describe("RoomHost (Durable Object logic, runtime-free)", () => {
     t += 60_000;
     await host.alarm();
     expect(b.last("view")!.view.status).toBe("finished");
-    // finished room, everybody leaves → removed after the finished-idle period
+    // finished room, everybody leaves → removed after the empty-finished grace (D-046)
     for (const ws of [a, b]) {
       open.splice(open.indexOf(ws), 1);
       await host.closed(ws);
     }
-    expect(state.alarm).toBe(t + 60_000);
-    t += 60_000;
+    expect(state.alarm).toBe(t + LIFECYCLE.emptyFinishedMs);
+    t += LIFECYCLE.emptyFinishedMs;
     await host.alarm();
     expect(state.cleared).toBe(true);
     expect(state.record).toBeNull();

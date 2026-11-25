@@ -1,3 +1,4 @@
+import { nick } from "./helpers";
 import { expect, test, devices, type Browser, type Page } from "@playwright/test";
 import { startLocalWorker, type LocalWorker } from "../helpers/wrangler";
 
@@ -29,9 +30,11 @@ async function device(browser: Browser, kind: "desktop" | "phone", width = 1280)
 async function quick(p: Page, name: string, publicWatch: boolean) {
   await p.goto(entry());
   await expect(p.getByRole("tab", { name: "빠른 대전" })).toHaveAttribute("aria-selected", "true");
-  await p.getByLabel("닉네임").fill(name);
-  const box = p.getByRole("checkbox", { name: /관전방에 공개/ });
-  if (publicWatch) await box.check();
+  await nick(p, name);
+  // quick matches are always public: no checkbox, only a short note before matching
+  await expect(p.getByRole("checkbox", { name: /관전방에 공개/ })).toHaveCount(0);
+  await expect(p.getByText("빠른 대전은 관전방에 공개돼요")).toBeVisible();
+  void publicWatch;
   await p.getByRole("button", { name: "빠른 대전 시작" }).click();
 }
 
@@ -90,4 +93,22 @@ test("PC 폭별로 방 번호·채팅·이모티콘·관전·기권 버튼이 �
     await a.context().close();
     await b.context().close();
   }
+});
+
+test("닉네임은 프로필에서만 바꾸고, 온라인 화면에는 입력창 없이 그 닉네임이 쓰인다 (처음이면 기본 닉네임 자동 생성)", async ({ browser }, testInfo) => {
+  test.skip(testInfo.project.name === "mobile", "한 기기만 쓴다");
+  const p = await device(browser, "phone");
+  await p.goto(entry());
+  await expect(p.getByLabel("닉네임")).toHaveCount(0);
+  await expect(p.locator(".online-nick strong")).toHaveText(/^요트러\d{4}$/);
+  await p.getByRole("link", { name: "프로필에서 변경" }).click();
+  await p.getByRole("button", { name: "닉네임 바꾸기" }).click();
+  await p.getByLabel("닉네임").fill("새닉네임");
+  await p.getByRole("button", { name: "저장" }).click();
+  await expect(p.getByText("닉네임을 바꿨어요.")).toBeVisible();
+  await p.goto(entry());
+  await expect(p.locator(".online-nick strong")).toHaveText("새닉네임");
+  await p.getByRole("tab", { name: "친구 대전" }).click();
+  await expect(p.getByLabel("닉네임")).toHaveCount(0);
+  await expect(p.locator(".online-nick strong")).toHaveText("새닉네임");
 });

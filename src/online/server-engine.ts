@@ -275,10 +275,11 @@ function decide(
       else advance(after, playerId, now, emit);
       return;
     }
-    case "resign": {
+    case "resign":
+    case "abandon": {
       requirePhase("playing");
       if (requireMember().status !== "active") reject("WRONG_PHASE", "이미 기권 처리되었습니다.");
-      const after = emit({ type: "playerForfeited", playerId, reason: "resign" });
+      const after = emit({ type: "playerForfeited", playerId, reason: action.type === "abandon" ? "left" : "resign" });
       if (simultaneous) advanceRound(after, now, emit);
       else if (state.turn?.playerId === playerId || activePlayers(after).length <= 1) advance(after, playerId, now, emit);
       return;
@@ -432,7 +433,7 @@ function actionFromEvent(event: Record<string, unknown>): unknown {
     case "categoryScored":
       return { type: "score", category: event.category };
     case "playerForfeited":
-      return { type: event.reason === "timeout" ? "claimTimeout" : "resign" };
+      return { type: event.reason === "timeout" ? "claimTimeout" : event.reason === "left" ? "abandon" : "resign" };
     case "roundTimedOut":
       return { type: "claimTimeout" };
     default:

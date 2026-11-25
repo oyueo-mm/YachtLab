@@ -258,7 +258,9 @@ export class HubCore {
     // Who moves first is decided by the server at random.
     const flip = (crypto.getRandomValues(new Uint8Array(1))[0] & 1) === 1;
     const [first, second] = flip ? [b, a] : [a, b];
-    const pub = a.w.spectate && b.w.spectate;
+    // Every quick match is a public match (D-045): it is listed in the spectating room while it is
+    // played. The client's old opt-in flag is ignored; friend rooms keep consent-based spectating.
+    const pub = true;
     let result: MatchResult;
     try {
       result = await this.deps.createMatch({ name: first.w.name, userId: first.w.userId, key: this.identity(first.w) }, { name: second.w.name, userId: second.w.userId, key: this.identity(second.w) }, { public: pub });

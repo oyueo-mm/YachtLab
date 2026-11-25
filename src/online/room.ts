@@ -25,7 +25,7 @@ import {
   type LobbyState,
 } from "./wire";
 import { allowSocial, canSend, newSocialBucket, type SocialBucket } from "../social/catalog";
-import { validateNickname } from "../identity/nickname";
+import { NICKNAME_MAX_GRAPHEMES, graphemes, validateNickname } from "../identity/nickname";
 import { RULES_ID, type MatchRecord } from "../identity/records";
 import { GUEST_LOOK, sanitizeLook, sendableIds, type PublicLook } from "../economy/live/catalog";
 import { matchStats } from "../economy/live/rewards";
@@ -174,6 +174,19 @@ function sameHash(a: string, b: string) {
   return diff === 0;
 }
 
+/** `name`, or `name 2`, `name 3`… when it is taken in this room (kept within the 12-character limit). */
+export function uniqueName(name: string, taken: string[]): string {
+  const used = new Set(taken.map((n) => n.toLocaleLowerCase()));
+  if (!used.has(name.toLocaleLowerCase())) return name;
+  for (let i = 2; i < 100; i++) {
+    const suffix = " " + i;
+    const base = graphemes(name).slice(0, NICKNAME_MAX_GRAPHEMES - suffix.length).join("").trimEnd();
+    const next = base + suffix;
+    if (!used.has(next.toLocaleLowerCase())) return next;
+  }
+  return name;
+}
+
 /** Invite codes: 6 characters without look-alikes (0/O, 1/I/L). 32^6 ≈ 1.07e9 codes. */
 export const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 export const CODE_PATTERN = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
@@ -295,12 +308,13 @@ export class OnlineRoom {
       // Display names follow the shared nickname policy (src/identity/nickname.ts); the engine keeps its
       // looser 1–24 check so logs written before this policy still replay.
       const checked = validateNickname(rawName);
-      const name = checked.ok ? normalizeName(checked.name) : null;
+      let name = checked.ok ? normalizeName(checked.name) : null;
       if (!checked.ok || !name) return { ok: false, status: 400, error: { code: "INVALID_COMMAND", message: checked.ok ? "닉네임을 확인해 주세요." : checked.message } } as const;
       if (identity && Object.values(this.record.identities ?? {}).some((i) => i.userId === identity.userId))
         return { ok: false, status: 409, error: { code: "NAME_TAKEN", message: "이 계정은 이미 이 방에 있어요." } } as const;
-      if (this.state.status === "lobby" && this.state.players.some((p) => p.name.toLocaleLowerCase() === name.toLocaleLowerCase()))
-        return { ok: false, status: 409, error: { code: "NAME_TAKEN", message: "이미 방에 같은 닉네임이 있어요. 다른 닉네임을 써 주세요." } } as const;
+      // Nicknames are set on the profile page, so a duplicate in this room gets a number ("하늘 2")
+      // instead of a refusal the player could only fix by leaving the invite screen.
+      if (this.state.status === "lobby") name = uniqueName(name, this.state.players.map((p) => p.name));
       const playerId = "p_" + base64url(this.random(new Uint8Array(12)));
       const token = base64url(this.random(new Uint8Array(32)));
       const result = this.apply(playerId, { commandId: "join", action: { type: "join", name } });
@@ -626,6 +640,8 @@ export class OnlineRoom {
       return;
     }
     // command
+    // A disconnect forfeit is decided by the server's reconnect grace, never asked for by a client.
+    if ((msg.action as { type?: unknown }).type === "abandon") return conn.send({ t: "ack", id: msg.id, ok: false, error: { code: "INVALID_COMMAND", message: "지원하지 않는 행동입니다." } });
     let result: CommandResult;
     try {
       // The engine stores kept positions sorted; the selection order is kept here for the shelf.
@@ -647,16 +663,18 @@ export class OnlineRoom {
     }
     conn.send({ t: "ack", id: msg.id, ok: true, duplicate: result.duplicate });
     if (result.duplicate) this.sendView(conn, conn.seenSeq);
-    if (msg.action.type === "leave") {
-      // Leaving the lobby ends this seat's token.
-      const { [playerId]: _gone, ...rest } = this.record.credentials;
-      const { [playerId]: _r, ...ready } = this.record.ready ?? {};
-      this.record = { ...this.record, credentials: rest, ready, ...(this.record.hostId === playerId ? { hostId: undefined } : {}) };
-      await this.deps.save(this.record);
-      for (const c of [...this.connections]) if (c.playerId === playerId) c.close(4002, "left");
-      if (!this.state.players.length) this.closeRoom();
-      else this.broadcastLobby();
-    }
+    if (msg.action.type === "leave") await this.afterLeave(playerId);
+  }
+
+  /** Leaving the lobby ends this seat's token (asked by the player, or the reconnect grace ran out). */
+  private async afterLeave(playerId: string) {
+    const { [playerId]: _gone, ...rest } = this.record.credentials;
+    const { [playerId]: _r, ...ready } = this.record.ready ?? {};
+    this.record = { ...this.record, credentials: rest, ready, ...(this.record.hostId === playerId ? { hostId: undefined } : {}) };
+    await this.deps.save(this.record);
+    for (const c of [...this.connections]) if (c.playerId === playerId) c.close(4002, "left");
+    if (!this.state.players.length) this.closeRoom();
+    else this.broadcastLobby();
   }
 
   /* ------------------------------------------------------------- lobby (multiplayer) ------------------------------------------------------------- */
@@ -810,6 +828,11 @@ export class OnlineRoom {
   /** A player turns spectating on or off. Off by anyone revokes the link (a new key next time). */
   private async setSpectate(conn: RoomConnection, playerId: string, allow: boolean) {
     if (this.record.ai) return conn.send({ t: "error", code: "SPECTATE", message: "AI 대전은 관전할 수 없어요." });
+    // Quick matches are public by rule (D-045): nobody can switch spectating off during the match.
+    if (this.isPublic) {
+      if (!allow) conn.send({ t: "error", code: "SPECTATE", message: "빠른 대전은 관전방에 공개되는 경기예요. 공개를 끌 수 없어요." });
+      return conn.send({ t: "spectate", spectate: this.spectateState() });
+    }
     const sp = this.record.spectate ?? { allow: {}, key: null };
     if ((sp.allow[playerId] === true) === allow && (!allow || sp.key)) return conn.send({ t: "spectate", spectate: this.spectateState() });
     // Turning spectating OFF is a privacy action: always honoured at once. Only turning it on (a new
@@ -1098,6 +1121,40 @@ export class OnlineRoom {
     for (const conn of this.connections) if (conn.playerId || conn.spectator) this.sendView(conn, conn.seenSeq);
   }
 
+  /**
+   * Room lifecycle (D-046), called by the host's alarm: a seat whose reconnect grace ran out. During a
+   * match it is forfeited with reason "left" (not a resignation); in the waiting room it leaves its seat.
+   * Deterministic command ids: a repeated alarm is an idempotent duplicate.
+   */
+  absentFor(playerId: string): Promise<void> {
+    return this.serial(async () => {
+      if (this.closed) return;
+      const p = this.state.players.find((x) => x.playerId === playerId);
+      if (!p) return;
+      if (this.state.status === "playing" && p.status === "active") await this.run(playerId, { commandId: `away-${this.state.version}-${playerId}`, action: { type: "abandon" } });
+      else if (this.state.status === "lobby") {
+        const r = await this.run(playerId, { commandId: `away-${this.state.version}-${playerId}`, action: { type: "leave" } });
+        if (r.ok && !r.duplicate) await this.afterLeave(playerId);
+      }
+    });
+  }
+  /** Seats (players still in the match / lobby) other than the server AI. */
+  humanSeats(): string[] {
+    const ai = this.record.ai?.playerId;
+    return this.state.players.filter((p) => p.playerId !== ai && (this.state.status !== "playing" || p.status === "active")).map((p) => p.playerId);
+  }
+  /** Players with a live socket (the server AI counts as present). */
+  presentPlayers(): string[] {
+    return this.onlinePlayers();
+  }
+  /** Reconnect deadlines shown to every screen ("다시 들어오면 이어서 진행돼요 · 1:30"). */
+  private away: Record<string, number> = {};
+  setAway(away: Record<string, number>) {
+    const same = JSON.stringify(away) === JSON.stringify(this.away);
+    this.away = away;
+    if (!same) this.broadcastPresence();
+  }
+
   private onlinePlayers() {
     const ids = [...this.connections].map((c) => c.playerId).filter((id): id is string => !!id);
     // The server AI is always "connected".
@@ -1106,7 +1163,9 @@ export class OnlineRoom {
   }
   private broadcastPresence() {
     const online = this.onlinePlayers();
-    for (const conn of this.connections) if (conn.playerId || conn.spectator) conn.send({ t: "presence", online });
+    const now = this.deps.now();
+    const away = Object.fromEntries(Object.entries(this.away).map(([id, at]) => [id, Math.max(0, at - now)]));
+    for (const conn of this.connections) if (conn.playerId || conn.spectator) conn.send({ t: "presence", online, ...(Object.keys(away).length ? { away } : {}) });
   }
 
   /** Close every socket; the host then drops the room and its stored record. */

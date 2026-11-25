@@ -3,7 +3,7 @@ import { seededDiceSource } from "../src/online";
 import { MAX_MISSED_ROUNDS } from "../src/online/protocol";
 import { applyCommand, createOnlineMatch, rebuildFromEvents } from "../src/online/server-engine";
 import type { RoomRecord } from "../src/online/room";
-import { RoomHost, type HostSocket, type HostStorage } from "../worker/src/host";
+import { RoomHost, LIFECYCLE, type HostSocket, type HostStorage } from "../worker/src/host";
 import { readConfig } from "../worker/src/config";
 import { categories } from "../src/engine";
 
@@ -248,44 +248,174 @@ describe("엔진: 20명", () => {
   });
 });
 
-describe("방 정리", () => {
-  it("3명 이상 방에서 모두 나간 진행 중 경기는 2시간 뒤 정리되고, 1:1 방은 기존 유예를 유지한다", async () => {
-    const run = async (seats: number) => {
-      const st = { record: null as string | null, alarm: null as number | null, cleared: false };
-      const storage: HostStorage = {
-        load: () => (st.record ? JSON.parse(st.record) : null),
-        save: (r) => void (st.record = JSON.stringify(r)),
-        getAlarm: () => st.alarm,
-        setAlarm: (at) => void (st.alarm = at),
-        deleteAlarm: () => void (st.alarm = null),
-        clear: () => void ((st.record = null), (st.cleared = true)),
-      };
-      let t = 1_000_000;
-      const open: Sock[] = [];
-      const host = new RoomHost(storage, () => open, readConfig({ TURN_TIMEOUT_MS: "0" }), () => t, seededDiceSource(1));
-      host.init();
-      const ids = [];
-      for (let i = 0; i < seats; i++) ids.push(i === 0 ? await host.create("ABCDEF", "p" + i, null, null, seats) : await host.join("p" + i, null));
-      const s = new Sock();
-      open.push(s);
-      host.accepted(s);
-      await host.message(s, JSON.stringify({ t: "hello", token: (ids[0] as { token: string }).token }));
-      for (const [i, r] of ids.entries()) if (i > 0) {
-        const x = new Sock();
-        open.push(x);
-        host.accepted(x);
-        await host.message(x, JSON.stringify({ t: "hello", token: (r as { token: string }).token }));
-        await host.message(x, JSON.stringify({ t: "ready", ready: true }));
-      }
-      await host.message(s, JSON.stringify({ t: "cmd", id: "go", action: { type: "start" } }));
-      expect(host.room!.match.status).toBe("playing");
-      for (const x of [...open]) await host.closed(x);
-      open.length = 0;
-      t += 2 * 3600_000 + 1000;
-      await host.alarm();
-      return st.cleared;
+describe("방 정리 (D-046: 재접속 유예·서버 알람)", () => {
+  type Room = Awaited<ReturnType<typeof setup>>;
+  async function setup(seats: number, opts: { start?: boolean; kind?: "friend" | "random" } = {}) {
+    const st = { record: null as string | null, alarm: null as number | null, cleared: false };
+    const storage: HostStorage = {
+      load: () => (st.record ? JSON.parse(st.record) : null),
+      save: (r) => void (st.record = JSON.stringify(r)),
+      getAlarm: () => st.alarm,
+      setAlarm: (at) => void (st.alarm = at),
+      deleteAlarm: () => void (st.alarm = null),
+      clear: () => void ((st.record = null), (st.cleared = true)),
     };
-    expect(await run(4)).toBe(true);
-    expect(await run(2)).toBe(false);
+    const clock = { t: 1_000_000 };
+    const open: Sock[] = [];
+    const deleted: string[] = [];
+    const make = () => new RoomHost(storage, () => open, readConfig({ TURN_TIMEOUT_MS: "0" }), () => clock.t, seededDiceSource(1), { onDeleted: (c) => void deleted.push(c) });
+    let host = make();
+    host.init();
+    const tokens: string[] = [];
+    if (opts.kind === "random") {
+      const made = await host.createMatched("ABCDEF", Array.from({ length: seats }, (_, i) => ({ name: "p" + i })), { kind: "random", public: true });
+      if (!made.ok) throw Error(made.message);
+      tokens.push(...made.seats.map((x) => x.token));
+    } else for (let i = 0; i < seats; i++) {
+      const r = i === 0 ? await host.create("ABCDEF", "p" + i, null, null, seats) : await host.join("p" + i, null);
+      if (!r.ok) throw Error("join");
+      tokens.push(r.token);
+    }
+    const socks: Sock[] = [];
+    const connect = async (i: number) => {
+      const x = new Sock();
+      open.push(x);
+      host.accepted(x);
+      await host.message(x, JSON.stringify({ t: "hello", token: tokens[i] }));
+      socks[i] = x;
+      return x;
+    };
+    for (let i = 0; i < seats; i++) await connect(i);
+    if (opts.kind !== "random" && opts.start !== false) {
+      for (let i = 1; i < seats; i++) await host.message(socks[i], JSON.stringify({ t: "ready", ready: true }));
+      await host.message(socks[0], JSON.stringify({ t: "cmd", id: "go", action: { type: "start" } }));
+    }
+    const drop = async (i: number) => {
+      open.splice(open.indexOf(socks[i]), 1);
+      await host.closed(socks[i]);
+    };
+    /** Advance the clock to the pending alarm (or by `ms`) and run it. */
+    const tick = async (ms?: number) => {
+      clock.t = ms === undefined ? Math.max(clock.t, st.alarm ?? clock.t) : clock.t + ms;
+      await host.alarm();
+    };
+    const evict = () => {
+      host = make();
+      host.init();
+    };
+    return { st, clock, open, socks, tokens, deleted, connect, drop, tick, evict, get host() {
+      return host;
+    } };
+  }
+  const status = (r: Room) => r.host.room?.match.status ?? "removed";
+
+  it("모두 나간 진행 중 경기: 친구 방은 15분, 빠른 대전은 5분 뒤 정리된다 (그 전에는 남는다)", async () => {
+    for (const [seats, kind, wait] of [[2, "friend", 15], [4, "friend", 15], [2, "random", 5]] as const) {
+      const r = await setup(seats, { kind });
+      expect(status(r)).toBe("playing");
+      for (let i = 0; i < seats; i++) await r.drop(i);
+      await r.tick(wait * 60_000 - 1000);
+      expect(r.st.cleared).toBe(false);
+      await r.tick(2000);
+      expect(r.st.cleared).toBe(true);
+      expect(r.deleted).toEqual(["ABCDEF"]);
+    }
+  });
+
+  it("경기 중 한 명이 끊기면 남은 사람에게 유예 시간을 알리고, 돌아오면 이어서, 2분 넘게 안 오면 'left'로 기권 처리한다", async () => {
+    const r = await setup(2);
+    const [a, b] = r.socks;
+    await r.drop(1);
+    const away = a.last("presence")!.away as Record<string, number>;
+    expect(Object.values(away)[0]).toBe(LIFECYCLE.reconnectGraceMs);
+    // back within the grace: nothing happens
+    await r.tick(LIFECYCLE.reconnectGraceMs - 5000);
+    await r.connect(1);
+    expect(a.last("presence")!.away).toBeUndefined();
+    await r.tick(LIFECYCLE.reconnectGraceMs * 2);
+    expect(status(r)).toBe("playing");
+    void b;
+    // gone for good: forfeited "left" once the grace is over (not a resignation)
+    await r.drop(1);
+    await r.tick();
+    const forfeit = r.host.room!.match.log.find((e) => e.type === "playerForfeited");
+    expect(forfeit).toMatchObject({ reason: "left" });
+    expect(status(r)).toBe("finished");
+    expect(r.host.room!.match.winners).toEqual([r.host.room!.match.players[0].playerId]);
+    // the stored log still passes the engine audit (abandon replays)
+    expect(() => rebuildFromEvents(r.host.room!.match.log)).not.toThrow();
+  });
+
+  it("3명 이상: 끊긴 한 명만 기권 처리되고 나머지는 계속한다", async () => {
+    const r = await setup(4);
+    const gone = r.socks[2].last("welcome")!.playerId as string;
+    await r.drop(2);
+    await r.tick(LIFECYCLE.reconnectGraceMs + 1000);
+    const p2 = r.host.room!.match.players.find((p) => p.playerId === gone)!;
+    expect(p2.status).toBe("forfeited");
+    expect(status(r)).toBe("playing");
+    expect(r.host.room!.match.players.filter((p) => p.status === "active")).toHaveLength(3);
+  });
+
+  it("유예 기록은 저장 쓰기 없이 남은 소켓에 보관되어 Hibernation 뒤에도 이어진다", async () => {
+    const r = await setup(2);
+    await r.drop(1);
+    const before = r.st.record;
+    await r.tick(60_000);
+    r.evict(); // memory gone; the remaining socket carries when the other player left
+    await r.tick(LIFECYCLE.reconnectGraceMs - 60_000 + 1000);
+    expect(r.host.room!.match.log.find((e) => e.type === "playerForfeited")).toMatchObject({ reason: "left" });
+    void before;
+  });
+
+  it("클라이언트는 abandon 명령을 보낼 수 없다", async () => {
+    const r = await setup(2);
+    await r.host.message(r.socks[0], JSON.stringify({ t: "cmd", id: "x", action: { type: "abandon" } }));
+    expect(r.socks[0].last("ack")).toMatchObject({ id: "x", ok: false });
+    expect(status(r)).toBe("playing");
+  });
+
+  it("대기실: 끊긴 자리는 10분 뒤 비워지고(방장은 넘어감), 모두 떠나면 방이 정리된다", async () => {
+    const r = await setup(3, { start: false });
+    await r.drop(0); // the host
+    await r.tick(LIFECYCLE.lobbySeatGraceMs + 1000);
+    expect(r.host.room!.match.players.map((p) => p.name)).toEqual(["p1", "p2"]);
+    expect(r.socks[1].last("lobby")!.lobby.hostId).toBe(r.host.room!.match.players[0].playerId);
+    await r.drop(1);
+    await r.drop(2);
+    await r.tick(LIFECYCLE.lobbySeatGraceMs + 1000);
+    expect(r.st.cleared).toBe(true);
+  });
+
+  it("시작하지 않은 대기실은 접속해 있어도 2시간 뒤 정리된다", async () => {
+    const r = await setup(3, { start: false });
+    await r.tick(LIFECYCLE.unusedLobbyMs + 1000);
+    expect(r.st.cleared).toBe(true);
+  });
+
+  it("끝난 경기: 모두 나가면 3분 뒤, 결과 화면에 남아 있으면 1시간 뒤 정리된다", async () => {
+    const r = await setup(2);
+    await r.host.message(r.socks[1], JSON.stringify({ t: "cmd", id: "rs", action: { type: "resign" } }));
+    expect(status(r)).toBe("finished");
+    await r.tick(LIFECYCLE.finishedOpenMs - 60_000);
+    expect(r.st.cleared).toBe(false);
+    await r.drop(0);
+    await r.drop(1);
+    await r.tick(LIFECYCLE.emptyFinishedMs + 1000);
+    expect(r.st.cleared).toBe(true);
+    const r2 = await setup(2);
+    await r2.host.message(r2.socks[1], JSON.stringify({ t: "cmd", id: "rs", action: { type: "resign" } }));
+    await r2.tick(LIFECYCLE.finishedOpenMs + 1000);
+    expect(r2.st.cleared).toBe(true);
+  });
+});
+
+describe("같은 방의 같은 닉네임", () => {
+  it("번호를 붙여 구분하고 12자 제한을 지킨다", async () => {
+    const { uniqueName } = await import("../src/online/room");
+    expect(uniqueName("하늘", ["민수"])).toBe("하늘");
+    expect(uniqueName("하늘", ["하늘"])).toBe("하늘 2");
+    expect(uniqueName("Mina", ["mina", "MINA 2"])).toBe("Mina 3");
+    expect(uniqueName("가나다라마바사아자차카타", ["가나다라마바사아자차카타"])).toBe("가나다라마바사아자차 2");
   });
 });

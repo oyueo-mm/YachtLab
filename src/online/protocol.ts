@@ -23,7 +23,8 @@ export type MatchMode = "turns" | "simultaneous";
 /** In simultaneous mode, a player who misses this many round deadlines in a row is forfeited. */
 export const MAX_MISSED_ROUNDS = 3;
 export type PlayerStatus = "active" | "forfeited";
-export type ForfeitReason = "resign" | "timeout";
+/** "left": disconnected and did not come back within the reconnect grace (server-issued only). */
+export type ForfeitReason = "resign" | "timeout" | "left";
 
 export type OnlineAction =
   | { type: "join"; name: string }
@@ -32,7 +33,9 @@ export type OnlineAction =
   | { type: "roll"; keep: number[] }
   | { type: "score"; category: Category }
   | { type: "resign" }
-  | { type: "claimTimeout" };
+  | { type: "claimTimeout" }
+  /** Server only (never accepted from a client): the player's reconnect grace ran out. */
+  | { type: "abandon" };
 
 /** One request from a client. `playerId` must be set by the authenticated transport, never trusted from the payload. */
 export type CommandEnvelope = {
@@ -204,6 +207,7 @@ export function parseCommand(
     case "start":
     case "resign":
     case "claimTimeout":
+    case "abandon":
       parsed = { type: action.type };
       break;
     default:

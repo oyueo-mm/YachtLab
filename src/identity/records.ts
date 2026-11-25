@@ -17,7 +17,8 @@ export type RecordMode = "online" | "ai";
 export type RecordSource = "server" | "device" | "guest-import";
 export type Verification = "server-verified" | "client-reported";
 export type Outcome = "win" | "loss" | "draw";
-export type EndReason = "completed" | "resign" | "timeout";
+/** "left": the player disconnected and did not come back within the reconnect grace (online only). */
+export type EndReason = "completed" | "resign" | "timeout" | "left";
 export type Opponent = { name: string; kind: "ai" | "guest" | "member"; score: number; userId?: string; aiLevel?: string };
 
 export type MatchRecord = {
@@ -69,7 +70,7 @@ export function sanitizeRecord(raw: unknown, now = Date.now()): MatchRecord | nu
   }
   if (!isInt(r.score, 0, 400) || total(card) !== r.score) return null;
   if (r.outcome !== "win" && r.outcome !== "loss" && r.outcome !== "draw") return null;
-  if (r.endReason !== "completed" && r.endReason !== "resign" && r.endReason !== "timeout") return null;
+  if (r.endReason !== "completed" && r.endReason !== "resign" && r.endReason !== "timeout" && r.endReason !== "left") return null;
   const o = r.opponent as Record<string, unknown> | null;
   if (!o || typeof o !== "object") return null;
   const oName = text(o.name, 80);

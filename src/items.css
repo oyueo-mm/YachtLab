@@ -25,29 +25,41 @@
   color: var(--ink);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
-.quick-public {
+.quick-public-note {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  cursor: pointer;
-}
-.quick-public input {
-  width: 18px;
-  height: 18px;
-  margin-top: 2px;
-  accent-color: var(--red);
-}
-.quick-public span {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.quick-public small {
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin: -4px 0 0;
   color: var(--muted);
   font-size: 12.5px;
+}
+/* The nickname used by this screen (edited on the profile page). */
+.online-nick {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.online-nick strong {
+  color: var(--ink);
+}
+.online-nick a {
+  color: var(--red);
+  font-weight: 650;
+}
+/* Simplified online menu: tabs first, the main button within thumb reach on phones. */
+.online-entry .setup-body {
+  gap: 12px;
+}
+.online-entry .online-card {
+  gap: 8px;
+  padding: 14px;
+}
+.online-entry .online-start {
+  min-height: 52px;
 }
 .quick-wait {
   display: flex;
@@ -899,4 +911,43 @@
     max-width: 100%;
     overflow-x: auto;
   }
+}
+
+/* ---------- spectating 3–20 players: pick a player to open their score sheet ---------- */
+.online-standing-list li.pickable {
+  cursor: pointer;
+}
+.online-standing-list li.pickable:hover {
+  background: var(--soft);
+}
+.online-standing-list li.picked {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+.watch-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 28px 18px;
+  color: #e6e6e6;
+  text-align: center;
+}
+.watch-progress p {
+  margin: 0;
+}
+.watch-progress-bar {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.watch-progress-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #f2c14e;
+  transition: width 0.3s ease;
+}
+.watch-multi .online-standings {
+  margin-top: 0;
 }

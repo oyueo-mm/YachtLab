@@ -12,6 +12,7 @@ import OnlineWatch from "./play/OnlineWatch";
 import Profile from "./shell/Profile";
 import { AchievementsPage, InventoryPage, QuestsPage, ShopPage } from "./shell/EconomyPages";
 import { completeSignIn } from "./identity/account-client";
+import { syncAccountNickname } from "./identity/display-name";
 import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl } from "./online/client";
 import { currentRoute, routes, type Route } from "./routes";
 import { LabNav, SettingsDialog, TopBar } from "./shell/Chrome";
@@ -50,6 +51,14 @@ export default function App() {
   const [onlineNotice, setOnlineNotice] = useState("");
   const [watchTarget] = useState(watchFromUrl);
   const [profileNotice, setProfileNotice] = useState("");
+  // Members: the account nickname is the one used everywhere (copied to this device on start / sign-in).
+  useEffect(() => {
+    const sync = () => void syncAccountNickname(onlineServer);
+    sync();
+    window.addEventListener("yachtlab-session", sync);
+    return () => window.removeEventListener("yachtlab-session", sync);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Coming back from Google sign-in (#login=… / #login-error=…): finish it, then show the profile.
   useEffect(() => {
     void completeSignIn(onlineServer).then((r) => {

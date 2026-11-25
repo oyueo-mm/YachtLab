@@ -14,7 +14,7 @@ import {
   type RunningOnlineServer,
 } from "../../server/online/server";
 import { startLocalWorker } from "../helpers/wrangler";
-import { scoreCategory } from "./helpers";
+import { scoreCategory, nick } from "./helpers";
 
 /**
  * Online play with two separate browser contexts (= two devices with their own storage), against both
@@ -110,7 +110,7 @@ async function createAndJoin(browser: Browser) {
   const a = await device(browser, "desktop");
   const b = await device(browser, "phone");
   await openFriend(a);
-  await a.getByLabel("닉네임").fill("민수");
+  await nick(a, "민수");
   await a.getByRole("button", { name: "방 만들기" }).click();
   await expect(a.getByRole("heading", { name: "대기실" })).toBeVisible();
   const code = (await a.getByLabel("초대 코드").textContent())!.trim();
@@ -120,7 +120,7 @@ async function createAndJoin(browser: Browser) {
   await expect(b.getByText("민수 님의 방에 초대받았어요")).toBeVisible();
   await expect(b.getByText(`초대 코드 ${code}`)).toBeVisible();
   await expect(b.getByLabel("초대 코드")).toHaveCount(0);
-  await b.getByLabel("닉네임").fill("지민");
+  await nick(b, "지민");
   await b.getByRole("button", { name: "입장하기" }).click();
   await expect(
     b.getByText("방장이 게임을 시작하면 바로 시작돼요."),
@@ -377,9 +377,11 @@ for (const kind of ["node", "workers"] as const) {
         // The opponent's tab goes away (closed app / lost network): the other side is told, play continues,
         // and the same device rejoins its seat by opening the invite link again.
         await b.close();
-        await expect(a.getByText("지민 님의 연결이 끊어졌어요")).toBeVisible({
+        // Workers: a countdown of the reconnect grace (D-046); Node dev server: the plain notice.
+        await expect(a.getByText(/지민 님(의)? 연결이? 끊/)).toBeVisible({
           timeout: 15000,
         });
+        if (kind === "workers") await expect(a.getByText(/안에 돌아오지 않으면 기권 처리돼요/)).toBeVisible();
         await a
           .locator('.scoreboard [data-category="choice"] .score-option')
           .click();
@@ -388,7 +390,7 @@ for (const kind of ["node", "workers"] as const) {
         const again = await b.context().newPage();
         await again.goto(entry(code));
         await expect(again.locator(".roll-button")).toBeEnabled();
-        await expect(a.getByText("지민 님의 연결이 끊어졌어요")).toHaveCount(0);
+        await expect(a.getByText(/지민 님(의)? 연결이? 끊/)).toHaveCount(0);
         await expect(
           again.locator(".score-summary [data-seat='0'] strong"),
         ).not.toHaveText(/^0/);
@@ -440,18 +442,16 @@ for (const kind of ["node", "workers"] as const) {
         const a = await device(browser, "desktop");
         const b = await device(browser, "phone");
         await openFriend(a);
-        await a.getByLabel("닉네임").fill("하늘");
+        await nick(a, "하늘");
         await a.getByRole("button", { name: "방 만들기" }).click();
         await expect(a.getByRole("heading", { name: "대기실" })).toBeVisible();
         const code = (await a.getByLabel("초대 코드").textContent())!.trim();
         await b.goto(entry(code));
-        await b.getByLabel("닉네임").fill("하늘");
-        await b.getByRole("button", { name: "입장하기" }).click();
-        await expect(b.getByRole("alert")).toContainText("같은 닉네임");
-        await b.getByLabel("닉네임").fill("바다");
+        // the same nickname in one room: the server numbers it instead of refusing
+        await nick(b, "하늘");
         await b.getByRole("button", { name: "입장하기" }).click();
         await expect(a.getByRole("list", { name: "참가자" })).toContainText(
-          "바다",
+          "하늘 2",
         );
         await a.getByRole("button", { name: "방 나가기" }).click();
         await expect(
@@ -461,11 +461,11 @@ for (const kind of ["node", "workers"] as const) {
           b.getByRole("button", { name: "게임 시작" }),
         ).toBeVisible();
         await expect(b.getByRole("list", { name: "참가자" })).not.toContainText(
-          "하늘",
+          /하늘(?! 2)/,
         );
         const c = await device(browser, "desktop");
         await openFriend(c);
-        await c.getByLabel("닉네임").fill("손님");
+        await nick(c, "손님");
         await c.getByLabel("초대 코드").fill("ZZZZZZ");
         await c.getByRole("button", { name: "입장하기" }).click();
         await expect(c.getByRole("alert")).toContainText("방을 찾을 수 없어요");
@@ -481,7 +481,7 @@ for (const kind of ["node", "workers"] as const) {
         const a = await device(browser, "desktop");
         const b = await device(browser, "phone");
         await openFriend(a);
-        await a.getByLabel("닉네임").fill("초대자");
+        await nick(a, "초대자");
         await a.getByRole("button", { name: "방 만들기" }).click();
         await expect(a.getByRole("heading", { name: "대기실" })).toBeVisible();
         // the waiting room shows the full link (for in-app browsers without clipboard access)
@@ -494,8 +494,9 @@ for (const kind of ["node", "workers"] as const) {
         await b.evaluate(() => localStorage.setItem("yachtlab.online.name", "예전닉"));
         await b.goto(`?online-server=${encodeURIComponent(active.url)}&room=${code}`);
         await expect(b.getByText("초대자 님의 방에 초대받았어요")).toBeVisible();
-        await expect(b.getByLabel("닉네임")).toHaveValue("예전닉");
-        await expect(b.getByText("‘예전닉’(으)로 입장해요.")).toBeVisible();
+        // no nickname field on the invite screen: the saved one is used (changed on the profile page)
+        await expect(b.getByLabel("닉네임")).toHaveCount(0);
+        await expect(b.locator(".online-nick")).toContainText("예전닉");
         await b.getByRole("button", { name: "입장하기" }).click();
         await expect(b.getByText("방장이 게임을 시작하면 바로 시작돼요.")).toBeVisible();
         await expect(a.getByRole("list", { name: "참가자" })).toContainText("예전닉");
@@ -601,18 +602,15 @@ for (const kind of ["node", "workers"] as const) {
         const b = await narrow();
         await openFriend(a);
         expect(await fits(a)).toBe(true);
-        await a.getByLabel("닉네임").fill("가나다라마바사아자차");
+        await nick(a, "가나다라마바사아자차");
         await a.getByRole("button", { name: "방 만들기" }).click();
         await expect(a.getByRole("heading", { name: "대기실" })).toBeVisible();
         expect(await fits(a)).toBe(true);
         const code = (await a.getByLabel("초대 코드").textContent())!.trim();
         await b.goto(entry(code));
         expect(await fits(b)).toBe(true);
-        // Nickname policy: 12 user-perceived characters at most (server-checked), widest Latin name fits.
-        await b.getByLabel("닉네임").fill("ABCDEFGHIJKLM");
-        await b.getByRole("button", { name: "입장하기" }).click();
-        await expect(b.getByText("닉네임은 12자까지 쓸 수 있어요.")).toBeVisible();
-        await b.getByLabel("닉네임").fill("WWWWWWWWWWWW");
+        // the widest 12-character Latin name still fits (the length policy itself is checked on the profile page)
+        await nick(b, "WWWWWWWWWWWW");
         await b.getByRole("button", { name: "입장하기" }).click();
         await a.getByRole("button", { name: "게임 시작" }).click();
         await expect(b.locator(".roll-button")).toBeVisible();

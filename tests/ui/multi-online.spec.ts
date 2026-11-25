@@ -1,3 +1,4 @@
+import { nick } from "./helpers";
 import { expect, test, devices, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { startLocalWorker, type LocalWorker } from "../helpers/wrangler";
 
@@ -53,7 +54,7 @@ test("4인 동시 진행: 방 인원 설정 → 초대 링크 입장 → 준비 
   const host = await device(browser, false);
   await host.goto(entry());
   await host.getByRole("tab", { name: "친구 대전" }).click();
-  await host.getByLabel("닉네임").fill("방장");
+  await nick(host, "방장");
   await host.getByLabel("최대 인원").selectOption("4");
   await host.getByRole("button", { name: "방 만들기" }).click();
   await expect(host.getByRole("heading", { name: "대기실" })).toBeVisible();
@@ -64,7 +65,7 @@ test("4인 동시 진행: 방 인원 설정 → 초대 링크 입장 → 준비 
     const g = await device(browser, i > 0);
     await g.goto(entry(code));
     await expect(g.getByText("1/4명").or(g.getByText(/\d\/4명/))).toBeVisible();
-    await g.getByLabel("닉네임").fill(name);
+    await nick(g, name);
     await g.getByRole("button", { name: "입장하기" }).click();
     await expect(g.getByRole("button", { name: "준비 완료" })).toBeVisible();
     guests.push(g);
@@ -109,17 +110,65 @@ test("2인 방은 기존 1:1 화면 그대로(준비 없이 시작)", async ({ b
   const a = await device(browser, false);
   await a.goto(entry());
   await a.getByRole("tab", { name: "친구 대전" }).click();
-  await a.getByLabel("닉네임").fill("민수");
+  await nick(a, "민수");
   await a.getByRole("button", { name: "방 만들기" }).click();
   await expect(a.getByRole("heading", { name: "대기실" })).toBeVisible();
   const code = (await a.getByLabel("초대 코드").textContent())!.trim();
   const b = await device(browser, true);
   await b.goto(entry(code));
-  await b.getByLabel("닉네임").fill("지민");
+  await nick(b, "지민");
   await b.getByRole("button", { name: "입장하기" }).click();
   await expect(b.getByText("방장이 게임을 시작하면 바로 시작돼요.")).toBeVisible();
   await a.getByRole("button", { name: "게임 시작" }).click();
   await expect(a.locator(".turn-indicator")).toContainText("나의 차례");
   await expect(a.locator(".score-summary")).toBeVisible(); // the 1:1 layout
   await expect(a.getByRole("region", { name: "실시간 순위" })).toHaveCount(0);
+});
+
+test("3인 동시 진행 관전: 모두 허용하면 관전 링크가 생기고, 관전자는 순위·라운드 진행을 보고 참가자를 눌러 점수판을 연다(조작 불가)", async ({ browser }, testInfo) => {
+  test.skip(testInfo.project.name === "mobile", "여러 기기를 한 테스트에서 직접 만든다");
+  test.setTimeout(120_000);
+  const host = await device(browser, false);
+  await host.goto(entry());
+  await host.getByRole("tab", { name: "친구 대전" }).click();
+  await nick(host, "관방장");
+  await host.getByLabel("최대 인원").selectOption("3");
+  await host.getByRole("button", { name: "방 만들기" }).click();
+  await expect(host.getByRole("heading", { name: "대기실" })).toBeVisible();
+  const code = (await host.getByLabel("초대 코드").textContent())!.trim();
+  const players = [host];
+  for (const name of ["관둘", "관셋"]) {
+    const g = await device(browser, true);
+    await g.goto(entry(code));
+    await nick(g, name);
+    await g.getByRole("button", { name: "입장하기" }).click();
+    await g.getByRole("button", { name: "준비 완료" }).click();
+    players.push(g);
+  }
+  await host.getByText("동시 진행").click();
+  // friend rooms keep consent-based spectating: every player switches it on
+  for (const p of players) {
+    await p.getByRole("button", { name: "관전 설정" }).click();
+    await p.getByRole("switch").check();
+    await p.keyboard.press("Escape");
+    await p.locator("body").click({ position: { x: 5, y: 5 } });
+  }
+  await host.getByRole("button", { name: "관전 설정" }).click();
+  const link = await host.getByLabel("관전 링크").inputValue();
+  await host.locator("body").click({ position: { x: 5, y: 5 } });
+  await host.getByRole("button", { name: /게임 시작/ }).click();
+  const w = await device(browser, false);
+  await w.goto(link);
+  await expect(w.getByRole("region", { name: "실시간 순위" })).toBeVisible();
+  await expect(w.getByRole("status", { name: "이번 라운드 진행" })).toContainText("0/3명 기록");
+  await expect(w.locator(".roll-button")).toHaveCount(0);
+  await expect(w.getByRole("button", { name: "채팅·이모티콘" })).toHaveCount(0);
+  await playRound(players[1]);
+  await expect(w.getByRole("status", { name: "이번 라운드 진행" })).toContainText("1/3명 기록");
+  // pick a player → their score sheet
+  await w.getByRole("button", { name: "관셋 점수판 보기" }).click();
+  await expect(w.locator(".multi-scoreboard h2")).toHaveText("관셋 점수판");
+  await w.getByRole("button", { name: "관둘 점수판 보기" }).click();
+  await expect(w.locator(".multi-scoreboard h2")).toHaveText("관둘 점수판");
+  await expect(w.getByRole("button", { name: "관둘 점수판 보기" })).toHaveAttribute("aria-pressed", "true");
 });

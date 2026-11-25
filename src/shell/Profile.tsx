@@ -5,7 +5,8 @@ import { graphemes, validateNickname } from "../identity/nickname";
 import { computeStats, type MatchRecord, type RecordMode } from "../identity/records";
 import { guest, importedIds, localRecords, markImported } from "../identity/local";
 import { deleteAccount, importRecords, me, serverRecords, session, setNickname as saveRemoteNickname, signInAvailable, signOut, startSignIn, type Profile as AccountProfile } from "../identity/account-client";
-import { saveName, savedName } from "../online/client";
+import { saveName } from "../online/client";
+import { useNickname } from "../identity/display-name";
 import { ConfirmDialog, type PendingAction } from "../ui/ConfirmDialog";
 
 const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 1000) / 10}%`);
@@ -73,7 +74,8 @@ export default function Profile({ server, notice }: { server: string | null; not
       .catch(() => setRemote(null));
   }, [signedIn, server]);
 
-  const nickname = account?.nickname ?? savedName() ?? "";
+  const localName = useNickname();
+  const nickname = account?.nickname ?? localName;
   const shownName = nickname || "이름 없음";
   const records = signedIn && remote ? remote : local;
   const filtered = mode === "all" ? records : records.filter((r) => r.mode === mode);
@@ -155,6 +157,7 @@ export default function Profile({ server, notice }: { server: string | null; not
           )}
           <p className="profile-meta">
             <span className={"profile-badge" + (signedIn ? " member" : "")}>{signedIn ? "회원" : "게스트"}</span>
+            <span className="profile-nick-note">{signedIn ? "계정 닉네임 · 모든 대전에 쓰여요" : "이 기기 닉네임 · 모든 대전에 쓰여요"}</span>
             {Number.isFinite(firstPlay) && <span>{signedIn ? "가입" : "처음 플레이"} {date(firstPlay)}</span>}
           </p>
         </div>
@@ -279,7 +282,7 @@ export default function Profile({ server, notice }: { server: string | null; not
                     <small>
                       {r.mode === "online" ? "온라인" : "AI"} · {new Date(r.endedAt).toLocaleDateString("ko-KR")}
                       {r.verification === "server-verified" ? " · 서버 확인" : " · 기기 기록"}
-                      {r.endReason !== "completed" ? (r.endReason === "resign" ? " · 기권" : " · 시간 초과") : ""}
+                      {r.endReason !== "completed" ? (r.endReason === "resign" ? " · 기권" : r.endReason === "left" ? " · 연결 끊김" : " · 시간 초과") : ""}
                     </small>
                   </span>
                   <span className="profile-recent-score">

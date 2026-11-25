@@ -50,7 +50,8 @@ export type ServerMessage =
   | { t: "ack"; id: string; ok: true; duplicate: boolean }
   | { t: "ack"; id: string; ok: false; error: OnlineError | { code: string; message: string } }
   | { t: "hold"; playerId: string; keep: number[]; n?: number }
-  | { t: "presence"; online: string[] }
+  /** `away`: players whose socket is gone → ms left before their seat is forfeited / freed (D-046). */
+  | { t: "presence"; online: string[]; away?: Record<string, number> }
   /** A preset chat line / emote, relayed live only (never stored, never replayed on reconnect). */
   | { t: "said"; from: string; id: string }
   /** Rematch status and this room's running score (sent when either changes). */

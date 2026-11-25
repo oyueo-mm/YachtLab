@@ -124,7 +124,7 @@ export function LobbyPanel(p: {
 }
 
 /** Live ranking: rank, name, score, cards filled, and this round's state (simultaneous) or whose turn it is. */
-export function OnlineStandings({ view, me, online, looks, bubbles, final = false }: { view: PlayerView; me: string; online: string[]; looks: Record<string, PublicLook>; bubbles: Record<string, { id: string; key: number }>; final?: boolean }) {
+export function OnlineStandings({ view, me, online, looks, bubbles, final = false, selected, onSelect }: { view: PlayerView; me: string; online: string[]; looks: Record<string, PublicLook>; bubbles: Record<string, { id: string; key: number }>; final?: boolean; selected?: string | null; onSelect?: (playerId: string) => void }) {
   const rows = [...view.players].sort((a, b) => Number(a.status !== "active") - Number(b.status !== "active") || b.total - a.total || a.seat - b.seat);
   let rank = 0;
   let prev: ViewPlayer | null = null;
@@ -145,7 +145,12 @@ export function OnlineStandings({ view, me, online, looks, bubbles, final = fals
           const state =
             p.status !== "active" ? "기권" : view.status !== "playing" ? "" : view.mode === "simultaneous" ? (playing ? `진행 중 · 굴림 ${view.progress![p.playerId].rolls}` : "기록 완료") : playing ? "차례" : "";
           return (
-            <li key={p.playerId} className={(p.playerId === me ? "me " : "") + (playing && view.status === "playing" ? "active " : "") + (p.status !== "active" ? "out" : "")} data-player={p.playerId}>
+            <li
+              key={p.playerId}
+              className={(p.playerId === me ? "me " : "") + (playing && view.status === "playing" ? "active " : "") + (p.status !== "active" ? "out " : "") + (onSelect ? "pickable " : "") + (selected === p.playerId ? "picked" : "")}
+              data-player={p.playerId}
+              {...(onSelect ? { role: "button", tabIndex: 0, "aria-pressed": selected === p.playerId, "aria-label": `${p.name} 점수판 보기`, onClick: () => onSelect(p.playerId), onKeyDown: (e: React.KeyboardEvent) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onSelect(p.playerId)) } : {})}
+            >
               <span className="multi-rank">{p.status === "active" ? `${rank}위` : "-"}</span>
               <span className={"online-dot" + (online.includes(p.playerId) ? " on" : "")} aria-hidden="true" />
               <span className="online-standing-name">

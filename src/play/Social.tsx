@@ -222,18 +222,23 @@ export function SpectateControl({ state, me, onToggle, linkFor, disabled }: { st
       </button>
       {open && (
         <div className="social-panel" role="dialog" aria-label="관전 설정">
-          <label className="spectate-switch">
-            <input type="checkbox" role="switch" checked={mine} onChange={(e) => {
-                setOptimistic(e.target.checked);
-                onToggle(e.target.checked);
-              }}
-            />
-            관전 허용
-          </label>
+          {/* Quick matches are always public (D-045): no switch, only the link and the count. */}
+          {!state.public && (
+            <label className="spectate-switch">
+              <input type="checkbox" role="switch" checked={mine} onChange={(e) => {
+                  setOptimistic(e.target.checked);
+                  onToggle(e.target.checked);
+                }}
+              />
+              관전 허용
+            </label>
+          )}
           {state.active ? (
             <>
               <p className="spectate-note">
-                {state.public ? "관전방 목록에 공개된 경기예요. " : ""}관전 링크가 있는 사람은 이 경기를 볼 수만 있어요 ({state.spectators}/{state.max}명). 끄면 링크가 바로 막혀요.
+                {state.public
+                  ? `빠른 대전은 관전방에 공개돼요. 관전자는 보기만 할 수 있어요 (${state.spectators}/${state.max}명).`
+                  : `관전 링크가 있는 사람은 이 경기를 볼 수만 있어요 (${state.spectators}/${state.max}명). 끄면 링크가 바로 막혀요.`}
               </p>
               <div className="spectate-link">
                 <input aria-label="관전 링크" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />

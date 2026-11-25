@@ -9,6 +9,9 @@ import type { SeriesSummary } from "../online/wire";
 import { announceScore, clearScoreFx } from "../score-fx";
 import { ChipBubble, useBubbles } from "./Social";
 import { PlayerTag, diceLookOf } from "./Looks";
+import { OnlineStandings } from "./OnlineMulti";
+import { MultiScoreboard } from "../MultiScoreboard";
+import type { MultiGame } from "../multi-engine";
 import type { PublicLook } from "../economy/live/catalog";
 
 const ROW = [0, 1, 2, 3, 4];
@@ -35,6 +38,8 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
   const [fatal, setFatal] = useState("");
   const [deadline, setDeadline] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now);
+  /** Multi-player view: whose detailed score sheet is open (null = the leader / current player). */
+  const [picked, setPicked] = useState<string | null>(null);
   const viewRef = useRef<PlayerView | null>(null);
   const lastDice = useRef<number[]>([1, 2, 3, 4, 5]);
   const social = useBubbles();
@@ -50,11 +55,11 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
         if (live && prev)
           for (const e of next.events) {
             if (e.seq < prev.version) continue;
-            if (e.type === "diceRolled") rolled = true;
+            if (e.type === "diceRolled" && next.mode !== "simultaneous") rolled = true;
             else if (e.type === "categoryScored") {
               announceScore(e.dice.map((value, id) => ({ id, value })), e.category);
               setFeedback(`${nameOf(e.playerId)} · ${names[e.category]} ${e.points}점 기록`);
-            } else if (e.type === "playerForfeited") setFeedback(e.reason === "timeout" ? `${nameOf(e.playerId)} 님의 제한 시간이 지났어요.` : `${nameOf(e.playerId)} 님이 기권했어요.`);
+            } else if (e.type === "playerForfeited") setFeedback(e.reason === "timeout" ? `${nameOf(e.playerId)} 님의 제한 시간이 지났어요.` : e.reason === "left" ? `${nameOf(e.playerId)} 님이 돌아오지 않아 기권 처리됐어요.` : `${nameOf(e.playerId)} 님이 기권했어요.`);
           }
         const turn = next.turn;
         if (!turn || turn.rolls === 0 || next.status !== "playing") setKeep([]);
@@ -62,7 +67,8 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
         if (turn?.dice.length) lastDice.current = turn.dice;
         viewRef.current = next;
         setView(next);
-        setDeadline(turn?.remainingMs != null ? Date.now() + turn.remainingMs : null);
+        const remainingMs = next.mode === "simultaneous" ? next.roundRemainingMs : turn?.remainingMs;
+        setDeadline(remainingMs != null ? Date.now() + remainingMs : null);
         if (rolled) setRollEvent((n) => n + 1);
       },
       onHold(hold) {
@@ -142,6 +148,80 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
   const labels = players.map((p) => p.name) as [string, string];
   const remaining = deadline !== null && view.status === "playing" ? deadline - now : null;
   const winner = players.find((p) => p.playerId === view.winners[0]);
+
+  if (players.length > 2 || view.mode === "simultaneous") {
+    const simultaneous = view.mode === "simultaneous";
+    const leader = [...players].sort((a, b) => b.total - a.total)[0]?.playerId ?? null;
+    const focus = picked && players.some((p) => p.playerId === picked) ? picked : simultaneous ? leader : (turn?.playerId ?? leader);
+    const focusIndex = Math.max(0, players.findIndex((p) => p.playerId === focus));
+    const sheet: MultiGame = { dice: game.dice, order: ROW, cards: players.map((p) => p.card), player: focusIndex, round: view.round || 12, rolls, done: finished, winners: [], seed: 0, rng: [], actions: view.version };
+    const recorded = simultaneous ? players.filter((p) => p.status === "active" && !view.progress?.[p.playerId]).length : 0;
+    const activeCount = players.filter((p) => p.status === "active").length;
+    const top = view.standings?.filter((x) => x.rank === 1).map((x) => players.find((p) => p.playerId === x.playerId)?.name ?? "") ?? [];
+    return (
+      <div className="game-grid online-game online-watch online-multi watch-multi">
+        <div className="game-left">
+          <div className="game-tools">
+            <span className="online-code-chip watch-chip">
+              <Eye size={14} /> 관전 중{watchers > 0 ? ` · ${watchers}명` : ""} · {players.length}인 {simultaneous ? "동시 진행" : "순서대로"}
+            </span>
+            <button type="button" className="text-button" onClick={leave}>
+              <Home size={15} /> 나가기
+            </button>
+          </div>
+          {status !== "online" && (
+            <p className="online-banner offline" role="status">
+              <WifiOff size={15} /> 연결이 끊어졌어요. 다시 연결하는 중이에요…
+            </p>
+          )}
+          <section className="game-board throw-tray watch-board" aria-label="게임 보드">
+            <div className="board-top">
+              <span className="turn-indicator">
+                <i />
+                {finished ? "경기 종료" : view.status === "lobby" ? "경기 시작 전" : simultaneous ? `${Math.min(12, view.round)}라운드 · ${recorded}/${activeCount}명 기록` : `${players[turnIndex]?.name ?? ""} 님의 차례`}
+              </span>
+              <span>
+                {simultaneous ? `${Math.min(12, view.round)}/12 라운드` : <>굴림 <b>{rolls}</b> / 3</>}
+                {remaining !== null && <span className="turn-timer"> · 남은 시간 {clock(remaining)}</span>}
+              </span>
+            </div>
+            {simultaneous ? (
+              <div className="watch-progress" role="status" aria-label="이번 라운드 진행">
+                <div className="watch-progress-bar">
+                  <i style={{ width: `${activeCount ? (recorded / activeCount) * 100 : 0}%` }} />
+                </div>
+                <p>
+                  {finished ? "경기가 끝났어요" : `이번 라운드 ${recorded}/${activeCount}명 기록 완료`}
+                </p>
+              </div>
+            ) : (
+              <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
+            )}
+            {finished && (
+              <div className="game-result" role="status">
+                <Trophy size={25} />
+                <h2>{top.length > 1 ? `공동 1위 · ${top.join(", ")}` : `${top[0] ?? ""} 님 1위`}</h2>
+                <div className="game-result-actions">
+                  <button className="secondary" onClick={leave}>
+                    <Home size={15} /> 관전 종료
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+          {feedback && (
+            <p className="game-feedback" role="status">
+              {feedback}
+            </p>
+          )}
+          <OnlineStandings view={view} me="" online={online} looks={looks} bubbles={social.bubbles} final={finished} selected={focus} onSelect={setPicked} />
+        </div>
+        <div className="multi-scores online-multi-scores">
+          <MultiScoreboard state={sheet} labels={players.map((p) => p.name)} focused />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="game-grid online-game online-watch">

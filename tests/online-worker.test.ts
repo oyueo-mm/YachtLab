@@ -95,14 +95,15 @@ describe("Online Phase 3 — Workers + SQLite Durable Objects (wrangler dev, loc
     expect(wrong.ok === false && wrong.error.code).toBe("NOT_YOUR_TURN");
   });
 
-  it("닉네임 충돌·잘못된 닉네임·없는 방, 초대 미리보기에는 토큰이 없다", async () => {
+  it("같은 닉네임 번호 붙이기·잘못된 닉네임·없는 방, 초대 미리보기에는 토큰이 없다", async () => {
     const created = await api(main, "/api/rooms", { name: "Mina" });
-    expect((await api(main, `/api/rooms/${created.body.code}/join`, { name: " mina " })).body.error.code).toBe("NAME_TAKEN");
+    // the same nickname in one room gets a number instead of a refusal (nicknames are set on the profile page)
+    expect((await api(main, `/api/rooms/${created.body.code}/join`, { name: " mina " })).status).toBe(201);
     expect((await api(main, `/api/rooms/${created.body.code}/join`, { name: "" })).status).toBe(400);
     expect((await api(main, "/api/rooms", { name: "a\u0007b" })).status).toBe(400);
     expect((await api(main, "/api/rooms/ZZZZZZ/join", { name: "x" })).status).toBe(404);
     const summary = await api(main, `/api/rooms/${created.body.code}`);
-    expect(summary.body).toEqual({ code: created.body.code, status: "lobby", seats: 2, players: ["Mina"], mode: "turns" });
+    expect(summary.body).toEqual({ code: created.body.code, status: "lobby", seats: 2, players: ["Mina", "mina 2"], mode: "turns" });
   });
 
   it("재접속: 같은 토큰으로 다시 연결하면 since 이후 이벤트를 받고, 중복 탭도 갱신된다; 핑은 자동 응답된다", async () => {
@@ -269,12 +270,13 @@ function queueSocket(w: LocalWorker, body: Record<string, unknown>) {
 const tk = (n: number) => ("tk" + n).padEnd(30, "q");
 
 describe("Phase 4.5 — 빠른 대전·공개 관전 (wrangler dev, local)", () => {
-  it("두 게스트가 매칭되어 시작된 방에 들어가고, 둘 다 공개를 허용하면 관전방 목록에 뜨며 관전자는 목록에서 바로 볼 수 있다", async () => {
+  it("두 게스트가 매칭되어 시작된 방에 들어가고, 빠른 대전은 항상 관전방 목록에 뜨며(끌 수 없음) 끝나면 바로 빠진다", async () => {
     const features = await (await fetch(main.url + "/api/features", { headers: { origin: "http://127.0.0.1:5173" } })).json();
     expect(features).toMatchObject({ quickMatch: true, publicSpectate: true });
     const a = queueSocket(main, { name: "민수", ticket: tk(1), device: tk(11), spectate: true });
     await a.wait("queued");
-    const b = queueSocket(main, { name: "지민", ticket: tk(2), device: tk(12), spectate: true });
+    // an old client that still says "not public" gets a public match anyway (D-045)
+    const b = queueSocket(main, { name: "지민", ticket: tk(2), device: tk(12), spectate: false });
     const [ma, mb] = await Promise.all([a.wait("matched"), b.wait("matched")]);
     expect(ma.code).toBe(mb.code);
     const ca = new Client(main.url, ma.code);
@@ -298,10 +300,14 @@ describe("Phase 4.5 — 빠른 대전·공개 관전 (wrangler dev, local)", () 
     const watching = spectator.next((m) => m.t === "watching");
     spectator.ws.send(JSON.stringify({ t: "watch", key: watch.body.key }));
     expect((await watching).t).toBe("watching");
-    // a player withdraws: the spectator is disconnected and the room leaves the list
+    // a player cannot switch it off: refused, the spectator stays
     ca.ws.send(JSON.stringify({ t: "spectate", allow: false }));
     await new Promise((r) => setTimeout(r, 400));
-    expect(spectator.closed?.code).toBe(4003);
+    expect(spectator.closed).toBeNull();
+    expect(ca.messages.some((m) => m.t === "error" && m.code === "SPECTATE")).toBe(true);
+    // the match ends → the room leaves the list at once
+    expect((await ca.cmd({ type: "resign" })).ok).toBe(true);
+    await new Promise((r) => setTimeout(r, 400));
     const after = await (await fetch(main.url + "/api/spectate/rooms?x=1", { headers: { origin: "http://127.0.0.1:5173" } })).json();
     expect(after.rooms.find((r: { code: string }) => r.code === ma.code)).toBeUndefined();
     expect((await api(main, `/api/spectate/${ma.code}/watch`, {})).status).toBe(409);

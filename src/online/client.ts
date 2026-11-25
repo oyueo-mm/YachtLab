@@ -1,3 +1,4 @@
+import { validateNickname } from "../identity/nickname";
 import type { OnlineAction } from "./protocol";
 import { authHeader, session } from "../identity/account-client";
 import type { PlayerView } from "./server-engine";
@@ -120,19 +121,36 @@ export function forgetSeat(code: string) {
   writeSeats(seats);
 }
 export const savedSeats = (): SavedSeat[] => Object.values(readSeats()).sort((a, b) => b.at - a.at);
-export const savedName = () => {
+/**
+ * The player's nickname on this device (profile page is the only place it is edited). A missing or
+ * no-longer-valid saved name is replaced by a generated default ("요트러" + 4 digits) and saved, so
+ * every screen always has a name to use. Members: the account nickname is copied here on sign-in.
+ */
+export const savedName = (): string => {
+  let raw: string | null = null;
   try {
-    return localStorage.getItem(NAME_KEY) ?? "";
+    raw = localStorage.getItem(NAME_KEY);
   } catch {
-    return "";
+    /* private mode */
   }
+  const checked = raw ? validateNickname(raw) : null;
+  if (checked?.ok) return checked.name;
+  const made = defaultNickname();
+  saveName(made);
+  return made;
 };
+/** "요트러" + four random digits (always passes the nickname policy). */
+export function defaultNickname(): string {
+  const n = crypto.getRandomValues(new Uint16Array(1))[0] % 10000;
+  return "요트러" + String(n).padStart(4, "0");
+}
 export const saveName = (name: string) => {
   try {
     localStorage.setItem(NAME_KEY, name);
   } catch {
     /* ignore */
   }
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("yachtlab-nickname"));
 };
 
 /* ------------------------------------------------------------------- HTTP ------------------------------------------------------------------- */
@@ -257,7 +275,7 @@ export class QuickMatch {
     this.ws = ws;
     ws.onopen = () => {
       this.attempts = 0;
-      ws.send(JSON.stringify({ t: "queue", name: this.pending.name, ticket: this.pending.ticket, device: deviceId(), spectate: this.pending.spectate, ...(session() ? { session: session() } : {}) }));
+      ws.send(JSON.stringify({ t: "queue", name: this.pending.name, ticket: this.pending.ticket, device: deviceId(), spectate: true, ...(session() ? { session: session() } : {}) }));
       clearInterval(this.alive);
       this.alive = setInterval(() => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify({ t: "alive" })), 15_000);
     };
@@ -349,7 +367,8 @@ export type ConnectionEvents = {
   onKind?(kind: MatchKind, ai: AiSeat | null): void;
   /** Host, ready flags and match settings (friend rooms). */
   onLobby?(lobby: LobbyState): void;
-  onPresence(online: string[]): void;
+  /** `away`: absent players → ms left of their reconnect grace (server clock, converted on arrival). */
+  onPresence(online: string[], away?: Record<string, number>): void;
   onStatus(status: ConnectionStatus): void;
   /** The seat is gone (bad token, left, room closed): stop and go back to the entry screen. */
   onFatal(message: string): void;
@@ -515,7 +534,7 @@ export class OnlineConnection {
         this.events.onHold({ playerId: msg.playerId, keep: msg.keep, n: msg.n ?? 0 });
         return;
       case "presence":
-        this.events.onPresence(msg.online);
+        this.events.onPresence(msg.online, msg.away ? Object.fromEntries(Object.entries(msg.away).map(([id, ms]) => [id, Date.now() + ms])) : {});
         return;
       case "said":
         this.events.onSaid?.(msg.from, msg.id);
