@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { withMotion } from "./helpers";
+import { SEEDS, fixSeed, withMotion } from "./helpers";
 
 const isMobile = (page: Page) => (page.viewportSize()?.width ?? 1440) <= 760;
 const noHorizontalScroll = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
@@ -171,6 +171,9 @@ test("주사위: 동작 줄이기에서는 움직임 없이 바로 결과를 보
 
 test("효과음은 2.5D 착지 시점과 맞춰 예약되고 음소거하면 재생되지 않는다", async ({ page }) => {
   await withMotion(page, "2.5d");
+  // A fixed first roll without a combination: a random roll is a large straight or a yacht about
+  // 3% of the time, and those (correctly) add their own moment sound after the dice settle.
+  await fixSeed(page, SEEDS.none);
   await page.goto("#play");
   await page.getByRole("button", { name: "주사위 굴리기" }).click(); // user gesture unlocks audio
   await expect(page.locator(".dice-animating")).toHaveCount(0, { timeout: 1500 });
@@ -179,6 +182,7 @@ test("효과음은 2.5D 착지 시점과 맞춰 예약되고 음소거하면 재
   expect(names[0]).toBe("throw");
   expect(names).toContain("impact");
   expect(names.at(-1)).toBe("settle");
+  expect(names).not.toContain("straightHit");
   const impacts = log.filter((e) => e.name === "impact").map((e) => e.delay);
   expect(impacts.every((d) => d > 0.05 && d < 0.8)).toBe(true);
   expect([...impacts].sort((a, b) => a - b)).toEqual(impacts);
