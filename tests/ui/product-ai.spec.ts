@@ -44,3 +44,25 @@ test("v5-R 판단은 워커에서 실행되고 모델 버전이 실제 판단과
   await expect(page.locator(".roll-button")).toBeEnabled({ timeout: 25_000 });
   expect(productWorkers).toHaveLength(1);
 });
+
+test("같은 브라우저의 두 탭이 동시에 시험 모델을 켜도 OPFS 은행을 한 번만 생성한다", async ({ context, page }) => {
+  await context.addInitScript(() => {
+    const OriginalWorker = window.Worker;
+    window.Worker = class extends OriginalWorker {
+      constructor(url: string | URL, options?: WorkerOptions) {
+        super(url, options);
+        if (!String(url).includes("product-worker")) return;
+        this.addEventListener("message", ({ data }) => {
+          if (data.diagnostics) document.documentElement.dataset.productSource = data.diagnostics.source;
+        });
+      }
+    };
+  });
+  const second = await context.newPage();
+  await Promise.all([startVeryHard(page, true), startVeryHard(second, true)]);
+  const sources = [page, second].map((tab) => tab.locator("html"));
+  await Promise.all(sources.map((surface) => expect(surface).toHaveAttribute("data-product-source", /^(wasm|opfs)$/, { timeout: 42_000 })));
+  const results = await Promise.all(sources.map((surface) => surface.getAttribute("data-product-source")));
+  expect(results.sort()).toEqual(["opfs", "wasm"]);
+  await second.close();
+});
