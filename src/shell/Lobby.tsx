@@ -2,6 +2,7 @@ import { ArrowRight, Backpack, Bot, Dices, Globe, ListChecks, Smartphone, Store,
 import { DieIcon } from "../Dice";
 import type { Route } from "../routes";
 import { useInbox } from "./Friends";
+import HomeProfile, { useProfileEconomy } from "./HomeProfile";
 
 type Go = (route: Route) => void;
 
@@ -9,10 +10,15 @@ type Go = (route: Route) => void;
  * Home = game-start lobby: a title, one line, and two modes. Online play (invite a friend) is the
  * main card; offline play (AI / same device) is the second card. Research tools stay behind "연구실".
  */
-export function Lobby({ navigate }: { navigate: Go }) {
+export function Lobby({ navigate, server }: { navigate: Go; server: string | null }) {
   const box = useInbox();
+  const { signedIn, snapshot } = useProfileEconomy(server);
+  const alerts = signedIn ? box.requests + box.invites.filter((invite) => invite.expires > Date.now()).length : 0;
+  const quests = snapshot?.state;
+  const questsDone = (quests?.daily.length ?? 0) > 0 && (quests?.dailyAll || quests?.weeklyAll);
   return (
     <section className="lobby lobby-v3" aria-labelledby="lobby-title">
+      <HomeProfile signedIn={signedIn} snapshot={snapshot} onProfile={() => navigate("profile")} />
       <div className="lobby-hero">
         <span className="lobby-dice" aria-hidden="true">
           <DieIcon value={5} />
@@ -59,11 +65,12 @@ export function Lobby({ navigate }: { navigate: Go }) {
           <button key={route} type="button" className="lobby-menu-item" onClick={() => navigate(route)}>
             <Icon size={18} aria-hidden="true" />
             <span>{label}</span>
-            {route === "friends" && box.requests + box.invites.length > 0 && (
-              <b className="menu-badge" aria-label={`새 알림 ${box.requests + box.invites.length}개`}>
-                {box.requests + box.invites.length}
+            {route === "friends" && alerts > 0 && (
+              <b className="menu-badge" aria-label={`새 알림 ${alerts}개`}>
+                {alerts}
               </b>
             )}
+            {route === "quests" && questsDone && <b className="menu-badge" aria-label="퀘스트 묶음 완료">✓</b>}
           </button>
         ))}
       </nav>

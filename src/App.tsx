@@ -191,7 +191,7 @@ export default function App() {
             </button>
           </p>
         )}
-        {page === "home" && <Lobby navigate={navigate} />}
+        {page === "home" && <Lobby navigate={navigate} server={onlineServer} />}
         {page === "offline" && <OfflineSelect navigate={navigate} />}
         {(page === "online" || page === "online-room") && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "online" && onlineServer && (
