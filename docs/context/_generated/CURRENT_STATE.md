@@ -107,16 +107,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [a6e26cf](https://github.com/oyueo-mm/YachtLab/commit/a6e26cf) | 2026-11-26 | Merge pull request #88 from oyueo-mm/codex/tutorial-navigation |
+| [a10a9c6](https://github.com/oyueo-mm/YachtLab/commit/a10a9c6) | 2026-11-26 | fix: layer the profile disclosure above the install prompt |
+| [1be7de6](https://github.com/oyueo-mm/YachtLab/commit/1be7de6) | 2026-11-26 | fix: keep mobile navigation above the install prompt |
+| [57b985d](https://github.com/oyueo-mm/YachtLab/commit/57b985d) | 2026-11-26 | docs: align the roadmap with first-visit onboarding |
+| [4fa2ee6](https://github.com/oyueo-mm/YachtLab/commit/4fa2ee6) | 2026-11-26 | fix: preserve replay saving and close the menu on navigation |
+| [aa857d6](https://github.com/oyueo-mm/YachtLab/commit/aa857d6) | 2026-11-26 | test: cover onboarding and navigation and update handoff |
+| [de8c6a8](https://github.com/oyueo-mm/YachtLab/commit/de8c6a8) | 2026-11-26 | fix: keep header controls inside narrow screens |
+| [f209ef2](https://github.com/oyueo-mm/YachtLab/commit/f209ef2) | 2026-11-26 | feat: reorganize home and account navigation |
+| [2091d0c](https://github.com/oyueo-mm/YachtLab/commit/2091d0c) | 2026-11-26 | feat: share game physics in the first-visit tutorial and practice |
 | [1b5cdc0](https://github.com/oyueo-mm/YachtLab/commit/1b5cdc0) | 2026-11-25 | Merge pull request #87 from oyueo-mm/codex/product-operating-record |
-| [ebf56e0](https://github.com/oyueo-mm/YachtLab/commit/ebf56e0) | 2026-11-25 | docs: record product rollout and browser verification [skip ci] |
-| [e83ba82](https://github.com/oyueo-mm/YachtLab/commit/e83ba82) | 2026-11-25 | Merge pull request #86 from oyueo-mm/codex/product-update |
-| [6735973](https://github.com/oyueo-mm/YachtLab/commit/6735973) | 2026-11-25 | feat: preview a board's upgraded combo response directly |
-| [ecf44e8](https://github.com/oyueo-mm/YachtLab/commit/ecf44e8) | 2026-11-25 | fix: coordinate cold v5-R bank creation across browser tabs |
-| [4e13b12](https://github.com/oyueo-mm/YachtLab/commit/4e13b12) | 2026-11-25 | Merge pull request #80 from oyueo-mm/codex/game-review-product |
-| [b2d9ca2](https://github.com/oyueo-mm/YachtLab/commit/b2d9ca2) | 2026-11-25 | docs: hand off game review, product v5-R gates and audiovisual changes |
-| [c2a17ea](https://github.com/oyueo-mm/YachtLab/commit/c2a17ea) | 2026-11-25 | Merge branch 'codex/match-result' into codex/product-update |
-| [9489334](https://github.com/oyueo-mm/YachtLab/commit/9489334) | 2026-11-25 | fix: keep review losses comparable and label a tied duel clearly |
-| [1a414d4](https://github.com/oyueo-mm/YachtLab/commit/1a414d4) | 2026-11-25 | fix: carry award summaries from match results back to the home receipt |
 
 ## 최근 GitHub Actions 상태
 
@@ -124,9 +124,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45632492756) | success | e83ba82669 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45653729027) | success | a10a9c6d28 |
+| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45634726403) | success | 5561c5837b |
 | [Competitive research benchmark](https://github.com/oyueo-mm/YachtLab/actions/runs/45632492725) | success | e83ba82669 |
-| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45627900239) | success | 6735973b26 |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45627899634) | success | 6735973b26 |
 
 ## 다음 채팅과 작업의 시작점

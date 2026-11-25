@@ -118,74 +118,74 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "a6e26cf",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #88 from oyueo-mm/codex/tutorial-navigation"
+    },
+    {
+      "sha": "a10a9c6",
+      "date": "2026-11-26",
+      "subject": "fix: layer the profile disclosure above the install prompt"
+    },
+    {
+      "sha": "1be7de6",
+      "date": "2026-11-26",
+      "subject": "fix: keep mobile navigation above the install prompt"
+    },
+    {
+      "sha": "57b985d",
+      "date": "2026-11-26",
+      "subject": "docs: align the roadmap with first-visit onboarding"
+    },
+    {
+      "sha": "4fa2ee6",
+      "date": "2026-11-26",
+      "subject": "fix: preserve replay saving and close the menu on navigation"
+    },
+    {
+      "sha": "aa857d6",
+      "date": "2026-11-26",
+      "subject": "test: cover onboarding and navigation and update handoff"
+    },
+    {
+      "sha": "de8c6a8",
+      "date": "2026-11-26",
+      "subject": "fix: keep header controls inside narrow screens"
+    },
+    {
+      "sha": "f209ef2",
+      "date": "2026-11-26",
+      "subject": "feat: reorganize home and account navigation"
+    },
+    {
+      "sha": "2091d0c",
+      "date": "2026-11-26",
+      "subject": "feat: share game physics in the first-visit tutorial and practice"
+    },
+    {
       "sha": "1b5cdc0",
       "date": "2026-11-25",
       "subject": "Merge pull request #87 from oyueo-mm/codex/product-operating-record"
-    },
-    {
-      "sha": "ebf56e0",
-      "date": "2026-11-25",
-      "subject": "docs: record product rollout and browser verification [skip ci]"
-    },
-    {
-      "sha": "e83ba82",
-      "date": "2026-11-25",
-      "subject": "Merge pull request #86 from oyueo-mm/codex/product-update"
-    },
-    {
-      "sha": "6735973",
-      "date": "2026-11-25",
-      "subject": "feat: preview a board's upgraded combo response directly"
-    },
-    {
-      "sha": "ecf44e8",
-      "date": "2026-11-25",
-      "subject": "fix: coordinate cold v5-R bank creation across browser tabs"
-    },
-    {
-      "sha": "4e13b12",
-      "date": "2026-11-25",
-      "subject": "Merge pull request #80 from oyueo-mm/codex/game-review-product"
-    },
-    {
-      "sha": "b2d9ca2",
-      "date": "2026-11-25",
-      "subject": "docs: hand off game review, product v5-R gates and audiovisual changes"
-    },
-    {
-      "sha": "c2a17ea",
-      "date": "2026-11-25",
-      "subject": "Merge branch 'codex/match-result' into codex/product-update"
-    },
-    {
-      "sha": "9489334",
-      "date": "2026-11-25",
-      "subject": "fix: keep review losses comparable and label a tied duel clearly"
-    },
-    {
-      "sha": "1a414d4",
-      "date": "2026-11-25",
-      "subject": "fix: carry award summaries from match results back to the home receipt"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "e83ba82669",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45632492756"
+      "head": "a10a9c6d28",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45653729027"
+    },
+    {
+      "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
+      "status": "success",
+      "head": "5561c5837b",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45634726403"
     },
     {
       "name": "Competitive research benchmark",
       "status": "success",
       "head": "e83ba82669",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45632492725"
-    },
-    {
-      "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
-      "status": "success",
-      "head": "6735973b26",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45627900239"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
