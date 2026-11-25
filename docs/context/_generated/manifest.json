@@ -117,6 +117,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "4e13b12",
+      "date": "2026-11-25",
+      "subject": "Merge pull request #80 from oyueo-mm/codex/game-review-product"
+    },
+    {
+      "sha": "9c234b6",
+      "date": "2026-11-25",
+      "subject": "feat: present completed matches in a full-screen game review"
+    },
+    {
       "sha": "53e9620",
       "date": "2026-11-25",
       "subject": "Merge PR #79: Win DP v6 research (exp-utility policy set, WASM/Rust bank builders, YPB1 codec, analysis v6)"
@@ -155,30 +165,26 @@
       "sha": "a824296",
       "date": "2026-11-25",
       "subject": "docs(v6): research report draft (implementation, value accuracy, execution optimisation, analysis-v6 contract, 70-technique status), shared context updates, D-V6-1"
-    },
-    {
-      "sha": "098aaa7",
-      "date": "2026-11-25",
-      "subject": "research(v6): Rust PMF bank builder (bit-identical to TS bank, 3.5 s), analysis-v6 example payloads"
-    },
-    {
-      "sha": "c8a3bd3",
-      "date": "2026-11-25",
-      "subject": "research(v6): dev-9011 selection recorded before confirmation (no v6 candidate beat v5-R on dev; confirm v6-P as pre-registered); v6-D/v6-Dd expanded Bayesian filter over exp-utility hypotheses"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
       "status": "success",
-      "head": "e78a06f97b",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45612958326"
+      "head": "7870bda414",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45625754318"
     },
     {
       "name": "Test and deploy YachtLab",
+      "status": "cancelled",
+      "head": "f486023536",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45625745422"
+    },
+    {
+      "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
-      "head": "e78a06f97b",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45612958175"
+      "head": "e09163e64f",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45624810571"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
