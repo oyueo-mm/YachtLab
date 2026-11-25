@@ -11,7 +11,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { createGame, transition, total, available, type Game } from "../../src/engine.ts";
-import { AGENTS, initAgents } from "./agents.ts";
+import { AGENTS, initAgents, prepareAgents } from "./agents.ts";
 import type { Decision } from "../../src/ai.ts";
 import * as dp from "../../src/dp.ts";
 
@@ -22,6 +22,7 @@ const outDir = arg("--out", "training/results/v5")!;
 if (!AGENTS[A] || !AGENTS[B]) throw Error(`unknown agent ${A} / ${B}; known: ${Object.keys(AGENTS).join(",")}`);
 if (!(family >= 9001 && family <= 9599) || !Number.isInteger(shard) || shard < 0 || shard > 999 || !(pairs >= 1 && pairs <= 20000)) throw Error("unregistered seed family / shard / pairs");
 initAgents(AGENTS[A].v5 || AGENTS[B].v5, Boolean(AGENTS[A].bayes || AGENTS[B].bayes));
+prepareAgents([A, B]);
 
 const hash = (x: number) => { x >>>= 0; x = Math.imul(x ^ (x >>> 16), 0x85ebca6b) >>> 0; x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35) >>> 0; return (x ^ (x >>> 16)) >>> 0; };
 const seedOf = (i: number) => hash(0x5eed0000 + family * 1_000_003 + shard * 20_011 + i);

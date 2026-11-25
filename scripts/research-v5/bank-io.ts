@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, openSync, readSync, closeSync, fstatSync } from "node:fs";
 import { PolicyPmfBank, type ContinuationValue } from "../../src/research-v5/policy-pmf.ts";
 import { canonicalUpper } from "../../src/research-v5/kernel.ts";
 import { loadDPTable } from "./load-dp.ts";
@@ -46,6 +46,43 @@ export function deserializeBank(buf: Buffer, W: ContinuationValue): PolicyPmfBan
   return bank;
 }
 
+/**
+ * Single-copy loader (v6 execution optimisation "zero-copy loading"): reads the header
+ * line, then reads index + payload straight into ONE ArrayBuffer that the PMF views
+ * alias. The v5 path (readFileSync + copy) held the file buffer and the copy at once
+ * (~2x the bank size at peak). Values are byte-identical to deserializeBank.
+ */
+export function loadBankFile(path: string | URL, W: ContinuationValue): PolicyPmfBank {
+  const fd = openSync(path, "r");
+  try {
+    const size = fstatSync(fd).size;
+    const head = Buffer.alloc(Math.min(4096, size));
+    readSync(fd, head, 0, head.length, 0);
+    const nl = head.indexOf(10);
+    const header = JSON.parse(head.subarray(0, nl).toString());
+    if (header.format !== "yachtlab-policy-pmf-1") throw Error("bad PMF bank format");
+    const ab = new ArrayBuffer(size - nl - 1);
+    const view = new Uint8Array(ab);
+    for (let off = 0; off < view.length;) off += readSync(fd, view, off, Math.min(1 << 26, view.length - off), nl + 1 + off);
+    const bank = new PolicyPmfBank(header.name, W);
+    const idx = new Int32Array(ab, 0, header.states * 2);
+    const payload = new Float64Array(ab, header.states * 8, header.floats);
+    let o = 0;
+    for (let i = 0; i < header.states; i++) {
+      const k = idx[2 * i], len = idx[2 * i + 1];
+      const p = payload.subarray(o, o + len); o += len;
+      bank.pmf[k] = p;
+      let mu = 0; for (let g = 0; g < len; g++) mu += g * p[g];
+      bank.mean[k] = mu;
+    }
+    for (let mask = 0; mask < 4096; mask++) for (let u = 0; u < 64; u++) {
+      const cu = canonicalUpper(mask, u);
+      if (cu !== u) { bank.pmf[mask * 64 + u] = bank.pmf[mask * 64 + cu]; bank.mean[mask * 64 + u] = bank.mean[mask * 64 + cu]; }
+    }
+    return bank;
+  } finally { closeSync(fd); }
+}
+
 /** DP Expert PMF bank, cached under training/checkpoints (git-ignored). */
 export function loadDPExpertBank(log = true) {
   const T = loadDPTable();
@@ -54,7 +91,7 @@ export function loadDPExpertBank(log = true) {
   const file = new URL("dp-expert-pmf.f64bank", dir);
   if (existsSync(file)) {
     const t0 = performance.now();
-    const bank = deserializeBank(readFileSync(file), W);
+    const bank = process.env.V5_LEGACY_LOADER ? deserializeBank(readFileSync(file), W) : loadBankFile(file, W);
     if (log) console.error(`[v5] loaded PMF bank ${((performance.now() - t0) / 1000).toFixed(1)}s`);
     return { bank, T };
   }
@@ -69,7 +106,7 @@ export function loadDPExpertBank(log = true) {
 export function loadPolicyBank(name: string, W: ContinuationValue, log = true) {
   const dir = new URL("../../training/checkpoints/v5/", import.meta.url);
   const file = new URL(name.replace(/[^a-z0-9-]/gi, "_") + "-pmf.f64bank", dir);
-  if (existsSync(file)) return deserializeBank(readFileSync(file), W);
+  if (existsSync(file)) return loadBankFile(file, W);
   const bank = new PolicyPmfBank(name, W).build();
   if (log) console.error(`[v5] built PMF bank ${name}`, bank.stats);
   mkdirSync(dir, { recursive: true });

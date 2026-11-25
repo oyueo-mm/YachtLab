@@ -4,14 +4,20 @@ on:
   pull_request:
     paths:
       - src/research-v5/**
+      - src/research-v6/**
+      - scripts/research-v6/**
+      - tests/research-v6.test.ts
       - scripts/research-v5/**
       - training/v5-native/**
       - tests/research-v5.test.ts
       - .github/workflows/v5-apex-research.yml
   push:
-    branches: [ccr-4b6d4930-6rem08]
+    branches: [ccr-4b6d4930-6rem08, claude/compassionate-rubin-792mit]
     paths:
       - src/research-v5/**
+      - src/research-v6/**
+      - scripts/research-v6/**
+      - tests/research-v6.test.ts
       - scripts/research-v5/**
       - training/v5-native/**
       - tests/research-v5.test.ts
@@ -27,12 +33,16 @@ on:
       matches:
         description: "space separated a:b matchups"
         default: "v5-B3:v2 v5-B3:v3"
+      shards:
+        description: "JSON list of shard indices (v6: up to 20 parallel runners)"
+        default: "[0,1,2,3]"
 permissions:
   contents: read
   actions: read
 concurrency:
-  group: yachtlab-v5-${{ github.ref }}
-  cancel-in-progress: true
+  # Manual tournaments get their own group (run id) so a later push never cancels them.
+  group: yachtlab-v5-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || 'push' }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 jobs:
   validate:
     runs-on: ubuntu-24.04
@@ -44,8 +54,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: v5 unit tests (PMF mass/mean, solver cross-checks, RNG invariance, analysis API)
-        run: npx vitest run tests/research-v5.test.ts
+      - name: v5/v6 unit tests (PMF mass/mean, solver cross-checks, RNG invariance, analysis API, risk family)
+        run: npx vitest run tests/research-v5.test.ts tests/research-v6.test.ts
       - name: Native C++ bank build and TypeScript cross-check
         run: |
           g++ -O3 -std=c++17 training/v5-native/pmf_bank.cpp -o pmf_bank
@@ -66,9 +76,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     strategy:
-      max-parallel: 4
+      fail-fast: false
+      max-parallel: 20
       matrix:
-        shard: [0, 1, 2, 3]
+        shard: ${{ fromJSON(github.event.inputs.shards) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -79,8 +90,10 @@ jobs:
       - name: Paired seat-swapped tournament shard
         run: |
           for m in ${{ github.event.inputs.matches }}; do
-            npx tsx scripts/research-v5/bench.ts --a ${m%%:*} --b ${m##*:} --family ${{ github.event.inputs.family }} --shard ${{ matrix.shard }} --pairs ${{ github.event.inputs.pairs }} --out out
+            V5_COMMIT=$GITHUB_SHA npx tsx scripts/research-v5/bench.ts --a ${m%%:*} --b ${m##*:} --family ${{ github.event.inputs.family }} --shard ${{ matrix.shard }} --pairs ${{ github.event.inputs.pairs }} --out out < /dev/null
           done
+      - name: Shard sufficient statistics (single log line per matchup)
+        run: for f in out/*.json.gz; do node -e 'const z=require("zlib"),f=require("fs");const d=JSON.parse(z.gunzipSync(f.readFileSync(process.argv[1])));const r=d.raw,pc=[];for(let i=0;i<r.length;i+=5)pc.push(((r[i+1]>r[i+2]?1:r[i+1]===r[i+2]?.5:0)+(r[i+3]>r[i+4]?1:r[i+3]===r[i+4]?.5:0))/2);console.log("V6_SHARD "+JSON.stringify({a:d.a,b:d.b,family:d.family,shard:d.shard,pairs:d.pairs,winCredit:d.winCredit,s1:pc.reduce((x,y)=>x+y,0),s2:pc.reduce((x,y)=>x+y*y,0),wins:d.wins,ties:d.ties,losses:d.losses,msA:d.stats[d.a].ms/d.stats[d.a].decisions,commit:d.commit}))' "$f"; done
       - uses: actions/upload-artifact@v4
         with:
           name: v5-tournament-${{ matrix.shard }}
