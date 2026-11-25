@@ -186,6 +186,7 @@ export function MultiTable(p: {
   social: React.ReactNode;
   status: "connecting" | "online" | "reconnecting" | "closed";
   tools: React.ReactNode;
+  review?: React.ReactNode;
   banner: React.ReactNode;
   dice: { id: number; value: number; held: boolean }[];
   keep: number[];
@@ -266,6 +267,7 @@ export function MultiTable(p: {
               <MultiRematch rematch={p.rematch} isHost={p.isHost} mine={mine} onOp={p.onRematch} />
               <MatchMilestones {...p.milestones} />
               <div className="game-result-actions">
+                {p.review}
                 <button className="secondary" onClick={p.onHome}>
                   <Home size={15} /> 나가기
                 </button>

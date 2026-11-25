@@ -1,3 +1,5 @@
+import ReviewLauncher from "../review/ReviewLauncher";
+import { recentOnlineReview } from "../review/online-history";
 import { useEffect, useMemo, useState } from "react";
 import { LogIn, LogOut, Pencil, ShieldCheck, Trash2, UserRound } from "lucide-react";
 import { names } from "../engine";
@@ -316,6 +318,7 @@ export default function Profile({ server, notice }: { server: string | null; not
                   </span>
                   <span className="profile-recent-score">
                     {r.score} : {r.opponent.score}
+                    {r.mode === "online" && (!r.field || r.field.players === 2) && <ReviewLauncher source={() => recentOnlineReview(r.recordId)} />}
                   </span>
                 </li>
               ))}

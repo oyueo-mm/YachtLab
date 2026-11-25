@@ -1,3 +1,5 @@
+import ReviewLauncher from "./review/ReviewLauncher";
+import { fromReplay } from "./review/sources";
 import { useEffect, useRef, useState } from "react";
 import {
   Play,
@@ -400,7 +402,8 @@ export default function ReplayViewer({
           <GitBranch size={16} />
           AI 아레나에서 이어하기
         </button>
-        <button
+        {view.finalState.done && <ReviewLauncher source={() => fromReplay(view)} />}
+          <button
           className="secondary"
           disabled={!canAnalyze || working}
           onClick={() =>

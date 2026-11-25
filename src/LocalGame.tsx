@@ -1,3 +1,5 @@
+import ReviewLauncher from "./review/ReviewLauncher";
+import { fromMultiReplay } from "./review/sources";
 import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./play/Tutorial";
 import { nearYacht, ScoreTotal } from "./ui/GameMoments";
 import { useEffect, useRef, useState } from "react";
@@ -177,6 +179,7 @@ export default function LocalGame({
                 <h2>{state.winners.length === 1 ? names[state.winners[0]] + " 승리!" : state.winners.map((i) => names[i]).join(" · ") + " 공동 우승!"}</h2>
                 <p>{standings.map((s) => names[s.player] + " " + s.points + "점").join(" · ")}</p>
                 <div className="game-result-actions">
+                  {count === 2 && <ReviewLauncher source={() => fromMultiReplay(record.current!)} />}
                   <button className="primary" onClick={restart}>
                     한 번 더 플레이 <ArrowRight size={16} />
                   </button>

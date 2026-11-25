@@ -1,3 +1,7 @@
+import ReviewLauncher from "../review/ReviewLauncher";
+import { rememberOnlineReview } from "../review/online-history";
+import { fromOnline } from "../review/sources";
+import type { OnlineEvent } from "../online/protocol";
 import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./Tutorial";
 import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -107,6 +111,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const [now, setNow] = useState(Date.now);
   const conn = useRef<OnlineConnection | null>(null);
   const viewRef = useRef<PlayerView | null>(null);
+  const reviewEvents = useRef(new Map<number, OnlineEvent>());
   const lastDice = useRef<number[]>([1, 2, 3, 4, 5]);
   const rolling = useDiceBusy();
   const chat = useTableChat(seat?.playerId ?? null);
@@ -134,6 +139,8 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
     const c = new OnlineConnection(server, code, seat.token, {
       onView(next, live, hold) {
         const prev = viewRef.current;
+        if (prev?.matchId !== next.matchId) reviewEvents.current.clear();
+        for (const event of next.events) reviewEvents.current.set(event.seq, event);
         const me = next.you?.playerId;
         /** Shared hold order for this view (server value; for an older server, derived from the roll). */
         const simultaneous = next.mode === "simultaneous";
@@ -230,6 +237,8 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
             setMilestones({ best: beatDeviceScore("online", player.total, next.matchId), comeback });
           }
           recordOnDevice(next, me);
+          const review = fromOnline(next, [...reviewEvents.current.values()]);
+          if (typeof review !== "string") rememberOnlineReview(review);
           if (prev?.matchId === next.matchId && prev.status === "playing") onFinished?.(next.matchId);
         }
         viewRef.current = next;
@@ -565,6 +574,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
             </>
           }
           status={status}
+          review={view.you && view.players.length === 2 && view.status === "finished" ? <ReviewLauncher source={() => fromOnline(view, [...reviewEvents.current.values()])} /> : undefined}
           tools={toolGroups}
           banner={banner}
           dice={game.dice}
@@ -700,6 +710,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
                 <MatchMilestones {...milestones} />
                 <RematchControls rematch={rematch} me={me?.playerId ?? ""} opponentName={opponent?.name ?? "상대"} onOp={(op) => conn.current?.rematch(op)} />
                 <div className="game-result-actions">
+                  {view.you && <ReviewLauncher source={() => fromOnline(view, [...reviewEvents.current.values()])} />}
                   <button
                     className="secondary"
                     onClick={() => {
