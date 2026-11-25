@@ -56,6 +56,7 @@ export type EconState = {
   week: number;
   weekly: QuestSlot[];
   weeklyAll: boolean;
+  weeklyRerolls?: number;
   /** Economy days with a countable match this week. */
   weekDays: number[];
   lastPlayDay: number;
@@ -119,23 +120,39 @@ export function rollover(state: EconState, userId: string, now: number): EconSta
   const week = economyWeek(now);
   let s = state;
   if (s.day !== day) s = { ...s, day, rewarded: 0, friend: 0, achMatches: 0, opp: {}, aiStarts: 0, daily: pickQuests(userId, "daily", day), rerolls: 0, dailyAll: false };
-  if (s.week !== week) s = { ...s, week, weekly: pickQuests(userId, "weekly", week), weeklyAll: false, weekDays: [] };
+  if (s.week !== week) s = { ...s, week, weekly: pickQuests(userId, "weekly", week), weeklyAll: false, weeklyRerolls: 0, weekDays: [] };
   return s;
 }
 
-/** Replace one unfinished daily quest by another of the same difficulty (free, once a day). */
-export function rerollDaily(state: EconState, userId: string, index: number): { ok: true; state: EconState } | { ok: false; message: string } {
-  const slot = state.daily[index];
-  if (!slot) return { ok: false, message: "퀘스트를 찾을 수 없어요." };
-  if (slot.done) return { ok: false, message: "완료한 퀘스트는 바꿀 수 없어요." };
-  if (state.rerolls >= ECONOMY.quests.dailyRerolls) return { ok: false, message: "오늘은 이미 퀘스트를 교체했어요." };
-  const def = questById(slot.id)!;
-  const taken = new Set(state.daily.map((q) => q.id));
-  const options = pool("daily", def.difficulty).filter((q) => !taken.has(q.id));
-  if (!options.length) return { ok: false, message: "바꿀 수 있는 퀘스트가 없어요." };
-  const next = options[fnv(`${userId}:reroll:${state.day}:${index}`) % options.length];
-  const daily = state.daily.map((q, i) => (i === index ? { id: next.id, progress: 0, done: false } : q));
-  return { ok: true, state: { ...state, daily, rerolls: state.rerolls + 1 } };
+/** The daily budget covers one slot or all unfinished slots. Weekly has its own weekly budget. */
+export function replaceQuests(state: EconState, userId: string, period: QuestDef["period"], expected: number, selection: number | "all"): { ok: true; state: EconState } | { ok: false; message: string } {
+  const daily = period === "daily";
+  const key = daily ? state.day : state.week;
+  const slots = state[period];
+  const used = daily ? state.rerolls : state.weeklyRerolls ?? 0;
+  if (key !== expected) return { ok: false, message: "퀘스트가 초기화됐어요. 새 퀘스트를 확인해 주세요." };
+  if (used >= (daily ? ECONOMY.quests.dailyRerolls : 1)) return { ok: false, message: daily ? "오늘은 이미 퀘스트를 교체했어요." : "이번 주에는 이미 퀘스트를 교체했어요." };
+  if (selection !== "all" && (!daily || !slots[selection])) return { ok: false, message: "퀘스트를 찾을 수 없어요." };
+  if (selection !== "all" && slots[selection].done) return { ok: false, message: "완료한 퀘스트는 바꿀 수 없어요." };
+  const currentIds = new Set(slots.map((quest) => quest.id));
+  let changed = false;
+  const next = slots.map((slot, index) => {
+    if (slot.done || (selection !== "all" && selection !== index)) return slot;
+    const definition = questById(slot.id);
+    if (!definition) return slot;
+    const options = pool(period, definition.difficulty).filter((quest) => !currentIds.has(quest.id));
+    if (!options.length) return slot;
+    const suffix = daily ? "" : "weekly:";
+    const selected = options[fnv(`${userId}:reroll:${suffix}${key}:${index}`) % options.length];
+    changed = true;
+    return { id: selected.id, progress: 0, done: false };
+  });
+  if (!changed) return { ok: false, message: "바꿀 수 있는 퀘스트가 없어요." };
+  return { ok: true, state: { ...state, [period]: next, [daily ? "rerolls" : "weeklyRerolls"]: used + 1 } };
+}
+
+export function rerollDaily(state: EconState, userId: string, index: number) {
+  return replaceQuests(state, userId, "daily", state.day, index);
 }
 
 function questGain(def: QuestDef, m: { win: boolean; card: Card; newDay: boolean }): number {

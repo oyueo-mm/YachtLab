@@ -82,7 +82,7 @@ export function useTableChat(me: string | null) {
     if (!mine && hideRef.current) return;
     const now = Date.now();
     const key = ++seq.current;
-    if (item.kind === "emote" && (mine || getSettings().opponentFx)) {
+    if ((item.kind === "emote" || item.style !== "default") && (mine || getSettings().opponentFx)) {
       const messageKey = from + "/" + id;
       for (const [key, time] of heard.current) if (now - time > 1000) heard.current.delete(key);
       if (!heard.current.has(messageKey)) playEmoteSfx(id);
@@ -178,7 +178,7 @@ export function TableFeed({ chat, names, looks, me, from, avatars = false }: {
         const lv = item.kind === "emote" ? (look?.emotes.find((x) => x.id === e.id)?.lv ?? 1) : 1;
         const css = fxOn ? bubbleCssOf(look) : "";
         return (
-          <span key={e.key} className={"feed-msg " + item.kind + (mine ? " mine" : "") + (css ? " " + css : "") + (fxOn && !reducedEffects && item.kind === "emote" ? ` emote-lv${lv}` : "") + (reducedEffects ? " static" : "")} role="status">
+          <span key={e.key} className={"feed-msg " + item.kind + (mine ? " mine" : "") + (css ? " " + css : "") + (fxOn && !reducedEffects && item.kind === "emote" ? ` emote-lv${lv}` : "") + (fxOn && !reducedEffects && item.style !== "default" ? ` social-${item.style}` : "") + (reducedEffects ? " static" : "")} role="status">
             <b className="feed-from">{avatars
               ? <PlayerTag name={mine ? "나" : (names[e.from] ?? "")} look={look} me={mine} compact />
               : (mine ? "나" : (names[e.from] ?? ""))}</b>

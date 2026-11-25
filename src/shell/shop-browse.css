@@ -53,3 +53,21 @@
   .item-card-button:is(:hover, :focus-visible) .item-thumb { animation: none; }
 }
 .economy-ledger summary { cursor: pointer; padding: 10px 0; font-weight: 650; }
+
+.draw-panel { display: grid; gap: 12px; max-width: 650px; align-items: start; justify-items: start; }
+.draw-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.draw-controls label { display: flex; gap: 8px; align-items: center; }
+.draw-panel .stage-board { width: 100%; min-height: 210px; }
+.draw-panel .draw-result { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.draw-result p { margin: 6px 0 0; }
+.draw-panel summary { padding-block: 8px; cursor: pointer; }
+.draw-panel details details { margin-left: 12px; }
+.items-hub .item-card .item-thumb *, .items-hub .item-card .item-thumb { animation-play-state: paused; }
+@media (hover: hover) {
+  .items-hub[data-preview-motion="full"] .item-card button:is(:hover, :focus-visible) .item-thumb:not(.offscreen),
+  .items-hub[data-preview-motion="full"] .item-card button:is(:hover, :focus-visible) .item-thumb:not(.offscreen) * { animation-play-state: running; }
+}
+@media (hover: none) and (prefers-reduced-motion: no-preference) {
+  .items-hub[data-preview-motion="full"] .item-card:nth-child(4n + 1) .item-thumb:not(.offscreen) { animation: card-preview 480ms ease-out 1; }
+  .items-hub[data-preview-motion="full"] .item-card:nth-child(4n + 1) .item-thumb:not(.offscreen) * { animation-play-state: running; }
+}

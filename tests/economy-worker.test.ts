@@ -157,6 +157,12 @@ describe("경제 통합 시나리오 (wrangler dev + 가짜 로컬 로그인)", 
     const b = await login("bob");
     // first economy access: new-member grant once
     const e0 = await call(a.session, "/api/me/economy");
+    expect((await fetch(worker.url + "/api/me/shop/draw", { headers: { origin: ORIGIN } })).status).toBe(401);
+    expect((await call(a.session, "/api/me/shop/draw")).body.draw).toMatchObject({ remaining: 5, history: [] });
+    expect((await call(a.session, "/api/me/shop/draw", { pool: "standard", requestId: "not-enough-coins" })).status).toBe(402);
+    const fullReroll = { index: "all", period: "weekly", expected: e0.body.snapshot.state.week };
+    const replacements = await Promise.all([call(a.session, "/api/me/quests/reroll", fullReroll), call(a.session, "/api/me/quests/reroll", fullReroll)]);
+    expect(replacements.map((result) => result.status).sort()).toEqual([200, 400]);
     expect(e0.body.snapshot.wallet).toEqual({ coins: 200, gems: 20 });
     expect((await call(a.session, "/api/me/economy")).body.snapshot.wallet).toEqual({ coins: 200, gems: 20 });
 

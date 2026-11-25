@@ -3,6 +3,8 @@ const scope = new URL(self.registration.scope);
 const cachePrefix = `yachtlab-static-${scope.pathname}-`;
 const cacheName = cachePrefix + BUILD;
 const shell = new URL("index.html", scope).href;
+const guide = new URL("guide/", scope).href;
+const guideFile = new URL("guide/index.html", scope).href;
 const staticFiles = new Set(ASSETS.map((file) => new URL(file, scope).href));
 
 self.addEventListener("install", (event) => {
@@ -32,6 +34,10 @@ self.addEventListener("fetch", (event) => {
       const cached = await caches.match(shell, { cacheName });
       return cached ?? Response.error();
     }));
+  } else if (request.mode === "navigate" && url.href === guide) {
+    event.respondWith(fetch(request).catch(async () =>
+      (await caches.match(guideFile, { cacheName })) ?? Response.error(),
+    ));
   } else if (staticFiles.has(url.href)) {
     event.respondWith(caches.match(url.href, { cacheName }).then((cached) => cached ?? fetch(request)));
   }

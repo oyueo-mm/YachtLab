@@ -1,3 +1,4 @@
+import { drawPool, type DrawPool, type DrawReceipt, type DrawStatus } from "../../src/economy/live/draw";
 import type { ReviewMatch } from "../../src/review/model";
 import type { MatchReceipt } from "../../src/economy/live/receipt";
 import { sanitizeRecord, type MatchRecord } from "../../src/identity/records";
@@ -59,9 +60,11 @@ export interface UserApi {
   upgrade?(itemId: unknown, requestId: string): Promise<EconResult>;
   buySlot?(kind: unknown, currency: unknown, requestId: string): Promise<EconResult>;
   setLoadout?(loadout: unknown): Promise<EconResult>;
-  rerollQuest?(index: number): Promise<EconResult>;
+  rerollQuest?(index: number | "all", period?: "daily" | "weekly", expected?: number): Promise<EconResult>;
+  drawStatus?(): Promise<EconResult>;
+  draw?(pool: DrawPool, requestId: string): Promise<EconResult>;
 }
-export type EconResult = { ok: true; snapshot: unknown; duplicate?: boolean } | { ok: false; code: string; message: string };
+export type EconResult = { ok: true; snapshot: unknown; duplicate?: boolean; receipt?: DrawReceipt; draw?: DrawStatus } | { ok: false; code: string; message: string };
 const REQUEST_ID = /^[A-Za-z0-9_-]{8,64}$/;
 export interface GuestApi {
   /** First claim wins; the same account may claim again (retries). */
@@ -206,16 +209,31 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
     return result ? reply(200, result) : fail(404, "NOT_FOUND", "본인 계정에서 이 경기 기록을 찾을 수 없어요.");
   }
   /* ---------------- economy (server-side only; the client never sends amounts) ---------------- */
-  const econ = (r: EconResult) => (r.ok ? reply(200, { snapshot: r.snapshot, duplicate: r.duplicate ?? false }) : fail(r.code === "ECONOMY_OFF" ? 404 : r.code === "INSUFFICIENT" ? 402 : 400, r.code, r.message));
+  const econ = (r: EconResult) => (r.ok ? reply(200, { snapshot: r.snapshot, duplicate: r.duplicate ?? false, receipt: r.receipt, draw: r.draw }) : fail(r.code === "ECONOMY_OFF" ? 404 : r.code === "INSUFFICIENT" ? 402 : 400, r.code, r.message));
   if (path === "/api/me/economy" && method === "GET" && user.economy) return econ(await user.economy());
+  if (path === "/api/me/shop/draw" && method === "GET" && user.drawStatus) return econ(await user.drawStatus());
   if (method !== "POST") return fail(404, "NOT_FOUND", "없는 주소입니다.");
   if (path.startsWith("/api/me/shop/") || path === "/api/me/loadout" || path === "/api/me/quests/reroll") {
     if (!user.buy) return fail(404, "ECONOMY_OFF", "재화 기능은 아직 준비 중이에요.");
     const input = await body(request, 4096);
     const rid = typeof input.requestId === "string" && REQUEST_ID.test(input.requestId) ? input.requestId : null;
     if (path === "/api/me/loadout") return econ(await user.setLoadout!(input.loadout));
-    if (path === "/api/me/quests/reroll") return econ(await user.rerollQuest!(Number.isInteger(input.index) ? (input.index as number) : -1));
+    if (path === "/api/me/quests/reroll") {
+      if (!user.rerollQuest) return fail(404, "ECONOMY_OFF", "퀘스트 기능은 아직 준비 중이에요.");
+      if (input.index === "all") {
+        const period = input.period;
+        if ((period !== "daily" && period !== "weekly") || typeof input.expected !== "number" || !Number.isSafeInteger(input.expected)) return fail(400, "INVALID", "교체할 퀘스트 기간을 확인해 주세요.");
+        return econ(await user.rerollQuest("all", period, input.expected));
+      }
+      return econ(await user.rerollQuest(Number.isInteger(input.index) ? input.index as number : -1, "daily",
+        typeof input.expected === "number" ? input.expected : undefined));
+    }
     if (!rid) return fail(400, "INVALID", "요청 정보가 올바르지 않아요.");
+    if (path === "/api/me/shop/draw" && user.draw) {
+      const pool = drawPool(input.pool);
+      if (!pool) return fail(400, "INVALID", "뽑기 종류를 확인해 주세요.");
+      return econ(await user.draw(pool, rid));
+    }
     if (path === "/api/me/shop/buy") return econ(await user.buy(input.itemId, input.currency, rid));
     if (path === "/api/me/shop/upgrade") return econ(await user.upgrade!(input.itemId, rid));
     if (path === "/api/me/shop/slot") return econ(await user.buySlot!(input.kind, input.currency, rid));

@@ -8,6 +8,7 @@
 import { SOCIAL_ITEMS, socialItem } from "../../social/catalog";
 import { MAX_LEVEL, SLOTS, TIER_PRICES, UPGRADE_COINS, type TierId } from "./config";
 import { CONTENT_ITEMS, type FxLook } from "./content-items";
+import type { SeasonId } from "./seasons";
 import type { DiceLook as PaintedDice } from "../../dice3d/dice-look";
 
 export type ItemCategory = "dice" | "board" | "emote" | "chat" | "bubble" | "profile" | "nameFx" | "fx" | "title";
@@ -63,6 +64,7 @@ export type ItemDef = {
   /** Special tier sub-kind (structure only; names and final items are not decided). */
   specialKind?: "achievement" | "symbolic-purchase";
   retired?: boolean;
+  season?: SeasonId;
 };
 
 const EMOTE_LEVELS = ["정적인 이모티콘", "애니메이션", "특수 효과·전용 사운드"];
@@ -78,11 +80,12 @@ const social: ItemDef[] = SOCIAL_ITEMS.map((s) => ({
   ...(s.kind === "emote" && s.acquisition !== "default" ? { levels: EMOTE_LEVELS } : {}),
   look: { text: s.text },
   ...(s.retired ? { retired: true } : {}),
+  ...(s.season ? { season: s.season, family: "크리스마스" } : {}),
 }));
 
 const item = (def: Omit<ItemDef, "maxLevel"> & { maxLevel?: ItemDef["maxLevel"] }): ItemDef => ({ maxLevel: 1, ...def });
 
-export const ITEMS: readonly ItemDef[] = [
+const items: ItemDef[] = [
   // dice themes — the look of the dice while it is the owner's turn (both screens)
   item({ id: "dice.classic", category: "dice", tier: "basic", name: "클래식", acquisition: "default", look: { dice: { face: "#ffffff", pip: "#202020", edge: "#d4d4d4" } } }),
   item({ id: "dice.mint", category: "dice", tier: "common", name: "민트", acquisition: "either", look: { dice: { face: "#dff5ec", pip: "#123d31", edge: "#a9d9c5" } } }),
@@ -97,12 +100,12 @@ export const ITEMS: readonly ItemDef[] = [
   // chat / emote bubbles
   item({ id: "bubble.basic", category: "bubble", tier: "basic", name: "기본", acquisition: "default", look: { css: "" } }),
   item({ id: "bubble.mint", category: "bubble", tier: "common", name: "민트", acquisition: "either", look: { css: "bubble-mint" } }),
-  item({ id: "bubble.gold", category: "bubble", tier: "legendary", name: "골드", acquisition: "either", look: { css: "bubble-gold" } }),
+  item({ id: "bubble.gold", category: "bubble", tier: "epic", name: "골드", acquisition: "either", look: { css: "bubble-gold" } }),
   // profile icons
   item({ id: "profile.die", category: "profile", tier: "basic", name: "주사위", acquisition: "default", look: { text: "🎲" } }),
   item({ id: "profile.star", category: "profile", tier: "common", name: "별", acquisition: "either", look: { text: "⭐" } }),
   item({ id: "profile.whale", category: "profile", tier: "rare", name: "고래", acquisition: "gems", look: { text: "🐳" } }),
-  item({ id: "profile.crown", category: "profile", tier: "legendary", name: "왕관", acquisition: "either", look: { text: "👑" } }),
+  item({ id: "profile.crown", category: "profile", tier: "epic", name: "왕관", acquisition: "either", look: { text: "👑" } }),
   // nickname effects (readable: colour only, never replaces the name)
   item({ id: "nameFx.none", category: "nameFx", tier: "basic", name: "없음", acquisition: "default", look: { css: "" } }),
   item({ id: "nameFx.glow", category: "nameFx", tier: "epic", name: "은은한 빛", acquisition: "either", maxLevel: 3, levels: ["단색 강조", "그라데이션", "반짝임 애니메이션"], look: { css: "namefx-glow" } }),
@@ -119,9 +122,61 @@ export const ITEMS: readonly ItemDef[] = [
   item({ id: "title.300", category: "title", tier: "special", specialKind: "achievement", name: "300클럽", acquisition: "achievement", look: { text: "300클럽" } }),
   item({ id: "title.310", category: "title", tier: "special", specialKind: "achievement", name: "310클럽", acquisition: "achievement", look: { text: "310클럽" } }),
   item({ id: "title.perfect", category: "title", tier: "special", specialKind: "achievement", name: "완벽한 경기", acquisition: "achievement", look: { text: "완벽한 경기" } }),
+  item({ id: "profile.santa_penguin", category: "profile", tier: "legendary", name: "산타 펭귄", acquisition: "either", season: "christmas-2026", look: { text: "🐧", css: "pf-santa" } }),
+  item({ id: "profile.rudolph", category: "profile", tier: "epic", name: "루돌프 사슴", acquisition: "either", season: "christmas-2026", look: { text: "🦌", css: "pf-reindeer" } }),
+  item({ id: "profile.snowman", category: "profile", tier: "common", name: "눈사람", acquisition: "either", season: "christmas-2026", look: { text: "☃️", css: "pf-snow" } }),
+  item({ id: "dice.christmas", category: "dice", tier: "mythic", name: "홀리 주사위", acquisition: "either", season: "christmas-2026", maxLevel: 3,
+    levels: ["금색 눈과 녹색 보석 소재", "굴림 중 금빛 결정", "착지 시 결정이 퍼져요"],
+    look: { dice: { face: "#12503b", edge: "#08271d", pip: "#ffe6a0", accent: "#ac2741", pattern: "gem", finish: "gloss" } },
+    levelLooks: [{ dice: { glow: "#ffc452" } as DiceLook }, { dice: { anim: "sparkle" } as DiceLook }] }),
+  item({ id: "board.christmas", category: "board", tier: "epic", name: "눈 내리는 선착장", acquisition: "either", season: "christmas-2026", look: { board: "#163339", css: "bd-christmas" } }),
+  item({ id: "bubble.christmas", category: "bubble", tier: "rare", name: "캔디케인 말풍선", acquisition: "either", season: "christmas-2026", look: { css: "bubble-christmas" } }),
+  item({ id: "title.christmas", category: "title", tier: "common", name: "겨울 항해자", acquisition: "either", season: "christmas-2026", look: { text: "겨울 항해자", css: "title-frost" } }),
+  item({ id: "fx.christmas", category: "fx", tier: "legendary", name: "눈꽃 요트", acquisition: "either", season: "christmas-2026", maxLevel: 3,
+    levels: ["승리 직후 눈꽃", "요트 달성에도 눈꽃", "눈꽃과 종소리"], look: { fx: { shape: "snow", colors: ["#afddf9", "#fff8d8", "#8eb6cc"], sound: "bell" } } }),
   // 2026-11-25 collection (H): 149 more items across the families (data in content-items.ts)
   ...CONTENT_ITEMS.map((c) => item({ ...c, maxLevel: c.maxLevel ?? 1 } as ItemDef)),
 ];
+
+const DICE_EFFECTS = {
+  lava: "불티",
+  ice: "서리 결정",
+  electric: "전기 아크",
+  stars: "별빛",
+  gold: "금빛 조각",
+  ghost: "안개와 잔상",
+  crystal: "수정 조각",
+  leaves: "나뭇잎",
+  rainbow: "무지개 항적",
+} as const;
+
+function diceTrail(item: ItemDef): keyof typeof DICE_EFFECTS {
+  const dice = item.look.dice;
+  if (item.id.includes("christmas") || dice?.finish === "metal") return "gold";
+  if (item.id.includes("ghost")) return "ghost";
+  switch (dice?.pattern) {
+    case "lava": return "lava";
+    case "ice": return "ice";
+    case "neon": return "electric";
+    case "stars": return "stars";
+    case "aurora":
+    case "holo": return "rainbow";
+    case "wood": return "leaves";
+    default: return dice?.finish === "glass" ? "ghost" : "crystal";
+  }
+}
+
+export const ITEMS: readonly ItemDef[] = items.map((entry) => {
+  if (entry.category !== "dice" || entry.tier === "basic" || !entry.look.dice) return entry;
+  const trail = diceTrail(entry);
+  const levelLooks = [0, 1].map((index) => ({
+    ...entry.levelLooks?.[index],
+    dice: { ...entry.look.dice!, ...entry.levelLooks?.[index]?.dice, trail, landing: index === 1 },
+  }));
+  return { ...entry, maxLevel: 3, levelLooks,
+    levels: ["기본 소재와 소리", `굴림 중 ${DICE_EFFECTS[trail]}`, `충돌과 착지에 ${DICE_EFFECTS[trail]} 추가`],
+  };
+});
 
 /** The look of an item at a level (Lv.2 / Lv.3 overrides merged over Lv.1; nested dice look merged too). */
 export function lookAt(item: ItemDef | null | undefined, level = 1): ItemLook {
@@ -140,20 +195,36 @@ export const itemById = (id: unknown): ItemDef | null => (typeof id === "string"
 export const isDefaultItem = (i: ItemDef) => i.acquisition === "default";
 export const DEFAULT_ITEM_IDS = ITEMS.filter((i) => isDefaultItem(i) && !i.retired).map((i) => i.id);
 
+/** Category pricing is capped at the previous list price so cached clients never overpay. */
+function categoryPrice(item: ItemDef) {
+  if (item.category === "dice") return 100;
+  if (item.category === "chat" || item.category === "emote") {
+    if (socialItem(item.id)?.style !== "default") return 100;
+    return item.category === "chat" ? 55 : 75;
+  }
+  return { board: 90, profile: 75, title: 55, bubble: 70, nameFx: 80, fx: 95 }[item.category];
+}
+
+function scalePrice(amount: number, currency: "coins" | "gems", percent: number) {
+  const unit = currency === "coins" ? 5 : 1;
+  return Math.max(unit, Math.floor(amount * percent / (100 * unit)) * unit);
+}
+
 /** Price of an item in a currency, or null when it cannot be bought with it. */
 export function priceOf(i: ItemDef, currency: "coins" | "gems"): number | null {
   if (i.retired || i.tier === "special" || i.tier === "basic") return null;
   const ok = i.acquisition === "either" || i.acquisition === currency;
   if (!ok) return null;
   const list = TIER_PRICES[i.tier];
-  const p = i.price?.[currency] ?? list[currency];
+  const p = i.price?.[currency] ?? scalePrice(list[currency], currency, categoryPrice(i));
   return Number.isInteger(p) && p > 0 ? p : null;
 }
 /** Coins to go from `level` to `level + 1`, or null. */
 export function upgradeCost(i: ItemDef, level: number): number | null {
   if (i.maxLevel <= 1 || level >= i.maxLevel || level < 1 || level >= MAX_LEVEL) return null;
   if (i.tier === "special" || i.tier === "basic") return null;
-  return UPGRADE_COINS[i.tier][level - 1] ?? null;
+  const amount = UPGRADE_COINS[i.tier][level - 1];
+  return amount === undefined ? null : scalePrice(amount, "coins", categoryPrice(i));
 }
 export function slotPrice(kind: "emote" | "chat", owned: number, currency: "coins" | "gems"): number | null {
   const n = owned - SLOTS[kind].base; // extra slots already bought

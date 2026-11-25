@@ -182,6 +182,10 @@ test("2.5D 주사위: 연출 후 엔진 결과와 같은 눈에서 멈추고 고
 test("주사위: 굴리는 중에는 입력을 받지 않아 다른 주사위로 잘못 전달되지 않고, 멈춘 뒤 누른 주사위만 고정된다", async ({ page }) => {
   await withMotion(page, "2.5d");
   await page.goto("#play");
+  // Keep the roll in progress while both native clicks travel through the browser.
+  const start = new Date();
+  await page.clock.install({ time: start });
+  await page.clock.pauseAt(new Date(start.getTime() + 1000));
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
   await expect(page.locator(".die-button").first()).toBeDisabled();
   await expect(page.getByRole("button", { name: "다시 굴리기" })).toBeDisabled();
@@ -191,7 +195,9 @@ test("주사위: 굴리는 중에는 입력을 받지 않아 다른 주사위로
   }
   const pressed = () => page.locator(".die-button").evaluateAll((nodes) => nodes.map((n) => n.getAttribute("aria-pressed")));
   expect(await pressed()).toEqual(["false", "false", "false", "false", "false"]);
-  await expect(page.locator(".dice-animating")).toHaveCount(0, { timeout: 1500 });
+  await page.clock.runFor(1500);
+  await page.clock.resume();
+  await expect(page.locator(".dice-animating")).toHaveCount(0);
   await page.locator(".die-button").nth(3).click();
   expect(await pressed()).toEqual(["false", "false", "false", "true", "false"]);
 });

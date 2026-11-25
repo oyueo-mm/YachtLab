@@ -73,6 +73,7 @@ DAILY_AI_LIMIT = "100"
 # Phase 5/6: official coins / gems / quests / achievements / shop (M3i-W30). "off" stops all grants
 # and purchases at once (balances are kept). Rewards only from server-verified matches of members.
 ECONOMY = "on"
+DICE_DRAW = "on"
 CREATE_PER_MINUTE = "5"
 JOIN_PER_MINUTE = "30"
 LOBBY_IDLE_MS = "1800000"

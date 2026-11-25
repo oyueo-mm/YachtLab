@@ -1,3 +1,4 @@
+import { DiceTrails } from "./trails";
 import * as THREE from "three";
 import { MATERIAL_ORDER, canonicalOrientation, finalValue, prepareThrow, throwKey, qAxisAngle, qDot, qMul, qSlerp, simulateThrow, topFace, type PreparedThrow, type Quat, type SimResult } from "./physics";
 import { CLASSIC_DICE, blobTexture, faceTexture, type DiceColors, type Quality } from "./stage";
@@ -101,6 +102,9 @@ export class DiceTable {
   private blobGeometry = new THREE.PlaneGeometry(1.5, 1.5);
   private blobMaterials: THREE.MeshBasicMaterial[] = [];
   private queued = 0;
+  private trails: DiceTrails | null = null;
+  private stopTrails: (() => void) | undefined;
+  private effectPoint = new THREE.Vector3();
   /** One running animation per die: a new one for the same die replaces the old one. */
   private moves = new Map<number, () => void>();
   private disposed = false;
@@ -165,6 +169,7 @@ export class DiceTable {
     this.width = widthPx / size;
     this.height = heightPx / size;
     this.cssSize = { w: widthPx, h: heightPx };
+    this.trails?.layout(widthPx, heightPx);
     this.renderer.setSize(widthPx, heightPx, false);
     const distance = this.height / 2 / Math.tan(((this.camera.fov / 2) * Math.PI) / 180);
     this.cameraDistance = distance;
@@ -368,7 +373,7 @@ export class DiceTable {
       this.queued = 0;
     }
     this.renderer.render(this.scene, this.camera);
-    if (this.steps.size) this.tickRaf = requestAnimationFrame(this.tick);
+    if (this.steps.size && !this.tickRaf) this.tickRaf = requestAnimationFrame(this.tick);
   };
 
   /**
@@ -394,6 +399,16 @@ export class DiceTable {
     this.requestRender();
   }
 
+  private emitTrail(id: number, burst: boolean) {
+    const mesh = this.meshes.get(id);
+    if (!mesh || !this.colors.trail || !this.trails || document.hidden) return;
+    const point = this.effectPoint.copy(mesh.position).project(this.camera);
+    this.trails.emit(this.colors.trail, {
+      x: (point.x + 1) * this.cssSize.w / 2,
+      y: (1 - point.y) * this.cssSize.h / 2,
+    }, burst);
+  }
+
   /** Play a pre-simulated throw for the dice in `result.tracks`; they stay at their final pose. */
   play(result: SimResult, opts: { rate?: number; onFrame?: () => void; onRoll?: (level: number) => void; onImpact?: (i: { strength: number; kind: "floor" | "wall" | "die"; x: number }) => void; onDone: () => void }): () => void {
     this.warmUp();
@@ -407,7 +422,15 @@ export class DiceTable {
     this.frameTimes = [];
     const q0 = new THREE.Quaternion(),
       q1 = new THREE.Quaternion();
-    return this.loop((now) => {
+    this.stopTrails?.();
+    this.trails?.clear();
+    if (this.colors.trail && !this.trails) {
+      this.trails = new DiceTrails(this.host);
+      this.trails.layout(this.cssSize.w, this.cssSize.h);
+    }
+    let lastTrail = started;
+    let lastBurst = started;
+    const stop = this.loop((now) => {
       this.frameTimes.push(now - last);
       last = now;
       // rAF timestamps can be a hair earlier than performance.now() at start: never go below frame 0.
@@ -424,10 +447,18 @@ export class DiceTable {
         q0.slerp(q1, a);
         this.apply(t.id, { x: fr[o] + (fr[p] - fr[o]) * a, y: fr[o + 1] + (fr[p + 1] - fr[o + 1]) * a, z: fr[o + 2] + (fr[p + 2] - fr[o + 2]) * a, quat: [q0.x, q0.y, q0.z, q0.w] });
       }
+      if (this.colors.trail && now - lastTrail >= 38) {
+        lastTrail = now;
+        for (const { id } of result.tracks) this.emitTrail(id, false);
+      }
       while (next < impacts.length && impacts[next].frame <= f) {
         const hit = impacts[next++];
         const m = this.meshes.get(hit.id);
         opts.onImpact?.({ strength: hit.strength, kind: hit.kind, x: m ? m.position.x / this.width : 0.5 });
+        if (this.colors.landing && hit.strength > 1 && now - lastBurst >= 90) {
+          lastBurst = now;
+          this.emitTrail(hit.id, true);
+        }
       }
       // Rolling rumble: the fastest die that is on the floor right now.
       if (opts.onRoll && now - lastRoll > 110) {
@@ -443,14 +474,21 @@ export class DiceTable {
           opts.onRoll(Math.min(1, level / 9));
         }
       }
+      this.trails?.frame(now);
       opts.onFrame?.();
       if (f >= result.frameCount - 1) {
+        if (this.colors.landing) for (const { id } of result.tracks) this.emitTrail(id, true);
+        if (this.colors.trail && this.trails) {
+          const trails = this.trails;
+          this.stopTrails = this.loop((stamp) => trails.frame(stamp));
+        }
         this.adapt(this.frameTimes);
         opts.onDone();
         return false;
       }
       return true;
     });
+    return () => { stop(); this.stopTrails?.(); this.trails?.clear(); };
   }
 
   /**
@@ -568,7 +606,7 @@ export class DiceTable {
     this.observer?.disconnect();
     this.blobMaterials.forEach((m) => m.dispose());
     this.blob.dispose();
+    this.trails?.dispose();
     this.canvas.remove();
-    void this.host;
   }
 }

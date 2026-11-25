@@ -1,3 +1,4 @@
+import type { SeasonId } from "../economy/live/seasons";
 /**
  * Preset chat lines and emotes (Phase 3, online social). Free text is never sent: a client may only
  * send one of these ids, and the server checks it against this table before relaying it.
@@ -21,7 +22,8 @@ export type SocialItem = {
   tier: SocialTier;
   /** "default": everyone owns it. "shop": needs an inventory entry. */
   acquisition: "default" | "shop";
-  style: "default";
+  style: "default" | "spark" | "impact";
+  season?: SeasonId;
   retired?: boolean;
 };
 
@@ -93,8 +95,33 @@ export const SOCIAL_ITEMS: readonly SocialItem[] = [
   chat("calm", "침착하게 갑시다.", "rare"),
   chat("not_over", "끝날 때까지 몰라요!", "rare"),
   chat("lucky_day", "오늘 주사위가 저를 좋아하네요!", "epic"),
-  chat("legend_game", "전설의 한 판!", "epic"),
-  chat("see_you", "모두 즐거웠어요, 또 만나요!", "legendary"),
+  chat("legend_game", "전설의 한 판!", "rare"),
+  chat("see_you", "모두 즐거웠어요, 또 만나요!", "common"),
+  { ...chat("best_try", "그게 최선이야?", "epic"), style: "impact" },
+  { ...chat("brace", "긴장해.", "epic"), style: "impact" },
+  { ...chat("too_easy", "너무 쉬운데?", "legendary"), style: "impact" },
+  { ...chat("try_again", "이걸 못 이겨?", "legendary"), style: "impact" },
+  { ...chat("not_yet", "벌써 포기했어?", "epic"), style: "impact" },
+  { ...chat("lucky_skill", "운도 실력이야.", "epic"), style: "spark" },
+  { ...chat("planned", "계획대로.", "legendary"), style: "spark" },
+  chat("keep_playing", "아직 안 끝났어.", "rare"),
+  chat("turnaround", "역전 간다.", "rare"),
+  chat("it_worked", "이게 되네?", "rare"),
+  { ...chat("my_dice", "주사위도 내 편이네.", "epic"), style: "spark" },
+  { ...chat("the_yacht", "요트가 뭔지 보여줄게.", "legendary"), style: "spark" },
+  { ...emote("angry", "😠", "화남", "rare"), style: "impact" },
+  { ...emote("rage", "😡", "분노", "epic"), style: "impact" },
+  emote("question", "❔", "물음표 한 개", "rare"),
+  emote("double_question", "❔❔", "물음표 두 개", "epic"),
+  emote("exclaim", "❕", "느낌표 한 개", "rare"),
+  emote("double_exclaim", "‼️", "느낌표 두 개", "epic"),
+  emote("interrobang", "⁉️", "물음표와 느낌표", "epic"),
+  { ...emote("smirk", "😏", "비웃음", "legendary"), style: "spark" },
+  { ...emote("confident", "😼", "자신감", "epic"), style: "spark" },
+  emote("gasp", "😲", "깜짝 놀람", "rare"),
+  { ...chat("christmas_greetings", "메리 크리스마스!", "common"), season: "christmas-2026" },
+  { ...emote("christmas_gift", "🎁", "선물 상자", "rare"), season: "christmas-2026", style: "spark" },
+
 ];
 
 const byId = new Map(SOCIAL_ITEMS.map((item) => [item.id, item]));

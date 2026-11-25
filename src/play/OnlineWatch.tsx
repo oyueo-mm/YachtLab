@@ -1,3 +1,4 @@
+import { useSettings } from "../settings";
 import { BrandMark } from "../ui/BrandLoading";
 import { useEffect, useRef, useState } from "react";
 import { Eye, Home, Trophy, WifiOff } from "lucide-react";
@@ -44,6 +45,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
   const viewRef = useRef<PlayerView | null>(null);
   const lastDice = useRef<number[]>([1, 2, 3, 4, 5]);
   const chat = useTableChat(null);
+  const { opponentFx } = useSettings();
 
   useEffect(() => {
     clearScoreFx();
@@ -197,7 +199,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
                 </p>
               </div>
             ) : (
-              <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} material={diceMaterialOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
+              <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""], opponentFx)} material={diceMaterialOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
             )}
             {finished && (
               <div className="game-result" role="status">
@@ -274,7 +276,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
               굴림 <b>{rolls}</b> / 3
             </span>
           </div>
-          <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} material={diceMaterialOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
+          <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""], opponentFx)} material={diceMaterialOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
           <div className="roll-area">
             <p className="watch-turn" role="status">
               {finished ? "경기가 끝났어요" : view.status === "lobby" ? "경기가 곧 시작돼요" : `${players[turnIndex]?.name ?? ""} 님의 차례 · 굴림 ${rolls}/3`}

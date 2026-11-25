@@ -1,3 +1,4 @@
+import { useSettings } from "../settings";
 import { MatchResult } from "../ui/MatchResult";
 import { FirstTurnGuide } from "./Tutorial";
 import { MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
@@ -212,11 +213,13 @@ export function MultiTable(p: {
   onHome: () => void;
 }) {
   const theme = useBoardTheme(p.looks[p.me]);
+  const { opponentFx } = useSettings();
   const { view } = p;
   const players = view.players;
   const meIndex = Math.max(0, players.findIndex((x) => x.playerId === p.me));
   const simultaneous = view.mode === "simultaneous";
   const turnIndex = simultaneous ? meIndex : Math.max(0, players.findIndex((x) => x.playerId === view.turn?.playerId));
+  const dicePlayer = simultaneous ? p.me : view.turn?.playerId ?? "";
   const finished = view.status === "finished";
   const [selected, setSelected] = useState<Category | null>(null);
   const [all, setAll] = useState(false);
@@ -257,7 +260,7 @@ export function MultiTable(p: {
               굴림 <b>{p.rolls}</b> / 3{timer && <span className="turn-timer"> · 남은 시간 {timer}</span>}
             </span>
           </div>
-          <DiceArea state={game} colors={diceLookOf(p.looks[simultaneous ? p.me : (view.turn?.playerId ?? "")])} material={diceMaterialOf(p.looks[simultaneous ? p.me : (view.turn?.playerId ?? "")])} interactive={p.can && p.rolls > 0 && p.rolls < 3} animate rollEvent={p.rollEvent} onToggle={p.onToggle} holdOrder={p.rolls > 0 ? p.keep : []} />
+          <DiceArea state={game} colors={diceLookOf(p.looks[dicePlayer], dicePlayer === p.me || opponentFx)} material={diceMaterialOf(p.looks[dicePlayer])} interactive={p.can && p.rolls > 0 && p.rolls < 3} animate rollEvent={p.rollEvent} onToggle={p.onToggle} holdOrder={p.rolls > 0 ? p.keep : []} />
           <div className="roll-area">
             <button className={"primary roll-button" + (myTurn ? "" : " waiting")} disabled={!p.canRoll} onClick={p.onRoll}>
               <Dices size={20} />

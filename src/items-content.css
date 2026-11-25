@@ -1099,3 +1099,32 @@
     width: auto;
   }
 }
+
+.player-icon.pf-santa { border-color: #9f2437; background: radial-gradient(circle at 35% 30%, #fff8ef, #e8a9b1); box-shadow: 0 0 0 2px #b9253b; }
+.player-icon.pf-reindeer { border-color: #8e4025; background: linear-gradient(135deg, #fff5d5, #f1c594); box-shadow: 0 0 0 2px #a85026; }
+.player-icon.pf-snow { border-color: #416e8b; background: radial-gradient(circle, #fff, #bce3f1); box-shadow: 0 0 0 2px #8abece; }
+.board-themed.bd-christmas { --board-surface: radial-gradient(circle at 72% 24%, #fff9dc40, transparent 35%), repeating-linear-gradient(38deg, #91c3ba20 0 2px, transparent 2px 24px); }
+.feed-msg.bubble-christmas { background: #fff7f0; box-shadow: inset 0 0 0 2px #bd4151; }
+.player-title.title-frost { color: #184462; background: #e4f4f9; }
+
+.feed-msg.social-impact { background: #fff0e5; box-shadow: inset 0 0 0 1px #d4573f; }
+.feed-msg.social-spark { background: #fff0ca; box-shadow: inset 0 0 0 1px #bf8c2c, 0 0 9px #ffcb5366; }
+.feed-msg.social-impact .feed-text { animation: social-impact 280ms ease-out; }
+.feed-msg.social-spark .feed-text { animation: social-spark 520ms ease-out; }
+@keyframes social-impact { 30% { transform: scale(1.15) rotate(-3deg); } }
+@keyframes social-spark { 35% { filter: brightness(1.8); transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) {
+  .feed-msg:is(.social-impact, .social-spark) .feed-text { animation: none; }
+}
+
+.dice-trail-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.app-shell .player-icon:is(.pf-santa, .pf-reindeer, .pf-snow) { font-size: 0; background-size: 88%, cover; background-repeat: no-repeat; background-position: center; }
+.app-shell .player-icon.pf-santa { background-image: url("/icons/santa-penguin.svg"), radial-gradient(circle, #fff8ef, #e8a9b1); }
+.app-shell .player-icon.pf-reindeer { background-image: url("/icons/rudolph.svg"), linear-gradient(135deg, #fff5d5, #f1c594); }
+.app-shell .player-icon.pf-snow { background-image: url("/icons/harbor-snowman.svg"), radial-gradient(circle, #fff, #bce3f1); }
+dialog.modal.item-detail { margin: auto; width: min(640px, calc(100vw - 28px)); border: 1px solid var(--line); }
+dialog.modal.item-detail::backdrop { background: #251c1c88; }
+@media (max-width: 600px) {
+  dialog.modal.item-detail { margin: auto auto 0; width: min(100%, 640px); }
+}
+.stage-sound-toggle { display: inline-flex; align-items: center; align-self: flex-start; gap: 8px; min-height: 36px; cursor: pointer; }
