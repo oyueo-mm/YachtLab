@@ -1317,3 +1317,7 @@
 @media (max-width: 760px) {
   .page-online-room .game-left > :is(.near-profile, .multi-profile-chat) { order: -1; }
 }
+@media (min-width: 761px) {
+  .online-game .score-summary:has(.social-seat) > .round,
+  .online-game .social-seat > strong { display: none; }
+}
