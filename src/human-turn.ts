@@ -4,6 +4,8 @@ import { names, score, type Action, type Category, type Game } from "./engine";
 import type { Decision } from "./ai";
 import type { ModelId } from "./ai-models";
 import { humanAITiming, playbackDelay } from "./playback";
+import { decideV5 } from "./product-ai/worker-client";
+import { productV4, v5TrialEnabled } from "./product-ai/models";
 import { waitForDice } from "./dice-motion";
 export function useHumanTurn({
   stateRef,
@@ -19,6 +21,8 @@ export function useHumanTurn({
   setLast,
   setCaption,
   setPreviewScore,
+  setModelStatus,
+  skipTrial,
   paused,
   pausedRef,
   aiSeat = 1,
@@ -37,6 +41,8 @@ export function useHumanTurn({
   setLast: (d: Decision) => void;
   setCaption: (v: string) => void;
   setPreviewScore: (v: Category | null) => void;
+  setModelStatus: (message: string) => void;
+  skipTrial: MutableRefObject<(() => void) | null>;
   paused: boolean;
   pausedRef: MutableRefObject<boolean>;
   /** Seat the AI plays (0 when the AI moves first). */
@@ -47,10 +53,12 @@ export function useHumanTurn({
   const T = Object.fromEntries(Object.entries(humanAITiming).map(([k, v]) => [k, Math.round(v * speed)])) as Record<keyof typeof humanAITiming, number>;
   const pendingRoll = useRef(false),
     previousGeneration = useRef(generation.current);
+  const fallback = useRef(false);
   useEffect(() => {
     if (previousGeneration.current !== generation.current) {
       previousGeneration.current = generation.current;
       pendingRoll.current = false;
+      fallback.current = false;
     }
     if (paused) return;
     if (stateRef.current.player !== aiSeat || stateRef.current.done) {
@@ -87,16 +95,44 @@ export function useHumanTurn({
           !stateRef.current.done &&
           stateRef.current.player === aiSeat
         ) {
-          if (!session.current) session.current = createDecisionSession();
-          const active = session.current;
-          job.current = {
-            promise: active.decide(stateRef.current, algorithm),
-            cancel: () => {
-              active.cancel();
-              if (session.current === active) session.current = null;
-            },
-          };
-          const d = await job.current.promise;
+          let decision: Decision | undefined;
+          const trial = algorithm === "Win DP v4-D" && v5TrialEnabled();
+          if (trial && !fallback.current) {
+            const request = new AbortController();
+            const cancel = () => request.abort();
+            signal.addEventListener("abort", cancel, { once: true });
+            skipTrial.current = cancel;
+            try {
+              const response = await decideV5(stateRef.current, (phase) => {
+                if (valid()) setModelStatus(phase === "cache" ? "AI 데이터 확인 중…" : "AI 모델 준비 중…");
+              }, request.signal);
+              decision = response.decision;
+            } catch {
+              if (!valid()) return;
+              fallback.current = true;
+              setCaption("기존 매우 어려움 AI로 계속합니다.");
+            } finally {
+              signal.removeEventListener("abort", cancel);
+              if (skipTrial.current === cancel) {
+                skipTrial.current = null;
+                setModelStatus("");
+              }
+            }
+          }
+          if (!decision) {
+            if (!session.current) session.current = createDecisionSession();
+            const active = session.current;
+            job.current = {
+              promise: active.decide(stateRef.current, algorithm),
+              cancel: () => {
+                active.cancel();
+                if (session.current === active) session.current = null;
+              },
+            };
+            const move = await job.current.promise;
+            decision = trial ? { ...move, execution: productV4 } : move;
+          }
+          const d = decision;
           await playbackDelay(1, signal);
           if (!valid()) return;
           setLast(d);
