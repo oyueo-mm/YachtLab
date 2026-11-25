@@ -249,6 +249,9 @@ test("설치 팝업은 긴 회원 닉네임과 잔액이 있는 320~430px 홈을
     expect(await profile.boundingBox()).toEqual(before);
     expect((await popup.boundingBox())!.y).toBeGreaterThanOrEqual(before!.y + before!.height);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    await profile.click();
+    await page.locator(".top-profile-panel").getByRole("button", { name: "계정 설정" }).click({ trial: true });
+    await page.keyboard.press("Escape");
     await popup.getByRole("button", { name: "설치 안내 닫기" }).click();
     await expect(popup).toHaveCount(0);
     await page.evaluate(() => localStorage.removeItem("yachtlab.install-dismissed.v1"));

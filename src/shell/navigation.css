@@ -1,4 +1,5 @@
 .app-shell .shell-top { gap: 8px; }
+.shell-top:has(.top-profile-button[aria-expanded="true"]) { z-index: 65; }
 .app-shell .shell-top-left { flex: 0 0 auto; gap: 5px; }
 .app-shell .shell-top-right { flex: 0 1 auto; margin-left: auto; }
 .shell-top .wordmark { min-height: 44px; padding: 0 3px; background: transparent; white-space: nowrap; }
