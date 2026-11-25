@@ -15,7 +15,7 @@ beforeAll(async () => {
   setDPTable(table.buffer as ArrayBuffer);
   const wasm = readFileSync(new URL("../training/v6-wasm/pmf.wasm", import.meta.url));
   config = { bank: bankFromWasm(await buildBankWasm(wasm, table, { f32: true })), dpValue: dpFutureValue, endgame: "none" };
-});
+}, 60_000); // The test builds a complete Float32 PMF bank while other suites also use the CPU.
 
 function position({ cards, dice, player, rolls, round }: Game): Position {
   return { cards, dice, player, rolls, round };

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { Backpack, Coins, Dices, Gem, Globe, History, House, ListChecks, LogIn, LogOut, Maximize, Menu, Minimize, Settings, Store, Trophy, UserRound, UsersRound, Volume2, VolumeX, X } from "lucide-react";
 import { diceRenderer, updateSettings, useSettings, webglAvailable, type DiceQuality } from "../settings";
 import { playSfx, unlockAudio } from "../sound";
@@ -207,6 +207,14 @@ function Sidebar({ route, navigate, profile }: { route: Route; navigate: (r: Rou
   const quests = profile.snapshot?.state;
   const current = route === "online-room" || route === "spectate" ? "online" :
     ["play", "pvp", "play-setup", "pvp-setup"].includes(route) ? "offline" : route;
+
+  useLayoutEffect(() => {
+    if (!dialog.current?.open) return;
+    dialog.current.close();
+    target.current = null;
+    pointer.current = null;
+    setPhase("closed");
+  }, [route]);
 
   const close = (next?: Route) => {
     if (phase !== "open") return;

@@ -56,8 +56,9 @@ test("친구: 코드로 요청 → 홈 알림 → 수락 → 접속 상태 → �
   // Bob: a badge on the home menu, then accept on the friends page
   await b.goto(at("home"));
   await b.getByRole("button", { name: "메뉴", exact: true }).click();
-  await expect(b.getByRole("navigation", { name: "주요 메뉴" }).locator(".menu-badge")).toHaveText("1");
-  await b.goto(at("friends"));
+  const friends = b.getByRole("navigation", { name: "주요 메뉴" }).getByRole("button", { name: /^친구/ });
+  await expect(friends.locator(".menu-badge")).toHaveText("1");
+  await friends.click();
   await b.getByRole("button", { name: "앨리스 수락" }).click();
   await expect(b.getByRole("list", { name: "친구 목록" })).toContainText("앨리스");
   // Alice sees Bob online (Bob's page checked its inbox)

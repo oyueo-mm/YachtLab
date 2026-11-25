@@ -169,7 +169,7 @@ export default function ReplayViewer({
             }))
           }
         />
-        {researchToolsEnabled() && <button
+        <button
           className="secondary"
           disabled={working}
           onClick={() =>
@@ -182,7 +182,7 @@ export default function ReplayViewer({
         >
           <Save size={15} />
           저장
-        </button>}
+        </button>
         <button
           className="secondary"
           onClick={() => {
@@ -390,7 +390,7 @@ export default function ReplayViewer({
         ))}
       </div>
       <div className="replay-tools">
-        <button
+        {researchToolsEnabled() && <button
           className="primary"
           disabled={state.done || working}
           onClick={() =>
@@ -402,7 +402,7 @@ export default function ReplayViewer({
         >
           <GitBranch size={16} />
           AI 아레나에서 이어하기
-        </button>
+        </button>}
         {view.finalState.done && <ReviewLauncher source={() => fromReplay(view)} />}
           {researchToolsEnabled() && <button
           className="secondary"
