@@ -1306,3 +1306,14 @@
 .table-chat.near-profile { margin-top: 0; }
 
 :is(.page-play, .page-pvp, .page-online-room) { overflow-anchor: none; }
+@media (min-width: 761px) {
+  :is(.near-profile, .multi-profile-chat) .dock-sheet {
+    top: calc(100% + 6px);
+    bottom: auto;
+    max-height: min(70dvh, 520px);
+    overflow-y: auto;
+  }
+}
+@media (max-width: 760px) {
+  .page-online-room .game-left > :is(.near-profile, .multi-profile-chat) { order: -1; }
+}
