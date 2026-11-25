@@ -15,7 +15,7 @@ import sys
 
 import numpy as np
 
-BASES = ["v_R", "v_P", "v_I1RO", "v_I2RO"]
+BASES = ["v_R", "v_P", "v_I1RO", "v_I2RO", "v_I2RO1"]
 
 
 def load(paths):
@@ -100,7 +100,7 @@ def main(paths):
         res["baseline_mae_by_estimator"][b] = metrics(np.array([float(r[b]) for r in rows]), ex)
     rng = np.random.default_rng(1)
     fold = {g: i % 5 for i, g in enumerate(rng.permutation(games))}
-    for base in ["v_P", "v_I2RO"]:
+    for base in ["v_P", "v_I2RO", "v_I2RO1"]:
         cv = []
         for k in range(5):
             tr = np.array([i for i, r in enumerate(rows) if fold[r["gid"]] != k], dtype=int); te = np.array([i for i, r in enumerate(rows) if fold[r["gid"]] == k], dtype=int)
