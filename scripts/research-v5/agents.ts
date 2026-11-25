@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 // Registered agents for the v5 research tournaments (research harness only).
 import * as dp from "../../src/dp.ts";
 import { winDPDecision } from "../../src/win-dp.ts";
@@ -33,6 +34,8 @@ export function initAgents(needV5: boolean, needBayes = false) {
   }
 }
 
+let residualCache: { weights: number[]; gateKMe: number[] } | null = null;
+const residualModel = () => (residualCache ??= JSON.parse(readFileSync(new URL("../../training/results/v6/residual/ridge-f9021.json", import.meta.url), "utf8")));
 // v6 agents: banks are loaded once by prepareAgents() before timing starts.
 const v6Banks = new Map<string, PolicyPmfBank[]>();
 const V6_SETS: Record<string, number[]> = { all: DEFAULT_LAMBDAS, three: [-0.04, 0, 0.04], dp: [0] };
@@ -84,6 +87,7 @@ export const AGENTS: Record<string, { v5: boolean; bayes?: boolean; v6?: string[
   "v6-A6": { v5: true, v6: ["all"], describe: "v6-P + full-horizon exact BR vs opponent PMF when my remaining <= 6", act: v6("all", { brWindow: 6 }) },
   "v6-L": { v5: true, v6: ["all"], describe: "v6-P vs opponent policy set (same 7 exp-utility policies), opponent picks the worst for me (maximin)", act: (s) => v6("all", { oppBanks: v6Banks.get("all"), oppMode: "maximin" })(s) },
   "v6-Lm": { v5: true, v6: ["all"], describe: "v6-P vs uniform mixture of the 7 opponent exp-utility policies", act: (s) => v6("all", { oppBanks: v6Banks.get("all"), oppMode: "mixture" })(s) },
+  "v6-C": { v5: true, v6: ["all"], describe: "v6-P + ridge residual (exact interactive - policy-set, dev 9021 game-split fit) on child values when both <= 4", act: (s) => v6("all", { residual: residualModel() })(s) },
   "v6-PB3": { v5: true, v6: ["all"], describe: "v6-P + exact interactive minimax when both <= 3", act: v6("all", { endgame: "minimax", minimaxWindow: 3 }) },
   "v6-A4B3": { v5: true, v6: ["all"], describe: "v6-A4 + exact interactive minimax when both <= 3", act: v6("all", { brWindow: 4, endgame: "minimax", minimaxWindow: 3 }) },
   "v5-E5": { v5: true, describe: "v5-B3 + depth-2 PMF-expectimax final-category choice when top-2 gap < 0.05", act: (s) => winDPv5EDecision(s, { ...cfgBase!, endgame: "minimax", minimaxWindow: 3, gap: 0.05 }) },

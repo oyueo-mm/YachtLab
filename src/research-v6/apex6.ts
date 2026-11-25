@@ -35,6 +35,7 @@ import {
 } from "../research-v5/apex";
 import { DISTINCT, bonusGain } from "./risk";
 import { TurnBuffers, turnStartValue } from "./turn";
+import { residualFeatures, predictResidual, RESIDUAL_MAX_K } from "./residual";
 
 export const V6_VERSION = "v6-research-2026-11-25.1";
 
@@ -55,6 +56,8 @@ export type V6Config = V5Config & {
    */
   oppBanks?: PolicyPmfBank[];
   oppMode?: "maximin" | "mixture";
+  /** v6-C: add a fitted residual (exact interactive - policy-set) to child values, depth 1 only. */
+  residual?: { weights: number[]; gateKMe: number[] };
 };
 
 type Credit = ReturnType<typeof creditTable>;
@@ -127,7 +130,7 @@ export function winDPv6Decision(state: Game, cfg: V6Config): V5Decision {
   const u = Math.min(UPPER_CAP, upper(state.cards[me])), uo = Math.min(UPPER_CAP, upper(state.cards[opp]));
   const base = total(state.cards[me]), oBase = total(state.cards[opp]);
   const depth = cfg.brWindow && k <= cfg.brWindow ? k : Math.max(1, cfg.depth ?? 1);
-  const key = [mask, u, base, oMask, uo, oBase, depth, cfg.banks.length, cfg.oppBanks?.length ?? 0, cfg.oppMode ?? ""].join(",");
+  const key = [mask, u, base, oMask, uo, oBase, depth, cfg.banks.length, cfg.oppBanks?.length ?? 0, cfg.oppMode ?? "", cfg.residual ? 1 : 0].join(",");
   if (rootCache?.key === key) {
     v6Stats.rootCacheHits++;
     return decideFromStopValues(state, mask, rootCache.root, rootCache.note, rootCache.stage);
@@ -169,7 +172,12 @@ export function winDPv6Decision(state: Game, cfg: V6Config): V5Decision {
       const next = mask ^ (1 << c);
       for (const p of DISTINCT[c]) {
         const g = bonusGain(c, p, u);
-        root.w[c * 64 + p] = next ? policySetValue(cfg.banks, next, canonicalUpper(next, nextUpper(c, p, u)), base + g, ct, pick) : credit(ct, base + g);
+        const u2 = canonicalUpper(next, nextUpper(c, p, u));
+        let v = next ? policySetValue(cfg.banks, next, u2, base + g, ct, pick) : credit(ct, base + g);
+        const kn = k - 1;
+        if (cfg.residual && ko >= 1 && ko <= RESIDUAL_MAX_K && cfg.residual.gateKMe.includes(kn))
+          v = Math.min(1, Math.max(0, v + predictResidual(cfg.residual.weights, residualFeatures(kn, next, u2, base + g, ko, oMask, uo, oBase, v))));
+        root.w[c * 64 + p] = v;
         if (next) { const n = cfg.banks[pick.i].name; v6Stats.lambdaPick.set(n, (v6Stats.lambdaPick.get(n) ?? 0) + 1); }
       }
     }

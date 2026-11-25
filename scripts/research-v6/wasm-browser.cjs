@@ -31,7 +31,7 @@ onmessage = async (ev) => {
   postMessage({ floats, instantiateMs: t1 - t0, buildMs: t2 - t1, wasmMemoryMB: ex.memory.buffer.byteLength / 2 ** 20, initialMean: mean });
 };`;
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {});
   const ctx = await browser.newContext(mode === "mobile" ? { ...devices["Pixel 7"] } : {});
   const page = await ctx.newPage();
   if (mode === "mobile") { const cdp = await ctx.newCDPSession(page); await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 }); }

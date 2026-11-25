@@ -31,6 +31,7 @@ for (let i = 0; positions.length < N; i++) {
     s = d.type === "score" ? transition(s, { type: "score", category: d.category }) : transition(transition(s, { type: "hold", ids: d.ids }), { type: "roll" });
   }
 }
+const NP = positions.length;
 const ref = positions.map((p) => winDPv5Decision(p, base));
 const f16 = (x: number) => { // round to IEEE half precision (subnormals included)
   if (x === 0) return 0; const e = Math.floor(Math.log2(x)); const ee = Math.max(e, -14); const q = 2 ** (ee - 10); return Math.round(x / q) * q;
@@ -59,19 +60,20 @@ for (const enc of ENC) {
     if (enc.sparse) { let lo = 0, hi = q.length - 1; while (lo < hi && q[lo] === 0) lo++; while (hi > lo && q[hi] === 0) hi--; stored += hi - lo + 1; } else stored += q.length;
   }
   for (let mask = 0; mask < 4096; mask++) for (let u = 0; u < 64; u++) { const cu = canonicalUpper(mask, u); if (cu !== u) qb.pmf[mask * 64 + u] = qb.pmf[mask * 64 + cu]; }
-  let agree = 0, regretSum = 0, regretMax = 0, valErrMax = 0, nearN = 0, nearAgree = 0, extN = 0, extErrMax = 0;
+  let agree = 0, material = 0, regretSum = 0, regretMax = 0, valErrMax = 0, nearN = 0, nearAgree = 0, extN = 0, extErrMax = 0;
   positions.forEach((p, i) => {
     const r = ref[i], d = winDPv5Decision(p, { ...base, bank: qb });
     const same = d.type === r.type && (d.type === "score" ? d.category === (r as typeof d).category : [...d.ids].sort().join() === [...(r as typeof d).ids].sort().join());
     if (same) agree++;
     const chosen = r.analysis.find((a) => a.label === d.analysis[0].label && a.kind === d.analysis[0].kind)!;
     const regret = r.analysis[0].winCredit - chosen.winCredit;
+    if (regret > 1e-9) material++;
     regretSum += regret; regretMax = Math.max(regretMax, regret);
     valErrMax = Math.max(valErrMax, Math.abs(d.value - r.value));
     const gap = r.analysis.length > 1 ? r.analysis[0].winCredit - r.analysis[1].winCredit : 1;
     if (gap < 1e-3) { nearN++; if (same) nearAgree++; }
     if (r.value < 0.02 || r.value > 0.98) { extN++; extErrMax = Math.max(extErrMax, Math.abs(d.value - r.value)); }
   });
-  rows.push({ encoding: enc.name, storedMB: +(stored * enc.bytesPerFloat / 2 ** 20).toFixed(1), positions: N, actionAgreement: agree / N, meanRegret: regretSum / N, maxRegret: regretMax, maxValueError: valErrMax, nearTies: nearN, nearTieAgreement: nearN ? nearAgree / nearN : null, extremePositions: extN, extremeMaxValueError: extErrMax });
+  rows.push({ encoding: enc.name, storedMB: +(stored * enc.bytesPerFloat / 2 ** 20).toFixed(1), positions: NP, actionAgreement: agree / NP, materialDisagreement: material / NP, meanRegret: regretSum / NP, maxRegret: regretMax, maxValueError: valErrMax, nearTies: nearN, nearTieAgreement: nearN ? nearAgree / nearN : null, extremePositions: extN, extremeMaxValueError: extErrMax });
   console.log(JSON.stringify(rows.at(-1)));
 }
