@@ -112,9 +112,24 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "b17c01f",
+      "date": "2026-11-25",
+      "subject": "Merge PR #73: 2026-11-25 공개 사이트 검증 결과"
+    },
+    {
+      "sha": "af980d3",
+      "date": "2026-11-25",
+      "subject": "Merge main into docs branch (PR #63 audio fix): keep both deployment notes"
+    },
+    {
       "sha": "ae0d375",
       "date": "2026-11-25",
       "subject": "Merge pull request #63 from oyueo-mm/codex/pages-audio-regression"
+    },
+    {
+      "sha": "4147fdd",
+      "date": "2026-11-25",
+      "subject": "docs(product): 2026-11-25 공개 사이트 검증 결과"
     },
     {
       "sha": "9deda39",
@@ -145,41 +160,26 @@
       "sha": "0a5625d",
       "date": "2026-11-25",
       "subject": "test(game): cover straight fanfare after 3D collisions"
-    },
-    {
-      "sha": "6f2a601",
-      "date": "2026-11-25",
-      "subject": "fix(game): play combination fanfares after dice settle"
-    },
-    {
-      "sha": "55d1120",
-      "date": "2026-11-25",
-      "subject": "Merge PR #62: 채팅 근본 수정·PC 게임 화면·라지 스트레이트·결과 소리·상점/인벤토리·아이템 200종·친구"
-    },
-    {
-      "sha": "8f6c81e",
-      "date": "2026-11-25",
-      "subject": "feat(friends): 친구 목록·친구 초대 (회원 전용, 공개 친구 코드)"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "af980d3ed4",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45561060378"
+    },
+    {
+      "name": "YachtLab gameplay UI targeted smoke",
+      "status": "success",
+      "head": "a035614813",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45560823250"
+    },
     {
       "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
       "status": "success",
       "head": "99df523d01",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45558460538"
-    },
-    {
-      "name": "YachtLab gameplay UI targeted smoke",
-      "status": "success",
-      "head": "262ff1ea5a",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45556958548"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "9deda3918d",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45556257980"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
