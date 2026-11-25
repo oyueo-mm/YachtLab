@@ -13,6 +13,7 @@ test("방 생성 설정과 코드 참가를 구분하고 생성 직후 설정·�
   const join = page.getByRole("form", { name: "방 참가하기" });
   await expect(join.getByLabel("초대 코드")).toBeVisible();
   await expect(join.getByLabel("진행 방식")).toHaveCount(0);
+  await expect(create.getByLabel("턴 제한 시간")).toHaveValue("default");
   await create.getByLabel("최대 인원").selectOption("3");
   await create.getByLabel("진행 방식").selectOption("simultaneous");
   await create.getByLabel("라운드 제한 시간").selectOption("60000");
