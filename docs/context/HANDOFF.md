@@ -4,7 +4,7 @@
 
 ## 새로운 ChatGPT/에이전트가 해야 할 일
 
-> **AI 복기**는 [제품 복기의 수치 기준과 데이터 경계](./AI-REVIEW.md)에서 시작한다. 브라우저 Web Worker에서 DP Expert와 작은 v5 종반 범위를 사용한다.
+> **게임 리뷰**는 [제품 복기의 수치 기준과 데이터 경계](./AI-REVIEW.md)에서 시작한다. 브라우저 Web Worker에서 DP Expert와 작은 v5 종반 범위를 사용한다.
 
 > **재화·퀘스트·업적·상점 작업이면 먼저 [실서비스 경제](../economy/LIVE-ECONOMY.md)** — 실제 구현(M3i-W30, 설정 `src/economy/live/config.ts`, 상품 `catalog.ts`, 규칙 `rewards.ts`, 원장 `worker/src/economy.ts`, D-040~D-042). 연구 배경은 [경제 연구](../economy/ECONOMY-RESEARCH.md). 온라인 매칭·관전방·서버 AI는 [MATCHMAKING](../online/MATCHMAKING.md)·[SERVER-AI-MATCH](../online/SERVER-AI-MATCH.md)(D-038·D-039).
 >
@@ -44,3 +44,5 @@
 ## 제품 업데이트 인수인계
 
 게임 리뷰, 경기 종료 결과, 보드 표면, 소재음, v5-R 시험판, 확장 분석의 코드·검증은 [제품 개발 현황](./PRODUCT-2026-11-24.md#게임-리뷰경기-결과보드사운드-제품-업데이트)과 [v5-R 제품 검증](./V5-R-PRODUCT.md)을 참고한다. 매우 어려움의 기본 v4-D와 다섯 난이도를 유지하고, 신청한 탭에서만 v5-R 단일 WASM 은행을 실행한다. 제품 실기기 검증과 Claude의 v7 이후 연구는 독립적으로 진행한다.
+
+공개 배포 상태와 테스트 집계는 [2026-11-25 운영 검증](./PRODUCT-2026-11-24.md#2026-11-25-운영-검증)을 본다.
