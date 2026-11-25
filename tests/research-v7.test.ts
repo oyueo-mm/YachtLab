@@ -167,4 +167,17 @@ describe("v7 two-ply reaction (I2) and single-bank derivative", () => {
     }
     expect(err / n).toBeLessThan(0.02);
   });
+  it("single-bank product kinds: I2R1 = I2R(DP only) = I2(DP only); I2RO1 = I2RO(DP only); I2R1 != I2RO1 in general", () => {
+    let differ = 0;
+    for (const s of states().slice(0, 4)) {
+      const a = fill("I2R1", B, s), b = fill("I2R", B1, s), c2 = fill("I2", B1, s), d = fill("I2RO1", B, s), e = fill("I2RO", B1, s);
+      each(sides(s).me.mask, (c, p) => {
+        const k = c * 64 + p;
+        expect(a[k]).toBe(b[k]); expect(c2[k]).toBeCloseTo(b[k], 12); expect(d[k]).toBe(e[k]);
+        expect(d[k]).toBeGreaterThanOrEqual(0); expect(d[k]).toBeLessThanOrEqual(1);
+        if (Math.abs(a[k] - d[k]) > 1e-9) differ++;
+      });
+    }
+    expect(differ).toBeGreaterThan(0);
+  });
 });

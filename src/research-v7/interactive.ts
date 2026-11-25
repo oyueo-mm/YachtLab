@@ -41,6 +41,10 @@
 //                  N turn solves per root instead of N^2.
 //   I1RO1          I1RO with a single bank (DP Expert only): lightweight derivative for the product track
 //                  (with one policy I1 = I1R = I1O = I1RO, see tests).
+//   I2R1 / I2RO1   product track (v7.2): I2R / I2RO with the DP Expert bank only (same memory as v5-R).
+//                  With one policy I2 = I2R (the opponent objective max over {DP} is the DP objective),
+//                  but I2R1 != I2RO1: my next-turn solve is a max (non-linear) so solving it per opponent
+//                  outcome (closed loop) differs from solving it once against the mixture (open loop).
 // Fairness boundary: only public scorecards are used (callers pass masks/totals).
 import { canonicalUpper, nextUpper, UPPER_CAP } from "../research-v5/kernel";
 import { creditTable, type PolicyPmfBank } from "../research-v5/policy-pmf";
@@ -48,8 +52,10 @@ import { DISTINCT, bonusGain } from "../research-v6/risk";
 import { TurnBuffers, turnOutcomesFromVal, turnStartValue } from "../research-v6/turn";
 
 export const V7_VERSION = "v7-research-2026-11-25.1";
-export type V7Kind = "R" | "P" | "L" | "Lm" | "N" | "MM" | "I1" | "I1D" | "I1R" | "I1O" | "I1RO" | "I2" | "I2R" | "I2RO" | "I1RO1";
-export const V7_KINDS: V7Kind[] = ["R", "P", "L", "Lm", "N", "MM", "I1", "I1D", "I1R", "I1O", "I1RO", "I2", "I2R", "I2RO", "I1RO1"];
+export type V7Kind = "R" | "P" | "L" | "Lm" | "N" | "MM" | "I1" | "I1D" | "I1R" | "I1O" | "I1RO" | "I2" | "I2R" | "I2RO" | "I1RO1" | "I2R1" | "I2RO1";
+export const V7_KINDS: V7Kind[] = ["R", "P", "L", "Lm", "N", "MM", "I1", "I1D", "I1R", "I1O", "I1RO", "I2", "I2R", "I2RO", "I1RO1", "I2R1", "I2RO1"];
+/** Single-bank (DP Expert only) kinds and the multi-bank kind they reduce to. */
+export const SINGLE_BANK: Partial<Record<V7Kind, V7Kind>> = { I1RO1: "I1RO", I2R1: "I2R", I2RO1: "I2RO" };
 
 type Credit = ReturnType<typeof creditTable>;
 const ONE = Float64Array.of(1);
@@ -183,7 +189,8 @@ function myTurnP(B: V7Banks, me: Side, opCt: Credit): number {
  * me = (mask, u, base) of the mover, op = opponent. Returns val (same buffer).
  */
 export function fillStopValues(kind: V7Kind, B: V7Banks, me: Side, op: Side, val: Float64Array): Float64Array {
-  if (kind === "I1RO1") return fillStopValues("I1RO", { banks: [B.dp], dp: B.dp }, me, op, val);
+  const single = SINGLE_BANK[kind];
+  if (single) return fillStopValues(single, { banks: [B.dp], dp: B.dp }, me, op, val);
   const u = Math.min(UPPER_CAP, me.u);
   const opDpCt = creditTable(op.x, pmfOf(B.dp, op.mask, op.u));
   const needSet = kind === "L" || kind === "Lm" || kind === "N" || kind === "MM";
