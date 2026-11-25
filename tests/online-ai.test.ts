@@ -121,7 +121,7 @@ describe("서버 검증 AI 대전", () => {
     expect(delivered[0]).toMatchObject({ outcome: "loss", endReason: "timeout" });
   });
 
-  it("AI 결정은 Workers Free CPU 예산(10 ms) 안: 평균·최악 측정, 미래 주사위를 보지 않는다", () => {
+  it("AI 결정은 Workers Free CPU 예산(10 ms) 안: 스레드 CPU 평균·p99, 미래 주사위를 보지 않는다", () => {
     const times: number[] = [];
     let seed = 7;
     const rnd = () => ((seed = (seed * 1103515245 + 12345) >>> 0) % 6) + 1;
@@ -129,15 +129,17 @@ describe("서버 검증 AI 대전", () => {
       const dice = Array.from({ length: 5 }, rnd);
       const card = Object.fromEntries(categories.filter(() => rnd() <= 2).map((c) => [c, 0]));
       if (Object.keys(card).length === 12) continue;
-      const t0 = performance.now();
+      // Workers Free is a CPU budget. Wall time includes time the shared runner deschedules this test.
+      const start = process.threadCpuUsage();
       const m = serverAiMove(dice, 1 + (i % 3), card);
-      times.push(performance.now() - t0);
+      const cpu = process.threadCpuUsage(start);
+      times.push((cpu.user + cpu.system) / 1000);
       if (m.type === "score") expect(card[m.category]).toBeUndefined();
       else expect(m.keep.every((k) => k >= 0 && k < 5)).toBe(true);
     }
     const sorted = times.slice(5).sort((a, b) => a - b);
     const avg = sorted.reduce((a, b) => a + b, 0) / sorted.length;
-    console.log(`server AI decision: avg ${avg.toFixed(2)} ms, p99 ${sorted[Math.floor(sorted.length * 0.99)].toFixed(2)} ms`);
+    console.log(`server AI decision CPU: avg ${avg.toFixed(2)} ms, p99 ${sorted[Math.floor(sorted.length * 0.99)].toFixed(2)} ms`);
     expect(avg).toBeLessThan(3);
     expect(sorted[Math.floor(sorted.length * 0.99)]).toBeLessThan(8);
     // with three rolls used it must score the best open category
