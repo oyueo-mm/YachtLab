@@ -77,7 +77,7 @@ test("상단과 사이드바에서 상품과 활동으로 이동할 수 있다",
 test("로그인 전에는 상점이 로그인을 안내한다(가짜 잔액 없음)", async ({ page }) => {
   await page.goto(`?online-server=${encodeURIComponent(SERVER)}#shop`);
   await expect(page.getByText("로그인한 회원의 서버 검증 경기로만")).toBeVisible();
-  await expect(page.getByTestId("coins")).toHaveText("–");
+  await expect(page.getByTestId("coins")).toHaveCount(0);
 });
 
 test("상점: 가로 상품 목록·상품군 탭·등급/가격 필터·업적 전용 표시, 상세에서 미리보기 후 확인을 거쳐 구매(요청 ID)", async ({ page }) => {
@@ -92,6 +92,7 @@ test("상점: 가로 상품 목록·상품군 탭·등급/가격 필터·업적 
   await expect(page.getByRole("button", { name: /더 보기/ })).toHaveCount(0);
   await page.getByRole("tab", { name: /^주사위/ }).click();
   await expect(page.getByRole("tab", { name: /^주사위/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("list", { name: "주사위 상품" })).not.toHaveClass(/shop-rail/);
   await expect(page.locator(".item-card")).toHaveCount(29); // every dice design for sale
   await expect(page.locator('[data-item="dice.royal"] .item-card-price .short').first()).toBeVisible(); // not affordable
   await page.getByLabel("등급").selectOption("common");
@@ -149,6 +150,11 @@ test("인벤토리: 장착 미리보기·상품군 탭·기본 이모티콘 4·�
   const order = page.getByRole("list", { name: "이모티콘 순서" });
   await expect(order.locator("li")).toHaveCount(4);
   await order.locator("li").nth(1).getByRole("button", { name: "앞으로" }).click();
+  const tabs = page.getByRole("tablist", { name: "상품 관리" });
+  await tabs.getByRole("tab", { name: "상품" }).click();
+  await tabs.getByRole("tab", { name: "인벤토리" }).click();
+  await expect(page.getByText("저장하지 않은 변경이 있어요")).toBeVisible();
+  await expect(order.locator("li").first()).toContainText("🎉");
   await page.getByRole("tab", { name: /^채팅/ }).click();
   await expect(page.getByText("채팅 장착 6/6")).toBeVisible();
   await page.getByRole("button", { name: "장착 저장" }).click();
@@ -164,6 +170,7 @@ test("퀘스트: 진행도·보상·초기화 시각·하루 1회 교체·받은
   await page.getByRole("button", { name: "요트 기록 교체" }).click();
   await expect(page.getByText("2승")).toBeVisible();
   await expect(page.getByRole("button", { name: /교체$/ })).toHaveCount(0);
+  await page.getByText("최근 재화 내역", { exact: true }).click();
   await expect(page.getByRole("list", { name: "재화 내역" })).toContainText("+20코인");
   await page.goto(`?online-server=${encodeURIComponent(SERVER)}#achievements`);
   await expect(page.getByText("달성 3 /")).toBeVisible();

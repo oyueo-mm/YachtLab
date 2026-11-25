@@ -357,7 +357,7 @@ for (const kind of ["node", "workers"] as const) {
         expect(second[0].recordId).not.toBe(second[1].recordId);
         await expect(a.locator(".online-series")).toContainText("이 방 전적");
         await a.getByRole("button", { name: "결과 닫기" }).click();
-        await a.goto("#profile");
+        await a.goto("#records");
         await expect(a.locator(".profile-recent li")).toHaveCount(2);
       });
 

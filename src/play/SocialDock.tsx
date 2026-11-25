@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { EyeOff, LoaderCircle, MessageCircle, X } from "lucide-react";
 import { allowSocial, newSocialBucket, socialItem, socialRetryMs, type SocialBucket, type SocialItem } from "../social/catalog";
 import { GUEST_LOOK, type PublicLook } from "../economy/live/catalog";
-import { bubbleCssOf } from "./Looks";
+import { PlayerTag, bubbleCssOf } from "./Looks";
 import { getSettings, useSettings } from "../settings";
 import { playEmoteSfx } from "../sound";
 
@@ -41,6 +41,7 @@ const readHidden = () => {
  */
 export function useTableChat(me: string | null) {
   const [feed, setFeed] = useState<FeedEntry[]>([]);
+  const [history, setHistory] = useState<FeedEntry[]>([]);
   const [hideOthers, setHideState] = useState(readHidden);
   const [pending, setPending] = useState<Sent | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
@@ -87,7 +88,9 @@ export function useTableChat(me: string | null) {
       if (!heard.current.has(messageKey)) playEmoteSfx(id);
       heard.current.set(messageKey, now);
     }
-    setFeed((f) => [{ key, from, id, at: Date.now() }, ...f.filter((e) => e.from !== from)].slice(0, FEED_MAX));
+    const entry = { key, from, id, at: now };
+    setFeed((f) => [entry, ...f.filter((e) => e.from !== from)].slice(0, FEED_MAX));
+    setHistory((entries) => [entry, ...entries].slice(0, 20));
     later(() => setFeed((f) => f.filter((e) => e.key !== key)), FEED_MS);
   }, []);
 
@@ -141,7 +144,7 @@ export function useTableChat(me: string | null) {
     setPending(null);
     setWaitUntil(0);
   }, []);
-  const clearFeed = useCallback(() => setFeed([]), []);
+  const clearFeed = useCallback(() => { setFeed([]); setHistory([]); }, []);
 
   const setHideOthers = (v: boolean) => {
     setHideState(v);
@@ -151,7 +154,7 @@ export function useTableChat(me: string | null) {
       /* private mode */
     }
   };
-  return { feed, received, refused, send, reset, clearFeed, pending, feedback, waitUntil, hideOthers, setHideOthers };
+  return { feed, history, received, refused, send, reset, clearFeed, pending, feedback, waitUntil, hideOthers, setHideOthers };
 }
 export type TableChat = ReturnType<typeof useTableChat>;
 
@@ -160,11 +163,13 @@ export type TableChat = ReturnType<typeof useTableChat>;
  * the dice or the roll button. Multi-player tables show who sent it. Bubble styles and emote levels
  * come from the sender's server-validated look; other players' effects follow "상대 아이템 효과".
  */
-export function TableFeed({ chat, names, looks, me }: { chat: TableChat; names: Record<string, string>; looks: Record<string, PublicLook>; me: string | null }) {
+export function TableFeed({ chat, names, looks, me, from, avatars = false }: {
+  chat: TableChat; names: Record<string, string>; looks: Record<string, PublicLook>; me: string | null; from?: string; avatars?: boolean;
+}) {
   const { reducedEffects, opponentFx } = useSettings();
   return (
-    <div className="table-feed" aria-live="polite" aria-label="채팅 메시지">
-      {chat.feed.map((e) => {
+    <div className={from ? "table-feed anchored-feed" : "table-feed"} aria-live="polite" aria-label="채팅 메시지">
+      {chat.feed.filter((entry) => (!from || entry.from === from) && (!chat.hideOthers || entry.from === me)).map((e) => {
         const item = socialItem(e.id);
         if (!item) return null;
         const mine = e.from === me;
@@ -174,14 +179,16 @@ export function TableFeed({ chat, names, looks, me }: { chat: TableChat; names: 
         const css = fxOn ? bubbleCssOf(look) : "";
         return (
           <span key={e.key} className={"feed-msg " + item.kind + (mine ? " mine" : "") + (css ? " " + css : "") + (fxOn && !reducedEffects && item.kind === "emote" ? ` emote-lv${lv}` : "") + (reducedEffects ? " static" : "")} role="status">
-            <b className="feed-from">{mine ? "나" : (names[e.from] ?? "")}</b>
+            <b className="feed-from">{avatars
+              ? <PlayerTag name={mine ? "나" : (names[e.from] ?? "")} look={look} me={mine} compact />
+              : (mine ? "나" : (names[e.from] ?? ""))}</b>
             <span className="feed-text" aria-label={item.kind === "emote" ? item.label : undefined}>
               {item.text}
             </span>
           </span>
         );
       })}
-      {chat.hideOthers && !chat.feed.length && (
+      {!from && chat.hideOthers && (
         <span className="feed-hidden">
           <EyeOff size={13} /> 다른 사람 메시지 숨김
         </span>
@@ -194,8 +201,12 @@ export function TableFeed({ chat, names, looks, me }: { chat: TableChat; names: 
  * The send bar under the board: every equipped emote one tap away, preset chat in a sheet. Only
  * equipped items are offered (the server refuses anything else); disabled while offline.
  */
-export function SocialDock({ chat, look = GUEST_LOOK, online, transport }: { chat: TableChat; look?: PublicLook; online: boolean; transport: (id: string) => boolean }) {
+export function SocialDock({ chat, look = GUEST_LOOK, online, transport, names = {}, me }: {
+  chat: TableChat; look?: PublicLook; online: boolean; transport: (id: string) => boolean;
+  names?: Record<string, string>; me?: string;
+}) {
   const [open, setOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [now, setNow] = useState(Date.now);
   const box = useRef<HTMLDivElement | null>(null);
   const waiting = chat.waitUntil > now;
@@ -238,7 +249,7 @@ export function SocialDock({ chat, look = GUEST_LOOK, online, transport }: { cha
         </button>
       </div>
       <p className={"dock-state" + (chat.feedback?.tone === "error" ? " error" : "")} role="status">
-        {chat.feedback?.text ?? state}
+        {chat.feedback?.text ?? (state || (chat.hideOthers && <span className="feed-hidden"><EyeOff size={13} /> 다른 사람 메시지 숨김</span>))}
       </p>
       {open && (
         <div className="social-panel dock-sheet" role="dialog" aria-label="채팅·이모티콘">
@@ -265,6 +276,12 @@ export function SocialDock({ chat, look = GUEST_LOOK, online, transport }: { cha
           <p className="dock-sheet-state" role="status">
             {chat.feedback?.text ?? state}
           </p>
+          <button type="button" className="text-button" aria-expanded={historyOpen} onClick={() => setHistoryOpen(!historyOpen)}>채팅 기록</button>
+          {historyOpen && <ol className="chat-history" aria-label="채팅 기록">
+            {chat.history.filter((entry) => !chat.hideOthers || entry.from === me).map((entry) => <li key={entry.key}>
+              <strong>{entry.from === me ? "나" : names[entry.from]}</strong> {socialItem(entry.id)?.text}
+            </li>)}
+          </ol>}
           <label className="social-hide">
             <input type="checkbox" checked={chat.hideOthers} onChange={(e) => chat.setHideOthers(e.target.checked)} />
             다른 사람 메시지 숨기기

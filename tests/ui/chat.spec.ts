@@ -54,7 +54,7 @@ async function watchFeed(p: Page) {
   const seen: string[] = [];
   await p.exposeFunction("__feed", (t: string) => seen.push(t));
   await p.evaluate(() => {
-    const report = () => document.querySelectorAll(".table-feed .feed-msg").forEach((n) => (window as unknown as { __feed(t: string): void }).__feed((n.querySelector(".feed-from")?.textContent ?? "") + "|" + (n.querySelector(".feed-text")?.textContent ?? "")));
+    const report = () => document.querySelectorAll(".table-feed .feed-msg").forEach((n) => (window as unknown as { __feed(t: string): void }).__feed(((n.querySelector(".feed-from .player-name") ?? n.querySelector(".feed-from"))?.textContent ?? "") + "|" + (n.querySelector(".feed-text")?.textContent ?? "")));
     new MutationObserver(report).observe(document.body, { subtree: true, childList: true });
   });
   return seen;
@@ -96,7 +96,7 @@ test("게스트 PC↔휴대폰: 기본 이모티콘 4·채팅 6 전부 양방향
   for (const p of [pc, phone]) await expect(p.locator(".roll-button")).toBeVisible({ timeout: 15_000 });
   const seenPc = await watchFeed(pc);
   const seenPhone = await watchFeed(phone);
-  // the bar sits under the board; a message must not move the board or the roll button
+  // the bar sits next to the player summary; a message must not move the board or the roll button
   const before = { board: await phone.locator(".game-board").boundingBox(), roll: await phone.locator(".roll-button").boundingBox() };
   for (const [p, other] of [[pc, seenPhone], [phone, seenPc]] as const) {
     const name = p === pc ? "피씨" : "폰";
@@ -111,9 +111,9 @@ test("게스트 PC↔휴대폰: 기본 이모티콘 4·채팅 6 전부 양방향
   }
   expect({ board: await phone.locator(".game-board").boundingBox(), roll: await phone.locator(".roll-button").boundingBox() }).toEqual(before);
   // the feed never covers the dice area or the roll button
-  const feed = (await phone.locator(".table-feed").boundingBox())!;
-  const board = (await phone.locator(".game-board").boundingBox())!;
-  expect(feed.y).toBeGreaterThanOrEqual(board.y + board.height - 1);
+  await expect(phone.locator(".social-seat .anchored-feed")).toHaveCount(2);
+  expect(await phone.locator(".table-chat.near-profile").evaluate((dock) => dock.getBoundingClientRect().bottom))
+    .toBeLessThanOrEqual((await phone.locator(".game-board").boundingBox())!.y + 1);
 
   // fast taps: the bar says how long to wait and does not send (the server would refuse it)
   await expect(pc.locator(".dock-state")).not.toContainText("초 뒤");

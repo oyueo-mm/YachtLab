@@ -65,6 +65,8 @@ test("저장된 1:1 기보의 게임 리뷰에서 그래프와 다시 도전을 
   release();
   await page.unroute(workerModule);
   await review.getByRole("button", { name: "분석 다시 시도" }).click();
+  await expect(review.getByRole("tabpanel", { name: "기본 리뷰" })).toBeVisible();
+  await review.getByRole("tab", { name: "상세 분석" }).click();
   await expect(review.getByRole("group", { name: "기대 최종점수 그래프" })).toBeVisible({ timeout: 30_000 });
   await expect(review.getByText(/굴림 운/)).toBeVisible();
   await expect(review.getByRole("main")).toBeVisible();
@@ -119,6 +121,7 @@ test("온라인 경기 중 복기는 숨기고 서버가 종료한 본인 경기
     await other.getByRole("button", { name: "기권", exact: true }).click();
     await other.getByRole("dialog").getByRole("button", { name: "기권", exact: true }).click();
     await page.getByRole("button", { name: "게임 리뷰" }).click();
+    await page.getByRole("tab", { name: "상세 분석" }).click();
     await expect(page.getByRole("group", { name: "기대 최종점수 그래프" })).toBeVisible({ timeout: 30_000 });
   } finally {
     await guest.close();
@@ -131,6 +134,7 @@ test("v5-R 시험 리뷰는 중반 추정과 정확 종반을 구분하고 값�
   await seedReview(page, true);
   await page.getByRole("button", { name: "게임 리뷰" }).click();
   const review = page.getByRole("dialog", { name: "게임 리뷰" });
+  await review.getByRole("tab", { name: "상세 분석" }).click();
   const win = review.getByRole("group", { name: "승리점수율 그래프" });
   await expect(win).toBeVisible({ timeout: 35_000 });
   await expect(review.getByText("모델 추정", { exact: true })).toBeVisible();

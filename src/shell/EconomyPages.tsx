@@ -1,11 +1,12 @@
 import ShopRail from "./ShopRail";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, Check, Coins, Gem, LoaderCircle, RefreshCw, Sparkles, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Coins, Gem, RefreshCw, Sparkles, X } from "lucide-react";
 import { ACHIEVEMENTS, ECONOMY, QUESTS, SLOTS, TIERS, nextDayStart, nextWeekStart, type TierId } from "../economy/live/config";
 import { CATEGORIES, DEFAULT_LOADOUT, ITEMS, SINGLE_SLOTS, itemById, priceOf, publicLook, slotPrice, upgradeCost, type ItemCategory, type ItemDef, type Loadout } from "../economy/live/catalog";
 import { EconomyError, buy, buySlot, economy, rerollQuest, saveLoadout, signedIn, upgrade, type Snapshot } from "../identity/economy-client";
 import { PlayerTag } from "../play/Looks";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { BrandMark } from "../ui/BrandLoading";
 import { useNickname } from "../identity/display-name";
 import { ItemStage, ItemThumb, LevelTabs, categoryLabel, tierLabel } from "./ItemViews";
 import type { Route } from "../routes";
@@ -61,19 +62,6 @@ function Gate({ server, go, children }: { server: string | null; go: Go; childre
   return <>{children}</>;
 }
 
-export function WalletBar({ snap }: { snap: Snapshot | null }) {
-  return (
-    <div className="wallet-bar" aria-label="보유 재화">
-      <span>
-        <Coins size={15} /> <strong data-testid="coins">{snap ? snap.wallet.coins.toLocaleString() : "–"}</strong> 코인
-      </span>
-      <span>
-        <Gem size={15} /> <strong data-testid="gems">{snap ? snap.wallet.gems.toLocaleString() : "–"}</strong> 보석
-      </span>
-    </div>
-  );
-}
-
 const ownedMap = (snap: Snapshot | null) => new Map((snap?.inventory ?? []).map((i) => [i.id, i.level]));
 const fmt = (n: number) => n.toLocaleString();
 type Owned = ReadonlyMap<string, number>;
@@ -86,6 +74,7 @@ function ItemCard({ item, owned, level, badge, price, onOpen }: { item: ItemDef;
       <button type="button" className="item-card-button" onClick={onOpen} aria-label={`${item.name} 자세히`}>
         <ItemThumb item={item} level={level} />
         <span className="item-card-name">{item.name}</span>
+        <span className="item-preview-label">효과 미리보기</span>
         <span className="item-card-meta">
           <span className={"tier-chip tier-" + item.tier}>{tierLabel(item.tier)}</span>
           {item.maxLevel > 1 && <span className="lv-chip">Lv.{owned ? level : 1}/{item.maxLevel}</span>}
@@ -140,9 +129,9 @@ function ItemDetail({ item, initialLevel, unlocked, onClose, children }: { item:
             <X size={18} />
           </button>
         </div>
-        <LevelTabs item={item} level={level} setLevel={setLevel} unlocked={unlocked} />
         <ItemStage item={item} level={level} />
-        {item.levels && descriptions && <p className="item-level-note">Lv.{level} · {descriptions[level - 1]}</p>}
+        <LevelTabs item={item} level={level} setLevel={setLevel} unlocked={unlocked} />
+        {descriptions && <p className="item-level-note">Lv.{level} · {descriptions[level - 1]}</p>}
         <div className="item-detail-actions">{children(level)}</div>
       </div>
     </div>
@@ -153,8 +142,24 @@ function ItemDetail({ item, initialLevel, unlocked, onClose, children }: { item:
 
 type PriceFilter = "all" | "coins" | "gems" | "afford";
 
-export function ShopPage({ server, go }: { server: string | null; go: Go }) {
-  const { snap, error, busy, act } = useEconomy(server);
+type EconomyState = ReturnType<typeof useEconomy>;
+type EconomyProps = { server: string | null; go: Go; economyState: EconomyState; active: boolean };
+
+export function ItemsPage({ server, go, route }: { server: string | null; go: Go; route: "shop" | "inventory" }) {
+  const economyState = useEconomy(server);
+  return <section className="econ-page items-hub" aria-labelledby="items-title">
+    <h1 id="items-title">상점과 인벤토리</h1>
+    <div className="item-tabs" role="tablist" aria-label="상품 관리">
+      <button type="button" role="tab" aria-selected={route === "shop"} onClick={() => route !== "shop" && go("shop")}>상품</button>
+      <button type="button" role="tab" aria-selected={route === "inventory"} onClick={() => route !== "inventory" && go("inventory")}>인벤토리</button>
+    </div>
+    <ShopPage server={server} go={go} economyState={economyState} active={route === "shop"} />
+    <InventoryPage server={server} go={go} economyState={economyState} active={route === "inventory"} />
+  </section>;
+}
+
+function ShopPage({ server, go, economyState, active }: EconomyProps) {
+  const { snap, error, busy, act } = economyState;
   const [cat, setCat] = useState<ItemCategory | null>(null);
   const [tier, setTier] = useState<TierId | "all">("all");
   const [price, setPrice] = useState<PriceFilter>("all");
@@ -204,12 +209,9 @@ export function ShopPage({ server, go }: { server: string | null; go: Go }) {
   const cards = (items: ItemDef[]) => items.map((item) => (
     <ItemCard key={item.id} item={item} owned={owned.has(item.id)} level={owned.get(item.id) ?? 1} badge={owned.has(item.id) ? "보유 중" : undefined} price={priceLine(item)} onOpen={() => setOpen(item)} />
   ));
+  if (!active) return null;
   return (
-    <section className="econ-page shop-page" aria-labelledby="shop-title">
-      <div className="econ-head">
-        <h1 id="shop-title">상점</h1>
-        <WalletBar snap={snap} />
-      </div>
+    <section className="shop-page" role="tabpanel" aria-label="상품">
       <Gate server={server} go={go}>
         <CategoryTabs value={cat} onChange={setCat} counts={counts} all={() => setCat(null)} />
         <div className="econ-filters">
@@ -228,6 +230,7 @@ export function ShopPage({ server, go }: { server: string | null; go: Go }) {
             <option value="afford">지금 살 수 있는 것</option>
           </select>
         </div>
+        {busy && <p className="econ-note" role="status"><BrandMark /> 처리 중…</p>}
         {notice && <p className="econ-ok" role="status">{notice}</p>}
         {error && (
           <p className="error-message" role="alert">
@@ -241,7 +244,10 @@ export function ShopPage({ server, go }: { server: string | null; go: Go }) {
           return (
             <section className="shop-section" aria-labelledby={`shop-section-${id}`} key={id}>
               <h2 id={`shop-section-${id}`}>{label}</h2>
-              <ShopRail label={label}>{cards(items)}</ShopRail>
+              {cat === id ? <ul className="item-grid" aria-label={label + " 상품"}>{cards(items)}</ul> : <>
+                <button type="button" className="text-button shop-view-all" onClick={() => setCat(id)}>{label} 전체 보기</button>
+                <ShopRail label={label}>{cards(items)}</ShopRail>
+              </>}
             </section>
           );
         })}
@@ -273,7 +279,7 @@ export function ShopPage({ server, go }: { server: string | null; go: Go }) {
           })}
         </div>
       </Gate>
-      {open && (
+      {active && open && (
         <ItemDetail item={open} initialLevel={1} onClose={() => setOpen(null)}>
           {() => {
             const i = open;
@@ -318,7 +324,7 @@ export function ShopPage({ server, go }: { server: string | null; go: Go }) {
         </ItemDetail>
       )}
       <ConfirmDialog
-        open={!!confirm}
+        open={active && !!confirm}
         title="구매할까요?"
         message={confirm ? `${confirm.item.name} · ${confirm.currency === "coins" ? "코인" : "보석"} ${fmt(confirm.amount)}개를 써요.` : ""}
         confirmLabel="구매"
@@ -336,17 +342,16 @@ export function ShopPage({ server, go }: { server: string | null; go: Go }) {
 
 /* ---------------------------------------------------------------- inventory ---------------------------------------------------------------- */
 
-export function InventoryPage({ server, go }: { server: string | null; go: Go }) {
-  const { snap, error, busy, act } = useEconomy(server);
-  const [draft, setDraft] = useState<Loadout | null>(null);
+function InventoryPage({ server, go, economyState, active }: EconomyProps) {
+  const { snap, error, busy, act } = economyState;
+  const [changes, setChanges] = useState<Loadout | null>(null);
+  const draft = changes ?? snap?.loadout ?? null;
   const [saved, setSaved] = useState("");
   const [cat, setCat] = useState<ItemCategory>("dice");
   const [open, setOpen] = useState<ItemDef | null>(null);
   const [confirmUp, setConfirmUp] = useState<{ item: ItemDef; cost: number; to: number } | null>(null);
   const name = useNickname();
-  useEffect(() => {
-    if (snap) setDraft(snap.loadout);
-  }, [snap]);
+
   const owned = ownedMap(snap);
   const mine = ITEMS.filter((i) => !i.retired && isOwned(i, owned));
   const counts = Object.fromEntries(CATEGORIES.map((c) => [c.id, mine.filter((i) => i.category === c.id).length])) as Record<ItemCategory, number>;
@@ -354,7 +359,7 @@ export function InventoryPage({ server, go }: { server: string | null; go: Go })
   const save = async () => {
     if (!draft) return;
     const r = await act(() => saveLoadout(server!, draft), "장착을 저장했어요. 다음 경기부터 상대에게 보여요.");
-    if (r) setSaved(r);
+    if (r) { setChanges((current) => current === draft ? null : current); setSaved(r); }
   };
   const isEquipped = (i: ItemDef) => {
     if (!draft) return false;
@@ -363,7 +368,8 @@ export function InventoryPage({ server, go }: { server: string | null; go: Go })
     return draft[i.category as (typeof SINGLE_SLOTS)[number]] === i.id;
   };
   const toggle = (i: ItemDef) =>
-    setDraft((d) => {
+    setChanges((current) => {
+      const d = current ?? draft;
       if (!d || !snap) return d;
       if (i.category === "emote" || i.category === "chat") {
         const key = i.category === "emote" ? "emotes" : "chats";
@@ -378,7 +384,8 @@ export function InventoryPage({ server, go }: { server: string | null; go: Go })
       return { ...d, [slot]: i.id };
     });
   const move = (key: "emotes" | "chats", i: number, step: -1 | 1) =>
-    setDraft((d) => {
+    setChanges((current) => {
+      const d = current ?? draft;
       if (!d) return d;
       const list = [...d[key]];
       const j = i + step;
@@ -388,16 +395,13 @@ export function InventoryPage({ server, go }: { server: string | null; go: Go })
     });
   const shownLevel = (i: ItemDef) => (draft?.levels[i.id] ?? owned.get(i.id) ?? 1);
   const listKind = cat === "emote" || cat === "chat" ? cat : null;
+  if (!active) return null;
   return (
-    <section className="econ-page inventory-page" aria-labelledby="inv-title">
-      <div className="econ-head">
-        <h1 id="inv-title">인벤토리</h1>
-        <WalletBar snap={snap} />
-      </div>
+    <section className="inventory-page" role="tabpanel" aria-label="인벤토리">
       <Gate server={server} go={go}>
         {!snap || !draft ? (
           <p className="econ-note" role="status">
-            <LoaderCircle size={15} className="spin" /> 불러오는 중…
+            <BrandMark /> 불러오는 중…
           </p>
         ) : (
           <>
@@ -417,6 +421,7 @@ export function InventoryPage({ server, go }: { server: string | null; go: Go })
                 <small>{dirty ? "저장하지 않은 변경이 있어요" : "저장된 장착"}</small>
               </div>
             </div>
+            {busy && <p className="econ-note" role="status"><BrandMark /> 저장 중…</p>}
             {saved && <p className="econ-ok" role="status">{saved}</p>}
             {error && (
               <p className="error-message" role="alert">
@@ -457,6 +462,7 @@ export function InventoryPage({ server, go }: { server: string | null; go: Go })
                     <button type="button" className="item-card-button" onClick={() => setOpen(i)} aria-label={`${i.name} 자세히`}>
                       <ItemThumb item={i} level={shownLevel(i)} />
                       <span className="item-card-name">{i.name}</span>
+                      <span className="item-preview-label">효과 미리보기</span>
                       <span className="item-card-meta">
                         <span className={"tier-chip tier-" + i.tier}>{tierLabel(i.tier)}</span>
                         {i.maxLevel > 1 && (
@@ -472,13 +478,10 @@ export function InventoryPage({ server, go }: { server: string | null; go: Go })
                   </li>
                 ))}
             </ul>
-            <button type="button" className="text-button" onClick={() => go("shop")}>
-              더 많은 아이템 보러 가기 (상점)
-            </button>
           </>
         )}
       </Gate>
-      {open && snap && draft && (
+      {active && open && snap && draft && (
         <ItemDetail item={open} initialLevel={shownLevel(open)} unlocked={owned.get(open.id) ?? 1} onClose={() => setOpen(null)}>
           {(previewLevel) => {
             const i = open;
@@ -491,7 +494,7 @@ export function InventoryPage({ server, go }: { server: string | null; go: Go })
                   {isEquipped(i) ? "장착 해제" : "장착"}
                 </button>
                 {i.maxLevel > 1 && (
-                  <button type="button" className="secondary" disabled={!pickable || shownLevel(i) === previewLevel} onClick={() => setDraft({ ...draft, levels: { ...draft.levels, [i.id]: previewLevel } })}>
+                  <button type="button" className="secondary" disabled={!pickable || shownLevel(i) === previewLevel} onClick={() => setChanges({ ...draft, levels: { ...draft.levels, [i.id]: previewLevel } })}>
                     {pickable ? `Lv.${previewLevel} 모습으로 표시` : `Lv.${previewLevel}은 강화 후 사용`}
                   </button>
                 )}
@@ -507,7 +510,7 @@ export function InventoryPage({ server, go }: { server: string | null; go: Go })
         </ItemDetail>
       )}
       <ConfirmDialog
-        open={!!confirmUp}
+        open={active && !!confirmUp}
         title="강화할까요?"
         message={confirmUp ? `${confirmUp.item.name}을(를) Lv.${confirmUp.to}로 강화해요 · 코인 ${fmt(confirmUp.cost)}개` : ""}
         confirmLabel="강화"
@@ -530,7 +533,8 @@ const until = (t: number) => {
   return m >= 1440 ? `${Math.floor(m / 1440)}일 ${Math.floor((m % 1440) / 60)}시간` : `${Math.floor(m / 60)}시간 ${m % 60}분`;
 };
 
-export function QuestsPage({ server, go }: { server: string | null; go: Go }) {
+export function QuestsPage({ server, go, achievements }: { server: string | null; go: Go; achievements: boolean }) {
+  const [period, setPeriod] = useState<"daily" | "weekly">("daily");
   const { snap, error, busy, act } = useEconomy(server);
   const row = (q: { id: string; progress: number; done: boolean }, i: number, period: "daily" | "weekly") => {
     const def = QUESTS.find((d) => d.id === q.id);
@@ -565,7 +569,11 @@ export function QuestsPage({ server, go }: { server: string | null; go: Go }) {
     <section className="econ-page" aria-labelledby="quest-title">
       <div className="econ-head">
         <h1 id="quest-title">퀘스트</h1>
-        <WalletBar snap={snap} />
+      </div>
+      <div className="item-tabs" role="tablist" aria-label="퀘스트 종류">
+        <button type="button" role="tab" aria-selected={!achievements && period === "daily"} onClick={() => { setPeriod("daily"); if (achievements) go("quests"); }}>일일</button>
+        <button type="button" role="tab" aria-selected={!achievements && period === "weekly"} onClick={() => { setPeriod("weekly"); if (achievements) go("quests"); }}>주간</button>
+        <button type="button" role="tab" aria-selected={achievements} onClick={() => !achievements && go("achievements")}>업적</button>
       </div>
       <Gate server={server} go={go}>
         {error && (
@@ -575,26 +583,22 @@ export function QuestsPage({ server, go }: { server: string | null; go: Go }) {
         )}
         {!snap ? (
           <p className="econ-note" role="status">
-            <LoaderCircle size={15} className="spin" /> 불러오는 중…
+            <BrandMark /> 불러오는 중…
           </p>
         ) : (
           <>
-            <h2 className="econ-sub">
-              일일 퀘스트 <small>{until(nextDayStart(Date.now()))} 뒤 초기화 · 매일 00:00(한국 시간)</small>
-            </h2>
-            <ul className="quest-list">{snap.state.daily.map((q, i) => row(q, i, "daily"))}</ul>
-            <p className="econ-note">
-              모두 완료하면 {ECONOMY.quests.dailyAllBonus.coins}코인·보석 {ECONOMY.quests.dailyAllBonus.gems} {snap.state.dailyAll ? "(받음)" : ""} · 하루 한 번 무료 교체
-            </p>
-            <h2 className="econ-sub">
-              주간 퀘스트 <small>{until(nextWeekStart(Date.now()))} 뒤 초기화 · 매주 월요일 00:00</small>
-            </h2>
-            <ul className="quest-list">{snap.state.weekly.map((q, i) => row(q, i, "weekly"))}</ul>
-            <p className="econ-note">
-              모두 완료하면 {ECONOMY.quests.weeklyAllBonus.coins}코인·보석 {ECONOMY.quests.weeklyAllBonus.gems} {snap.state.weeklyAll ? "(받음)" : ""}
-            </p>
+            {achievements ? <AchievementsPanel snap={snap} /> : <div role="tabpanel" aria-label={period === "daily" ? "일일" : "주간"}>
+              <h2 className="econ-sub">
+                {period === "daily" ? "일일 퀘스트" : "주간 퀘스트"} <small>{until(period === "daily" ? nextDayStart(Date.now()) : nextWeekStart(Date.now()))} 뒤 초기화 · {period === "daily" ? "매일" : "매주 월요일"} 00:00(한국 시간)</small>
+              </h2>
+              <ul className="quest-list">{snap.state[period].map((q, i) => row(q, i, period))}</ul>
+              <p className="econ-note">
+                모두 완료하면 {period === "daily" ? ECONOMY.quests.dailyAllBonus.coins : ECONOMY.quests.weeklyAllBonus.coins}코인·보석 {period === "daily" ? ECONOMY.quests.dailyAllBonus.gems : ECONOMY.quests.weeklyAllBonus.gems} {snap.state[period === "daily" ? "dailyAll" : "weeklyAll"] ? "(받음)" : ""}
+              </p>
+            </div>}
             <p className="econ-note">빠른 대전·친구 대전·서버 AI 대전을 끝까지 마친 경기만 진행돼요. 로컬 AI·로컬 대전·본인 기권은 포함되지 않아요.</p>
-            <h2 className="econ-sub">최근 받은 보상</h2>
+            {!achievements && <details className="economy-ledger">
+            <summary>최근 재화 내역</summary>
             <ul className="ledger" aria-label="재화 내역">
               {snap.ledger.length === 0 && <li className="econ-note">아직 내역이 없어요.</li>}
               {snap.ledger.map((l) => (
@@ -606,6 +610,7 @@ export function QuestsPage({ server, go }: { server: string | null; go: Go }) {
                 </li>
               ))}
             </ul>
+            </details>}
           </>
         )}
       </Gate>
@@ -615,8 +620,7 @@ export function QuestsPage({ server, go }: { server: string | null; go: Go }) {
 
 /* -------------------------------------------------------------- achievements -------------------------------------------------------------- */
 
-export function AchievementsPage({ server, go }: { server: string | null; go: Go }) {
-  const { snap, error } = useEconomy(server);
+function AchievementsPanel({ snap }: { snap: Snapshot }) {
   const got = new Set(snap?.state.achievements ?? []);
   const groups: [string, string][] = [
     ["cumulative", "누적"],
@@ -626,17 +630,7 @@ export function AchievementsPage({ server, go }: { server: string | null; go: Go
     ["special", "숨김 도전"],
   ];
   return (
-    <section className="econ-page" aria-labelledby="ach-title">
-      <div className="econ-head">
-        <h1 id="ach-title">업적</h1>
-        <WalletBar snap={snap} />
-      </div>
-      <Gate server={server} go={go}>
-        {error && (
-          <p className="error-message" role="alert">
-            {error}
-          </p>
-        )}
+    <div role="tabpanel" aria-label="업적">
         <p className="econ-note">
           달성 {got.size} / {ACHIEVEMENTS.length} · 업적 진행은 하루 {ECONOMY.daily.achievementMatches}경기까지 집계해요.
         </p>
@@ -664,7 +658,6 @@ export function AchievementsPage({ server, go }: { server: string | null; go: Go
             </ul>
           </div>
         ))}
-      </Gate>
-    </section>
+    </div>
   );
 }
