@@ -1,0 +1,1 @@
+{"encoding":"mlp512.f64bank","storedMB":284.2,"positions":4023,"actionAgreement":0.9507829977628636,"materialDisagreement":0.04822271936365896,"meanRegret":0.0001290605920036149,"maxRegret":0.029781374754202228,"maxValueError":0.07612652367723594,"nearTies":593,"nearTieAgreement":0.8195615514333895,"extremePositions":524,"extremeMaxValueError":0.010773484581742116}
