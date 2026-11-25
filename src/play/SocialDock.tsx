@@ -249,7 +249,7 @@ export function SocialDock({ chat, look = GUEST_LOOK, online, transport, names =
         </button>
       </div>
       <p className={"dock-state" + (chat.feedback?.tone === "error" ? " error" : "")} role="status">
-        {chat.feedback?.text ?? state}
+        {chat.feedback?.text ?? (state || (chat.hideOthers && <span className="feed-hidden"><EyeOff size={13} /> 다른 사람 메시지 숨김</span>))}
       </p>
       {open && (
         <div className="social-panel dock-sheet" role="dialog" aria-label="채팅·이모티콘">
