@@ -33,7 +33,7 @@ export type Assessment = {
   distribution?: { difference: number; mass: number }[];
 };
 
-export const reviewModel = { name: "DP Expert · 기대 최종점수", version: "yachtlab-dp-review-v1" } as const;
+export const reviewModel = { name: "DP Expert 기대점수 · Win DP v5 종반 승리점수율", version: "yachtlab-review-v2" } as const;
 
 export type ReviewEvent =
   | { type: "progress"; completed: number }

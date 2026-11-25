@@ -1,8 +1,10 @@
+import { winDPv5Decision } from "../src/research-v5/apex";
+import { PolicyPmfBank } from "../src/research-v5/policy-pmf";
 import { gunzipSync } from "node:zlib";
 import { readFileSync } from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
 import manifest from "../src/dp-manifest.json";
-import { dpActionValue, dpDecision, setDPTable } from "../src/dp";
+import { choiceIndex, dpActionValue, dpDecision, dpFutureValue, setDPTable } from "../src/dp";
 import { categories, createGame, transition, type Game } from "../src/engine";
 import { appendFrame, newReplay } from "../src/replay";
 import { fromReplay } from "../src/review/sources";
@@ -65,4 +67,21 @@ describe("DP Expert review", () => {
     expect(report.steps[0].before.cards).toEqual([{}, {}]);
     expect(JSON.stringify(report)).not.toMatch(/"rng"|"seed"/);
   });
+});
+
+it("cross-checks v5 win credit for final-turn scoring and every canonical re-roll", () => {
+  const zero = Object.fromEntries(categories.map((category) => [category, 0]));
+  const { sixes: _six, ...own } = zero;
+  const { choice: _choice, ...other } = zero;
+  const state: Game = { ...transition(createGame(21), { type: "roll" }), cards: [own, other] };
+  const independent = winDPv5Decision(state, {
+    bank: new PolicyPmfBank("unused by minimax", dpFutureValue), dpValue: dpFutureValue,
+    endgame: "minimax", minimaxWindow: 1,
+  });
+  const reviewed = assessSituation({ before: position(state), action: { type: "score", category: "sixes" } }, 0);
+  for (const item of independent.analysis) {
+    const index = item.kind === "score" ? choiceIndex({ type: "score", category: item.category! }) : choiceIndex({ type: "reroll", ids: item.ids! });
+    const option = reviewed.options.find((entry) => choiceIndex(entry.action) === index);
+    expect(option?.winCredit).toBeCloseTo(item.winCredit, 10);
+  }
 });

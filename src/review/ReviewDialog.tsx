@@ -100,6 +100,7 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
   const previous = localSummaries.filter((item) => item.model === reviewModel.version && JSON.stringify(item.players) === JSON.stringify(match.players))
     .sort((a, b) => a.at - b.at);
   const turnRolls = rows.filter((entry) => entry.actual.action.type === "score").map((entry) => match.steps[entry.index].before.rolls);
+  const bestWin = result?.options.reduce((best, option) => (option.winCredit ?? -1) > (best.winCredit ?? -1) ? option : best);
   const bonusGap = Math.max(0, 63 - upper(state.cards[state.player]));
   const average = rows.length ? rows.reduce((sum, entry) => sum + entry.loss, 0) / rows.length : 0;
   const chooseAlternative = (option: Value) => {
@@ -148,7 +149,7 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
         </details>}
         <Chart rows={rows} selected={selected} change={select} label="기대점수 그래프" value={(entry) => entry.actual.expected} />
         <Chart rows={rows} selected={selected} change={select} label="종반 승리점수율 그래프" value={(entry) => entry.actual.winCredit === undefined ? undefined : entry.actual.winCredit * 100} />
-        {biggest.length > 0 && <div className="review-mistakes">
+        {!quiz && biggest.length > 0 && <div className="review-mistakes">
           <strong>가장 큰 기대점수 손실</strong>
           {biggest.map((entry) => <button type="button" className="text-button" key={entry.index} onClick={() => select(entry.index)}>
             {match.steps[entry.index].before.round}라운드 · {actionName(entry.actual.action, match.steps[entry.index].before)} · {fmt(entry.loss)}점
@@ -167,7 +168,8 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
           <Dice state={state} />
           <p>{quiz ? "당시 점수판을 보고 선택해 보세요." : `실제 행동 · ${actionName(step.action, step.before)}`}</p>
           {!quiz && result && <>
-            <p>추천 · {actionName(result.options[0].action, step.before)} · 기대점수 {fmt(result.options[0].expected)}점</p>
+            <p>기대점수 추천 · {actionName(result.options[0].action, step.before)} · {fmt(result.options[0].expected)}점</p>
+            {bestWin?.winCredit !== undefined && <p>종반 승리점수율 추천 · {actionName(bestWin.action, step.before)} · {fmt(bestWin.winCredit * 100)}%</p>}
             <p>{result.loss === 0 ? "최선과 동률" : "기대점수 손실"} · 결정 손실 {fmt(result.loss)}점{result.luck === undefined ? "" : ` · 굴림 운 ${result.luck >= 0 ? "+" : ""}${fmt(result.luck)}점`}</p>
           </>}
           {result && !quiz && <p>상단 보너스까지 {bonusGap}점 · 남은 상단 칸 {categories.slice(0, 6).filter((category) => state.cards[state.player][category] === undefined).length}개</p>}

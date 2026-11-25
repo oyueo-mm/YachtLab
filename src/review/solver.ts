@@ -1,6 +1,7 @@
 import { choiceIndex, dpActionValues, type Choice } from "../dp";
 import { dpOpponentGains } from "../competitive-v2";
 import { categories, createGame, score, total, upper, type Card } from "../engine";
+import { finalTurnWinCredit } from "./endgame";
 import type { Assessment, Position, Situation, Value } from "./model";
 
 const legalValues = (position: Position) => dpActionValues({ ...createGame(0), ...position });
@@ -37,22 +38,18 @@ function scoreDifference(own: Card, other: Card) {
 export function assessSituation(situation: Situation, index: number): Assessment {
   const { before, action, afterRoll } = situation;
   const q = legalValues(before);
+  const endgame = finalTurnWinCredit(before);
   const actualIndex = choiceIndex(action);
   if (!Number.isFinite(q[actualIndex])) throw Error("기보에 평가할 수 없는 행동이 있어요.");
   let distribution: Assessment["distribution"];
   const options = q.flatMap((expected, id): Value[] => {
     if (!Number.isFinite(expected)) return [];
     const candidate = choiceAt(id);
-    let winCredit: number | undefined;
-    // At the final roll every legal alternative is a score. Earlier alternatives can
-    // re-roll and have no comparable probability estimate in this adapter.
-    if (!before.simultaneous && before.rolls === 3 && candidate.type === "score") {
+    if (!before.simultaneous && id === actualIndex && candidate.type === "score") {
       const card = { ...before.cards[before.player], [candidate.category]: score(before.dice.map((die) => die.value), candidate.category) };
-      const diffs = scoreDifference(card, before.cards[1 - before.player]);
-      winCredit = diffs?.reduce((sum, item) => sum + item.mass * (item.difference > 0 ? 1 : item.difference === 0 ? .5 : 0), 0);
-      if (id === actualIndex) distribution = diffs;
+      distribution = scoreDifference(card, before.cards[1 - before.player]);
     }
-    return [{ action: candidate, expected, winCredit }];
+    return [{ action: candidate, expected, winCredit: endgame?.[id] }];
   }).sort((a, b) => b.expected - a.expected);
   const actual = options.find((option) => choiceIndex(option.action) === actualIndex)!;
   const delta = options[0].expected - actual.expected;

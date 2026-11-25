@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { startOnlineServer } from "../../server/online/server";
+import { scoreCategory } from "./helpers";
 import { categories, createGame, transition, type Action } from "../../src/engine";
 import type { Replay } from "../../src/replay";
 
@@ -50,4 +52,35 @@ test("저장된 1:1 기보의 Worker 복기에서 그래프와 복습을 선택�
   const win = review.getByRole("group", { name: "종반 승리점수율 그래프" });
   await win.getByRole("button").last().click();
   await expect(review.getByText("최종 점수차 분포")).toBeVisible();
+});
+
+test("온라인 경기 중 복기는 숨기고 서버가 종료한 본인 경기를 분석한다", async ({ page, browser, baseURL }) => {
+  const origin = new URL(baseURL!).origin;
+  const worker = await startOnlineServer({ port: 0, dataDir: null, allowedOrigins: [origin] });
+  const guest = await browser.newContext({ baseURL, reducedMotion: "reduce" });
+  try {
+    await page.addInitScript(() => localStorage.setItem("yachtlab.visited.v1", "1"));
+    const other = await guest.newPage();
+    await other.addInitScript(() => localStorage.setItem("yachtlab.visited.v1", "1"));
+    const entry = `?online-server=${encodeURIComponent(worker.url)}`;
+    await page.goto(entry + "#online");
+    await page.getByRole("button", { name: "방 만들기", exact: true }).click();
+    const lobby = page.getByRole("region", { name: "대기실" });
+    const invite = lobby.getByLabel("초대 코드", { exact: true });
+    await expect(invite).toHaveText(/^[A-Z2-9]{6}$/);
+    await other.goto(entry + "&room=" + await invite.innerText() + "#online");
+    await other.getByRole("button", { name: "입장하기", exact: true }).click();
+    await other.getByRole("heading", { name: "대기실" }).waitFor();
+    await lobby.getByRole("button", { name: "게임 시작", exact: true }).click();
+    await page.locator(".roll-button").click();
+    await scoreCategory(page, "choice");
+    await expect(page.getByRole("button", { name: "AI 복기" })).toHaveCount(0);
+    await other.getByRole("button", { name: "기권", exact: true }).click();
+    await other.getByRole("dialog").getByRole("button", { name: "기권", exact: true }).click();
+    await page.getByRole("button", { name: "AI 복기" }).click();
+    await expect(page.getByRole("group", { name: "기대점수 그래프" })).toBeVisible({ timeout: 30_000 });
+  } finally {
+    await guest.close();
+    await worker.close();
+  }
 });
