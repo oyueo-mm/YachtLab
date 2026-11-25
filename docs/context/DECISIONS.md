@@ -310,3 +310,5 @@
 근거: [PR #62 병합 후 main CI](https://github.com/oyueo-mm/YachtLab/actions/runs/45530495861), `src/yacht-moment.tsx`, `tests/ui/game-shell.spec.ts`, `tests/ui/game-flow.spec.ts`. [PR #63 첫 실행](https://github.com/oyueo-mm/YachtLab/actions/runs/45548310144)에서 3D 테스트의 동일한 마지막 로그 가정을 추가로 확인했다.
 
 PR #63 두 번째 실행에서는 공유 러너의 벽시계 시간을 측정하던 기존 서버 AI CPU 검사(p99 9.24ms, 기준 8ms)가 실패했다. 테스트를 Node 24의 스레드 CPU 사용량으로 측정하도록 맞추고 평균 3ms·p99 8ms 기준과 같은 입력·합법 수 검증은 유지한다. 운영 Worker의 CPU 한도·AI 정책은 변경하지 않는다. [실패 실행](https://github.com/oyueo-mm/YachtLab/actions/runs/45551196784)
+
+백그라운드 AI 회귀에서도 AI 첫 굴림을 라지 스트레이트로 고정한다. 일시정지 중 특수 연출의 타이머는 끝나고 주사위·차례와 AI 행동 상태는 유지돼야 한다. 복귀 후 AI 차례가 다시 진행되는 것도 확인한다.
