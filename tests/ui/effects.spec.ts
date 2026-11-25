@@ -1,7 +1,7 @@
 import { expect, test, devices, type Browser, type Page } from "@playwright/test";
 import { startOnlineServer, type RunningOnlineServer } from "../../server/online/server";
 import type { DiceSource } from "../../src/online/dice-source";
-import { SEEDS, fixSeed } from "./helpers";
+import { SEEDS, fixSeed, nick } from "./helpers";
 
 /** Sound requests on this page (names), as logged by src/sound.ts. */
 const sounds = (page: Page) => page.evaluate(() => ((window as unknown as { __yachtlabSound?: { log: { name: string }[] } }).__yachtlabSound?.log ?? []).map((e) => e.name));
@@ -83,13 +83,13 @@ test("온라인: 상대 입장 효과음은 새 입장에만 한 번, 재접속�
   const a = await device(browser);
   const b = await device(browser, true);
   await a.goto(entry());
-  await a.getByLabel("닉네임").fill("방장");
+  await nick(a, "방장");
   await a.getByRole("button", { name: "방 만들기" }).click();
   await expect(a.getByRole("heading", { name: "대기실" })).toBeVisible();
   const code = (await a.getByLabel("초대 코드").textContent())!.trim();
   expect(await sounds(a)).not.toContain("join"); // own first load: silent
   await b.goto(entry(code));
-  await b.getByLabel("닉네임").fill("손님");
+  await nick(b, "손님");
   await b.getByRole("button", { name: "입장하기" }).click();
   await expect(a.getByRole("list", { name: "참가자" })).toContainText("손님");
   await expect.poll(async () => (await sounds(a)).filter((n) => n === "join").length).toBe(1);

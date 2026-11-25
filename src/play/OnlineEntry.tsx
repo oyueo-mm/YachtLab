@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Bot, Eye, LoaderCircle, LogIn, Plus, Search, Shuffle, UsersRound, X } from "lucide-react";
+import { ArrowRight, Bot, Eye, LoaderCircle, LogIn, Plus, Search, Shuffle, UserRound, UsersRound, X } from "lucide-react";
 import {
   QuickMatch,
   createRoom,
@@ -11,7 +11,6 @@ import {
   roomSummary,
   saveName,
   saveSeat,
-  savedName,
   savedSeat,
   savedSeats,
   serverFeatures,
@@ -25,6 +24,16 @@ import type { RoomSummary } from "../online/wire";
 import { session } from "../identity/account-client";
 import { startServerAi } from "../identity/economy-client";
 import { PlayerTag } from "./Looks";
+import { useNickname } from "../identity/display-name";
+
+/** The nickname this screen will use (edited on the profile page only). */
+function NickLine({ name }: { name: string }) {
+  return (
+    <p className="online-nick">
+      <UserRound size={14} aria-hidden="true" /> <strong>{name}</strong>(으)로 참가해요 · <a href="#profile">프로필에서 변경</a>
+    </p>
+  );
+}
 
 type Seat = { code: string; playerId: string; token: string };
 
@@ -34,7 +43,7 @@ type Seat = { code: string; playerId: string; token: string };
  * (missing/expired, full, already playing, finished) say so. The seat token never appears in the URL.
  */
 function InviteJoin({ server, code, onJoined, onOther }: { server: string; code: string; onJoined: (seat: Seat, name: string) => void; onOther: () => void }) {
-  const [name, setName] = useState(savedName);
+  const name = useNickname();
   const [room, setRoom] = useState<RoomSummary | null>(null);
   const [state, setState] = useState<"loading" | "missing" | "error" | "ready">("loading");
   const [busy, setBusy] = useState(false);
@@ -53,7 +62,6 @@ function InviteJoin({ server, code, onJoined, onOther }: { server: string; code:
   const trimmed = name.trim();
   const joinable = !!room && room.status === "lobby" && room.players.length < room.seats;
   const join = async () => {
-    if (!trimmed) return setError("닉네임을 입력해 주세요.");
     setBusy(true);
     setError("");
     try {
@@ -79,9 +87,7 @@ function InviteJoin({ server, code, onJoined, onOther }: { server: string; code:
               : "";
   return (
     <section className="setup online-entry online-invite-join" aria-labelledby="online-title">
-      <div className="setup-head">
-        <h1 id="online-title">온라인 대전 초대</h1>
-      </div>
+      <h1 id="online-title" className="sr-only">온라인 대전 초대</h1>
       <div className="setup-body">
         {state === "loading" ? (
           <p className="online-lead" role="status">
@@ -103,22 +109,12 @@ function InviteJoin({ server, code, onJoined, onOther }: { server: string; code:
                 {blocked}
               </p>
             ) : (
-              <form
-                className="online-invite-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void join();
-                }}
-              >
-                <label className="setup-field setup-text">
-                  <span className="setup-label">닉네임</span>
-                  <input aria-label="닉네임" value={name} maxLength={24} autoComplete="nickname" placeholder="예: 요트왕" onChange={(e) => setName(e.target.value)} />
-                </label>
-                <button type="submit" className="primary online-start" disabled={busy || !trimmed}>
+              <div className="online-invite-form">
+                <button type="button" className="primary online-start" disabled={busy} onClick={() => void join()}>
                   <LogIn size={17} /> {busy ? "입장 중…" : "입장하기"}
                 </button>
-                {trimmed && <p className="online-invite-as">‘{trimmed}’(으)로 입장해요.</p>}
-              </form>
+                <NickLine name={trimmed} />
+              </div>
             )}
             {error && (
               <p className="error-message" role="alert">
@@ -137,7 +133,6 @@ function InviteJoin({ server, code, onJoined, onOther }: { server: string; code:
 
 type Tab = "quick" | "friend" | "watch";
 const TAB_KEY = "yachtlab.online.tab";
-const PUBLIC_KEY = "yachtlab.online.public";
 const readTab = (): Tab => {
   try {
     const t = localStorage.getItem(TAB_KEY);
@@ -157,7 +152,7 @@ const clock = (ms: number) => {
  * A server without quick match (older Worker, local Node dev server) shows the friend tab only.
  */
 export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server: string; onEnter: (code: string) => void; onBack: () => void; onAi?: () => void }) {
-  const [name, setName] = useState(savedName);
+  const name = useNickname();
   const [inviteCode, setInviteCode] = useState<string | null>(roomFromUrl);
   const [features, setFeatures] = useState<Features | null>(null);
   const [tab, setTabState] = useState<Tab>(() => (pendingQuick() ? "quick" : readTab()));
@@ -208,12 +203,7 @@ export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server:
   const shown: Tab = !features ? tab : !quickOn && tab !== "friend" ? "friend" : tab;
   return (
     <section className="setup online-entry" aria-labelledby="online-title">
-      <div className="setup-head">
-        <button type="button" className="setup-back" onClick={onBack}>
-          <ArrowLeft size={17} /> 뒤로
-        </button>
-        <h1 id="online-title">온라인 대전</h1>
-      </div>
+      <h1 id="online-title" className="sr-only">온라인 대전</h1>
       <div className="setup-body">
         {quickOn && (
           <div className="online-tabs" role="tablist" aria-label="온라인 대전 메뉴">
@@ -230,12 +220,7 @@ export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server:
             ))}
           </div>
         )}
-        {shown !== "watch" && (
-          <label className="setup-field setup-text">
-            <span className="setup-label">닉네임</span>
-            <input aria-label="닉네임" value={name} maxLength={24} autoComplete="nickname" placeholder="예: 요트왕" onChange={(e) => setName(e.target.value)} />
-          </label>
-        )}
+        {shown !== "watch" && <NickLine name={trimmed} />}
         {!features ? (
           <p className="online-lead" role="status">
             <LoaderCircle size={15} className="spin" /> 서버 정보를 불러오는 중…
@@ -267,7 +252,6 @@ function FriendPanel({ server, name, enter, onEnter }: { server: string; name: s
   const [error, setError] = useState("");
   const [resume] = useState<SavedSeat[]>(savedSeats);
   const run = async (kind: "create" | "join") => {
-    if (!name) return setError("닉네임을 입력해 주세요.");
     const target = code.trim().toUpperCase();
     if (kind === "join" && !/^[A-Z2-9]{6}$/.test(target)) return setError("초대 코드 6자리를 입력해 주세요.");
     setBusy(kind);
@@ -287,7 +271,6 @@ function FriendPanel({ server, name, enter, onEnter }: { server: string; name: s
   };
   return (
     <>
-      <p className="online-lead">친구에게 초대 코드를 보내 각자의 기기에서 대결해요(2~20명). 가입 없이 닉네임만 정하면 돼요.</p>
       <div className="online-actions">
         <form
           className="online-card"
@@ -314,7 +297,6 @@ function FriendPanel({ server, name, enter, onEnter }: { server: string; name: s
         </form>
         <div className="online-card">
           <strong>새 방 만들기</strong>
-          <span>방을 만들고 친구에게 코드나 링크를 보내요.</span>
           <label className="room-size">
             최대 인원
             <select aria-label="최대 인원" value={size} onChange={(e) => setSize(Number(e.target.value))}>
@@ -372,7 +354,6 @@ function QuickPanel({ server, name, serverAi, onMatched, onAi, onReturn }: { ser
   const member = !!session();
   /** Server-verified AI match (members): the server rolls the dice and plays the AI seat. */
   const startAi = async () => {
-    if (!name) return setError("닉네임을 입력해 주세요.");
     qm.current?.cancel();
     qm.current = null;
     setSince(null);
@@ -388,20 +369,12 @@ function QuickPanel({ server, name, serverAi, onMatched, onAi, onReturn }: { ser
       setAiBusy(false);
     }
   };
-  const [spectate, setSpectate] = useState(() => {
-    try {
-      return localStorage.getItem(PUBLIC_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
   const [since, setSince] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now);
   const [error, setError] = useState("");
   const [inMatch, setInMatch] = useState<string | null>(null);
   const qm = useRef<QuickMatch | null>(null);
   const start = (resume = pendingQuick()) => {
-    if (!resume && !name) return setError("닉네임을 입력해 주세요.");
     setError("");
     setInMatch(null);
     setSince(resume?.at ?? Date.now());
@@ -409,7 +382,7 @@ function QuickPanel({ server, name, serverAi, onMatched, onAi, onReturn }: { ser
     if (!resume) saveName(as);
     const q = new QuickMatch(
       server,
-      { name: as, spectate, resume },
+      { name: as, spectate: true, resume },
       {
         onQueued: () => undefined,
         onMatched: (m) => {
@@ -480,28 +453,12 @@ function QuickPanel({ server, name, serverAi, onMatched, onAi, onReturn }: { ser
     );
   return (
     <>
-      <p className="online-lead">지금 접속한 다른 플레이어와 무작위로 1:1 대결해요. 가입 없이 게스트로도 할 수 있어요.</p>
-      <label className="quick-public">
-        <input
-          type="checkbox"
-          checked={spectate}
-          onChange={(e) => {
-            setSpectate(e.target.checked);
-            try {
-              localStorage.setItem(PUBLIC_KEY, e.target.checked ? "1" : "0");
-            } catch {
-              /* ignore */
-            }
-          }}
-        />
-        <span>
-          <strong>내 경기를 관전방에 공개</strong>
-          <small>두 사람 모두 허용한 경기만 관전방 목록에 올라가요. 경기 중에 언제든 끌 수 있어요.</small>
-        </span>
-      </label>
       <button type="button" className="primary online-start" onClick={() => start(null)}>
         <Shuffle size={17} /> 빠른 대전 시작
       </button>
+      <p className="quick-public-note">
+        <Eye size={13} aria-hidden="true" /> 빠른 대전은 관전방에 공개돼요(보기 전용).
+      </p>
       {serverAi && member && (
         <button type="button" className="secondary" disabled={aiBusy} onClick={() => void startAi()}>
           <Bot size={16} /> {aiBusy ? "AI 대전 준비 중…" : "서버 AI와 대전 (보통)"}
@@ -554,7 +511,6 @@ function WatchRooms({ server }: { server: string }) {
   };
   return (
     <div className="watch-rooms">
-      <p className="online-lead">두 플레이어가 공개를 허용한 빠른 대전을 볼 수 있어요. 관전자는 보기만 할 수 있어요.</p>
       {error && (
         <p className="error-message" role="alert">
           {error}

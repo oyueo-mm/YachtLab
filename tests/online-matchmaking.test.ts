@@ -105,11 +105,14 @@ describe("빠른 대전 매칭 큐", () => {
     expect(b.closed).toBe(1000);
   });
 
-  it("한쪽만 공개 관전에 동의하면 공개 목록에 올리지 않는다", async () => {
+  it("빠른 대전은 클라이언트가 보낸 공개 여부와 관계없이 항상 공개 경기로 만든다 (D-045)", async () => {
     const h = harness();
     await h.queue(h.connect(), { name: "민수", ticket: ticket(1), device: device(1), spectate: true });
     await h.queue(h.connect(), { name: "지민", ticket: ticket(2), device: device(2), spectate: false });
-    expect(h.made[0].pub).toBe(false);
+    expect(h.made[0].pub).toBe(true);
+    await h.queue(h.connect(), { name: "수아", ticket: ticket(3), device: device(3) });
+    await h.queue(h.connect(), { name: "도윤", ticket: ticket(4), device: device(4) });
+    expect(h.made[1].pub).toBe(true);
   });
 
   it("자기 자신(같은 계정·같은 기기·같은 탭)과는 매칭하지 않는다 — 같은 IP는 막지 않는다", async () => {
@@ -291,7 +294,7 @@ function storage() {
 }
 
 describe("빠른 대전 방 (RoomHost)", () => {
-  it("매칭된 방은 한 번의 저장으로 두 좌석과 시작을 기록하고, 초대 입장은 막으며, 공개 항목을 올리고 철회 시 내린다", async () => {
+  it("매칭된 방은 한 번의 저장으로 두 좌석과 시작을 기록하고, 초대 입장은 막으며, 공개 항목을 올리고 경기 중 공개를 끌 수 없으며 종료 즉시 내린다", async () => {
     const { state, s } = storage();
     const open: Sock[] = [];
     const published: unknown[] = [];
@@ -310,19 +313,26 @@ describe("빠른 대전 방 (RoomHost)", () => {
     expect(published.at(-1)).toMatchObject({ code: "ABCDEF", round: 1, spectators: 0, max: 5 });
     expect(JSON.stringify(published)).not.toContain("tok");
     expect(host.publicWatch()).toBeTruthy();
-    // a player withdraws consent → the entry is removed and the key changes
+    // the list entry carries no seat token, watch key or account id
+    for (const e of published) expect(Object.keys(e as object).sort()).toEqual(["code", "max", "players", "round", "spectators"]);
+    expect(JSON.stringify(published)).not.toContain(made.seats[0].token);
+    // a player cannot switch the public match off (refused, the entry and key stay)
     const [a] = [new Sock()];
     open.push(a);
     host.accepted(a);
     await host.message(a, JSON.stringify({ t: "hello", token: made.seats[0].token }));
     const before = host.publicWatch();
     await host.message(a, JSON.stringify({ t: "spectate", allow: false }));
-    expect(published.at(-1)).toBeNull();
-    expect(host.publicWatch()).toBeNull();
-    expect(before).toBeTruthy();
+    expect(a.last("error")).toMatchObject({ code: "SPECTATE" });
+    expect(a.last("spectate")!.spectate).toMatchObject({ active: true, public: true });
+    expect(host.publicWatch()).toBe(before);
+    expect(published.at(-1)).not.toBeNull();
     // resign ends the match → matchEnded for the queue
     await host.message(a, JSON.stringify({ t: "cmd", id: "r1", action: { type: "resign" } }));
     expect(host.room!.match.status).toBe("finished");
     expect(ended).toEqual(["ABCDEF"]);
+    // finished → removed from the public list at once
+    expect(published.at(-1)).toBeNull();
+    expect(host.publicWatch()).toBeNull();
   });
 });

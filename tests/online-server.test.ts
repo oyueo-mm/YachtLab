@@ -88,15 +88,16 @@ describe("Online Phase 2 — local WebSocket server", () => {
     if (!forged.ok) expect(forged.error.code).toBe("NOT_YOUR_TURN");
   });
 
-  it("닉네임 충돌·잘못된 닉네임·없는 방을 거부한다", async () => {
+  it("같은 닉네임 번호 붙이기·잘못된 닉네임·없는 방을 거부한다", async () => {
     const s = await boot();
     const created = await api(s, "/api/rooms", { name: "Mina" });
-    expect((await api(s, `/api/rooms/${created.body.code}/join`, { name: " mina " })).body.error.code).toBe("NAME_TAKEN");
+    // the same nickname in one room gets a number instead of a refusal (nicknames are set on the profile page)
+    expect((await api(s, `/api/rooms/${created.body.code}/join`, { name: " mina " })).status).toBe(201);
     expect((await api(s, `/api/rooms/${created.body.code}/join`, { name: "" })).status).toBe(400);
     expect((await api(s, "/api/rooms", { name: "a\u0007b" })).status).toBe(400);
     expect((await api(s, "/api/rooms/ZZZZZZ/join", { name: "x" })).status).toBe(404);
     const summary = await api(s, `/api/rooms/${created.body.code}`);
-    expect(summary.body).toEqual({ code: created.body.code, status: "lobby", seats: 2, players: ["Mina"], mode: "turns" });
+    expect(summary.body).toEqual({ code: created.body.code, status: "lobby", seats: 2, players: ["Mina", "mina 2"], mode: "turns" });
     expect(JSON.stringify(summary.body)).not.toContain("token");
   });
 

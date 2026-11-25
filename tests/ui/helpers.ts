@@ -95,3 +95,11 @@ export async function fixSeed(page: Page, seed: number) {
     }) as typeof crypto.getRandomValues;
   }, seed);
 }
+
+/** Set the nickname this browser uses online (it is edited on the profile page, not on the online screens). */
+export async function nick(page: import("@playwright/test").Page, name: string) {
+  await page.evaluate((n) => {
+    localStorage.setItem("yachtlab.online.name", n);
+    window.dispatchEvent(new Event("yachtlab-nickname"));
+  }, name);
+}

@@ -73,6 +73,8 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const [view, setView] = useState<PlayerView | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
   const [online, setOnline] = useState<string[]>([]);
+  /** Absent players → when their seat is forfeited / freed (local clock). */
+  const [away, setAway] = useState<Record<string, number>>({});
   // Held dice in selection order (= shelf order). The server shares it, so both screens match.
   const [keep, setKeep] = useState<number[]>([]);
   /** Number of hold messages this screen has sent; an echo older than the latest one is ignored. */
@@ -179,7 +181,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
               announced.current.add(e.playerId);
               playSfx("join");
             } else if (e.type === "playerForfeited") {
-              setFeedback(e.reason === "timeout" ? `${nameOf(e.playerId)} 님의 제한 시간이 지났어요.` : `${nameOf(e.playerId)} 님이 기권했어요.`);
+              setFeedback(e.reason === "timeout" ? `${nameOf(e.playerId)} 님의 제한 시간이 지났어요.` : e.reason === "left" ? `${nameOf(e.playerId)} 님이 돌아오지 않아 기권 처리됐어요.` : `${nameOf(e.playerId)} 님이 기권했어요.`);
             }
           }
         }
@@ -207,7 +209,10 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         }
         setKeep(hold.keep);
       },
-      onPresence: setOnline,
+      onPresence(list, awayAt) {
+        setOnline(list);
+        if (awayAt) setAway(awayAt);
+      },
       onSaid(from, id) {
         if (from !== viewRef.current?.you?.playerId && hideRef.current) return;
         social.show(from, id);
@@ -238,11 +243,12 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [server, code]);
 
+  const anyAway = Object.keys(away).length > 0;
   useEffect(() => {
-    if (deadline === null) return;
+    if (deadline === null && !anyAway) return;
     const t = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(t);
-  }, [deadline]);
+  }, [deadline, anyAway]);
 
   const playing = view?.status === "playing";
   useEffect(() => onProgress?.(!!playing), [playing]);
@@ -333,10 +339,19 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
       </p>
     );
 
+  // Reconnect grace of absent players (server-decided; shown as a countdown, D-046).
+  const awayNames = view.status === "finished" ? [] : Object.entries(away)
+    .filter(([id]) => id !== me?.playerId && !online.includes(id))
+    .map(([id, at]) => ({ name: players.find((p) => p.playerId === id)?.name ?? "", ms: at - now }))
+    .filter((a) => a.name && a.ms > 0);
   const banner =
     status !== "online" ? (
       <p className="online-banner offline" role="status">
         <WifiOff size={15} /> 연결이 끊어졌어요. 다시 연결하는 중이에요…
+      </p>
+    ) : awayNames.length ? (
+      <p className="online-banner" role="status">
+        <WifiOff size={15} /> {awayNames.map((a) => `${a.name} 님 연결 끊김 (${clock(a.ms)} 안에 돌아오지 않으면 ${view.status === "lobby" ? "자리에서 나가요" : "기권 처리돼요"})`).join(" · ")}
       </p>
     ) : opponent && view.status === "playing" && !online.includes(opponent.playerId) ? (
       <p className="online-banner" role="status">

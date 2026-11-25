@@ -459,6 +459,10 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   async look(): Promise<PublicLook | null> {
     return this.econ.look();
   }
+  /** A signed-in seat: the account nickname (the one shown in every match) and the validated look. */
+  async seat(): Promise<{ nickname: string | null; look: PublicLook | null }> {
+    return { nickname: this.store.profile()?.nickname ?? null, look: this.econ.look() };
+  }
   /** From a room: a server-verified result (idempotent by matchId). */
   async recordMatch(record: MatchRecord) {
     const p = this.store.profile();
@@ -554,8 +558,9 @@ export class MatchHub extends DurableObject<Env> {
         if (!slot.ok) return { ok: false, message: slot.message };
         const seats: SeatSpec[] = [];
         for (const p of [a, b]) {
-          const look = p.userId ? await env.USERS.get(env.USERS.idFromName(p.userId)).look().catch(() => null) : null;
-          seats.push({ name: p.name, identity: p.userId ? { userId: p.userId } : null, look });
+          // Members: the account nickname (validated when it was set) and the validated look.
+          const info = p.userId ? await env.USERS.get(env.USERS.idFromName(p.userId)).seat().catch(() => null) : null;
+          seats.push({ name: info?.nickname ?? p.name, identity: p.userId ? { userId: p.userId } : null, look: info?.look ?? null });
         }
         const made = await env.ROOMS.get(env.ROOMS.idFromName(slot.code!)).createMatched(slot.code!, seats, { kind: "random", public: options.public });
         if (!made.ok) {
@@ -705,8 +710,15 @@ export default {
       const user = await sessionUser(request, backends);
       return user ? { userId: user.userId } : null;
     };
-    /** A signed-in seat's validated look (equipped items), read from the account — never from the client. */
-    const seatLook = async (identity: { userId: string } | null) => (identity ? await env.USERS.get(env.USERS.idFromName(identity.userId)).look().catch(() => null) : null);
+    /**
+     * A signed-in seat's name and look, read from the account — never from the client: the account
+     * nickname replaces whatever name the page sent (members use one nickname everywhere).
+     */
+    const seatInfo = async (identity: { userId: string } | null, name: unknown) => {
+      if (!identity) return { name, look: null };
+      const info = await env.USERS.get(env.USERS.idFromName(identity.userId)).seat().catch(() => null);
+      return { name: info?.nickname ?? name, look: info?.look ?? null };
+    };
 
     const hub = () => env.HUB.get(env.HUB.idFromName("hub"));
     try {
@@ -750,14 +762,15 @@ export default {
         const me = await sessionUser(request, backends);
         if (!me) return fail(401, "UNAUTHENTICATED", "서버 AI 대전은 로그인한 회원만 할 수 있어요.", allowed);
         if (await directory.hit("ai:" + me.userId, 6)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
-        const nick = validateNickname(await readName(request));
-        if (!nick.ok) return fail(400, "INVALID_COMMAND", nick.message, allowed);
         const user = env.USERS.get(env.USERS.idFromName(me.userId));
+        const info = await user.seat().catch(() => null);
+        const nick = validateNickname(info?.nickname ?? (await readName(request)));
+        if (!nick.ok) return fail(400, "INVALID_COMMAND", nick.message, allowed);
         const started = await user.startAi();
         if (!started.ok) return fail(429, started.code, started.message, allowed);
         const slot = await directory.allocateFor("ai");
         if (!slot.ok) return fail(slot.status, slot.code, slot.message, allowed);
-        const human: SeatSpec = { name: nick.name, identity: { userId: me.userId }, look: await user.look().catch(() => null) };
+        const human: SeatSpec = { name: nick.name, identity: { userId: me.userId }, look: info?.look ?? null };
         const bot: SeatSpec = { name: "AI (보통)", ai: true };
         const humanFirst = (crypto.getRandomValues(new Uint8Array(1))[0] & 1) === 0;
         const made = await roomStub(slot.code!).createMatched(slot.code!, humanFirst ? [human, bot] : [bot, human], { kind: "ai", public: false });
@@ -791,7 +804,8 @@ export default {
         const slot = await directory.allocate(await clientKey(request));
         if (!slot.ok) return fail(slot.status, slot.code, slot.message, allowed);
         const identity = await seatIdentity();
-        const joined = await roomStub(slot.code!).create(slot.code!, body.name, identity, await seatLook(identity), maxPlayersOf(body.maxPlayers));
+        const seat = await seatInfo(identity, body.name);
+        const joined = await roomStub(slot.code!).create(slot.code!, seat.name, identity, seat.look, maxPlayersOf(body.maxPlayers));
         if (!joined.ok) {
           await directory.release(slot.code!);
           return fail(joined.status, joined.error.code, joined.error.message, allowed);
@@ -813,7 +827,8 @@ export default {
         return summary ? json(200, summary, allowed) : fail(404, "ROOM_NOT_FOUND", "방을 찾을 수 없어요. 초대 코드를 확인해 주세요.", allowed);
       }
       const identity = await seatIdentity();
-      const joined = await room.join(name, identity, await seatLook(identity));
+      const seat = await seatInfo(identity, name);
+      const joined = await room.join(seat.name, identity, seat.look);
       if (!joined.ok) {
         const message = joined.error.code === "MATCH_FULL" ? "방이 가득 찼어요." : joined.error.code === "WRONG_PHASE" ? "이미 경기가 시작된 방이에요." : joined.error.message;
         return fail(joined.status, joined.error.code, message, allowed);

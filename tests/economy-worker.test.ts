@@ -130,13 +130,21 @@ describe("경제 통합 시나리오 (wrangler dev + 가짜 로컬 로그인)", 
     expect(e0.body.snapshot.wallet).toEqual({ coins: 200, gems: 20 });
     expect((await call(a.session, "/api/me/economy")).body.snapshot.wallet).toEqual({ coins: 200, gems: 20 });
 
-    // quick match between the two members
-    const [ma, mb] = await Promise.all([queue(a.session, "앨리스", 1), queue(b.session, "밥", 2)]);
+    // quick match between the two members. A member's seat always shows the account nickname, whatever
+    // name the page sends (D-045: one nickname, edited on the profile page).
+    expect((await call(a.session, "/api/me/nickname", { nickname: "앨리스" })).status).toBe(200);
+    const [ma, mb] = await Promise.all([queue(a.session, "다른이름", 1), queue(b.session, "밥", 2)]);
     expect(ma.code).toBe(mb.code);
     const ca = new Client(worker.url, ma.code);
     const cb = new Client(worker.url, mb.code);
     await ca.hello(ma.token);
     await cb.hello(mb.token);
+    expect(ca.view!.players.map((p) => p.name)).toContain("앨리스");
+    expect(ca.view!.players.map((p) => p.name)).not.toContain("다른이름");
+    // friend room: the same rule for create / join
+    const own = await fetch(worker.url + "/api/rooms", { method: "POST", headers: { origin: ORIGIN, "content-type": "application/json", authorization: "Bearer " + a.session }, body: JSON.stringify({ name: "또다른이름" }) });
+    const ownRoom = (await own.json()) as { code: string };
+    expect(((await (await fetch(worker.url + "/api/rooms/" + ownRoom.code, { headers: { origin: ORIGIN } })).json()) as { players: string[] }).players).toEqual(["앨리스"]);
     await playOut([ca, cb]);
     await new Promise((r) => setTimeout(r, 800)); // outbox delivery
     const recA = (await call(a.session, "/api/me/records")).body.records[0];

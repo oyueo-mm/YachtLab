@@ -33,7 +33,7 @@ export type RewardInput = {
   matchId: string;
   kind: MatchKind;
   outcome: "win" | "loss" | "draw";
-  endReason: "completed" | "resign" | "timeout";
+  endReason: "completed" | "resign" | "timeout" | "left";
   score: number;
   card: Card;
   opponentUserId?: string;

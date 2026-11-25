@@ -45,7 +45,7 @@ export interface HostStorage {
  * only together with the next command, so without this copy an eviction between a hold toggle and
  * the next command would forget it. Attachments cost no storage writes.
  */
-type Attachment = { playerId: string | null; seenSeq: number; bucket: { tokens: number; at: number }; openedAt: number; hold?: { hold: HoldState; v: number } | null; social?: SocialBucket; spectator?: { key: string } };
+type Attachment = { playerId: string | null; seenSeq: number; bucket: { tokens: number; at: number }; openedAt: number; hold?: { hold: HoldState; v: number } | null; social?: SocialBucket; spectator?: { key: string }; absent?: Record<string, number> };
 
 export const HELLO_TIMEOUT_MS = 10_000;
 /** Socket opens per room per minute (counted in memory; a soft guard against reconnect storms). */
@@ -67,8 +67,30 @@ export type HostEvents = {
 };
 export type PublicEntry = NonNullable<ReturnType<OnlineRoom["publicEntry"]>>;
 export const RECORD_RETRY_MS = 60_000;
-/** Rooms for 3+ players with nobody connected during a match are removed after this long. */
-export const ABANDONED_MULTI_MS = 2 * 3600_000;
+/**
+ * Room lifecycle (D-046). Server time only (alarms); nothing is decided by a client.
+ *  - A player whose socket is gone keeps the seat for `reconnectGraceMs` (network blip, app switch,
+ *    reload). After that, during a match the seat is forfeited with reason "left" — only while someone
+ *    else is still present to continue (a player or the server AI) — and in a waiting room the seat is
+ *    freed after `lobbySeatGraceMs` (the host role passes on as usual).
+ *  - Nobody present at all: the room is removed after `emptyPlayingMs` (by match kind) or
+ *    `emptyFinishedMs` (a finished room: nobody is left to ask for a rematch). An empty waiting room
+ *    empties itself through the seat rule above.
+ *  - A waiting room that never starts is removed `unusedLobbyMs` after it was created; a finished
+ *    room whose players stay on the result screen without doing anything, after `finishedOpenMs`.
+ * Who is absent since when is kept in memory and in the remaining sockets' attachments (survives
+ * hibernation, costs no storage writes); with no socket left, the last saved activity is used, so a
+ * room is cleaned up earlier rather than later after an eviction.
+ */
+export const LIFECYCLE = {
+  reconnectGraceMs: 120_000,
+  lobbySeatGraceMs: 10 * 60_000,
+  emptyPlayingMs: { friend: 15 * 60_000, random: 5 * 60_000, ai: 5 * 60_000 } as Record<string, number>,
+  emptyFinishedMs: 3 * 60_000,
+  /** A finished room whose players still look at the result: removed after this long without activity. */
+  finishedOpenMs: 60 * 60_000,
+  unusedLobbyMs: 2 * 3600_000,
+};
 /**
  * Server AI pacing: one action every `stepMs` (players see it roll, hold and score), and an alarm
  * `fallbackMs` later in case the object was evicted between steps (the alarm wakes it and resumes).
@@ -84,6 +106,8 @@ export class RoomHost {
   private deleted = false;
   /** Sockets whose close event was handled (the runtime may still list them during the handler). */
   private gone = new WeakSet<HostSocket>();
+  /** Seats whose player has no socket → since when (D-046). */
+  private absent = new Map<string, number>();
 
   constructor(
     private readonly storage: HostStorage,
@@ -121,11 +145,17 @@ export class RoomHost {
     this.room = OnlineRoom.restore(record, this.deps());
     // Results that could not be delivered before the eviction are retried soon.
     if (this.room.pendingRecords().length) this.retryAt = this.now() + 5_000;
-    for (const ws of this.open()) {
+    const sockets = this.open();
+    for (const ws of sockets) {
       this.room.adopt(this.wrap(ws));
+      const a = ws.deserializeAttachment() as Attachment | null;
       // The newest hold order any socket still carries (stale ones are rejected by the room).
-      this.room.adoptHold((ws.deserializeAttachment() as Attachment | null)?.hold);
+      this.room.adoptHold(a?.hold);
+      for (const [id, since] of Object.entries(a?.absent ?? {})) if (Number.isFinite(since)) this.absent.set(id, Math.max(this.absent.get(id) ?? 0, since));
     }
+    // Absent players nobody remembered: with sockets open they left just now (conservative); with no
+    // socket at all, since the last saved activity.
+    this.syncPresence(sockets.length ? this.now() : this.room.touchedAt);
     this.rearm();
     this.scheduleAi();
   }
@@ -307,7 +337,7 @@ export class RoomHost {
     const c = this.conns.get(ws) as (RoomConnection & { openedAt: number }) | undefined;
     if (!c) return;
     try {
-      ws.serializeAttachment({ playerId: c.playerId, seenSeq: c.seenSeq, bucket: c.bucket, openedAt: c.openedAt, hold: this.room?.holdSnapshot() ?? null, ...(c.social ? { social: c.social } : {}), ...(c.spectator ? { spectator: c.spectator } : {}) } satisfies Attachment);
+      ws.serializeAttachment({ playerId: c.playerId, seenSeq: c.seenSeq, bucket: c.bucket, openedAt: c.openedAt, hold: this.room?.holdSnapshot() ?? null, ...(c.social ? { social: c.social } : {}), ...(c.spectator ? { spectator: c.spectator } : {}), ...(this.absent.size ? { absent: Object.fromEntries(this.absent) } : {}) } satisfies Attachment);
     } catch {
       /* closed */
     }
@@ -323,6 +353,7 @@ export class RoomHost {
     // Everyone left the lobby: the room is over, remove its data now.
     if (!this.room || this.deleted) return;
     if (this.room.isClosed) return this.remove();
+    this.syncPresence();
     // A message may have advanced other sockets (broadcast): remember all of them.
     for (const s of this.open()) this.remember(s);
     this.rearm();
@@ -353,6 +384,10 @@ export class RoomHost {
     if (!this.room || this.deleted) return;
     this.room.disconnect(conn);
     if (conn.spectator) void this.publishIfChanged();
+    if (conn.playerId) {
+      this.syncPresence();
+      for (const s of this.open()) this.remember(s);
+    }
     // No storage write here: the idle clock (touchedAt) is updated in memory and saved with the next
     // command. After an eviction it falls back to the last saved activity — cleanup may come earlier,
     // never later, and reconnect loops cannot spend SQLite row writes.
@@ -363,18 +398,62 @@ export class RoomHost {
     return this.sockets().filter((s) => !this.gone.has(s));
   }
 
+  /** Update who is absent (and tell every screen how long their seat is kept). */
+  private syncPresence(newSince = this.now()) {
+    const room = this.room;
+    if (!room || this.deleted) return;
+    const present = new Set(room.presentPlayers());
+    const seats = room.humanSeats();
+    for (const id of seats) {
+      if (present.has(id)) this.absent.delete(id);
+      else if (!this.absent.has(id)) this.absent.set(id, newSince);
+    }
+    for (const id of [...this.absent.keys()]) if (!seats.includes(id)) this.absent.delete(id);
+    const status = room.match.status;
+    const grace = status === "playing" ? LIFECYCLE.reconnectGraceMs : status === "lobby" ? LIFECYCLE.lobbySeatGraceMs : null;
+    room.setAway(grace === null ? {} : Object.fromEntries([...this.absent].map(([id, since]) => [id, since + grace])));
+  }
+
+  /** Seats due now (forfeit / free) and when the next one is due. */
+  private seatDeadlines(): { due: string[]; next: number | null } {
+    const room = this.room;
+    if (!room) return { due: [], next: null };
+    const status = room.match.status;
+    if (status === "finished" || !this.absent.size) return { due: [], next: null };
+    const present = room.presentPlayers();
+    // During a match a seat is only forfeited while somebody else is there to go on.
+    if (status === "playing" && !present.length) return { due: [], next: null };
+    const grace = status === "playing" ? LIFECYCLE.reconnectGraceMs : LIFECYCLE.lobbySeatGraceMs;
+    const t = this.now();
+    const due: string[] = [];
+    let next: number | null = null;
+    for (const [id, since] of this.absent) {
+      const at = since + grace;
+      if (at <= t) due.push(id);
+      else next = Math.min(next ?? Infinity, at);
+    }
+    return { due, next };
+  }
+
   /** When the room should be removed if nothing else happens. */
   private cleanupAt(): number | null {
     const room = this.room;
     if (!room) return null;
     const hardStop = room.createdAt + this.config.maxAgeMs;
-    if (this.open().length) return hardStop;
     const status = room.match.status;
-    // A larger room that everyone left mid-match is cleaned up after 2 hours (1:1 rooms keep the
-    // long pause allowance: two friends may come back to the same game the next day).
-    const playing = room.match.seats > 2 ? Math.min(this.config.playingIdleMs, ABANDONED_MULTI_MS) : this.config.playingIdleMs;
-    const idle = status === "lobby" ? this.config.lobbyIdleMs : status === "finished" ? this.config.finishedIdleMs : playing;
-    return Math.min(hardStop, room.touchedAt + idle);
+    const present = room.presentPlayers().filter((id) => id !== room.aiSeat()?.playerId);
+    const lastLeft = Math.max(room.touchedAt, ...this.absent.values());
+    if (status === "lobby") {
+      const unused = Math.min(hardStop, room.createdAt + LIFECYCLE.unusedLobbyMs);
+      // Nobody in the waiting room (or nobody ever connected after creating it): the idle setting.
+      return present.length ? unused : Math.min(unused, lastLeft + this.config.lobbyIdleMs);
+    }
+    if (status === "finished") {
+      if (!present.length) return Math.min(hardStop, lastLeft + LIFECYCLE.emptyFinishedMs);
+      return Math.min(hardStop, room.touchedAt + LIFECYCLE.finishedOpenMs);
+    }
+    if (!present.length) return Math.min(hardStop, lastLeft + (LIFECYCLE.emptyPlayingMs[room.kind] ?? LIFECYCLE.emptyPlayingMs.friend));
+    return hardStop;
   }
 
   private helloDeadline(): number | null {
@@ -395,7 +474,7 @@ export class RoomHost {
   private rearm() {
     if (this.deleted) return;
     const aiAt = this.room?.aiToMove ? this.now() + AI_TIMING.fallbackMs : null;
-    const candidates = [this.room?.match.status === "playing" ? this.turnDeadline : null, this.helloDeadline(), this.cleanupAt(), this.retryAt, aiAt].filter((x): x is number => x !== null);
+    const candidates = [this.room?.match.status === "playing" ? this.turnDeadline : null, this.helloDeadline(), this.cleanupAt(), this.seatDeadlines().next, this.retryAt, aiAt].filter((x): x is number => x !== null);
     if (!candidates.length) return;
     const next = Math.min(...candidates);
     if (this.alarmAt !== null && this.alarmAt <= next) return;
@@ -416,6 +495,20 @@ export class RoomHost {
       const c = this.conns.get(s) ?? this.wrap(s);
       if (!c.playerId && !c.spectator && t >= (c as RoomConnection & { openedAt: number }).openedAt + HELLO_TIMEOUT_MS) c.close(4001, "hello timeout");
     }
+    // Reconnect grace ran out: forfeit ("left") during a match, free the seat in a waiting room.
+    this.syncPresence();
+    for (const id of this.seatDeadlines().due) {
+      try {
+        await room.absentFor(id);
+      } catch {
+        /* storage failure: nothing applied, the next alarm retries */
+      }
+      this.absent.delete(id);
+    }
+    if (room.isClosed) return this.remove();
+    await this.flushRecords();
+    await this.publishIfChanged();
+    this.syncPresence();
     const cleanup = this.cleanupAt();
     if (cleanup !== null && t >= cleanup) return this.remove();
     for (const s of this.open()) this.remember(s);
