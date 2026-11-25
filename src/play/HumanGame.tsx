@@ -266,6 +266,7 @@ export default function HumanGame({
               </span>
             </div>
             <DiceArea
+              key={record.current.metadata.id}
               state={state}
               interactive={can}
               animate
