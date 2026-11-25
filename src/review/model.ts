@@ -1,5 +1,7 @@
-import type { Choice } from "../dp";
-import { names, type Game } from "../engine";
+import type { PublicLook } from "../economy/live/catalog";
+import { names, type Game, type Category } from "../engine";
+
+type Choice = { type: "score"; category: Category } | { type: "reroll"; ids: number[] };
 
 export type Position = Pick<Game, "player" | "cards" | "dice" | "rolls" | "round"> & { simultaneous?: true };
 
@@ -12,6 +14,7 @@ export type Situation = {
 export type ReviewMatch = {
   id: string;
   players: [string, string];
+  looks?: [PublicLook | undefined, PublicLook | undefined];
   scores: [number, number];
   winners: (0 | 1)[];
   device?: true;

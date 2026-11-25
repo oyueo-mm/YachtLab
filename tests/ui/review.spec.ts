@@ -60,6 +60,11 @@ test("저장된 1:1 기보의 Worker 복기에서 그래프와 복습을 선택�
   await review.getByRole("button", { name: "분석 다시 시도" }).click();
   await expect(review.getByRole("group", { name: "기대점수 그래프" })).toBeVisible({ timeout: 30_000 });
   await expect(review.getByText(/결정 손실 .* 굴림 운/)).toBeVisible();
+  if (test.info().project.name === "mobile") {
+    const board = await review.locator(".review-position").boundingBox();
+    const summary = await review.getByRole("region", { name: "경기 전체 분석" }).boundingBox();
+    expect(board!.y).toBeLessThan(summary!.y);
+  }
   await review.getByRole("button", { name: "이 국면 복습하기" }).click();
   await expect(review.getByText("당시 점수판을 보고 선택해 보세요.")).toBeVisible();
   await review.locator(".review-options ol button").first().click();

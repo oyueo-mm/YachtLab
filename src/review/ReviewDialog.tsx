@@ -1,3 +1,4 @@
+import { PlayerTag } from "../play/Looks";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Dice } from "../Dice";
@@ -123,7 +124,9 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
 
   return (
     <>
-      <p className="review-match">{match.players[0]} <strong>{match.scores[0]} : {match.scores[1]}</strong> {match.players[1]}</p>
+      <div className="review-match"><PlayerTag name={match.players[0]} look={match.looks?.[0]} />
+        <strong>{match.scores[0]} : {match.scores[1]}</strong>
+        <PlayerTag name={match.players[1]} look={match.looks?.[1]} /></div>
       <p>{match.winners.length === 2 ? "무승부" : match.winners.length ? `${match.players[match.winners[0]]} 승리` : "경기 종료"}</p>
       <p className="review-model">{reviewModel.name} · {reviewModel.version}</p>
       {active && <div className="review-loading">
@@ -135,7 +138,7 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
         {error && <p role="alert">{error}</p>}
         <button type="button" className="secondary" onClick={() => { setError(""); setCompleted(0); setRun(run + 1); setActive(true); }}>분석 다시 시도</button>
       </div>}
-      {values && <section aria-label="경기 전체 분석">
+      {values && <section className="review-summary" aria-label="경기 전체 분석">
         <label>플레이어 <select value={participant} onChange={(e) => {
           const seat = Number(e.target.value) as 0 | 1;
           const index = match.steps.findIndex((entry) => entry.before.player === seat);

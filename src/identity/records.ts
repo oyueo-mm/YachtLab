@@ -1,3 +1,4 @@
+import type { ReviewMatch } from "../review/model";
 import type { MatchReceipt } from "../economy/live/receipt";
 import { bonus, categories, total, upper, type Card, type Category } from "../engine";
 
@@ -46,6 +47,8 @@ export type MatchRecord = {
   field?: { players: number; rank: number; mode: "turns" | "simultaneous" };
   /** Private presentation data attached by the server at settlement. */
   reward?: MatchReceipt;
+  /** Two-seat analysis trace, captured only when the authoritative server finishes the match. */
+  review?: ReviewMatch;
 };
 
 /** Domain event emitted when a match result is final — the hook for quests/coins/achievements later. */

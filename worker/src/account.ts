@@ -1,3 +1,4 @@
+import type { ReviewMatch } from "../../src/review/model";
 import type { MatchReceipt } from "../../src/economy/live/receipt";
 import { validateNickname } from "../../src/identity/nickname";
 import type { MatchRecord, RecordSource } from "../../src/identity/records";
@@ -48,6 +49,7 @@ export class AccountStore {
       "CREATE TABLE IF NOT EXISTS matches (record_id TEXT PRIMARY KEY, ended_at INTEGER NOT NULL, mode TEXT NOT NULL, source TEXT NOT NULL, verification TEXT NOT NULL, outcome TEXT NOT NULL, score INTEGER NOT NULL, data TEXT NOT NULL)",
     );
     this.sql.exec("CREATE INDEX IF NOT EXISTS matches_ended ON matches (ended_at)");
+    this.sql.exec("CREATE TABLE IF NOT EXISTS review_archive (record_id TEXT PRIMARY KEY, ended_at INTEGER NOT NULL, data TEXT NOT NULL)");
     this.sql.exec("CREATE TABLE IF NOT EXISTS guests (guest_id TEXT PRIMARY KEY, linked_at INTEGER NOT NULL)");
   }
 
@@ -156,6 +158,7 @@ export class AccountStore {
     const before = this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM matches WHERE record_id = ?", r.recordId).toArray()[0]?.n ?? 0;
     if (before) return false;
     const receipt = reward?.();
+    const { review, ...summary } = r;
     this.sql.exec(
       "INSERT OR IGNORE INTO matches (record_id, ended_at, mode, source, verification, outcome, score, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       r.recordId,
@@ -165,8 +168,12 @@ export class AccountStore {
       r.verification,
       r.outcome,
       r.score,
-      JSON.stringify(receipt ? { ...r, reward: receipt } : r),
+      JSON.stringify(receipt ? { ...summary, reward: receipt } : summary),
     );
+    if (review && r.verification === "server-verified") {
+      this.sql.exec("INSERT INTO review_archive (record_id, ended_at, data) VALUES (?, ?, ?)", r.recordId, r.endedAt, JSON.stringify(review));
+      this.sql.exec("DELETE FROM review_archive WHERE record_id IN (SELECT record_id FROM review_archive ORDER BY ended_at DESC, record_id DESC LIMIT -1 OFFSET 64)");
+    }
     return true;
   }
 
@@ -198,6 +205,14 @@ export class AccountStore {
       recordId,
     ).toArray()[0];
     return row ? { receipt: (JSON.parse(row.data) as MatchRecord).reward ?? null } : null;
+  }
+
+  matchReview(recordId: string): { review: ReviewMatch | null } | null {
+    const row = this.sql.exec<{ review: string | null }>(
+      "SELECT a.data AS review FROM matches m LEFT JOIN review_archive a USING(record_id) WHERE m.record_id = ? AND m.verification = 'server-verified'",
+      recordId,
+    ).toArray()[0];
+    return row ? { review: row.review ? JSON.parse(row.review) as ReviewMatch : null } : null;
   }
 
   linkGuest(guestId: string, now: number) {

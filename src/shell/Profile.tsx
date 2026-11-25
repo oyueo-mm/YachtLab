@@ -1,3 +1,4 @@
+import { AccountError, matchReview } from "../identity/account-client";
 import ReviewLauncher from "../review/ReviewLauncher";
 import { recentOnlineReview } from "../review/online-history";
 import { useEffect, useMemo, useState } from "react";
@@ -318,7 +319,18 @@ export default function Profile({ server, notice }: { server: string | null; not
                   </span>
                   <span className="profile-recent-score">
                     {r.score} : {r.opponent.score}
-                    {r.mode === "online" && (!r.field || r.field.players === 2) && <ReviewLauncher source={() => recentOnlineReview(r.recordId)} />}
+                    {r.mode === "online" && (!r.field || r.field.players === 2) && <ReviewLauncher source={async () => {
+                      const recent = recentOnlineReview(r.recordId);
+                      if (typeof recent !== "string" || !server || !signedIn || r.verification !== "server-verified") return recent;
+                      const owner = session();
+                      try {
+                        const archived = await matchReview(server, r.recordId);
+                        return session() === owner ? archived ?? recent : "같은 계정으로 로그인한 뒤 복기를 열어 주세요.";
+                      } catch (error) {
+                        if (error instanceof AccountError && error.status === 404) return recent;
+                        return "서버 복기를 불러올 수 없어요. 연결과 로그인 상태를 확인해 주세요.";
+                      }
+                    }} />}
                   </span>
                 </li>
               ))}

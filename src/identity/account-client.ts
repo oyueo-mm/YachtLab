@@ -1,3 +1,4 @@
+import type { ReviewMatch } from "../review/model";
 import type { MatchReceipt } from "../economy/live/receipt";
 import type { MatchRecord } from "./records";
 
@@ -146,4 +147,5 @@ export async function deleteAccount(server: string) {
   setSession(null);
 }
 
+export const matchReview = (server: string, matchId: string) => api<{ review: ReviewMatch | null }>(server, `/api/me/records/${encodeURIComponent(matchId)}/review`).then((r) => r.review);
 export const matchReward = (server: string, matchId: string) => api<{ receipt: MatchReceipt | null }>(server, `/api/me/records/${encodeURIComponent(matchId)}/reward`).then((r) => r.receipt);
