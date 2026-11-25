@@ -122,6 +122,36 @@ describe("경제 통합 시나리오 (wrangler dev + 가짜 로컬 로그인)", 
     expect(cfg?.provider.tokenEndpoint).toBe("https://oauth2.googleapis.com/token");
   });
 
+  it("회원 복기는 완료된 본인 전적에서만 읽고 일반 목록과 분리한다", async () => {
+    const a = await login("review-alice");
+    const b = await login("review-bob");
+    const outsider = await login("review-outsider");
+    const create = await call(a.session, "/api/rooms", { name: "복기A", maxPlayers: 2 });
+    expect(create.status).toBe(201);
+    const code = create.body.code;
+    const joined = await call(b.session, "/api/rooms/" + code + "/join", { name: "복기B" });
+    expect(joined.status).toBe(201);
+    const ca = new Client(worker.url, code);
+    const cb = new Client(worker.url, code);
+    await ca.hello(create.body.token);
+    await cb.hello(joined.body.token);
+    expect((await ca.cmd({ type: "start" })).ok).toBe(true);
+    await ca.settled();
+    const reviewPath = `/api/me/records/${ca.view!.matchId}/review`;
+    expect((await call(a.session, reviewPath)).status).toBe(404);
+    await playOut([ca, cb]);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    const archived = await call(a.session, reviewPath);
+    expect(archived.status).toBe(200);
+    expect(archived.body.review).toMatchObject({ id: ca.view!.matchId, players: ["복기A", "복기B"], steps: expect.any(Array) });
+    expect(archived.body.review.steps).toHaveLength(24);
+    expect(JSON.stringify(archived.body.review)).not.toMatch(/userId|playerId|rng|seed|token/);
+    expect((await call(a.session, "/api/me/records")).body.records[0]).not.toHaveProperty("review");
+    expect((await call(b.session, reviewPath)).body).toEqual(archived.body);
+    expect((await call(outsider.session, reviewPath)).status).toBe(404);
+    expect((await fetch(worker.url + reviewPath, { headers: { origin: ORIGIN } })).status).toBe(401);
+  });
+
   it("로그인 → 회원 빠른 대전 12라운드 → 서버 기록·코인·퀘스트 → 상점·중복 요청·잔액 부족·장착 검증 → 다음 상대에게 표시 → 서버 AI 대전 → 탈퇴·재가입", async () => {
     const a = await login("alice");
     const b = await login("bob");

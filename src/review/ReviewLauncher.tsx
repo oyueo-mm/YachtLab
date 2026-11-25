@@ -3,7 +3,7 @@ import type { ReviewSource } from "./sources";
 
 type DialogProps = { source: ReviewSource; close: () => void };
 
-export default function ReviewLauncher({ source }: { source: () => ReviewSource }) {
+export default function ReviewLauncher({ source }: { source: () => ReviewSource | Promise<ReviewSource> }) {
   const [opened, open] = useState<{ source: ReviewSource; Dialog: ComponentType<DialogProps> } | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -13,7 +13,7 @@ export default function ReviewLauncher({ source }: { source: () => ReviewSource 
     try {
       const { default: Dialog } = await import("./ReviewDialog");
       let match: ReviewSource;
-      try { match = source(); }
+      try { match = await source(); }
       catch { match = "기보를 읽을 수 없어요. 원본 경기 기록은 그대로 저장돼 있어요."; }
       open({ source: match, Dialog });
     } catch {

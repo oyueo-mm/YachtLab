@@ -1,3 +1,5 @@
+import { fromOnline } from "../review/online-source";
+import type { ReviewMatch } from "../review/model";
 import { cryptoDiceSource, type DiceSource } from "./dice-source";
 import { total } from "../engine";
 import {
@@ -926,6 +928,15 @@ export class OnlineRoom {
     const totals = Object.fromEntries((state.standings ?? []).map((s) => [s.playerId, s.points]));
     const out: { userId: string; record: MatchRecord }[] = [];
     const standings = state.standings ?? [];
+    let review: ReviewMatch | undefined;
+    if (state.players.length === 2 && state.status === "finished") {
+      const member = state.players.find((player) => ids[player.playerId]);
+      if (member) {
+        const view = viewFor(state, member.playerId, undefined, 0);
+        const trace = fromOnline(view, view.events, this.looks());
+        if (typeof trace !== "string" && trace.steps.length <= 72) review = trace;
+      }
+    }
     for (const p of state.players) {
       const id = ids[p.playerId];
       if (!id) continue;
@@ -967,6 +978,7 @@ export class OnlineRoom {
           ...(this.record.ai ? { aiLevel: this.record.ai.level } : {}),
           kind: this.kind,
           stats: matchStats(state.log, p.playerId, others.length === 1 ? other.playerId : null, state.winners),
+          ...(review ? { review } : {}),
           ...(state.players.length > 2 ? { field: { players: state.players.length, rank, mode: state.mode === "simultaneous" ? "simultaneous" : "turns" } } : {}),
         },
       });

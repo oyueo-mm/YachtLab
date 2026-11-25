@@ -237,7 +237,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
             setMilestones({ best: beatDeviceScore("online", player.total, next.matchId), comeback });
           }
           recordOnDevice(next, me);
-          const review = fromOnline(next, [...reviewEvents.current.values()]);
+          const review = fromOnline(next, [...reviewEvents.current.values()], looksRef.current);
           if (typeof review !== "string") rememberOnlineReview(review);
           if (prev?.matchId === next.matchId && prev.status === "playing") onFinished?.(next.matchId);
         }
@@ -574,7 +574,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
             </>
           }
           status={status}
-          review={view.you && view.players.length === 2 && view.status === "finished" ? <ReviewLauncher source={() => fromOnline(view, [...reviewEvents.current.values()])} /> : undefined}
+          review={view.you && view.players.length === 2 && view.status === "finished" ? <ReviewLauncher source={() => fromOnline(view, [...reviewEvents.current.values()], looks)} /> : undefined}
           tools={toolGroups}
           banner={banner}
           dice={game.dice}
@@ -710,7 +710,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
                 <MatchMilestones {...milestones} />
                 <RematchControls rematch={rematch} me={me?.playerId ?? ""} opponentName={opponent?.name ?? "상대"} onOp={(op) => conn.current?.rematch(op)} />
                 <div className="game-result-actions">
-                  {view.you && <ReviewLauncher source={() => fromOnline(view, [...reviewEvents.current.values()])} />}
+                  {view.you && <ReviewLauncher source={() => fromOnline(view, [...reviewEvents.current.values()], looks)} />}
                   <button
                     className="secondary"
                     onClick={() => {

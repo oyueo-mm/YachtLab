@@ -454,6 +454,9 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   async me() {
     return this.store.profile();
   }
+  async matchReview(matchId: string) {
+    return this.store.matchReview(matchId);
+  }
   async matchReward(matchId: string) {
     return this.store.matchReward(matchId);
   }
