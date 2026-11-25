@@ -137,9 +137,9 @@ function fillEndgameStopValues(Mm: number, um: number, Mo: number, uo: number, D
 // ---------------------------------------------------------------------------
 // Root decision with lexicographic (win credit, expected final points).
 // ---------------------------------------------------------------------------
-type RootValues = { w: Float64Array; p: Float64Array }; // indexed c*64 + raw points
+export type RootValues = { w: Float64Array; p: Float64Array }; // indexed c*64 + raw points
 
-function decideFromStopValues(state: Game, mask: number, root: RootValues, note: string, stage: string): V5Decision {
+export function decideFromStopValues(state: Game, mask: number, root: RootValues, note: string, stage: string): V5Decision {
   const dice = state.dice.map((d) => d.value);
   const d0 = FULL_INDEX.get([...dice].sort((a, b) => a - b).join(""))!;
   const left = 3 - state.rolls;
@@ -198,7 +198,7 @@ export type V5Action = { kind: "score" | "reroll"; category?: Category; ids?: nu
 export type V5Decision = Decision & { stage: string; analysis: V5Action[] };
 
 /** Expected-points secondary: base + gain + DP future (identical to DP Expert Q values up to rounding). */
-function fillPoints(mask: number, u: number, base: number, cfg: V5Config, out: Float64Array) {
+export function fillPoints(mask: number, u: number, base: number, cfg: V5Config, out: Float64Array) {
   for (let c = 0; c < 12; c++) if (mask & (1 << c)) {
     const next = mask ^ (1 << c);
     for (const p of DISTINCT[c]) {
