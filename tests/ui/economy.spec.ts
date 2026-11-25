@@ -149,3 +149,34 @@ test("퀘스트: 진행도·보상·초기화 시각·하루 1회 교체·받은
   await expect(page.getByText("???").first()).toBeVisible();
   await expect(page.getByText("300점 이상")).toHaveCount(0);
 });
+
+test("회원 홈에서 서버가 반환한 잔액과 장착 외형을 보여 준다", async ({ page }) => {
+  const acc = await open(page, "home");
+  acc.snap.look = { ...acc.snap.look, nameFx: "nameFx.aurora", nameFxLv: 2, title: "title.300" };
+  await page.reload();
+  const account = page.getByRole("region", { name: "내 계정" });
+  await expect(account).toContainText("회원");
+  await expect(account.getByTestId("coins")).toHaveText("1,500");
+  await expect(account.getByTestId("gems")).toHaveText("30");
+  await expect(account.locator(".player-icon")).toBeVisible();
+  await expect(account.locator(".player-name")).toHaveClass(/namefx-aurora fx-lv2/);
+  await expect(account.locator(".player-title")).toBeVisible();
+});
+
+test("게스트 홈에 계정 안내가 있고 휴대폰에서는 주요 메뉴로 이동할 수 있다", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto("#home");
+  const account = page.getByRole("region", { name: "내 계정" });
+  await expect(account).toContainText("게스트");
+  await expect(account.locator(".player-name")).toContainText("요트러");
+  await expect(account.locator(".player-icon")).toBeVisible();
+  await expect(account.getByTestId("coins")).toHaveCount(0);
+  await account.getByRole("button", { name: "로그인 안내" }).click();
+  await expect(page.getByRole("region", { name: "로그인" })).toBeVisible();
+  await page.getByRole("button", { name: "메뉴", exact: true }).click();
+  const menu = page.getByRole("dialog", { name: "메뉴" });
+  await menu.getByRole("button", { name: "퀘스트" }).click();
+  await expect(page).toHaveURL(/#quests$/);
+  await expect(menu).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
