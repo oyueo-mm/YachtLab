@@ -185,7 +185,7 @@ export async function startOnlineServer(options: OnlineServerOptions = {}): Prom
     const parts = url.pathname.split("/").filter(Boolean);
     try {
       if (req.method === "GET" && url.pathname === "/api/features")
-        return send(res, 200, { quickMatch: false, publicSpectate: false, signIn: false, createSettings: true }, okOrigin);
+        return send(res, 200, { quickMatch: false, publicSpectate: false, signIn: false, createSettings: true, defaultTurnTimeoutMs: turnTimeoutMs }, okOrigin);
       if (req.method === "GET" && url.pathname === "/healthz") return send(res, 200, { ok: true, rooms: rooms.size }, okOrigin);
       if (parts[0] !== "api" || parts[1] !== "rooms") return fail(res, 404, "NOT_FOUND", "없는 주소입니다.", okOrigin);
 

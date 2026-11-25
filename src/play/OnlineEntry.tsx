@@ -233,15 +233,17 @@ export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server:
         ) : shown === "watch" ? (
           <WatchRooms server={server} />
         ) : (
-          <FriendPanel createSettings={!!features.createSettings} server={server} name={trimmed} enter={enter} onEnter={onEnter} />
+          <FriendPanel defaultTurnTimeoutMs={features.defaultTurnTimeoutMs} createSettings={!!features.createSettings} server={server} name={trimmed} enter={enter} onEnter={onEnter} />
         )}
       </div>
     </section>
   );
 }
 
+const formatLimit = (ms: number | null) => ms === null ? "시간 제한 없음" : `${ms / 1000}초`;
+
 /** Invite a friend: create a room or join with a code (the original online screen). */
-function FriendPanel({ server, name, enter, onEnter, createSettings }: { createSettings: boolean; server: string; name: string; enter: (seat: Seat) => void; onEnter: (code: string) => void }) {
+function FriendPanel({ server, name, enter, onEnter, createSettings, defaultTurnTimeoutMs }: { createSettings: boolean; defaultTurnTimeoutMs?: number | null; server: string; name: string; enter: (seat: Seat) => void; onEnter: (code: string) => void }) {
   const [code, setCode] = useState("");
   const [size, setSize] = useState(() => {
     try {
@@ -309,9 +311,9 @@ function FriendPanel({ server, name, enter, onEnter, createSettings }: { createS
                   const selected = event.target.value;
                   setSettings(selected === "default" ? null : { mode, timeoutMs: selected === "null" ? null : Number(selected) });
                 }}>
-                  {mode === "turns" && <option value="default">서버 기본값</option>}
-                  {(mode === "simultaneous" ? ROUND_LIMITS : TURN_LIMITS).map((ms) => (
-                    <option key={String(ms)} value={String(ms)}>{ms === null ? "없음" : `${ms / 1000}초`}</option>
+                  {mode === "turns" && <option value="default">{defaultTurnTimeoutMs === undefined ? "선택 안 함" : `${formatLimit(defaultTurnTimeoutMs)} (기본)`}</option>}
+                  {(mode === "simultaneous" ? ROUND_LIMITS : TURN_LIMITS.filter((ms) => ms !== defaultTurnTimeoutMs)).map((ms) => (
+                    <option key={String(ms)} value={String(ms)}>{formatLimit(ms)}</option>
                   ))}
                 </select>
               </label>

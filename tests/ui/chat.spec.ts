@@ -1,3 +1,4 @@
+import { returningVisitorState } from "./visitor";
 import { expect, test, devices, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { startLocalWorker, type LocalWorker } from "../helpers/wrangler";
 import { fakeLogin, startFakeIdp, type FakeIdp } from "../helpers/fake-idp";
@@ -40,7 +41,7 @@ test.afterAll(async () => {
 });
 const entry = (room?: string) => `?online-server=${encodeURIComponent(worker.url)}${room ? `&room=${room}` : ""}#online`;
 async function device(browser: Browser, phone: boolean, session?: string) {
-  const ctx = await browser.newContext({ ...(phone ? devices["Pixel 7"] : { viewport: { width: 1366, height: 900 } }), baseURL: ORIGIN + "/YachtLab/", reducedMotion: "reduce" });
+  const ctx = await browser.newContext({ storageState: returningVisitorState(), ...(phone ? devices["Pixel 7"] : { viewport: { width: 1366, height: 900 } }), baseURL: ORIGIN + "/YachtLab/", reducedMotion: "reduce" });
   if (session) await ctx.addInitScript((s) => localStorage.setItem("yachtlab.session.v1", s), session);
   contexts.push(ctx);
   return ctx.newPage();

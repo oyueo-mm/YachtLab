@@ -13,6 +13,7 @@ import { StraightFlash, YachtFlash } from "./yacht-moment";
 type Props = {
   state: Pick<Game, "dice" | "order" | "rolls">;
   interactive?: boolean;
+  focusDie?: number;
   animate?: boolean;
   rollEvent?: number;
   onToggle?: (id: number) => void;

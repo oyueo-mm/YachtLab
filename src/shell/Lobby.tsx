@@ -1,7 +1,7 @@
 import { ArrowRight, Backpack, Bot, Dices, Globe, ListChecks, Smartphone, Store, Trophy, UserRound, UsersRound } from "lucide-react";
 import { DieIcon } from "../Dice";
 import type { Route } from "../routes";
-import { tutorialSeen } from "../play/Tutorial";
+import { tutorialSeen } from "../play/tutorial-progress";
 import { useInbox } from "./Friends";
 import HomeProfile, { useProfileEconomy } from "./HomeProfile";
 

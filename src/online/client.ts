@@ -184,7 +184,7 @@ export const roomSummary = (base: string, code: string) => call<RoomSummary>(bas
 
 /* ------------------------------------------------------------- features / public spectating ------------------------------------------------------------- */
 
-export type Features = { quickMatch: boolean; publicSpectate: boolean; signIn: boolean; serverAi?: boolean; economy?: boolean; createSettings?: boolean };
+export type Features = { quickMatch: boolean; publicSpectate: boolean; signIn: boolean; serverAi?: boolean; economy?: boolean; createSettings?: boolean; defaultTurnTimeoutMs?: number | null };
 const featureCache = new Map<string, Promise<Features>>();
 /** What the server offers. An older server (or the local Node dev server) answers 404: friend play only. */
 export function serverFeatures(base: string): Promise<Features> {

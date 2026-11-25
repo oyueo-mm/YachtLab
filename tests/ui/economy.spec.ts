@@ -72,13 +72,17 @@ test("로그인 전에는 상점이 로그인을 안내한다(가짜 잔액 없�
   await expect(page.getByTestId("coins")).toHaveText("–");
 });
 
-test("상점: 카드형 그리드·상품군 탭·등급/가격 필터·업적 전용 표시, 상세에서 미리보기 후 확인을 거쳐 구매(요청 ID)", async ({ page }) => {
+test("상점: 가로 상품 목록·상품군 탭·등급/가격 필터·업적 전용 표시, 상세에서 미리보기 후 확인을 거쳐 구매(요청 ID)", async ({ page }) => {
   const acc = await open(page, "shop");
   await expect(page.getByTestId("coins")).toHaveText("1,500");
   await expect(page.getByRole("tab", { name: "둘러보기" })).toHaveAttribute("aria-selected", "true");
   const diceSection = page.getByRole("region", { name: "주사위" });
-  await expect(diceSection.locator(".item-card")).toHaveCount(4);
-  await diceSection.getByRole("button", { name: "주사위 더 보기" }).click();
+  const rail = diceSection.getByRole("list", { name: "주사위 상품" });
+  await expect(rail.locator(".item-card")).toHaveCount(29);
+  await diceSection.getByRole("button", { name: "주사위 다음 상품" }).click();
+  await expect.poll(() => rail.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
+  await expect(page.getByRole("button", { name: /더 보기/ })).toHaveCount(0);
+  await page.getByRole("tab", { name: /^주사위/ }).click();
   await expect(page.getByRole("tab", { name: /^주사위/ })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".item-card")).toHaveCount(29); // every dice design for sale
   await expect(page.locator('[data-item="dice.royal"] .item-card-price .short').first()).toBeVisible(); // not affordable
@@ -125,7 +129,7 @@ test("상점: 강화형 상품은 사기 전에 Lv.1~3 차이를 미리 보고, 
   await expect(nf.locator(".profile-card-sample .player-name")).toHaveClass(/namefx-aurora fx-lv2/);
   await nf.getByRole("button", { name: "같은 등급 상품 보기" }).click();
   await expect(page.getByLabel("등급")).not.toHaveValue("all");
-  await expect(page.getByRole("list", { name: "상품" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "닉네임 효과 상품" })).toBeVisible();
 });
 
 test("인벤토리: 장착 미리보기·상품군 탭·기본 이모티콘 4·채팅 6, 순서 변경 후 저장", async ({ page }) => {
@@ -189,4 +193,30 @@ test("게스트 홈에 계정 안내가 있고 휴대폰에서는 주요 메뉴�
   await expect(page).toHaveURL(/#quests$/);
   await expect(menu).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("설치 팝업은 긴 회원 닉네임과 잔액이 있는 320~430px 홈을 밀지 않는다", async ({ page }) => {
+  for (const width of [320, 375, 430]) {
+    await page.setViewportSize({ width, height: 760 });
+    const acc = await open(page, "home");
+    acc.snap.wallet.coins = 987_654_321;
+    acc.snap.wallet.gems = 123_456_789;
+    await page.evaluate(() => localStorage.setItem("yachtlab.online.name", "ABCDEFGH요트선수"));
+    await page.reload();
+    const profile = page.getByRole("region", { name: "내 계정" });
+    await expect(profile.getByTestId("coins")).toHaveText("987,654,321");
+    const before = await profile.boundingBox();
+    await page.evaluate(() => {
+      const offer = new Event("beforeinstallprompt", { cancelable: true });
+      Object.assign(offer, { prompt: async () => {}, userChoice: Promise.resolve({ outcome: "accepted" }) });
+      window.dispatchEvent(offer);
+    });
+    const popup = page.getByRole("complementary", { name: "앱 설치" });
+    await expect(popup).toBeVisible();
+    expect(await profile.boundingBox()).toEqual(before);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    await popup.getByRole("button", { name: "설치 안내 닫기" }).click();
+    await expect(popup).toHaveCount(0);
+    await page.evaluate(() => localStorage.removeItem("yachtlab.install-dismissed.v1"));
+  }
 });

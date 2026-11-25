@@ -1,29 +1,55 @@
 import { expect, test } from "@playwright/test";
 import { scoreCategory } from "./helpers";
 
-test("홈에서 연습을 건너뛰고 다시 열어 굴림·킵·재굴림·점수 기록을 직접 완료한다", async ({ page }) => {
-  await page.goto("");
-  await page.getByRole("button", { name: /처음이라면/ }).click();
-  await page.getByRole("button", { name: "건너뛰기" }).click();
-  await page.reload();
-  await page.getByRole("button", { name: "튜토리얼 다시 보기" }).click();
+test.describe("최초 방문", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
 
-  await page.getByText("족보와 점수 계산", { exact: true }).click();
-  await expect(page.getByText(/63점 이상이면 35점/)).toBeVisible();
-  await page.getByRole("button", { name: "주사위 굴리기", exact: true }).click();
-  const reroll = page.getByRole("button", { name: "다시 굴리기", exact: true });
-  await expect(reroll).toBeDisabled();
-  const hold = page.getByRole("region", { name: "연습 보드" }).locator('[data-die-id="0"] .die-button');
-  const face = await hold.getAttribute("aria-label");
-  await hold.click();
-  await expect(hold).toHaveAttribute("aria-pressed", "true");
-  await reroll.click();
-  await expect(hold).toHaveAttribute("aria-pressed", "true");
-  expect((await hold.getAttribute("aria-label"))?.split(", ")[1]).toBe(face?.split(", ")[1]);
-  await page.getByRole("button", { name: /초이스 \d+점 기록/ }).click();
-  await expect(page.getByText(/초이스 \d+점 기록 완료/)).toBeVisible();
-  await page.getByRole("button", { name: "홈으로 가기" }).click();
-  await expect(page.getByRole("button", { name: "튜토리얼 다시 보기" })).toBeVisible();
+  test("강조된 조작만 허용하고 고정 시나리오를 기록한다", async ({ page }) => {
+    await page.goto("");
+    const guide = page.getByRole("region", { name: "튜토리얼" });
+    await expect(guide).toBeVisible();
+    const dice = guide.locator(".die-button");
+    const roll = guide.locator(".roll-button");
+    await roll.click();
+    await expect(dice.nth(2)).toBeDisabled();
+    await expect(roll).toBeDisabled();
+    await dice.nth(0).click();
+    await expect(dice.nth(0)).toBeDisabled();
+    await dice.nth(1).click();
+    await roll.click();
+    await expect(guide.locator('[data-die-id="2"] .die-button')).toBeEnabled();
+    await guide.locator('[data-die-id="2"] .die-button').click();
+    await roll.click();
+    await expect(roll).toBeDisabled();
+    await guide.getByRole("button", { name: /헥사.*24점 기록/ }).click();
+    await expect(guide.getByText("헥사 24점 기록 완료")).toBeVisible();
+    await guide.getByRole("button", { name: "홈으로 가기" }).click();
+    await page.reload();
+    await expect(guide).toHaveCount(0);
+    await page.getByRole("button", { name: "튜토리얼 다시 보기" }).click();
+    await expect(guide).toBeVisible();
+  });
+
+  test("초대 URL을 유지하고 건너뛴 뒤 다시 열지 않는다", async ({ page }) => {
+    await page.goto("?room=ABCDEF#online");
+    await page.getByRole("button", { name: "건너뛰기" }).click();
+    await expect(page).toHaveURL(/room=ABCDEF#online$/);
+    await page.reload();
+    await expect(page.getByRole("region", { name: "튜토리얼" })).toHaveCount(0);
+  });
+
+  test("중도 새로고침과 레거시 방문은 자동 재실행하지 않는다", async ({ page }) => {
+    await page.goto("");
+    await expect(page.getByRole("region", { name: "튜토리얼" })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole("region", { name: "튜토리얼" })).toHaveCount(0);
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem("yachtlab.online.name", "기존사용자");
+    });
+    await page.reload();
+    await expect(page.getByRole("region", { name: "튜토리얼" })).toHaveCount(0);
+  });
 });
 
 test("첫 실제 경기의 안내와 기록 버튼은 점수를 기록하면 사라지고 기록된 점수가 남는다", async ({ page }) => {
