@@ -1,0 +1,160 @@
+name: YachtLab Win DP v5 research (exact PMF + interactive endgame)
+# Research-only workflow. Never deploys, never touches product code paths.
+on:
+  pull_request:
+    paths:
+      - src/research-v5/**
+      - scripts/research-v5/**
+      - training/v5-native/**
+      - tests/research-v5.test.ts
+      - .github/workflows/v5-apex-research.yml
+  push:
+    branches: [ccr-4b6d4930-6rem08]
+    paths:
+      - src/research-v5/**
+      - scripts/research-v5/**
+      - training/v5-native/**
+      - tests/research-v5.test.ts
+      - .github/workflows/v5-apex-research.yml
+  workflow_dispatch:
+    inputs:
+      family:
+        description: "seed family (9001-9099 dev, 9501-9599 confirm)"
+        default: "9502"
+      pairs:
+        description: "seed pairs per shard"
+        default: "2500"
+      matches:
+        description: "space separated a:b matchups"
+        default: "v5-B3:v2 v5-B3:v3"
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: yachtlab-v5-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: v5 unit tests (PMF mass/mean, solver cross-checks, RNG invariance, analysis API)
+        run: npx vitest run tests/research-v5.test.ts
+      - name: Native C++ bank build and TypeScript cross-check
+        run: |
+          g++ -O3 -std=c++17 training/v5-native/pmf_bank.cpp -o pmf_bank
+          node -e 'const z=require("zlib"),f=require("fs");const m=require("./src/dp-manifest.json");f.writeFileSync("dp.f64",z.gunzipSync(f.readFileSync("public/ai/"+m.asset)))'
+          /usr/bin/time -v ./pmf_bank dp.f64 native.f64bank 2>&1 | tee native.log
+          npx tsx scripts/research-v5/bench.ts --a v5-B3 --b v2 --family 9099 --shard 0 --pairs 30 --out smoke
+          npx tsx scripts/research-v5/compare-banks.ts training/checkpoints/v5/dp-expert-pmf.f64bank native.f64bank | tee compare.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v5-validate
+          path: |
+            native.log
+            compare.json
+            smoke/
+  tournament:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Paired seat-swapped tournament shard
+        run: |
+          for m in ${{ github.event.inputs.matches }}; do
+            npx tsx scripts/research-v5/bench.ts --a ${m%%:*} --b ${m##*:} --family ${{ github.event.inputs.family }} --shard ${{ matrix.shard }} --pairs ${{ github.event.inputs.pairs }} --out out
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v5-tournament-${{ matrix.shard }}
+          path: out/
+  ci-confirm:
+    # Pre-registered confirmation on seed family 9501 from scripts/research-v5/ci-plan.txt;
+    # runs only when the pushed commit message contains [v5-ci-confirm]. Never deploys.
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[v5-ci-confirm]')
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 170
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Paired seat-swapped shards (family 9501)
+        run: |
+          grep -v '^#' scripts/research-v5/ci-plan.txt | while read m n pairs; do
+            [ -z "$m" ] && continue
+            if [ ${{ matrix.shard }} -lt $n ]; then
+              V5_COMMIT=$GITHUB_SHA npx tsx scripts/research-v5/bench.ts --a ${m%%:*} --b ${m##*:} --family 9501 --shard ${{ matrix.shard }} --pairs $pairs --out out < /dev/null
+            fi
+          done
+      - name: Shard sufficient statistics (single log line)
+        run: npx tsx scripts/research-v5/shard-stats.ts out "v5-B3:v5-R:v2,v5-A:v5-R:v2,v5-X3:v5-R:v2,v5-B3:v5-A:v2,v5-R:v3:v2,v5-B3:v3:v2,v5-B3:v5-R:v3,v5-D:v5-R:greedy,v5-D:v5-R:myopic,v5-D:v5-R:switcher"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v5-confirm-9501-${{ matrix.shard }}
+          path: out/
+  aggregate:
+    # Aggregates the artifacts of a finished confirmation run (id in scripts/research-v5/aggregate-run.txt)
+    # into the final tables, printed to the log and uploaded. Runs when the commit message contains [v5-aggregate].
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[v5-aggregate]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - id: run
+        run: echo "id=$(tr -d ' \n' < scripts/research-v5/aggregate-run.txt)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ steps.run.outputs.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: v5-confirm-9501-*
+          merge-multiple: true
+          path: confirm-9501
+      - name: Final confirmation tables
+        run: |
+          ls confirm-9501 | wc -l
+          npx tsx scripts/research-v5/summarize.ts confirm-9501 --md confirm-9501.md --json confirm-9501.json \
+            --contrast "v5-B3:v5-R,v5-A:v5-R,v5-X3:v5-R,v5-B3:v5-A,v5-R:v3,v5-B3:v3,v5-D:v5-R,v5-B3:v5-X3" > /dev/null
+          npx tsx scripts/research-v5/metagame.ts confirm-9501.json --subset=v5-R,v3,v2,dp > metagame.json || true
+          echo "=====V5_FINAL_BEGIN====="
+          cat confirm-9501.md
+          node -e 'const m=require("./metagame.json");console.log(JSON.stringify({mixture:m.mixture,restrictedExploitability:m.restrictedExploitability,error:m.error,missing:m.missing}))'
+          node -e 'const s=require("./confirm-9501.json");for(const r of s.rows)console.log("LAT",r.a,"vs",r.b,JSON.stringify({meanMs:+r.latencyA.meanMs.toFixed(4),p50:+r.latencyA.p50.toFixed(4),p95:+r.latencyA.p95.toFixed(4),p99:+r.latencyA.p99.toFixed(4),max:+r.latencyA.maxMs.toFixed(2),dpDiff:+r.latencyA.diffFromDPRate.toFixed(5),vrf:+r.varianceReductionFactor.toFixed(2),cpu:+r.cpuSeconds.toFixed(0),bMs:+r.latencyB.meanMs.toFixed(4),bP99:+r.latencyB.p99.toFixed(3)}))'
+          echo "=====V5_FINAL_END====="
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v5-confirm-9501-final
+          path: |
+            confirm-9501.md
+            confirm-9501.json
+            metagame.json
