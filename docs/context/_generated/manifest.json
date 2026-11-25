@@ -76,7 +76,8 @@
     "V5-APEX-RESEARCH.md",
     "V5-R-PRODUCT.md",
     "V6-APEX-RESEARCH.md",
-    "V6-INTEGRATION-HANDOFF.md"
+    "V6-INTEGRATION-HANDOFF.md",
+    "V7-APEX-RESEARCH.md"
   ],
   "workflowFiles": [
     "algorithm-zoo.yml",
@@ -118,6 +119,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "b88c738",
+      "date": "2026-11-26",
+      "subject": "Merge PR #89: Win DP v7 research (opponent-reaction stop values, exact regret benchmark, partial confirmation)"
+    },
+    {
+      "sha": "a63267a",
+      "date": "2026-11-25",
+      "subject": "Merge remote-tracking branch 'origin/main' into claude/yachtlab-v7-research-ngcrhe"
+    },
+    {
       "sha": "a6e26cf",
       "date": "2026-11-26",
       "subject": "Merge pull request #88 from oyueo-mm/codex/tutorial-navigation"
@@ -143,55 +154,39 @@
       "subject": "fix: preserve replay saving and close the menu on navigation"
     },
     {
-      "sha": "aa857d6",
-      "date": "2026-11-26",
-      "subject": "test: cover onboarding and navigation and update handoff"
-    },
-    {
-      "sha": "de8c6a8",
-      "date": "2026-11-26",
-      "subject": "fix: keep header controls inside narrow screens"
-    },
-    {
-      "sha": "f209ef2",
-      "date": "2026-11-26",
-      "subject": "feat: reorganize home and account navigation"
-    },
-    {
-      "sha": "2091d0c",
-      "date": "2026-11-26",
-      "subject": "feat: share game physics in the first-visit tutorial and practice"
-    },
-    {
-      "sha": "1b5cdc0",
+      "sha": "1b542f9",
       "date": "2026-11-25",
-      "subject": "Merge pull request #87 from oyueo-mm/codex/product-operating-record"
+      "subject": "docs(context): fix v7 results heading"
+    },
+    {
+      "sha": "a76667d",
+      "date": "2026-11-25",
+      "subject": "docs(context): v7 results, roadmap, techniques, decision D-V7-1, handoff"
+    },
+    {
+      "sha": "69a1f58",
+      "date": "2026-11-25",
+      "subject": "research(v7): confirmation 9531/9541 results (H3 accepted; H1 Holm-adjusted p=0.016 at 9531, replicated at 9541 p=0.0002)"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "a10a9c6d28",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45653729027"
+      "head": "a63267a5a6",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45662760433"
     },
     {
       "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
       "status": "success",
-      "head": "5561c5837b",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45634726403"
+      "head": "a63267a5a6",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45662760293"
     },
     {
       "name": "Competitive research benchmark",
       "status": "success",
       "head": "e83ba82669",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45632492725"
-    },
-    {
-      "name": "YachtLab gameplay UI targeted smoke",
-      "status": "success",
-      "head": "6735973b26",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45627899634"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
