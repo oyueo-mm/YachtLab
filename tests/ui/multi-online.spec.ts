@@ -98,7 +98,7 @@ test("4인 동시 진행: 방 인원 설정 → 초대 링크 입장 → 준비 
   expect(ranks).toBe(4);
   await expect(host.locator(".game-result h2")).toHaveText(/위|승리/);
   // rematch: two players ask, the host starts with them; the others' seats close
-  await guests[0].getByRole("button", { name: "재대결", exact: true }).click();
+  await guests[0].getByRole("button", { name: "한 번 더 플레이", exact: true }).click();
   await expect(host.getByText(/재대결을 원하는 사람 1명/)).toBeVisible();
   await host.getByRole("button", { name: "지금 시작" }).click();
   await expect(host.getByRole("region", { name: "실시간 순위" })).toBeVisible();
