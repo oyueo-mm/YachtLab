@@ -30,6 +30,9 @@ on:
       pairs:
         description: "seed pairs per shard"
         default: "2500"
+      contrasts:
+        description: "comma separated A:B paired contrasts (same opponent, same seeds) for the summary job"
+        default: ""
       matches:
         description: "space separated a:b matchups"
         default: "v5-B3:v2 v5-B3:v3"
@@ -98,6 +101,71 @@ jobs:
         with:
           name: v5-tournament-${{ matrix.shard }}
           path: out/
+  summary:
+    # Summarise THIS dispatch run's shards (artifact host is not reachable from some agents' sandboxes,
+    # so the tables are printed to the log between V6_SUMMARY_BEGIN/END and uploaded).
+    if: github.event_name == 'workflow_dispatch' && always()
+    needs: tournament
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: v5-tournament-*
+          merge-multiple: true
+          path: shards
+      - name: Summary tables
+        run: |
+          ls shards | wc -l
+          npx tsx scripts/research-v5/summarize.ts shards --md summary.md --json summary.json --contrast "${{ github.event.inputs.contrasts }}" > /dev/null
+          echo "=====V6_SUMMARY_BEGIN====="
+          cat summary.md
+          node -e 'const s=require("./summary.json");for(const r of s.rows)console.log("LAT",r.a,"vs",r.b,JSON.stringify({meanMs:+r.latencyA.meanMs.toFixed(4),p50:+r.latencyA.p50.toFixed(4),p95:+r.latencyA.p95.toFixed(4),p99:+r.latencyA.p99.toFixed(4),max:+r.latencyA.maxMs.toFixed(2),vrf:+r.varianceReductionFactor.toFixed(2),cpu:+r.cpuSeconds.toFixed(0)}))'
+          echo "=====V6_SUMMARY_END====="
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v6-summary
+          path: |
+            summary.md
+            summary.json
+  aggregate-v6:
+    # Re-summarise a finished dispatch run: commit with [v6-aggregate]; line 1 of
+    # scripts/research-v6/aggregate.txt = run id, line 2 = contrasts.
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[v6-aggregate]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - id: cfg
+        run: |
+          echo "id=$(sed -n 1p scripts/research-v6/aggregate.txt | tr -d ' \n')" >> "$GITHUB_OUTPUT"
+          echo "contrasts=$(sed -n 2p scripts/research-v6/aggregate.txt | tr -d ' \n')" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ steps.cfg.outputs.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: v5-tournament-*
+          merge-multiple: true
+          path: shards
+      - name: Summary tables
+        run: |
+          ls shards | wc -l
+          npx tsx scripts/research-v5/summarize.ts shards --md summary.md --json summary.json --contrast "${{ steps.cfg.outputs.contrasts }}" > /dev/null
+          echo "=====V6_SUMMARY_BEGIN====="
+          cat summary.md
+          node -e 'const s=require("./summary.json");for(const r of s.rows)console.log("LAT",r.a,"vs",r.b,JSON.stringify({meanMs:+r.latencyA.meanMs.toFixed(4),p50:+r.latencyA.p50.toFixed(4),p95:+r.latencyA.p95.toFixed(4),p99:+r.latencyA.p99.toFixed(4),max:+r.latencyA.maxMs.toFixed(2),vrf:+r.varianceReductionFactor.toFixed(2),cpu:+r.cpuSeconds.toFixed(0)}))'
+          echo "=====V6_SUMMARY_END====="
   ci-confirm:
     # Pre-registered confirmation on seed family 9501 from scripts/research-v5/ci-plan.txt;
     # runs only when the pushed commit message contains [v5-ci-confirm]. Never deploys.
