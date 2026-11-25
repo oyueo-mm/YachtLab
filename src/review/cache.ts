@@ -18,7 +18,7 @@ function open(): Promise<IDBDatabase> {
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
-    req.onblocked = () => reject(Error("복기 저장소가 다른 탭에서 열려 있어요."));
+    req.onblocked = () => reject(Error("리뷰 저장소가 다른 탭에서 열려 있어요."));
   });
 }
 

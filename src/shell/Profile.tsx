@@ -325,10 +325,10 @@ export default function Profile({ server, notice }: { server: string | null; not
                       const owner = session();
                       try {
                         const archived = await matchReview(server, r.recordId);
-                        return session() === owner ? archived ?? recent : "같은 계정으로 로그인한 뒤 복기를 열어 주세요.";
+                        return session() === owner ? archived ?? recent : "같은 계정으로 로그인한 뒤 게임 리뷰를 열어 주세요.";
                       } catch (error) {
                         if (error instanceof AccountError && error.status === 404) return recent;
-                        return "서버 복기를 불러올 수 없어요. 연결과 로그인 상태를 확인해 주세요.";
+                        return "서버 게임 리뷰를 불러올 수 없어요. 연결과 로그인 상태를 확인해 주세요.";
                       }
                     }} />}
                   </span>

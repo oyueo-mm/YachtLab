@@ -51,27 +51,41 @@ test("저장된 1:1 기보의 Worker 복기에서 그래프와 복습을 선택�
     await blocked;
     await route.continue().catch(() => {});
   });
-  await page.getByRole("button", { name: "AI 복기" }).click();
-  const review = page.getByRole("dialog", { name: "AI 복기" });
+  await page.getByRole("button", { name: "게임 리뷰" }).click();
+  const review = page.getByRole("dialog", { name: "게임 리뷰" });
   await requested;
   await review.getByRole("button", { name: "분석 취소" }).click();
   release();
   await page.unroute(workerModule);
   await review.getByRole("button", { name: "분석 다시 시도" }).click();
-  await expect(review.getByRole("group", { name: "기대점수 그래프" })).toBeVisible({ timeout: 30_000 });
-  await expect(review.getByText(/결정 손실 .* 굴림 운/)).toBeVisible();
+  await expect(review.getByRole("group", { name: "기대 최종점수 그래프" })).toBeVisible({ timeout: 30_000 });
+  await expect(review.getByText(/굴림 운/)).toBeVisible();
+  await expect(review.getByRole("main")).toBeVisible();
+  await expect(review.getByRole("table", { name: "당시 점수판" })).toBeVisible();
+  expect(await review.evaluate((surface) => surface.scrollWidth)).toBeLessThanOrEqual(await review.evaluate((surface) => surface.clientWidth));
+  await expect(review.getByRole("list", { name: "행동 타임라인" }).locator("[aria-current=step]")).toHaveCount(1);
   if (test.info().project.name === "mobile") {
     const board = await review.locator(".review-position").boundingBox();
     const summary = await review.getByRole("region", { name: "경기 전체 분석" }).boundingBox();
     expect(board!.y).toBeLessThan(summary!.y);
   }
-  await review.getByRole("button", { name: "이 국면 복습하기" }).click();
+  await review.getByText("대안 행동", { exact: true }).click();
+  await review.getByRole("button", { name: "다시 도전" }).click();
   await expect(review.getByText("당시 점수판을 보고 선택해 보세요.")).toBeVisible();
   await review.locator(".review-options ol button").first().click();
   await expect(review.locator(".review-options").getByRole("status")).toContainText(/기대점수/);
-  const win = review.getByRole("group", { name: "종반 승리점수율 그래프" });
-  await win.getByRole("button").last().click();
+  await review.getByRole("button", { name: "분석으로 돌아가기" }).click();
+  await review.getByRole("combobox", { name: "그래프" }).selectOption("win");
+  const win = review.getByRole("group", { name: "승리점수율 그래프" });
+  const plot = win.getByRole("img");
+  const bounds = await plot.boundingBox();
+  await plot.click({ position: { x: bounds!.width - 14, y: bounds!.height / 2 } });
+  await expect(win.locator("output")).toHaveText(/라운드 .*%/);
   await expect(review.getByText("최종 점수차 분포")).toBeVisible();
+  await review.getByRole("button", { name: "처음", exact: true }).click();
+  await expect(review.getByRole("button", { name: /^1번째 행동/ })).toHaveAttribute("aria-current", "step");
+  await review.getByRole("button", { name: "돌아가기" }).click();
+  await expect(review).toHaveCount(0);
 });
 
 test("온라인 경기 중 복기는 숨기고 서버가 종료한 본인 경기를 분석한다", async ({ page, browser, baseURL }) => {
@@ -94,11 +108,11 @@ test("온라인 경기 중 복기는 숨기고 서버가 종료한 본인 경기
     await lobby.getByRole("button", { name: "게임 시작", exact: true }).click();
     await page.locator(".roll-button").click();
     await scoreCategory(page, "choice");
-    await expect(page.getByRole("button", { name: "AI 복기" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "게임 리뷰" })).toHaveCount(0);
     await other.getByRole("button", { name: "기권", exact: true }).click();
     await other.getByRole("dialog").getByRole("button", { name: "기권", exact: true }).click();
-    await page.getByRole("button", { name: "AI 복기" }).click();
-    await expect(page.getByRole("group", { name: "기대점수 그래프" })).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: "게임 리뷰" }).click();
+    await expect(page.getByRole("group", { name: "기대 최종점수 그래프" })).toBeVisible({ timeout: 30_000 });
   } finally {
     await guest.close();
     await worker.close();

@@ -7,7 +7,7 @@ import type { Position, ReviewMatch, Situation } from "./model";
 export const missingOnlineReview = "이 경기에는 양쪽의 전체 굴림과 점수 기록이 저장되지 않았어요.";
 
 export function fromOnline(view: PlayerView, history: readonly OnlineEvent[], looks?: Record<string, PublicLook>): ReviewMatch | string {
-  if (view.status !== "finished" || !view.you) return "완료한 본인 경기에서 복기할 수 있어요.";
+  if (view.status !== "finished" || !view.you) return "완료한 본인 경기에서 리뷰할 수 있어요.";
   if (view.players.length !== 2) return "1:1 경기를 분석할 수 있어요.";
   const ordered = [...history].sort((a, b) => a.seq - b.seq);
   if (ordered[0]?.type !== "matchCreated" || ordered.at(-1)?.type !== "matchFinished" ||
