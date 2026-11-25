@@ -1,0 +1,1298 @@
+{
+ "z": 2.5758,
+ "rows": [
+  {
+   "a": "v5-R",
+   "b": "dp",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.5144,
+   "ci": [
+    0.5064003028567894,
+    0.5223996971432106
+   ],
+   "se": 0.0031057136203162298,
+   "wins": 5103,
+   "ties": 82,
+   "losses": 4815,
+   "winRate": 0.5103,
+   "tieRate": 0.0082,
+   "lossRate": 0.4815,
+   "meanScoreA": 189.095,
+   "meanScoreB": 191.5697,
+   "meanDiff": -2.474700000000013,
+   "elo": 10.008912739585774,
+   "eloCi": [
+    4.447628874584079,
+    15.57532918861186
+   ],
+   "varianceReductionFactor": 2.5687472806457943,
+   "latencyA": {
+    "decisions": 343288,
+    "meanMs": 0.07635835537508212,
+    "p50": 0.0588843655355589,
+    "p95": 0.13489628825916536,
+    "p99": 0.22387211385683395,
+    "maxMs": 68.10466599999972,
+    "diffFromDPRate": 0.06073034886159726,
+    "stages": {
+     "rollout": 343288
+    }
+   },
+   "latencyB": {
+    "decisions": 343124,
+    "meanMs": 0.04680961481855271,
+    "p50": 0.03890451449942807,
+    "p95": 0.0707945784384138,
+    "p99": 0.11748975549395294,
+    "maxMs": 41.80759500000022,
+    "diffFromDPRate": 0,
+    "stages": {
+     "-": 343124
+    }
+   },
+   "cpuSeconds": 75.920240817,
+   "describe": {
+    "v5-R": "v5 rollout everywhere (no special endgame)",
+    "dp": "DP Expert (expected-score optimal)"
+   }
+  },
+  {
+   "a": "v5-B3",
+   "b": "dp",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.51425,
+   "ci": [
+    0.5062075466706171,
+    0.5222924533293829
+   ],
+   "se": 0.0031223128074318466,
+   "wins": 5102,
+   "ties": 81,
+   "losses": 4817,
+   "winRate": 0.5102,
+   "tieRate": 0.0081,
+   "lossRate": 0.4817,
+   "meanScoreA": 189.1077,
+   "meanScoreB": 191.5697,
+   "meanDiff": -2.4620000000000175,
+   "elo": 9.90459643797657,
+   "eloCi": [
+    4.313666861795983,
+    15.500659409276876
+   ],
+   "varianceReductionFactor": 2.5418079138418443,
+   "latencyA": {
+    "decisions": 343338,
+    "meanMs": 0.4708566759432385,
+    "p50": 0.0707945784384138,
+    "p95": 0.16982436524617442,
+    "p99": 10.232929922807541,
+    "maxMs": 435.6736639999999,
+    "diffFromDPRate": 0.060409858506777575,
+    "stages": {
+     "rollout": 257135,
+     "minimax": 86203
+    }
+   },
+   "latencyB": {
+    "decisions": 343124,
+    "meanMs": 0.04528043387232322,
+    "p50": 0.03890451449942807,
+    "p95": 0.0707945784384138,
+    "p99": 0.0933254300796991,
+    "maxMs": 49.26821100000234,
+    "diffFromDPRate": 0,
+    "stages": {
+     "-": 343124
+    }
+   },
+   "cpuSeconds": 210.47741377199998,
+   "describe": {
+    "v5-B3": "v5-B rollout + exact minimax window 3",
+    "dp": "DP Expert (expected-score optimal)"
+   }
+  },
+  {
+   "a": "v5-D",
+   "b": "greedy",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.7325,
+   "ci": [
+    0.721843166895606,
+    0.7431568331043941
+   ],
+   "se": 0.004137290591037357,
+   "wins": 7296,
+   "ties": 58,
+   "losses": 2646,
+   "winRate": 0.7296,
+   "tieRate": 0.0058,
+   "lossRate": 0.2646,
+   "meanScoreA": 189.0227,
+   "meanScoreB": 162.8614,
+   "meanDiff": 26.161299999999983,
+   "elo": 174.99353706755997,
+   "eloCi": [
+    165.66124663202518,
+    184.56498367733346
+   ],
+   "varianceReductionFactor": 1.136362858402547,
+   "latencyA": {
+    "decisions": 342883,
+    "meanMs": 1.6319189798094211,
+    "p50": 1.4125375446227544,
+    "p95": 2.4547089156850306,
+    "p99": 6.165950018614822,
+    "maxMs": 181.36300399998436,
+    "diffFromDPRate": 0.0723920404336173,
+    "stages": {
+     "rollout": 256938,
+     "minimax": 85945
+    }
+   },
+   "latencyB": {
+    "decisions": 337696,
+    "meanMs": 0.5014929371772483,
+    "p50": 0.5888436553555889,
+    "p95": 0.9772372209558107,
+    "p99": 1.7782794100389228,
+    "maxMs": 41.616508000006434,
+    "diffFromDPRate": 0.3304688240310812,
+    "stages": {
+     "-": 337696
+    }
+   },
+   "cpuSeconds": 772.097477922,
+   "describe": {
+    "v5-D": "v5-B3 + exact-likelihood Bayesian opponent mixture {DP Expert, Myopic} (eps 0.02)",
+    "greedy": "Greedy (src/ai.ts)"
+   }
+  },
+  {
+   "a": "v5-B3",
+   "b": "greedy",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.7307,
+   "ci": [
+    0.7200270659208783,
+    0.7413729340791217
+   ],
+   "se": 0.004143541454740959,
+   "wins": 7281,
+   "ties": 52,
+   "losses": 2667,
+   "winRate": 0.7281,
+   "tieRate": 0.0052,
+   "lossRate": 0.2667,
+   "meanScoreA": 188.7779,
+   "meanScoreB": 162.8614,
+   "meanDiff": 25.916499999999985,
+   "elo": 173.4011015734827,
+   "eloCi": [
+    164.09310930406988,
+    182.94510159456064
+   ],
+   "varianceReductionFactor": 1.1386673124620181,
+   "latencyA": {
+    "decisions": 343050,
+    "meanMs": 0.30980057305349096,
+    "p50": 0.07413102413009177,
+    "p95": 0.20417379446695297,
+    "p99": 5.370317963702528,
+    "maxMs": 376.0195689999964,
+    "diffFromDPRate": 0.07035709080308993,
+    "stages": {
+     "rollout": 257022,
+     "minimax": 86028
+    }
+   },
+   "latencyB": {
+    "decisions": 337696,
+    "meanMs": 0.5893634922148914,
+    "p50": 0.5623413251903491,
+    "p95": 1.1220184543019633,
+    "p99": 4.897788193684462,
+    "maxMs": 396.55767000000924,
+    "diffFromDPRate": 0.3304688240310812,
+    "stages": {
+     "-": 337696
+    }
+   },
+   "cpuSeconds": 346.652989384,
+   "describe": {
+    "v5-B3": "v5-B rollout + exact minimax window 3",
+    "greedy": "Greedy (src/ai.ts)"
+   }
+  },
+  {
+   "a": "v5-B3",
+   "b": "myopic",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.7214,
+   "ci": [
+    0.7106293037788415,
+    0.7321706962211586
+   ],
+   "se": 0.004181495543581997,
+   "wins": 7181,
+   "ties": 66,
+   "losses": 2753,
+   "winRate": 0.7181,
+   "tieRate": 0.0066,
+   "lossRate": 0.2753,
+   "meanScoreA": 188.5439,
+   "meanScoreB": 164.3046,
+   "meanDiff": 24.239300000000014,
+   "elo": 165.27801035775988,
+   "eloCi": [
+    156.07542522343815,
+    174.70170027702915
+   ],
+   "varianceReductionFactor": 1.1401375953383455,
+   "latencyA": {
+    "decisions": 343139,
+    "meanMs": 0.5310733501234005,
+    "p50": 0.0707945784384138,
+    "p95": 0.2137962089502232,
+    "p99": 9.33254300796991,
+    "maxMs": 469.5716609999945,
+    "diffFromDPRate": 0.07125100906629675,
+    "stages": {
+     "rollout": 257074,
+     "minimax": 86065
+    }
+   },
+   "latencyB": {
+    "decisions": 339868,
+    "meanMs": 0.0702719218902648,
+    "p50": 0.029512092266663854,
+    "p95": 0.06165950018614822,
+    "p99": 0.19498445997580455,
+    "maxMs": 200.1158599999908,
+    "diffFromDPRate": 0.2920339661280262,
+    "stages": {
+     "myopic": 339868
+    }
+   },
+   "cpuSeconds": 271.287872454,
+   "describe": {
+    "v5-B3": "v5-B rollout + exact minimax window 3",
+    "myopic": "red-team: myopic W=0 policy (best points this turn, ignores future)"
+   }
+  },
+  {
+   "a": "v5-D",
+   "b": "myopic",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.71865,
+   "ci": [
+    0.7077858956298875,
+    0.7295141043701125
+   ],
+   "se": 0.004217759286478965,
+   "wins": 7157,
+   "ties": 59,
+   "losses": 2784,
+   "winRate": 0.7157,
+   "tieRate": 0.0059,
+   "lossRate": 0.2784,
+   "meanScoreA": 188.7606,
+   "meanScoreB": 164.3046,
+   "meanDiff": 24.456000000000017,
+   "elo": 162.90820416952604,
+   "eloCi": [
+    153.68029188080928,
+    172.35562759684058
+   ],
+   "varianceReductionFactor": 1.1284034161423762,
+   "latencyA": {
+    "decisions": 342999,
+    "meanMs": 3.0052805274213443,
+    "p50": 1.4125375446227544,
+    "p95": 8.912509381337454,
+    "p99": 17.78279410038923,
+    "maxMs": 1049.964020000014,
+    "diffFromDPRate": 0.07306435295729725,
+    "stages": {
+     "rollout": 257000,
+     "minimax": 85999
+    }
+   },
+   "latencyB": {
+    "decisions": 339868,
+    "meanMs": 0.05954200584934557,
+    "p50": 0.029512092266663854,
+    "p95": 0.0707945784384138,
+    "p99": 0.11220184543019636,
+    "maxMs": 66.31460599997081,
+    "diffFromDPRate": 0.2920339661280262,
+    "stages": {
+     "myopic": 339868
+    }
+   },
+   "cpuSeconds": 1116.981375446,
+   "describe": {
+    "v5-D": "v5-B3 + exact-likelihood Bayesian opponent mixture {DP Expert, Myopic} (eps 0.02)",
+    "myopic": "red-team: myopic W=0 policy (best points this turn, ignores future)"
+   }
+  },
+  {
+   "a": "v5-B3",
+   "b": "switcher",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.6718,
+   "ci": [
+    0.6605869114939698,
+    0.6830130885060302
+   ],
+   "se": 0.004353245013599719,
+   "wins": 6681,
+   "ties": 74,
+   "losses": 3245,
+   "winRate": 0.6681,
+   "tieRate": 0.0074,
+   "lossRate": 0.3245,
+   "meanScoreA": 188.9264,
+   "meanScoreB": 169.5652,
+   "meanDiff": 19.361199999999997,
+   "elo": 124.4405691154284,
+   "eloCi": [
+    115.68055157007878,
+    133.35507827610738
+   ],
+   "varianceReductionFactor": 1.153815633973324,
+   "latencyA": {
+    "decisions": 342948,
+    "meanMs": 0.8505495509435761,
+    "p50": 0.07413102413009177,
+    "p95": 0.24547089156850305,
+    "p99": 16.218100973589298,
+    "maxMs": 1727.9344859999983,
+    "diffFromDPRate": 0.06834855429977722,
+    "stages": {
+     "rollout": 256995,
+     "minimax": 85953
+    }
+   },
+   "latencyB": {
+    "decisions": 339985,
+    "meanMs": 0.7534430279629958,
+    "p50": 0.033884415613920256,
+    "p95": 0.1288249551693134,
+    "p99": 17.78279410038923,
+    "maxMs": 1614.410394000006,
+    "diffFromDPRate": 0.21188287718575818,
+    "stages": {
+     "myopic": 167300,
+     "-": 172685
+    }
+   },
+   "cpuSeconds": 617.547890954,
+   "describe": {
+    "v5-B3": "v5-B rollout + exact minimax window 3",
+    "switcher": "red-team: myopic for its first 6 turns, then Win DP v2 (strategy switch)"
+   }
+  },
+  {
+   "a": "v5-D",
+   "b": "switcher",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.6709,
+   "ci": [
+    0.6596893719384531,
+    0.682110628061547
+   ],
+   "se": 0.00435228979794509,
+   "wins": 6669,
+   "ties": 80,
+   "losses": 3251,
+   "winRate": 0.6669,
+   "tieRate": 0.008,
+   "lossRate": 0.3251,
+   "meanScoreA": 189.1421,
+   "meanScoreB": 169.6397,
+   "meanDiff": 19.502399999999994,
+   "elo": 123.73196383259835,
+   "eloCi": [
+    114.98558992672456,
+    132.63152323501856
+   ],
+   "varianceReductionFactor": 1.155158615381151,
+   "latencyA": {
+    "decisions": 342860,
+    "meanMs": 2.2206902020678947,
+    "p50": 1.3489628825916538,
+    "p95": 5.623413251903491,
+    "p99": 14.12537544622754,
+    "maxMs": 689.2909610000206,
+    "diffFromDPRate": 0.06994691710902409,
+    "stages": {
+     "rollout": 256942,
+     "minimax": 85918
+    }
+   },
+   "latencyB": {
+    "decisions": 339984,
+    "meanMs": 0.41921055867332924,
+    "p50": 0.033884415613920256,
+    "p95": 0.12302687708123815,
+    "p99": 9.772372209558107,
+    "maxMs": 519.6699909999998,
+    "diffFromDPRate": 0.21166290178361336,
+    "stages": {
+     "myopic": 167300,
+     "-": 172684
+    }
+   },
+   "cpuSeconds": 949.8291260419999,
+   "describe": {
+    "v5-D": "v5-B3 + exact-likelihood Bayesian opponent mixture {DP Expert, Myopic} (eps 0.02)",
+    "switcher": "red-team: myopic for its first 6 turns, then Win DP v2 (strategy switch)"
+   }
+  },
+  {
+   "a": "v5-D",
+   "b": "v2",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.5093,
+   "ci": [
+    0.5013422323669599,
+    0.5172577676330401
+   ],
+   "se": 0.003089435372715315,
+   "wins": 5052,
+   "ties": 82,
+   "losses": 4866,
+   "winRate": 0.5052,
+   "tieRate": 0.0082,
+   "lossRate": 0.4866,
+   "meanScoreA": 189.0786,
+   "meanScoreB": 190.6721,
+   "meanDiff": -1.593500000000006,
+   "elo": 6.463047278105059,
+   "eloCi": [
+    0.932680817056886,
+    11.996690693738172
+   ],
+   "varianceReductionFactor": 2.5971545707924175,
+   "latencyA": {
+    "decisions": 343327,
+    "meanMs": 3.421505998191255,
+    "p50": 1.3489628825916538,
+    "p95": 9.33254300796991,
+    "p99": 28.183829312644534,
+    "maxMs": 993.4868539999952,
+    "diffFromDPRate": 0.06080500514087153,
+    "stages": {
+     "rollout": 257142,
+     "minimax": 86185
+    }
+   },
+   "latencyB": {
+    "decisions": 343279,
+    "meanMs": 0.7433176407324539,
+    "p50": 0.04265795188015926,
+    "p95": 0.13489628825916536,
+    "p99": 18.620871366628677,
+    "maxMs": 1266.450673000014,
+    "diffFromDPRate": 0.012663169025777866,
+    "stages": {
+     "-": 343279
+    }
+   },
+   "cpuSeconds": 1496.098930094,
+   "describe": {
+    "v5-D": "v5-B3 + exact-likelihood Bayesian opponent mixture {DP Expert, Myopic} (eps 0.02)",
+    "v2": "Win DP v2 (deployed default competitive)"
+   }
+  },
+  {
+   "a": "v5-B3",
+   "b": "v2",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.5086,
+   "ci": [
+    0.5006495299357243,
+    0.5165504700642758
+   ],
+   "se": 0.0030866022456230257,
+   "wins": 5045,
+   "ties": 82,
+   "losses": 4873,
+   "winRate": 0.5045,
+   "tieRate": 0.0082,
+   "lossRate": 0.4873,
+   "meanScoreA": 189.0623,
+   "meanScoreB": 190.682,
+   "meanDiff": -1.6196999999999946,
+   "elo": 5.976481478251231,
+   "eloCi": [
+    0.4513398809529787,
+    11.504647517583635
+   ],
+   "varianceReductionFactor": 2.602056038219198,
+   "latencyA": {
+    "decisions": 343324,
+    "meanMs": 0.463040123781044,
+    "p50": 0.0707945784384138,
+    "p95": 0.18620871366628675,
+    "p99": 10.232929922807541,
+    "maxMs": 369.3384210000004,
+    "diffFromDPRate": 0.06063951253043772,
+    "stages": {
+     "rollout": 257135,
+     "minimax": 86189
+    }
+   },
+   "latencyB": {
+    "decisions": 343277,
+    "meanMs": 0.3853367869504957,
+    "p50": 0.04073802778041128,
+    "p95": 0.11748975549395294,
+    "p99": 10.232929922807541,
+    "maxMs": 224.1072290000011,
+    "diffFromDPRate": 0.01268946069792034,
+    "stages": {
+     "-": 343277
+    }
+   },
+   "cpuSeconds": 325.12875889299994,
+   "describe": {
+    "v5-B3": "v5-B rollout + exact minimax window 3",
+    "v2": "Win DP v2 (deployed default competitive)"
+   }
+  },
+  {
+   "a": "v5-A",
+   "b": "v2",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.5081,
+   "ci": [
+    0.5001927711026631,
+    0.5160072288973369
+   ],
+   "se": 0.00306981477495803,
+   "wins": 5041,
+   "ties": 80,
+   "losses": 4879,
+   "winRate": 0.5041,
+   "tieRate": 0.008,
+   "lossRate": 0.4879,
+   "meanScoreA": 189.0886,
+   "meanScoreB": 190.693,
+   "meanDiff": -1.6043999999999983,
+   "elo": 5.62894894038574,
+   "eloCi": [
+    0.13395108848814763,
+    11.126764296787025
+   ],
+   "varianceReductionFactor": 2.631212101042438,
+   "latencyA": {
+    "decisions": 343283,
+    "meanMs": 0.42285273906077864,
+    "p50": 0.07413102413009177,
+    "p95": 0.19498445997580455,
+    "p99": 9.772372209558107,
+    "maxMs": 156.99960400000418,
+    "diffFromDPRate": 0.06086814668946613,
+    "stages": {
+     "rollout": 285574,
+     "v2": 57709
+    }
+   },
+   "latencyB": {
+    "decisions": 343276,
+    "meanMs": 0.33987061668454865,
+    "p50": 0.04073802778041128,
+    "p95": 0.11220184543019636,
+    "p99": 8.912509381337454,
+    "maxMs": 161.07815299999857,
+    "diffFromDPRate": 0.012773977790465981,
+    "stages": {
+     "-": 343276
+    }
+   },
+   "cpuSeconds": 293.95785382500003,
+   "describe": {
+    "v5-A": "v5-A rollout + Win DP v2 for own last 2",
+    "v2": "Win DP v2 (deployed default competitive)"
+   }
+  },
+  {
+   "a": "v5-B2",
+   "b": "v2",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.5081,
+   "ci": [
+    0.5001613619367695,
+    0.5160386380632305
+   ],
+   "se": 0.003082008720875271,
+   "wins": 5040,
+   "ties": 82,
+   "losses": 4878,
+   "winRate": 0.504,
+   "tieRate": 0.0082,
+   "lossRate": 0.4878,
+   "meanScoreA": 189.0935,
+   "meanScoreB": 190.7149,
+   "meanDiff": -1.6213999999999942,
+   "elo": 5.62894894038574,
+   "eloCi": [
+    0.11212576185780515,
+    11.148612056966448
+   ],
+   "varianceReductionFactor": 2.609906108954493,
+   "latencyA": {
+    "decisions": 343280,
+    "meanMs": 0.09855537602248393,
+    "p50": 0.0707945784384138,
+    "p95": 0.16982436524617442,
+    "p99": 0.6760829753919817,
+    "maxMs": 20.19232099999499,
+    "diffFromDPRate": 0.06091820088557446,
+    "stages": {
+     "rollout": 285574,
+     "minimax": 57706
+    }
+   },
+   "latencyB": {
+    "decisions": 343274,
+    "meanMs": 0.3800840967332244,
+    "p50": 0.04073802778041128,
+    "p95": 0.11748975549395294,
+    "p99": 10.232929922807541,
+    "maxMs": 207.92378699999244,
+    "diffFromDPRate": 0.012733268467754622,
+    "stages": {
+     "-": 343274
+    }
+   },
+   "cpuSeconds": 196.850700839,
+   "describe": {
+    "v5-B2": "v5-B rollout + exact minimax window 2",
+    "v2": "Win DP v2 (deployed default competitive)"
+   }
+  },
+  {
+   "a": "v5-R",
+   "b": "v2",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.50755,
+   "ci": [
+    0.49963261378524915,
+    0.5154673862147507
+   ],
+   "se": 0.0030737581391221385,
+   "wins": 5035,
+   "ties": 81,
+   "losses": 4884,
+   "winRate": 0.5035,
+   "tieRate": 0.0081,
+   "lossRate": 0.4884,
+   "meanScoreA": 189.065,
+   "meanScoreB": 190.691,
+   "meanDiff": -1.6260000000000048,
+   "elo": 5.246676130514948,
+   "eloCi": [
+    -0.25528613521197924,
+    10.751271160336902
+   ],
+   "varianceReductionFactor": 2.6242916795533113,
+   "latencyA": {
+    "decisions": 343287,
+    "meanMs": 0.07231327613046659,
+    "p50": 0.06165950018614822,
+    "p95": 0.14125375446227545,
+    "p99": 0.22387211385683395,
+    "maxMs": 30.60854800000004,
+    "diffFromDPRate": 0.06097813200033791,
+    "stages": {
+     "rollout": 343287
+    }
+   },
+   "latencyB": {
+    "decisions": 343276,
+    "meanMs": 0.3717931780549719,
+    "p50": 0.04073802778041128,
+    "p95": 0.11748975549395294,
+    "p99": 10.232929922807541,
+    "maxMs": 165.4396569999999,
+    "diffFromDPRate": 0.012779804006105873,
+    "stages": {
+     "-": 343276
+    }
+   },
+   "cpuSeconds": 184.22988467599998,
+   "describe": {
+    "v5-R": "v5 rollout everywhere (no special endgame)",
+    "v2": "Win DP v2 (deployed default competitive)"
+   }
+  },
+  {
+   "a": "v5-E5",
+   "b": "v2",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.50725,
+   "ci": [
+    0.499319679735858,
+    0.515180320264142
+   ],
+   "se": 0.0030787795108866947,
+   "wins": 5032,
+   "ties": 81,
+   "losses": 4887,
+   "winRate": 0.5032,
+   "tieRate": 0.0081,
+   "lossRate": 0.4887,
+   "meanScoreA": 189.0021,
+   "meanScoreB": 190.6659,
+   "meanDiff": -1.6637999999999806,
+   "elo": 5.038169101561091,
+   "eloCi": [
+    -0.4727352303619115,
+    10.551609763226132
+   ],
+   "varianceReductionFactor": 2.6157852669610966,
+   "latencyA": {
+    "decisions": 343341,
+    "meanMs": 6.314479989083769,
+    "p50": 0.08912509381337455,
+    "p95": 44.6683592150963,
+    "p99": 97.72372209558107,
+    "maxMs": 1241.1934210000036,
+    "diffFromDPRate": 0.06082582621941452,
+    "stages": {
+     "rollout": 209671,
+     "rollout+depth2": 47469,
+     "minimax": 86201
+    }
+   },
+   "latencyB": {
+    "decisions": 343269,
+    "meanMs": 0.9544031703328103,
+    "p50": 0.04265795188015926,
+    "p95": 0.1288249551693134,
+    "p99": 24.547089156850298,
+    "maxMs": 584.6955580000067,
+    "diffFromDPRate": 0.012713061767884662,
+    "stages": {
+     "-": 343269
+    }
+   },
+   "cpuSeconds": 2575.9765525820003,
+   "describe": {
+    "v5-E5": "v5-B3 + depth-2 PMF-expectimax final-category choice when top-2 gap < 0.05",
+    "v2": "Win DP v2 (deployed default competitive)"
+   }
+  },
+  {
+   "a": "v5-E",
+   "b": "v2",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.50725,
+   "ci": [
+    0.499319679735858,
+    0.515180320264142
+   ],
+   "se": 0.0030787795108866947,
+   "wins": 5032,
+   "ties": 81,
+   "losses": 4887,
+   "winRate": 0.5032,
+   "tieRate": 0.0081,
+   "lossRate": 0.4887,
+   "meanScoreA": 189.0009,
+   "meanScoreB": 190.6659,
+   "meanDiff": -1.664999999999992,
+   "elo": 5.038169101561091,
+   "eloCi": [
+    -0.4727352303619115,
+    10.551609763226132
+   ],
+   "varianceReductionFactor": 2.6157852669610966,
+   "latencyA": {
+    "decisions": 343341,
+    "meanMs": 3.4746747696401457,
+    "p50": 0.08128305161640992,
+    "p95": 17.78279410038923,
+    "p99": 81.2830516164099,
+    "maxMs": 1643.5210350000016,
+    "diffFromDPRate": 0.06083165133205763,
+    "stages": {
+     "rollout": 234377,
+     "rollout+depth2": 22763,
+     "minimax": 86201
+    }
+   },
+   "latencyB": {
+    "decisions": 343269,
+    "meanMs": 0.9181727965093771,
+    "p50": 0.04073802778041128,
+    "p95": 0.1288249551693134,
+    "p99": 22.3872113856834,
+    "maxMs": 871.7256639999978,
+    "diffFromDPRate": 0.012713061767884662,
+    "stages": {
+     "-": 343269
+    }
+   },
+   "cpuSeconds": 1595.5336931479999,
+   "describe": {
+    "v5-E": "v5-B3 + depth-2 PMF-expectimax final-category choice when top-2 gap < 0.02",
+    "v2": "Win DP v2 (deployed default competitive)"
+   }
+  },
+  {
+   "a": "v5-X3",
+   "b": "v2",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.50215,
+   "ci": [
+    0.49776194047316596,
+    0.506538059526834
+   ],
+   "se": 0.0017035715221810717,
+   "wins": 4979,
+   "ties": 85,
+   "losses": 4936,
+   "winRate": 0.4979,
+   "tieRate": 0.0085,
+   "lossRate": 0.4936,
+   "meanScoreA": 189.8985,
+   "meanScoreB": 190.7938,
+   "meanDiff": -0.8952999999999918,
+   "elo": 1.4939822257030282,
+   "eloCi": [
+    -1.5551734306347993,
+    4.543368040676566
+   ],
+   "varianceReductionFactor": 8.541759054116907,
+   "latencyA": {
+    "decisions": 343370,
+    "meanMs": 0.41650245505722666,
+    "p50": 0.04466835921509631,
+    "p95": 0.08912509381337455,
+    "p99": 9.33254300796991,
+    "maxMs": 370.39089599999716,
+    "diffFromDPRate": 0.024582811544398172,
+    "stages": {
+     "dp": 257218,
+     "minimax": 86152
+    }
+   },
+   "latencyB": {
+    "decisions": 343273,
+    "meanMs": 0.3864171583957937,
+    "p50": 0.04073802778041128,
+    "p95": 0.11748975549395294,
+    "p99": 10.232929922807541,
+    "maxMs": 245.59705200002645,
+    "diffFromDPRate": 0.012124460706201769,
+    "stages": {
+     "-": 343273
+    }
+   },
+   "cpuSeconds": 309.28526853799997,
+   "describe": {
+    "v5-X3": "ablation: DP Expert early + exact minimax window 3",
+    "v2": "Win DP v2 (deployed default competitive)"
+   }
+  },
+  {
+   "a": "v3",
+   "b": "v2",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.4999,
+   "ci": [
+    0.4958925964720387,
+    0.5039074035279614
+   ],
+   "se": 0.0015557898625519493,
+   "wins": 4956,
+   "ties": 86,
+   "losses": 4958,
+   "winRate": 0.4956,
+   "tieRate": 0.0086,
+   "lossRate": 0.4958,
+   "meanScoreA": 189.9396,
+   "meanScoreB": 190.8123,
+   "meanDiff": -0.8726999999999805,
+   "elo": -0.06948711803100771,
+   "eloCi": [
+    -2.8541805035250176,
+    2.715197339582544
+   ],
+   "varianceReductionFactor": 10.240719311431755,
+   "latencyA": {
+    "decisions": 343332,
+    "meanMs": 0.8563798187905604,
+    "p50": 0.04073802778041128,
+    "p95": 0.9772372209558107,
+    "p99": 23.44228815319923,
+    "maxMs": 184.06416500000068,
+    "diffFromDPRate": 0.023446692996866008,
+    "stages": {
+     "-": 343332
+    }
+   },
+   "latencyB": {
+    "decisions": 343273,
+    "meanMs": 0.1693021171866188,
+    "p50": 0.04073802778041128,
+    "p95": 0.10715193052376065,
+    "p99": 3.0902954325135905,
+    "maxMs": 128.0005600000004,
+    "diffFromDPRate": 0.012293422436369886,
+    "stages": {
+     "-": 343273
+    }
+   },
+   "cpuSeconds": 381.961468796,
+   "describe": {
+    "v3": "Win DP v3 unmodified (own last 3 exact vs Gaussian/exact opp)",
+    "v2": "Win DP v2 (deployed default competitive)"
+   }
+  },
+  {
+   "a": "v5-B3",
+   "b": "v3",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.5079,
+   "ci": [
+    0.499992502550016,
+    0.5158074974499841
+   ],
+   "se": 0.003069919034856764,
+   "wins": 5036,
+   "ties": 86,
+   "losses": 4878,
+   "winRate": 0.5036,
+   "tieRate": 0.0086,
+   "lossRate": 0.4878,
+   "meanScoreA": 189.0963,
+   "meanScoreB": 190.0428,
+   "meanDiff": -0.9464999999999861,
+   "elo": 5.489939117806787,
+   "eloCi": [
+    -0.005209761850621654,
+    10.987836050265837
+   ],
+   "varianceReductionFactor": 2.629475568662937,
+   "latencyA": {
+    "decisions": 343341,
+    "meanMs": 0.9513167742535221,
+    "p50": 0.07413102413009177,
+    "p95": 0.24547089156850305,
+    "p99": 20.417379446695296,
+    "maxMs": 802.3150510000014,
+    "diffFromDPRate": 0.06101805493663734,
+    "stages": {
+     "rollout": 257135,
+     "minimax": 86206
+    }
+   },
+   "latencyB": {
+    "decisions": 343334,
+    "meanMs": 2.1102291293259023,
+    "p50": 0.04073802778041128,
+    "p95": 4.073802778041127,
+    "p99": 53.70317963702527,
+    "maxMs": 1132.706342999998,
+    "diffFromDPRate": 0.02462034054302807,
+    "stages": {
+     "-": 343334
+    }
+   },
+   "cpuSeconds": 1120.6352203309998,
+   "describe": {
+    "v5-B3": "v5-B rollout + exact minimax window 3",
+    "v3": "Win DP v3 unmodified (own last 3 exact vs Gaussian/exact opp)"
+   }
+  },
+  {
+   "a": "v5-B3",
+   "b": "v4D",
+   "family": 9001,
+   "shards": 2,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.5077,
+   "ci": [
+    0.4998490900530196,
+    0.5155509099469805
+   ],
+   "se": 0.0030479501308255477,
+   "wins": 5037,
+   "ties": 80,
+   "losses": 4883,
+   "winRate": 0.5037,
+   "tieRate": 0.008,
+   "lossRate": 0.4883,
+   "meanScoreA": 189.0079,
+   "meanScoreB": 190.8191,
+   "meanDiff": -1.8111999999999853,
+   "elo": 5.350931052739801,
+   "eloCi": [
+    -0.10486297476482266,
+    10.80936528847342
+   ],
+   "varianceReductionFactor": 2.669165840157862,
+   "latencyA": {
+    "decisions": 343320,
+    "meanMs": 0.9478762073284261,
+    "p50": 0.07413102413009177,
+    "p95": 0.22387211385683395,
+    "p99": 19.498445997580454,
+    "maxMs": 743.6763060000085,
+    "diffFromDPRate": 0.06083828498194105,
+    "stages": {
+     "rollout": 257140,
+     "minimax": 86180
+    }
+   },
+   "latencyB": {
+    "decisions": 349265,
+    "meanMs": 0.860764926167824,
+    "p50": 0.04073802778041128,
+    "p95": 0.14125375446227545,
+    "p99": 22.3872113856834,
+    "maxMs": 878.6034639999853,
+    "diffFromDPRate": 0.03313816156786394,
+    "stages": {
+     "-": 349265
+    }
+   },
+   "cpuSeconds": 696.5792210279999,
+   "describe": {
+    "v5-B3": "v5-B rollout + exact minimax window 3",
+    "v4D": "Win DP v4-D as registered in src/ai.ts (no v3.3 pack; opponent label only for DP Expert / Win DP v2)"
+   }
+  }
+ ],
+ "contrasts": [
+  {
+   "candidate": "v5-D",
+   "baseline": "v5-B3",
+   "opponent": "greedy",
+   "family": 9001,
+   "pairs": 5000,
+   "delta": 0.0018,
+   "ci": [
+    -0.004470122127050112,
+    0.00807012212705011
+   ],
+   "changedPairs": 588
+  },
+  {
+   "candidate": "v5-D",
+   "baseline": "v5-B3",
+   "opponent": "myopic",
+   "family": 9001,
+   "pairs": 5000,
+   "delta": -0.00275,
+   "ci": [
+    -0.008854760617777013,
+    0.0033547606177770145
+   ],
+   "changedPairs": 594
+  },
+  {
+   "candidate": "v5-D",
+   "baseline": "v5-B3",
+   "opponent": "switcher",
+   "family": 9001,
+   "pairs": 5000,
+   "delta": -0.0009,
+   "ci": [
+    -0.0075254469199581625,
+    0.005725446919958163
+   ],
+   "changedPairs": 671
+  },
+  {
+   "candidate": "v5-D",
+   "baseline": "v5-B3",
+   "opponent": "v2",
+   "family": 9001,
+   "pairs": 5000,
+   "delta": 0.0007,
+   "ci": [
+    -0.0007340614525804251,
+    0.002134061452580425
+   ],
+   "changedPairs": 31
+  },
+  {
+   "candidate": "v5-B3",
+   "baseline": "v3",
+   "opponent": "v2",
+   "family": 9001,
+   "pairs": 5000,
+   "delta": 0.0087,
+   "ci": [
+    0.0005030907120749488,
+    0.01689690928792505
+   ],
+   "changedPairs": 1018
+  },
+  {
+   "candidate": "v5-R",
+   "baseline": "v3",
+   "opponent": "v2",
+   "family": 9001,
+   "pairs": 5000,
+   "delta": 0.00765,
+   "ci": [
+    -0.0004843054624247495,
+    0.01578430546242475
+   ],
+   "changedPairs": 1005
+  },
+  {
+   "candidate": "v5-B3",
+   "baseline": "v5-R",
+   "opponent": "dp",
+   "family": 9001,
+   "pairs": 5000,
+   "delta": -0.00015,
+   "ci": [
+    -0.002968983394953034,
+    0.002668983394953034
+   ],
+   "changedPairs": 134
+  },
+  {
+   "candidate": "v5-B3",
+   "baseline": "v5-R",
+   "opponent": "v2",
+   "family": 9001,
+   "pairs": 5000,
+   "delta": 0.00105,
+   "ci": [
+    -0.0019731981580947628,
+    0.004073198158094762
+   ],
+   "changedPairs": 149
+  },
+  {
+   "candidate": "v5-E",
+   "baseline": "v5-B3",
+   "opponent": "v2",
+   "family": 9001,
+   "pairs": 5000,
+   "delta": -0.00135,
+   "ci": [
+    -0.0030821674624982535,
+    0.0003821674624982531
+   ],
+   "changedPairs": 46
+  },
+  {
+   "candidate": "v5-B3",
+   "baseline": "v5-B2",
+   "opponent": "v2",
+   "family": 9001,
+   "pairs": 5000,
+   "delta": 0.0005,
+   "ci": [
+    -0.0021955830486393682,
+    0.0031955830486393682
+   ],
+   "changedPairs": 117
+  },
+  {
+   "candidate": "v5-B3",
+   "baseline": "v5-A",
+   "opponent": "v2",
+   "family": 9001,
+   "pairs": 5000,
+   "delta": 0.0005,
+   "ci": [
+    -0.002431447175547604,
+    0.003431447175547604
+   ],
+   "changedPairs": 140
+  },
+  {
+   "candidate": "v5-A",
+   "baseline": "v5-R",
+   "opponent": "v2",
+   "family": 9001,
+   "pairs": 5000,
+   "delta": 0.00055,
+   "ci": [
+    -0.0004222339735725873,
+    0.0015222339735725874
+   ],
+   "changedPairs": 15
+  },
+  {
+   "candidate": "v5-B2",
+   "baseline": "v5-A",
+   "opponent": "v2",
+   "family": 9001,
+   "pairs": 5000,
+   "delta": 0,
+   "ci": [
+    -0.0011520479898485926,
+    0.0011520479898485926
+   ],
+   "changedPairs": 23
+  }
+ ]
+}
