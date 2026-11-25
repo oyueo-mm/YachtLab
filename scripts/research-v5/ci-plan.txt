@@ -1,0 +1,22 @@
+# Pre-registered confirmation plan for seed family 9501 (see docs/context/V5-APEX-RESEARCH.md §0, §0.1).
+# columns: matchup  shard_count  pairs_per_shard      (shard i runs if i < shard_count)
+v5-R:v2 20 2500
+v5-B3:v2 20 2500
+v5-A:v2 20 2500
+v5-X3:v2 20 2500
+v3:v2 20 2500
+v5-R:v3 20 2500
+v5-B3:v3 20 2500
+v5-R:dp 12 2500
+v5-R:v4D 8 2500
+v3:dp 8 2500
+dp:v2 8 2500
+v4D:v2 8 2500
+v5-R:v1 4 2500
+v5-R:greedy 2 2500
+v5-R:myopic 2 2500
+v5-R:switcher 2 2500
+v5-D:greedy 2 2500
+v5-D:myopic 2 2500
+v5-D:switcher 2 2500
+v5-R:expectimax 2 500
