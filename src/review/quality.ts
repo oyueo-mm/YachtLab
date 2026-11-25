@@ -34,7 +34,17 @@ export function grade(entry: Assessment): keyof typeof grades {
   const win = winLoss(entry);
   const loss = win ?? entry.loss;
   const [best, good, inaccurate, mistake] = win === undefined ? [0.1, 1, 3, 8] : [0.25, 1.5, 4, 10];
-  // Reserve ! and !! for a future, calibrated strategic-difficulty criterion.
+  const played = entry.actual.action;
+  if (entry.exactness === "exact" && win !== undefined && win <= 1e-8 && entry.options.length > 1) {
+    const runnerUp = Math.max(...entry.options.filter(({ action }) => played.type !== action.type ||
+      (played.type === "score" && action.type === "score" && played.category !== action.category) ||
+      (played.type === "reroll" && action.type === "reroll" &&
+        (played.ids.length !== action.ids.length || played.ids.some((id) => !action.ids.includes(id)))))
+      .map(({ winCredit }) => winCredit ?? -Infinity));
+    const gap = ((entry.actual.winCredit ?? 0) - runnerUp) * 100;
+    if (Number.isFinite(gap) && gap >= 20 && entry.loss >= 3) return "!!";
+    if (Number.isFinite(gap) && gap >= 10 && entry.loss >= 1) return "!";
+  }
   if (loss <= best) return "★";
   if (loss <= good) return "✓";
   if (loss <= inaccurate) return "?!";

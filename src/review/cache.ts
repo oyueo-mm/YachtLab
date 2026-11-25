@@ -34,14 +34,14 @@ async function read<T>(store: "analysis" | "summary", operation: (s: IDBObjectSt
   } finally { db.close(); }
 }
 
-export async function reviewKey(match: ReviewMatch, serialized: string) {
+export async function reviewKey(match: ReviewMatch, serialized: string, version: string = reviewModel.version) {
   const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(serialized)));
-  return [reviewModel.version, match.id, ...hash].join(":");
+  return [version, match.id, ...hash].join(":");
 }
 export const cachedReview = (key: string) => read<Assessment[] | undefined>("analysis", (store) => store.get(key));
 export const reviewSummaries = () => read<Summary[]>("summary", (store) => store.getAll());
 
-export async function saveAnalysis(key: string, match: ReviewMatch, values: Assessment[]) {
+export async function saveAnalysis(key: string, match: ReviewMatch, values: Assessment[], version: string = reviewModel.version) {
   const averages = ([0, 1] as const).map((seat) => {
     const rows = values.filter((item) => match.steps[item.index].before.player === seat);
     return rows.length ? rows.reduce((sum, row) => sum + row.loss, 0) / rows.length : null;
@@ -53,7 +53,7 @@ export async function saveAnalysis(key: string, match: ReviewMatch, values: Asse
       const analysis = tx.objectStore("analysis");
       const summary = tx.objectStore("summary");
       analysis.put(values, key);
-      summary.put({ key, at: Date.now(), meanLoss: averages, players: match.players, model: reviewModel.version } satisfies Summary);
+      summary.put({ key, at: Date.now(), meanLoss: averages, players: match.players, model: version } satisfies Summary);
       const rows = summary.getAll() as IDBRequest<Summary[]>;
       rows.onsuccess = () => {
         for (const item of rows.result.sort((a, b) => b.at - a.at).slice(16)) {

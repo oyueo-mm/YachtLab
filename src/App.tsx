@@ -248,13 +248,13 @@ export default function App() {
               if (account) setPendingReward({ matchId, account });
             }}
             onProgress={progress}
-            onLeave={(message) => {
+            onLeave={(message, destination) => {
               inProgress.current = false;
               setOnlineNotice(message ?? "");
               setOnlineCode(null);
               setQuickIntro(null);
               setRoomInUrl(null);
-              go("online");
+              go(destination ?? "online");
             }}
           />
         )}
@@ -273,8 +273,8 @@ export default function App() {
         {page === "online-room" && onlineServer && !onlineCode && <OnlineEntry server={onlineServer} onBack={() => navigate("home")} onEnter={(code) => { setOnlineCode(code); enter("online-room"); }} />}
         {page === "play-setup" && <AiSetupScreen onBack={() => navigate("offline")} onStart={() => go("play")} />}
         {page === "pvp-setup" && <LocalSetupScreen onBack={() => navigate("offline")} onStart={() => go("pvp")} />}
-        {page === "play" && <HumanGame key={gameKey} config={aiConfig} onBranch={branch} onAnalyze={analyze} onChangeSetup={() => go("play-setup")} onProgress={progress} />}
-        {page === "pvp" && <LocalGame key={gameKey} players={local.players} order={local.order} onChangeSetup={() => go("pvp-setup")} onProgress={progress} />}
+        {page === "play" && <HumanGame key={gameKey} config={aiConfig} onBranch={branch} onAnalyze={analyze} onChangeSetup={() => go("play-setup")} onLeave={() => go("home")} onProgress={progress} />}
+        {page === "pvp" && <LocalGame key={gameKey} players={local.players} order={local.order} onChangeSetup={() => go("pvp-setup")} onLeave={() => go("home")} onProgress={progress} />}
         {page === "records" && <MyGames onBranch={branch} onAnalyze={analyze} />}
         {shell === "lab" && (
           <Suspense

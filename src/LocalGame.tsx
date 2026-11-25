@@ -1,9 +1,10 @@
+import { MatchResult } from "./ui/MatchResult";
 import ReviewLauncher from "./review/ReviewLauncher";
 import { fromMultiReplay } from "./review/sources";
 import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./play/Tutorial";
 import { nearYacht, ScoreTotal } from "./ui/GameMoments";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Dices, History, RotateCcw, SlidersHorizontal, Trophy } from "lucide-react";
+import { Dices, History, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { DiceArea } from "./DiceArea";
 import { MultiScoreboard, MultiStandings } from "./MultiScoreboard";
 import { createMultiGame, multiStandings, type MultiGame } from "./multi-engine";
@@ -34,12 +35,14 @@ export default function LocalGame({
   players: inputNames,
   order,
   onChangeSetup,
+  onLeave,
   onProgress,
 }: {
   /** Final names in input order (already de-duplicated / defaulted). */
   players: string[];
   order: LocalOrder;
   onChangeSetup: () => void;
+  onLeave: () => void;
   onProgress?: (inProgress: boolean) => void;
 }) {
   const [names, setNames] = useState(() => orderPlayers(inputNames, order));
@@ -125,6 +128,7 @@ export default function LocalGame({
         <button className="text-button" onClick={() => setViewReplay(record.current!)}>
           <History size={15} /> 기보 보기
         </button>
+        {!state.done && <>
         <button
           className="text-button"
           onClick={() => guarded({ title: "새 경기를 시작할까요?", message: "진행 중인 경기는 기록되지 않고 같은 설정으로 새 경기를 시작해요.", confirmLabel: "재대결", run: restart })}
@@ -137,6 +141,7 @@ export default function LocalGame({
         >
           <SlidersHorizontal size={15} /> 설정 변경
         </button>
+        </>}
       </div>
       <div className={"game-grid multi-game-grid " + (count <= 4 ? "multi-small" : count <= 8 ? "multi-medium" : "multi-wide")}>
         <div className="game-left">
@@ -174,20 +179,16 @@ export default function LocalGame({
               <QuickPicks values={state.dice.map((d) => d.value)} card={state.cards[state.player]} rolls={state.rolls} canScore={canAct && !state.done} onScore={recordScore} />
             </div>
             {state.done && (
-              <div className="game-result" role="status">
-                <Trophy size={25} />
-                <h2>{state.winners.length === 1 ? names[state.winners[0]] + " 승리!" : state.winners.map((i) => names[i]).join(" · ") + " 공동 우승!"}</h2>
-                <p>{standings.map((s) => names[s.player] + " " + s.points + "점").join(" · ")}</p>
-                <div className="game-result-actions">
+              <MatchResult waiting={!!celebration} title={state.winners.length === 1 ? names[state.winners[0]] + " 승리!" : count === 2 ? "무승부" : "공동 우승"}
+                actions={<>
                   {count === 2 && <ReviewLauncher source={() => fromMultiReplay(record.current!)} />}
-                  <button className="primary" onClick={restart}>
-                    한 번 더 플레이 <ArrowRight size={16} />
-                  </button>
-                  <button className="secondary" onClick={onChangeSetup}>
-                    설정 변경
-                  </button>
-                </div>
-              </div>
+                  <button className="primary" onClick={restart}>한 번 더 플레이</button>
+                  <button className="secondary" onClick={onLeave}>나가기</button>
+                </>}>
+                <ol className="match-result-standings">
+                  {standings.map(({ player, points, rank }) => <li key={player}><strong>{rank}위</strong><span>{names[player]}</span><strong>{points}점</strong></li>)}
+                </ol>
+              </MatchResult>
             )}
           </section>
           <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : state.rolls} canScore={canAct} yacht={yachtReady} />

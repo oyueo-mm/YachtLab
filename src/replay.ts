@@ -290,6 +290,8 @@ function safeDecision(
         ...(c.visits !== undefined ? { visits: c.visits } : {}),
       };
     });
+  const execution = d.execution && typeof d.execution.id === "string" && typeof d.execution.version === "string"
+    ? { execution: { id: text(d.execution.id, 100), version: text(d.execution.version, 100) } } : {};
   if (
     d.type === "score" &&
     action.type === "score" &&
@@ -301,6 +303,7 @@ function safeDecision(
       value: d.value,
       note,
       candidates,
+      ...execution,
     };
   if (
     d.type === "reroll" &&
@@ -315,6 +318,7 @@ function safeDecision(
       value: d.value,
       note,
       candidates,
+      ...execution,
     };
   throw Error("판단 정보와 실제 행동이 일치하지 않습니다.");
 }

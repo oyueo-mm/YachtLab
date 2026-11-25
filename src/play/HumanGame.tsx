@@ -1,8 +1,9 @@
+import { MatchResult } from "../ui/MatchResult";
 import ReviewLauncher from "../review/ReviewLauncher";
 import { fromReplay } from "../review/sources";
 import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useEffect, useRef, useState } from "react";
-import { Trophy, Dices, RotateCcw, ArrowRight, ChevronRight, History, SlidersHorizontal } from "lucide-react";
+import { Dices, RotateCcw, ChevronRight, History, SlidersHorizontal } from "lucide-react";
 import { createGame, transition, total, names, type Category } from "../engine";
 import { type Algorithm, type Decision } from "../ai";
 import { runJob, createDecisionSession } from "../client";
@@ -38,12 +39,14 @@ export default function HumanGame({
   onBranch,
   onAnalyze,
   onChangeSetup,
+  onLeave,
   onProgress,
 }: {
   config: AiMatchConfig;
   onBranch: (r: Replay, index: number) => void;
   onAnalyze: (s: AnalysisSource) => void;
   onChangeSetup: () => void;
+  onLeave: () => void;
   onProgress?: (inProgress: boolean) => void;
 }) {
   const algorithm = config.algorithm;
@@ -62,6 +65,8 @@ export default function HumanGame({
     [error, setError] = useState(""),
     [last, setLast] = useState<Decision | null>(null);
   const [retry, setRetry] = useState(0);
+  const [modelStatus, setModelStatus] = useState("");
+  const skipTrial = useRef<(() => void) | null>(null);
   const generation = useRef(0),
     job = useRef<ReturnType<typeof runJob<Decision>> | null>(null);
   const aiSession = useRef<ReturnType<typeof createDecisionSession> | null>(null);
@@ -143,6 +148,8 @@ export default function HumanGame({
     setLast,
     setCaption,
     setPreviewScore: setAiPreviewCategory,
+    setModelStatus,
+    skipTrial,
     paused: !!viewReplay,
     pausedRef,
     aiSeat,
@@ -210,6 +217,7 @@ export default function HumanGame({
               <History size={16} />
               기보 보기
             </button>
+            {!state.done && <>
             <button
               className="text-button"
               onClick={() => guarded({ title: "새 경기를 시작할까요?", message: "진행 중인 경기는 기록되지 않고 같은 설정으로 새 경기를 시작해요.", confirmLabel: "재대결", run: restart })}
@@ -224,6 +232,7 @@ export default function HumanGame({
               <SlidersHorizontal size={15} />
               설정 변경
             </button>
+            </>}
           </div>
           <div className="score-summary">
             {[0, 1].map((seat) => (
@@ -282,26 +291,20 @@ export default function HumanGame({
                 {caption}
               </p>
             )}
-            {busy && <Thinking />}
+            {modelStatus && <p className="ai-action-status" role="status">
+              {modelStatus} <button type="button" className="secondary" onClick={() => skipTrial.current?.()}>준비 취소</button>
+            </p>}
+            {busy && !modelStatus && <Thinking />}
             {state.done && (
-              <div className="game-result" role="status">
-                <Trophy size={25} />
-                <h2>{state.winner === "draw" ? "무승부입니다" : state.winner === humanSeat ? "승리했습니다!" : "AI가 승리했습니다"}</h2>
-                <p>
-                  {total(state.cards[humanSeat])} : {total(state.cards[aiSeat])}
-                </p>
-                <MatchMilestones {...milestones} />
-                <div className="game-result-actions">
+              <MatchResult waiting={!!celebration} title={state.winner === "draw" ? "무승부" : state.winner === humanSeat ? "승리" : "패배"}
+                actions={<>
                   <ReviewLauncher source={() => fromReplay(record.current)} />
-                  <button className="primary" onClick={restart}>
-                    한 번 더 플레이
-                    <ArrowRight size={16} />
-                  </button>
-                  <button className="secondary" onClick={onChangeSetup}>
-                    설정 변경
-                  </button>
-                </div>
-              </div>
+                  <button className="primary" onClick={restart}>한 번 더 플레이</button>
+                  <button className="secondary" onClick={onLeave}>나가기</button>
+                </>}>
+                <p>{total(state.cards[humanSeat])} : {total(state.cards[aiSeat])}</p>
+                <MatchMilestones {...milestones} />
+              </MatchResult>
             )}
           </section>
           <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : state.rolls} canScore={can} yacht={yachtReady} />

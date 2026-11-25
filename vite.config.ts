@@ -32,7 +32,7 @@ const offlineFiles = (): Plugin => ({
   generateBundle: {
     order: "post",
     handler(_options, bundle) {
-      const assets = Object.keys(bundle).filter((file) => /^assets\/(?:index|worker|stage|table)-.*\.(?:js|css)$/.test(file));
+      const assets = Object.keys(bundle).filter((file) => /^assets\/(?:(?:index|worker|product-worker|review-worker|ReviewPage|stage|table)-.*\.(?:js|css)|pmf-.*\.wasm)$/.test(file));
       assets.push(`ai/${dpManifest.asset}`);
       const source = readFileSync(new URL("./src/pwa-worker.js", import.meta.url), "utf8");
       this.emitFile({

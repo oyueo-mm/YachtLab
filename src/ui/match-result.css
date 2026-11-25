@@ -1,0 +1,24 @@
+.match-result-dialog {
+  max-width: min(450px, calc(100vw - 24px));
+  width: 100%;
+  max-height: min(680px, calc(100dvh - 24px));
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: clamp(14px, 5vw, 26px);
+  background: white;
+  color: var(--ink);
+  box-shadow: 0 12px 48px #25141944;
+  overscroll-behavior: contain;
+}
+.match-result-dialog::backdrop { background: #21181688; }
+.match-result-dialog .game-result { margin: 0; color: var(--ink); }
+.match-result-dialog h2 { margin: 5px 28px; text-wrap: balance; }
+.match-result-close { position: absolute; right: 8px; top: 8px; min-width: 44px; min-height: 44px; z-index: 2; }
+.match-result-dialog .game-result-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.match-result-dialog .game-result-actions button, .match-result-reopen { min-height: 44px; }
+.match-result-dialog .rematch { display: contents; }
+.match-result-dialog .rematch-status { flex-basis: 100%; margin: 0; font-size: 13px; }
+.match-result-reopen { display: flex; gap: 6px; align-items: center; margin: 12px auto 0; }
+.match-result-standings { margin: 8px auto; padding: 0; text-align: start; list-style: none; max-height: 35vh; overflow: auto; }
+.match-result-standings li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+.match-result-standings span { overflow-wrap: anywhere; }

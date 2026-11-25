@@ -137,11 +137,13 @@ function turnTriple(mask: number, st: Triple): [number, number, number] {
   return [c, w, t];
 }
 
+type AnalysisEngine = { name: string; depth: number; brWindow: number; minimaxWindow: number; budgetMs: number };
+
 type Played = { type: "score"; category: string } | { type: "reroll"; ids: number[] };
 const same = (a: { kind: string; category?: string; ids?: number[] }, p: Played) =>
   p.type === "score" ? a.kind === "score" && a.category === p.category : a.kind === "reroll" && [...(a.ids ?? [])].sort().join() === [...p.ids].sort().join();
 
-export function analyzeV6(state: Game, cfg: V6Config, engine: { name: string; depth: number; brWindow: number; minimaxWindow: number; budgetMs: number } = { ...V6_REVIEW, brWindow: cfg.brWindow ?? V6_REVIEW.brWindow }, played?: Played): V6Analysis {
+export function analyzeV6(state: Game, cfg: V6Config, engine: AnalysisEngine = { ...V6_REVIEW, brWindow: cfg.brWindow ?? V6_REVIEW.brWindow }, played?: Played): V6Analysis {
   const t0 = performance.now();
   const me = state.player, opp = 1 - me;
   const mask = maskOf(state.cards[me]), oMask = maskOf(state.cards[opp]);
@@ -208,9 +210,9 @@ export function analyzeV6(state: Game, cfg: V6Config, engine: { name: string; de
  *   luck         = value(`after`, the next decision point) - value(played action at `before`)
  * Only uses the two public positions; never the RNG.
  */
-export function decomposeStep(before: Game, played: Played, after: Game, cfg: V6Config) {
-  const a = analyzeV6(before, cfg, undefined, played);
+export function decomposeStep(before: Game, played: Played, after: Game, cfg: V6Config, engine?: AnalysisEngine) {
+  const a = analyzeV6(before, cfg, engine, played);
   if (after.player !== before.player) throw Error("after must be the same player's next decision (use preRollValue of their next turn otherwise)");
-  const b = analyzeV6(after, cfg);
+  const b = analyzeV6(after, cfg, engine);
   return { decisionLoss: a.played!.winCreditLoss, luck: b.currentValue - a.played!.winCredit, before: a.currentValue, playedValue: a.played!.winCredit, after: b.currentValue };
 }
