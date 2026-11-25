@@ -10,6 +10,38 @@ const clearSound = (page: Page) =>
     (window as unknown as { __yachtlabSound: { log: unknown[] } }).__yachtlabSound.log.length = 0;
   });
 
+test("사이드바는 닫기 전환을 마친 뒤 포커스를 되돌리고 현재 페이지를 표시한다", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("#offline");
+  const trigger = page.getByRole("button", { name: "메뉴", exact: true });
+  const menu = page.getByRole("dialog", { name: "메뉴" });
+  await trigger.focus();
+  await page.keyboard.press("Enter");
+  await expect(menu.getByRole("button", { name: "메뉴 닫기" })).toBeFocused();
+  await expect(menu.getByRole("button", { name: "오프라인 대전" })).toHaveAttribute("aria-current", "page");
+  expect(await menu.evaluate((el) => [getComputedStyle(el).animationDuration, getComputedStyle(el, "::backdrop").animationDuration])).toEqual(["0.24s", "0.24s"]);
+  await page.keyboard.press("Escape");
+  expect(await menu.evaluate((el: HTMLDialogElement) => [el.open, el.dataset.phase])).toEqual([true, "closing"]);
+  await expect(menu).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+
+  await trigger.click();
+  await page.mouse.click(page.viewportSize()!.width - 4, 120);
+  await expect(menu).toHaveCount(0);
+
+  await trigger.click();
+  const heading = menu.locator(".mobile-nav-heading");
+  await heading.dispatchEvent("pointerdown", { pointerType: "touch", pointerId: 7, clientX: 150, clientY: 32 });
+  await heading.dispatchEvent("pointerup", { pointerType: "touch", pointerId: 7, clientX: 75, clientY: 34 });
+  await expect(menu).toHaveCount(0);
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await trigger.click();
+  expect(await menu.evaluate((el) => Number.parseFloat(getComputedStyle(el).animationDuration))).toBeLessThanOrEqual(0.001);
+  await menu.getByRole("button", { name: "메뉴 닫기" }).click();
+  await expect(menu).toHaveCount(0);
+});
+
 test("홈 → 오프라인 → 상세 설정 → 사람 vs AI / 사람 vs 사람 진입과 홈 복귀", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -59,9 +91,9 @@ test("서버 주소가 없는 빌드에서 온라인 대전은 연결 안내만 
   await expect(page).toHaveURL(/#offline$/);
 });
 
-test("연구 기능은 연구실/설정에서 접근하고 기존 딥링크와 내 기록도 유지된다", async ({ page }) => {
+test("일반 메뉴와 설정에서 연구실을 숨기고 기존 딥링크와 내 기록을 유지한다", async ({ page }) => {
   await page.goto("");
-  await page.getByRole("button", { name: "연구실" }).click();
+  await page.goto("#lab");
   await expect(page.getByRole("heading", { name: "연구실" })).toBeVisible();
   await expect(page.locator(".lab-tool")).toHaveCount(5);
   for (const name of ["AI 대전 관전", "AI 토너먼트", "전략 분석실", "주사위 실험실", "경제 연구실"]) {
@@ -72,14 +104,16 @@ test("연구 기능은 연구실/설정에서 접근하고 기존 딥링크와 �
   await expect(page.getByRole("heading", { name: "AI 토너먼트" })).toBeVisible();
   await page.getByRole("button", { name: "설정", exact: true }).click();
   const settings = page.getByRole("dialog", { name: "설정" });
-  await settings.getByRole("button", { name: /내 기록/ }).click();
+  await expect(settings.getByRole("button", { name: /연구실|튜토리얼|내 기록/ })).toHaveCount(0);
+  await settings.getByRole("button", { name: "설정 닫기" }).click();
+  await page.getByRole("button", { name: "메뉴", exact: true }).click();
+  const menu = page.getByRole("dialog", { name: "메뉴" });
+  await expect(menu.getByRole("button", { name: /연구실|튜토리얼|프로필/ })).toHaveCount(0);
+  await menu.getByRole("button", { name: "내 기록" }).click();
   await expect(page).toHaveURL(/#records$/);
-  await page.getByRole("button", { name: "설정", exact: true }).click();
-  await page.getByRole("dialog", { name: "설정" }).getByRole("button", { name: /연구실/ }).click();
-  await expect(page).toHaveURL(/#lab$/);
-  await page.goto("");
-  await page.getByRole("button", { name: "내 기록" }).click();
-  await expect(page).toHaveURL(/#records$/);
+  await page.goto("#play-setup");
+  await page.getByText("고급 설정", { exact: true }).click();
+  await expect(page.getByText("연구용 알고리즘 직접 선택")).toHaveCount(0);
 });
 
 test("설정: 음소거·음량·애니메이션 품질·모션 간단히가 브라우저에 저장되고 게임 중에는 환경설정만 보인다", async ({ page }) => {
@@ -352,7 +386,7 @@ test("게임 화면은 상단 홈·사운드·설정과 넓은 보드를 제공�
   const board = (await page.getByLabel("게임 보드").boundingBox())!;
   if (isMobile(page)) expect(board.width).toBeGreaterThan(width - 40);
   else {
-    await expect(top.getByRole("button", { name: "전체 화면" })).toBeVisible();
+    await expect(top.getByRole("button", { name: "전체 화면" })).toHaveCount(0);
     expect(board.width).toBeGreaterThan(width * 0.55);
   }
   for (const b of await top.getByRole("button").all()) {

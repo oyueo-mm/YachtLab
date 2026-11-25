@@ -356,8 +356,8 @@ test("버튼은 둥근 직사각형 체계: 알약형이 아니고 주요·보�
   const radius = async (selector: string) => Number.parseFloat(await page.locator(selector).first().evaluate((n) => getComputedStyle(n).borderTopLeftRadius));
   await page.goto("");
   expect(await radius(".mode-cta")).toBeLessThanOrEqual(14);
-  expect(await radius(".shell-pill")).toBeLessThanOrEqual(12);
-  await page.goto("#play-setup");
+  expect(await radius(".shell-top .shell-icon")).toBeLessThanOrEqual(12);
+  await page.goto("?lab=1#play-setup");
   expect(await radius(".setup-start")).toBeLessThanOrEqual(16);
   expect(await radius(".setup-start")).toBeGreaterThanOrEqual(12);
   await page.getByText("고급 설정", { exact: true }).click();

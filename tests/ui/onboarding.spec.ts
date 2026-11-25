@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { scoreCategory } from "./helpers";
+import { scoreCategory, withMotion } from "./helpers";
 
 test.describe("최초 방문", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
@@ -16,6 +16,9 @@ test.describe("최초 방문", () => {
     await dice.nth(0).click();
     await expect(dice.nth(0)).toBeDisabled();
     await dice.nth(1).click();
+    await dice.nth(1).click();
+    await expect(dice.nth(1)).toHaveAttribute("aria-pressed", "false");
+    await dice.nth(1).click();
     await roll.click();
     await expect(guide.locator('[data-die-id="2"] .die-button')).toBeEnabled();
     await guide.locator('[data-die-id="2"] .die-button').click();
@@ -23,11 +26,21 @@ test.describe("최초 방문", () => {
     await expect(roll).toBeDisabled();
     await guide.getByRole("button", { name: /헥사.*24점 기록/ }).click();
     await expect(guide.getByText("헥사 24점 기록 완료")).toBeVisible();
+    await guide.getByText("상단 6칸 · 63점 보너스").click();
+    await expect(guide.getByText("63점 · 보너스 +35점")).toBeVisible();
+    await guide.getByText("하단 6칸 · 초이스부터 요트까지").click();
+    await expect(guide.locator(".tutorial-rules li")).toHaveCount(12);
+    await expect(guide.locator(".tutorial-example-score").last()).toHaveText("50점");
     await guide.getByRole("button", { name: "홈으로 가기" }).click();
     await page.reload();
     await expect(guide).toHaveCount(0);
-    await page.getByRole("button", { name: "튜토리얼 다시 보기" }).click();
-    await expect(guide).toBeVisible();
+    await expect(page.getByRole("button", { name: "튜토리얼 다시 보기" })).toHaveCount(0);
+    await page.goto("#tutorial");
+    await expect(guide).toHaveCount(0);
+    await page.getByRole("button", { name: "메뉴", exact: true }).click();
+    await page.getByRole("button", { name: "한 차례 연습하기" }).click();
+    await expect(page.getByRole("region", { name: "한 차례 연습하기" })).toBeVisible();
+    await expect(guide).toHaveCount(0);
   });
 
   test("초대 URL을 유지하고 건너뛴 뒤 다시 열지 않는다", async ({ page }) => {
@@ -94,4 +107,38 @@ test("휴대폰 점수표는 기본 한 열과 터치 영역을 유지하는 두
   expect(await dialog.locator(".mobile-score-scroll").evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
   await dialog.locator('[data-category="choice"] .score-option').click();
   await expect(dialog).toHaveCount(0);
+});
+
+test("한 차례 연습과 튜토리얼은 3D 테이블의 충돌·착지·킵과 해제를 사용한다", async ({ page }) => {
+  await withMotion(page, "3d");
+  await page.setViewportSize({ width: 320, height: 690 });
+  await page.goto("#practice");
+  const guide = page.getByRole("region", { name: "한 차례 연습하기" });
+  const tray = guide.locator(".physical-dice");
+  await expect(tray.locator("canvas")).toBeVisible();
+  const roll = guide.getByRole("button", { name: "주사위 굴리기" });
+  await roll.click();
+  const dice = tray.locator(".die-hit");
+  await expect(dice.nth(0)).toBeEnabled();
+  await expect(dice.nth(2)).toBeDisabled();
+  const status = await page.evaluate(() => {
+    const w = window as unknown as { __yachtlabDice: { last: { mode: string; finals: unknown } }; __yachtlabSound: { log: { name: string }[] } };
+    return { roll: w.__yachtlabDice.last, sounds: w.__yachtlabSound.log.map(({ name }) => name) };
+  });
+  expect(status.roll.mode).toBe("3d");
+  expect(Object.values(status.roll.finals as Record<string, number>)).toEqual([6, 6, 3, 2, 1]);
+  expect(status.sounds.indexOf("impact")).toBeGreaterThan(status.sounds.indexOf("throw"));
+  expect(status.sounds.indexOf("settle")).toBeGreaterThan(status.sounds.indexOf("impact"));
+  const trayBox = (await tray.boundingBox())!;
+  for (const die of await dice.all()) {
+    const box = (await die.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(trayBox.x - 1);
+    expect(box.x + box.width).toBeLessThanOrEqual(trayBox.x + trayBox.width + 1);
+  }
+  await dice.nth(0).click();
+  await expect(dice.nth(0)).toHaveAttribute("data-zone", "hold");
+  await dice.nth(1).click();
+  await expect(dice.nth(1)).toHaveAttribute("data-zone", "hold");
+  await dice.nth(1).click();
+  await expect(dice.nth(1)).toHaveAttribute("data-zone", "tray");
 });

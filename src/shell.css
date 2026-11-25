@@ -686,12 +686,15 @@
   }
 }
 @media (max-width: 760px) {
+  :root {
+    --mobile-shell-top-height: 54px;
+  }
   .shell-top {
-    height: 54px;
+    height: var(--mobile-shell-top-height);
     gap: 8px;
   }
   .lab-nav {
-    top: 54px;
+    top: var(--mobile-shell-top-height);
   }
   .shell-pill {
     width: 40px;

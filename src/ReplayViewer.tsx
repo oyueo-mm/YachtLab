@@ -1,3 +1,4 @@
+import { researchToolsEnabled } from "./routes";
 import ReviewLauncher from "./review/ReviewLauncher";
 import { fromReplay } from "./review/sources";
 import { useEffect, useRef, useState } from "react";
@@ -389,7 +390,7 @@ export default function ReplayViewer({
         ))}
       </div>
       <div className="replay-tools">
-        <button
+        {researchToolsEnabled() && <button
           className="primary"
           disabled={state.done || working}
           onClick={() =>
@@ -401,9 +402,9 @@ export default function ReplayViewer({
         >
           <GitBranch size={16} />
           AI 아레나에서 이어하기
-        </button>
+        </button>}
         {view.finalState.done && <ReviewLauncher source={() => fromReplay(view)} />}
-          <button
+          {researchToolsEnabled() && <button
           className="secondary"
           disabled={!canAnalyze || working}
           onClick={() =>
@@ -424,7 +425,7 @@ export default function ReplayViewer({
           }
         >
           <FlaskConical size={16} />이 수를 분석하기
-        </button>
+        </button>}
       </div>
     </dialog>
   );

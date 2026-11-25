@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { type Match } from "./match";
 import { type AnalysisSource } from "./ReplayViewer";
@@ -18,7 +18,8 @@ import { completeSignIn, session } from "./identity/account-client";
 import { syncAccountNickname } from "./identity/display-name";
 import { FriendsPage, InviteToasts, refreshInbox, startInbox } from "./shell/Friends";
 import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl } from "./online/client";
-import { currentRoute, routes, type Route } from "./routes";
+import { currentRoute, researchToolsEnabled, routes, type Route } from "./routes";
+import { useProfileEconomy } from "./shell/profile-economy";
 import { LabNav, SettingsDialog, TopBar } from "./shell/Chrome";
 import InstallBanner from "./shell/InstallBanner";
 import { Lobby, OfflineSelect, OnlineSoon } from "./shell/Lobby";
@@ -39,6 +40,11 @@ const localConfig = (): LocalConfig => {
   return { players: finalizeNames(setup.names, setup.count), order: setup.order };
 };
 
+const localAiConfig = () => {
+  const setup = getAiSetup();
+  return aiMatchConfig({ ...setup, research: setup.research && researchToolsEnabled() });
+};
+
 export default function App() {
   const [tutorialReturn] = useState(() => firstTutorialVisit() && !location.hash.startsWith("#login") ? currentRoute() : null);
   const tutorialDestination = useRef(tutorialReturn);
@@ -49,18 +55,19 @@ export default function App() {
     [analysisSource, setAnalysisSource] = useState<AnalysisSource | null>(null);
   // Game configs are fixed when a game starts (setup "게임 시작" or a #play / #pvp deep link),
   // so editing the setup later never changes a game that is already running.
-  const [aiConfig, setAiConfig] = useState<AiMatchConfig>(() => aiMatchConfig(getAiSetup()));
+  const [aiConfig, setAiConfig] = useState<AiMatchConfig>(localAiConfig);
   const [local, setLocal] = useState<LocalConfig>(localConfig);
   const [gameKey, setGameKey] = useState(0);
   // Online play needs a configured server; without one the online screen stays "준비 중".
   const [onlineServer] = useState(onlineServerUrl);
+  const profile = useProfileEconomy(onlineServer, page === "home");
   const [onlineCode, setOnlineCode] = useState<string | null>(roomFromUrl);
   const [quickIntro, setQuickIntro] = useState<string | null>(null);
   const [pendingReward, setPendingReward] = useState<PendingReward | null>(null);
   const [onlineNotice, setOnlineNotice] = useState("");
   const [watchTarget] = useState(watchFromUrl);
   const [profileNotice, setProfileNotice] = useState("");
-  useEffect(() => registerVisit(tutorialReturn !== null), [tutorialReturn]);
+  useLayoutEffect(() => registerVisit(tutorialReturn !== null), [tutorialReturn]);
   // Members: friend requests and room invites (checked once a minute while the site is visible).
   useEffect(() => startInbox(onlineServer), [onlineServer]);
   // …and right away when the home menu or the friends page opens (badge / invites without waiting).
@@ -97,7 +104,7 @@ export default function App() {
   const enter = (p: Route) => {
     if ((p === "play" || p === "pvp") && pageRef.current !== p) {
       // Entering a game screen from elsewhere starts from the latest saved setup.
-      if (p === "play") setAiConfig(aiMatchConfig(getAiSetup()));
+      if (p === "play") setAiConfig(localAiConfig());
       else setLocal(localConfig());
       setGameKey((k) => k + 1);
     }
@@ -180,7 +187,7 @@ export default function App() {
   };
   return (
     <div className={`app-shell shell-${shell}`}>
-      <TopBar route={page} navigate={navigate} openSettings={() => setSettingsOpen(true)} />
+      <TopBar route={page} server={onlineServer} profile={profile} navigate={navigate} openSettings={() => setSettingsOpen(true)} />
       {shell === "lab" && <LabNav route={page} navigate={navigate} />}
       <main className={`main page-${page}`}>
         {/* Friend invites on any page except during a running game (not to interrupt play). */}
@@ -208,12 +215,12 @@ export default function App() {
           pending={pendingReward}
           consume={() => setPendingReward(null)}
         />}
-        {page === "home" && <Lobby navigate={navigate} server={onlineServer} />}
+        {page === "home" && <Lobby navigate={navigate} />}
         {page === "tutorial" && <Tutorial returning={!!tutorialDestination.current && tutorialDestination.current !== "home"} onExit={() => {
-          if (tutorialDestination.current === "tutorial") go("home");
-          else if (tutorialDestination.current) enter(tutorialDestination.current);
+          if (tutorialDestination.current) enter(tutorialDestination.current);
           else go("home");
         }} />}
+        {page === "practice" && <Tutorial practiceOnly onExit={() => go("home")} />}
         {page === "offline" && <OfflineSelect navigate={navigate} />}
         {(page === "online" || page === "online-room") && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "online" && onlineServer && (
@@ -258,7 +265,7 @@ export default function App() {
             }}
           />
         )}
-        {page === "profile" && <Profile key={profileNotice} server={onlineServer} notice={profileNotice} />}
+        {(page === "profile" || page === "account") && <Profile key={profileNotice} server={onlineServer} notice={profileNotice} snapshot={profile.snapshot} accountSettings={page === "account"} />}
         {page === "shop" && <ShopPage server={onlineServer} go={navigate} />}
         {page === "inventory" && <InventoryPage server={onlineServer} go={navigate} />}
         {page === "quests" && <QuestsPage server={onlineServer} go={navigate} />}
@@ -303,7 +310,7 @@ export default function App() {
           </Suspense>
         )}
       </main>
-      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} navigate={navigate} inGame={shell === "game"} />
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} inGame={shell === "game"} />
       <ConfirmDialog
         open={leaveTo !== null}
         title="게임을 나갈까요?"

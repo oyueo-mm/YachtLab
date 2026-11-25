@@ -20,14 +20,6 @@ export function registerVisit(automatic: boolean) {
   } catch {}
 }
 
-export function tutorialSeen() {
-  try {
-    return !!(localStorage.getItem(OUTCOME) || localStorage.getItem("yachtlab.tutorial.v1"));
-  } catch {
-    return false;
-  }
-}
-
 export function finishTutorial(outcome: "completed" | "skipped") {
   try {
     if (localStorage.getItem(OUTCOME) !== "completed") localStorage.setItem(OUTCOME, outcome);

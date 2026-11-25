@@ -23,6 +23,7 @@ export class EconomyError extends Error {
   }
 }
 async function call<T>(server: string, path: string, body?: unknown): Promise<T> {
+  const account = session();
   let res: Response;
   try {
     res = await fetch(server + path, {
@@ -35,6 +36,9 @@ async function call<T>(server: string, path: string, body?: unknown): Promise<T>
   }
   const data = (await res.json().catch(() => null)) as (T & { error?: { code: string; message: string } }) | null;
   if (!res.ok || !data) throw new EconomyError(data?.error?.code ?? "SERVER", data?.error?.message ?? "요청을 처리하지 못했어요.");
+  if (body !== undefined && account && account === session() && "snapshot" in data) {
+    window.dispatchEvent(new CustomEvent("yachtlab-economy", { detail: { account, server, snapshot: data.snapshot } }));
+  }
   return data;
 }
 const rid = () => {
