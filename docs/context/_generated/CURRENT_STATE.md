@@ -65,6 +65,7 @@
 - [v31-large.yml](../../../.github/workflows/v31-large.yml)
 - [v31-research.yml](../../../.github/workflows/v31-research.yml)
 - [v32-research.yml](../../../.github/workflows/v32-research.yml)
+- [v5-apex-research.yml](../../../.github/workflows/v5-apex-research.yml)
 - [yahtzeerl-transfer.yml](../../../.github/workflows/yahtzeerl-transfer.yml)
 
 ## 맥락 허브의 보존된 문서
@@ -96,21 +97,22 @@
 - [TECHNIQUES.md](../TECHNIQUES.md)
 - [V31-RESEARCH.md](../V31-RESEARCH.md)
 - [V32-EXACT-FORECAST.md](../V32-EXACT-FORECAST.md)
+- [V5-APEX-RESEARCH.md](../V5-APEX-RESEARCH.md)
 
 ## 최근 Git 커밋 (맥락 자동 커밋 제외)
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [c543b8d](https://github.com/oyueo-mm/YachtLab/commit/c543b8d) | 2026-11-25 | Merge PR #75: Win DP v5 research (exact policy PMF bank, exact endgame, PMF rollout) |
+| [3444ed6](https://github.com/oyueo-mm/YachtLab/commit/3444ed6) | 2026-11-25 | research(v5): move local 9501 reproduction shards to cross-check folder; record exact CI/local agreement on 11 matchups |
+| [44e469b](https://github.com/oyueo-mm/YachtLab/commit/44e469b) | 2026-11-25 | Merge remote-tracking branch 'origin/main' into ccr-4b6d4930-6rem08 |
+| [18efd2c](https://github.com/oyueo-mm/YachtLab/commit/18efd2c) | 2026-11-25 | docs(v5): confirmation results (family 9501), ablations, meta-game, cost; RESULTS/CONTEXT updates |
+| [d55a953](https://github.com/oyueo-mm/YachtLab/commit/d55a953) | 2026-11-25 | docs(v5): recommendations and limitations; aggregate confirmation run 45558614547 [v5-aggregate] |
 | [9f297f3](https://github.com/oyueo-mm/YachtLab/commit/9f297f3) | 2026-11-25 | Merge pull request #74 from oyueo-mm/codex/ux-rollout-docs |
 | [38d4fc7](https://github.com/oyueo-mm/YachtLab/commit/38d4fc7) | 2026-11-25 | docs(context): record onboarding rollout and Worker compatibility |
 | [ca1c894](https://github.com/oyueo-mm/YachtLab/commit/ca1c894) | 2026-11-25 | Merge pull request #71 from oyueo-mm/codex/ux-followup |
 | [642aac0](https://github.com/oyueo-mm/YachtLab/commit/642aac0) | 2026-11-25 | docs(context): confirm the public audio fix and reward test diagnosis |
 | [5c6d098](https://github.com/oyueo-mm/YachtLab/commit/5c6d098) | 2026-11-25 | test(rewards): wait for the lobby invite code before joining |
-| [b17c01f](https://github.com/oyueo-mm/YachtLab/commit/b17c01f) | 2026-11-25 | Merge PR #73: 2026-11-25 공개 사이트 검증 결과 |
-| [af980d3](https://github.com/oyueo-mm/YachtLab/commit/af980d3) | 2026-11-25 | Merge main into docs branch (PR #63 audio fix): keep both deployment notes |
-| [a035614](https://github.com/oyueo-mm/YachtLab/commit/a035614) | 2026-11-25 | test(pwa): exercise DP network failures outside the offline cache |
-| [89ff550](https://github.com/oyueo-mm/YachtLab/commit/89ff550) | 2026-11-25 | docs(context): record follow-up regression and public smoke details |
-| [9a2fe20](https://github.com/oyueo-mm/YachtLab/commit/9a2fe20) | 2026-11-25 | test(rewards): provision the guest seat before checking settlement |
 
 ## 최근 GitHub Actions 상태
 

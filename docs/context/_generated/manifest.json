@@ -71,7 +71,8 @@
     "SELFPLAY-RESEARCH.md",
     "TECHNIQUES.md",
     "V31-RESEARCH.md",
-    "V32-EXACT-FORECAST.md"
+    "V32-EXACT-FORECAST.md",
+    "V5-APEX-RESEARCH.md"
   ],
   "workflowFiles": [
     "algorithm-zoo.yml",
@@ -108,9 +109,35 @@
     "v31-large.yml",
     "v31-research.yml",
     "v32-research.yml",
+    "v5-apex-research.yml",
     "yahtzeerl-transfer.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "c543b8d",
+      "date": "2026-11-25",
+      "subject": "Merge PR #75: Win DP v5 research (exact policy PMF bank, exact endgame, PMF rollout)"
+    },
+    {
+      "sha": "3444ed6",
+      "date": "2026-11-25",
+      "subject": "research(v5): move local 9501 reproduction shards to cross-check folder; record exact CI/local agreement on 11 matchups"
+    },
+    {
+      "sha": "44e469b",
+      "date": "2026-11-25",
+      "subject": "Merge remote-tracking branch 'origin/main' into ccr-4b6d4930-6rem08"
+    },
+    {
+      "sha": "18efd2c",
+      "date": "2026-11-25",
+      "subject": "docs(v5): confirmation results (family 9501), ablations, meta-game, cost; RESULTS/CONTEXT updates"
+    },
+    {
+      "sha": "d55a953",
+      "date": "2026-11-25",
+      "subject": "docs(v5): recommendations and limitations; aggregate confirmation run 45558614547 [v5-aggregate]"
+    },
     {
       "sha": "9f297f3",
       "date": "2026-11-25",
@@ -135,31 +162,6 @@
       "sha": "5c6d098",
       "date": "2026-11-25",
       "subject": "test(rewards): wait for the lobby invite code before joining"
-    },
-    {
-      "sha": "b17c01f",
-      "date": "2026-11-25",
-      "subject": "Merge PR #73: 2026-11-25 공개 사이트 검증 결과"
-    },
-    {
-      "sha": "af980d3",
-      "date": "2026-11-25",
-      "subject": "Merge main into docs branch (PR #63 audio fix): keep both deployment notes"
-    },
-    {
-      "sha": "a035614",
-      "date": "2026-11-25",
-      "subject": "test(pwa): exercise DP network failures outside the offline cache"
-    },
-    {
-      "sha": "89ff550",
-      "date": "2026-11-25",
-      "subject": "docs(context): record follow-up regression and public smoke details"
-    },
-    {
-      "sha": "9a2fe20",
-      "date": "2026-11-25",
-      "subject": "test(rewards): provision the guest seat before checking settlement"
     }
   ],
   "recentWorkflowRuns": [
