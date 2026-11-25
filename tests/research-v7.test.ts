@@ -180,4 +180,23 @@ describe("v7 two-ply reaction (I2) and single-bank derivative", () => {
     }
     expect(differ).toBeGreaterThan(0);
   });
+  it("I3R / I3Rp: credits in [0,1]; I3R = I2R when the opponent has its last category (2/1); I3Rp with mass cut 0 = I2R", async () => {
+    const { V7_TUNING } = await import("../src/research-v7/interactive");
+    for (let i = 0; i < 4; i++) {
+      const s = state(5000 + i, card([categories[i], categories[(i + 4) % 12]], (j) => 12 + ((j * 3 + i) % 11)), card([categories[(i + 7) % 12]], (j) => 12 + ((j * 5 + i) % 11)), (i % 2) as 0 | 1);
+      const a = fill("I3R", B, s), b = fill("I2R", B, s);
+      each(sides(s).me.mask, (c, p) => { expect(a[c * 64 + p]).toBeCloseTo(b[c * 64 + p], 12); });
+    }
+    const old = V7_TUNING.i3MassCut;
+    V7_TUNING.i3MassCut = 0;
+    for (const s of states().slice(0, 2)) {
+      const a = fill("I3Rp", B, s), b = fill("I2R", B, s);
+      each(sides(s).me.mask, (c, p) => expect(a[c * 64 + p]).toBeCloseTo(b[c * 64 + p], 12));
+    }
+    V7_TUNING.i3MassCut = old;
+    for (const s of states().slice(0, 2)) {
+      const a = fill("I3R", B, s);
+      each(sides(s).me.mask, (c, p) => { expect(a[c * 64 + p]).toBeGreaterThanOrEqual(0); expect(a[c * 64 + p]).toBeLessThanOrEqual(1); });
+    }
+  }, 120_000);
 });

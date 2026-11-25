@@ -75,10 +75,26 @@ class Scratch {
   e = new Float64Array(462);
 }
 const scratch: Scratch[] = Array.from({ length: 26 }, () => new Scratch());
-const memo = new Map<number, number>();
-export const solverStats = { nodes: 0, memoHits: 0, pruned: 0 };
-const MEMO_LIMIT = 6_000_000;
+// Memo backends (exactness-preserving; values are only cached). Default "map" keeps the v5 behaviour bit-for-bit
+// (JS Map, cleared entirely at 6M entries). v7.2 adds an opt-in open-addressing table (Float64 keys/values,
+// linear probing) that holds far more entries per byte; when it reaches its load limit it is also cleared.
+class HashMemo {
+  keys: Float64Array; vals: Float64Array; size = 0; mask: number; limit: number;
+  constructor(log2: number) { const n = 2 ** log2; this.keys = new Float64Array(n).fill(-1); this.vals = new Float64Array(n); this.mask = n - 1; this.limit = Math.floor(n * 0.75); }
+  private slot(key: number) { const lo = key >>> 0, hi = Math.floor(key / 4294967296) >>> 0; let h = Math.imul(lo ^ Math.imul(hi, 0x9e3779b1), 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); return (h ^ (h >>> 16)) & this.mask; }
+  get(key: number): number | undefined { const K = this.keys; for (let i = this.slot(key); ; i = (i + 1) & this.mask) { const k = K[i]; if (k === key) return this.vals[i]; if (k === -1) return undefined; } }
+  set(key: number, v: number) { const K = this.keys; let i = this.slot(key); while (K[i] !== -1 && K[i] !== key) i = (i + 1) & this.mask; if (K[i] === -1) this.size++; K[i] = key; this.vals[i] = v; }
+  clear() { this.keys.fill(-1); this.size = 0; }
+}
+let memo: { get(k: number): number | undefined; set(k: number, v: number): unknown; clear(): void; size: number } = new Map<number, number>();
+export const solverStats = { nodes: 0, memoHits: 0, pruned: 0, memoClears: 0 };
+let MEMO_LIMIT = 6_000_000;
 export function clearEndgameMemo() { memo.clear(); }
+/** Research: switch the exact solver memo backend ("hash" with 2^log2 slots, ~16 B/slot). Values are identical. */
+export function setEndgameMemo(kind: "map" | "hash", log2 = 26) {
+  if (kind === "map") { memo = new Map<number, number>(); MEMO_LIMIT = 6_000_000; }
+  else { const h = new HashMemo(log2); memo = h; MEMO_LIMIT = h.limit; }
+}
 
 function turnStartValue(mask: number, s: Scratch): number {
   const { val, stop, v1, e } = s;
@@ -118,7 +134,7 @@ export function endgameValue(Mm: number, um: number, Mo: number, uo: number, D: 
   const s = scratch[depth];
   fillEndgameStopValues(Mm, um, Mo, uo, D, depth, s.val);
   const v = turnStartValue(Mm, s);
-  if (memo.size >= MEMO_LIMIT) memo.clear();
+  if (memo.size >= MEMO_LIMIT) { memo.clear(); solverStats.memoClears++; }
   memo.set(key, v);
   return v;
 }

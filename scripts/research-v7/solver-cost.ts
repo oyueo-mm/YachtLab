@@ -3,10 +3,13 @@
 //   npx tsx scripts/research-v7/solver-cost.ts --K 5 --n 5
 import { createGame, transition, total, upper, type Game } from "../../src/engine.ts";
 import { initAgents, AGENTS } from "../research-v5/agents.ts";
-import { maskOf, endgameValue, clearEndgameMemo, solverStats } from "../../src/research-v5/apex.ts";
+import { maskOf, endgameValue, clearEndgameMemo, solverStats, setEndgameMemo } from "../../src/research-v5/apex.ts";
 import { popcount, canonicalUpper, UPPER_CAP } from "../../src/research-v5/kernel.ts";
 const arg = (k: string, d: string) => { const i = process.argv.indexOf(k); return i < 0 ? d : process.argv[i + 1]; };
 const K = Number(arg("--K", "5")), n = Number(arg("--n", "5")), keep = process.argv.includes("--keep-memo");
+const Ko = Number(arg("--Ko", String(K))), skip = Number(arg("--skip", "0"));
+const memoKind = arg("--memo", "map") as "map" | "hash";
+if (memoKind === "hash") setEndgameMemo("hash", Number(arg("--log2", "26")));
 initAgents(true);
 let found = 0;
 for (let seed = 9103_000; found < n; seed++) {
@@ -14,11 +17,11 @@ for (let seed = 9103_000; found < n; seed++) {
   while (!s.done) {
     if (!s.rolls) {
       const me = s.player, op = 1 - me, m = maskOf(s.cards[me]), o = maskOf(s.cards[op]);
-      if (popcount(m) === K && popcount(o) === K) {
+      if (popcount(m) === K && popcount(o) === Ko && seed - 9103_000 >= skip) {
         if (!keep) clearEndgameMemo();
-        const n0 = solverStats.nodes, t0 = performance.now();
+        const n0 = solverStats.nodes, c0 = solverStats.memoClears, t0 = performance.now();
         const v = endgameValue(m, canonicalUpper(m, Math.min(UPPER_CAP, upper(s.cards[me]))), o, canonicalUpper(o, Math.min(UPPER_CAP, upper(s.cards[op]))), total(s.cards[me]) - total(s.cards[op]));
-        console.log(JSON.stringify({ K, seed, v: +v.toFixed(5), seconds: +((performance.now() - t0) / 1000).toFixed(2), nodes: solverStats.nodes - n0, rssMB: Math.round(process.memoryUsage().rss / 1e6) }));
+        console.log(JSON.stringify({ K, Ko, memo: memoKind, seed, v: +v.toFixed(5), seconds: +((performance.now() - t0) / 1000).toFixed(2), nodes: solverStats.nodes - n0, memoClears: solverStats.memoClears - c0, rssMB: Math.round(process.memoryUsage().rss / 1e6) }));
         found++; break;
       }
       s = transition(s, { type: "roll" }); continue;

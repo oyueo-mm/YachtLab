@@ -41,6 +41,12 @@
 //                  N turn solves per root instead of N^2.
 //   I1RO1          I1RO with a single bank (DP Expert only): lightweight derivative for the product track
 //                  (with one policy I1 = I1R = I1O = I1RO, see tests).
+//   I3R / I3Rp     THREE-PLY REACTION (v7.2, research): as I2R, but my next turn (per concrete opponent outcome,
+//                  closed loop) is solved with I1RO stop values, i.e. it already anticipates the opponent's SECOND
+//                  reactive turn. The open-loop problem of I2RO (opponent state = mixture) is avoided because the
+//                  first opponent reaction stays closed loop (concrete states). Cost ~ N_me * N_op * N_me turn solves;
+//                  I3Rp prunes by probability mass: opponent outcomes beyond cumulative mass V7_TUNING.i3MassCut use the
+//                  I2R leaf instead (approximation, documented in V7-APEX-RESEARCH §10).
 //   I2R1 / I2RO1   product track (v7.2): I2R / I2RO with the DP Expert bank only (same memory as v5-R).
 //                  With one policy I2 = I2R (the opponent objective max over {DP} is the DP objective),
 //                  but I2R1 != I2RO1: my next-turn solve is a max (non-linear) so solving it per opponent
@@ -52,8 +58,10 @@ import { DISTINCT, bonusGain } from "../research-v6/risk";
 import { TurnBuffers, turnOutcomesFromVal, turnStartValue } from "../research-v6/turn";
 
 export const V7_VERSION = "v7-research-2026-11-25.1";
-export type V7Kind = "R" | "P" | "L" | "Lm" | "N" | "MM" | "I1" | "I1D" | "I1R" | "I1O" | "I1RO" | "I2" | "I2R" | "I2RO" | "I1RO1" | "I2R1" | "I2RO1";
-export const V7_KINDS: V7Kind[] = ["R", "P", "L", "Lm", "N", "MM", "I1", "I1D", "I1R", "I1O", "I1RO", "I2", "I2R", "I2RO", "I1RO1", "I2R1", "I2RO1"];
+export type V7Kind = "R" | "P" | "L" | "Lm" | "N" | "MM" | "I1" | "I1D" | "I1R" | "I1O" | "I1RO" | "I2" | "I2R" | "I2RO" | "I1RO1" | "I2R1" | "I2RO1" | "I3R" | "I3Rp";
+export const V7_KINDS: V7Kind[] = ["R", "P", "L", "Lm", "N", "MM", "I1", "I1D", "I1R", "I1O", "I1RO", "I2", "I2R", "I2RO", "I1RO1", "I2R1", "I2RO1", "I3R", "I3Rp"];
+/** Research tuning knobs (module-level so the regret harness can sweep them). */
+export const V7_TUNING = { i3MassCut: 0.8 };
 /** Single-bank (DP Expert only) kinds and the multi-bank kind they reduce to. */
 export const SINGLE_BANK: Partial<Record<V7Kind, V7Kind>> = { I1RO1: "I1RO", I2R1: "I2R", I2RO1: "I2RO" };
 
@@ -123,7 +131,7 @@ const oppVal = new Float64Array(12 * 64);
  * I1R (opp reactive, v5-R objective).
  */
 const mixBuf = new Float64Array(1024);
-function oneReactiveOppTurn(B: V7Banks, me: Side, op: Side, kind: "I1" | "I1D" | "I1R" | "I1O" | "I1RO" | "I2" | "I2R" | "I2RO"): number {
+function oneReactiveOppTurn(B: V7Banks, me: Side, op: Side, kind: "I1" | "I1D" | "I1R" | "I1O" | "I1RO" | "I2" | "I2R" | "I2RO" | "I3R" | "I3Rp"): number {
   if (!op.mask) return dotCredit(me.mask ? B.dp.get(me.mask, me.u) : ONE, me.x, creditTable(op.x, ONE)); // unreachable in alternation, kept total
   // opponent stop values
   const myDp = pmfOf(B.dp, me.mask, me.u);
@@ -136,7 +144,7 @@ function oneReactiveOppTurn(B: V7Banks, me: Side, op: Side, kind: "I1" | "I1D" |
       let v: number;
       if (kind === "I1D") v = g + (next ? B.dp.meanOf(next, u2) : 0); // DP Expert: expected points
       else if (!next) v = dotCredit(ONE, x2, ctMeForOpp);
-      else if (kind === "I1R" || kind === "I1RO" || kind === "I2R" || kind === "I2RO") v = dotCredit(B.dp.get(next, u2), x2, ctMeForOpp);
+      else if (kind === "I1R" || kind === "I1RO" || kind === "I2R" || kind === "I2RO" || kind === "I3R" || kind === "I3Rp") v = dotCredit(B.dp.get(next, u2), x2, ctMeForOpp);
       else { v = -Infinity; for (const b of B.banks) { const w = dotCredit(b.get(next, u2), x2, ctMeForOpp); if (w > v) v = w; } }
       oppVal[c * 64 + p] = v;
     }
@@ -159,6 +167,20 @@ function oneReactiveOppTurn(B: V7Banks, me: Side, op: Side, kind: "I1" | "I1D" |
   // copy: the opponent outcome buffers are reused by the nested my-turn solve of I2
   const keys = Int32Array.from(out.keys), prob = Float64Array.from(out.prob);
   let s = 0;
+  if (kind === "I3R" || kind === "I3Rp") {
+    const cut = kind === "I3R" ? 2 : V7_TUNING.i3MassCut;
+    const order = Array.from(keys.keys()).sort((a, b) => prob[b] - prob[a]);
+    let mass = 0;
+    for (const i of order) {
+      const k = keys[i], c = k >> 6, p = k & 63;
+      const next = op.mask ^ (1 << c), g = bonusGain(c, p, op.u);
+      const u2 = canonicalUpper(next, nextUpper(c, p, op.u));
+      const deep = mass < cut;
+      mass += prob[i];
+      s += prob[i] * (deep ? myTurnI1RO(B, me, { mask: next, u: u2, x: op.x + g }) : myTurnP(B, me, creditTable(op.x + g, pmfOf(B.dp, next, u2))));
+    }
+    return s;
+  }
   for (let i = 0; i < keys.length; i++) {
     const k = keys[i], c = k >> 6, p = k & 63;
     const next = op.mask ^ (1 << c), g = bonusGain(c, p, op.u);
@@ -167,6 +189,14 @@ function oneReactiveOppTurn(B: V7Banks, me: Side, op: Side, kind: "I1" | "I1D" |
     s += prob[i] * (kind === "I2" || kind === "I2R" ? myTurnP(B, me, opCt) : policySetLeaf(B, me, opCt));
   }
   return s;
+}
+
+/** Exact value of MY next turn whose stop values anticipate the opponent's next reactive turn (I1RO values). */
+const i3Bufs = new TurnBuffers(), i3Val = new Float64Array(12 * 64);
+function myTurnI1RO(B: V7Banks, me: Side, op: Side): number {
+  if (!me.mask) return dotCredit(ONE, me.x, creditTable(op.x, pmfOf(B.dp, op.mask, op.u)));
+  fillStopValues("I1RO", B, me, op, i3Val);
+  return turnStartValue(me.mask, i3Val, i3Bufs);
 }
 
 /** Exact value of MY next turn with P stop values (policy set after it) vs a fixed opponent credit table. */
@@ -205,7 +235,7 @@ export function fillStopValues(kind: V7Kind, B: V7Banks, me: Side, op: Side, val
       switch (kind) {
         case "R": v = dotCredit(pmfOf(B.dp, next, u2), x2, opDpCt); break;
         case "P": v = policySetLeaf(B, { mask: next, u: u2, x: x2 }, opDpCt); break;
-        case "I1": case "I1D": case "I1R": case "I1O": case "I1RO": case "I2": case "I2R": case "I2RO":
+        case "I1": case "I1D": case "I1R": case "I1O": case "I1RO": case "I2": case "I2R": case "I2RO": case "I3R": case "I3Rp":
           v = op.mask ? oneReactiveOppTurn(B, { mask: next, u: u2, x: x2 }, op, kind) : policySetLeaf(B, { mask: next, u: u2, x: x2 }, opDpCt);
           break;
         default: {
