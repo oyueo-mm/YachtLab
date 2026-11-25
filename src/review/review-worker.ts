@@ -14,6 +14,6 @@ self.onmessage = async ({ data }: MessageEvent<Situation[]>) => {
     });
     reply({ type: "done", values });
   } catch (error) {
-    reply({ type: "error", message: error instanceof Error ? error.message : "복기 분석을 완료할 수 없어요." });
+    reply({ type: "error", message: error instanceof Error ? error.message : "리뷰 분석을 완료할 수 없어요." });
   }
 };
