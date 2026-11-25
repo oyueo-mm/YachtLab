@@ -220,3 +220,5 @@ Sixes·Choice 조건은 정책마다 50,000번 Monte Carlo 검산. **근거:** [
 - 휴대폰 360~430px에서 한 열 점수 목록 697px, 두 열 366.5px, 두 열의 최소 행 높이 54px. 320px에는 한 열을 사용한다. [온보딩 PR](https://github.com/oyueo-mm/YachtLab/pull/66)
 - 실제 브라우저의 네트워크를 끈 뒤 캐시된 앱으로 로컬 경기에서 점수를 기록했고 Greedy AI가 첫 차례를 마쳤다. iOS 설치 안내는 브라우저 에뮬레이션으로 검증했다. [PWA PR](https://github.com/oyueo-mm/YachtLab/pull/64)
 - PWA의 Chromium 설치 가능성 검사에서 오류 0건. 연속 두 빌드 테스트에서 기존 탭이 열린 동안 새 워커가 대기했고, 기존 탭을 닫은 후 자기 이전 버전 캐시만 정리했다. 이어 오프라인에서 새 앱 셸을 열었다. [PWA PR](https://github.com/oyueo-mm/YachtLab/pull/64)
+- 통합 기능 빌드 `649e588`에서 Chromium 데스크톱과 Pixel 7 에뮬레이션 Playwright 341 통과·53 건너뜀·실패 0. 통합 Vitest 48파일 402개와 프로덕션 빌드 통과. 동일 빌드에서 WebKit 데스크톱 튜토리얼, iPhone 에뮬레이션 설치 안내와 기록 조작을 확인했다. [통합 PR](https://github.com/oyueo-mm/YachtLab/pull/71)
+- 이후 main에 반영된 #72의 일반 굴림 테스트와 #63의 라지 스트레이트 시드를 함께 적용해 2.5D·3D와 백그라운드 조건을 데스크톱·모바일에서 총 10회 검증했다. [배포 복구 PR](https://github.com/oyueo-mm/YachtLab/pull/63)
