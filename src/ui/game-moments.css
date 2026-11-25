@@ -46,7 +46,7 @@
   }
 }
 
-.score-summary strong > .score-total-value {
+.score-total-value {
   color: inherit;
   font: inherit;
 }

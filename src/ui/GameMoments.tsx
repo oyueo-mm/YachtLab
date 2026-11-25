@@ -31,5 +31,5 @@ export function MatchMilestones({ comeback, best }: { comeback: boolean; best: b
 }
 
 export function ScoreTotal({ value }: { value: number }) {
-  return <span key={value} className={value > 0 ? "score-total-value score-total-pop" : "score-total-value"}>{value}</span>;
+  return <b key={value} className={value > 0 ? "score-total-value score-total-pop" : "score-total-value"}>{value}</b>;
 }
