@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { startOnlineServer } from "../../server/online/server";
+import type { JoinResponse } from "../../src/online/wire";
 import { nick } from "./helpers";
 
 test("경기 후 홈에서 서버 보상 진행률을 확인하고 닫을 때까지 지급 API를 호출하지 않는다", async ({ browser, baseURL, page }) => {
@@ -12,12 +13,24 @@ test("경기 후 홈에서 서버 보상 진행률을 확인하고 닫을 때까
     await page.goto(entry + "#online");
     await nick(page, "방장");
     await page.getByRole("button", { name: "방 만들기" }).click();
-    const code = await page.getByLabel("초대 코드").textContent();
+    const code = (await page.getByLabel("초대 코드").innerText()).trim();
+    expect(code).toMatch(/^[A-Z2-9]{6}$/);
+    // Provision the second seat through the real room API. The invite screen has its own browser test.
+    const joined = await page.request.post(`${server.url}/api/rooms/${code}/join`, { data: { name: "손님" } });
+    expect(joined.status()).toBe(201);
+    const seat: JoinResponse = await joined.json();
+    await guest.addInitScript(({ origin, seat }) => {
+      if (location.origin !== origin) return;
+      localStorage.setItem("yachtlab.online.seats", JSON.stringify({
+        [seat.code]: { ...seat, name: "손님", at: Date.now() },
+      }));
+    }, { origin, seat });
     await guest.goto(entry + `&room=${code}#online`);
-    await nick(guest, "손님");
-    await guest.getByRole("button", { name: "입장하기" }).click();
-    await page.getByRole("button", { name: "게임 시작" }).click();
+    await expect(guest.getByRole("heading", { name: "대기실" })).toBeVisible();
+    await expect(page.getByRole("list", { name: "참가자" })).toContainText("손님");
+    await page.getByRole("button", { name: "게임 시작", exact: true }).click();
     await expect(page.locator(".roll-button")).toBeVisible();
+    await expect(guest.locator(".roll-button")).toBeVisible();
 
     // The Node room has no accounts. Inject only a valid session shape and mock the read-only receipt.
     await page.evaluate(() => localStorage.setItem("yachtlab.session.v1", `s1.u_${"a".repeat(22)}.${"b".repeat(43)}`));
