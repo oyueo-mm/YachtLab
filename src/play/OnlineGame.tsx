@@ -21,7 +21,8 @@ import type { OnlineAction } from "../online/protocol";
 import type { PlayerView } from "../online/server-engine";
 import type { LobbyState, RematchState, SeriesSummary, SpectateState } from "../online/wire";
 import { LobbyPanel, MultiTable } from "./OnlineMulti";
-import { ChipBubble, EmoteBar, SocialPanel, SpectateControl, useBubbles } from "./Social";
+import { SpectateControl } from "./Social";
+import { SocialDock, TableFeed, useTableChat } from "./SocialDock";
 import { PlayerTag, boardOf, diceLookOf } from "./Looks";
 import { GUEST_LOOK, type PublicLook } from "../economy/live/catalog";
 import { saveLocalRecord } from "../identity/local";
@@ -98,9 +99,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const viewRef = useRef<PlayerView | null>(null);
   const lastDice = useRef<number[]>([1, 2, 3, 4, 5]);
   const rolling = useDiceBusy();
-  const social = useBubbles();
-  const hideRef = useRef(social.hideOpponent);
-  hideRef.current = social.hideOpponent;
+  const chat = useTableChat(seat?.playerId ?? null);
   const [rematch, setRematch] = useState<RematchState | null>(null);
   const [series, setSeries] = useState<SeriesSummary | null>(null);
   const [spectate, setSpectate] = useState<SpectateState | null>(null);
@@ -213,10 +212,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         setOnline(list);
         if (awayAt) setAway(awayAt);
       },
-      onSaid(from, id) {
-        if (from !== viewRef.current?.you?.playerId && hideRef.current) return;
-        social.show(from, id);
-      },
+      onSaid: chat.received,
       onSpectate: setSpectate,
       onMembers: setMembers,
       onLooks: setLooks,
@@ -226,12 +222,18 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         setRematch(r);
         setSeries(sr);
       },
-      onNotice(code, message) {
-        if (code === "LOBBY" || code === "REMATCH" || code === "SOCIAL_RATE_LIMITED" || code === "INVALID_SOCIAL" || code === "SPECTATE") setError(message);
+      onNotice(code, message, extra) {
+        // Chat refusals are shown on the chat bar itself, never as "sent".
+        if (code === "SOCIAL_RATE_LIMITED" || code === "INVALID_SOCIAL") return chat.refused(code, message, extra?.retryMs);
+        if (code === "LOBBY" || code === "REMATCH" || code === "SPECTATE") setError(message);
         // A refused toggle: show the server's state again (the switch moved optimistically).
         if (code === "SPECTATE") setSpectate((s) => (s ? { ...s } : s));
       },
-      onStatus: setStatus,
+      onStatus(next) {
+        setStatus(next);
+        // A new socket has a fresh server-side rate bucket; a pending send on the old one is lost.
+        if (next === "online") chat.reset();
+      },
       onFatal: (message) => onLeave(message),
     });
     conn.current = c;
@@ -272,6 +274,10 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const me = view?.you ?? null;
   const players = view?.players ?? [];
   const myLook = (me && looks[me.playerId]) || GUEST_LOOK;
+  const nameMap = Object.fromEntries(players.map((p) => [p.playerId, p.name]));
+  const say = (id: string) => conn.current?.say(id) ?? false;
+  const feed = <TableFeed chat={chat} names={nameMap} looks={looks} me={me?.playerId ?? null} />;
+  const dock = <SocialDock chat={chat} look={myLook} online={status === "online"} transport={say} />;
   const opponent = players.find((p) => p.playerId !== me?.playerId) ?? null;
   /* ------------------------------------------------- derived game table (hooks stay above early returns) ------------------------------------------------- */
   const turn = view?.turn ?? null;
@@ -417,7 +423,6 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         </div>
         <div className="online-lobby-tools">
           <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />
-          <SocialPanel look={myLook} onSend={(id) => conn.current?.say(id) ?? false} hideOpponent={social.hideOpponent} setHideOpponent={social.setHideOpponent} disabled={status !== "online"} />
         </div>
         <LobbyPanel
           lobby={lobby}
@@ -430,7 +435,6 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
               <strong>
                 <PlayerTag name={p.name} look={looks[p.playerId]} me={p.playerId === me?.playerId} />
               </strong>
-              <ChipBubble bubble={social.bubbles[p.playerId]} look={looks[p.playerId]} mine={p.playerId === me?.playerId} />
             </>
           )}
           disabled={status !== "online" || sending}
@@ -439,6 +443,10 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           onTransfer={(to) => conn.current?.transferHost(to)}
           onStart={() => void send({ type: "start" })}
         />
+        <div className="lobby-chat">
+          {feed}
+          {dock}
+        </div>
         <ErrorMessage message={error} />
         <button
           type="button"
@@ -459,12 +467,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
 
   const toolGroups = (
     <>
-            {/* Chat and emotes: right next to the board, always rendered (disabled while offline). */}
-            <div className="online-tool-group online-social-tools">
-              <EmoteBar look={myLook} onSend={(id) => conn.current?.say(id) ?? false} disabled={status !== "online"} />
-              <SocialPanel look={myLook} onSend={(id) => conn.current?.say(id) ?? false} hideOpponent={social.hideOpponent} setHideOpponent={social.setHideOpponent} disabled={status !== "online"} />
-            </div>
-            {/* Room settings, kept apart from the chat buttons. */}
+            {/* Room settings (chat and emotes are in the bar under the board). */}
             <div className="online-tool-group online-room-tools">
               {!aiSeat && <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />}
               {playing && (
@@ -495,7 +498,12 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           me={me?.playerId ?? ""}
           online={online}
           looks={looks}
-          bubbles={social.bubbles}
+          social={
+            <>
+              {feed}
+              {dock}
+            </>
+          }
           status={status}
           tools={toolGroups}
           banner={banner}
@@ -548,7 +556,6 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           <div className="score-summary">
             {players.map((p, seatIndex) => (
               <div key={p.playerId} className={!finished && turnIndex === seatIndex ? "selected" : ""} data-seat={seatIndex} data-role={p.playerId === me?.playerId ? "human" : "opponent"}>
-                <ChipBubble bubble={social.bubbles[p.playerId]} look={looks[p.playerId]} mine={p.playerId === me?.playerId} />
                 <span>
                   <PlayerTag name={p.name} look={looks[p.playerId]} me={p.playerId === me?.playerId} compact />
                   {p.playerId === me?.playerId ? " (나)" : ""}
@@ -651,6 +658,11 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
               <MobileQuickScore cards={game.cards} dice={game.dice} rolls={rolling ? 0 : rolls} current={turnIndex} labels={labels} canScore={can} onScore={record} />
             </MobileScoreSheet>
           )}
+          {/* Messages and the send bar under the board: never over the dice or the roll button. */}
+          <div className="table-chat">
+            {feed}
+            {dock}
+          </div>
           {feedback && (
             <p className="game-feedback" role="status">
               {feedback}

@@ -7,7 +7,7 @@ import { OnlineConnection, setRoomInUrl, type ConnectionStatus } from "../online
 import type { PlayerView } from "../online/server-engine";
 import type { SeriesSummary } from "../online/wire";
 import { announceScore, clearScoreFx } from "../score-fx";
-import { ChipBubble, useBubbles } from "./Social";
+import { TableFeed, useTableChat } from "./SocialDock";
 import { PlayerTag, diceLookOf } from "./Looks";
 import { OnlineStandings } from "./OnlineMulti";
 import { MultiScoreboard } from "../MultiScoreboard";
@@ -42,7 +42,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
   const [picked, setPicked] = useState<string | null>(null);
   const viewRef = useRef<PlayerView | null>(null);
   const lastDice = useRef<number[]>([1, 2, 3, 4, 5]);
-  const social = useBubbles();
+  const chat = useTableChat(null);
 
   useEffect(() => {
     clearScoreFx();
@@ -77,7 +77,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
       },
       onPresence: setOnline,
       onStatus: setStatus,
-      onSaid: (from, id) => !social.hideOpponent && social.show(from, id),
+      onSaid: chat.received,
       onRematch: (_r, s) => setSeries(s),
       onWatching: setWatchers,
       onLooks: setLooks,
@@ -209,12 +209,13 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
               </div>
             )}
           </section>
+          <TableFeed chat={chat} names={Object.fromEntries(players.map((p) => [p.playerId, p.name]))} looks={looks} me={null} />
           {feedback && (
             <p className="game-feedback" role="status">
               {feedback}
             </p>
           )}
-          <OnlineStandings view={view} me="" online={online} looks={looks} bubbles={social.bubbles} final={finished} selected={focus} onSelect={setPicked} />
+          <OnlineStandings view={view} me="" online={online} looks={looks} final={finished} selected={focus} onSelect={setPicked} />
         </div>
         <div className="multi-scores online-multi-scores">
           <MultiScoreboard state={sheet} labels={players.map((p) => p.name)} focused />
@@ -237,7 +238,6 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
         <div className="score-summary">
           {players.map((p, seatIndex) => (
             <div key={p.playerId} className={!finished && turnIndex === seatIndex ? "selected" : ""} data-seat={seatIndex} data-role="player">
-              <ChipBubble bubble={social.bubbles[p.playerId]} look={looks[p.playerId]} />
               <span>
                 <PlayerTag name={p.name} look={looks[p.playerId]} compact />
                 {!online.includes(p.playerId) && view.status === "playing" ? " (연결 끊김)" : ""}
@@ -294,6 +294,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
             </div>
           )}
         </section>
+        <TableFeed chat={chat} names={Object.fromEntries(players.map((p) => [p.playerId, p.name]))} looks={looks} me={null} />
         {feedback && (
           <p className="game-feedback" role="status">
             {feedback}

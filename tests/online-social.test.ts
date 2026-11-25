@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { seededDiceSource } from "../src/online";
 import { OnlineRoom, ROOM_LIMITS, type RoomConnection, type RoomRecord } from "../src/online/room";
 import type { ServerMessage } from "../src/online/wire";
-import { SOCIAL_ITEMS, allowSocial, canSend, newSocialBucket } from "../src/social/catalog";
+import { SOCIAL_ITEMS, allowSocial, canSend, newSocialBucket, socialRetryMs } from "../src/social/catalog";
 import { categories } from "../src/engine";
 
 /** Phase 3 social features on the runtime-free room: rematch, preset chat / emotes, leaving. */
@@ -172,6 +172,13 @@ describe("재대결 (같은 방 재사용)", () => {
 });
 
 describe("프리셋 채팅·이모티콘", () => {
+  it("장착하지 않은 항목 거절은 그 ID를 알려 준다", async () => {
+    const { room, a, cmd } = await setup();
+    await cmd(a, { type: "start" });
+    await room.message(a, JSON.stringify({ t: "say", id: "emote.fire" }));
+    expect(a.last("error")).toMatchObject({ code: "INVALID_SOCIAL", id: "emote.fire" });
+  });
+
   it("카탈로그 ID만 전달, 임의 문자열·허용되지 않은 ID 거부, 저장·재생 없음, 게임 상태 불변", async () => {
     const { room, a, b, ja, cmd, store } = await setup();
     await cmd(a, { type: "start" });
@@ -200,7 +207,8 @@ describe("프리셋 채팅·이모티콘", () => {
     const { room, a, b, clock } = await setup();
     for (const id of ["emote.clap", "emote.smile", "chat.thanks", "chat.great"]) await room.message(a, JSON.stringify({ t: "say", id }));
     expect(b.all("said")).toHaveLength(3);
-    expect(a.last("error")!.code).toBe("SOCIAL_RATE_LIMITED");
+    // the refusal names the item and says exactly how long to wait (the page shows it, never "sent")
+    expect(a.last("error")).toMatchObject({ code: "SOCIAL_RATE_LIMITED", id: "chat.great", retryMs: 2000 });
     clock.advance(2100);
     await room.message(a, JSON.stringify({ t: "say", id: "emote.party" }));
     expect(b.all("said")).toHaveLength(4);
@@ -208,6 +216,15 @@ describe("프리셋 채팅·이모티콘", () => {
     expect(allowSocial(bucket, "emote.clap", 0)).toBe(true);
     expect(allowSocial(bucket, "emote.clap", 1000)).toBe(false);
     expect(allowSocial(bucket, "emote.clap", 1600)).toBe(true);
+    // the page's prediction (same function) agrees with the server: wait for the same item, then for a token
+    const b2 = newSocialBucket(0);
+    for (const id of ["a", "b", "c"]) allowSocial(b2, id, 0);
+    expect(socialRetryMs(b2, "d", 0)).toBe(2000);
+    expect(socialRetryMs(b2, "c", 1000)).toBe(1000);
+    const b3 = newSocialBucket(0);
+    allowSocial(b3, "x", 0);
+    expect(socialRetryMs(b3, "x", 500)).toBe(1000); // same item: 1.5 s gap
+    expect(socialRetryMs(b3, "y", 500)).toBe(0);
   });
 
   it("카탈로그 ID는 고유하고 형식이 안정적이며 무료 기본 항목만 보낼 수 있다", () => {

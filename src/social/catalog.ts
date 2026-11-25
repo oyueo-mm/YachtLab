@@ -93,3 +93,11 @@ export function allowSocial(bucket: SocialBucket, id: string, now: number): bool
   return true;
 }
 export const newSocialBucket = (now: number): SocialBucket => ({ tokens: SOCIAL_LIMITS.burst, at: now });
+
+/** ms until `id` may be sent again from this bucket (the same rules as `allowSocial`). */
+export function socialRetryMs(b: SocialBucket, id: string, now: number): number {
+  const tokens = Math.min(SOCIAL_LIMITS.burst, b.tokens + ((now - b.at) / 1000) * SOCIAL_LIMITS.refillPerSecond);
+  const forToken = tokens >= 1 ? 0 : ((1 - tokens) / SOCIAL_LIMITS.refillPerSecond) * 1000;
+  const forSame = b.lastId === id && b.lastAt !== undefined ? Math.max(0, SOCIAL_LIMITS.sameItemGapMs - (now - b.lastAt)) : 0;
+  return Math.ceil(Math.max(forToken, forSame));
+}

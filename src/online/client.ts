@@ -355,7 +355,7 @@ export type ConnectionEvents = {
   /** Rematch state + running score of the room (welcome and every change). */
   onRematch?(rematch: RematchState, series: SeriesSummary): void;
   /** A non-fatal server notice (rate limit, rematch refused). */
-  onNotice?(code: string, message: string): void;
+  onNotice?(code: string, message: string, extra?: { id?: string; retryMs?: number }): void;
   /** Players: spectating consent / watch key / spectator count. */
   onSpectate?(state: SpectateState): void;
   /** Signed-in seats: playerId → public account id. */
@@ -408,14 +408,31 @@ export class OnlineConnection {
       this.ws.send(JSON.stringify({ t: "ping" }));
     }, 20_000);
     window.addEventListener("online", this.wake);
+    window.addEventListener("offline", this.lost);
     document.addEventListener("visibilitychange", this.wake);
   }
+
+  /**
+   * The device went offline: say so at once (buttons disabled, nothing "sent") instead of waiting for
+   * the 45 s heartbeat; the socket reconnects when the device is back online.
+   */
+  private lost = () => {
+    if (this.stopped || !this.ws) return;
+    // Detach first: a close handshake on a dead network may take long to report.
+    const ws = this.ws;
+    this.ws = null;
+    ws.close();
+    this.setStatus("reconnecting");
+    clearTimeout(this.retryTimer);
+    this.retryTimer = setTimeout(() => this.open(), 1000);
+  };
 
   stop() {
     this.stopped = true;
     clearTimeout(this.retryTimer);
     clearInterval(this.heartbeat);
     window.removeEventListener("online", this.wake);
+    window.removeEventListener("offline", this.lost);
     document.removeEventListener("visibilitychange", this.wake);
     this.ws?.close();
     this.ws = null;
@@ -543,7 +560,7 @@ export class OnlineConnection {
         this.events.onRematch?.(msg.rematch, msg.series);
         return;
       case "error":
-        this.events.onNotice?.(msg.code, msg.message);
+        this.events.onNotice?.(msg.code, msg.message, { id: msg.id, retryMs: msg.retryMs });
         return;
       default:
         return;

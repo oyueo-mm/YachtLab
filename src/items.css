@@ -260,11 +260,13 @@
 }
 
 /* ---------- bubbles and emote levels ---------- */
-.chip-bubble.bubble-mint {
+.chip-bubble.bubble-mint,
+.feed-msg.bubble-mint {
   background: #e6f7ef;
   box-shadow: inset 0 0 0 1px #3aa57a;
 }
-.chip-bubble.bubble-gold {
+.chip-bubble.bubble-gold,
+.feed-msg.bubble-gold {
   background: linear-gradient(135deg, #fff6d6, #ffe7a3);
   box-shadow: inset 0 0 0 1px #d4a017;
 }
@@ -950,4 +952,189 @@
 }
 .watch-multi .online-standings {
   margin-top: 0;
+}
+
+
+/* ---------- chat & emotes under the board (C, 2026-11-25) ----------
+   A fixed-height message strip (the page never shifts when a message arrives) and the send bar.
+   Nothing here overlaps the dice, the roll button or the score sheet. */
+.table-chat,
+.lobby-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.table-feed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  overflow: hidden;
+  padding: 0 2px;
+}
+.feed-msg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 62%;
+  min-width: 0;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 17px;
+  background: #fff8e8;
+  box-shadow: inset 0 0 0 1px var(--orange);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 650;
+  white-space: nowrap;
+  animation: feed-in 0.22s ease-out, feed-out 0.35s ease-in 3.8s forwards;
+}
+.feed-msg:not(:first-child) {
+  opacity: 0.7;
+}
+.feed-msg.mine {
+  background: #f1f1f1;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.feed-from {
+  flex: none;
+  max-width: 7em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.feed-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.feed-msg.emote .feed-text {
+  font-size: 22px;
+  line-height: 1;
+}
+.feed-msg.emote.emote-lv2 .feed-text,
+.feed-msg.emote.emote-lv3 .feed-text {
+  display: inline-block;
+  animation: emote-bounce 0.6s ease-in-out 0.2s 3;
+}
+.feed-msg.emote.emote-lv3 {
+  box-shadow: inset 0 0 0 2px rgba(242, 140, 40, 0.75), 0 0 12px rgba(242, 140, 40, 0.45);
+}
+.feed-msg.static,
+.feed-msg.static .feed-text {
+  animation: feed-out 0.01s linear 4s forwards;
+}
+.feed-hidden {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+@keyframes feed-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes feed-out {
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .feed-msg,
+  .feed-msg .feed-text {
+    animation: feed-out 0.01s linear 4s forwards !important;
+  }
+}
+.social-dock {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dock-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dock-emote {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 22px;
+  line-height: 1;
+  touch-action: manipulation;
+}
+.dock-emote:hover:enabled {
+  background: var(--soft);
+}
+.dock-emote:active:enabled {
+  transform: scale(0.94);
+}
+.dock-emote.sending {
+  background: var(--soft);
+}
+.dock-chat {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 46px;
+  margin-left: auto;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  font-weight: 650;
+  touch-action: manipulation;
+}
+.dock-emote:disabled,
+.dock-chat:disabled {
+  opacity: 0.45;
+}
+.dock-state,
+.dock-sheet-state {
+  height: 18px;
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.dock-state.error {
+  color: var(--red);
+}
+.dock-sheet-state {
+  margin-top: 8px;
+}
+/* The sheet opens upwards from the bar (desktop); phones get the bottom sheet from online.css. */
+.social-panel.dock-sheet {
+  z-index: 60;
+  top: auto;
+  bottom: calc(100% + 6px);
+  right: 0;
+}
+@media (max-width: 760px) {
+  .social-panel.dock-sheet {
+    position: fixed;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    left: 12px;
+  }
+}
+.lobby-chat .table-feed {
+  height: 40px;
 }

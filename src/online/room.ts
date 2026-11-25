@@ -24,7 +24,7 @@ import {
   type SpectateState,
   type LobbyState,
 } from "./wire";
-import { allowSocial, canSend, newSocialBucket, type SocialBucket } from "../social/catalog";
+import { allowSocial, canSend, newSocialBucket, socialRetryMs, type SocialBucket } from "../social/catalog";
 import { NICKNAME_MAX_GRAPHEMES, graphemes, validateNickname } from "../identity/nickname";
 import { RULES_ID, type MatchRecord } from "../identity/records";
 import { GUEST_LOOK, sanitizeLook, sendableIds, type PublicLook } from "../economy/live/catalog";
@@ -869,10 +869,10 @@ export class OnlineRoom {
 
   /** Preset chat / emote: catalog ids only, rate-limited per connection, relayed live, never stored. */
   private say(conn: RoomConnection, playerId: string, id: string) {
-    if (!canSend(id, sendableIds(this.lookOf(playerId)))) return conn.send({ t: "error", code: "INVALID_SOCIAL", message: "보낼 수 없는 메시지예요." });
+    if (!canSend(id, sendableIds(this.lookOf(playerId)))) return conn.send({ t: "error", code: "INVALID_SOCIAL", message: "장착하지 않은 메시지는 보낼 수 없어요.", id });
     const now = this.deps.now();
     conn.social ??= newSocialBucket(now);
-    if (!allowSocial(conn.social, id, now)) return conn.send({ t: "error", code: "SOCIAL_RATE_LIMITED", message: "잠시 후 다시 보내 주세요." });
+    if (!allowSocial(conn.social, id, now)) return conn.send({ t: "error", code: "SOCIAL_RATE_LIMITED", message: "잠시 후 다시 보내 주세요.", id, retryMs: Math.max(300, socialRetryMs(conn.social, id, now)) });
     for (const c of this.connections) if (c.playerId || c.spectator) c.send({ t: "said", from: playerId, id });
   }
 
