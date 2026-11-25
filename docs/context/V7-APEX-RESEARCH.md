@@ -430,8 +430,8 @@ DP Expert 은행 1개(= v5-R과 같은 메모리 142 MiB Float32)만 쓰면 정�
 
 ### 10.4 정확 교사 데이터 복구와 NumPy 잔차 가치 학습 (개발 9106)
 
-- 재생성: `scripts/research-v7/teacher.ts --family 9106 --games 100 --K 5 --shard {0,1} --kinds R,P,I1RO,I2RO,I2RO1`. 양측 ≤5칸 턴 시작 2,000국면(200경기, 4개 정책쌍 교대), 정확 상호작용 가치 + 추정기 턴 시작 가치. 이번에는 `training/results/v7/teacher/teacher-f9106-K5-s{0,1}.csv.gz`로 커밋한다(`training/data/`는 .gitignore 대상이라 이전 세션에서 유실됨).
-- 학습: `training/v7-value/fit.py`(NumPy만, PyTorch·GPU 없음). 로짓 공간 잔차, 경기 단위 분리. 결과 `training/results/v7/teacher/fit-f9106-K5.json`.
+- 재생성: `scripts/research-v7/teacher.ts --family 9106 --games 100 --K 5 --shard {0,1} --kinds R,P,I1RO,I2RO,I2RO1`. 양측 ≤5칸 턴 시작 2,000국면(200경기, 4개 정책쌍 교대), 정확 상호작용 가치 + 추정기 턴 시작 가치. 이번에는 `training/results/v7/teacher-v72/teacher-f9106-K5-s{0,1}.csv.gz`로 커밋한다(`training/data/`는 .gitignore 대상이라 이전 세션에서 유실됨).
+- 학습: `training/v7-value/fit.py`(NumPy만, PyTorch·GPU 없음). 로짓 공간 잔차, 경기 단위 분리. 결과 `training/results/v7/teacher-v72/fit-f9106-K5.json`.
 
 | 기준 추정기 | 원래 MAE / 편향 (%p) | 5겹 CV Ridge | 5겹 CV MLP64 | K≤4 학습 → K=5 시험: 원래 → Ridge |
 |---|---|---|---|---|
