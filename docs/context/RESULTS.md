@@ -227,3 +227,9 @@ Sixes·Choice 조건은 정책마다 50,000번 Monte Carlo 검산. **근거:** [
 - #63의 main Pages 빌드 `ae0d375-mwvr5nsq`에서 예약된 착지보다 35.7 ms(Chromium 데스크톱), 33.4 ms(Pixel 7 에뮬레이션) 뒤에 특수음이 시작했다. 두 브라우저에서 음소거 저장을 확인했다. main CI는 단위 400개, Playwright 322개 통과·52개 건너뜀이다. [main CI·Pages](https://github.com/oyueo-mm/YachtLab/actions/runs/45559140000)
 - #71의 첫 통합 CI에서 데스크톱 보상 테스트가 대기실 경기 시작 전에 시간 초과했다. 이후 실행에서는 대기실이 표시되기 전 참가 폼의 빈 필드가 같은 접근성 이름으로 조회된 것을 확인했다. 대기실 내부에 6자리 코드가 표시되면 초대를 열고 플레이어 양쪽이 입장한 뒤 보상을 검증한다. [첫 통합 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/45556958502) · [원인을 확인한 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/45560823207)
 - 별도 공개 검증 기록은 #72 빌드에서 PC와 Pixel 7 간 빠른 대전, 공개 관전 목록, 채팅·이모티콘 20/20 전달, 이탈 후 종료와 관전 목록 정리를 확인했다. 운영 Google 계정으로 친구·초대·상점 구매·장착을 확인하는 일은 남아 있다. [공개 검증 기록](https://github.com/oyueo-mm/YachtLab/pull/73)
+
+### #71 배포와 호환성 (2026-11-25)
+
+- 기존 브라우저 번들과 새 로컬 workerd 조합에서 5개 통과·1개 건너뜀(320px 테스트는 동일 실행에서 데스크톱으로 제한). 12라운드 완주, 관전·채팅, 재접속, 재대결과 두 경기 기록 분리를 확인했다. 별도 시험에서 이전 Worker의 SQLite에 남긴 저장 데이터와 두 좌석 토큰을 새 Worker가 읽었고, 기존 주사위와 굴림 횟수에서 점수를 기록해 다음 턴으로 진행했다. [릴리스 PR](https://github.com/oyueo-mm/YachtLab/pull/71)
+- Worker 배포와 단위 402개가 통과했다. 이전 공개 클라이언트에서 운영 Worker와 초대 경기, 굴림·새로고침 후 복원·기록·종료를 확인했다. 새 기능 플래그가 있고 비인증 보상 조회는 HTTP 401이다. [Worker 배포](https://github.com/oyueo-mm/YachtLab/actions/runs/45567699361) · [라이브 체크](https://github.com/oyueo-mm/YachtLab/actions/runs/45567970811)
+- 통합 PR의 단위 402개·Playwright 347개 통과·53개 건너뜀과 빌드가 통과했다. Pages 실행 및 공개 브라우저 결과는 릴리스 기록에 연결했다. [통합 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/45564029603) · [Pages](https://github.com/oyueo-mm/YachtLab/actions/runs/45568048965) · [릴리스 PR](https://github.com/oyueo-mm/YachtLab/pull/71)
