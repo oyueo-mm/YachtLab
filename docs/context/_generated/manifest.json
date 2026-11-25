@@ -58,6 +58,7 @@
     "FULLGAME-OFFPOLICY-RESEARCH.md",
     "HANDOFF.md",
     "LARGE-SCALE-V32-ROADMAP.md",
+    "ONLINE-YACHT-PRODUCT.md",
     "PRODUCT-2026-11-24.md",
     "PSRO-PPO-PMF-2026-11-20-FINAL.md",
     "PSRO-PPO-PMF-RESEARCH.md",
@@ -119,74 +120,74 @@
   ],
   "recentSourceCommits": [
     {
-      "sha": "b88c738",
+      "sha": "38b99af",
       "date": "2026-11-26",
-      "subject": "Merge PR #89: Win DP v7 research (opponent-reaction stop values, exact regret benchmark, partial confirmation)"
+      "subject": "Merge pull request #91 from oyueo-mm/codex/online-yacht-player-ui"
     },
     {
-      "sha": "a63267a",
-      "date": "2026-11-25",
-      "subject": "Merge remote-tracking branch 'origin/main' into claude/yachtlab-v7-research-ngcrhe"
-    },
-    {
-      "sha": "a6e26cf",
+      "sha": "2a6aaa8",
       "date": "2026-11-26",
-      "subject": "Merge pull request #88 from oyueo-mm/codex/tutorial-navigation"
+      "subject": "Merge pull request #90 from oyueo-mm/codex/online-yacht-brand"
     },
     {
-      "sha": "a10a9c6",
+      "sha": "f32027e",
       "date": "2026-11-26",
-      "subject": "fix: layer the profile disclosure above the install prompt"
+      "subject": "Show hidden-chat status and check combined match history"
     },
     {
-      "sha": "1be7de6",
+      "sha": "2196a28",
       "date": "2026-11-26",
-      "subject": "fix: keep mobile navigation above the install prompt"
+      "subject": "Keep desktop scores in one table beside the chat profiles"
     },
     {
-      "sha": "57b985d",
+      "sha": "f5b186c",
       "date": "2026-11-26",
-      "subject": "docs: align the roadmap with first-visit onboarding"
+      "subject": "Keep the chat popover on-screen and the mobile dock above the dice"
     },
     {
-      "sha": "4fa2ee6",
+      "sha": "b90ae6a",
       "date": "2026-11-26",
-      "subject": "fix: preserve replay saving and close the menu on navigation"
+      "subject": "Retain profile messages for multiplayer spectators"
     },
     {
-      "sha": "1b542f9",
-      "date": "2026-11-25",
-      "subject": "docs(context): fix v7 results heading"
+      "sha": "21e8824",
+      "date": "2026-11-26",
+      "subject": "Keep score focus stable and surface table chat near player profiles"
     },
     {
-      "sha": "a76667d",
-      "date": "2026-11-25",
-      "subject": "docs(context): v7 results, roadmap, techniques, decision D-V7-1, handoff"
+      "sha": "85301a2",
+      "date": "2026-11-26",
+      "subject": "Merge branch 'codex/online-yacht-brand' into codex/online-yacht-player-ui"
     },
     {
-      "sha": "69a1f58",
-      "date": "2026-11-25",
-      "subject": "research(v7): confirmation 9531/9541 results (H3 accepted; H1 Holm-adjusted p=0.016 at 9531, replicated at 9541 p=0.0002)"
+      "sha": "953577a",
+      "date": "2026-11-26",
+      "subject": "Check the revised header in game and keep the guest wordmark visible"
+    },
+    {
+      "sha": "7892b0e",
+      "date": "2026-11-26",
+      "subject": "Unify player panels, simplify reviews and anchor match chat"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "a63267a5a6",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45662760433"
+      "status": "cancelled",
+      "head": "2a6aaa8b5c",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45717102298"
     },
     {
       "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
       "status": "success",
-      "head": "a63267a5a6",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45662760293"
+      "head": "4346765f22",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45715456148"
     },
     {
-      "name": "Competitive research benchmark",
+      "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
-      "head": "e83ba82669",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45632492725"
+      "head": "8e00f3172f",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45686563250"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

@@ -83,6 +83,7 @@
 - [FULLGAME-OFFPOLICY-RESEARCH.md](../FULLGAME-OFFPOLICY-RESEARCH.md)
 - [HANDOFF.md](../HANDOFF.md)
 - [LARGE-SCALE-V32-ROADMAP.md](../LARGE-SCALE-V32-ROADMAP.md)
+- [ONLINE-YACHT-PRODUCT.md](../ONLINE-YACHT-PRODUCT.md)
 - [PRODUCT-2026-11-24.md](../PRODUCT-2026-11-24.md)
 - [PSRO-PPO-PMF-2026-11-20-FINAL.md](../PSRO-PPO-PMF-2026-11-20-FINAL.md)
 - [PSRO-PPO-PMF-RESEARCH.md](../PSRO-PPO-PMF-RESEARCH.md)
@@ -108,16 +109,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
-| [b88c738](https://github.com/oyueo-mm/YachtLab/commit/b88c738) | 2026-11-26 | Merge PR #89: Win DP v7 research (opponent-reaction stop values, exact regret benchmark, partial confirmation) |
-| [a63267a](https://github.com/oyueo-mm/YachtLab/commit/a63267a) | 2026-11-25 | Merge remote-tracking branch 'origin/main' into claude/yachtlab-v7-research-ngcrhe |
-| [a6e26cf](https://github.com/oyueo-mm/YachtLab/commit/a6e26cf) | 2026-11-26 | Merge pull request #88 from oyueo-mm/codex/tutorial-navigation |
-| [a10a9c6](https://github.com/oyueo-mm/YachtLab/commit/a10a9c6) | 2026-11-26 | fix: layer the profile disclosure above the install prompt |
-| [1be7de6](https://github.com/oyueo-mm/YachtLab/commit/1be7de6) | 2026-11-26 | fix: keep mobile navigation above the install prompt |
-| [57b985d](https://github.com/oyueo-mm/YachtLab/commit/57b985d) | 2026-11-26 | docs: align the roadmap with first-visit onboarding |
-| [4fa2ee6](https://github.com/oyueo-mm/YachtLab/commit/4fa2ee6) | 2026-11-26 | fix: preserve replay saving and close the menu on navigation |
-| [1b542f9](https://github.com/oyueo-mm/YachtLab/commit/1b542f9) | 2026-11-25 | docs(context): fix v7 results heading |
-| [a76667d](https://github.com/oyueo-mm/YachtLab/commit/a76667d) | 2026-11-25 | docs(context): v7 results, roadmap, techniques, decision D-V7-1, handoff |
-| [69a1f58](https://github.com/oyueo-mm/YachtLab/commit/69a1f58) | 2026-11-25 | research(v7): confirmation 9531/9541 results (H3 accepted; H1 Holm-adjusted p=0.016 at 9531, replicated at 9541 p=0.0002) |
+| [38b99af](https://github.com/oyueo-mm/YachtLab/commit/38b99af) | 2026-11-26 | Merge pull request #91 from oyueo-mm/codex/online-yacht-player-ui |
+| [2a6aaa8](https://github.com/oyueo-mm/YachtLab/commit/2a6aaa8) | 2026-11-26 | Merge pull request #90 from oyueo-mm/codex/online-yacht-brand |
+| [f32027e](https://github.com/oyueo-mm/YachtLab/commit/f32027e) | 2026-11-26 | Show hidden-chat status and check combined match history |
+| [2196a28](https://github.com/oyueo-mm/YachtLab/commit/2196a28) | 2026-11-26 | Keep desktop scores in one table beside the chat profiles |
+| [f5b186c](https://github.com/oyueo-mm/YachtLab/commit/f5b186c) | 2026-11-26 | Keep the chat popover on-screen and the mobile dock above the dice |
+| [b90ae6a](https://github.com/oyueo-mm/YachtLab/commit/b90ae6a) | 2026-11-26 | Retain profile messages for multiplayer spectators |
+| [21e8824](https://github.com/oyueo-mm/YachtLab/commit/21e8824) | 2026-11-26 | Keep score focus stable and surface table chat near player profiles |
+| [85301a2](https://github.com/oyueo-mm/YachtLab/commit/85301a2) | 2026-11-26 | Merge branch 'codex/online-yacht-brand' into codex/online-yacht-player-ui |
+| [953577a](https://github.com/oyueo-mm/YachtLab/commit/953577a) | 2026-11-26 | Check the revised header in game and keep the guest wordmark visible |
+| [7892b0e](https://github.com/oyueo-mm/YachtLab/commit/7892b0e) | 2026-11-26 | Unify player panels, simplify reviews and anchor match chat |
 
 ## 최근 GitHub Actions 상태
 
@@ -125,9 +126,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45662760433) | success | a63267a5a6 |
-| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45662760293) | success | a63267a5a6 |
-| [Competitive research benchmark](https://github.com/oyueo-mm/YachtLab/actions/runs/45632492725) | success | e83ba82669 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45717102298) | cancelled | 2a6aaa8b5c |
+| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45715456148) | success | 4346765f22 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45686563250) | success | 8e00f3172f |
 
 ## 다음 채팅과 작업의 시작점
 
