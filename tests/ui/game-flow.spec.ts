@@ -332,6 +332,33 @@ test("3D 효과음은 실제 충돌에서 재생되고 개수가 제한되며 �
   expect(entries.map((e) => e.name)).toEqual(expect.arrayContaining(["hold", "release"]));
 });
 
+test("3D 효과음은 실제 충돌과 착지 뒤 라지 스트레이트 순서를 지키고 고정·해제 소리가 난다", async ({ page }) => {
+  await fixSeed(page, SEEDS.large);
+  await open3d(page);
+  await page.getByRole("button", { name: "주사위 굴리기" }).click();
+  await settled(page);
+  await expect(page.locator(".straight-flash")).toBeVisible();
+  const log = () => page.evaluate(() => (window as unknown as { __yachtlabSound: { log: { name: string; delay: number; at: number; played: boolean }[] } }).__yachtlabSound.log.map((e) => ({ ...e })));
+  let entries = await log();
+  const names = entries.map((e) => e.name);
+  expect(names[0]).toBe("throw");
+  expect(names.slice(-2)).toEqual(["settle", "straightHit"]);
+  expect(names.filter((name) => name === "settle" || name === "straightHit")).toEqual(["settle", "straightHit"]);
+  expect(entries.at(-1)!.at).toBeGreaterThanOrEqual(entries.at(-2)!.at);
+  expect(entries.at(-1)!.played).toBe(true);
+  expect(names.filter((name) => name === "impact" || name === "clack").length).toBeLessThanOrEqual(16);
+  const impacts = entries.filter((e) => e.name === "impact");
+  expect(impacts.length).toBeGreaterThan(0);
+  expect(impacts.length).toBeLessThanOrEqual(14);
+  expect(impacts.every((e) => e.delay === 0)).toBe(true); // played live at the rendered collision frame
+  await clickDie(page, 0);
+  await settled(page);
+  await clickDie(page, 0);
+  await settled(page);
+  entries = await log();
+  expect(entries.map((e) => e.name)).toEqual(expect.arrayContaining(["hold", "release"]));
+});
+
 /* ------------------------------------------------------------------ home & lab ------------------------------------------------------------------ */
 
 test("홈: 주사위 체험 영역 없이 제목·설명·온라인(강조, 첫 카드)·오프라인(보조)만 보인다", async ({ page }) => {

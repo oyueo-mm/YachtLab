@@ -302,3 +302,13 @@
 **상태: 신규 (2026-11-25).** Google 로그인 회원 전용 친구 시스템. 공개 식별자는 무작위 친구 코드(`YL`+8자)이고 응답에 내부 ID·이메일·OAuth 정보가 없다. 관계는 각 계정 `UserStore` SQLite에, 코드·정확한 닉네임 색인은 새 SQLite DO `FriendIndex`(마이그레이션 v4, Workers Free 범위의 신규 무료 클래스)에 둔다. 검색은 정확한 닉네임 전체·코드만(부분 검색 없음, 최대 10명, 분당 20·하루 200), 요청 하루 30건·24시간 재요청 대기, 차단은 상대에게 드러나지 않는다. 접속 상태는 저장하지 않고 각 계정 객체 메모리에만(사이트가 화면에 보일 때 1분마다 받은함 확인 = 접속 중, 방이 알려 주는 경기 시작/종료 = 경기 중), 친구 목록을 볼 때만 친구들의 상태를 모은다. 초대는 친구 대전 대기실에서 회원이 친구를 여러 명 선택, 친구에게만·같은 친구·방 1분 1회·10분 만료, 사이트 내부 카드로 수락하면 계정 닉네임·장착으로 그 방에 입장(방이 가득 찼거나 시작됐으면 안내). 외부 푸시 알림 없음. 기존 방 코드·초대 링크·게스트 참여는 그대로. 상세: docs/online/FRIENDS.md.
 
 **근거:** worker/src/friends.ts, worker/src/friends-api.ts, worker/src/index.ts, worker/src/host.ts, worker/wrangler.toml(v4), src/shell/Friends.tsx, src/identity/friends-client.ts, tests/friends.test.ts, tests/ui/friends.spec.ts.
+
+## D-052. 주사위 특수 연출은 착지 뒤에 시작한다 (2026-11-25)
+
+2.5D 렌더러는 레이아웃 이펙트에서 충돌·착지음을 예약하고 움직임을 시작한다. 요트와 라지 스트레이트의 이펙트는 렌더 때 읽은 상태가 이미 바뀌었을 수 있으므로 실행 시점의 움직임 상태로 판단한다. 구독은 주사위가 멈췄을 때 이펙트를 다시 실행하는 데 사용한다. 2.5D·3D 모두 고정 시드로 라지 스트레이트를 재현해 던지기 → 충돌 → 착지 → 특수음의 요청 순서, 예약 착지보다 이른 특수음 방지, 음소거 상태에서 재굴림과 특수음 억제를 검증한다.
+
+근거: [PR #62 병합 후 main CI](https://github.com/oyueo-mm/YachtLab/actions/runs/45530495861), `src/yacht-moment.tsx`, `tests/ui/game-shell.spec.ts`, `tests/ui/game-flow.spec.ts`. [PR #63 첫 실행](https://github.com/oyueo-mm/YachtLab/actions/runs/45548310144)에서 3D 테스트의 동일한 마지막 로그 가정을 추가로 확인했다.
+
+PR #63 두 번째 실행에서는 공유 러너의 벽시계 시간을 측정하던 기존 서버 AI CPU 검사(p99 9.24ms, 기준 8ms)가 실패했다. 테스트를 Node 24의 스레드 CPU 사용량으로 측정하도록 맞추고 평균 3ms·p99 8ms 기준과 같은 입력·합법 수 검증은 유지한다. 운영 Worker의 CPU 한도·AI 정책은 변경하지 않는다. [실패 실행](https://github.com/oyueo-mm/YachtLab/actions/runs/45551196784)
+
+백그라운드 AI 회귀에서도 AI 첫 굴림을 라지 스트레이트로 고정한다. 일시정지 중 특수 연출의 타이머는 끝나고 주사위·차례와 AI 행동 상태는 유지돼야 한다. 복귀 후 AI 차례가 다시 진행되는 것도 확인한다.
