@@ -12,7 +12,7 @@ import OnlineEntry from "./play/OnlineEntry";
 import OnlineGame from "./play/OnlineGame";
 import OnlineWatch from "./play/OnlineWatch";
 import Profile from "./shell/Profile";
-import { AchievementsPage, InventoryPage, QuestsPage, ShopPage } from "./shell/EconomyPages";
+import { ItemsPage, QuestsPage } from "./shell/EconomyPages";
 import MatchRewards, { type PendingReward } from "./shell/MatchRewards";
 import { completeSignIn, session } from "./identity/account-client";
 import { syncAccountNickname } from "./identity/display-name";
@@ -266,10 +266,8 @@ export default function App() {
           />
         )}
         {(page === "profile" || page === "account") && <Profile key={profileNotice} server={onlineServer} notice={profileNotice} snapshot={profile.snapshot} accountSettings={page === "account"} />}
-        {page === "shop" && <ShopPage server={onlineServer} go={navigate} />}
-        {page === "inventory" && <InventoryPage server={onlineServer} go={navigate} />}
-        {page === "quests" && <QuestsPage server={onlineServer} go={navigate} />}
-        {page === "achievements" && <AchievementsPage server={onlineServer} go={navigate} />}
+        {(page === "shop" || page === "inventory") && <ItemsPage server={onlineServer} go={navigate} route={page} />}
+        {(page === "quests" || page === "achievements") && <QuestsPage server={onlineServer} go={navigate} achievements={page === "achievements"} />}
         {page === "friends" && <FriendsPage server={onlineServer} go={navigate} />}
         {page === "spectate" && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "spectate" && onlineServer && (watchTarget ? <OnlineWatch key={watchTarget.code + watchTarget.key} server={onlineServer} code={watchTarget.code} watchKey={watchTarget.key} onLeave={() => navigate("home")} /> : (
@@ -282,7 +280,7 @@ export default function App() {
         {page === "pvp-setup" && <LocalSetupScreen onBack={() => navigate("offline")} onStart={() => go("pvp")} />}
         {page === "play" && <HumanGame key={gameKey} config={aiConfig} onBranch={branch} onAnalyze={analyze} onChangeSetup={() => go("play-setup")} onLeave={() => go("home")} onProgress={progress} />}
         {page === "pvp" && <LocalGame key={gameKey} players={local.players} order={local.order} onChangeSetup={() => go("pvp-setup")} onLeave={() => go("home")} onProgress={progress} />}
-        {page === "records" && <MyGames onBranch={branch} onAnalyze={analyze} />}
+        {page === "records" && <MyGames server={onlineServer} onBranch={branch} onAnalyze={analyze} />}
         {shell === "lab" && (
           <Suspense
             fallback={

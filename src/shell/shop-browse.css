@@ -42,3 +42,14 @@
     min-height: 44px;
   }
 }
+
+.items-hub > h1 { margin: 0 0 10px; }
+.items-hub > .item-tabs { margin-bottom: 16px; }
+.shop-view-all { position: absolute; top: 9px; right: 104px; min-height: 44px; padding-inline: 8px; }
+.item-preview-label { font-size: 12px; font-weight: 650; color: var(--red-deep); }
+.item-card-button:is(:hover, :focus-visible) .item-thumb:not(.offscreen) { animation: card-preview 380ms ease-out; }
+@keyframes card-preview { 45% { transform: translateY(-3px) scale(1.045); } }
+@media (prefers-reduced-motion: reduce) {
+  .item-card-button:is(:hover, :focus-visible) .item-thumb { animation: none; }
+}
+.economy-ledger summary { cursor: pointer; padding: 10px 0; font-weight: 650; }

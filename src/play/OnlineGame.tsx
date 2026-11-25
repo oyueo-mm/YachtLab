@@ -341,7 +341,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const nameMap = Object.fromEntries(players.map((p) => [p.playerId, p.name]));
   const say = (id: string) => conn.current?.say(id) ?? false;
   const feed = <TableFeed chat={chat} names={nameMap} looks={looks} me={me?.playerId ?? null} />;
-  const dock = <SocialDock chat={chat} look={myLook} online={status === "online"} transport={say} />;
+  const dock = <SocialDock chat={chat} look={myLook} online={status === "online"} transport={say} names={nameMap} me={me?.playerId} />;
   const opponent = players.find((p) => p.playerId !== me?.playerId) ?? null;
   /* ------------------------------------------------- derived game table (hooks stay above early returns) ------------------------------------------------- */
   const turn = view?.turn ?? null;
@@ -642,7 +642,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           </div>
           <div className="score-summary">
             {players.map((p, seatIndex) => (
-              <div key={p.playerId} className={!finished && turnIndex === seatIndex ? "selected" : ""} data-seat={seatIndex} data-role={p.playerId === me?.playerId ? "human" : "opponent"}>
+              <div key={p.playerId} className={`social-seat${!finished && turnIndex === seatIndex ? " selected" : ""}`} data-seat={seatIndex} data-role={p.playerId === me?.playerId ? "human" : "opponent"}>
                 <span>
                   <PlayerTag name={p.name} look={looks[p.playerId]} me={p.playerId === me?.playerId} compact />
                   {p.playerId === me?.playerId ? " (나)" : ""}
@@ -652,6 +652,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
                   <ScoreTotal value={p.total} />
                   <small>점</small>
                 </strong>
+                <TableFeed chat={chat} names={nameMap} looks={looks} me={me?.playerId ?? null} from={p.playerId} />
               </div>
             ))}
             <div className="round">
@@ -663,6 +664,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
             </div>
             {me && <BonusChip card={players[meIndex]?.card ?? {}} />}
           </div>
+          <div className="table-chat near-profile">{dock}</div>
           {banner}
           <section
             className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (canRoll && nearYacht(game.dice, rolls, players[meIndex]?.card) ? " yacht-near" : "") + theme.className}
@@ -730,11 +732,6 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
               <MobileQuickScore cards={game.cards} dice={game.dice} rolls={rolling ? 0 : rolls} current={turnIndex} labels={labels} canScore={can} onScore={record} />
             </MobileScoreSheet>
           )}
-          {/* Messages and the send bar under the board: never over the dice or the roll button. */}
-          <div className="table-chat">
-            {feed}
-            {dock}
-          </div>
           {feedback && (
             <p className="game-feedback" role="status" key={feedback}>
               {feedback}
