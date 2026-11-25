@@ -120,6 +120,11 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "e7a9933",
+      "date": "2026-11-26",
+      "subject": "Add Google Search Console verification meta tag"
+    },
+    {
       "sha": "0fb8443",
       "date": "2026-11-26",
       "subject": "Merge pull request #92 from oyueo-mm/codex/online-yacht-economy"
@@ -163,14 +168,15 @@
       "sha": "2196a28",
       "date": "2026-11-26",
       "subject": "Keep desktop scores in one table beside the chat profiles"
-    },
-    {
-      "sha": "c814f61",
-      "date": "2026-11-26",
-      "subject": "Record desktop and mobile brand comparisons"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "0fb8443547",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45720000134"
+    },
     {
       "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
       "status": "success",
@@ -182,12 +188,6 @@
       "status": "success",
       "head": "8e00f3172f",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45717409511"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "cancelled",
-      "head": "38b99afbff",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45717239764"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",

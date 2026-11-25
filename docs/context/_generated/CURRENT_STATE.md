@@ -109,6 +109,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [e7a9933](https://github.com/oyueo-mm/YachtLab/commit/e7a9933) | 2026-11-26 | Add Google Search Console verification meta tag |
 | [0fb8443](https://github.com/oyueo-mm/YachtLab/commit/0fb8443) | 2026-11-26 | Merge pull request #92 from oyueo-mm/codex/online-yacht-economy |
 | [38b99af](https://github.com/oyueo-mm/YachtLab/commit/38b99af) | 2026-11-26 | Merge pull request #91 from oyueo-mm/codex/online-yacht-player-ui |
 | [2a6aaa8](https://github.com/oyueo-mm/YachtLab/commit/2a6aaa8) | 2026-11-26 | Merge pull request #90 from oyueo-mm/codex/online-yacht-brand |
@@ -118,7 +119,6 @@
 | [eee472b](https://github.com/oyueo-mm/YachtLab/commit/eee472b) | 2026-11-26 | Merge branch 'codex/online-yacht-player-ui' into codex/online-yacht-economy |
 | [770476c](https://github.com/oyueo-mm/YachtLab/commit/770476c) | 2026-11-26 | Reset the dice view on rematch and record release verification |
 | [2196a28](https://github.com/oyueo-mm/YachtLab/commit/2196a28) | 2026-11-26 | Keep desktop scores in one table beside the chat profiles |
-| [c814f61](https://github.com/oyueo-mm/YachtLab/commit/c814f61) | 2026-11-26 | Record desktop and mobile brand comparisons |
 
 ## 최근 GitHub Actions 상태
 
@@ -126,9 +126,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45720000134) | success | 0fb8443547 |
 | [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45717549260) | success | e638a623b1 |
 | [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45717409511) | success | 8e00f3172f |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45717239764) | cancelled | 38b99afbff |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45686563250) | success | 8e00f3172f |
 
 ## 다음 채팅과 작업의 시작점
