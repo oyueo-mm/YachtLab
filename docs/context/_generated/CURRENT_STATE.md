@@ -101,16 +101,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [ca1c894](https://github.com/oyueo-mm/YachtLab/commit/ca1c894) | 2026-11-25 | Merge pull request #71 from oyueo-mm/codex/ux-followup |
+| [642aac0](https://github.com/oyueo-mm/YachtLab/commit/642aac0) | 2026-11-25 | docs(context): confirm the public audio fix and reward test diagnosis |
+| [5c6d098](https://github.com/oyueo-mm/YachtLab/commit/5c6d098) | 2026-11-25 | test(rewards): wait for the lobby invite code before joining |
 | [b17c01f](https://github.com/oyueo-mm/YachtLab/commit/b17c01f) | 2026-11-25 | Merge PR #73: 2026-11-25 공개 사이트 검증 결과 |
 | [af980d3](https://github.com/oyueo-mm/YachtLab/commit/af980d3) | 2026-11-25 | Merge main into docs branch (PR #63 audio fix): keep both deployment notes |
-| [ae0d375](https://github.com/oyueo-mm/YachtLab/commit/ae0d375) | 2026-11-25 | Merge pull request #63 from oyueo-mm/codex/pages-audio-regression |
-| [4147fdd](https://github.com/oyueo-mm/YachtLab/commit/4147fdd) | 2026-11-25 | docs(product): 2026-11-25 공개 사이트 검증 결과 |
-| [9deda39](https://github.com/oyueo-mm/YachtLab/commit/9deda39) | 2026-11-25 | Bring the ordinary-roll coverage from main into the audio fix |
-| [4b34933](https://github.com/oyueo-mm/YachtLab/commit/4b34933) | 2026-11-25 | Merge PR #72: 효과음 순서 테스트 결정적으로·배포 기록 |
-| [1009014](https://github.com/oyueo-mm/YachtLab/commit/1009014) | 2026-11-25 | test(game): verify paused AI state with an expiring straight effect |
-| [c6bb12c](https://github.com/oyueo-mm/YachtLab/commit/c6bb12c) | 2026-11-25 | test: 효과음 순서 테스트를 조합 없는 고정 첫 굴림으로 결정적으로, 배포 기록 |
-| [241df3d](https://github.com/oyueo-mm/YachtLab/commit/241df3d) | 2026-11-25 | test(ci): measure the server AI CPU budget on the executing thread |
-| [0a5625d](https://github.com/oyueo-mm/YachtLab/commit/0a5625d) | 2026-11-25 | test(game): cover straight fanfare after 3D collisions |
+| [a035614](https://github.com/oyueo-mm/YachtLab/commit/a035614) | 2026-11-25 | test(pwa): exercise DP network failures outside the offline cache |
+| [89ff550](https://github.com/oyueo-mm/YachtLab/commit/89ff550) | 2026-11-25 | docs(context): record follow-up regression and public smoke details |
+| [9a2fe20](https://github.com/oyueo-mm/YachtLab/commit/9a2fe20) | 2026-11-25 | test(rewards): provision the guest seat before checking settlement |
+| [c0a93d9](https://github.com/oyueo-mm/YachtLab/commit/c0a93d9) | 2026-11-25 | docs(context): record offline checks for all game difficulties |
+| [8eacdca](https://github.com/oyueo-mm/YachtLab/commit/8eacdca) | 2026-11-25 | Merge remote-tracking branch 'origin/main' into codex/ux-followup |
 
 ## 최근 GitHub Actions 상태
 
@@ -118,8 +118,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45561060378) | success | af980d3ed4 |
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45560823250) | success | a035614813 |
+| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45567699361) | success | 642aac0220 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45564029822) | success | 642aac0220 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45564029603) | success | 642aac0220 |
 | [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45558460538) | success | 99df523d01 |
 
 ## 다음 채팅과 작업의 시작점

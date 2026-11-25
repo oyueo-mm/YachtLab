@@ -112,6 +112,21 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "ca1c894",
+      "date": "2026-11-25",
+      "subject": "Merge pull request #71 from oyueo-mm/codex/ux-followup"
+    },
+    {
+      "sha": "642aac0",
+      "date": "2026-11-25",
+      "subject": "docs(context): confirm the public audio fix and reward test diagnosis"
+    },
+    {
+      "sha": "5c6d098",
+      "date": "2026-11-25",
+      "subject": "test(rewards): wait for the lobby invite code before joining"
+    },
+    {
       "sha": "b17c01f",
       "date": "2026-11-25",
       "subject": "Merge PR #73: 2026-11-25 공개 사이트 검증 결과"
@@ -122,58 +137,49 @@
       "subject": "Merge main into docs branch (PR #63 audio fix): keep both deployment notes"
     },
     {
-      "sha": "ae0d375",
+      "sha": "a035614",
       "date": "2026-11-25",
-      "subject": "Merge pull request #63 from oyueo-mm/codex/pages-audio-regression"
+      "subject": "test(pwa): exercise DP network failures outside the offline cache"
     },
     {
-      "sha": "4147fdd",
+      "sha": "89ff550",
       "date": "2026-11-25",
-      "subject": "docs(product): 2026-11-25 공개 사이트 검증 결과"
+      "subject": "docs(context): record follow-up regression and public smoke details"
     },
     {
-      "sha": "9deda39",
+      "sha": "9a2fe20",
       "date": "2026-11-25",
-      "subject": "Bring the ordinary-roll coverage from main into the audio fix"
+      "subject": "test(rewards): provision the guest seat before checking settlement"
     },
     {
-      "sha": "4b34933",
+      "sha": "c0a93d9",
       "date": "2026-11-25",
-      "subject": "Merge PR #72: 효과음 순서 테스트 결정적으로·배포 기록"
+      "subject": "docs(context): record offline checks for all game difficulties"
     },
     {
-      "sha": "1009014",
+      "sha": "8eacdca",
       "date": "2026-11-25",
-      "subject": "test(game): verify paused AI state with an expiring straight effect"
-    },
-    {
-      "sha": "c6bb12c",
-      "date": "2026-11-25",
-      "subject": "test: 효과음 순서 테스트를 조합 없는 고정 첫 굴림으로 결정적으로, 배포 기록"
-    },
-    {
-      "sha": "241df3d",
-      "date": "2026-11-25",
-      "subject": "test(ci): measure the server AI CPU budget on the executing thread"
-    },
-    {
-      "sha": "0a5625d",
-      "date": "2026-11-25",
-      "subject": "test(game): cover straight fanfare after 3D collisions"
+      "subject": "Merge remote-tracking branch 'origin/main' into codex/ux-followup"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "Test and deploy YachtLab",
+      "name": "Deploy YachtLab Online Worker (manual)",
       "status": "success",
-      "head": "af980d3ed4",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45561060378"
+      "head": "642aac0220",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45567699361"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
-      "head": "a035614813",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45560823250"
+      "head": "642aac0220",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45564029822"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "642aac0220",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45564029603"
     },
     {
       "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
