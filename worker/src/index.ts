@@ -10,6 +10,8 @@ import { itemById } from "../../src/economy/live/catalog";
 /** Coin balance bucket for the privacy-light balance distribution. */
 const bucket = (c: number) => (c < 100 ? "0-99" : c < 500 ? "100-499" : c < 2000 ? "500-1999" : c < 10000 ? "2000-9999" : c < 50000 ? "10k-49k" : "50k+");
 import { validateNickname } from "../../src/identity/nickname";
+import { FriendIndexStore, FriendStore, Presence, type FriendSql } from "./friends";
+import { handleFriendRoute, sendInvites, type FriendDeps, type FriendUser } from "./friends-api";
 import { sameText } from "./oidc";
 import { authConfig, handleAccountRoute, sessionUser, type AccountBackends, type GuestApi, type UserApi } from "./accounts-api";
 import type { MatchRecord } from "../../src/identity/records";
@@ -37,6 +39,7 @@ export interface Env extends ConfigVars {
   GUESTS: DurableObjectNamespace<GuestLink>;
   /** Phase 4.5: one global object — quick-match queue, public spectating list, operations counters. */
   HUB: DurableObjectNamespace<MatchHub>;
+  FRIENDS: DurableObjectNamespace<FriendIndex>;
   /** "on" enables official coins/gems/quests/achievements/shop (feature flag). */
   ECONOMY?: string;
   /** "off" disables server AI matches (kill switch, default on). */
@@ -97,6 +100,10 @@ export class YachtRoom extends DurableObject<Env> {
         await (entry ? hub.publish(entry) : hub.unpublish(code));
       },
       matchEnded: async (code) => env.HUB.get(env.HUB.idFromName("hub")).ended(code),
+      // Friends see "경기 중" (memory only on each account object; no storage write).
+      memberStatus: async (userIds, room) => {
+        await Promise.all(userIds.map((id) => env.USERS.get(env.USERS.idFromName(id)).setPlaying(room).catch(() => undefined)));
+      },
       finished: async (info) => {
         const hub = env.HUB.get(env.HUB.idFromName("hub"));
         await hub.count(`finished.${info.kind}.${info.completed ? "completed" : "forfeit"}`);
@@ -128,6 +135,10 @@ export class YachtRoom extends DurableObject<Env> {
   }
   async publicWatch() {
     return this.host.publicWatch();
+  }
+  /** Friend invites: is this account seated in this friend room, and is there a free seat in the waiting room? */
+  async inviteState(userId: string) {
+    return this.host.inviteState(userId);
   }
   async summary() {
     return this.host.summary();
@@ -314,14 +325,37 @@ export class RoomDirectory extends DurableObject<Env> {
 export class UserStore extends DurableObject<Env> implements UserApi {
   private store: AccountStore;
   private econ: EconomyStore;
+  private friends: FriendStore;
+  private presenceState = new Presence();
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.store = new AccountStore(ctx.storage.sql as unknown as Sql);
     this.econ = new EconomyStore(this.econSql());
+    this.friends = new FriendStore(this.econSql() as unknown as FriendSql);
     ctx.blockConcurrencyWhile(async () => {
       this.store.init();
       this.econ.init();
+      this.friends.init();
     });
+  }
+  /* ---------------------------------------------- friends (I/J): one generic RPC over FriendStore ---------------------------------------------- */
+  private static FR_OPS = new Set(["code", "setCode", "spend", "isFriend", "isBlocking", "relation", "friendIds", "peerId", "lists", "canRequest", "recordOutgoing", "addFriend", "removeFriend", "cancelOutgoing", "declineIncoming", "incomingPeer", "block", "unblock", "receiveRequest", "outgoingDeclined", "incomingCancelled", "blockedBy", "refresh", "receiveInvite", "invites", "takeInvite", "inboxCount"]);
+  async fr(op: string, ...args: unknown[]) {
+    if (!UserStore.FR_OPS.has(op)) throw Error("unknown op");
+    return (this.friends as unknown as Record<string, (...a: unknown[]) => unknown>)[op](...args);
+  }
+  async nickname() {
+    return this.store.profile()?.nickname ?? null;
+  }
+  /** Friends' view of this account (memory only, never stored). */
+  async presence() {
+    return this.presenceState.status(Date.now());
+  }
+  async ping() {
+    this.presenceState.ping(Date.now());
+  }
+  async setPlaying(room: string | null) {
+    this.presenceState.setPlaying(room, Date.now());
   }
   /** SQLite of this account with an atomic transaction (all of an economy action, or none of it). */
   private depth = 0;
@@ -423,7 +457,11 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     return this.store.records(limit);
   }
   async setNickname(nickname: unknown) {
-    return this.store.setNickname(nickname, Date.now());
+    const r = this.store.setNickname(nickname, Date.now());
+    // Keep the friend search index in step (only for accounts that already have a friend code).
+    const p = this.store.profile();
+    if (r.ok && p && this.friends.code()) await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).register(p.userId, r.nickname).catch(() => undefined);
+    return r;
   }
   async importRecords(records: MatchRecord[], source: "device" | "guest-import", guestId: string | null) {
     const result = this.store.importRecords(records, source, Date.now());
@@ -439,6 +477,12 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   /** Delete everything this account stores; returns linked guest ids so their claims can be released. */
   async deleteAccount() {
     const guests = this.store.exists() ? this.store.guests() : [];
+    // Friends: everyone in my lists forgets me, and the search index drops me.
+    const me = this.store.profile();
+    if (me) {
+      for (const id of this.friends.friendIds()) await (this.env.USERS.get(this.env.USERS.idFromName(id)) as unknown as FriendUser).fr("blockedBy", me.userId).catch(() => undefined);
+      await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).remove(me.userId).catch(() => undefined);
+    }
     await this.ctx.storage.deleteAll();
     this.store = new AccountStore(this.ctx.storage.sql as unknown as Sql);
     this.store.init();
@@ -511,6 +555,28 @@ export class UserStore extends DurableObject<Env> implements UserApi {
 }
 
 /** Which account linked a guest's device records (first claim wins). Addressed by `idFromName(guestId)`. */
+/** Friend code → account, exact nickname → accounts (one small SQLite object; never exposed directly). */
+export class FriendIndex extends DurableObject<Env> {
+  private core: FriendIndexStore;
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    this.core = new FriendIndexStore(ctx.storage.sql as unknown as FriendSql);
+    ctx.blockConcurrencyWhile(async () => this.core.init());
+  }
+  async register(userId: string, nickname: string) {
+    return this.core.register(userId, nickname);
+  }
+  async lookup(code: string) {
+    return this.core.lookup(code);
+  }
+  async search(nickname: string) {
+    return this.core.search(nickname);
+  }
+  async remove(userId: string) {
+    this.core.remove(userId);
+  }
+}
+
 export class GuestLink extends DurableObject<Env> implements GuestApi {
   private sql: SqlStorage;
   constructor(ctx: DurableObjectState, env: Env) {
@@ -790,6 +856,57 @@ export default {
         const verdict = await directory.check(await clientKey(request), code, "peek");
         if (!verdict.ok) return new Response(null, { status: verdict.status });
         return roomStub(code).fetch(request);
+      }
+      // Friends & invites (I/J): members only; players are addressed by friend code.
+      const friendPath = url.pathname.startsWith("/api/me/friends") || url.pathname === "/api/me/inbox" || url.pathname.startsWith("/api/me/invites");
+      const roomInvite = parts[0] === "api" && parts[1] === "rooms" && parts.length === 4 && parts[3] === "invite" && request.method === "POST";
+      if (friendPath || roomInvite) {
+        if (!allowed && request.method !== "GET") return fail(403, "ORIGIN", "허용되지 않은 출처입니다.", null);
+        if (!auth) return fail(404, "AUTH_DISABLED", "회원 로그인은 아직 준비 중이에요.", allowed);
+        const me = await sessionUser(request, backends);
+        if (!me) return fail(401, "UNAUTHENTICATED", "친구 기능은 로그인한 회원만 쓸 수 있어요.", allowed);
+        if (isolateLimited("me:" + me.userId, 120)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
+        const deps: FriendDeps = {
+          user: (id) => env.USERS.get(env.USERS.idFromName(id)) as unknown as FriendUser,
+          index: env.FRIENDS.get(env.FRIENDS.idFromName("index")) as unknown as FriendDeps["index"],
+          limited: (key, perMinute) => Promise.resolve(isolateLimited(key, perMinute)),
+          now: Date.now,
+        };
+        const readJson = async () => {
+          const text = await request.text();
+          if (text.length > 4096) throw new Error("too large");
+          const v = JSON.parse(text || "{}");
+          if (typeof v !== "object" || v === null || Array.isArray(v)) throw new SyntaxError("object expected");
+          return v as Record<string, unknown>;
+        };
+        if (roomInvite) {
+          const code = normalizeCode(parts[2]);
+          if (!code) return fail(404, "ROOM_NOT_FOUND", "방을 찾을 수 없어요.", allowed);
+          if (isolateLimited("invite:" + me.userId, 20)) return fail(429, "RATE_LIMITED", "초대를 너무 많이 보냈어요. 잠시 후 다시 해 주세요.", allowed);
+          const state = await roomStub(code).inviteState(me.userId);
+          if (!state.ok) return fail(409, "INVITE_" + state.reason.toUpperCase().replace("-", "_"), state.reason === "full" ? "방이 가득 찼어요." : state.reason === "started" ? "이미 경기가 시작된 방이에요." : "이 방에서 친구를 초대할 수 없어요.", allowed);
+          const input = await readJson();
+          const codes = Array.isArray(input.friends) ? input.friends.filter((c): c is string => typeof c === "string") : [];
+          const results = await sendInvites(me, codes.slice(0, Math.max(0, state.seats - state.players) + 5), code, deps, () => crypto.randomUUID());
+          return json(200, { results }, allowed);
+        }
+        if (url.pathname === "/api/me/invites/accept" && request.method === "POST") {
+          const input = await readJson();
+          const inv = await deps.user(me.userId).fr<{ room: string } | null>("takeInvite", String(input.id ?? ""), Date.now());
+          if (!inv) return fail(404, "INVITE_EXPIRED", "초대가 만료되었거나 이미 처리됐어요.", allowed);
+          const verdict = await directory.check(await clientKey(request), inv.room, "join");
+          if (!verdict.ok) return fail(verdict.status, verdict.code, verdict.message, allowed);
+          const identity = { userId: me.userId };
+          const seat = await seatInfo(identity, null);
+          const joined = await roomStub(inv.room).join(seat.name, identity, seat.look);
+          if (!joined.ok) {
+            const message = joined.error.code === "MATCH_FULL" ? "방이 가득 찼어요." : joined.error.code === "WRONG_PHASE" ? "이미 경기가 시작된 방이에요." : joined.error.code === "ROOM_CLOSED" ? "방이 닫혔어요." : joined.error.message;
+            return fail(joined.status, joined.error.code, message, allowed);
+          }
+          return json(201, { code: inv.room, playerId: joined.playerId, token: joined.token }, allowed);
+        }
+        const res = await handleFriendRoute(request, url, me, deps, (status, body) => json(status, body, allowed), readJson);
+        if (res) return res;
       }
       // Account routes (Phase 4). Browser API calls need an allowed Origin; the Google redirect pages do not.
       if (url.pathname.startsWith("/auth/") || (parts[0] === "api" && parts[1] !== "rooms")) {

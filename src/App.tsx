@@ -13,6 +13,7 @@ import Profile from "./shell/Profile";
 import { AchievementsPage, InventoryPage, QuestsPage, ShopPage } from "./shell/EconomyPages";
 import { completeSignIn } from "./identity/account-client";
 import { syncAccountNickname } from "./identity/display-name";
+import { FriendsPage, InviteToasts, refreshInbox, startInbox } from "./shell/Friends";
 import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl } from "./online/client";
 import { currentRoute, routes, type Route } from "./routes";
 import { LabNav, SettingsDialog, TopBar } from "./shell/Chrome";
@@ -51,6 +52,12 @@ export default function App() {
   const [onlineNotice, setOnlineNotice] = useState("");
   const [watchTarget] = useState(watchFromUrl);
   const [profileNotice, setProfileNotice] = useState("");
+  // Members: friend requests and room invites (checked once a minute while the site is visible).
+  useEffect(() => startInbox(onlineServer), [onlineServer]);
+  // …and right away when the home menu or the friends page opens (badge / invites without waiting).
+  useEffect(() => {
+    if (onlineServer && (page === "home" || page === "friends" || page === "online")) void refreshInbox(onlineServer);
+  }, [page, onlineServer]);
   // Members: the account nickname is the one used everywhere (copied to this device on start / sign-in).
   useEffect(() => {
     const sync = () => void syncAccountNickname(onlineServer);
@@ -166,6 +173,16 @@ export default function App() {
       <TopBar route={page} navigate={navigate} openSettings={() => setSettingsOpen(true)} />
       {shell === "lab" && <LabNav route={page} navigate={navigate} />}
       <main className={`main page-${page}`}>
+        {/* Friend invites on any page except during a running game (not to interrupt play). */}
+        {!(page === "online-room" && inProgress.current) && page !== "play" && page !== "pvp" && (
+          <InviteToasts
+            server={onlineServer}
+            onJoined={(code) => {
+              setOnlineCode(code);
+              enter("online-room");
+            }}
+          />
+        )}
         {updateAvailable && (page === "online" || page === "online-room" || page === "spectate" || page === "home") && (
           <p className="update-banner" role="status">
             새 버전이 나왔어요. 새로고침하면 최신 기능을 쓸 수 있어요.
@@ -217,6 +234,7 @@ export default function App() {
         {page === "inventory" && <InventoryPage server={onlineServer} go={navigate} />}
         {page === "quests" && <QuestsPage server={onlineServer} go={navigate} />}
         {page === "achievements" && <AchievementsPage server={onlineServer} go={navigate} />}
+        {page === "friends" && <FriendsPage server={onlineServer} go={navigate} />}
         {page === "spectate" && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "spectate" && onlineServer && (watchTarget ? <OnlineWatch key={watchTarget.code + watchTarget.key} server={onlineServer} code={watchTarget.code} watchKey={watchTarget.key} onLeave={() => navigate("home")} /> : (
           <p className="online-connecting" role="alert">

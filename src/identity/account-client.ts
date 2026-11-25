@@ -48,7 +48,7 @@ export class AccountError extends Error {
     super(message);
   }
 }
-async function api<T>(server: string, path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function api<T>(server: string, path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   let res: Response;
   try {
     res = await fetch(server + path, {

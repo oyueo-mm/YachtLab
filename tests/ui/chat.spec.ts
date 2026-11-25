@@ -1,6 +1,6 @@
 import { expect, test, devices, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { startLocalWorker, type LocalWorker } from "../helpers/wrangler";
-import { startFakeIdp, type FakeIdp } from "../helpers/fake-idp";
+import { fakeLogin, startFakeIdp, type FakeIdp } from "../helpers/fake-idp";
 import { nick } from "./helpers";
 
 /**
@@ -46,19 +46,7 @@ async function device(browser: Browser, phone: boolean, session?: string) {
   return ctx.newPage();
 }
 
-/** Sign in through the fake provider (the same server flow as Google), returning the session. */
-async function login(sub: string): Promise<string> {
-  idp.next(sub);
-  const cs = "client-state-" + sub.padEnd(30, "x");
-  const hash = Buffer.from(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(cs))).toString("base64url");
-  const start = await fetch(worker.url + "/auth/google/start?cs=" + hash, { redirect: "manual" });
-  const cookie = start.headers.get("set-cookie")!.split(";")[0];
-  const auth = await fetch(start.headers.get("location")!, { redirect: "manual" });
-  const back = await fetch(auth.headers.get("location")!, { redirect: "manual", headers: { cookie } });
-  const code = decodeURIComponent(new URL(back.headers.get("location")!).hash.slice("#login=".length));
-  const ex = await (await fetch(worker.url + "/api/auth/exchange", { method: "POST", headers: { origin: ORIGIN, "content-type": "application/json" }, body: JSON.stringify({ code, clientState: cs }) })).json();
-  return ex.session as string;
-}
+const login = (sub: string) => fakeLogin(worker.url, idp, sub, ORIGIN);
 
 /** Record every message text that appears in this page's feed. */
 async function watchFeed(p: Page) {
@@ -180,7 +168,9 @@ test("회원: 인벤토리에서 저장한 장착(일부만)이 경기의 보내
   const m = await device(browser, false, session);
   await m.goto(`?online-server=${encodeURIComponent(worker.url)}#inventory`);
   // keep only 2 emotes and 2 lines equipped, in a new order
+  await m.getByRole("tab", { name: /^이모티콘/ }).click();
   for (const name of ["미소", "좋아요"]) await m.getByRole("button", { name: `${name} 해제` }).click();
+  await m.getByRole("tab", { name: /^채팅/ }).click();
   for (const line of ["화이팅!", "대단해요!", "감사합니다!", "잘 부탁해요!"]) await m.getByRole("button", { name: `${line} 해제` }).click();
   await m.getByRole("button", { name: "장착 저장" }).click();
   await expect(m.getByText("장착을 저장했어요")).toBeVisible();

@@ -53,3 +53,17 @@ export async function startFakeIdp(clientId = "test-client"): Promise<FakeIdp> {
   issuer = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
   return { issuer, next: (sub) => void queue.push(sub), close: () => void server.close() };
 }
+
+/** Sign in through the fake provider with the same server flow as Google; returns the session. */
+export async function fakeLogin(workerUrl: string, idp: FakeIdp, sub: string, origin: string): Promise<string> {
+  idp.next(sub);
+  const cs = "client-state-" + sub.padEnd(30, "x");
+  const hash = Buffer.from(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(cs))).toString("base64url");
+  const start = await fetch(workerUrl + "/auth/google/start?cs=" + hash, { redirect: "manual" });
+  const cookie = start.headers.get("set-cookie")!.split(";")[0];
+  const auth = await fetch(start.headers.get("location")!, { redirect: "manual" });
+  const back = await fetch(auth.headers.get("location")!, { redirect: "manual", headers: { cookie } });
+  const code = decodeURIComponent(new URL(back.headers.get("location")!).hash.slice("#login=".length));
+  const ex = await (await fetch(workerUrl + "/api/auth/exchange", { method: "POST", headers: { origin, "content-type": "application/json" }, body: JSON.stringify({ code, clientState: cs }) })).json();
+  return ex.session as string;
+}

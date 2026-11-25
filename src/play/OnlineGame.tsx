@@ -23,8 +23,11 @@ import type { LobbyState, RematchState, SeriesSummary, SpectateState } from "../
 import { LobbyPanel, MultiTable } from "./OnlineMulti";
 import { SpectateControl } from "./Social";
 import { SocialDock, TableFeed, useTableChat } from "./SocialDock";
-import { PlayerTag, boardOf, diceLookOf } from "./Looks";
-import { GUEST_LOOK, type PublicLook } from "../economy/live/catalog";
+import { PlayerTag, boardCssOf, boardOf, diceLookOf } from "./Looks";
+import { GUEST_LOOK, itemById, type PublicLook } from "../economy/live/catalog";
+import type { FxLook } from "../economy/live/content-items";
+import { FxBurst } from "./FxBurst";
+import { FriendInvite } from "../shell/Friends";
 import { saveLocalRecord } from "../identity/local";
 import { RULES_ID } from "../identity/records";
 import { publicProfile, type PublicProfile } from "../identity/account-client";
@@ -105,9 +108,14 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const [spectate, setSpectate] = useState<SpectateState | null>(null);
   const [members, setMembers] = useState<Record<string, string>>({});
   const [looks, setLooks] = useState<Record<string, PublicLook>>({});
+  const looksRef = useRef(looks);
+  looksRef.current = looks;
+  const [yachtFx, setYachtFx] = useState<{ fx: FxLook; level: number; seed: string } | null>(null);
   const [aiSeat, setAiSeat] = useState<string | null>(null);
   const [lobby, setLobby] = useState<LobbyState | null>(null);
   const settings = useSettings();
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   const [profileOf, setProfileOf] = useState<string | null>(null);
 
   useEffect(() => {
@@ -169,6 +177,13 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
             if (e.type === "diceRolled" && mine) {
               rolled = true;
               kept = e.kept;
+            } else if (e.type === "categoryScored" && e.category === "yacht" && e.points === 50 && looksRef.current[e.playerId]?.fxLv && (looksRef.current[e.playerId]?.fxLv ?? 1) >= 2 && looksRef.current[e.playerId]?.fx !== "fx.none") {
+              // Lv.2 special effects also play on that player's yacht (every screen, once per event).
+              const lk = looksRef.current[e.playerId];
+              const fxl = itemById(lk.fx)?.look.fx;
+              if (fxl && (e.playerId === me || settingsRef.current.opponentFx)) setYachtFx({ fx: fxl, level: lk.fxLv, seed: `${next.matchId}-${e.seq}` });
+              if (mine) announceScore(e.dice.map((value, id) => ({ id, value })), e.category);
+              setFeedback(`${e.playerId === me ? "나" : nameOf(e.playerId)} · ${names[e.category]} ${e.points}점 기록`);
             } else if (e.type === "categoryScored" && mine) {
               // The dice that made the combination rise (3D) — same effect as offline play.
               announceScore(e.dice.map((value, id) => ({ id, value })), e.category);
@@ -245,6 +260,11 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [server, code]);
 
+  useEffect(() => {
+    if (!yachtFx) return;
+    const t = setTimeout(() => setYachtFx(null), 2400);
+    return () => clearTimeout(t);
+  }, [yachtFx]);
   const anyAway = Object.keys(away).length > 0;
   useEffect(() => {
     if (deadline === null && !anyAway) return;
@@ -303,6 +323,8 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
     actions: view?.version ?? 0,
   };
   const labels = players.map((p) => p.name) as [string, string];
+  /** PC score sheet headers (the top summary is phone-only): who I am, who is the server AI. */
+  const scoreLabels = players.map((p) => p.name + (p.playerId === me?.playerId ? " (나)" : p.playerId === aiSeat ? " · AI" : "")) as [string, string];
   const can = myTurn && !sending && !rolling && status === "online";
   const allHeld = keep.length === 5;
   const canRoll = can && rolls < 3 && !(rolls > 0 && allHeld);
@@ -328,13 +350,14 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const winnerLook = finished && winners.length === 1 ? looks[winners[0]] : undefined;
   const winnerFxItem = winnerLook && winnerLook.fx !== "fx.none" && (winners[0] === me?.playerId || settings.opponentFx) ? winnerLook : undefined;
   const winnerFx = winnerFxItem ? ` fx-confetti fx-lv${winnerFxItem.fxLv}` : "";
-  const fxSound = winnerFxItem?.fxLv === 3 && !!view?.matchId;
-  useEffect(() => {
-    if (fxSound) playSfx("bonus");
-  }, [fxSound, view?.matchId]);
+  const winnerFxLook = winnerFxItem ? itemById(winnerFxItem.fx)?.look.fx : undefined;
   const gesture = useThrowGesture(canRoll, roll);
   const yachtReady = useYachtReady(game.dice, rolls, myTurn && players[meIndex]?.card.yacht === undefined);
-  const celebration = useGameSounds(game.cards, finished, outcome, syncKey);
+  // Result sound from my side: 1:1 win / loss / draw; larger rooms by rank (sole first = win, shared
+  // first = shared win, any other place = the calm "finished" sound).
+  const myRank = view?.standings?.find((x) => x.playerId === me?.playerId)?.rank;
+  const soundOutcome = !finished ? null : players.length > 2 ? (myRank === 1 ? (winners.length > 1 ? "winShared" : "win") : "lose") : outcome;
+  const celebration = useGameSounds(game.cards, finished, soundOutcome, syncKey);
 
 
   if (!seat) return null;
@@ -418,6 +441,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                 <Share2 size={15} /> 공유
               </button>
             )}
+            <FriendInvite server={server} room={code} freeSeats={view.seats - players.length} />
           </div>
           <input className="online-invite-link" aria-label="초대 링크" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
         </div>
@@ -578,12 +602,13 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           </div>
           {banner}
           <section
-            className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (boardOf(myLook) ? " board-themed" : "")}
+            className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (boardOf(myLook) ? " board-themed" : "") + (boardCssOf(myLook) ? " " + boardCssOf(myLook) : "")}
             style={boardOf(myLook) ? ({ "--board-color": boardOf(myLook) } as React.CSSProperties) : undefined}
             aria-label="게임 보드"
             {...gesture}
           >
             <Celebrate value={celebration} />
+            {yachtFx && <FxBurst key={yachtFx.seed} fx={yachtFx.fx} level={yachtFx.level} seed={yachtFx.seed} />}
             <div className="board-top">
               <span className="turn-indicator">
                 <i />
@@ -609,6 +634,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
             </div>
             {finished && (
               <div className={"game-result online-result" + winnerFx} role="status">
+                {winnerFxLook && winnerFxItem && <FxBurst fx={winnerFxLook} level={winnerFxItem.fxLv} seed={view.matchId} />}
                 <Trophy size={25} />
                 <h2>{outcome === "draw" ? "무승부입니다" : outcome === "win" ? "승리했습니다!" : `${players.find((p) => p.playerId === winners[0])?.name ?? "상대"} 님이 승리했습니다`}</h2>
                 <p className="online-final">
@@ -670,7 +696,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           )}
           <ErrorMessage message={error} />
         </div>
-        <Scoreboard state={game} labels={labels} selectPlayer={meIndex} select={can ? record : undefined} />
+        <Scoreboard state={game} labels={scoreLabels} round={game.round} selectPlayer={meIndex} select={can ? record : undefined} />
       </div>
       {profileOf && <OpponentProfile server={server} userId={profileOf} onClose={() => setProfileOf(null)} />}
       <ConfirmDialog
