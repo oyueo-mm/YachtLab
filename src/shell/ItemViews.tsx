@@ -4,12 +4,12 @@ import { CATEGORIES, itemById, lookAt, publicLook, DEFAULT_LOADOUT, type ItemDef
 import { TIERS } from "../economy/live/config";
 import { paintFace } from "../dice3d/face-paint";
 import { DiceArea } from "../DiceArea";
-import { PlayerTag } from "../play/Looks";
+import { boardTheme, PlayerTag } from "../play/Looks";
 import { FxBurst, GLYPH } from "../play/FxBurst";
 import { socialItem } from "../social/catalog";
 import { playSfx, unlockAudio } from "../sound";
 import { DieIcon } from "../Dice";
-import { webglAvailable } from "../settings";
+import { diceRenderer, motionLevel, useSettings } from "../settings";
 
 /**
  * Item visuals for the shop and the inventory (E/F/G, 2026-11-25).
@@ -57,14 +57,15 @@ export function ItemThumb({ item, level = 1 }: { item: ItemDef; level?: number }
   const look = lookAt(item, level);
   let body: React.ReactNode = null;
   if (item.category === "dice") body = inView ? <DiceFace item={item} level={level} /> : null;
-  else if (item.category === "board")
+  else if (item.category === "board") {
+    const theme = boardTheme(item, level, false);
     body = (
-      <span className={"board-sample board-themed " + (look.css ?? "")} style={{ ["--board-color" as string]: look.board || "var(--table)", background: look.board || undefined }}>
+      <span className={"board-sample" + theme.className} style={theme.style}>
         <DieIcon value={5} />
         <DieIcon value={3} />
       </span>
     );
-  else if (item.category === "emote") body = <span className={`emote-sample emote-lv${level}`}>{look.text}</span>;
+  } else if (item.category === "emote") body = <span className={`emote-sample emote-lv${level}`}>{look.text}</span>;
   else if (item.category === "chat") body = <span className="feed-msg chat sample">{look.text}</span>;
   else if (item.category === "bubble")
     body = (
@@ -115,19 +116,20 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
   const [replay, setReplay] = useState(0);
   const roll = () => {
     unlockAudio();
-    setDice(randomDice());
+    setDice((previous) => randomDice().map((die, index) => previous[index].held ? previous[index] : die));
     setRolls((r) => Math.min(3, r + 1));
     setRollEvent((n) => n + 1);
   };
   const state = { dice, order: [0, 1, 2, 3, 4], rolls: Math.max(1, rolls) };
   // The real 3D table when the device can draw it (the same renderer and painter as in a match).
-  const renderer = webglAvailable() ? "3d" : "2.5d";
+  const settings = useSettings();
+  const renderer = diceRenderer(settings);
   if (item.category === "dice" || item.category === "board") {
-    const boardLook = item.category === "board" ? look : {};
+    const theme = item.category === "board" ? boardTheme(item, level, motionLevel(settings) === "full") : { className: "" };
     return (
       <div className="item-stage">
-        <section className={"game-board throw-tray stage-board" + (boardLook.board ? " board-themed" : "") + (boardLook.css ? " " + boardLook.css : "")} style={boardLook.board ? ({ "--board-color": boardLook.board } as React.CSSProperties) : undefined} aria-label="미리보기 보드">
-          <DiceArea state={state} forceRenderer={renderer} colors={item.category === "dice" ? (look.dice ?? null) : null} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} />
+        <section className={"game-board throw-tray stage-board" + theme.className} style={theme.style} aria-label="미리보기 보드">
+          <DiceArea state={state} forceRenderer={renderer} colors={item.category === "dice" ? (look.dice ?? null) : null} interactive animate rollEvent={rollEvent} onToggle={(id) => setDice((previous) => previous.map((die) => die.id === id ? { ...die, held: !die.held } : die))} />
         </section>
         <button type="button" className="primary stage-action" onClick={roll}>
           <Dices size={17} /> 굴려 보기

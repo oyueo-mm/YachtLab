@@ -220,3 +220,24 @@ test("설치 팝업은 긴 회원 닉네임과 잔액이 있는 320~430px 홈을
     await page.evaluate(() => localStorage.removeItem("yachtlab.install-dismissed.v1"));
   }
 });
+
+test("보드 미리보기는 실제 굴림 면에 소재가 적용되고 킵한 눈을 유지한다", async ({ page }) => {
+  const account = await open(page, "shop");
+  await page.getByRole("tab", { name: /^보드판/ }).click();
+  await page.getByRole("button", { name: "오로라 자세히" }).click();
+  const dialog = page.getByRole("dialog", { name: "오로라 상세" });
+  const board = dialog.getByRole("region", { name: "미리보기 보드" });
+  await expect(board).toHaveClass(/bd-aurora/);
+  await dialog.getByRole("tab", { name: "Lv.3" }).click();
+  await expect(board).toHaveClass(/bd-aurora bd-lv3 bd-static/);
+  const tray = board.locator(".dice-row");
+  await expect(tray).toHaveCSS("background-image", /radial-gradient/);
+  await dialog.getByRole("button", { name: "굴려 보기" }).click();
+  const die = board.getByRole("button", { name: /^주사위 1,/ });
+  await die.click();
+  await expect(die).toHaveAttribute("aria-pressed", "true");
+  const kept = await die.getAttribute("aria-label");
+  await dialog.getByRole("button", { name: "굴려 보기" }).click();
+  await expect(die).toHaveAttribute("aria-label", kept!);
+  expect(account.requests).toHaveLength(0);
+});

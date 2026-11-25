@@ -29,7 +29,7 @@ import type { LobbyState, RematchState, SeriesSummary, SpectateState } from "../
 import { LobbyPanel, MultiTable } from "./OnlineMulti";
 import { SpectateControl } from "./Social";
 import { SocialDock, TableFeed, useTableChat } from "./SocialDock";
-import { PlayerTag, boardCssOf, boardOf, diceLookOf } from "./Looks";
+import { PlayerTag, useBoardTheme, diceLookOf } from "./Looks";
 import { GUEST_LOOK, itemById, type PublicLook } from "../economy/live/catalog";
 import type { FxLook } from "../economy/live/content-items";
 import { FxBurst } from "./FxBurst";
@@ -334,6 +334,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const me = view?.you ?? null;
   const players = view?.players ?? [];
   const myLook = (me && looks[me.playerId]) || GUEST_LOOK;
+  const theme = useBoardTheme(myLook);
   const nameMap = Object.fromEntries(players.map((p) => [p.playerId, p.name]));
   const say = (id: string) => conn.current?.say(id) ?? false;
   const feed = <TableFeed chat={chat} names={nameMap} looks={looks} me={me?.playerId ?? null} />;
@@ -651,8 +652,8 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           </div>
           {banner}
           <section
-            className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (canRoll && nearYacht(game.dice, rolls, players[meIndex]?.card) ? " yacht-near" : "") + (boardOf(myLook) ? " board-themed" : "") + (boardCssOf(myLook) ? " " + boardCssOf(myLook) : "")}
-            style={boardOf(myLook) ? ({ "--board-color": boardOf(myLook) } as React.CSSProperties) : undefined}
+            className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (canRoll && nearYacht(game.dice, rolls, players[meIndex]?.card) ? " yacht-near" : "") + theme.className}
+            style={theme.style}
             aria-label="게임 보드"
             {...gesture}
           >
