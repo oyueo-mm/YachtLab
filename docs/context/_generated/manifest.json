@@ -112,6 +112,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "9f297f3",
+      "date": "2026-11-25",
+      "subject": "Merge pull request #74 from oyueo-mm/codex/ux-rollout-docs"
+    },
+    {
+      "sha": "38d4fc7",
+      "date": "2026-11-25",
+      "subject": "docs(context): record onboarding rollout and Worker compatibility"
+    },
+    {
       "sha": "ca1c894",
       "date": "2026-11-25",
       "subject": "Merge pull request #71 from oyueo-mm/codex/ux-followup"
@@ -150,19 +160,21 @@
       "sha": "9a2fe20",
       "date": "2026-11-25",
       "subject": "test(rewards): provision the guest seat before checking settlement"
-    },
-    {
-      "sha": "c0a93d9",
-      "date": "2026-11-25",
-      "subject": "docs(context): record offline checks for all game difficulties"
-    },
-    {
-      "sha": "8eacdca",
-      "date": "2026-11-25",
-      "subject": "Merge remote-tracking branch 'origin/main' into codex/ux-followup"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "38d4fc70fa",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45568286683"
+    },
+    {
+      "name": "YachtLab Online live check (manual)",
+      "status": "success",
+      "head": "7a4fe605a5",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45567970811"
+    },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
       "status": "success",
@@ -176,16 +188,10 @@
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45564029822"
     },
     {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "642aac0220",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45564029603"
-    },
-    {
       "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
       "status": "success",
-      "head": "99df523d01",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45558460538"
+      "head": "96b0025dff",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45558614547"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
