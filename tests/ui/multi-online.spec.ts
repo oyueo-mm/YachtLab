@@ -106,7 +106,7 @@ test("4인 동시 진행: 방 인원 설정 → 초대 링크 입장 → 준비 
   await expect(guests[2].getByText(/방에서 나왔어요|다시 들어갈 수 없어요/)).toBeVisible({ timeout: 10_000 });
 });
 
-test("2인 방은 기존 1:1 화면 그대로(준비 없이 시작)", async ({ browser }, testInfo) => {
+test("2인 방은 준비 없이 시작하고 1:1 점수판과 채팅 프로필을 표시한다", async ({ browser }, testInfo) => {
   test.skip(testInfo.project.name === "mobile", "두 기기를 한 테스트에서 직접 만든다");
   const a = await device(browser, false);
   await a.goto(entry());
@@ -122,8 +122,11 @@ test("2인 방은 기존 1:1 화면 그대로(준비 없이 시작)", async ({ b
   await expect(b.getByText("방장이 게임을 시작하면 바로 시작돼요.")).toBeVisible();
   await a.getByRole("button", { name: "게임 시작" }).click();
   await expect(a.locator(".turn-indicator")).toContainText("나의 차례");
-  // the 1:1 layout: on PC the score sheet carries the scores, round and whose turn it is (no top summary)
-  await expect(a.locator(".score-summary")).toBeHidden();
+  // The player tags anchor received messages. Scores and round stay in the one desktop score sheet.
+  await expect(a.locator(".score-summary .social-seat")).toHaveCount(2);
+  await expect(a.locator(".score-summary .social-seat").first()).toContainText("민수");
+  await expect(a.locator(".score-summary > .round")).toBeHidden();
+  await expect(a.locator(".score-summary .social-seat > strong").first()).toBeHidden();
   await expect(a.locator(".scoreboard .score-round")).toHaveText("1 / 12 라운드");
   await expect(a.locator(".scoreboard thead th.current .turn-badge")).toHaveText("차례");
   await expect(a.getByRole("region", { name: "실시간 순위" })).toHaveCount(0);
