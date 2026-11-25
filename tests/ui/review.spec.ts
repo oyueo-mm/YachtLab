@@ -41,8 +41,21 @@ test("저장된 1:1 기보의 Worker 복기에서 그래프와 복습을 선택�
     });
   }, replay);
   await page.getByRole("button", { name: "새로고침" }).click();
+  const blocked = Promise.withResolvers<void>();
+  const requested = Promise.withResolvers<void>();
+  const workerModule = "**/assets/review-worker-*.js";
+  await page.route(workerModule, async (route) => {
+    requested.resolve();
+    await blocked.promise;
+    await route.continue().catch(() => {});
+  });
   await page.getByRole("button", { name: "AI 복기" }).click();
   const review = page.getByRole("dialog", { name: "AI 복기" });
+  await requested.promise;
+  await review.getByRole("button", { name: "분석 취소" }).click();
+  blocked.resolve();
+  await page.unroute(workerModule);
+  await review.getByRole("button", { name: "분석 다시 시도" }).click();
   await expect(review.getByRole("group", { name: "기대점수 그래프" })).toBeVisible({ timeout: 30_000 });
   await expect(review.getByText(/결정 손실 .* 굴림 운/)).toBeVisible();
   await review.getByRole("button", { name: "이 국면 복습하기" }).click();
