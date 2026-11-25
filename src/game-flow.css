@@ -510,6 +510,14 @@
   background: #fff3ef;
   box-shadow: 0 1px 0 #5c241121;
 }
+.mobile-recorded-score {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .score-recorded-label {
   display: inline-block;
   margin-left: 3px;

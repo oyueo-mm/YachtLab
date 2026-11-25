@@ -38,7 +38,9 @@ test("첫 실제 경기의 안내와 기록 버튼은 점수를 기록하면 사
     await page.getByRole("button", { name: "점수판 열기" }).click();
     const dialog = page.getByRole("dialog", { name: "점수판" });
     await dialog.getByRole("button", { name: "나", exact: true }).click();
-    await expect(dialog.locator('[data-category="choice"] .fixed-score')).toContainText("기록됨");
+    const recorded = dialog.locator('[data-category="choice"]');
+    await expect(recorded.locator(".fixed-score")).toHaveText(/^\d+점$/);
+    await expect(recorded.locator(".score-recorded-label")).toHaveText("기록됨");
     await expect(dialog.locator('[data-category="choice"] .score-option')).toHaveCount(0);
   } else {
     await expect(page.locator('.scoreboard [data-category="choice"] [aria-label$="점 기록됨"]').first()).toBeVisible();
