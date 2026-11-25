@@ -73,7 +73,9 @@
     "TECHNIQUES.md",
     "V31-RESEARCH.md",
     "V32-EXACT-FORECAST.md",
-    "V5-APEX-RESEARCH.md"
+    "V5-APEX-RESEARCH.md",
+    "V6-APEX-RESEARCH.md",
+    "V6-INTEGRATION-HANDOFF.md"
   ],
   "workflowFiles": [
     "algorithm-zoo.yml",
@@ -115,80 +117,68 @@
   ],
   "recentSourceCommits": [
     {
-      "sha": "5c5acbe",
+      "sha": "53e9620",
       "date": "2026-11-25",
-      "subject": "Merge pull request #78 from oyueo-mm/codex/online-review-archive"
+      "subject": "Merge PR #79: Win DP v6 research (exp-utility policy set, WASM/Rust bank builders, YPB1 codec, analysis v6)"
     },
     {
-      "sha": "f2471fd",
+      "sha": "e78a06f",
       "date": "2026-11-25",
-      "subject": "Merge pull request #77 from oyueo-mm/codex/review-release"
+      "subject": "feat(research-v6): integration helpers for Codex — bankFromWasm, YPB1 Float32/INT16 bank codec (+tests, size study), V6-INTEGRATION-HANDOFF"
     },
     {
-      "sha": "e97cfd6",
+      "sha": "837e305",
       "date": "2026-11-25",
-      "subject": "fix(review): prioritize the play position on narrow screens"
+      "subject": "docs(v6): H3 and auxiliary confirmation (v6-P vs DP Expert 51.263%), Holm decisions, RESULTS entry"
     },
     {
-      "sha": "73943e3",
+      "sha": "a5eea74",
       "date": "2026-11-25",
-      "subject": "Merge pull request #76 from oyueo-mm/codex/field-feedback"
+      "subject": "docs(v6): confirmation 9511/9512 results — v6-P beats v5-R head-to-head (50.131%, 50.209%), H2 vs v2 not confirmed; dev 9012 (v6-C/v6-D no gain); correct conclusions across context docs"
     },
     {
-      "sha": "11998c4",
+      "sha": "24f1ddb",
       "date": "2026-11-25",
-      "subject": "Merge branch 'codex/field-feedback' into codex/online-review-archive"
+      "subject": "research(v6): MLP-1024 PMF distillation results (3.2% material disagreement)"
     },
     {
-      "sha": "2bb87af",
+      "sha": "162e10c",
       "date": "2026-11-25",
-      "subject": "feat(review): archive authenticated online reviews with settlement"
+      "subject": "research(v6): PMF distillation and hybrid decision-study raw results"
     },
     {
-      "sha": "cc67ae3",
+      "sha": "152f6c4",
       "date": "2026-11-25",
-      "subject": "test(review): defer the worker with ES2022 promises"
+      "subject": "docs(v6): recommendations and limitations"
     },
     {
-      "sha": "7ecffed",
+      "sha": "a824296",
       "date": "2026-11-25",
-      "subject": "test(review): cancel and retry a blocked analysis worker"
+      "subject": "docs(v6): research report draft (implementation, value accuracy, execution optimisation, analysis-v6 contract, 70-technique status), shared context updates, D-V6-1"
     },
     {
-      "sha": "e10d402",
+      "sha": "098aaa7",
       "date": "2026-11-25",
-      "subject": "feat(review): use bounded v5 endgame analysis and document metrics"
+      "subject": "research(v6): Rust PMF bank builder (bit-identical to TS bank, 3.5 s), analysis-v6 example payloads"
     },
     {
-      "sha": "b25e402",
+      "sha": "c8a3bd3",
       "date": "2026-11-25",
-      "subject": "feat(review): analyze completed two-player games in a browser worker"
+      "subject": "research(v6): dev-9011 selection recorded before confirmation (no v6 candidate beat v5-R on dev; confirm v6-P as pre-registered); v6-D/v6-Dd expanded Bayesian filter over exp-utility hypotheses"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
       "status": "success",
-      "head": "1d6fa91f06",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45601878114"
-    },
-    {
-      "name": "Deploy YachtLab Online Worker (manual)",
-      "status": "success",
-      "head": "e97cfd6d3e",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45590646884"
+      "head": "e78a06f97b",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45612958326"
     },
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "f2471fd437",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45589713643"
-    },
-    {
-      "name": "YachtLab gameplay UI targeted smoke",
-      "status": "success",
-      "head": "e97cfd6d3e",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45586744966"
+      "head": "e78a06f97b",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45612958175"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
