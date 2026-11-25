@@ -1,3 +1,4 @@
+import { MatchRewardSummary } from "../shell/MatchRewards";
 import { MatchResult } from "../ui/MatchResult";
 import ReviewLauncher from "../review/ReviewLauncher";
 import { rememberOnlineReview } from "../review/online-history";
@@ -585,6 +586,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           }
           status={status}
           review={reviewButton}
+          reward={finished && <MatchRewardSummary key={view.matchId} server={server} matchId={view.matchId} />}
           tools={toolGroups}
           banner={banner}
           dice={game.dice}
@@ -716,6 +718,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
                   </p>
                 )}
                 <MatchMilestones {...milestones} />
+                <MatchRewardSummary key={view.matchId} server={server} matchId={view.matchId} />
               </MatchResult>
             )}
           </section>

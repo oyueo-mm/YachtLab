@@ -188,6 +188,7 @@ export function MultiTable(p: {
   status: "connecting" | "online" | "reconnecting" | "closed";
   tools: React.ReactNode;
   review?: React.ReactNode;
+  reward?: React.ReactNode;
   banner: React.ReactNode;
   dice: { id: number; value: number; held: boolean }[];
   keep: number[];
@@ -275,6 +276,7 @@ export function MultiTable(p: {
                 )}
               </ol>
               <MatchMilestones {...p.milestones} />
+              {p.reward}
             </MatchResult>
           )}
         </section>
