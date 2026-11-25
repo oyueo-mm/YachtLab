@@ -6,6 +6,8 @@ export const metrics = {
   win: { label: "승리점수율", unit: "%", value: (row: Assessment) => row.actual.winCredit === undefined ? undefined : row.actual.winCredit * 100 },
   score: { label: "기대 최종점수", unit: "점", value: (row: Assessment) => row.actual.expected },
   loss: { label: "행동별 가치 손실", unit: "점", value: (row: Assessment) => row.loss },
+  winLoss: { label: "행동별 승리 가능성 손실", unit: "%p", value: winLoss },
+  winLuck: { label: "승리점수율 기준 주사위 운", unit: "%p", value: (row: Assessment) => row.winLuck === undefined ? undefined : 100 * row.winLuck },
   luck: { label: "주사위 운", unit: "점", value: (row: Assessment) => row.luck },
 };
 export type Metric = keyof typeof metrics;
