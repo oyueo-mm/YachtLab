@@ -1,0 +1,86 @@
+name: YachtLab Win DP v5 research (exact PMF + interactive endgame)
+# Research-only workflow. Never deploys, never touches product code paths.
+on:
+  pull_request:
+    paths:
+      - src/research-v5/**
+      - scripts/research-v5/**
+      - training/v5-native/**
+      - tests/research-v5.test.ts
+      - .github/workflows/v5-apex-research.yml
+  push:
+    branches: [ccr-4b6d4930-6rem08]
+    paths:
+      - src/research-v5/**
+      - scripts/research-v5/**
+      - training/v5-native/**
+      - tests/research-v5.test.ts
+      - .github/workflows/v5-apex-research.yml
+  workflow_dispatch:
+    inputs:
+      family:
+        description: "seed family (9001-9099 dev, 9501-9599 confirm)"
+        default: "9502"
+      pairs:
+        description: "seed pairs per shard"
+        default: "2500"
+      matches:
+        description: "space separated a:b matchups"
+        default: "v5-B3:v2 v5-B3:v3"
+permissions:
+  contents: read
+concurrency:
+  group: yachtlab-v5-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: v5 unit tests (PMF mass/mean, solver cross-checks, RNG invariance, analysis API)
+        run: npx vitest run tests/research-v5.test.ts
+      - name: Native C++ bank build and TypeScript cross-check
+        run: |
+          g++ -O3 -std=c++17 training/v5-native/pmf_bank.cpp -o pmf_bank
+          node -e 'const z=require("zlib"),f=require("fs");const m=require("./src/dp-manifest.json");f.writeFileSync("dp.f64",z.gunzipSync(f.readFileSync("public/ai/"+m.asset)))'
+          /usr/bin/time -v ./pmf_bank dp.f64 native.f64bank 2>&1 | tee native.log
+          npx tsx scripts/research-v5/bench.ts --a v5-B3 --b v2 --family 9099 --shard 0 --pairs 30 --out smoke
+          npx tsx scripts/research-v5/compare-banks.ts training/checkpoints/v5/dp-expert-pmf.f64bank native.f64bank | tee compare.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v5-validate
+          path: |
+            native.log
+            compare.json
+            smoke/
+  tournament:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Paired seat-swapped tournament shard
+        run: |
+          for m in ${{ github.event.inputs.matches }}; do
+            npx tsx scripts/research-v5/bench.ts --a ${m%%:*} --b ${m##*:} --family ${{ github.event.inputs.family }} --shard ${{ matrix.shard }} --pairs ${{ github.event.inputs.pairs }} --out out
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v5-tournament-${{ matrix.shard }}
+          path: out/
