@@ -5,13 +5,16 @@
 // exploitability. This is NOT the full-game Nash equilibrium or full-game exploitability.
 //   npx tsx scripts/research-v5/metagame.ts summary1.json [summary2.json ...]
 import { readFileSync } from "node:fs";
-const rows = process.argv.slice(2).flatMap((f) => JSON.parse(readFileSync(f, "utf8")).rows as { a: string; b: string; winCredit: number; games: number }[]);
-const names = [...new Set(rows.flatMap((r) => [r.a, r.b]))].sort();
+const subsetArg = process.argv.find((a) => a.startsWith("--subset="));
+const subset = subsetArg ? new Set(subsetArg.slice(9).split(",")) : null;
+const rows = process.argv.slice(2).filter((a) => !a.startsWith("--")).flatMap((f) => JSON.parse(readFileSync(f, "utf8")).rows as { a: string; b: string; winCredit: number; games: number }[]);
+const names = [...new Set(rows.flatMap((r) => [r.a, r.b]))].filter((x) => !subset || subset.has(x)).sort();
 const n = names.length, M = names.map(() => names.map(() => NaN));
 const games = names.map(() => names.map(() => 0));
 for (let i = 0; i < n; i++) M[i][i] = 0.5;
 for (const r of rows) {
   const i = names.indexOf(r.a), j = names.indexOf(r.b);
+  if (i < 0 || j < 0) continue;
   // pool multiple measurements weighted by games
   const prev = games[i][j];
   M[i][j] = prev ? (M[i][j] * prev + r.winCredit * r.games) / (prev + r.games) : r.winCredit;

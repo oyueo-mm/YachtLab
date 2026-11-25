@@ -29,6 +29,7 @@ on:
         default: "v5-B3:v2 v5-B3:v3"
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: yachtlab-v5-${{ github.ref }}
   cancel-in-progress: true
@@ -117,3 +118,43 @@ jobs:
         with:
           name: v5-confirm-9501-${{ matrix.shard }}
           path: out/
+  aggregate:
+    # Aggregates the artifacts of a finished confirmation run (id in scripts/research-v5/aggregate-run.txt)
+    # into the final tables, printed to the log and uploaded. Runs when the commit message contains [v5-aggregate].
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[v5-aggregate]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - id: run
+        run: echo "id=$(tr -d ' \n' < scripts/research-v5/aggregate-run.txt)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ steps.run.outputs.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: v5-confirm-9501-*
+          merge-multiple: true
+          path: confirm-9501
+      - name: Final confirmation tables
+        run: |
+          ls confirm-9501 | wc -l
+          npx tsx scripts/research-v5/summarize.ts confirm-9501 --md confirm-9501.md --json confirm-9501.json \
+            --contrast "v5-B3:v5-R,v5-A:v5-R,v5-X3:v5-R,v5-B3:v5-A,v5-R:v3,v5-B3:v3,v5-D:v5-R,v5-B3:v5-X3" > /dev/null
+          npx tsx scripts/research-v5/metagame.ts confirm-9501.json --subset=v5-R,v3,v2,dp > metagame.json || true
+          echo "=====V5_FINAL_BEGIN====="
+          cat confirm-9501.md
+          node -e 'const m=require("./metagame.json");console.log(JSON.stringify({mixture:m.mixture,restrictedExploitability:m.restrictedExploitability,error:m.error,missing:m.missing}))'
+          node -e 'const s=require("./confirm-9501.json");for(const r of s.rows)console.log("LAT",r.a,"vs",r.b,JSON.stringify({meanMs:+r.latencyA.meanMs.toFixed(4),p50:+r.latencyA.p50.toFixed(4),p95:+r.latencyA.p95.toFixed(4),p99:+r.latencyA.p99.toFixed(4),max:+r.latencyA.maxMs.toFixed(2),dpDiff:+r.latencyA.diffFromDPRate.toFixed(5),vrf:+r.varianceReductionFactor.toFixed(2),cpu:+r.cpuSeconds.toFixed(0),bMs:+r.latencyB.meanMs.toFixed(4),bP99:+r.latencyB.p99.toFixed(3)}))'
+          echo "=====V5_FINAL_END====="
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v5-confirm-9501-final
+          path: |
+            confirm-9501.md
+            confirm-9501.json
+            metagame.json
