@@ -1,3 +1,4 @@
+import { returningVisitorState } from "./visitor";
 import { expect, test, devices, type Browser, type BrowserContext } from "@playwright/test";
 import { startLocalWorker, type LocalWorker } from "../helpers/wrangler";
 import { fakeLogin, startFakeIdp, type FakeIdp } from "../helpers/fake-idp";
@@ -28,7 +29,7 @@ const at = (hash: string) => `?online-server=${encodeURIComponent(worker.url)}#$
 async function member(browser: Browser, sub: string, nickname: string, phone = false) {
   const session = await fakeLogin(worker.url, idp, sub, ORIGIN);
   await fetch(worker.url + "/api/me/nickname", { method: "POST", headers: { origin: ORIGIN, "content-type": "application/json", authorization: "Bearer " + session }, body: JSON.stringify({ nickname }) });
-  const ctx = await browser.newContext({ ...(phone ? devices["Pixel 7"] : { viewport: { width: 1280, height: 900 } }), baseURL: ORIGIN + "/YachtLab/", reducedMotion: "reduce" });
+  const ctx = await browser.newContext({ storageState: returningVisitorState(), ...(phone ? devices["Pixel 7"] : { viewport: { width: 1280, height: 900 } }), baseURL: ORIGIN + "/YachtLab/", reducedMotion: "reduce" });
   await ctx.addInitScript((s) => localStorage.setItem("yachtlab.session.v1", s), session);
   contexts.push(ctx);
   return ctx.newPage();
@@ -99,7 +100,7 @@ test("친구: 코드로 요청 → 홈 알림 → 수락 → 접속 상태 → �
 
 test("게스트는 친구 메뉴에서 로그인 안내를 본다(초대 코드·링크 참여는 그대로)", async ({ browser }, testInfo) => {
   test.skip(testInfo.project.name === "mobile", "한 기기만 쓴다");
-  const ctx = await browser.newContext({ baseURL: ORIGIN + "/YachtLab/" });
+  const ctx = await browser.newContext({ storageState: returningVisitorState(), baseURL: ORIGIN + "/YachtLab/" });
   contexts.push(ctx);
   const p = await ctx.newPage();
   await p.goto(at("friends"));

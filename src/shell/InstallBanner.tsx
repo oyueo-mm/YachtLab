@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Download, Share2, X } from "lucide-react";
 import "./install-banner.css";
 
@@ -68,11 +69,12 @@ export default function InstallBanner({ active }: { active: boolean }) {
   };
 
   if (!active || dismissed || installed || (!offer && !iOS)) return null;
-  return (
+  return createPortal(
     <aside className="install-banner" aria-label="앱 설치">
+      <img src={`${import.meta.env.BASE_URL}icons/app-192.png`} alt="" width={32} height={32} />
       <div>
-        <strong>홈 화면에서 YachtLab 열기</strong>
-        {instructions && <p>Safari에서 공유 버튼을 누르고 ‘홈 화면에 추가’를 선택하세요.</p>}
+        <strong>YachtLab 설치</strong>
+        <p>{instructions ? "Safari의 공유 메뉴에서 ‘홈 화면에 추가’를 선택하세요." : "홈 화면에서 바로 열어요."}</p>
       </div>
       {offer ? (
         <button type="button" className="secondary" onClick={() => void install()}><Download size={16} aria-hidden="true" /> 설치</button>
@@ -80,6 +82,6 @@ export default function InstallBanner({ active }: { active: boolean }) {
         <button type="button" className="secondary" aria-expanded={instructions} onClick={() => setInstructions(!instructions)}><Share2 size={16} aria-hidden="true" /> 추가 방법</button>
       )}
       <button type="button" className="icon-button" aria-label="설치 안내 닫기" onClick={dismiss}><X size={18} aria-hidden="true" /></button>
-    </aside>
+    </aside>, document.body
   );
 }

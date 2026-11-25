@@ -1,3 +1,4 @@
+import { returningVisitorState } from "./visitor";
 import { nick } from "./helpers";
 import { expect, test, devices, type Browser, type Page } from "@playwright/test";
 import { startLocalWorker, type LocalWorker } from "../helpers/wrangler";
@@ -23,7 +24,7 @@ test.afterAll(async () => {
 });
 const entry = () => `?online-server=${encodeURIComponent(worker.url)}#online`;
 async function device(browser: Browser, kind: "desktop" | "phone", width = 1280) {
-  const ctx = await browser.newContext({ ...(kind === "phone" ? devices["Pixel 7"] : { viewport: { width, height: 900 } }), baseURL: "http://127.0.0.1:5173/YachtLab/", reducedMotion: "reduce" });
+  const ctx = await browser.newContext({ storageState: returningVisitorState(), ...(kind === "phone" ? devices["Pixel 7"] : { viewport: { width, height: 900 } }), baseURL: "http://127.0.0.1:5173/YachtLab/", reducedMotion: "reduce" });
   contexts.push(ctx);
   return ctx.newPage();
 }

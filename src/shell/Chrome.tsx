@@ -184,6 +184,7 @@ export function SettingsDialog({ open, onClose, navigate, inGame = false }: { op
           <button type="button" className="settings-link" onClick={() => go("records")}>
             <History size={17} /> 내 기록
           </button>
+          <button type="button" className="settings-link" onClick={() => go("tutorial")}>튜토리얼</button>
           <button type="button" className="settings-link" onClick={() => go("lab")}>
             <FlaskConical size={17} /> 연구실 <small>고급 기능</small>
           </button>
@@ -195,7 +196,7 @@ export function SettingsDialog({ open, onClose, navigate, inGame = false }: { op
   );
 }
 
-const mobileDestinations: Route[] = ["home", "online", "offline", "profile", "friends", "quests", "shop", "inventory", "achievements", "records"];
+const mobileDestinations: Route[] = ["home", "online", "offline", "profile", "friends", "quests", "shop", "inventory", "achievements", "records", "tutorial"];
 
 function MobileMenu({ route, navigate }: { route: Route; navigate: (r: Route) => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -239,7 +240,7 @@ export function TopBar({ route, navigate, openSettings }: { route: Route; naviga
   const info = routes[route];
   const home = route === "home";
   return (
-    <header className={`shell-top shell-top-${info.shell}`}>
+    <header className={`shell-top shell-top-${info.shell}`} inert={route === "tutorial"}>
       <div className="shell-top-left">
         {info.shell !== "game" && <MobileMenu route={route} navigate={navigate} />}
         {home ? (

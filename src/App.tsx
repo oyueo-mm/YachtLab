@@ -6,6 +6,7 @@ import { type Replay } from "./replay";
 import LocalGame from "./LocalGame";
 import MyGames from "./MyGames";
 import Tutorial from "./play/Tutorial";
+import { firstTutorialVisit, registerVisit } from "./play/tutorial-progress";
 import HumanGame from "./play/HumanGame";
 import OnlineEntry from "./play/OnlineEntry";
 import OnlineGame from "./play/OnlineGame";
@@ -39,7 +40,9 @@ const localConfig = (): LocalConfig => {
 };
 
 export default function App() {
-  const [page, setPage] = useState<Route>(currentRoute),
+  const [tutorialReturn] = useState(() => firstTutorialVisit() && !location.hash.startsWith("#login") ? currentRoute() : null);
+  const tutorialDestination = useRef(tutorialReturn);
+  const [page, setPage] = useState<Route>(tutorialReturn ? "tutorial" : currentRoute()),
     [replay, setReplay] = useState<Match | null>(null),
     [settingsOpen, setSettingsOpen] = useState(false);
   const [arenaSource, setArenaSource] = useState<{ replay: Replay; index: number } | null>(null),
@@ -57,6 +60,7 @@ export default function App() {
   const [onlineNotice, setOnlineNotice] = useState("");
   const [watchTarget] = useState(watchFromUrl);
   const [profileNotice, setProfileNotice] = useState("");
+  useEffect(() => registerVisit(tutorialReturn !== null), [tutorialReturn]);
   // Members: friend requests and room invites (checked once a minute while the site is visible).
   useEffect(() => startInbox(onlineServer), [onlineServer]);
   // …and right away when the home menu or the friends page opens (badge / invites without waiting).
@@ -97,6 +101,7 @@ export default function App() {
       else setLocal(localConfig());
       setGameKey((k) => k + 1);
     }
+    if (p !== "tutorial") tutorialDestination.current = null;
     pageRef.current = p;
     setPage(p);
   };
@@ -179,7 +184,7 @@ export default function App() {
       {shell === "lab" && <LabNav route={page} navigate={navigate} />}
       <main className={`main page-${page}`}>
         {/* Friend invites on any page except during a running game (not to interrupt play). */}
-        {!(page === "online-room" && inProgress.current) && page !== "play" && page !== "pvp" && (
+        {page !== "tutorial" && !(page === "online-room" && inProgress.current) && page !== "play" && page !== "pvp" && (
           <InviteToasts
             server={onlineServer}
             onJoined={(code) => {
@@ -204,7 +209,11 @@ export default function App() {
           consume={() => setPendingReward(null)}
         />}
         {page === "home" && <Lobby navigate={navigate} server={onlineServer} />}
-        {page === "tutorial" && <Tutorial onHome={() => navigate("home")} />}
+        {page === "tutorial" && <Tutorial returning={!!tutorialDestination.current && tutorialDestination.current !== "home"} onExit={() => {
+          if (tutorialDestination.current === "tutorial") go("home");
+          else if (tutorialDestination.current) enter(tutorialDestination.current);
+          else go("home");
+        }} />}
         {page === "offline" && <OfflineSelect navigate={navigate} />}
         {(page === "online" || page === "online-room") && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "online" && onlineServer && (

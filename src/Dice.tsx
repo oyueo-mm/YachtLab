@@ -236,6 +236,7 @@ function SortableDie({
 export function Dice({
   state,
   interactive = false,
+  focusDie,
   animate = false,
   rollEvent = 0,
   onToggle,
@@ -249,6 +250,7 @@ export function Dice({
   /** Dice lab only: compare renderers regardless of the saved setting. */
   forceRenderer?: DiceRenderer;
   interactive?: boolean;
+  focusDie?: number;
   animate?: boolean;
   rollEvent?: number;
   onToggle?: (id: number) => void;
@@ -474,7 +476,7 @@ export function Dice({
               <SortableDie
                 key={id}
                 {...die}
-                disabled={!interactive || !state.rolls}
+                disabled={!interactive || !state.rolls || (focusDie !== undefined && focusDie !== id)}
                 sortable={!!onOrder}
                 toggle={() => onToggle?.(id)}
                 rolled={state.rolls > 0}

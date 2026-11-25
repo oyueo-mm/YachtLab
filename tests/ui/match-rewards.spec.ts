@@ -1,3 +1,4 @@
+import { returningVisitorState } from "./visitor";
 import { expect, test } from "@playwright/test";
 import { startOnlineServer } from "../../server/online/server";
 import { nick } from "./helpers";
@@ -5,7 +6,7 @@ import { nick } from "./helpers";
 test("경기 후 홈에서 서버 보상 진행률을 확인하고 닫을 때까지 지급 API를 호출하지 않는다", async ({ browser, baseURL, page }) => {
   const origin = new URL(baseURL!).origin;
   const server = await startOnlineServer({ port: 0, dataDir: null, allowedOrigins: [origin], turnTimeoutMs: null });
-  const guestContext = await browser.newContext({ baseURL, reducedMotion: "reduce" });
+  const guestContext = await browser.newContext({ storageState: returningVisitorState(), baseURL, reducedMotion: "reduce" });
   try {
     const guest = await guestContext.newPage();
     const entry = `?online-server=${encodeURIComponent(server.url)}`;
@@ -50,6 +51,20 @@ test("경기 후 홈에서 서버 보상 진행률을 확인하고 닫을 때까
     });
     await guest.getByRole("button", { name: "기권", exact: true }).click();
     await guest.getByRole("dialog").getByRole("button", { name: "기권", exact: true }).click();
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.evaluate(() => {
+      const widths = new Set<string>();
+      const observer = new MutationObserver(() => {
+        const meter = document.querySelector<HTMLElement>(".match-reward-progress i");
+        if (!meter) return;
+        widths.add(meter.style.width);
+        if (meter.style.width === "100%") {
+          document.body.dataset.rewardWidths = String(widths.size);
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+    });
     await page.getByRole("button", { name: "로비로" }).click();
     const earned = page.getByRole("region", { name: "이번 경기 보상" });
     await expect(earned).toContainText("+37코인");
@@ -58,6 +73,8 @@ test("경기 후 홈에서 서버 보상 진행률을 확인하고 닫을 때까
     await expect(earned).toContainText("2 → 3/3");
     await expect(earned).toContainText("일일 퀘스트 모두 완료");
     await expect(earned).toContainText("업적 · 첫 승리");
+    await expect(earned.locator(".match-reward-wallet [aria-hidden=true]").last()).toHaveText("237코인 · 21보석");
+    await expect.poll(async () => Number(await page.locator("body").getAttribute("data-reward-widths"))).toBeGreaterThan(2);
     await earned.getByRole("button", { name: "보상 알림 닫기" }).click();
     await expect(earned).toHaveCount(0);
     expect(rewardMethods.length).toBeGreaterThan(0);

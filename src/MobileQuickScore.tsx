@@ -17,6 +17,7 @@ export default function MobileQuickScore({
   labels,
   canScore,
   onScore,
+  onlyCategory,
 }: {
   cards: readonly Card[];
   dice: readonly Die[];
@@ -25,6 +26,7 @@ export default function MobileQuickScore({
   labels: string[];
   canScore: boolean;
   onScore: (category: Category) => void;
+  onlyCategory?: Category;
 }) {
   const [view, setView] = useState(current);
   const [compact, setCompact] = useState(false);
@@ -57,7 +59,7 @@ export default function MobileQuickScore({
           </label>
         )}
       </div>}
-      <div className="mobile-quick-bonus">
+      {!onlyCategory && <><div className="mobile-quick-bonus">
         <span className="category-cell">
           <span>
             상단 보너스 <small>+35</small>
@@ -71,11 +73,11 @@ export default function MobileQuickScore({
         <button type="button" className="mobile-compact-toggle text-button" aria-pressed={compact} onClick={() => setCompact(!compact)}>
           두 열 보기
         </button>
-      </div>
+      </div></>}
       <div className={"mobile-quick-groups" + (compact ? " compact" : "")}>
-      {[categories.slice(0, 6), categories.slice(6)].map((group, groupIndex) => (
+      {(onlyCategory ? [[onlyCategory]] : [categories.slice(0, 6), categories.slice(6)]).map((group, groupIndex) => (
         <div className="mobile-quick-group" key={groupIndex}>
-          <div className="mobile-quick-group-title">{groupIndex === 0 ? "상단" : "하단"}</div>
+          {!onlyCategory && <div className="mobile-quick-group-title">{groupIndex === 0 ? "상단" : "하단"}</div>}
           {group.map((category) => {
             const fixed = card[category],
               available = canRecord && fixed === undefined,
@@ -84,7 +86,7 @@ export default function MobileQuickScore({
               <span className="mobile-quick-name category-cell">
                 <CategoryIcon category={category} />
                 <span>{names[category]}</span>
-                <CategoryHelp topic={category} />
+                {!onlyCategory && <CategoryHelp topic={category} />}
               </span>
             );
             return (
