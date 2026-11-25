@@ -1,3 +1,4 @@
+import type { MatchReceipt } from "../../src/economy/live/receipt";
 import { ECONOMY, SLOTS, economyDay } from "../../src/economy/live/config";
 import { DEFAULT_LOADOUT, DEFAULT_SLOTS, isDefaultItem, itemById, priceOf, publicLook, sanitizeLoadout, slotPrice, upgradeCost, validateLoadout, type Loadout, type PublicLook, type Slots } from "../../src/economy/live/catalog";
 import { applyMatch, loadEconState, rerollDaily, unlockAchievements, type EconState, type Grant, type RewardInput } from "../../src/economy/live/rewards";
@@ -39,7 +40,7 @@ export type EconomySnapshot = {
   state: Pick<EconState, "day" | "week" | "daily" | "weekly" | "dailyAll" | "weeklyAll" | "rerolls" | "rewarded" | "counters" | "achievements" | "streak">;
   ledger: LedgerRow[];
 };
-export type MatchEconomyResult = { applied: boolean; grants: Grant[]; firstToday: boolean; reason: string; wallet?: Wallet };
+export type MatchEconomyResult = { applied: boolean; grants: Grant[]; firstToday: boolean; reason: string; wallet?: Wallet; receipt: MatchReceipt };
 type Fail = { ok: false; code: string; message: string };
 
 export class EconomyStore {
@@ -162,7 +163,21 @@ export class EconomyStore {
         now,
       );
       this.grantItems(result.grants, now);
-      return { applied: true, grants: result.grants, firstToday: firstToday && result.countable, reason: result.reason, wallet: posted.wallet };
+      const questChanges = (period: "daily" | "weekly") => result.state[period].flatMap((slot) => {
+        const previous = before[period].find((quest) => quest.id === slot.id)?.progress ?? 0;
+        return slot.progress > previous ? [{ ...slot, previous }] : [];
+      });
+      const receipt: MatchReceipt = {
+        before: { coins: r.coins, gems: r.gems },
+        after: posted.wallet,
+        quests: [...questChanges("daily"), ...questChanges("weekly")],
+        grants: [
+          ...posted.applied.map(({ kind, label, coins, gems }) => ({ kind, label, coins, gems })),
+          ...result.grants.filter((grant) => grant.kind === "achievement" && !grant.coins && !grant.gems)
+            .map(({ kind, label, coins, gems }) => ({ kind, label, coins, gems })),
+        ],
+      };
+      return { applied: true, receipt, grants: result.grants, firstToday: firstToday && result.countable, reason: result.reason, wallet: posted.wallet };
     });
   }
 

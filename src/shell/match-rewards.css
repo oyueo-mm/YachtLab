@@ -1,0 +1,82 @@
+.match-rewards {
+  width: min(100%, 760px);
+  margin: 0 auto 16px;
+  padding: 12px 16px;
+  border: 1px solid #efcec8;
+  border-radius: 14px;
+  background: #fff8f5;
+  color: var(--ink);
+}
+
+.match-rewards header,
+.match-rewards h2,
+.match-reward-wallet,
+.match-reward-wallet > span,
+.match-reward-done,
+.match-reward-grants li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.match-rewards header {
+  justify-content: space-between;
+}
+
+.match-rewards h2 {
+  font-size: 16px;
+}
+
+.match-reward-wallet {
+  flex-wrap: wrap;
+  margin: 6px 0 12px;
+  color: var(--red-deep);
+  font-weight: 700;
+}
+
+.match-reward-wallet small {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.match-reward-quests,
+.match-reward-grants {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.match-reward-quests li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.match-reward-progress {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: block;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #eddcd5;
+}
+
+.match-reward-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--red);
+}
+
+.match-reward-done {
+  color: #287043;
+}
+
+.match-reward-grants {
+  margin-top: 9px;
+}

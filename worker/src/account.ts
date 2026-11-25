@@ -1,3 +1,4 @@
+import type { MatchReceipt } from "../../src/economy/live/receipt";
 import { validateNickname } from "../../src/identity/nickname";
 import type { MatchRecord, RecordSource } from "../../src/identity/records";
 import { randomToken, sha256 } from "./oidc";
@@ -146,14 +147,15 @@ export class AccountStore {
   /* ------------------------------------------------------------- records ------------------------------------------------------------- */
 
   /** A server-verified online result from a room (idempotent by matchId). */
-  recordMatch(record: MatchRecord): boolean {
+  recordMatch(record: MatchRecord, reward?: () => MatchReceipt | undefined): boolean {
     if (!this.exists() || record.source !== "server" || record.verification !== "server-verified") return false;
-    return this.insert(record);
+    return this.insert(record, reward);
   }
 
-  private insert(r: MatchRecord): boolean {
+  private insert(r: MatchRecord, reward?: () => MatchReceipt | undefined): boolean {
     const before = this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM matches WHERE record_id = ?", r.recordId).toArray()[0]?.n ?? 0;
     if (before) return false;
+    const receipt = reward?.();
     this.sql.exec(
       "INSERT OR IGNORE INTO matches (record_id, ended_at, mode, source, verification, outcome, score, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       r.recordId,
@@ -163,7 +165,7 @@ export class AccountStore {
       r.verification,
       r.outcome,
       r.score,
-      JSON.stringify(r),
+      JSON.stringify(receipt ? { ...r, reward: receipt } : r),
     );
     return true;
   }
@@ -188,6 +190,14 @@ export class AccountStore {
       .exec<{ data: string }>("SELECT data FROM matches ORDER BY ended_at DESC LIMIT ?", Math.max(1, Math.min(1000, limit)))
       .toArray()
       .map((r) => JSON.parse(r.data) as MatchRecord);
+  }
+
+  matchReward(recordId: string): { receipt: MatchReceipt | null } | null {
+    const row = this.sql.exec<{ data: string }>(
+      "SELECT data FROM matches WHERE record_id = ? AND verification = 'server-verified'",
+      recordId,
+    ).toArray()[0];
+    return row ? { receipt: (JSON.parse(row.data) as MatchRecord).reward ?? null } : null;
   }
 
   linkGuest(guestId: string, now: number) {

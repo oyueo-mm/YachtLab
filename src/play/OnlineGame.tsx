@@ -72,7 +72,7 @@ function recordOnDevice(view: PlayerView, me: string) {
   });
 }
 
-export default function OnlineGame({ server, code, onLeave, onProgress }: { server: string; code: string; onLeave: (message?: string) => void; onProgress?: (inProgress: boolean) => void }) {
+export default function OnlineGame({ server, code, onLeave, onProgress, onFinished }: { server: string; code: string; onFinished?: (matchId: string) => void; onLeave: (message?: string) => void; onProgress?: (inProgress: boolean) => void }) {
   const seat = useMemo(() => savedSeat(code), [code]);
   const [view, setView] = useState<PlayerView | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
@@ -206,7 +206,10 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           return ordered;
         });
         if (next.turn?.dice.length) lastDice.current = next.turn.dice;
-        if (next.status === "finished" && me && next.standings) recordOnDevice(next, me);
+        if (next.status === "finished" && me && next.standings) {
+          recordOnDevice(next, me);
+          if (prev?.matchId === next.matchId && prev.status === "playing") onFinished?.(next.matchId);
+        }
         viewRef.current = next;
         setView(next);
         const remainingMs = next.mode === "simultaneous" ? next.roundRemainingMs : next.turn?.remainingMs;
