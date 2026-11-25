@@ -1,13 +1,14 @@
 .app-shell .shell-top { gap: 8px; }
 .app-shell .shell-top-left { flex: 0 0 auto; gap: 5px; }
-.app-shell .shell-top-right { flex: 0 0 auto; margin-left: auto; }
+.app-shell .shell-top-right { flex: 0 1 auto; margin-left: auto; }
 .shell-top .wordmark { min-height: 44px; padding: 0 3px; background: transparent; white-space: nowrap; }
 .shell-top .shell-icon { flex: none; width: 44px; height: 44px; }
 .shell-top .shell-title { margin-left: 12px; }
-.top-wallet { display: flex; align-items: center; gap: 8px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.top-wallet { display: flex; min-width: 0; align-items: center; gap: 8px; font-size: 13px; font-variant-numeric: tabular-nums; }
 .top-wallet span { display: flex; min-width: 0; align-items: center; gap: 4px; }
 .top-wallet b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 10ch; }
-.top-profile { position: relative; }
+.top-wallet svg { flex: none; }
+.top-profile { position: relative; flex: none; }
 .top-profile-button .player-name { display: none; }
 .top-profile-button .player-icon { font-size: 19px; }
 .top-profile-panel {
@@ -73,6 +74,7 @@
 @media (max-width: 760px) {
   .shell-top .shell-title { display: none; }
   .top-wallet { gap: 2px; flex-direction: column; align-items: flex-end; font-size: 11px; }
+  .top-wallet span { max-width: 100%; }
   .top-wallet svg { width: 13px; height: 13px; }
   .top-wallet b { max-width: 7ch; }
 }

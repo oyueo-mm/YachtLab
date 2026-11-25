@@ -211,7 +211,8 @@ function Sidebar({ route, navigate, profile }: { route: Route; navigate: (r: Rou
   const close = (next?: Route) => {
     if (phase !== "open") return;
     target.current = next && next !== route ? next : null;
-    setPhase("closing");
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) finish();
+    else setPhase("closing");
   };
   const finish = () => {
     if (!dialog.current?.open) return;
