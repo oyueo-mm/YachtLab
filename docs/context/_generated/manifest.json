@@ -118,6 +118,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "1b5cdc0",
+      "date": "2026-11-25",
+      "subject": "Merge pull request #87 from oyueo-mm/codex/product-operating-record"
+    },
+    {
+      "sha": "ebf56e0",
+      "date": "2026-11-25",
+      "subject": "docs: record product rollout and browser verification [skip ci]"
+    },
+    {
       "sha": "e83ba82",
       "date": "2026-11-25",
       "subject": "Merge pull request #86 from oyueo-mm/codex/product-update"
@@ -156,30 +166,26 @@
       "sha": "1a414d4",
       "date": "2026-11-25",
       "subject": "fix: carry award summaries from match results back to the home receipt"
-    },
-    {
-      "sha": "0c979e7",
-      "date": "2026-11-25",
-      "subject": "Merge branch 'codex/v6-game-review' into codex/product-update"
-    },
-    {
-      "sha": "fbe3012",
-      "date": "2026-11-25",
-      "subject": "Merge branch 'codex/v5-r-browser' into codex/product-update"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "e83ba82669",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45632492756"
+    },
+    {
+      "name": "Competitive research benchmark",
+      "status": "success",
+      "head": "e83ba82669",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45632492725"
+    },
     {
       "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
       "status": "success",
       "head": "6735973b26",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45627900239"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "6735973b26",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45627899762"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",

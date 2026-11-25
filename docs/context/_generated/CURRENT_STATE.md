@@ -107,6 +107,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [1b5cdc0](https://github.com/oyueo-mm/YachtLab/commit/1b5cdc0) | 2026-11-25 | Merge pull request #87 from oyueo-mm/codex/product-operating-record |
+| [ebf56e0](https://github.com/oyueo-mm/YachtLab/commit/ebf56e0) | 2026-11-25 | docs: record product rollout and browser verification [skip ci] |
 | [e83ba82](https://github.com/oyueo-mm/YachtLab/commit/e83ba82) | 2026-11-25 | Merge pull request #86 from oyueo-mm/codex/product-update |
 | [6735973](https://github.com/oyueo-mm/YachtLab/commit/6735973) | 2026-11-25 | feat: preview a board's upgraded combo response directly |
 | [ecf44e8](https://github.com/oyueo-mm/YachtLab/commit/ecf44e8) | 2026-11-25 | fix: coordinate cold v5-R bank creation across browser tabs |
@@ -115,8 +117,6 @@
 | [c2a17ea](https://github.com/oyueo-mm/YachtLab/commit/c2a17ea) | 2026-11-25 | Merge branch 'codex/match-result' into codex/product-update |
 | [9489334](https://github.com/oyueo-mm/YachtLab/commit/9489334) | 2026-11-25 | fix: keep review losses comparable and label a tied duel clearly |
 | [1a414d4](https://github.com/oyueo-mm/YachtLab/commit/1a414d4) | 2026-11-25 | fix: carry award summaries from match results back to the home receipt |
-| [0c979e7](https://github.com/oyueo-mm/YachtLab/commit/0c979e7) | 2026-11-25 | Merge branch 'codex/v6-game-review' into codex/product-update |
-| [fbe3012](https://github.com/oyueo-mm/YachtLab/commit/fbe3012) | 2026-11-25 | Merge branch 'codex/v5-r-browser' into codex/product-update |
 
 ## 최근 GitHub Actions 상태
 
@@ -124,8 +124,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45632492756) | success | e83ba82669 |
+| [Competitive research benchmark](https://github.com/oyueo-mm/YachtLab/actions/runs/45632492725) | success | e83ba82669 |
 | [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45627900239) | success | 6735973b26 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45627899762) | success | 6735973b26 |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45627899634) | success | 6735973b26 |
 
 ## 다음 채팅과 작업의 시작점
