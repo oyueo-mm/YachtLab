@@ -7,6 +7,8 @@
  */
 import { SOCIAL_ITEMS, socialItem } from "../../social/catalog";
 import { MAX_LEVEL, SLOTS, TIER_PRICES, UPGRADE_COINS, type TierId } from "./config";
+import { CONTENT_ITEMS, type FxLook } from "./content-items";
+import type { DiceLook as PaintedDice } from "../../dice3d/dice-look";
 
 export type ItemCategory = "dice" | "board" | "emote" | "chat" | "bubble" | "profile" | "nameFx" | "fx" | "title";
 export const CATEGORIES: readonly { id: ItemCategory; label: string }[] = [
@@ -29,15 +31,17 @@ export const CATEGORIES: readonly { id: ItemCategory; label: string }[] = [
  *  symbolic     special symbolic purchase (coins only) — reserved, none on sale yet
  */
 export type Acquisition = "default" | "coins" | "gems" | "either" | "achievement" | "symbolic";
-export type DiceLook = { face: string; pip: string; edge: string };
+export type DiceLook = PaintedDice;
 export type ItemLook = {
   dice?: DiceLook;
   /** Board (tray) colour. */
   board?: string;
   /** Emoji / text (emote, chat, profile icon, title). */
   text?: string;
-  /** CSS modifier for bubbles, nickname effects and special effects. */
+  /** CSS modifier for boards, bubbles, profile frames, nickname effects, titles and special effects. */
   css?: string;
+  /** Special effect particles (fx items). */
+  fx?: FxLook;
 };
 export type ItemDef = {
   id: string;
@@ -52,6 +56,10 @@ export type ItemDef = {
   /** What each level adds (index 0 = Lv.1). */
   levels?: string[];
   look: ItemLook;
+  /** Look overrides for Lv.2 and Lv.3 (merged over `look`; earlier levels stay selectable). */
+  levelLooks?: Partial<ItemLook>[];
+  /** Design family for browsing (파스텔, 보석, 금속…). */
+  family?: string;
   /** Special tier sub-kind (structure only; names and final items are not decided). */
   specialKind?: "achievement" | "symbolic-purchase";
   retired?: boolean;
@@ -101,7 +109,7 @@ export const ITEMS: readonly ItemDef[] = [
   item({ id: "nameFx.rainbow", category: "nameFx", tier: "mythic", name: "무지개", acquisition: "either", maxLevel: 3, levels: ["무지개 색", "흐르는 색", "흐르는 색 + 반짝임"], look: { css: "namefx-rainbow" } }),
   // special presentation (yacht / win moments) — never touches the result
   item({ id: "fx.none", category: "fx", tier: "basic", name: "기본 연출", acquisition: "default", look: { css: "" } }),
-  item({ id: "fx.confetti", category: "fx", tier: "legendary", name: "황금 꽃가루", acquisition: "either", maxLevel: 3, levels: ["승리 꽃가루", "요트 꽃가루 추가", "전용 효과음"], look: { css: "fx-confetti" } }),
+  item({ id: "fx.confetti", category: "fx", tier: "legendary", name: "황금 꽃가루", acquisition: "either", maxLevel: 3, levels: ["승리 꽃가루", "요트 꽃가루 추가", "전용 효과음"], look: { css: "fx-confetti", fx: { shape: "confetti", colors: ["#f3d36b", "#f28c28", "#ffe9a8"], sound: "fanfare" } } }),
   // titles
   item({ id: "title.none", category: "title", tier: "basic", name: "칭호 없음", acquisition: "default", look: { text: "" } }),
   item({ id: "title.rookie", category: "title", tier: "common", name: "새내기 요트러", acquisition: "coins", look: { text: "새내기 요트러" } }),
@@ -111,7 +119,21 @@ export const ITEMS: readonly ItemDef[] = [
   item({ id: "title.300", category: "title", tier: "special", specialKind: "achievement", name: "300클럽", acquisition: "achievement", look: { text: "300클럽" } }),
   item({ id: "title.310", category: "title", tier: "special", specialKind: "achievement", name: "310클럽", acquisition: "achievement", look: { text: "310클럽" } }),
   item({ id: "title.perfect", category: "title", tier: "special", specialKind: "achievement", name: "완벽한 경기", acquisition: "achievement", look: { text: "완벽한 경기" } }),
+  // 2026-11-25 collection (H): 149 more items across the families (data in content-items.ts)
+  ...CONTENT_ITEMS.map((c) => item({ ...c, maxLevel: c.maxLevel ?? 1 } as ItemDef)),
 ];
+
+/** The look of an item at a level (Lv.2 / Lv.3 overrides merged over Lv.1; nested dice look merged too). */
+export function lookAt(item: ItemDef | null | undefined, level = 1): ItemLook {
+  if (!item) return {};
+  let look: ItemLook = { ...item.look };
+  for (let lv = 2; lv <= Math.min(level, item.maxLevel); lv++) {
+    const o = item.levelLooks?.[lv - 2];
+    if (!o) continue;
+    look = { ...look, ...o, ...(o.dice && look.dice ? { dice: { ...look.dice, ...o.dice } } : {}) };
+  }
+  return look;
+}
 
 const byId = new Map(ITEMS.map((i) => [i.id, i]));
 export const itemById = (id: unknown): ItemDef | null => (typeof id === "string" ? byId.get(id) ?? null : null);
@@ -240,9 +262,14 @@ export function sanitizeLoadout(raw: unknown, owned: Owned, slots: Slots): Loado
  */
 export type PublicLook = {
   dice: string;
+  /** Shown levels of upgradable looks (absent in looks stored before 2026-11-25 → Lv.1). */
+  diceLv?: number;
   board: string;
+  boardLv?: number;
   bubble: string;
+  bubbleLv?: number;
   profile: string;
+  profileLv?: number;
   nameFx: string;
   nameFxLv: number;
   fx: string;
@@ -261,9 +288,13 @@ export function publicLook(loadout: Loadout, owned: Owned): PublicLook {
   };
   return {
     dice: loadout.dice,
+    diceLv: lv(loadout.dice),
     board: loadout.board,
+    boardLv: lv(loadout.board),
     bubble: loadout.bubble,
+    bubbleLv: lv(loadout.bubble),
     profile: loadout.profile,
+    profileLv: lv(loadout.profile),
     nameFx: loadout.nameFx,
     nameFxLv: lv(loadout.nameFx),
     fx: loadout.fx,
@@ -293,9 +324,13 @@ export function sanitizeLook(raw: unknown): PublicLook {
   const chats = Array.isArray(r.chats) ? r.chats.filter((id): id is string => socialItem(id)?.kind === "chat").slice(0, SLOTS.chat.max) : GUEST_LOOK.chats;
   return {
     dice: pick("dice", "dice"),
+    diceLv: level(r.diceLv),
     board: pick("board", "board"),
+    boardLv: level(r.boardLv),
     bubble: pick("bubble", "bubble"),
+    bubbleLv: level(r.bubbleLv),
     profile: pick("profile", "profile"),
+    profileLv: level(r.profileLv),
     nameFx: pick("nameFx", "nameFx"),
     nameFxLv: level(r.nameFxLv),
     fx: pick("fx", "fx"),

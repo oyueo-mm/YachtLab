@@ -327,7 +327,7 @@ export default function HumanGame({
           )}
           <p className="keyboard-note sr-only">키보드로 순서 변경: 주사위에 초점을 두고 Alt + 좌우 방향키</p>
         </div>
-        <Scoreboard state={state} labels={labels} selectPlayer={humanSeat} select={can ? recordScore : undefined} previewCategory={aiPreviewCategory} />
+        <Scoreboard state={state} labels={labels} round={state.round} selectPlayer={humanSeat} select={can ? recordScore : undefined} previewCategory={aiPreviewCategory} />
       </div>
       {viewReplay && (
         <ReplayViewer

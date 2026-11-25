@@ -47,7 +47,7 @@ export type Celebration = { kind: "yacht" | "bonus"; key: number } | null;
  * Sounds (and a short visual cue) for scoring events, derived from card changes so that human
  * and AI moves are treated identically. `outcome` is the result from the local viewer's side.
  */
-export function useGameSounds(cards: readonly Card[], done: boolean, outcome: "win" | "lose" | "draw" | null, sync = 0): Celebration {
+export function useGameSounds(cards: readonly Card[], done: boolean, outcome: "win" | "winShared" | "lose" | "draw" | null, sync = 0): Celebration {
   const previous = useRef<{ cards: readonly Card[]; done: boolean; sync: number }>({ cards, done, sync });
   const [celebration, setCelebration] = useState<Celebration>(null);
   useEffect(() => {

@@ -8,7 +8,7 @@ import type { PlayerView } from "../online/server-engine";
 import type { LobbyState, RematchState } from "../online/wire";
 import { ROUND_LIMITS, TURN_LIMITS } from "../online/wire";
 import type { PublicLook } from "../economy/live/catalog";
-import { PlayerTag, diceLookOf } from "./Looks";
+import { PlayerTag, boardCssOf, boardOf, diceLookOf } from "./Looks";
 import { QuickPicks } from "../QuickPicks";
 
 type ViewPlayer = PlayerView["players"][number];
@@ -226,7 +226,11 @@ export function MultiTable(p: {
           {p.tools}
         </div>
         {p.banner}
-        <section className={"game-board throw-tray" + (p.rolls === 0 ? " dice-ready" : "")} aria-label="게임 보드">
+        <section
+          className={"game-board throw-tray" + (p.rolls === 0 ? " dice-ready" : "") + (boardOf(p.looks[p.me]) ? " board-themed" : "") + (boardCssOf(p.looks[p.me]) ? " " + boardCssOf(p.looks[p.me]) : "")}
+          style={boardOf(p.looks[p.me]) ? ({ "--board-color": boardOf(p.looks[p.me]) } as React.CSSProperties) : undefined}
+          aria-label="게임 보드"
+        >
           <div className="board-top">
             <span className="turn-indicator">
               <i />

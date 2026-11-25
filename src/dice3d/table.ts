@@ -265,22 +265,67 @@ export class DiceTable {
     this.onPose?.(id, p);
   }
 
-  private colors = CLASSIC_DICE;
+  private colors: DiceColors = CLASSIC_DICE;
   /** Dice theme of the player whose turn it is (repaints the six face textures; no physics change). */
   setColors(colors: DiceColors | null) {
     const next = colors ?? CLASSIC_DICE;
-    if (next.face === this.colors.face && next.pip === this.colors.pip && next.edge === this.colors.edge) return;
+    if (JSON.stringify(next) === JSON.stringify(this.colors)) return;
     this.colors = next;
     const anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy?.() ?? 4);
+    const finish = next.finish ?? "matte";
+    const surface = { matte: [0.62, 0], satin: [0.42, 0.05], gloss: [0.22, 0.05], metal: [0.32, 0.55], glass: [0.12, 0] }[finish];
     MATERIAL_ORDER.forEach((v, i) => {
       const m = this.materials[i];
       const map = faceTexture(v, 256, next);
       map.anisotropy = anisotropy;
       m.map?.dispose();
       m.map = map;
+      m.roughness = surface[0];
+      m.metalness = surface[1];
+      m.transparent = finish === "glass";
+      m.opacity = finish === "glass" ? 0.86 : 1;
+      m.emissive.set(next.glow ?? "#000000");
+      m.emissiveIntensity = next.glow ? 0.18 : 0;
       m.needsUpdate = true;
     });
+    this.setAnimation(next.glow ? (next.anim ?? null) : null);
     this.requestRender();
+  }
+
+  /**
+   * Lv.2/Lv.3 dice themes: a gentle glow animation while the table is on screen. Throttled to ~15 fps,
+   * paused when the tab is hidden or the table is scrolled out of view, off for "효과 줄이기" (the
+   * caller passes no animation then). Purely cosmetic: no physics, no result.
+   */
+  private animTimer = 0;
+  private anim: DiceColors["anim"] | null = null;
+  private visible = true;
+  private observer: IntersectionObserver | null = null;
+  setAnimation(anim: DiceColors["anim"] | null) {
+    this.anim = anim;
+    if (anim && !this.observer && typeof IntersectionObserver !== "undefined") {
+      this.observer = new IntersectionObserver((entries) => (this.visible = entries.some((e) => e.isIntersecting)));
+      this.observer.observe(this.canvas);
+    }
+    if (anim && !this.animTimer) {
+      const start = performance.now();
+      this.animTimer = window.setInterval(() => {
+        if (this.disposed || !this.anim) return;
+        if (document.visibilityState === "hidden" || !this.visible) return;
+        const t = (performance.now() - start) / 1000;
+        const base = 0.18;
+        const level = this.anim === "pulse" ? base + 0.22 * (0.5 + 0.5 * Math.sin(t * 2.4)) : this.anim === "sparkle" ? base + 0.3 * Math.abs(Math.sin(t * 5.1) * Math.sin(t * 1.7)) : base + 0.15 * (0.5 + 0.5 * Math.sin(t * 1.3));
+        this.materials.forEach((m, i) => {
+          m.emissiveIntensity = level;
+          if (this.anim === "shimmer") m.emissive.offsetHSL(0.004 * (i % 2 ? 1 : -1), 0, 0);
+        });
+        this.requestRender();
+      }, 66);
+    }
+    if (!anim && this.animTimer) {
+      window.clearInterval(this.animTimer);
+      this.animTimer = 0;
+    }
   }
 
   requestRender() {
@@ -519,6 +564,8 @@ export class DiceTable {
       m.map?.dispose();
       m.dispose();
     });
+    if (this.animTimer) window.clearInterval(this.animTimer);
+    this.observer?.disconnect();
     this.blobMaterials.forEach((m) => m.dispose());
     this.blob.dispose();
     this.canvas.remove();

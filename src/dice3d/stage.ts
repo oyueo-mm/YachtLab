@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { MATERIAL_ORDER, finalValue, simulateThrow, type SimInput, type SimResult } from "./physics";
+import { paintFace, type DiceLook } from "./face-paint";
 
 /**
  * three.js renderer for pre-simulated dice throws. Loaded lazily (separate chunk) only when the
@@ -10,35 +11,14 @@ import { MATERIAL_ORDER, finalValue, simulateThrow, type SimInput, type SimResul
 export { simulateThrow, finalValue };
 export type { SimInput, SimResult };
 
-const PIPS: Record<number, number[][]> = {
-  1: [[50, 50]],
-  2: [[28, 28], [72, 72]],
-  3: [[28, 28], [50, 50], [72, 72]],
-  4: [[28, 28], [72, 28], [28, 72], [72, 72]],
-  5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
-  6: [[28, 25], [72, 25], [28, 50], [72, 50], [28, 75], [72, 75]],
-};
-
-/** Dice colours (presentation only: a theme never changes physics or results). */
-export type DiceColors = { face: string; pip: string; edge: string };
+/** Dice look (presentation only: a theme never changes physics or results). */
+export type DiceColors = DiceLook;
 export const CLASSIC_DICE: DiceColors = { face: "#ffffff", pip: "#202020", edge: "#d4d4d4" };
+
 export function faceTexture(value: number, px: number, colors: DiceColors = CLASSIC_DICE): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = px;
-  const g = canvas.getContext("2d")!;
-  const k = px / 100;
-  g.fillStyle = colors.edge; // edge tone, reads as a rounded bevel
-  g.fillRect(0, 0, px, px);
-  g.fillStyle = colors.face;
-  g.beginPath();
-  g.roundRect(3 * k, 3 * k, 94 * k, 94 * k, 18 * k);
-  g.fill();
-  g.fillStyle = colors.pip;
-  for (const [x, y] of PIPS[value]) {
-    g.beginPath();
-    g.arc(x * k, y * k, 7.4 * k, 0, Math.PI * 2);
-    g.fill();
-  }
+  paintFace(canvas.getContext("2d")!, value, px, colors);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;

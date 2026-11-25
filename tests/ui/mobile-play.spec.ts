@@ -46,16 +46,18 @@ for (const size of [
     expect(Math.abs(after.record - before.record)).toBeLessThanOrEqual(1);
   });
 
-test("데스크톱 AI 대전은 기존 정보·배치 유지", async ({ page }) => {
+test("데스크톱 AI 대전: 도구 줄 바로 아래 보드, 점수·라운드·차례는 오른쪽 점수판 (2026-11-25 PC 배치)", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await startAI(page, { first: "내가 먼저" });
   await expect(page.locator(".page-play .board-top")).toBeVisible();
+  await expect(page.locator(".page-play .score-summary")).toBeHidden();
   const positions = await page.evaluate(() => {
     const top = (selector: string) => document.querySelector(selector)!.getBoundingClientRect().top;
-    return { tools: top(".page-play .game-tools"), summary: top(".page-play .score-summary"), board: top(".page-play .game-board") };
+    return { tools: top(".page-play .game-tools"), board: top(".page-play .game-board") };
   });
-  expect(positions.tools).toBeLessThan(positions.summary);
-  expect(positions.summary).toBeLessThan(positions.board);
+  expect(positions.tools).toBeLessThan(positions.board);
+  await expect(page.locator(".page-play .scoreboard .score-round")).toContainText("/ 12 라운드");
+  await expect(page.locator(".page-play .scoreboard thead th.current")).toHaveCount(1);
 });
 
 test("모바일 로컬 다인전은 차례·굴림 정보를 그대로 표시", async ({ page }) => {

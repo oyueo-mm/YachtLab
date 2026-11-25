@@ -301,7 +301,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
           </p>
         )}
       </div>
-      <Scoreboard state={game} labels={labels} selectPlayer={0} />
+      <Scoreboard state={game} labels={labels} round={game.round} selectPlayer={0} />
     </div>
   );
 }

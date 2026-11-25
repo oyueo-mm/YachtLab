@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EyeOff, LoaderCircle, MessageCircle, X } from "lucide-react";
 import { allowSocial, newSocialBucket, socialItem, socialRetryMs, type SocialBucket, type SocialItem } from "../social/catalog";
-import { GUEST_LOOK, itemById, type PublicLook } from "../economy/live/catalog";
+import { GUEST_LOOK, type PublicLook } from "../economy/live/catalog";
+import { bubbleCssOf } from "./Looks";
 import { useSettings } from "../settings";
 import { playSfx } from "../sound";
 
@@ -171,7 +172,7 @@ export function TableFeed({ chat, names, looks, me }: { chat: TableChat; names: 
         const fxOn = mine || opponentFx;
         const look = looks[e.from];
         const lv = item.kind === "emote" ? (look?.emotes.find((x) => x.id === e.id)?.lv ?? 1) : 1;
-        const css = fxOn ? (itemById(look?.bubble)?.look.css ?? "") : "";
+        const css = fxOn ? bubbleCssOf(look) : "";
         return (
           <span key={e.key} className={"feed-msg " + item.kind + (mine ? " mine" : "") + (css ? " " + css : "") + (fxOn && !reducedEffects && item.kind === "emote" ? ` emote-lv${lv}` : "") + (reducedEffects ? " static" : "")} role="status">
             <b className="feed-from">{mine ? "나" : (names[e.from] ?? "")}</b>
