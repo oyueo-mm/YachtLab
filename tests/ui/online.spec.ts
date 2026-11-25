@@ -238,6 +238,8 @@ for (const kind of ["node", "workers"] as const) {
             .textContent(),
         ).toContain(String(scoreA[0]));
 
+        for (const p of [a, b]) await p.getByRole("button", { name: "결과 닫기" }).click();
+        await expect(a.locator(".scoreboard")).toBeVisible();
         // Emote and preset chat after the match: shown live under the board on both screens; hiding the
         // other players' messages works (and the feed says so); free text cannot be typed.
         await a.getByRole("button", { name: "채팅·이모티콘" }).click();
@@ -257,8 +259,10 @@ for (const kind of ["node", "workers"] as const) {
 
         // Rematch: request → the other screen is asked (also after a reload) → accept → a new match in the
         // same room, the other player moves first, scores start from 0.
-        await a.getByRole("button", { name: "재대결", exact: true }).click();
+        await a.getByRole("button", { name: "경기 결과", exact: true }).click();
+        await a.getByRole("button", { name: "한 번 더 플레이", exact: true }).click();
         await expect(a.getByText("지민 님의 응답을 기다리는 중…")).toBeVisible();
+        await b.getByRole("button", { name: "경기 결과 · 재대결 요청" }).click();
         await expect(b.getByText("민수 님이 재대결을 요청했어요.")).toBeVisible();
         await b.reload();
         await expect(b.getByText("민수 님이 재대결을 요청했어요.")).toBeVisible();
@@ -342,7 +346,7 @@ for (const kind of ["node", "workers"] as const) {
         expect(first).toHaveLength(1);
         expect(first[0]).toMatchObject({ mode: "online", verification: "client-reported" });
         expect((await records(b))[0].recordId).toBe(first[0].recordId);
-        await a.getByRole("button", { name: "재대결", exact: true }).click();
+        await a.getByRole("button", { name: "한 번 더 플레이", exact: true }).click();
         await b.getByRole("button", { name: "수락" }).click();
         await expect(b.locator(".turn-indicator")).toContainText("나의 차례");
         await expect(w.locator(".game-result")).toHaveCount(0);
@@ -352,6 +356,7 @@ for (const kind of ["node", "workers"] as const) {
         expect(second).toHaveLength(2);
         expect(second[0].recordId).not.toBe(second[1].recordId);
         await expect(a.locator(".online-series")).toContainText("이 방 전적");
+        await a.getByRole("button", { name: "결과 닫기" }).click();
         await a.goto("#profile");
         await expect(a.locator(".profile-recent li")).toHaveCount(2);
       });

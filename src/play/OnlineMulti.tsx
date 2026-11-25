@@ -1,7 +1,8 @@
+import { MatchResult } from "../ui/MatchResult";
 import { FirstTurnGuide } from "./Tutorial";
 import { MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useState } from "react";
-import { Check, Crown, Dices, Flag, Home, Play, RotateCcw, Timer, Trophy, Wifi, WifiOff } from "lucide-react";
+import { Check, Crown, Dices, Flag, Play, RotateCcw, Timer, Wifi, WifiOff } from "lucide-react";
 import { categories, type Category } from "../engine";
 import type { MultiGame } from "../multi-engine";
 import { MultiScoreboard } from "../MultiScoreboard";
@@ -187,6 +188,7 @@ export function MultiTable(p: {
   status: "connecting" | "online" | "reconnecting" | "closed";
   tools: React.ReactNode;
   review?: React.ReactNode;
+  reward?: React.ReactNode;
   banner: React.ReactNode;
   dice: { id: number; value: number; held: boolean }[];
   keep: number[];
@@ -261,18 +263,21 @@ export function MultiTable(p: {
             <QuickPicks values={p.dice.map((d) => d.value)} card={players[meIndex]?.card ?? {}} rolls={p.rolls} canScore={p.can} onScore={p.onScore} />
           </div>
           {finished && (
-            <div className="game-result online-result" role="status">
-              <Trophy size={25} />
-              <h2>{resultTitle(view, p.me)}</h2>
-              <MultiRematch rematch={p.rematch} isHost={p.isHost} mine={mine} onOp={p.onRematch} />
-              <MatchMilestones {...p.milestones} />
-              <div className="game-result-actions">
+            <MatchResult key={view.matchId} className="online-result" title={resultTitle(view, p.me)} waiting={!!p.celebration}
+              invitation={!!p.rematch?.requests.some((id) => id !== p.me)}
+              actions={<>
                 {p.review}
-                <button className="secondary" onClick={p.onHome}>
-                  <Home size={15} /> 나가기
-                </button>
-              </div>
-            </div>
+                <MultiRematch rematch={p.rematch} isHost={p.isHost} mine={mine} onOp={p.onRematch} />
+                <button className="secondary" onClick={p.onHome}>나가기</button>
+              </>}>
+              <ol className="match-result-standings">
+                {view.standings?.map(({ playerId, points, rank }) =>
+                  <li key={playerId}><strong>{rank}위</strong><span>{players.find((player) => player.playerId === playerId)?.name}</span><strong>{points}점</strong></li>
+                )}
+              </ol>
+              <MatchMilestones {...p.milestones} />
+              {p.reward}
+            </MatchResult>
           )}
         </section>
         <div className="table-chat">{p.social}</div>
@@ -336,7 +341,7 @@ function MultiRematch({ rematch, isHost, mine, onOp }: { rematch: RematchState |
           </button>
         ) : (
           <button type="button" className="primary" onClick={() => onOp("request")}>
-            <RotateCcw size={16} /> 재대결
+            <RotateCcw size={16} /> 한 번 더 플레이
           </button>
         )}
         {isHost && (
