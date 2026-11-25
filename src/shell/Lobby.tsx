@@ -1,6 +1,7 @@
 import { ArrowRight, Backpack, Bot, Dices, Globe, ListChecks, Smartphone, Store, Trophy, UserRound, UsersRound } from "lucide-react";
 import { DieIcon } from "../Dice";
 import type { Route } from "../routes";
+import { tutorialSeen } from "../play/Tutorial";
 import { useInbox } from "./Friends";
 
 type Go = (route: Route) => void;
@@ -45,6 +46,9 @@ export function Lobby({ navigate }: { navigate: Go }) {
           <ArrowRight className="mode-arrow" size={20} aria-hidden="true" />
         </button>
       </div>
+      <button type="button" className="secondary lobby-tutorial" onClick={() => navigate("tutorial")}>
+        {tutorialSeen() ? "튜토리얼 다시 보기" : "처음이라면 · 한 차례 연습하기"}
+      </button>
       <nav className="lobby-menu" aria-label="내 메뉴">
         {(
           [

@@ -1,3 +1,4 @@
+import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./play/Tutorial";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Dices, History, RotateCcw, SlidersHorizontal, Trophy } from "lucide-react";
 import { DiceArea } from "./DiceArea";
@@ -45,6 +46,7 @@ export default function LocalGame({
   const [viewReplay, setViewReplay] = useState<MultiReplay | null>(null);
   const [allScores, setAllScores] = useState(false);
   const [mobileScoreOpen, setMobileScoreOpen] = useState(false);
+  const [showGuide, setShowGuide] = useState(() => !hasRecordedFirstScore());
   const [gameFeedback, setGameFeedback] = useState("");
   const [rollEvent, setRollEvent] = useState(0);
   const [pending, setPending] = useState<PendingAction>(null);
@@ -103,6 +105,8 @@ export default function LocalGame({
   const recordScore = (category: Category) => {
     if (!canAct || !state.rolls || state.cards[state.player][category] !== undefined) return;
     act({ type: "score", category });
+    markFirstScoreRecorded();
+    setShowGuide(false);
     setMobileScoreOpen(false);
   };
   const standings = state.done ? multiStandings(state) : [];
@@ -162,7 +166,8 @@ export default function LocalGame({
                 {state.rolls === 0 ? "주사위 굴리기" : "다시 굴리기"}
                 <span>{3 - state.rolls}회 남음</span>
               </button>
-              <p>{!state.done && !rolling && state.rolls === 3 ? "점수 칸을 선택하세요" : ""}</p>
+              <FirstTurnGuide rolls={state.rolls} active={showGuide && active} busy={rolling} />
+              {!showGuide && !state.done && !rolling && state.rolls === 3 && <p>점수 칸을 선택하세요</p>}
               <QuickPicks values={state.dice.map((d) => d.value)} card={state.cards[state.player]} rolls={state.rolls} canScore={canAct && !state.done} onScore={recordScore} />
             </div>
             {state.done && (
@@ -188,7 +193,7 @@ export default function LocalGame({
             </MobileScoreSheet>
           )}
           {gameFeedback && (
-            <p className="game-feedback" role="status">
+            <p className="game-feedback" role="status" key={gameFeedback}>
               {gameFeedback}
             </p>
           )}

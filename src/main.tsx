@@ -13,6 +13,7 @@ import "./mobile-play-v2.css";
 import "./profile.css";
 import "./items.css";
 import "./items-content.css";
+import "./onboarding.css";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <App />

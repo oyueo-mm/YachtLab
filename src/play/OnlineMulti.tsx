@@ -1,3 +1,4 @@
+import { FirstTurnGuide } from "./Tutorial";
 import { useState } from "react";
 import { Check, Crown, Dices, Flag, Home, Play, RotateCcw, Timer, Trophy, Wifi, WifiOff } from "lucide-react";
 import { categories, type Category } from "../engine";
@@ -191,6 +192,7 @@ export function MultiTable(p: {
   canRoll: boolean;
   remaining: number | null;
   feedback: string;
+  showGuide: boolean;
   error: React.ReactNode;
   rematch: RematchState | null;
   isHost: boolean;
@@ -247,7 +249,8 @@ export function MultiTable(p: {
               {finished ? "경기 종료" : myTurn ? (p.rolls === 0 ? "주사위 굴리기" : "다시 굴리기") : waiting ? "이번 라운드 기록 완료" : iAmOut ? "기권함" : `${turnName} 님의 차례`}
               {myTurn && <span>{3 - p.rolls}회 남음</span>}
             </button>
-            <p className="online-turn-line">{waiting ? `아직 기록하지 않은 ${Object.keys(view.progress ?? {}).length}명을 기다리고 있어요.` : myTurn && p.rolls === 3 ? "점수 칸을 선택하세요" : ""}</p>
+            <FirstTurnGuide rolls={p.rolls} active={p.showGuide && myTurn} busy={false} />
+            <p className="online-turn-line">{waiting ? `아직 기록하지 않은 ${Object.keys(view.progress ?? {}).length}명을 기다리고 있어요.` : myTurn && !p.showGuide && p.rolls === 3 ? "점수 칸을 선택하세요" : ""}</p>
             <QuickPicks values={p.dice.map((d) => d.value)} card={players[meIndex]?.card ?? {}} rolls={p.rolls} canScore={p.can} onScore={p.onScore} />
           </div>
           {finished && (
@@ -265,7 +268,7 @@ export function MultiTable(p: {
         </section>
         <div className="table-chat">{p.social}</div>
         {p.feedback && (
-          <p className="game-feedback" role="status">
+          <p className="game-feedback" role="status" key={p.feedback}>
             {p.feedback}
           </p>
         )}

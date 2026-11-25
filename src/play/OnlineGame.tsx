@@ -1,3 +1,4 @@
+import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./Tutorial";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Copy, Crown, Dices, Flag, Home, LogOut, Play, RotateCcw, Share2, Trophy, UserRound, Wifi, WifiOff, X } from "lucide-react";
 import { names, type Category, type Game } from "../engine";
@@ -92,6 +93,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const [rollEvent, setRollEvent] = useState(0);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [showGuide, setShowGuide] = useState(() => !hasRecordedFirstScore());
   const [feedback, setFeedback] = useState("");
   const [copied, setCopied] = useState(false);
   const [mobileScoreOpen, setMobileScoreOpen] = useState(false);
@@ -172,6 +174,10 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         if (live && prev) {
           for (const e of next.events) {
             if (e.seq < prev.version) continue;
+            if (e.type === "categoryScored" && e.playerId === me && !e.auto && !hasRecordedFirstScore()) {
+              markFirstScoreRecorded();
+              setShowGuide(false);
+            }
             // Simultaneous rounds: only my own dice move on my table (others play their own dice).
             const mine = !simultaneous || ("playerId" in e && e.playerId === me);
             if (e.type === "diceRolled" && mine) {
@@ -539,6 +545,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           canRoll={canRoll}
           remaining={remaining}
           feedback={feedback}
+          showGuide={showGuide && status === "online" && !rolling}
           error={<ErrorMessage message={error} />}
           rematch={rematch}
           isHost={(lobby?.hostId ?? players[0]?.playerId) === me?.playerId}
@@ -626,9 +633,10 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                 {myTurn ? (rolls === 0 ? "주사위 굴리기" : "다시 굴리기") : finished ? "경기 종료" : `${players[turnIndex]?.name ?? "상대"} 님의 차례`}
                 {myTurn && <span>{3 - rolls}회 남음</span>}
               </button>
+              <FirstTurnGuide rolls={rolls} active={showGuide && myTurn && status === "online"} busy={rolling} />
               <p className="online-turn-line">
                 {remaining !== null && <span className="turn-timer">남은 시간 {clock(remaining)}</span>}
-                {myTurn && !rolling && rolls === 3 ? " 점수 칸을 선택하세요" : ""}
+                {myTurn && !rolling && !showGuide && rolls === 3 ? " 점수 칸을 선택하세요" : ""}
               </p>
               <QuickPicks values={game.dice.map((d) => d.value)} card={players[meIndex]?.card ?? {}} rolls={rolls} canScore={can} onScore={record} />
             </div>
@@ -690,7 +698,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
             {dock}
           </div>
           {feedback && (
-            <p className="game-feedback" role="status">
+            <p className="game-feedback" role="status" key={feedback}>
               {feedback}
             </p>
           )}

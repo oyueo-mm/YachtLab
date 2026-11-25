@@ -23,6 +23,7 @@ import { useDiceBusy } from "../useDiceBusy";
 import { useYachtReady } from "../yacht-moment";
 import { BonusChip, QuickPicks } from "../QuickPicks";
 import { announceScore, clearScoreFx } from "../score-fx";
+import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./Tutorial";
 
 /**
  * Human vs AI. All choices (difficulty, names, who starts, AI pace) come from the setup screen;
@@ -80,6 +81,7 @@ export default function HumanGame({
   const [aiTurn, setAiTurn] = useState(0),
     [caption, setCaption] = useState(""),
     [gameFeedback, setGameFeedback] = useState("");
+  const [showGuide, setShowGuide] = useState(() => !hasRecordedFirstScore());
   const [rollEvent, setRollEvent] = useState(0);
   const [aiPreviewCategory, setAiPreviewCategory] = useState<Category | null>(null);
   const rolling = useDiceBusy();
@@ -179,6 +181,8 @@ export default function HumanGame({
   const recordScore = (category: Category) => {
     if (!can || state.rolls === 0 || state.cards[humanSeat][category] !== undefined) return;
     act({ type: "score", category });
+    markFirstScoreRecorded();
+    setShowGuide(false);
     setMobileScoreOpen(false);
   };
   const mine = state.player === humanSeat;
@@ -261,9 +265,7 @@ export default function HumanGame({
                 {state.rolls === 0 ? "주사위 굴리기" : "다시 굴리기"}
                 <span>{3 - state.rolls}회 남음</span>
               </button>
-              <p>
-                {!state.done && mine && !rolling && state.rolls === 3 ? "점수 칸을 선택하세요" : ""}
-              </p>
+              <p>{!showGuide && !state.done && mine && !rolling && state.rolls === 3 ? "점수 칸을 선택하세요" : ""}</p>
               <QuickPicks values={state.dice.map((d) => d.value)} card={state.cards[humanSeat]} rolls={state.rolls} canScore={can} onScore={recordScore} />
             </div>
             {caption && (
@@ -292,13 +294,14 @@ export default function HumanGame({
             )}
           </section>
           <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : state.rolls} canScore={can} yacht={yachtReady} />
+          <FirstTurnGuide rolls={state.rolls} active={showGuide && mine && !state.done} busy={rolling} />
           {mobileScoreOpen && (
             <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}>
               <MobileQuickScore cards={state.cards} dice={state.dice} rolls={rolling ? 0 : state.rolls} current={state.player} labels={labels} canScore={can} onScore={recordScore} />
             </MobileScoreSheet>
           )}
           {gameFeedback && (
-            <p className="game-feedback" role="status">
+            <p className="game-feedback" role="status" key={gameFeedback}>
               {gameFeedback}
             </p>
           )}

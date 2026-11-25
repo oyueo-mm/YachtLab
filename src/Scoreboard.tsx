@@ -110,6 +110,7 @@ export function Scoreboard({
               previewCategory={previewCategory}
               selectPlayer={selectPlayer}
               yachtReady={yachtReady}
+              needsConfirmation={!!onConfirm}
             />
           ))}
           <tr className="total-row">
@@ -140,6 +141,7 @@ function Rows({
   previewCategory,
   selectPlayer,
   yachtReady = false,
+  needsConfirmation,
 }: {
   category: Category;
   index: number;
@@ -149,6 +151,7 @@ function Rows({
   previewCategory?: Category | null;
   selectPlayer: 0 | 1;
   yachtReady?: boolean;
+  needsConfirmation: boolean;
 }) {
   return (
     <>
@@ -201,7 +204,7 @@ function Rows({
                   aria-label={`${names[c]} ${score(
                     state.dice.map((d) => d.value),
                     c,
-                  )}점 선택`}
+                  )}점 ${needsConfirmation ? "선택" : "기록"}`}
                 >
                   {score(
                     state.dice.map((d) => d.value),
@@ -209,7 +212,7 @@ function Rows({
                   )}
                 </button>
               ) : card[c] !== undefined ? (
-                <span className="fixed-score">{card[c]}</span>
+                <span className="fixed-score" aria-label={`${card[c]}점 기록됨`}>{card[c]}</span>
               ) : (
                 <span className="empty-score">—</span>
               )}
