@@ -1,0 +1,35 @@
+/* Vite prefixes the version and static filenames from this build. */
+const scope = new URL(self.registration.scope);
+const cachePrefix = `yachtlab-static-${scope.pathname}-`;
+const cacheName = cachePrefix + BUILD;
+const shell = new URL("index.html", scope).href;
+const staticFiles = new Set(ASSETS.map((file) => new URL(file, scope).href));
+
+self.addEventListener("install", (event) => {
+  // Use one consistent build. A failed install leaves the previous worker/cache in place.
+  const requests = [shell, ...staticFiles].map((url) => new Request(url, { cache: "reload", credentials: "omit" }));
+  event.waitUntil(caches.open(cacheName).then((cache) => cache.addAll(requests)));
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(caches.keys().then((keys) => Promise.all(
+    keys.filter((key) => key.startsWith(cachePrefix) && key !== cacheName).map((key) => caches.delete(key)),
+  )));
+});
+
+// This worker only serves the build's anonymous static resources. API requests, custom server URLs,
+// version checks, OAuth redirects and navigation with query parameters fall through to the network.
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  if (request.method !== "GET" || request.headers.has("Authorization")) return;
+  const url = new URL(request.url);
+  if (url.origin !== scope.origin || url.search) return;
+  if (request.mode === "navigate" && (url.pathname === scope.pathname || url.href === shell)) {
+    event.respondWith(fetch(request).catch(async () => {
+      const cached = await (await caches.open(cacheName)).match(shell);
+      return cached ?? Response.error();
+    }));
+  } else if (staticFiles.has(url.href)) {
+    event.respondWith(caches.open(cacheName).then(async (cache) => (await cache.match(url.href)) ?? fetch(request)));
+  }
+});

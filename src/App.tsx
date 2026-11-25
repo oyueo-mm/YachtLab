@@ -19,6 +19,7 @@ import { FriendsPage, InviteToasts, refreshInbox, startInbox } from "./shell/Fri
 import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl } from "./online/client";
 import { currentRoute, routes, type Route } from "./routes";
 import { LabNav, SettingsDialog, TopBar } from "./shell/Chrome";
+import InstallBanner from "./shell/InstallBanner";
 import { Lobby, OfflineSelect, OnlineSoon } from "./shell/Lobby";
 import { AiSetupScreen, LocalSetupScreen } from "./shell/Setup";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
@@ -195,6 +196,7 @@ export default function App() {
             </button>
           </p>
         )}
+        <InstallBanner active={page === "home"} />
         {page === "home" && onlineServer && pendingReward && <MatchRewards
           key={pendingReward.matchId}
           server={onlineServer}
