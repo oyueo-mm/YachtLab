@@ -1,33 +1,42 @@
+.shop-page { min-width: 0; }
+
 .shop-section {
+  position: relative;
   display: grid;
-  gap: 9px;
+  gap: 8px;
   padding-block: 12px 4px;
   border-top: 1px solid var(--line);
   min-width: 0;
 }
 
-.shop-section h2 {
-  font-size: 16px;
-}
+.shop-section h2 { font-size: 16px; margin: 10px 96px 10px 0; }
 
-.shop-section-head {
+.shop-rail-nav {
+  position: absolute;
+  top: 8px;
+  right: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 4px;
 }
 
-.shop-section-head button {
-  min-height: 44px;
+.shop-rail-nav .icon-button { min-width: 44px; min-height: 44px; }
+
+.shop-section .shop-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: none;
+  grid-auto-columns: clamp(132px, 36vw, 182px);
+  gap: 9px;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding: 5px 4px 10px;
+  user-select: none;
 }
 
+.shop-rail > li { min-width: 0; }
+@media (pointer: fine) { .shop-rail { cursor: grab; } }
 @media (max-width: 760px) {
-  .shop-section-preview .item-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
-  }
-
   .inv-items button,
   .econ-page .item-tabs button {
     min-height: 44px;

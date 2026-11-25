@@ -1,3 +1,4 @@
+import { returningVisitorState } from "./visitor";
 import {
   expect,
   test,
@@ -95,7 +96,7 @@ async function openFriend(p: Page) {
 }
 
 async function device(browser: Browser, kind: "desktop" | "phone") {
-  const context = await browser.newContext({
+  const context = await browser.newContext({ storageState: returningVisitorState(),
     ...(kind === "phone"
       ? devices["Pixel 7"]
       : { viewport: { width: 1280, height: 900 } }),
@@ -591,7 +592,7 @@ for (const kind of ["node", "workers"] as const) {
         const fits = (p: Page) =>
           p.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
         const narrow = async () => {
-          const ctx = await browser.newContext({
+          const ctx = await browser.newContext({ storageState: returningVisitorState(),
             viewport: { width: 320, height: 740 },
             baseURL: "http://127.0.0.1:5173/YachtLab/",
             reducedMotion: "reduce",

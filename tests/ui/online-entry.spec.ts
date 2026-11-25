@@ -3,7 +3,7 @@ import { startOnlineServer, type RunningOnlineServer } from "../../server/online
 
 let server: RunningOnlineServer;
 test.beforeEach(async ({ baseURL }) => {
-  server = await startOnlineServer({ port: 0, dataDir: null, allowedOrigins: [new URL(baseURL!).origin] });
+  server = await startOnlineServer({ port: 0, turnTimeoutMs: 120_000, dataDir: null, allowedOrigins: [new URL(baseURL!).origin] });
 });
 test.afterEach(async () => await server?.close());
 
@@ -14,6 +14,8 @@ test("방 생성 설정과 코드 참가를 구분하고 생성 직후 설정·�
   await expect(join.getByLabel("초대 코드")).toBeVisible();
   await expect(join.getByLabel("진행 방식")).toHaveCount(0);
   await expect(create.getByLabel("턴 제한 시간")).toHaveValue("default");
+  await expect(create.getByRole("option", { name: "120초 (기본)" })).toHaveCount(1);
+  await expect(create.getByRole("option", { name: "시간 제한 없음" })).toHaveCount(1);
   await create.getByLabel("최대 인원").selectOption("3");
   await create.getByLabel("진행 방식").selectOption("simultaneous");
   await create.getByLabel("라운드 제한 시간").selectOption("60000");

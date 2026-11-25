@@ -1,115 +1,84 @@
 import { useState } from "react";
 import { Check, Dices } from "lucide-react";
-import { helpEntries } from "../CategoryHelp";
 import { DiceArea } from "../DiceArea";
 import MobileQuickScore from "../MobileQuickScore";
-import { categories, createGame, names, score, transition, type Action, type Category } from "../engine";
+import { createGame, transition, type Game } from "../engine";
 import { playSfx } from "../sound";
 import { useDiceBusy } from "../useDiceBusy";
+import { finishTutorial } from "./tutorial-progress";
 
-const TUTORIAL_KEY = "yachtlab.tutorial.v1";
+const steps = [
+  { kind: "roll", values: [6, 6, 3, 2, 1], text: "주사위 굴리기를 누르세요." },
+  { kind: "keep", id: 0, text: "첫 번째 6을 눌러 킵하세요." },
+  { kind: "keep", id: 1, text: "두 번째 6도 킵하세요." },
+  { kind: "roll", values: [6, 6, 6, 4, 2], text: "킵한 주사위를 두고 나머지를 다시 굴리세요." },
+  { kind: "keep", id: 2, text: "새로 나온 6을 킵하세요." },
+  { kind: "roll", values: [6, 6, 6, 6, 2], text: "마지막으로 다시 굴리세요." },
+  { kind: "score", text: "헥사 24점을 누르면 점수판에 바로 기록돼요." },
+] as const;
 
-export function tutorialSeen() {
-  try {
-    return localStorage.getItem(TUTORIAL_KEY) === "seen";
-  } catch {
-    return false;
-  }
-}
-
-function markSeen() {
-  try {
-    localStorage.setItem(TUTORIAL_KEY, "seen");
-  } catch {
-    // The tutorial remains usable when storage is unavailable.
-  }
-}
-
-export default function Tutorial({ onHome }: { onHome: () => void }) {
-  // This practice game has its own state and does not write records, rewards or online commands.
-  const [game, setGame] = useState(() => createGame());
-  const [recorded, setRecorded] = useState<Category | null>(null);
+export default function Tutorial({ onExit, returning }: { onExit: () => void; returning: boolean }) {
+  const [practice, setPractice] = useState(() => ({ game: createGame(1), step: 0 }));
+  const { game, step } = practice;
+  const instruction = steps[step];
   const busy = useDiceBusy();
-  const held = game.dice.find((die) => die.held);
-  const canScore = !recorded && game.rolls === 2 && !busy;
-  const step = recorded
-    ? "한 차례를 끝냈어요. 실제 경기에서는 각 족보를 한 번씩 기록해 총점을 겨뤄요."
-    : game.rolls === 0
-      ? "버튼을 눌러 주사위 다섯 개를 굴려 보세요."
-      : game.rolls === 2
-        ? "점수판에서 점수가 적힌 버튼을 누르세요. 누르면 그 족보에 바로 기록돼요."
-        : held
-          ? "킵한 주사위는 그대로 두고 나머지 네 개를 다시 굴려 보세요."
-          : "남기고 싶은 주사위 하나를 눌러 킵하세요.";
+  const completed = !instruction;
+  const keep = instruction?.kind === "keep" ? instruction.id : undefined;
+  const scoreTurn = instruction?.kind === "score";
 
-  const exit = () => {
-    markSeen();
-    onHome();
-  };
+  function advance(next: Game) {
+    setPractice({ game: next, step: step + 1 });
+  }
 
-  const act = (action: Action) => setGame((previous) => transition(previous, action));
+  function roll() {
+    if (busy || instruction?.kind !== "roll") return;
+    const next = transition(game, { type: "roll" });
+    const values = instruction.values;
+    advance({ ...next, dice: next.dice.map((die) => ({ ...die, value: values[die.id] })) });
+  }
 
-  function record(category: Category) {
-    if (!canScore) return;
-    const points = score(game.dice.map((die) => die.value), category);
-    act({ type: "score", category });
-    setRecorded(category);
-    playSfx(points ? "score" : "scoreZero");
-    markSeen();
+  function hold(id: number) {
+    if (busy || id !== keep) return;
+    advance(transition(game, { type: "hold", ids: [...game.dice.filter((die) => die.held).map((die) => die.id), id] }));
   }
 
   return (
-    <section className="tutorial" aria-labelledby="tutorial-title">
+    <section className="tutorial guided-tutorial" aria-label="튜토리얼">
       <header className="tutorial-heading">
-        <h1 id="tutorial-title">한 차례 연습하기</h1>
-        {!recorded && <button type="button" className="secondary" onClick={exit}>건너뛰기</button>}
+        <span>{completed ? "연습 완료" : `${step + 1} / ${steps.length}`}</span>
+        {!completed && <button type="button" className="secondary" onClick={() => {
+          finishTutorial("skipped");
+          onExit();
+        }}>건너뛰기</button>}
       </header>
-      <p className="first-turn-guide" role="status">{step}</p>
-      {recorded ? (
+      {completed ? (
         <div className="tutorial-result">
-          <p className="game-feedback"><Check size={16} aria-hidden="true" /> {names[recorded]} {game.cards[0][recorded]}점 기록 완료</p>
-          <button type="button" className="primary" onClick={exit}>홈으로 가기</button>
+          <p className="game-feedback" role="status"><Check size={16} aria-hidden="true" /> 헥사 {game.cards[0].sixes}점 기록 완료</p>
+          <button type="button" className="primary" onClick={onExit}>{returning ? "계속하기" : "홈으로 가기"}</button>
         </div>
       ) : (
-        <div className="tutorial-grid">
+        <div className="guided-board">
           <section className="game-board throw-tray" aria-label="연습 보드">
-            <DiceArea
-              state={game}
-              animate
-              rollEvent={game.rolls}
-              interactive={game.rolls === 1 && !busy}
-              onToggle={(id) => act({ type: "hold", ids: held?.id === id ? [] : [id] })}
-            />
+            <div className="guided-dice" data-focus-die={keep}>
+              <DiceArea state={game} animate forceRenderer="2.5d" rollEvent={game.rolls} interactive={!busy && keep !== undefined} focusDie={keep} onToggle={hold} />
+            </div>
+            <p className="guided-instruction" role="status">{instruction.text}</p>
             <div className="roll-area">
-              <button type="button" className="primary roll-button" disabled={busy || game.rolls >= 2 || (game.rolls === 1 && !held)} onClick={() => act({ type: "roll" })}>
+              <button type="button" className={`primary roll-button${instruction.kind === "roll" ? " guided-target" : ""}`} disabled={busy || instruction.kind !== "roll"} onClick={roll}>
                 <Dices size={18} aria-hidden="true" /> {game.rolls === 0 ? "주사위 굴리기" : "다시 굴리기"}
               </button>
             </div>
-          </section>
-          {game.rolls === 2 && (
-            <div className="tutorial-score">
-              <h2>연습 점수판</h2>
-              <MobileQuickScore cards={[game.cards[0]]} dice={game.dice} rolls={game.rolls} current={0} labels={["내 점수"]} canScore={canScore} onScore={record} />
+            <div className={scoreTurn ? "guided-target" : "guided-inactive"} inert={!scoreTurn}>
+              <MobileQuickScore cards={[game.cards[0]]} dice={game.dice} rolls={game.rolls} current={0} labels={["내 점수"]} onlyCategory="sixes" canScore={scoreTurn && !busy} onScore={(category) => {
+                if (busy || !scoreTurn || category !== "sixes") return;
+                advance(transition(game, { type: "score", category }));
+                playSfx("score");
+                finishTutorial("completed");
+              }} />
             </div>
-          )}
+          </section>
         </div>
       )}
-      <details className="tutorial-rules">
-        <summary>족보와 점수 계산</summary>
-        <p>한 차례에 최대 세 번 굴릴 수 있어요. 0점도 한 칸을 사용해요. 열두 칸을 모두 채우면 경기가 끝나요.</p>
-        <dl>
-          <div>
-            <dt>상단 여섯 칸</dt>
-            <dd>족보의 숫자와 같은 눈만 더해요. 예를 들어 3이 세 개면 트리플에 9점을 기록해요. {helpEntries.bonus.text}</dd>
-          </div>
-          {categories.slice(6).map((category) => (
-            <div key={category}>
-              <dt>{names[category]}</dt>
-              <dd>{helpEntries[category].text}</dd>
-            </div>
-          ))}
-        </dl>
-      </details>
     </section>
   );
 }

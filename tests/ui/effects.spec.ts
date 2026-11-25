@@ -1,3 +1,4 @@
+import { returningVisitorState } from "./visitor";
 import { expect, test, devices, type Browser, type Page } from "@playwright/test";
 import { startOnlineServer, type RunningOnlineServer } from "../../server/online/server";
 import type { DiceSource } from "../../src/online/dice-source";
@@ -106,7 +107,7 @@ test.afterAll(async () => {
 });
 const entry = (room?: string) => `?online-server=${encodeURIComponent(server.url)}${room ? `&room=${room}` : ""}#online`;
 async function device(browser: Browser, phone = false) {
-  const ctx = await browser.newContext({ ...(phone ? devices["Pixel 7"] : { viewport: { width: 1280, height: 900 } }), baseURL: "http://127.0.0.1:5173/YachtLab/", reducedMotion: "reduce" });
+  const ctx = await browser.newContext({ storageState: returningVisitorState(), ...(phone ? devices["Pixel 7"] : { viewport: { width: 1280, height: 900 } }), baseURL: "http://127.0.0.1:5173/YachtLab/", reducedMotion: "reduce" });
   contexts.push(ctx);
   return ctx.newPage();
 }

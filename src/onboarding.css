@@ -235,3 +235,75 @@
     border-color: #777;
   }
 }
+
+.guided-tutorial .guided-board {
+  width: min(100%, 560px);
+  margin-inline: auto;
+}
+
+.guided-tutorial .game-board {
+  min-height: 0;
+  display: grid;
+  gap: 12px;
+  padding: clamp(12px, 4vw, 24px);
+  background: #302a28;
+}
+
+.guided-tutorial .guided-instruction {
+  min-height: 3rem;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: white;
+  text-align: center;
+}
+
+.guided-tutorial .guided-inactive,
+.guided-tutorial .roll-button:disabled {
+  opacity: .45;
+}
+
+.guided-dice .die-button:disabled {
+  filter: brightness(.52);
+}
+
+.guided-target,
+.guided-dice .die-button:not(:disabled) {
+  outline: 3px solid #ff846e;
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+.guided-tutorial .guided-target .mobile-quick-score,
+.guided-tutorial .guided-inactive .mobile-quick-score {
+  display: block;
+  background: #fff;
+  border-radius: 8px;
+}
+
+.guided-tutorial .guided-board .roll-area {
+  margin: 0;
+}
+
+.guided-tutorial .guided-dice {
+  min-width: 0;
+}
+.page-tutorial::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #21181799;
+}
+
+.guided-tutorial {
+  position: relative;
+  z-index: 51;
+  border-radius: 12px;
+  background: #fff;
+  padding: clamp(9px, 3vw, 20px);
+}
+
+.guided-tutorial .tutorial-heading {
+  margin-bottom: 8px;
+}

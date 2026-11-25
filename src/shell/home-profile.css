@@ -112,3 +112,11 @@
     gap: 6px;
   }
 }
+
+@media (max-width: 430px) {
+  .home-profile { align-items: flex-start; }
+  .home-profile-summary { flex: 1; }
+  .home-profile .player-tag { max-width: 100%; min-width: 0; }
+  .home-profile .player-name { max-width: 100%; overflow-wrap: anywhere; }
+  .home-profile .wallet-bar { flex-wrap: wrap; justify-content: flex-start; }
+}

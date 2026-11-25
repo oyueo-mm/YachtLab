@@ -1,3 +1,4 @@
+import { returningVisitorState } from "./tests/ui/visitor";
 import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/ui",
@@ -8,6 +9,7 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL: "http://127.0.0.1:5173/YachtLab/",
+    storageState: returningVisitorState(),
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
     // Functional tests run without dice motion (3D throws take ~1.3 s each). Tests that check

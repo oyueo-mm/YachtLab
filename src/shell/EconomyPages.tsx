@@ -1,3 +1,4 @@
+import ShopRail from "./ShopRail";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, Check, Coins, Gem, LoaderCircle, RefreshCw, Sparkles, X } from "lucide-react";
 import { ACHIEVEMENTS, ECONOMY, QUESTS, SLOTS, TIERS, nextDayStart, nextWeekStart, type TierId } from "../economy/live/config";
@@ -194,13 +195,9 @@ export function ShopPage({ server, go }: { server: string | null; go: Go }) {
       </span>
     );
   };
-  const cards = (items: ItemDef[], label: string) => (
-    <ul className="item-grid" aria-label={label}>
-      {items.map((item) => (
-        <ItemCard key={item.id} item={item} owned={owned.has(item.id)} level={owned.get(item.id) ?? 1} badge={owned.has(item.id) ? "보유 중" : undefined} price={priceLine(item)} onOpen={() => setOpen(item)} />
-      ))}
-    </ul>
-  );
+  const cards = (items: ItemDef[]) => items.map((item) => (
+    <ItemCard key={item.id} item={item} owned={owned.has(item.id)} level={owned.get(item.id) ?? 1} badge={owned.has(item.id) ? "보유 중" : undefined} price={priceLine(item)} onOpen={() => setOpen(item)} />
+  ));
   return (
     <section className="econ-page shop-page" aria-labelledby="shop-title">
       <div className="econ-head">
@@ -232,27 +229,13 @@ export function ShopPage({ server, go }: { server: string | null; go: Go }) {
           </p>
         )}
         {ordered.length === 0 && <p className="econ-note">조건에 맞는 상품이 없어요.</p>}
-        {cat && ordered.length > 0 && (
-          <section className="shop-section" aria-label={categoryLabel(cat)}>
-            <h2>{categoryLabel(cat)}</h2>
-            {cards(ordered, "상품")}
-          </section>
-        )}
-        {!cat && CATEGORIES.map(({ id, label }) => {
+        {CATEGORIES.map(({ id, label }) => {
           const items = group(id);
           if (!items.length) return null;
           return (
-            <section className="shop-section shop-section-preview" aria-labelledby={`shop-section-${id}`} key={id}>
-              <div className="shop-section-head">
-                <h2 id={`shop-section-${id}`}>{label}</h2>
-                {items.length > 4 && (
-                  <button type="button" className="secondary" aria-label={`${label} 더 보기`} onClick={() => {
-                    setCat(id);
-                    window.scrollTo(0, 0);
-                  }}>더 보기</button>
-                )}
-              </div>
-              {cards(items.slice(0, 4), label + " 상품")}
+            <section className="shop-section" aria-labelledby={`shop-section-${id}`} key={id}>
+              <h2 id={`shop-section-${id}`}>{label}</h2>
+              <ShopRail label={label}>{cards(items)}</ShopRail>
             </section>
           );
         })}
