@@ -9,7 +9,7 @@ export type Route = "home" | "tutorial" | "practice" | "offline" | "online" | "o
 export type Shell = "lobby" | "game" | "lab" | "page";
 
 export const routes: Record<Route, { title: string; shell: Shell; tier: "core" | "lab" }> = {
-  home: { title: "YachtLab", shell: "lobby", tier: "core" },
+  home: { title: "온라인 요트다이스", shell: "lobby", tier: "core" },
   tutorial: { title: "튜토리얼", shell: "page", tier: "core" },
   practice: { title: "한 차례 연습하기", shell: "page", tier: "core" },
   offline: { title: "오프라인 대전", shell: "page", tier: "core" },

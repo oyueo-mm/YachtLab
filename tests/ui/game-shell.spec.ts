@@ -118,7 +118,7 @@ test("일반 메뉴와 설정에서 연구실을 숨기고 기존 딥링크와 �
 
 test("설정: 음소거·음량·애니메이션 품질·모션 간단히가 브라우저에 저장되고 게임 중에는 환경설정만 보인다", async ({ page }) => {
   await page.goto("#play");
-  await expect(page.getByRole("button", { name: "효과음 끄기" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "효과음 끄기" })).toHaveCount(0);
   await page.getByRole("button", { name: "설정", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "설정" });
   // In a game only presentation settings are offered (rules/difficulty live in the setup screen).
@@ -130,7 +130,9 @@ test("설정: 음소거·음량·애니메이션 품질·모션 간단히가 브
   await dialog.getByRole("switch", { name: "효과음" }).uncheck();
   await expect(dialog.getByRole("slider", { name: "효과음 음량" })).toBeDisabled();
   await dialog.getByRole("button", { name: "설정 닫기" }).click();
-  await expect(page.getByRole("button", { name: "효과음 켜기" })).toBeVisible();
+  await page.getByRole("button", { name: "설정", exact: true }).click();
+  await expect(page.getByRole("switch", { name: "효과음", exact: true })).not.toBeChecked();
+  await page.getByRole("button", { name: "설정 닫기" }).click();
   await page.reload();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("yachtlab.settings.v1")!))).toEqual({ muted: true, volume: 0.3, reducedEffects: true, diceQuality: "2.5d", opponentFx: true });
   await page.getByRole("button", { name: "설정", exact: true }).click();
@@ -143,7 +145,7 @@ test("설정: 음소거·음량·애니메이션 품질·모션 간단히가 브
   // Broken storage must not break the game.
   await page.evaluate(() => localStorage.setItem("yachtlab.settings.v1", "{not json"));
   await page.reload();
-  await expect(page.getByRole("button", { name: "효과음 끄기" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "효과음 끄기" })).toHaveCount(0);
 });
 
 test("2.5D 주사위: 연출 후 엔진 결과와 같은 눈에서 멈추고 고정 주사위는 움직이지 않는다", async ({ page }) => {
@@ -224,7 +226,9 @@ test("효과음은 2.5D 착지 시점과 맞춰 예약되고 음소거하면 재
   await clearSound(page);
   await page.locator(".die-button").first().click();
   await expect.poll(async () => (await soundLog(page)).map((e) => e.name)).toContain("hold");
-  await page.getByRole("button", { name: "효과음 끄기" }).click();
+  await page.getByRole("button", { name: "설정", exact: true }).click();
+  await page.getByRole("switch", { name: "효과음", exact: true }).uncheck();
+  await page.getByRole("button", { name: "설정 닫기" }).click();
   await clearSound(page);
   await page.getByRole("button", { name: "다시 굴리기" }).click();
   await expect.poll(async () => (await soundLog(page)).length).toBeGreaterThan(0);
@@ -257,7 +261,9 @@ test("2.5D 효과음은 던지기 → 충돌 → 착지 → 라지 스트레이�
   await page.locator(".die-button").first().click();
   await expect.poll(async () => (await soundLog(page)).map((entry) => entry.name)).toContain("hold");
 
-  await page.getByRole("button", { name: "효과음 끄기" }).click();
+  await page.getByRole("button", { name: "설정", exact: true }).click();
+  await page.getByRole("switch", { name: "효과음", exact: true }).uncheck();
+  await page.getByRole("button", { name: "설정 닫기" }).click();
   await clearSound(page);
   const reroll = page.getByRole("button", { name: "다시 굴리기" });
   await reroll.click();
@@ -374,7 +380,7 @@ test("족보 툴팁은 로컬 대전 점수판에서도 같은 내용으로 열�
   await expect(page.getByRole("tooltip")).toContainText("다섯 개가 모두 같은 눈은 풀 하우스가 아니에요");
 });
 
-test("게임 화면은 상단 홈·사운드·설정과 넓은 보드를 제공하고 넘치지 않는다", async ({ page }) => {
+test("게임 화면은 상단 홈·상품·설정과 넓은 보드를 제공하고 넘치지 않는다", async ({ page }) => {
   await page.goto("#play");
   const top = page.locator(".shell-top");
   const home = (await top.getByRole("button", { name: "홈으로" }).boundingBox())!;
@@ -382,7 +388,9 @@ test("게임 화면은 상단 홈·사운드·설정과 넓은 보드를 제공�
   const width = page.viewportSize()!.width;
   expect(home.x).toBeLessThan(width / 4);
   expect(settings.x).toBeGreaterThan(width * 0.6);
-  await expect(top.getByRole("button", { name: /효과음/ })).toBeVisible();
+  await expect(top.getByRole("button", { name: /효과음/ })).toHaveCount(0);
+  await expect(top.getByRole("button", { name: "상점", exact: true })).toBeVisible();
+  await expect(top.getByRole("button", { name: "인벤토리", exact: true })).toBeVisible();
   const board = (await page.getByLabel("게임 보드").boundingBox())!;
   if (isMobile(page)) expect(board.width).toBeGreaterThan(width - 40);
   else {

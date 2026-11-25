@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { Backpack, Coins, Dices, Gem, Globe, History, House, ListChecks, LogIn, LogOut, Maximize, Menu, Minimize, Settings, Store, Trophy, UserRound, UsersRound, Volume2, VolumeX, X } from "lucide-react";
+import { Backpack, Coins, Dices, Gem, Globe, History, ListChecks, LogIn, LogOut, Maximize, Menu, Minimize, Settings, Store, UserRound, UsersRound, X } from "lucide-react";
 import { diceRenderer, updateSettings, useSettings, webglAvailable, type DiceQuality } from "../settings";
 import { playSfx, unlockAudio } from "../sound";
 import { labTools, routes, type Route } from "../routes";
@@ -10,27 +10,6 @@ import { PlayerTag } from "../play/Looks";
 import type { useProfileEconomy } from "./profile-economy";
 import "./navigation.css";
 import { useInbox } from "./Friends";
-
-export function SoundToggle() {
-  const { muted } = useSettings();
-  return (
-    <button
-      type="button"
-      className="icon-button shell-icon"
-      aria-label={muted ? "효과음 켜기" : "효과음 끄기"}
-      title={muted ? "효과음 켜기" : "효과음 끄기"}
-      onClick={() => {
-        updateSettings({ muted: !muted });
-        if (muted) {
-          unlockAudio();
-          playSfx("hold");
-        }
-      }}
-    >
-      {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-    </button>
-  );
-}
 
 export function FullscreenToggle() {
   const supported = typeof document !== "undefined" && !!document.fullscreenEnabled && !!document.documentElement.requestFullscreen;
@@ -189,9 +168,8 @@ export function SettingsDialog({ open, onClose, inGame = false }: { open: boolea
 }
 
 const groups = [
-  { label: "게임", items: [["home", "홈", House], ["online", "온라인 대전", Globe], ["offline", "오프라인 대전", Dices], ["practice", "한 차례 연습하기", Dices]] },
-  { label: "활동", items: [["friends", "친구", UsersRound], ["records", "내 기록", History], ["quests", "퀘스트", ListChecks], ["achievements", "업적", Trophy]] },
-  { label: "아이템", items: [["shop", "상점", Store], ["inventory", "인벤토리", Backpack]] },
+  { label: "게임", items: [["online", "온라인 대전", Globe], ["offline", "오프라인 대전", Dices]] },
+  { label: "활동", items: [["friends", "친구", UsersRound], ["records", "내 기록", History], ["quests", "퀘스트", ListChecks]] },
 ] as const;
 
 type HeaderProfile = ReturnType<typeof useProfileEconomy>;
@@ -206,7 +184,7 @@ function Sidebar({ route, navigate, profile }: { route: Route; navigate: (r: Rou
   const alerts = profile.signedIn ? box.requests + box.invites.filter((invite) => invite.expires > Date.now()).length : 0;
   const quests = profile.snapshot?.state;
   const current = route === "online-room" || route === "spectate" ? "online" :
-    ["play", "pvp", "play-setup", "pvp-setup"].includes(route) ? "offline" : route;
+    ["play", "pvp", "play-setup", "pvp-setup", "practice"].includes(route) ? "offline" : route === "achievements" ? "quests" : route;
 
   useLayoutEffect(() => {
     if (!dialog.current?.open) return;
@@ -327,22 +305,33 @@ export function TopBar({ route, server, profile, navigate, openSettings }: {
 }) {
   const info = routes[route];
   const wallet = profile.snapshot?.wallet;
+  const shopLinks = [{ route: "shop", title: "상점", Icon: Store }, { route: "inventory", title: "인벤토리", Icon: Backpack }] as const;
+  const compactBalance = new Intl.NumberFormat("ko-KR", { notation: "compact", maximumFractionDigits: 1 });
   return (
     <header className={`shell-top shell-top-${info.shell}`} inert={route === "tutorial"}>
       <div className="shell-top-left">
         <Sidebar route={route} navigate={navigate} profile={profile} />
-        <button type="button" className="wordmark" aria-label="홈으로" onClick={() => route !== "home" && navigate("home")}>Yacht<b>Lab</b></button>
+        <button type="button" className="wordmark" aria-label="홈으로" onClick={() => route !== "home" && navigate("home")}>
+          <img src={`${import.meta.env.BASE_URL}icons/online-yacht.svg`} width="32" height="32" alt="" />
+          <span>Online <b>Yacht</b></span>
+        </button>
       </div>
-      {route !== "home" && <div className="shell-title">{info.title}</div>}
       <div className="shell-top-right">
+        {shopLinks.map(({ route: target, title, Icon }) => (
+          <button type="button" key={target} className="header-shop icon-button shell-icon" aria-label={title}
+            aria-current={target === route ? "page" : undefined} title={title} onClick={() => target !== route && navigate(target)}>
+            <Icon size={19} aria-hidden="true" /><span>{title}</span>
+          </button>
+        ))}
         {profile.signedIn && <div className="top-wallet" aria-label="보유 재화">
-          {([{ label: "코인", value: wallet?.coins, Icon: Coins }, { label: "보석", value: wallet?.gems, Icon: Gem }]).map(({ label, value, Icon }) => (
-            <span key={label} title={`${label} ${value?.toLocaleString() ?? "–"}`} aria-label={`${label} ${value?.toLocaleString() ?? "–"}`}>
-              <Icon size={15} aria-hidden="true" /><b>{value?.toLocaleString() ?? "–"}</b>
+          {([{ label: "코인", value: wallet?.coins, Icon: Coins, kind: "coin" }, { label: "보석", value: wallet?.gems, Icon: Gem, kind: "gem" }]).map(({ label, value, Icon, kind }) => (
+            <span key={kind} className={kind} title={`${label} ${value?.toLocaleString() ?? "–"}`} aria-label={`${label} ${value?.toLocaleString() ?? "–"}`}>
+              <Icon size={15} aria-hidden="true" />
+              <b aria-hidden="true" className="balance-full">{value?.toLocaleString() ?? "–"}</b>
+              <b aria-hidden="true" className="balance-compact">{value === undefined ? "–" : compactBalance.format(value)}</b>
             </span>
           ))}
         </div>}
-        <SoundToggle />
         <button type="button" className="icon-button shell-icon" aria-label="설정" title="설정" aria-haspopup="dialog" onClick={openSettings}><Settings size={20} /></button>
         <ProfileMenu route={route} server={server} profile={profile} navigate={navigate} />
       </div>

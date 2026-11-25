@@ -1,3 +1,4 @@
+import { BrandMark } from "../ui/BrandLoading";
 import { MatchResult } from "../ui/MatchResult";
 import ReviewLauncher from "../review/ReviewLauncher";
 import { fromReplay } from "../review/sources";
@@ -292,7 +293,7 @@ export default function HumanGame({
               </p>
             )}
             {modelStatus && <p className="ai-action-status" role="status">
-              {modelStatus} <button type="button" className="secondary" onClick={() => skipTrial.current?.()}>준비 취소</button>
+              <BrandMark /> {modelStatus} <button type="button" className="secondary" onClick={() => skipTrial.current?.()}>준비 취소</button>
             </p>}
             {busy && !modelStatus && <Thinking />}
             {state.done && (

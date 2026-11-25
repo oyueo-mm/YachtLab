@@ -71,7 +71,7 @@ export default function Tutorial({ onExit, returning, practiceOnly = false }: { 
         <div className="tutorial-result">
           <p className="game-feedback" role="status"><Check size={16} aria-hidden="true" /> 헥사 {game.cards[0].sixes}점 기록 완료</p>
           {!practiceOnly && <TutorialRules />}
-          <button type="button" className="primary" onClick={onExit}>{returning ? "계속하기" : "홈으로 가기"}</button>
+          <button type="button" className="primary" onClick={onExit}>{practiceOnly ? "오프라인 대전으로" : returning ? "계속하기" : "홈으로 가기"}</button>
         </div>
       ) : (
         <div className="guided-board">

@@ -1,3 +1,4 @@
+import { BrandMark } from "../ui/BrandLoading";
 import { useEffect, useRef, useState } from "react";
 import { Eye, Home, Trophy, WifiOff } from "lucide-react";
 import { names, type Game } from "../engine";
@@ -122,7 +123,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
   if (!view)
     return (
       <p className="online-connecting" role="status">
-        {status === "reconnecting" ? "서버에 다시 연결하는 중이에요…" : "경기에 연결하는 중이에요…"}
+        <BrandMark /> {status === "reconnecting" ? "서버에 다시 연결하는 중이에요…" : "경기에 연결하는 중이에요…"}
       </p>
     );
 

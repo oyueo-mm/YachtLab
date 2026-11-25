@@ -59,13 +59,18 @@ async function open(page: Page, hash: string) {
   return acc;
 }
 
-test("홈 메뉴에 상점·인벤토리·퀘스트·업적·프로필이 있다", async ({ page }) => {
+test("상단과 사이드바에서 상품과 활동으로 이동할 수 있다", async ({ page }) => {
   await page.goto("#home");
+  const top = page.getByRole("banner");
+  for (const name of ["상점", "인벤토리", "설정", "프로필 메뉴"]) await expect(top.getByRole("button", { name, exact: true })).toBeVisible();
+  await top.getByRole("button", { name: "상점" }).click();
+  await expect(page).toHaveURL(/#shop$/);
+  await top.getByRole("button", { name: "인벤토리" }).click();
+  await expect(page).toHaveURL(/#inventory$/);
   await page.getByRole("button", { name: "메뉴", exact: true }).click();
   const menu = page.getByRole("navigation", { name: "주요 메뉴" });
-  for (const name of ["게임", "활동", "아이템"]) await expect(menu.getByRole("region", { name })).toBeVisible();
-  for (const name of ["상점", "인벤토리", "퀘스트", "업적"]) await expect(menu.getByRole("button", { name })).toBeVisible();
-  await expect(menu.getByRole("button", { name: "홈", exact: true })).toHaveAttribute("aria-current", "page");
+  for (const name of ["게임", "활동"]) await expect(menu.getByRole("region", { name })).toBeVisible();
+  await expect(menu.getByRole("button")).toHaveCount(5);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 

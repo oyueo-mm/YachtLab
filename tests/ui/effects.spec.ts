@@ -74,10 +74,14 @@ test("결과 소리 후보는 효과음 시연에서 비교하고 고른 후보�
 test("효과음 끄기 설정은 새로고침 후에도 유지되고, 꺼져 있으면 소리를 재생하지 않는다", async ({ page }) => {
   await fixSeed(page, SEEDS.yacht);
   await page.goto("#home");
-  await page.getByRole("button", { name: "효과음 끄기" }).click();
+  await page.getByRole("button", { name: "설정", exact: true }).click();
+  await page.getByRole("switch", { name: "효과음", exact: true }).uncheck();
+  await page.getByRole("button", { name: "설정 닫기" }).click();
   await page.goto("#play");
   await page.reload(); // a new page load: the saved setting is read again
-  await expect(page.getByRole("button", { name: "효과음 켜기" })).toBeVisible();
+  await page.getByRole("button", { name: "설정", exact: true }).click();
+  await expect(page.getByRole("switch", { name: "효과음", exact: true })).not.toBeChecked();
+  await page.getByRole("button", { name: "설정 닫기" }).click();
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
   await expect(page.locator(".yacht-flash")).toBeVisible();
   const log = await page.evaluate(() => (window as unknown as { __yachtlabSound: { log: { name: string; played: boolean }[] } }).__yachtlabSound.log);
