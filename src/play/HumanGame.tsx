@@ -1,3 +1,5 @@
+import ReviewLauncher from "../review/ReviewLauncher";
+import { fromReplay } from "../review/sources";
 import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useEffect, useRef, useState } from "react";
 import { Trophy, Dices, RotateCcw, ArrowRight, ChevronRight, History, SlidersHorizontal } from "lucide-react";
@@ -290,6 +292,7 @@ export default function HumanGame({
                 </p>
                 <MatchMilestones {...milestones} />
                 <div className="game-result-actions">
+                  <ReviewLauncher source={() => fromReplay(record.current)} />
                   <button className="primary" onClick={restart}>
                     한 번 더 플레이
                     <ArrowRight size={16} />

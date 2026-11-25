@@ -1,0 +1,36 @@
+.review-dialog {
+  width: min(1020px, calc(100% - 24px));
+  max-height: min(90dvh, 920px);
+  margin: auto;
+  padding: clamp(12px, 3vw, 26px);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.review-dialog::backdrop { background: #21181688; }
+.review-heading, .review-actions, .review-loading, .review-match {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-block: 8px;
+}
+.review-heading h1 { font-size: 24px; margin: 0; }
+.review-model, .review-dialog select { font-size: 13px; }
+.review-loading progress { flex: 1; accent-color: var(--red); }
+.review-position { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; }
+.review-position .scoreboard { position: static; }
+.review-options ol, .review-distribution ul { padding: 0; list-style: none; max-height: 34vh; overflow: auto; }
+.review-options li, .review-distribution li { display: flex; gap: 8px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+.review-plot { min-height: 70px; display: flex; overflow-x: auto; padding: 5px; gap: 3px; border-bottom: 1px solid var(--line); }
+.review-plot button { min-width: 22px; flex: 1; position: relative; background: #fcf4f1; border: 0; }
+.review-plot button::after { content: ""; position: absolute; bottom: calc(5% + 80% * var(--point)); left: 25%; width: 50%; height: 8px; border-radius: 5px; background: var(--red); }
+.review-plot button[aria-pressed=true] { outline: 2px solid var(--red); }
+.review-mistakes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.review-actions select { max-width: 100%; }
+@media (max-width: 680px) {
+  .review-position { grid-template-columns: minmax(0, 1fr); }
+  .review-position .scoreboard { display: block; }
+  .review-dialog button { min-height: 44px; }
+}
