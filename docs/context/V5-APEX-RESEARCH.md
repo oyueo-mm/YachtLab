@@ -146,7 +146,7 @@ DP Expert 자기 대국에서 수집한 P0 차례 시작 국면(family 9004, k=1
 
 **기준선 재현 (같은 시드):** v3 vs v2 100,000경기 50.175% (50.049–50.302; 기존 200k 50.271%와 같은 방향), DP Expert vs v2 40,000경기 49.359% (기존 50k 49.366%와 일치), v3 vs DP Expert 50.870%, v4-D vs v2 50.179%.
 
-**결정성 교차검증:** 로컬 4코어에서 독립 실행한 v5-B3 vs v2 20 shard(100,000경기) = 50.672%, CI 결과와 **완전히 같음**.
+**결정성 교차검증:** 같은 시드를 로컬 4코어에서 독립 실행한 결과(`training/results/v5/local-9501-crosscheck/`)가 완료된 11개 대진 전부에서 CI와 **소수점까지 같다**: v5-B3 vs v2 50.672%(100k), v5-B3 vs v3 50.523%(100k), v5-R vs v3 50.479%(100k), v5-R vs DP Expert 51.223%(60k), v5-R vs v4-D 50.591%, v5-R vs v1 51.235%, v5-R vs greedy/myopic/switcher 73.695/73.040/68.275%, v3 vs DP Expert 50.870%, DP Expert vs v2 49.359%, v4-D vs v2 50.179%.
 
 ### 6.2 독립 재현 — family 9502 (run [45557008759](https://github.com/oyueo-mm/YachtLab/actions/runs/45557008759))
 
