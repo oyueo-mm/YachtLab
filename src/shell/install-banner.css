@@ -5,7 +5,7 @@
 @media (max-width: 760px) {
   .install-banner {
     position: fixed;
-    inset: calc(env(safe-area-inset-top, 0px) + 8px) max(8px, env(safe-area-inset-right, 0px)) auto max(8px, env(safe-area-inset-left, 0px));
+    inset: calc(max(var(--mobile-shell-top-height), env(safe-area-inset-top, 0px)) + 8px) max(8px, env(safe-area-inset-right, 0px)) auto max(8px, env(safe-area-inset-left, 0px));
     z-index: 60;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto auto;

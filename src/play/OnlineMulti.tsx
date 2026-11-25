@@ -1,7 +1,8 @@
+import { MatchResult } from "../ui/MatchResult";
 import { FirstTurnGuide } from "./Tutorial";
 import { MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useState } from "react";
-import { Check, Crown, Dices, Flag, Home, Play, RotateCcw, Timer, Trophy, Wifi, WifiOff } from "lucide-react";
+import { Check, Crown, Dices, Flag, Play, RotateCcw, Timer, Wifi, WifiOff } from "lucide-react";
 import { categories, type Category } from "../engine";
 import type { MultiGame } from "../multi-engine";
 import { MultiScoreboard } from "../MultiScoreboard";
@@ -10,7 +11,7 @@ import type { PlayerView } from "../online/server-engine";
 import type { LobbyState, RematchState } from "../online/wire";
 import { ROUND_LIMITS, TURN_LIMITS } from "../online/wire";
 import type { PublicLook } from "../economy/live/catalog";
-import { PlayerTag, boardCssOf, boardOf, diceLookOf } from "./Looks";
+import { PlayerTag, useBoardTheme, diceLookOf, diceMaterialOf } from "./Looks";
 import { Celebrate } from "../ui/Celebrate";
 import type { Celebration } from "../game-feel";
 import { QuickPicks } from "../QuickPicks";
@@ -187,6 +188,7 @@ export function MultiTable(p: {
   status: "connecting" | "online" | "reconnecting" | "closed";
   tools: React.ReactNode;
   review?: React.ReactNode;
+  reward?: React.ReactNode;
   banner: React.ReactNode;
   dice: { id: number; value: number; held: boolean }[];
   keep: number[];
@@ -208,6 +210,7 @@ export function MultiTable(p: {
   onRematch: (op: "request" | "cancel" | "start") => void;
   onHome: () => void;
 }) {
+  const theme = useBoardTheme(p.looks[p.me]);
   const { view } = p;
   const players = view.players;
   const meIndex = Math.max(0, players.findIndex((x) => x.playerId === p.me));
@@ -235,8 +238,8 @@ export function MultiTable(p: {
         </div>
         {p.banner}
         <section
-          className={"game-board throw-tray" + (p.canRoll && nearYacht(game.dice, p.rolls, players[meIndex]?.card) ? " yacht-near" : "") + (p.rolls === 0 ? " dice-ready" : "") + (boardOf(p.looks[p.me]) ? " board-themed" : "") + (boardCssOf(p.looks[p.me]) ? " " + boardCssOf(p.looks[p.me]) : "")}
-          style={boardOf(p.looks[p.me]) ? ({ "--board-color": boardOf(p.looks[p.me]) } as React.CSSProperties) : undefined}
+          className={"game-board throw-tray" + (p.canRoll && nearYacht(game.dice, p.rolls, players[meIndex]?.card) ? " yacht-near" : "") + (p.rolls === 0 ? " dice-ready" : "") + theme.className}
+          style={theme.style}
           aria-label="게임 보드"
         >
           <Celebrate value={p.celebration} />
@@ -249,7 +252,7 @@ export function MultiTable(p: {
               굴림 <b>{p.rolls}</b> / 3{timer && <span className="turn-timer"> · 남은 시간 {timer}</span>}
             </span>
           </div>
-          <DiceArea state={game} colors={diceLookOf(p.looks[simultaneous ? p.me : (view.turn?.playerId ?? "")])} interactive={p.can && p.rolls > 0 && p.rolls < 3} animate rollEvent={p.rollEvent} onToggle={p.onToggle} holdOrder={p.rolls > 0 ? p.keep : []} />
+          <DiceArea state={game} colors={diceLookOf(p.looks[simultaneous ? p.me : (view.turn?.playerId ?? "")])} material={diceMaterialOf(p.looks[simultaneous ? p.me : (view.turn?.playerId ?? "")])} interactive={p.can && p.rolls > 0 && p.rolls < 3} animate rollEvent={p.rollEvent} onToggle={p.onToggle} holdOrder={p.rolls > 0 ? p.keep : []} />
           <div className="roll-area">
             <button className={"primary roll-button" + (myTurn ? "" : " waiting")} disabled={!p.canRoll} onClick={p.onRoll}>
               <Dices size={20} />
@@ -261,18 +264,21 @@ export function MultiTable(p: {
             <QuickPicks values={p.dice.map((d) => d.value)} card={players[meIndex]?.card ?? {}} rolls={p.rolls} canScore={p.can} onScore={p.onScore} />
           </div>
           {finished && (
-            <div className="game-result online-result" role="status">
-              <Trophy size={25} />
-              <h2>{resultTitle(view, p.me)}</h2>
-              <MultiRematch rematch={p.rematch} isHost={p.isHost} mine={mine} onOp={p.onRematch} />
-              <MatchMilestones {...p.milestones} />
-              <div className="game-result-actions">
+            <MatchResult key={view.matchId} className="online-result" title={resultTitle(view, p.me)} waiting={!!p.celebration}
+              invitation={!!p.rematch?.requests.some((id) => id !== p.me)}
+              actions={<>
                 {p.review}
-                <button className="secondary" onClick={p.onHome}>
-                  <Home size={15} /> 나가기
-                </button>
-              </div>
-            </div>
+                <MultiRematch rematch={p.rematch} isHost={p.isHost} mine={mine} onOp={p.onRematch} />
+                <button className="secondary" onClick={p.onHome}>나가기</button>
+              </>}>
+              <ol className="match-result-standings">
+                {view.standings?.map(({ playerId, points, rank }) =>
+                  <li key={playerId}><strong>{rank}위</strong><span>{players.find((player) => player.playerId === playerId)?.name}</span><strong>{points}점</strong></li>
+                )}
+              </ol>
+              <MatchMilestones {...p.milestones} />
+              {p.reward}
+            </MatchResult>
           )}
         </section>
         <div className="table-chat">{p.social}</div>
@@ -315,6 +321,7 @@ export function MultiTable(p: {
 function resultTitle(view: PlayerView, me: string) {
   const mine = view.standings?.find((s) => s.playerId === me);
   if (!mine) return "경기 종료";
+  if (mine.rank === 1 && view.players.length === 2 && view.winners.length === 2) return "무승부";
   if (mine.rank === 1) return view.winners.length > 1 ? "공동 1위!" : "1위로 승리했습니다!";
   return `${mine.rank}위 · ${mine.points}점`;
 }
@@ -336,7 +343,7 @@ function MultiRematch({ rematch, isHost, mine, onOp }: { rematch: RematchState |
           </button>
         ) : (
           <button type="button" className="primary" onClick={() => onOp("request")}>
-            <RotateCcw size={16} /> 재대결
+            <RotateCcw size={16} /> 한 번 더 플레이
           </button>
         )}
         {isHost && (

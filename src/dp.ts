@@ -52,9 +52,12 @@ export async function loadDP() {
     throw e;
   }
 }
-export function dpFutureValue(mask: number, u: number) {
+export function requireDPTable() {
   if (!table) throw Error("DP 테이블을 먼저 로드해주세요.");
-  return table[mask * 64 + Math.min(63, u)];
+  return table;
+}
+export function dpFutureValue(mask: number, u: number) {
+  return requireDPTable()[mask * 64 + Math.min(63, u)];
 }
 export function chanceValues(full: ArrayLike<number>) {
   const e = new Float64Array(462);

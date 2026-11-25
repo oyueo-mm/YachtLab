@@ -74,6 +74,7 @@
     "V31-RESEARCH.md",
     "V32-EXACT-FORECAST.md",
     "V5-APEX-RESEARCH.md",
+    "V5-R-PRODUCT.md",
     "V6-APEX-RESEARCH.md",
     "V6-INTEGRATION-HANDOFF.md"
   ],
@@ -117,68 +118,80 @@
   ],
   "recentSourceCommits": [
     {
-      "sha": "53e9620",
-      "date": "2026-11-25",
-      "subject": "Merge PR #79: Win DP v6 research (exp-utility policy set, WASM/Rust bank builders, YPB1 codec, analysis v6)"
+      "sha": "a6e26cf",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #88 from oyueo-mm/codex/tutorial-navigation"
     },
     {
-      "sha": "e78a06f",
-      "date": "2026-11-25",
-      "subject": "feat(research-v6): integration helpers for Codex — bankFromWasm, YPB1 Float32/INT16 bank codec (+tests, size study), V6-INTEGRATION-HANDOFF"
+      "sha": "a10a9c6",
+      "date": "2026-11-26",
+      "subject": "fix: layer the profile disclosure above the install prompt"
     },
     {
-      "sha": "837e305",
-      "date": "2026-11-25",
-      "subject": "docs(v6): H3 and auxiliary confirmation (v6-P vs DP Expert 51.263%), Holm decisions, RESULTS entry"
+      "sha": "1be7de6",
+      "date": "2026-11-26",
+      "subject": "fix: keep mobile navigation above the install prompt"
     },
     {
-      "sha": "a5eea74",
-      "date": "2026-11-25",
-      "subject": "docs(v6): confirmation 9511/9512 results — v6-P beats v5-R head-to-head (50.131%, 50.209%), H2 vs v2 not confirmed; dev 9012 (v6-C/v6-D no gain); correct conclusions across context docs"
+      "sha": "57b985d",
+      "date": "2026-11-26",
+      "subject": "docs: align the roadmap with first-visit onboarding"
     },
     {
-      "sha": "24f1ddb",
-      "date": "2026-11-25",
-      "subject": "research(v6): MLP-1024 PMF distillation results (3.2% material disagreement)"
+      "sha": "4fa2ee6",
+      "date": "2026-11-26",
+      "subject": "fix: preserve replay saving and close the menu on navigation"
     },
     {
-      "sha": "162e10c",
-      "date": "2026-11-25",
-      "subject": "research(v6): PMF distillation and hybrid decision-study raw results"
+      "sha": "aa857d6",
+      "date": "2026-11-26",
+      "subject": "test: cover onboarding and navigation and update handoff"
     },
     {
-      "sha": "152f6c4",
-      "date": "2026-11-25",
-      "subject": "docs(v6): recommendations and limitations"
+      "sha": "de8c6a8",
+      "date": "2026-11-26",
+      "subject": "fix: keep header controls inside narrow screens"
     },
     {
-      "sha": "a824296",
-      "date": "2026-11-25",
-      "subject": "docs(v6): research report draft (implementation, value accuracy, execution optimisation, analysis-v6 contract, 70-technique status), shared context updates, D-V6-1"
+      "sha": "f209ef2",
+      "date": "2026-11-26",
+      "subject": "feat: reorganize home and account navigation"
     },
     {
-      "sha": "098aaa7",
-      "date": "2026-11-25",
-      "subject": "research(v6): Rust PMF bank builder (bit-identical to TS bank, 3.5 s), analysis-v6 example payloads"
+      "sha": "2091d0c",
+      "date": "2026-11-26",
+      "subject": "feat: share game physics in the first-visit tutorial and practice"
     },
     {
-      "sha": "c8a3bd3",
+      "sha": "1b5cdc0",
       "date": "2026-11-25",
-      "subject": "research(v6): dev-9011 selection recorded before confirmation (no v6 candidate beat v5-R on dev; confirm v6-P as pre-registered); v6-D/v6-Dd expanded Bayesian filter over exp-utility hypotheses"
+      "subject": "Merge pull request #87 from oyueo-mm/codex/product-operating-record"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
-      "status": "success",
-      "head": "e78a06f97b",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45612958326"
-    },
-    {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "e78a06f97b",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45612958175"
+      "head": "a10a9c6d28",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45653729027"
+    },
+    {
+      "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
+      "status": "success",
+      "head": "5561c5837b",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45634726403"
+    },
+    {
+      "name": "Competitive research benchmark",
+      "status": "success",
+      "head": "e83ba82669",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45632492725"
+    },
+    {
+      "name": "YachtLab gameplay UI targeted smoke",
+      "status": "success",
+      "head": "6735973b26",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45627899634"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

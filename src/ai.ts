@@ -35,7 +35,7 @@ export const algorithms = allAlgorithms.filter((a) =>
   a === "Distilled Policy" || a === "Distilled PPO" ? distilledStatus[a] : true,
 );
 export type Candidate = { label: string; value: number; visits?: number };
-export type Decision =
+export type Decision = { execution?: { id: string; version: string } } & (
   | {
       type: "score";
       category: Category;
@@ -49,7 +49,7 @@ export type Decision =
       value: number;
       candidates: Candidate[];
       note: string;
-    };
+    });
 export type Options = { iterations?: number; seed?: number; opponentAlgorithm?: Algorithm };
 type Hold = { values: number[]; ids: number[] };
 export function holds(values: number[]): number[][] {

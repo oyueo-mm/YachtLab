@@ -3,8 +3,8 @@ import { EyeOff, LoaderCircle, MessageCircle, X } from "lucide-react";
 import { allowSocial, newSocialBucket, socialItem, socialRetryMs, type SocialBucket, type SocialItem } from "../social/catalog";
 import { GUEST_LOOK, type PublicLook } from "../economy/live/catalog";
 import { bubbleCssOf } from "./Looks";
-import { useSettings } from "../settings";
-import { playSfx } from "../sound";
+import { getSettings, useSettings } from "../settings";
+import { playEmoteSfx } from "../sound";
 
 /**
  * Preset chat and emotes (C, 2026-11-25). Root causes of "sent but nobody saw it" that this fixes:
@@ -47,6 +47,7 @@ export function useTableChat(me: string | null) {
   const [waitUntil, setWaitUntil] = useState(0);
   const bucket = useRef<SocialBucket>(newSocialBucket(Date.now()));
   const seq = useRef(0);
+  const heard = useRef(new Map<string, number>());
   const hideRef = useRef(hideOthers);
   hideRef.current = hideOthers;
   const meRef = useRef(me);
@@ -73,11 +74,19 @@ export function useTableChat(me: string | null) {
 
   /** A relayed message (`said`): mine confirms my send; others' respect the hide switch. */
   const received = useCallback((from: string, id: string) => {
-    if (!socialItem(id)) return;
+    const item = socialItem(id);
+    if (!item) return;
     const mine = from === meRef.current;
     if (mine && pendingRef.current?.id === id) setPending(null);
     if (!mine && hideRef.current) return;
+    const now = Date.now();
     const key = ++seq.current;
+    if (item.kind === "emote" && (mine || getSettings().opponentFx)) {
+      const messageKey = from + "/" + id;
+      for (const [key, time] of heard.current) if (now - time > 1000) heard.current.delete(key);
+      if (!heard.current.has(messageKey)) playEmoteSfx(id);
+      heard.current.set(messageKey, now);
+    }
     setFeed((f) => [{ key, from, id, at: Date.now() }, ...f.filter((e) => e.from !== from)].slice(0, FEED_MAX));
     later(() => setFeed((f) => f.filter((e) => e.key !== key)), FEED_MS);
   }, []);
@@ -153,16 +162,6 @@ export type TableChat = ReturnType<typeof useTableChat>;
  */
 export function TableFeed({ chat, names, looks, me }: { chat: TableChat; names: Record<string, string>; looks: Record<string, PublicLook>; me: string | null }) {
   const { reducedEffects, opponentFx } = useSettings();
-  const latest = chat.feed[0]?.key;
-  useEffect(() => {
-    const e = chat.feed[0];
-    if (!e) return;
-    const item = socialItem(e.id);
-    const look = looks[e.from];
-    const lv = item?.kind === "emote" ? (look?.emotes.find((x) => x.id === e.id)?.lv ?? 1) : 1;
-    if (lv >= 3 && (e.from === me || opponentFx)) playSfx("yachtHit");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latest]);
   return (
     <div className="table-feed" aria-live="polite" aria-label="채팅 메시지">
       {chat.feed.map((e) => {

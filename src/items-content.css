@@ -4,82 +4,127 @@
    Readability rules: nickname effects never hide the name; board patterns stay behind the dice.
    ========================================================================== */
 
-/* ---------------------------------------------------------------- boards ---------------------------------------------------------------- */
-.game-board.board-themed.bd-felt,
-.board-sample.bd-felt {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1.2px), radial-gradient(rgba(0, 0, 0, 0.12) 1px, transparent 1.2px) !important;
-  background-size: 5px 5px, 7px 7px !important;
+/* The opaque 3D tray and shelf share their surface with the flat and preview trays. */
+.board-themed {
+  --board-frame: color-mix(in srgb, var(--board-color), black 30%);
+  --board-edge: color-mix(in srgb, var(--board-color), white 35%);
+  --board-light: #ffffff18;
+  --board-surface: radial-gradient(ellipse at 50% 30%, #ffffff12, transparent 70%);
+  --board-slot: #ffffff17;
+  --board-accent: #fff1c2;
 }
-.game-board.board-themed.bd-wood,
-.board-sample.bd-wood {
-  background-image: repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.12) 0 2px, transparent 2px 23px), repeating-linear-gradient(88deg, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 11px) !important;
+.board-themed:is(.game-board, .board-sample) {
+  background: var(--board-frame) !important;
+  box-shadow: inset 0 0 0 1px var(--board-edge), inset 0 3px 4px #ffffff20, inset 0 -5px 10px #0007;
 }
-.game-board.board-themed.bd-leather,
-.board-sample.bd-leather {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1.5px) !important;
-  background-size: 4px 4px !important;
-  box-shadow: inset 0 0 0 7px rgba(0, 0, 0, 0.18), inset 0 0 0 9px rgba(255, 255, 255, 0.12) !important;
+.board-themed .dice-tray-area,
+.board-themed .dice-row,
+.board-themed.board-sample {
+  background: var(--board-surface), var(--board-color) !important;
+  box-shadow: inset 0 0 0 1px var(--board-edge), inset 0 7px 25px #0006;
+  position: relative;
 }
-.game-board.board-themed.bd-marble,
-.board-sample.bd-marble {
-  background-image: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.1) 31%, transparent 33%), linear-gradient(35deg, transparent 55%, rgba(255, 255, 255, 0.08) 56%, transparent 58%), linear-gradient(160deg, transparent 70%, rgba(255, 255, 255, 0.07) 71%, transparent 72%) !important;
+.board-themed .dice-row { border-radius: 12px; }
+.board-themed .dice-hold-area {
+  background: linear-gradient(180deg, #0006, #ffffff0d), var(--board-frame);
+  border-color: var(--board-edge);
 }
-.game-board.board-themed.bd-ocean,
-.board-sample.bd-ocean {
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 40%), repeating-radial-gradient(circle at 50% 120%, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 26px) !important;
+.board-themed .hold-slot {
+  background: var(--board-slot);
+  border: 1px solid var(--board-edge);
+  box-shadow: inset 0 2px 5px #0005;
 }
-.game-board.board-themed.bd-desert,
-.board-sample.bd-desert {
-  background-image: repeating-radial-gradient(ellipse at 30% 140%, rgba(255, 230, 180, 0.08) 0 3px, transparent 3px 30px) !important;
+.board-themed .dice-tray-area::before,
+.board-themed .dice-row::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at var(--light-x, 50%) 10%, var(--board-light), transparent 70%);
+  pointer-events: none;
 }
-.game-board.board-themed.bd-ice,
-.board-sample.bd-ice {
-  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 35%, rgba(255, 255, 255, 0.06) 60%, transparent 80%) !important;
+.bd-felt, .bd-navy {
+  --board-surface: repeating-linear-gradient(45deg, #ffffff0b 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(-45deg, #0002 0 1px, transparent 1px 4px), radial-gradient(ellipse at 40% 10%, #ffffff16, #0004);
 }
-.game-board.board-themed.bd-space,
-.board-sample.bd-space {
-  background-image: radial-gradient(1px 1px at 10% 20%, #fff, transparent), radial-gradient(1px 1px at 30% 70%, #fff, transparent), radial-gradient(1.5px 1.5px at 70% 30%, #fff, transparent), radial-gradient(1px 1px at 85% 80%, #fff, transparent), radial-gradient(1px 1px at 55% 50%, #cfc8ff, transparent), radial-gradient(ellipse at 70% 20%, rgba(107, 76, 255, 0.25), transparent 60%) !important;
+.bd-navy { --board-edge: #627b9e; --board-slot: #385277; --board-light: #a6c7ff23; }
+.bd-wood {
+  --board-surface: repeating-radial-gradient(ellipse at 15% -80%, #0002 0 2px, #efbf9028 3px 5px, transparent 7px 17px),
+    repeating-linear-gradient(92deg, #0003 0 1px, transparent 2px 24px);
+  --board-edge: #a98662; --board-slot: #c48e5130;
 }
-.game-board.board-themed.bd-neon,
-.board-sample.bd-neon {
-  box-shadow: inset 0 0 0 2px #ff4fcf, inset 0 0 22px rgba(255, 79, 207, 0.35) !important;
+.bd-leather {
+  --board-surface: radial-gradient(circle at 2px 2px, #ffffff20 0 1px, transparent 1.7px) 0 0 / 5px 5px,
+    radial-gradient(circle at 50% 45%, #ffffff10, #0006);
+  --board-edge: #97765d;
 }
-.game-board.board-themed.bd-aurora,
-.board-sample.bd-aurora {
-  background-image: linear-gradient(170deg, rgba(70, 230, 180, 0.18), transparent 45%), linear-gradient(10deg, transparent 55%, rgba(122, 108, 255, 0.16)) !important;
+.bd-marble {
+  --board-surface: repeating-linear-gradient(119deg, transparent 0 46px, #e1ddff42 47px, transparent 51px 93px, #fff3 94px, #0003 98px, transparent 102px 140px),
+    conic-gradient(from 120deg at 15% 10%, #383946, #55515c, #2c2a35, #393944);
+  --board-edge: #9894a6; --board-light: #e6defb38; --board-accent: #d4c7ff;
 }
-.game-board.board-themed.bd-gold,
-.board-sample.bd-gold {
-  background-image: radial-gradient(ellipse at 50% 0%, rgba(255, 215, 94, 0.22), transparent 60%) !important;
-  box-shadow: inset 0 0 0 3px #c9a227, inset 0 0 0 5px rgba(0, 0, 0, 0.3) !important;
+.bd-ocean {
+  --board-surface: repeating-radial-gradient(ellipse at 42% 122%, #8de5f416 0 3px, transparent 5px 27px),
+    linear-gradient(155deg, #286888, #123a59 44%, #071e36);
+  --board-edge: #6fa7be; --board-light: #5ad8ff44; --board-accent: #72e0ff;
 }
-.game-board.board-themed.bd-deepsea,
-.board-sample.bd-deepsea {
-  background-image: radial-gradient(circle at 20% 80%, rgba(80, 200, 255, 0.12) 0 6px, transparent 7px), radial-gradient(circle at 75% 60%, rgba(80, 200, 255, 0.1) 0 4px, transparent 5px), linear-gradient(180deg, rgba(40, 120, 200, 0.18), transparent 70%) !important;
+.bd-desert {
+  --board-surface: repeating-radial-gradient(ellipse at 40% 120%, #ffcd7833 0 2px, transparent 4px 24px),
+    linear-gradient(155deg, #9a703c, #795128 52%, #4e341a);
+  --board-edge: #bf9560; --board-light: #ffe6b339;
 }
-/* Lv.2: stronger light; Lv.3: slow motion (background drift or a breathing glow) */
-.bd-lv2,
-.bd-lv3 {
-  filter: saturate(1.15) brightness(1.06);
+.bd-ice {
+  --board-surface: repeating-conic-gradient(from 40deg at 100% 15%, #d2fcff16 0 10deg, #0000 10deg 27deg, #a4eaff35 29deg 30deg, #0000 31deg 36deg),
+    linear-gradient(140deg, #5b8898, #2e5b76 50%, #143c57);
+  --board-edge: #a5d5e7; --board-slot: #a0d4eb33; --board-light: #dafbff55; --board-accent: #c7f8ff;
 }
-.game-board.board-themed.bd-lv3,
-.board-sample.bd-lv3 {
-  background-size: 140% 140% !important;
-  animation: board-drift 14s ease-in-out infinite alternate;
+.bd-space {
+  --board-surface: radial-gradient(1px 1px at 8px 15px, #fff9, transparent) 0 0 / 41px 47px,
+    radial-gradient(1px 1px at 31px 21px, #cab7ffc9, transparent) 0 0 / 73px 59px,
+    radial-gradient(ellipse at 72% 32%, #8f58a94d, transparent 62%), radial-gradient(ellipse at 29% 60%, #2f529e7a, #100e2c 75%);
+  --board-edge: #7d73a5; --board-light: #9f6aff55; --board-accent: #c6a3ff;
 }
-.game-board.board-themed.bd-neon.bd-lv3,
-.board-sample.bd-neon.bd-lv3 {
-  animation: board-neon 3.2s ease-in-out infinite;
+.bd-neon {
+  --board-surface: repeating-linear-gradient(0deg, #57dcff26 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(90deg, #ff5aba2a 0 1px, transparent 1px 22px), radial-gradient(ellipse at 65% 65%, #332042, #111223 75%);
+  --board-edge: #90ccea; --board-slot: #9a42ba3a; --board-light: #e35bff51; --board-accent: #ff70d4;
 }
-@keyframes board-drift {
-  to {
-    background-position: 100% 60%;
-  }
+.bd-aurora {
+  --board-surface: radial-gradient(ellipse at 34% -48%, transparent 34%, #8be3be66 46%, #397bc169 52%, transparent 64%),
+    radial-gradient(ellipse at 84% -17%, #6a5da14f, #3f82ac38 36%, transparent 60%), linear-gradient(160deg, #133343, #0c182d 80%);
+  --board-edge: #6ab5ad; --board-slot: #78e7c12f; --board-light: #70e7b966; --board-accent: #7dffcb;
 }
-@keyframes board-neon {
-  50% {
-    box-shadow: inset 0 0 0 2px #7af5ff, inset 0 0 30px rgba(122, 245, 255, 0.4);
-  }
+.bd-gold {
+  --board-surface: repeating-linear-gradient(80deg, #ebba6f16 0 1px, transparent 2px 4px),
+    linear-gradient(110deg, #412a0b, #745324 31%, #ab8241 50%, #654420 72%, #503309);
+  --board-edge: #e5bc70; --board-slot: #b68b4044; --board-light: #ffdc9777; --board-accent: #ffe0a1;
+}
+.bd-deepsea {
+  --board-surface: repeating-radial-gradient(ellipse at 63% -18%, #68dbdd26 0 1px, transparent 3px 19px),
+    radial-gradient(ellipse at 67% 5%, #176680, #0c324a 56%, #08172a 92%);
+  --board-edge: #5ab1ba; --board-light: #67e5e75c; --board-accent: #74e7dc;
+}
+:is(.bd-lv2, .bd-lv3):not(.bd-static) :is(.dice-tray-area, .dice-row)::before {
+  animation: board-light-drift 9s ease-in-out infinite alternate;
+}
+.bd-lv3:not(.bd-static) :is(.dice-tray-area, .dice-row) {
+  transition: box-shadow .4s ease-out;
+}
+.bd-lv3:not(.bd-static):has(.dice-animating) :is(.dice-tray-area, .dice-row),
+.bd-lv3:not(.bd-static):has(.score-fx-label.grand) :is(.dice-tray-area, .dice-row) {
+  box-shadow: inset 0 0 0 2px var(--board-accent), inset 0 0 30px var(--board-light);
+}
+.bd-lv3:not(.bd-static) .dice-hold-area,
+.bd-lv3:not(.bd-static) .die-button.held { transition: box-shadow .3s ease-out; }
+.bd-lv3:not(.bd-static):has(.die-button.held) .dice-hold-area,
+.bd-lv3:not(.bd-static) .dice-row .die-button.held { box-shadow: inset 0 0 0 1px var(--board-accent); }
+@keyframes board-light-drift {
+  from { opacity: .87; transform: scaleX(.94); }
+  to { opacity: .25; transform: scaleX(.67) translateX(18%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .board-themed :is(.dice-tray-area, .dice-row)::before { animation: none !important; }
+  .board-themed :is(.dice-tray-area, .dice-row, .dice-hold-area, .die-button.held) { transition: none !important; }
 }
 
 /* ---------------------------------------------------------------- bubbles ---------------------------------------------------------------- */

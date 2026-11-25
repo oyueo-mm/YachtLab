@@ -99,6 +99,7 @@
 - [V31-RESEARCH.md](../V31-RESEARCH.md)
 - [V32-EXACT-FORECAST.md](../V32-EXACT-FORECAST.md)
 - [V5-APEX-RESEARCH.md](../V5-APEX-RESEARCH.md)
+- [V5-R-PRODUCT.md](../V5-R-PRODUCT.md)
 - [V6-APEX-RESEARCH.md](../V6-APEX-RESEARCH.md)
 - [V6-INTEGRATION-HANDOFF.md](../V6-INTEGRATION-HANDOFF.md)
 
@@ -106,16 +107,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
-| [53e9620](https://github.com/oyueo-mm/YachtLab/commit/53e9620) | 2026-11-25 | Merge PR #79: Win DP v6 research (exp-utility policy set, WASM/Rust bank builders, YPB1 codec, analysis v6) |
-| [e78a06f](https://github.com/oyueo-mm/YachtLab/commit/e78a06f) | 2026-11-25 | feat(research-v6): integration helpers for Codex — bankFromWasm, YPB1 Float32/INT16 bank codec (+tests, size study), V6-INTEGRATION-HANDOFF |
-| [837e305](https://github.com/oyueo-mm/YachtLab/commit/837e305) | 2026-11-25 | docs(v6): H3 and auxiliary confirmation (v6-P vs DP Expert 51.263%), Holm decisions, RESULTS entry |
-| [a5eea74](https://github.com/oyueo-mm/YachtLab/commit/a5eea74) | 2026-11-25 | docs(v6): confirmation 9511/9512 results — v6-P beats v5-R head-to-head (50.131%, 50.209%), H2 vs v2 not confirmed; dev 9012 (v6-C/v6-D no gain); correct conclusions across context docs |
-| [24f1ddb](https://github.com/oyueo-mm/YachtLab/commit/24f1ddb) | 2026-11-25 | research(v6): MLP-1024 PMF distillation results (3.2% material disagreement) |
-| [162e10c](https://github.com/oyueo-mm/YachtLab/commit/162e10c) | 2026-11-25 | research(v6): PMF distillation and hybrid decision-study raw results |
-| [152f6c4](https://github.com/oyueo-mm/YachtLab/commit/152f6c4) | 2026-11-25 | docs(v6): recommendations and limitations |
-| [a824296](https://github.com/oyueo-mm/YachtLab/commit/a824296) | 2026-11-25 | docs(v6): research report draft (implementation, value accuracy, execution optimisation, analysis-v6 contract, 70-technique status), shared context updates, D-V6-1 |
-| [098aaa7](https://github.com/oyueo-mm/YachtLab/commit/098aaa7) | 2026-11-25 | research(v6): Rust PMF bank builder (bit-identical to TS bank, 3.5 s), analysis-v6 example payloads |
-| [c8a3bd3](https://github.com/oyueo-mm/YachtLab/commit/c8a3bd3) | 2026-11-25 | research(v6): dev-9011 selection recorded before confirmation (no v6 candidate beat v5-R on dev; confirm v6-P as pre-registered); v6-D/v6-Dd expanded Bayesian filter over exp-utility hypotheses |
+| [a6e26cf](https://github.com/oyueo-mm/YachtLab/commit/a6e26cf) | 2026-11-26 | Merge pull request #88 from oyueo-mm/codex/tutorial-navigation |
+| [a10a9c6](https://github.com/oyueo-mm/YachtLab/commit/a10a9c6) | 2026-11-26 | fix: layer the profile disclosure above the install prompt |
+| [1be7de6](https://github.com/oyueo-mm/YachtLab/commit/1be7de6) | 2026-11-26 | fix: keep mobile navigation above the install prompt |
+| [57b985d](https://github.com/oyueo-mm/YachtLab/commit/57b985d) | 2026-11-26 | docs: align the roadmap with first-visit onboarding |
+| [4fa2ee6](https://github.com/oyueo-mm/YachtLab/commit/4fa2ee6) | 2026-11-26 | fix: preserve replay saving and close the menu on navigation |
+| [aa857d6](https://github.com/oyueo-mm/YachtLab/commit/aa857d6) | 2026-11-26 | test: cover onboarding and navigation and update handoff |
+| [de8c6a8](https://github.com/oyueo-mm/YachtLab/commit/de8c6a8) | 2026-11-26 | fix: keep header controls inside narrow screens |
+| [f209ef2](https://github.com/oyueo-mm/YachtLab/commit/f209ef2) | 2026-11-26 | feat: reorganize home and account navigation |
+| [2091d0c](https://github.com/oyueo-mm/YachtLab/commit/2091d0c) | 2026-11-26 | feat: share game physics in the first-visit tutorial and practice |
+| [1b5cdc0](https://github.com/oyueo-mm/YachtLab/commit/1b5cdc0) | 2026-11-25 | Merge pull request #87 from oyueo-mm/codex/product-operating-record |
 
 ## 최근 GitHub Actions 상태
 
@@ -123,8 +124,10 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45612958326) | success | e78a06f97b |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45612958175) | success | e78a06f97b |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45653729027) | success | a10a9c6d28 |
+| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45634726403) | success | 5561c5837b |
+| [Competitive research benchmark](https://github.com/oyueo-mm/YachtLab/actions/runs/45632492725) | success | e83ba82669 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45627899634) | success | 6735973b26 |
 
 ## 다음 채팅과 작업의 시작점
 

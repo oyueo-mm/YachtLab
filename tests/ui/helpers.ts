@@ -32,9 +32,9 @@ export async function scoreCategory(page: Page, category?: string) {
 type AiOptions = { algorithm?: string; name?: string; first?: "무작위" | "내가 먼저" | "AI 먼저" };
 /** Human vs AI through the setup screen (the play screen has no settings anymore). */
 export async function startAI(page: Page, options: AiOptions = {}) {
-  await page.goto("#play-setup");
+  const level = gameDifficulties.find((d) => d.algorithm === options.algorithm);
+  await page.goto(options.algorithm && !level ? "?lab=1#play-setup" : "#play-setup");
   if (options.algorithm) {
-    const level = gameDifficulties.find((d) => d.algorithm === options.algorithm);
     if (level) await page.getByRole("radiogroup", { name: "AI 난이도" }).getByText(level.name, { exact: true }).click();
     else {
       await page.getByText("고급 설정", { exact: true }).click();

@@ -7,12 +7,10 @@ import "./match-rewards.css";
 
 export type PendingReward = { matchId: string; account: string };
 
-export default function MatchRewards({ server, pending, consume }: { server: string; pending: PendingReward; consume: () => void }) {
+function useMatchReceipt(server: string, matchId: string, owner: string | null, onEmpty?: () => void) {
   const [receipt, setReceipt] = useState<MatchReceipt | null>(null);
-  const [ratio, setRatio] = useState(0);
   const [account, setAccount] = useState(session);
-  const matchId = pending.matchId;
-  const stillOwnsMatch = account === pending.account;
+  const stillOwnsMatch = !!owner && account === owner;
 
   useEffect(() => {
     const change = () => setAccount(session());
@@ -32,11 +30,11 @@ export default function MatchRewards({ server, pending, consume }: { server: str
     const read = async (attempt: number) => {
       try {
         const result = await matchReward(server, matchId);
-        if (!active || session() !== pending.account) return;
+        if (!active || session() !== owner) return;
         if (result) setReceipt(result);
-        else consume();
+        else onEmpty?.();
       } catch (error) {
-        if (!active || session() !== pending.account) return;
+        if (!active || session() !== owner) return;
         if (error instanceof AccountError && error.status === 404 && attempt < 3) {
           timer = window.setTimeout(() => void read(attempt + 1), 750 * (attempt + 1));
         }
@@ -47,8 +45,27 @@ export default function MatchRewards({ server, pending, consume }: { server: str
       active = false;
       window.clearTimeout(timer);
     };
-  }, [server, matchId, stillOwnsMatch]);
+  }, [server, matchId, stillOwnsMatch, owner]);
 
+  return stillOwnsMatch ? receipt : null;
+}
+
+export function MatchRewardSummary({ server, matchId }: { server: string; matchId: string }) {
+  const [owner] = useState(session);
+  const receipt = useMatchReceipt(server, matchId, owner);
+  if (!receipt) return null;
+  const coins = receipt.after.coins - receipt.before.coins;
+  const gems = receipt.after.gems - receipt.before.gems;
+  if (!(coins > 0 || gems > 0)) return null;
+  return <section className="match-reward-wallet" aria-label="이번 경기 보상">
+    {coins > 0 && <span><Coins size={16} aria-hidden="true" /> +{coins.toLocaleString()}코인</span>}
+    {gems > 0 && <span><Gem size={16} aria-hidden="true" /> +{gems.toLocaleString()}보석</span>}
+  </section>;
+}
+
+export default function MatchRewards({ server, pending, consume }: { server: string; pending: PendingReward; consume: () => void }) {
+  const receipt = useMatchReceipt(server, pending.matchId, pending.account, consume);
+  const [ratio, setRatio] = useState(0);
   useEffect(() => {
     if (!receipt) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -64,7 +81,7 @@ export default function MatchRewards({ server, pending, consume }: { server: str
     return () => cancelAnimationFrame(frame);
   }, [receipt]);
 
-  if (!receipt || !stillOwnsMatch) return null;
+  if (!receipt) return null;
   const coins = receipt.after.coins - receipt.before.coins;
   const gems = receipt.after.gems - receipt.before.gems;
   const balance = (currency: "coins" | "gems") => Math.round(receipt.before[currency] + (receipt.after[currency] - receipt.before[currency]) * ratio).toLocaleString();

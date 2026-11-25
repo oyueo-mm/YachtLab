@@ -1,3 +1,4 @@
+import type { DiceMaterial } from "./sound-packs";
 import { useEffect, useReducer, useRef, useState } from "react";
 import { nextHoldOrder, shiftHoldOrder } from "./hold-order";
 import type { Game } from "./engine";
@@ -11,6 +12,7 @@ import { DieIcon } from "./Dice";
 import { StraightFlash, YachtFlash } from "./yacht-moment";
 
 type Props = {
+  material?: DiceMaterial;
   state: Pick<Game, "dice" | "order" | "rolls">;
   interactive?: boolean;
   focusDie?: number;
@@ -35,7 +37,7 @@ type Props = {
  *  - otherwise the original DOM row with 2.5D motion (or no motion), same hold/re-roll/score rules.
  * The mode only changes between turns (before the first roll), never in the middle of one.
  */
-export function DiceArea({ forceRenderer, colors = null, ...props }: Props) {
+export function DiceArea({ forceRenderer, colors = null, material, ...props }: Props) {
   const settings = useSettings();
   const renderer = forceRenderer ?? diceRenderer(settings);
   const want3d = !!props.animate && (renderer === "3d" || renderer === "3d-high");
@@ -65,7 +67,7 @@ export function DiceArea({ forceRenderer, colors = null, ...props }: Props) {
   if (physical)
     return (
       <>
-        <PhysicalDice key={renderer} colors={colors} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} adaptive={!forceRenderer && settings.diceQuality === "auto"} interactive={!!props.interactive} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onFailure={() => setFailed(true)} />
+        <PhysicalDice key={renderer} colors={colors} material={material} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} adaptive={!forceRenderer && settings.diceQuality === "auto"} interactive={!!props.interactive} focusDie={props.focusDie} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onFailure={() => setFailed(true)} />
         <ScoreFxLabel fx={fx} />
         {props.animate && <YachtFlash dice={props.state.dice} rolls={props.state.rolls} rollEvent={props.rollEvent ?? 0} />}
         {props.animate && <StraightFlash dice={props.state.dice} rolls={props.state.rolls} rollEvent={props.rollEvent ?? 0} />}
@@ -76,10 +78,10 @@ export function DiceArea({ forceRenderer, colors = null, ...props }: Props) {
     <>
       {colors ? (
         <div className="dice-themed" style={{ "--die-face": colors.face, "--die-pip": colors.pip, "--die-edge": colors.edge } as React.CSSProperties}>
-          <Dice {...props} holdOrder={holdOrder} forceRenderer={renderer === "none" ? "none" : "2.5d"} />
+          <Dice {...props} material={material} holdOrder={holdOrder} forceRenderer={renderer === "none" ? "none" : "2.5d"} />
         </div>
       ) : (
-        <Dice {...props} holdOrder={holdOrder} forceRenderer={renderer === "none" ? "none" : "2.5d"} />
+        <Dice {...props} material={material} holdOrder={holdOrder} forceRenderer={renderer === "none" ? "none" : "2.5d"} />
       )}
       <ScoreFxFallback fx={fx} reduced={renderer === "none"} />
       <ScoreFxLabel fx={fx} />

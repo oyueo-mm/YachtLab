@@ -25,7 +25,7 @@ function decision(before: Game | MultiGame, action: Action, after: Game | MultiG
 }
 
 export function fromReplay(replay: Replay): ReviewSource {
-  if (!replay.finalState.done) return "경기를 완료하면 복기할 수 있어요.";
+  if (!replay.finalState.done) return "경기를 완료하면 리뷰할 수 있어요.";
   const steps = replay.frames.slice(1).flatMap((frame, index) => {
     const item = frame.action && decision(replay.frames[index].state, frame.action, frame.state);
     return item ? [item] : [];
@@ -36,8 +36,8 @@ export function fromReplay(replay: Replay): ReviewSource {
 }
 
 export function fromMultiReplay(replay: MultiReplay): ReviewSource {
-  if (!replay.finalState.done) return "경기를 완료하면 복기할 수 있어요.";
-  if (replay.metadata.players.length !== 2) return "AI 복기는 1:1 경기에서 지원해요. 이 경기는 기존 기보로 볼 수 있어요.";
+  if (!replay.finalState.done) return "경기를 완료하면 리뷰할 수 있어요.";
+  if (replay.metadata.players.length !== 2) return "게임 리뷰는 1:1 경기에서 지원해요. 이 경기는 기존 기보로 볼 수 있어요.";
   let state = createMultiGame(2, replay.seed, replay.version === 1);
   const steps: Situation[] = [];
   for (const action of replay.actions) {

@@ -32,7 +32,7 @@ function account() {
     if (body) requests.push({ path: url.pathname, ...body });
     const ok = () => route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ snapshot: snap }) });
     if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type, authorization" } });
-    if (url.pathname === "/api/me/economy") return ok();
+    if (url.pathname === "/api/me/economy" || url.pathname === "/api/me/logout") return ok();
     if (url.pathname === "/api/me/shop/buy") {
       const price = body.itemId === "dice.mint" ? (body.currency === "coins" ? 300 : 40) : 0;
       snap.wallet = { ...snap.wallet, [body.currency]: snap.wallet[body.currency] - price };
@@ -61,8 +61,11 @@ async function open(page: Page, hash: string) {
 
 test("홈 메뉴에 상점·인벤토리·퀘스트·업적·프로필이 있다", async ({ page }) => {
   await page.goto("#home");
-  const menu = page.getByRole("navigation", { name: "내 메뉴" });
-  for (const name of ["상점", "인벤토리", "퀘스트", "업적", "프로필"]) await expect(menu.getByRole("button", { name })).toBeVisible();
+  await page.getByRole("button", { name: "메뉴", exact: true }).click();
+  const menu = page.getByRole("navigation", { name: "주요 메뉴" });
+  for (const name of ["게임", "활동", "아이템"]) await expect(menu.getByRole("region", { name })).toBeVisible();
+  for (const name of ["상점", "인벤토리", "퀘스트", "업적"]) await expect(menu.getByRole("button", { name })).toBeVisible();
+  await expect(menu.getByRole("button", { name: "홈", exact: true })).toHaveAttribute("aria-current", "page");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
@@ -107,6 +110,7 @@ test("상점: 가로 상품 목록·상품군 탭·등급/가격 필터·업적 
   await page.getByRole("button", { name: "구매", exact: true }).click();
   await expect(page.locator('[data-item="dice.mint"]')).toContainText("보유 중");
   await expect(page.getByTestId("coins")).toHaveText("1,200");
+  await expect(page.locator(".top-wallet")).toContainText("1,200");
   expect(acc.requests.at(-1)).toMatchObject({ path: "/api/me/shop/buy", itemId: "dice.mint", currency: "coins", requestId: expect.stringMatching(/^[A-Za-z0-9_-]{8,}$/) });
   await expect(page.getByRole("button", { name: "이모티콘 슬롯 코인 구매" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -166,10 +170,12 @@ test("회원 홈에서 서버가 반환한 잔액과 장착 외형을 보여 준
   const acc = await open(page, "home");
   acc.snap.look = { ...acc.snap.look, nameFx: "nameFx.aurora", nameFxLv: 2, title: "title.300" };
   await page.reload();
-  const account = page.getByRole("region", { name: "내 계정" });
-  await expect(account).toContainText("회원");
-  await expect(account.getByTestId("coins")).toHaveText("1,500");
-  await expect(account.getByTestId("gems")).toHaveText("30");
+  await expect(page.locator(".top-wallet")).toContainText("1,500");
+  await expect(page.locator(".top-wallet")).toContainText("30");
+  await page.getByRole("button", { name: "프로필 메뉴" }).click();
+  const account = page.locator(".top-profile-panel");
+  await expect(account.getByRole("button", { name: "계정 설정" })).toBeVisible();
+  await expect(account.getByRole("button", { name: "로그아웃" })).toBeVisible();
   await expect(account.locator(".player-icon")).toBeVisible();
   await expect(account.locator(".player-name")).toHaveClass(/namefx-aurora fx-lv2/);
   await expect(account.locator(".player-title")).toBeVisible();
@@ -178,14 +184,19 @@ test("회원 홈에서 서버가 반환한 잔액과 장착 외형을 보여 준
 test("게스트 홈에 계정 안내가 있고 휴대폰에서는 주요 메뉴로 이동할 수 있다", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto("#home");
-  const account = page.getByRole("region", { name: "내 계정" });
-  await expect(account).toContainText("게스트");
+  const profile = page.getByRole("button", { name: "프로필 메뉴" });
+  await profile.focus();
+  await page.keyboard.press("Enter");
+  const account = page.locator(".top-profile-panel");
   await expect(account.locator(".player-name")).toContainText("요트러");
   await expect(account.locator(".player-icon")).toBeVisible();
-  await expect(account.getByTestId("coins")).toHaveCount(0);
-  const grid = page.getByRole("navigation", { name: "내 메뉴" });
-  expect(await grid.evaluate((node) => getComputedStyle(node).gridTemplateColumns.split(" ").length)).toBe(3);
-  await account.getByRole("button", { name: "로그인 안내" }).click();
+  await expect(page.locator(".top-wallet")).toHaveCount(0);
+  await page.keyboard.press("Tab");
+  await expect(account.getByRole("button", { name: "내 프로필" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(profile).toBeFocused();
+  await profile.click();
+  await account.getByRole("button", { name: "로그인", exact: true }).click();
   await expect(page.getByRole("region", { name: "로그인" })).toBeVisible();
   await page.getByRole("button", { name: "메뉴", exact: true }).click();
   const menu = page.getByRole("dialog", { name: "메뉴" });
@@ -193,6 +204,28 @@ test("게스트 홈에 계정 안내가 있고 휴대폰에서는 주요 메뉴�
   await expect(page).toHaveURL(/#quests$/);
   await expect(menu).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("계정 세션 변경과 로그아웃 후에도 최초 방문 튜토리얼이 다시 열리지 않는다", async ({ page }) => {
+  const acc = account();
+  await page.route(SERVER + "/**", acc.handle);
+  await page.goto(`?online-server=${encodeURIComponent(SERVER)}#home`);
+  await page.evaluate((session) => localStorage.setItem("yachtlab.session.v1", session), SESSION);
+  await page.reload();
+  const profile = page.getByRole("button", { name: "프로필 메뉴" });
+  const menu = page.locator(".top-profile-panel");
+  await expect(page.locator(".top-wallet")).toContainText("1,500");
+  await profile.click();
+  await page.getByRole("button", { name: "계정 설정" }).click();
+  await expect(page).toHaveURL(/#account$/);
+  await profile.click();
+  await menu.getByRole("button", { name: "로그아웃", exact: true }).click();
+  await expect(page.locator(".top-wallet")).toHaveCount(0);
+  expect(acc.requests.at(-1)?.path).toBe("/api/me/logout");
+  await page.reload();
+  await expect(page.getByRole("region", { name: "튜토리얼" })).toHaveCount(0);
+  await profile.click();
+  await expect(menu.getByRole("button", { name: "로그인", exact: true })).toBeVisible();
 });
 
 test("설치 팝업은 긴 회원 닉네임과 잔액이 있는 320~430px 홈을 밀지 않는다", async ({ page }) => {
@@ -203,8 +236,8 @@ test("설치 팝업은 긴 회원 닉네임과 잔액이 있는 320~430px 홈을
     acc.snap.wallet.gems = 123_456_789;
     await page.evaluate(() => localStorage.setItem("yachtlab.online.name", "ABCDEFGH요트선수"));
     await page.reload();
-    const profile = page.getByRole("region", { name: "내 계정" });
-    await expect(profile.getByTestId("coins")).toHaveText("987,654,321");
+    const profile = page.getByRole("button", { name: "프로필 메뉴" });
+    await expect(page.locator(".top-wallet")).toContainText("987,654,321");
     const before = await profile.boundingBox();
     await page.evaluate(() => {
       const offer = new Event("beforeinstallprompt", { cancelable: true });
@@ -214,9 +247,51 @@ test("설치 팝업은 긴 회원 닉네임과 잔액이 있는 320~430px 홈을
     const popup = page.getByRole("complementary", { name: "앱 설치" });
     await expect(popup).toBeVisible();
     expect(await profile.boundingBox()).toEqual(before);
+    expect((await popup.boundingBox())!.y).toBeGreaterThanOrEqual(before!.y + before!.height);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    await profile.click();
+    await page.locator(".top-profile-panel").getByRole("button", { name: "계정 설정" }).click({ trial: true });
+    await page.keyboard.press("Escape");
     await popup.getByRole("button", { name: "설치 안내 닫기" }).click();
     await expect(popup).toHaveCount(0);
     await page.evaluate(() => localStorage.removeItem("yachtlab.install-dismissed.v1"));
   }
+});
+
+test("보드 미리보기는 실제 굴림 면에 소재가 적용되고 킵한 눈을 유지한다", async ({ page }) => {
+  const account = await open(page, "shop");
+  await page.getByRole("tab", { name: /^보드판/ }).click();
+  await page.getByRole("button", { name: "오로라 자세히" }).click();
+  const dialog = page.getByRole("dialog", { name: "오로라 상세" });
+  const board = dialog.getByRole("region", { name: "미리보기 보드" });
+  await expect(board).toHaveClass(/bd-aurora/);
+  await dialog.getByRole("tab", { name: "Lv.3" }).click();
+  await expect(board).toHaveClass(/bd-aurora bd-lv3 bd-static/);
+  const tray = board.locator(".dice-row");
+  await expect(tray).toHaveCSS("background-image", /radial-gradient/);
+  await dialog.getByRole("button", { name: "굴려 보기" }).click();
+  const die = board.getByRole("button", { name: /^주사위 1,/ });
+  await die.click();
+  await expect(die).toHaveAttribute("aria-pressed", "true");
+  const kept = await die.getAttribute("aria-label");
+  await dialog.getByRole("button", { name: "굴려 보기" }).click();
+  await expect(die).toHaveAttribute("aria-label", kept!);
+  await dialog.getByRole("button", { name: "족보 효과 보기" }).click();
+  await expect(board.locator(".score-fx-label")).toContainText("라지 스트레이트");
+  expect(account.requests).toHaveLength(0);
+});
+
+test("상점 미리보기는 소재별 굴림 소리와 강화 전 이모티콘 효과음을 사용한다", async ({ page }) => {
+  const account = await open(page, "shop");
+  await page.getByRole("tab", { name: /^주사위/ }).click();
+  await page.getByRole("button", { name: "황금 자세히" }).click();
+  await page.getByRole("button", { name: "굴려 보기" }).click();
+  const sound = () => page.evaluate(() => (window as any).__yachtlabSound.log.map(({ name, pack }: { name: string; pack?: string }) => [name, pack]));
+  await expect.poll(sound).toContainEqual(["impact", "gold"]);
+  await page.keyboard.press("Escape");
+  await page.getByRole("tab", { name: /^이모티콘/ }).click();
+  await page.getByRole("button", { name: "번개 자세히" }).click();
+  await page.getByRole("button", { name: "소리 듣기" }).click();
+  await expect.poll(sound).toContainEqual(["emote", "bolt"]);
+  expect(account.requests).toHaveLength(0);
 });

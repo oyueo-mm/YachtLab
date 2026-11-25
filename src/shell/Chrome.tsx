@@ -1,9 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { FlaskConical, History, House, Maximize, Menu, Minimize, Settings, Volume2, VolumeX, X } from "lucide-react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { Backpack, Coins, Dices, Gem, Globe, History, House, ListChecks, LogIn, LogOut, Maximize, Menu, Minimize, Settings, Store, Trophy, UserRound, UsersRound, Volume2, VolumeX, X } from "lucide-react";
 import { diceRenderer, updateSettings, useSettings, webglAvailable, type DiceQuality } from "../settings";
 import { playSfx, unlockAudio } from "../sound";
 import { labTools, routes, type Route } from "../routes";
-import { session } from "../identity/account-client";
+import { signOut } from "../identity/account-client";
+import { useNickname } from "../identity/display-name";
+import { GUEST_LOOK } from "../economy/live/catalog";
+import { PlayerTag } from "../play/Looks";
+import type { useProfileEconomy } from "./profile-economy";
+import "./navigation.css";
 import { useInbox } from "./Friends";
 
 export function SoundToggle() {
@@ -53,7 +58,7 @@ export function FullscreenToggle() {
   );
 }
 
-export function SettingsDialog({ open, onClose, navigate, inGame = false }: { open: boolean; onClose: () => void; navigate: (r: Route) => void; inGame?: boolean }) {
+export function SettingsDialog({ open, onClose, inGame = false }: { open: boolean; onClose: () => void; inGame?: boolean }) {
   const settings = useSettings();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -65,10 +70,6 @@ export function SettingsDialog({ open, onClose, navigate, inGame = false }: { op
   const systemReduced = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const renderer = diceRenderer(settings);
   const qualityLabel: Record<DiceQuality, string> = { auto: "자동", "3d-high": "고화질", "3d": "성능 우선", "2.5d": "간단 (2.5D)" };
-  const go = (route: Route) => {
-    onClose();
-    navigate(route);
-  };
   return (
     <dialog
       ref={ref}
@@ -177,102 +178,173 @@ export function SettingsDialog({ open, onClose, navigate, inGame = false }: { op
                   : "3D 물리 주사위(성능 우선)를 사용 중이에요."}
           </p>
         </section>
-        {inGame ? (
+        {inGame && <div className="settings-group">
           <p className="settings-note settings-game-note">규칙·난이도·인원은 게임 화면의 ‘설정 변경’에서 바꿀 수 있어요.</p>
-        ) : (
-        <section className="settings-group settings-links" aria-label="더 보기">
-          <button type="button" className="settings-link" onClick={() => go("records")}>
-            <History size={17} /> 내 기록
-          </button>
-          <button type="button" className="settings-link" onClick={() => go("tutorial")}>튜토리얼</button>
-          <button type="button" className="settings-link" onClick={() => go("lab")}>
-            <FlaskConical size={17} /> 연구실 <small>고급 기능</small>
-          </button>
-        </section>
-        )}
+          <FullscreenToggle />
+        </div>}
         <p className="settings-footnote">설정은 이 브라우저에만 저장돼요.</p>
       </div>
     </dialog>
   );
 }
 
-const mobileDestinations: Route[] = ["home", "online", "offline", "profile", "friends", "quests", "shop", "inventory", "achievements", "records", "tutorial"];
+const groups = [
+  { label: "게임", items: [["home", "홈", House], ["online", "온라인 대전", Globe], ["offline", "오프라인 대전", Dices], ["practice", "한 차례 연습하기", Dices]] },
+  { label: "활동", items: [["friends", "친구", UsersRound], ["records", "내 기록", History], ["quests", "퀘스트", ListChecks], ["achievements", "업적", Trophy]] },
+  { label: "아이템", items: [["shop", "상점", Store], ["inventory", "인벤토리", Backpack]] },
+] as const;
 
-function MobileMenu({ route, navigate }: { route: Route; navigate: (r: Route) => void }) {
+type HeaderProfile = ReturnType<typeof useProfileEconomy>;
+
+function Sidebar({ route, navigate, profile }: { route: Route; navigate: (r: Route) => void; profile: HeaderProfile }) {
+  const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
+  const [phase, setPhase] = useState<"closed" | "open" | "closing">("closed");
+  const target = useRef<Route | null>(null);
+  const pointer = useRef<{ id: number; x: number; y: number } | null>(null);
   const box = useInbox();
-  const friendAlerts = session() ? box.requests + box.invites.filter((invite) => invite.expires > Date.now()).length : 0;
-  useEffect(() => {
-    dialog.current?.close();
+  const alerts = profile.signedIn ? box.requests + box.invites.filter((invite) => invite.expires > Date.now()).length : 0;
+  const quests = profile.snapshot?.state;
+  const current = route === "online-room" || route === "spectate" ? "online" :
+    ["play", "pvp", "play-setup", "pvp-setup"].includes(route) ? "offline" : route;
+
+  useLayoutEffect(() => {
+    if (!dialog.current?.open) return;
+    dialog.current.close();
+    target.current = null;
+    pointer.current = null;
+    setPhase("closed");
   }, [route]);
-  return (
-    <>
-      <button type="button" className="icon-button shell-icon shell-mobile-menu" aria-label="메뉴" aria-haspopup="dialog" onClick={() => dialog.current?.showModal()}>
-        <Menu size={20} aria-hidden="true" />
-      </button>
-      <dialog ref={dialog} className="mobile-nav-dialog" aria-label="메뉴" onClick={(event) => {
-        if (event.target === event.currentTarget) dialog.current?.close();
+
+  const close = (next?: Route) => {
+    if (phase !== "open") return;
+    target.current = next && next !== route ? next : null;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) finish();
+    else setPhase("closing");
+  };
+  const finish = () => {
+    if (!dialog.current?.open) return;
+    dialog.current.close();
+    setPhase("closed");
+    const next = target.current;
+    target.current = null;
+    if (next) navigate(next);
+  };
+  useEffect(() => {
+    if (phase !== "closing") return;
+    const timer = window.setTimeout(finish, 260);
+    return () => clearTimeout(timer);
+  }, [phase, route]);
+
+  return <>
+    <button type="button" className="icon-button shell-icon" aria-label="메뉴" aria-controls={id} aria-expanded={phase === "open"} aria-haspopup="dialog" onClick={() => {
+      if (dialog.current?.open) return;
+      setPhase("open");
+      dialog.current?.showModal();
+    }}><Menu size={20} aria-hidden="true" /></button>
+    <dialog id={id} ref={dialog} className="mobile-nav-dialog" data-phase={phase} aria-label="메뉴"
+      onAnimationEnd={(event) => { if (event.target === event.currentTarget && phase === "closing") finish(); }}
+      onCancel={(event) => { event.preventDefault(); close(); }}
+      onClick={(event) => { if (event.target === event.currentTarget) close(); }}
+      onPointerDown={(event) => { if (event.pointerType === "touch" && event.target !== event.currentTarget) pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY }; }}
+      onPointerCancel={() => { pointer.current = null; }}
+      onPointerUp={(event) => {
+        const start = pointer.current;
+        pointer.current = null;
+        if (start?.id !== event.pointerId) return;
+        const left = start.x - event.clientX;
+        if (left > 55 && left > 1.4 * Math.abs(event.clientY - start.y)) close();
       }}>
-        <div className="mobile-nav-heading">
-          <strong>메뉴</strong>
-          <button type="button" className="icon-button" aria-label="메뉴 닫기" onClick={() => dialog.current?.close()}>
-            <X size={20} aria-hidden="true" />
-          </button>
-        </div>
-        <nav className="mobile-nav-links" aria-label="주요 메뉴">
-          {mobileDestinations.map((target) => (
-            <button type="button" key={target} aria-current={route === target ? "page" : undefined} onClick={() => {
-              dialog.current?.close();
-              if (target !== route) navigate(target);
-            }}>
-              {target === "home" ? "홈" : routes[target].title}
-              {target === "friends" && friendAlerts > 0 && <b className="menu-badge" aria-label={`새 알림 ${friendAlerts}개`}>{friendAlerts}</b>}
-            </button>
-          ))}
-        </nav>
-      </dialog>
-    </>
-  );
+      <div className="mobile-nav-heading">
+        <strong>메뉴</strong>
+        <button type="button" className="icon-button" aria-label="메뉴 닫기" autoFocus onClick={() => close()}><X size={20} aria-hidden="true" /></button>
+      </div>
+      <nav className="mobile-nav-links" aria-label="주요 메뉴">
+        {groups.map(({ label, items }) => <section className="sidebar-group" aria-label={label} key={label}>
+          <h2>{label}</h2>
+          {items.map(([item, title, Icon]) => <button type="button" key={item} aria-current={current === item ? "page" : undefined} onClick={() => close(item)}>
+            <Icon size={18} aria-hidden="true" />{title}
+            {item === "friends" && alerts > 0 && <b className="menu-badge" aria-label={`새 알림 ${alerts}개`}>{alerts}</b>}
+            {item === "quests" && (quests?.dailyAll || quests?.weeklyAll) && <b className="menu-badge" aria-label="퀘스트 묶음 완료">✓</b>}
+          </button>)}
+        </section>)}
+      </nav>
+    </dialog>
+  </>;
 }
 
-/** Top bar: home on the left, sound/settings (and fullscreen in games) on the right. */
-export function TopBar({ route, navigate, openSettings }: { route: Route; navigate: (r: Route) => void; openSettings: () => void }) {
+function ProfileMenu({ route, server, profile, navigate }: { route: Route; server: string | null; profile: HeaderProfile; navigate: (route: Route) => void }) {
+  const [open, setOpen] = useState(false);
+  const name = useNickname();
+  const anchor = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const id = useId();
+  const look = profile.snapshot?.look ?? GUEST_LOOK;
+  useEffect(() => { setOpen(false); }, [route, profile.signedIn]);
+  useEffect(() => {
+    if (!open) return;
+    const outside = (event: PointerEvent) => {
+      if (!anchor.current?.contains(event.target as Node)) setOpen(false);
+    };
+    window.addEventListener("pointerdown", outside);
+    return () => window.removeEventListener("pointerdown", outside);
+  }, [open]);
+  const choose = (target: Route) => {
+    setOpen(false);
+    trigger.current?.focus();
+    if (target !== route) navigate(target);
+  };
+  return <div ref={anchor} className="top-profile" onBlur={(event) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+  }} onKeyDown={(event) => {
+    if (event.key === "Escape" && open) {
+      event.stopPropagation();
+      setOpen(false);
+      trigger.current?.focus();
+    }
+  }}>
+    <button ref={trigger} type="button" className="icon-button shell-icon top-profile-button" aria-label="프로필 메뉴" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
+      <PlayerTag name={name} look={look} me compact />
+    </button>
+    <div id={id} className="top-profile-panel" hidden={!open}>
+      <div className="top-profile-name"><PlayerTag name={name || "게스트"} look={look} me /></div>
+      <button type="button" onClick={() => choose("profile")}><UserRound size={17} aria-hidden="true" /> 내 프로필</button>
+      <button type="button" onClick={() => choose("account")}>
+        {profile.signedIn ? <Settings size={17} aria-hidden="true" /> : <LogIn size={17} aria-hidden="true" />}
+        {profile.signedIn ? "계정 설정" : "로그인"}
+      </button>
+      {profile.signedIn && server && <button type="button" onClick={() => {
+        setOpen(false);
+        trigger.current?.focus();
+        void signOut(server).catch(() => undefined);
+      }}><LogOut size={17} aria-hidden="true" /> 로그아웃</button>}
+    </div>
+  </div>;
+}
+
+export function TopBar({ route, server, profile, navigate, openSettings }: {
+  route: Route; server: string | null; profile: HeaderProfile; navigate: (r: Route) => void; openSettings: () => void;
+}) {
   const info = routes[route];
-  const home = route === "home";
+  const wallet = profile.snapshot?.wallet;
   return (
     <header className={`shell-top shell-top-${info.shell}`} inert={route === "tutorial"}>
       <div className="shell-top-left">
-        {info.shell !== "game" && <MobileMenu route={route} navigate={navigate} />}
-        {home ? (
-          <span className="wordmark" aria-label="YachtLab">
-            Yacht<b>Lab</b>
-          </span>
-        ) : (
-          <button type="button" className="shell-home" aria-label="홈으로" onClick={() => navigate("home")}>
-            <House size={19} />
-            <span>홈</span>
-          </button>
-        )}
+        <Sidebar route={route} navigate={navigate} profile={profile} />
+        <button type="button" className="wordmark" aria-label="홈으로" onClick={() => route !== "home" && navigate("home")}>Yacht<b>Lab</b></button>
       </div>
-      {!home && <div className="shell-title">{info.title}</div>}
+      {route !== "home" && <div className="shell-title">{info.title}</div>}
       <div className="shell-top-right">
-        {home && (
-          <>
-            <button type="button" className="shell-pill" onClick={() => navigate("records")}>
-              <History size={17} />
-              <span>내 기록</span>
-            </button>
-            <button type="button" className="shell-pill" onClick={() => navigate("lab")}>
-              <FlaskConical size={17} />
-              <span>연구실</span>
-            </button>
-          </>
-        )}
+        {profile.signedIn && <div className="top-wallet" aria-label="보유 재화">
+          {([{ label: "코인", value: wallet?.coins, Icon: Coins }, { label: "보석", value: wallet?.gems, Icon: Gem }]).map(({ label, value, Icon }) => (
+            <span key={label} title={`${label} ${value?.toLocaleString() ?? "–"}`} aria-label={`${label} ${value?.toLocaleString() ?? "–"}`}>
+              <Icon size={15} aria-hidden="true" /><b>{value?.toLocaleString() ?? "–"}</b>
+            </span>
+          ))}
+        </div>}
         <SoundToggle />
-        {info.shell === "game" && <FullscreenToggle />}
-        <button type="button" className="icon-button shell-icon" aria-label="설정" title="설정" aria-haspopup="dialog" onClick={openSettings}>
-          <Settings size={20} />
-        </button>
+        <button type="button" className="icon-button shell-icon" aria-label="설정" title="설정" aria-haspopup="dialog" onClick={openSettings}><Settings size={20} /></button>
+        <ProfileMenu route={route} server={server} profile={profile} navigate={navigate} />
       </div>
     </header>
   );

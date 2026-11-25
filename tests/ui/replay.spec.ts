@@ -19,6 +19,7 @@ test("진행 중 기보 저장·JSON 검증·로컬 이름 변경·삭제와 원
   await page.getByRole("button", { name: "기보 보기", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "기보 보기" });
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: /AI 아레나에서 이어하기|이 수를 분석하기/ })).toHaveCount(0);
   await page.getByLabel("기보 이름", { exact: true }).fill("보존 확인");
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(

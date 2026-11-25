@@ -1,3 +1,4 @@
+import { researchToolsEnabled } from "../routes";
 import { useId, type ReactNode } from "react";
 import { ArrowLeft, Minus, Play, Plus } from "lucide-react";
 import { ModelPicker } from "./ModelPicker";
@@ -87,20 +88,22 @@ function SetupLayout({ title, onBack, onStart, children }: { title: string; onBa
 export function AiSetupScreen({ onBack, onStart }: { onBack: () => void; onStart: () => void }) {
   const setup = useAiSetup();
   const levelName = useId();
+  const showResearch = researchToolsEnabled();
+  const research = showResearch && setup.research;
   return (
     <SetupLayout title="사람 vs AI" onBack={onBack} onStart={onStart}>
-      <fieldset className="setup-field" disabled={setup.research}>
+      <fieldset className="setup-field" disabled={research}>
         <legend>AI 난이도</legend>
         <div className="level-options" role="radiogroup" aria-label="AI 난이도">
           {gameDifficulties.map((level) => (
-            <label key={level.algorithm} className={"level-option" + (!setup.research && setup.difficulty === level.algorithm ? " checked" : "")}>
+            <label key={level.algorithm} className={"level-option" + (!research && setup.difficulty === level.algorithm ? " checked" : "")}>
               <input type="radio" name={levelName} value={level.algorithm} checked={setup.difficulty === level.algorithm} onChange={() => updateAiSetup({ difficulty: level.algorithm })} />
               <strong>{level.name}</strong>
               <small>{level.hint}</small>
             </label>
           ))}
         </div>
-        {setup.research && <p className="setup-note">고급 설정의 연구용 알고리즘을 사용 중이에요.</p>}
+        {research && <p className="setup-note">고급 설정의 연구용 알고리즘을 사용 중이에요.</p>}
       </fieldset>
       <label className="setup-field setup-text">
         <span className="setup-label">내 이름</span>
@@ -129,7 +132,7 @@ export function AiSetupScreen({ onBack, onStart }: { onBack: () => void; onStart
           ]}
           onChange={(speed) => updateAiSetup({ speed })}
         />
-        <div className="setup-field">
+        {showResearch && <div className="setup-field">
           <label className="setup-check">
             <input type="checkbox" checked={setup.research} onChange={(e) => updateAiSetup({ research: e.target.checked })} />
             <span>
@@ -138,7 +141,7 @@ export function AiSetupScreen({ onBack, onStart }: { onBack: () => void; onStart
             </span>
           </label>
           {setup.research && <ModelPicker value={setup.researchAlgorithm} onChange={(researchAlgorithm) => updateAiSetup({ researchAlgorithm })} />}
-        </div>
+        </div>}
       </details>
     </SetupLayout>
   );

@@ -1,3 +1,5 @@
+import { MatchRewardSummary } from "../shell/MatchRewards";
+import { MatchResult } from "../ui/MatchResult";
 import ReviewLauncher from "../review/ReviewLauncher";
 import { rememberOnlineReview } from "../review/online-history";
 import { fromOnline } from "../review/sources";
@@ -5,7 +7,7 @@ import type { OnlineEvent } from "../online/protocol";
 import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./Tutorial";
 import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Copy, Crown, Dices, Flag, Home, LogOut, Play, RotateCcw, Share2, Trophy, UserRound, Wifi, WifiOff, X } from "lucide-react";
+import { Copy, Crown, Dices, Flag, LogOut, Play, RotateCcw, Share2, UserRound, Wifi, WifiOff, X } from "lucide-react";
 import { names, type Category, type Game } from "../engine";
 import { DiceArea } from "../DiceArea";
 import { Scoreboard } from "../Scoreboard";
@@ -29,7 +31,7 @@ import type { LobbyState, RematchState, SeriesSummary, SpectateState } from "../
 import { LobbyPanel, MultiTable } from "./OnlineMulti";
 import { SpectateControl } from "./Social";
 import { SocialDock, TableFeed, useTableChat } from "./SocialDock";
-import { PlayerTag, boardCssOf, boardOf, diceLookOf } from "./Looks";
+import { PlayerTag, useBoardTheme, diceLookOf, diceMaterialOf } from "./Looks";
 import { GUEST_LOOK, itemById, type PublicLook } from "../economy/live/catalog";
 import type { FxLook } from "../economy/live/content-items";
 import { FxBurst } from "./FxBurst";
@@ -78,7 +80,7 @@ function recordOnDevice(view: PlayerView, me: string) {
   });
 }
 
-export default function OnlineGame({ server, code, quickIntro = false, onLeave, onProgress, onFinished }: { server: string; code: string; quickIntro?: boolean; onFinished?: (matchId: string) => void; onLeave: (message?: string) => void; onProgress?: (inProgress: boolean) => void }) {
+export default function OnlineGame({ server, code, quickIntro = false, onLeave, onProgress, onFinished }: { server: string; code: string; quickIntro?: boolean; onFinished?: (matchId: string) => void; onLeave: (message?: string, destination?: "home") => void; onProgress?: (inProgress: boolean) => void }) {
   const seat = useMemo(() => savedSeat(code), [code]);
   const [view, setView] = useState<PlayerView | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
@@ -334,6 +336,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const me = view?.you ?? null;
   const players = view?.players ?? [];
   const myLook = (me && looks[me.playerId]) || GUEST_LOOK;
+  const theme = useBoardTheme(myLook);
   const nameMap = Object.fromEntries(players.map((p) => [p.playerId, p.name]));
   const say = (id: string) => conn.current?.say(id) ?? false;
   const feed = <TableFeed chat={chat} names={nameMap} looks={looks} me={me?.playerId ?? null} />;
@@ -534,6 +537,15 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
     );
   }
 
+  const reviewSource = view.status === "finished" && view.players.length === 2 && view.you
+    ? fromOnline(view, [...reviewEvents.current.values()], looks) : undefined;
+  const reviewButton = reviewSource && typeof reviewSource !== "string"
+    ? <ReviewLauncher source={() => reviewSource} /> : undefined;
+  const leaveFinishedMatch = () => {
+    conn.current?.bye();
+    forgetSeat(code);
+    onLeave(undefined, "home");
+  };
   const toolGroups = (
     <>
             {/* Room settings (chat and emotes are in the bar under the board). */}
@@ -574,7 +586,8 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
             </>
           }
           status={status}
-          review={view.you && view.players.length === 2 && view.status === "finished" ? <ReviewLauncher source={() => fromOnline(view, [...reviewEvents.current.values()], looks)} /> : undefined}
+          review={reviewButton}
+          reward={finished && <MatchRewardSummary key={view.matchId} server={server} matchId={view.matchId} />}
           tools={toolGroups}
           banner={banner}
           dice={game.dice}
@@ -595,12 +608,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           onRoll={roll}
           onScore={record}
           onRematch={(op) => conn.current?.rematch(op)}
-          onHome={() => {
-            conn.current?.bye();
-            forgetSeat(code);
-            setRoomInUrl(null);
-            location.hash = "home";
-          }}
+          onHome={leaveFinishedMatch}
         />
         <ConfirmDialog
           open={!!confirm}
@@ -625,6 +633,11 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
               {status === "online" ? <Wifi size={14} /> : <WifiOff size={14} />} 방 {code}
             </span>
             {toolGroups}
+            {finished && opponent && members[opponent.playerId] && (
+              <button type="button" className="text-button" onClick={() => setProfileOf(members[opponent.playerId])}>
+                <UserRound size={15} /> {opponent.name} 님 프로필
+              </button>
+            )}
           </div>
           <div className="score-summary">
             {players.map((p, seatIndex) => (
@@ -651,8 +664,8 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           </div>
           {banner}
           <section
-            className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (canRoll && nearYacht(game.dice, rolls, players[meIndex]?.card) ? " yacht-near" : "") + (boardOf(myLook) ? " board-themed" : "") + (boardCssOf(myLook) ? " " + boardCssOf(myLook) : "")}
-            style={boardOf(myLook) ? ({ "--board-color": boardOf(myLook) } as React.CSSProperties) : undefined}
+            className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (canRoll && nearYacht(game.dice, rolls, players[meIndex]?.card) ? " yacht-near" : "") + theme.className}
+            style={theme.style}
             aria-label="게임 보드"
             {...gesture}
           >
@@ -675,7 +688,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
               </span>
             </div>
             {/* The dice show the theme of the player whose turn it is — the same on both screens. */}
-            <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={can && rolls > 0 && rolls < 3} animate rollEvent={rollEvent} onToggle={toggle} holdOrder={rolls > 0 ? keep : []} />
+            <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} material={diceMaterialOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={can && rolls > 0 && rolls < 3} animate rollEvent={rollEvent} onToggle={toggle} holdOrder={rolls > 0 ? keep : []} />
             <div className="roll-area">
               <button className={"primary roll-button" + (myTurn ? "" : " waiting")} disabled={!canRoll} onClick={roll}>
                 <Dices size={20} />
@@ -690,51 +703,24 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
               <QuickPicks values={game.dice.map((d) => d.value)} card={players[meIndex]?.card ?? {}} rolls={rolls} canScore={can} onScore={record} />
             </div>
             {finished && (
-              <div className={"game-result online-result" + winnerFx} role="status">
+              <MatchResult key={view.matchId} className={"online-result" + winnerFx} waiting={!!celebration || !!yachtFx}
+                title={outcome === "draw" ? "무승부" : outcome === "win" ? "승리" : "패배"}
+                invitation={!!rematch?.requests.some((id) => id !== me?.playerId)}
+                actions={<>
+                  {reviewButton}
+                  <RematchControls rematch={rematch} me={me?.playerId ?? ""} opponentName={opponent?.name ?? "상대"} onOp={(op) => conn.current?.rematch(op)} />
+                  <button className="secondary" onClick={leaveFinishedMatch}>나가기</button>
+                </>}>
                 {winnerFxLook && winnerFxItem && <FxBurst fx={winnerFxLook} level={winnerFxItem.fxLv} seed={view.matchId} />}
-                <Trophy size={25} />
-                <h2>{outcome === "draw" ? "무승부입니다" : outcome === "win" ? "승리했습니다!" : `${players.find((p) => p.playerId === winners[0])?.name ?? "상대"} 님이 승리했습니다`}</h2>
-                <p className="online-final">
-                  {players[meIndex]?.total ?? 0} : {opponent?.total ?? 0}
-                </p>
+                <p className="online-final">{players[meIndex]?.total ?? 0} : {opponent?.total ?? 0}</p>
                 {series && series.games > 1 && me && opponent && (
                   <p className="online-series">
                     이 방 전적 {series.wins[me.playerId] ?? 0}승 {series.wins[opponent.playerId] ?? 0}패{series.draws ? ` ${series.draws}무` : ""}
                   </p>
                 )}
-                {opponent && members[opponent.playerId] && (
-                  <button type="button" className="text-button" onClick={() => setProfileOf(members[opponent.playerId])}>
-                    <UserRound size={15} /> {opponent.name} 님 프로필
-                  </button>
-                )}
                 <MatchMilestones {...milestones} />
-                <RematchControls rematch={rematch} me={me?.playerId ?? ""} opponentName={opponent?.name ?? "상대"} onOp={(op) => conn.current?.rematch(op)} />
-                <div className="game-result-actions">
-                  {view.you && <ReviewLauncher source={() => fromOnline(view, [...reviewEvents.current.values()], looks)} />}
-                  <button
-                    className="secondary"
-                    onClick={() => {
-                      conn.current?.bye();
-                      forgetSeat(code);
-                      onLeave();
-                    }}
-                  >
-                    새 방 만들기
-                    <ArrowRight size={16} />
-                  </button>
-                  <button
-                    className="secondary"
-                    onClick={() => {
-                      conn.current?.bye();
-                      forgetSeat(code);
-                      setRoomInUrl(null);
-                      location.hash = "home";
-                    }}
-                  >
-                    <Home size={15} /> 로비로
-                  </button>
-                </div>
-              </div>
+                <MatchRewardSummary key={view.matchId} server={server} matchId={view.matchId} />
+              </MatchResult>
             )}
           </section>
           <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : rolls} canScore={can} yacht={yachtReady} />
@@ -827,7 +813,7 @@ function RematchControls({ rematch, me, opponentName, onOp }: { rematch: Rematch
             </p>
           )}
           <button type="button" className="primary" disabled={pressed} onClick={() => press("request")}>
-            <RotateCcw size={16} /> 재대결
+            <RotateCcw size={16} /> 한 번 더 플레이
           </button>
         </>
       )}

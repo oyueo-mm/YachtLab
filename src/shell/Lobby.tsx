@@ -1,36 +1,14 @@
-import { ArrowRight, Backpack, Bot, Dices, Globe, ListChecks, Smartphone, Store, Trophy, UserRound, UsersRound } from "lucide-react";
-import { DieIcon } from "../Dice";
+import { ArrowRight, Bot, Dices, Globe, Smartphone, UsersRound } from "lucide-react";
 import type { Route } from "../routes";
-import { tutorialSeen } from "../play/tutorial-progress";
-import { useInbox } from "./Friends";
-import HomeProfile, { useProfileEconomy } from "./HomeProfile";
 
 type Go = (route: Route) => void;
 
-/**
- * Home = game-start lobby: a title, one line, and two modes. Online play (invite a friend) is the
- * main card; offline play (AI / same device) is the second card. Research tools stay behind "연구실".
- */
-export function Lobby({ navigate, server }: { navigate: Go; server: string | null }) {
-  const box = useInbox();
-  const { signedIn, snapshot } = useProfileEconomy(server);
-  const alerts = signedIn ? box.requests + box.invites.filter((invite) => invite.expires > Date.now()).length : 0;
-  const quests = snapshot?.state;
-  const questsDone = (quests?.daily.length ?? 0) > 0 && (quests?.dailyAll || quests?.weeklyAll);
+export function Lobby({ navigate }: { navigate: Go }) {
   return (
     <section className="lobby lobby-v3" aria-labelledby="lobby-title">
-      <HomeProfile signedIn={signedIn} snapshot={snapshot} onProfile={() => navigate("profile")} />
-      <div className="lobby-hero">
-        <span className="lobby-dice" aria-hidden="true">
-          <DieIcon value={5} />
-          <DieIcon value={6} />
-        </span>
+      <header className="lobby-hero">
         <h1 id="lobby-title">요트다이스를 플레이해보세요</h1>
-        <p>AI와 대결하거나 친구와 함께 즐겨보세요.</p>
-      </div>
-      <button type="button" className="secondary lobby-tutorial" onClick={() => navigate("tutorial")}>
-        {tutorialSeen() ? "튜토리얼 다시 보기" : "처음이라면 · 한 차례 연습하기"}
-      </button>
+      </header>
       <div className="lobby-modes">
         <button type="button" className="mode-card mode-online mode-primary mode-main" onClick={() => navigate("online")}>
           <span className="mode-icon" aria-hidden="true">
@@ -55,29 +33,6 @@ export function Lobby({ navigate, server }: { navigate: Go; server: string | nul
           <ArrowRight className="mode-arrow" size={20} aria-hidden="true" />
         </button>
       </div>
-      <nav className="lobby-menu" aria-label="내 메뉴">
-        {(
-          [
-            ["shop", "상점", Store],
-            ["inventory", "인벤토리", Backpack],
-            ["quests", "퀘스트", ListChecks],
-            ["achievements", "업적", Trophy],
-            ["friends", "친구", UsersRound],
-            ["profile", "프로필", UserRound],
-          ] as const
-        ).map(([route, label, Icon]) => (
-          <button key={route} type="button" className="lobby-menu-item" onClick={() => navigate(route)}>
-            <Icon size={18} aria-hidden="true" />
-            <span>{label}</span>
-            {route === "friends" && alerts > 0 && (
-              <b className="menu-badge" aria-label={`새 알림 ${alerts}개`}>
-                {alerts}
-              </b>
-            )}
-            {route === "quests" && questsDone && <b className="menu-badge" aria-label="퀘스트 묶음 완료">✓</b>}
-          </button>
-        ))}
-      </nav>
     </section>
   );
 }
