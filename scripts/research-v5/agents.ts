@@ -140,5 +140,7 @@ export const AGENTS: Record<string, { v5: boolean; bayes?: boolean; v6?: string[
   "p-I2R1W6": { v5: true, v6: ["dp"], describe: "product track: I2R1 when my remaining <= 6, else I2RO1", act: v7single("I2R1", { window: 6, fallback: "I2RO1" }) },
   "p-I2RO1B3": { v5: true, v6: ["dp"], describe: "product track: I2RO1 + exact interactive minimax when both <= 3", act: v7single("I2RO1", { endgame: "minimax", minimaxWindow: 3 }) },
   "p-I2R1B3": { v5: true, v6: ["dp"], describe: "product track: I2R1 + exact interactive minimax when both <= 3", act: v7single("I2R1", { endgame: "minimax", minimaxWindow: 3 }) },
+  "v7-I3RpW4": { v5: true, v6: ["all"], describe: "v7.2 research: I3Rp (three-ply reaction, mass cut 0.8) when my remaining <= 4, else I2RO", act: v7("I3Rp", { window: 4, fallback: "I2RO" }) },
+  "v7-I3RpW5": { v5: true, v6: ["all"], describe: "v7.2 research: I3Rp when my remaining <= 5, else I2RO", act: v7("I3Rp", { window: 5, fallback: "I2RO" }) },
   "v7-I1B3": { v5: true, v6: ["all"], describe: "v7-I1 + exact interactive minimax when both <= 3", act: v7("I1", { endgame: "minimax", minimaxWindow: 3 }) },
 };
