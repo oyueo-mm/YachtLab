@@ -213,3 +213,9 @@ Sixes·Choice 조건은 정책마다 50,000번 Monte Carlo 검산. **근거:** [
 - **workerd 로컬(wrangler dev):** 2·4·6·10·20인 × 순차/동시 전부 완주·오류 0·최종 순위 전원 일치. 4라운드 후 전원 동시 재접속 폭주, 8라운드 후 서버 재시작 → 같은 상태로 이어짐.
 - **운영 Worker(Workers Free):** 2·4·6·10·20인 동시 진행 각 1경기 완주, 오류 0, 20인 ack p50 114 / p95 195 ms. 일일 경기 예산 28→49(가중 ⌈N/2⌉ = 1+2+3+5+10).
 - **공개 사이트(빌드 01b2deb):** 4인 동시 진행 PC 1 + 휴대폰 2 + 데스크톱 1, 새로고침 복귀·12라운드 완주·순위 일치·페이지 오류 0.
+
+### 제품 회귀 검증 (2026-11-25)
+
+- PR #62 병합 후 Pages 검증에서 317 통과·52 건너뜀·1 실패. PR #63 첫 실행에서 3D의 동일한 효과음 로그 가정이 발견됐다. 두 렌더러의 고정 시드 테스트는 데스크톱 Chromium과 Pixel 7 에뮬레이션에서 각 3회, 총 12회 통과했다. [실패 main](https://github.com/oyueo-mm/YachtLab/actions/runs/45530495861) · [첫 복구 PR 실행](https://github.com/oyueo-mm/YachtLab/actions/runs/45548310144)
+- 휴대폰 360~430px에서 한 열 점수 목록 697px, 두 열 366.5px, 두 열의 최소 행 높이 54px. 320px에는 한 열을 사용한다. [온보딩 PR](https://github.com/oyueo-mm/YachtLab/pull/66)
+- 실제 브라우저의 네트워크를 끈 뒤 캐시된 앱으로 로컬 경기에서 점수를 기록했고 Greedy AI가 첫 차례를 마쳤다. iOS 설치 안내는 브라우저 에뮬레이션으로 검증했다. [PWA PR](https://github.com/oyueo-mm/YachtLab/pull/64)
