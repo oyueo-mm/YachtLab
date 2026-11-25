@@ -99,7 +99,14 @@ export default function MobileQuickScore({
                 ) : (
                   <div className="mobile-quick-row-static">
                     {name}
-                    <strong className={fixed === undefined ? "empty-score" : "fixed-score"}>{fixed === undefined ? "—" : <>{fixed}점 <small className="score-recorded-label">기록됨</small></>}</strong>
+                    {fixed === undefined ? (
+                      <strong className="empty-score">—</strong>
+                    ) : (
+                      <div className="mobile-recorded-score">
+                        <strong className="fixed-score">{fixed}점</strong>
+                        <small className="score-recorded-label">기록됨</small>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
