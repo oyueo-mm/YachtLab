@@ -65,6 +65,8 @@ export default function HumanGame({
     [error, setError] = useState(""),
     [last, setLast] = useState<Decision | null>(null);
   const [retry, setRetry] = useState(0);
+  const [modelStatus, setModelStatus] = useState("");
+  const skipTrial = useRef<(() => void) | null>(null);
   const generation = useRef(0),
     job = useRef<ReturnType<typeof runJob<Decision>> | null>(null);
   const aiSession = useRef<ReturnType<typeof createDecisionSession> | null>(null);
@@ -146,6 +148,8 @@ export default function HumanGame({
     setLast,
     setCaption,
     setPreviewScore: setAiPreviewCategory,
+    setModelStatus,
+    skipTrial,
     paused: !!viewReplay,
     pausedRef,
     aiSeat,
@@ -287,7 +291,10 @@ export default function HumanGame({
                 {caption}
               </p>
             )}
-            {busy && <Thinking />}
+            {modelStatus && <p className="ai-action-status" role="status">
+              {modelStatus} <button type="button" className="secondary" onClick={() => skipTrial.current?.()}>준비 취소</button>
+            </p>}
+            {busy && !modelStatus && <Thinking />}
             {state.done && (
               <MatchResult waiting={!!celebration} title={state.winner === "draw" ? "무승부" : state.winner === humanSeat ? "승리" : "패배"}
                 actions={<>
