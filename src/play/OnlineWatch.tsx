@@ -149,6 +149,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
   const labels = players.map((p) => p.name) as [string, string];
   const remaining = deadline !== null && view.status === "playing" ? deadline - now : null;
   const winner = players.find((p) => p.playerId === view.winners[0]);
+  const nameMap = Object.fromEntries(players.map((player) => [player.playerId, player.name]));
 
   if (players.length > 2 || view.mode === "simultaneous") {
     const simultaneous = view.mode === "simultaneous";
@@ -210,7 +211,8 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
               </div>
             )}
           </section>
-            {feedback && (
+          <TableFeed chat={chat} names={nameMap} looks={looks} me={null} avatars />
+          {feedback && (
             <p className="game-feedback" role="status">
               {feedback}
             </p>
@@ -224,7 +226,6 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
     );
   }
 
-  const nameMap = Object.fromEntries(players.map((player) => [player.playerId, player.name]));
   return (
     <div className="game-grid online-game online-watch">
       <div className="game-left">
