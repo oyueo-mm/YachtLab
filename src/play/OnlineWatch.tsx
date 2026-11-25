@@ -210,8 +210,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
               </div>
             )}
           </section>
-          <TableFeed chat={chat} names={Object.fromEntries(players.map((p) => [p.playerId, p.name]))} looks={looks} me={null} />
-          {feedback && (
+            {feedback && (
             <p className="game-feedback" role="status">
               {feedback}
             </p>
@@ -225,6 +224,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
     );
   }
 
+  const nameMap = Object.fromEntries(players.map((player) => [player.playerId, player.name]));
   return (
     <div className="game-grid online-game online-watch">
       <div className="game-left">
@@ -238,7 +238,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
         </div>
         <div className="score-summary">
           {players.map((p, seatIndex) => (
-            <div key={p.playerId} className={!finished && turnIndex === seatIndex ? "selected" : ""} data-seat={seatIndex} data-role="player">
+            <div key={p.playerId} className={`social-seat${!finished && turnIndex === seatIndex ? " selected" : ""}`} data-seat={seatIndex} data-role="player">
               <span>
                 <PlayerTag name={p.name} look={looks[p.playerId]} compact />
                 {!online.includes(p.playerId) && view.status === "playing" ? " (연결 끊김)" : ""}
@@ -247,6 +247,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
                 {p.total}
                 <small>점</small>
               </strong>
+              <TableFeed chat={chat} names={nameMap} looks={looks} me={null} from={p.playerId} />
             </div>
           ))}
           <div className="round">
@@ -295,7 +296,6 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
             </div>
           )}
         </section>
-        <TableFeed chat={chat} names={Object.fromEntries(players.map((p) => [p.playerId, p.name]))} looks={looks} me={null} />
         {feedback && (
           <p className="game-feedback" role="status">
             {feedback}

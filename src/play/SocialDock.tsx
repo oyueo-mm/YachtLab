@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { EyeOff, LoaderCircle, MessageCircle, X } from "lucide-react";
 import { allowSocial, newSocialBucket, socialItem, socialRetryMs, type SocialBucket, type SocialItem } from "../social/catalog";
 import { GUEST_LOOK, type PublicLook } from "../economy/live/catalog";
-import { bubbleCssOf } from "./Looks";
+import { PlayerTag, bubbleCssOf } from "./Looks";
 import { getSettings, useSettings } from "../settings";
 import { playEmoteSfx } from "../sound";
 
@@ -163,8 +163,8 @@ export type TableChat = ReturnType<typeof useTableChat>;
  * the dice or the roll button. Multi-player tables show who sent it. Bubble styles and emote levels
  * come from the sender's server-validated look; other players' effects follow "상대 아이템 효과".
  */
-export function TableFeed({ chat, names, looks, me, from }: {
-  chat: TableChat; names: Record<string, string>; looks: Record<string, PublicLook>; me: string | null; from?: string;
+export function TableFeed({ chat, names, looks, me, from, avatars = false }: {
+  chat: TableChat; names: Record<string, string>; looks: Record<string, PublicLook>; me: string | null; from?: string; avatars?: boolean;
 }) {
   const { reducedEffects, opponentFx } = useSettings();
   return (
@@ -179,7 +179,9 @@ export function TableFeed({ chat, names, looks, me, from }: {
         const css = fxOn ? bubbleCssOf(look) : "";
         return (
           <span key={e.key} className={"feed-msg " + item.kind + (mine ? " mine" : "") + (css ? " " + css : "") + (fxOn && !reducedEffects && item.kind === "emote" ? ` emote-lv${lv}` : "") + (reducedEffects ? " static" : "")} role="status">
-            <b className="feed-from">{mine ? "나" : (names[e.from] ?? "")}</b>
+            <b className="feed-from">{avatars
+              ? <PlayerTag name={mine ? "나" : (names[e.from] ?? "")} look={look} me={mine} compact />
+              : (mine ? "나" : (names[e.from] ?? ""))}</b>
             <span className="feed-text" aria-label={item.kind === "emote" ? item.label : undefined}>
               {item.text}
             </span>

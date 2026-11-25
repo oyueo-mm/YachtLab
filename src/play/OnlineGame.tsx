@@ -340,7 +340,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const theme = useBoardTheme(myLook);
   const nameMap = Object.fromEntries(players.map((p) => [p.playerId, p.name]));
   const say = (id: string) => conn.current?.say(id) ?? false;
-  const feed = <TableFeed chat={chat} names={nameMap} looks={looks} me={me?.playerId ?? null} />;
+  const feed = <TableFeed chat={chat} names={nameMap} looks={looks} me={me?.playerId ?? null} avatars />;
   const dock = <SocialDock chat={chat} look={myLook} online={status === "online"} transport={say} names={nameMap} me={me?.playerId} />;
   const opponent = players.find((p) => p.playerId !== me?.playerId) ?? null;
   /* ------------------------------------------------- derived game table (hooks stay above early returns) ------------------------------------------------- */

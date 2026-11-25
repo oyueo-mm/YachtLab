@@ -359,7 +359,7 @@ function InventoryPage({ server, go, economyState, active }: EconomyProps) {
   const save = async () => {
     if (!draft) return;
     const r = await act(() => saveLoadout(server!, draft), "장착을 저장했어요. 다음 경기부터 상대에게 보여요.");
-    if (r) { setChanges(null); setSaved(r); }
+    if (r) { setChanges((current) => current === draft ? null : current); setSaved(r); }
   };
   const isEquipped = (i: ItemDef) => {
     if (!draft) return false;
