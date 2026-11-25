@@ -72,7 +72,7 @@ function recordOnDevice(view: PlayerView, me: string) {
   });
 }
 
-export default function OnlineGame({ server, code, onLeave, onProgress }: { server: string; code: string; onLeave: (message?: string) => void; onProgress?: (inProgress: boolean) => void }) {
+export default function OnlineGame({ server, code, quickIntro = false, onLeave, onProgress }: { server: string; code: string; quickIntro?: boolean; onLeave: (message?: string) => void; onProgress?: (inProgress: boolean) => void }) {
   const seat = useMemo(() => savedSeat(code), [code]);
   const [view, setView] = useState<PlayerView | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
@@ -93,7 +93,9 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"code" | "link" | null>(null);
+  const lastCopy = useRef(0);
+  const [intro, setIntro] = useState(quickIntro);
   const [mobileScoreOpen, setMobileScoreOpen] = useState(false);
   const [confirm, setConfirm] = useState<PendingAction>(null);
   const [deadline, setDeadline] = useState<number | null>(null);
@@ -273,6 +275,12 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   }, [deadline, anyAway]);
 
   const playing = view?.status === "playing";
+  useEffect(() => {
+    if (!intro || !playing) return;
+    const timeout = window.setTimeout(() => setIntro(false), 1900);
+    return () => window.clearTimeout(timeout);
+  }, [intro, playing]);
+  useEffect(() => () => window.clearTimeout(lastCopy.current), []);
   useEffect(() => onProgress?.(!!playing), [playing]);
   useEffect(() => () => onProgress?.(false), []);
 
@@ -392,15 +400,16 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   if (view.status === "lobby") {
     const link = inviteLink(code);
     const canShare = typeof navigator.share === "function";
-    /** Copy the invite link; falls back to a selection copy for in-app browsers without the Clipboard API. */
-    const copy = async () => {
+    /** Copy the invitation; falls back to a selection copy for in-app browsers without the Clipboard API. */
+    const copy = async (kind: "code" | "link") => {
+      const text = kind === "code" ? code : link;
       let ok = false;
       try {
-        await navigator.clipboard.writeText(link);
+        await navigator.clipboard.writeText(text);
         ok = true;
       } catch {
         const field = document.createElement("textarea");
-        field.value = link;
+        field.value = text;
         field.setAttribute("readonly", "");
         field.style.position = "fixed";
         field.style.opacity = "0";
@@ -414,8 +423,9 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         field.remove();
       }
       if (ok) {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1800);
+        window.clearTimeout(lastCopy.current);
+        setCopied(kind);
+        lastCopy.current = window.setTimeout(() => setCopied(null), 1800);
       } else setError("복사하지 못했어요. 아래 링크를 길게 눌러 복사해 주세요.");
     };
     const share = async () => {
@@ -433,8 +443,11 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           <span>초대 코드</span>
           <strong aria-label="초대 코드">{code}</strong>
           <div className="online-invite-actions">
-            <button type="button" className="primary" onClick={() => void copy()}>
-              <Copy size={15} /> {copied ? "링크를 복사했어요" : "초대 링크 복사"}
+            <button type="button" className="primary" onClick={() => void copy("link")}>
+              <Copy size={15} /> {copied === "link" ? "링크를 복사했어요" : "초대 링크 복사"}
+            </button>
+            <button type="button" className="secondary" onClick={() => void copy("code")}>
+              <Copy size={15} /> {copied === "code" ? "코드를 복사했어요" : "초대 코드 복사"}
             </button>
             {canShare && (
               <button type="button" className="secondary" onClick={() => void share()}>
@@ -608,6 +621,13 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
             {...gesture}
           >
             <Celebrate value={celebration} />
+            {intro && playing && me && opponent && (
+              <div className="quick-match-intro" role="status" aria-label="빠른 대전 매칭 완료">
+                <PlayerTag name={players[meIndex].name} look={looks[me.playerId] ?? GUEST_LOOK} me />
+                <strong aria-hidden="true">VS</strong>
+                <PlayerTag name={opponent.name} look={looks[opponent.playerId] ?? GUEST_LOOK} />
+              </div>
+            )}
             {yachtFx && <FxBurst key={yachtFx.seed} fx={yachtFx.fx} level={yachtFx.level} seed={yachtFx.seed} />}
             <div className="board-top">
               <span className="turn-indicator">

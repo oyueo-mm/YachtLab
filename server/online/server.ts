@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { WebSocketServer, type WebSocket } from "ws";
-import { OnlineRoom, ROOM_LIMITS, newRoomCode, normalizeCode, type RoomConnection, type RoomRecord } from "../../src/online/room";
+import { OnlineRoom, ROOM_LIMITS, newRoomCode, normalizeCode, parseRoomSettings, type RoomConnection, type RoomRecord } from "../../src/online/room";
 import type { DiceSource } from "../../src/online/dice-source";
 import type { ServerMessage } from "../../src/online/wire";
 
@@ -184,6 +184,8 @@ export async function startOnlineServer(options: OnlineServerOptions = {}): Prom
     const url = new URL(req.url ?? "/", "http://local");
     const parts = url.pathname.split("/").filter(Boolean);
     try {
+      if (req.method === "GET" && url.pathname === "/api/features")
+        return send(res, 200, { quickMatch: false, publicSpectate: false, signIn: false, createSettings: true }, okOrigin);
       if (req.method === "GET" && url.pathname === "/healthz") return send(res, 200, { ok: true, rooms: rooms.size }, okOrigin);
       if (parts[0] !== "api" || parts[1] !== "rooms") return fail(res, 404, "NOT_FOUND", "없는 주소입니다.", okOrigin);
 
@@ -194,9 +196,11 @@ export async function startOnlineServer(options: OnlineServerOptions = {}): Prom
         let code = newRoomCode();
         for (let i = 0; rooms.has(code) && i < 20; i++) code = newRoomCode();
         if (rooms.has(code)) return fail(res, 503, "ROOM_LIMIT", "방 코드를 만들지 못했어요.", okOrigin);
-        const maxPlayers = (body as { maxPlayers?: unknown })?.maxPlayers;
+        const { maxPlayers, settings: rawSettings } = (body ?? {}) as { maxPlayers?: unknown; settings?: unknown };
+        const settings = rawSettings === undefined ? undefined : parseRoomSettings(rawSettings);
+        if (settings === null) return fail(res, 400, "BAD_REQUEST", "경기 방식과 제한 시간을 확인해 주세요.", okOrigin);
         const seats = Number.isInteger(maxPlayers) && (maxPlayers as number) >= 2 && (maxPlayers as number) <= 20 ? (maxPlayers as number) : 2;
-        const room = OnlineRoom.create(code, depsFor(code), { turnTimeoutMs, seats });
+        const room = OnlineRoom.create(code, depsFor(code), { turnTimeoutMs, seats, settings });
         const joined = await room.join((body as { name?: unknown })?.name);
         if (!joined.ok) return fail(res, joined.status, joined.error.code, joined.error.message, okOrigin);
         rooms.set(code, room);

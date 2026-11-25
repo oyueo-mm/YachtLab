@@ -49,6 +49,7 @@ export default function App() {
   // Online play needs a configured server; without one the online screen stays "준비 중".
   const [onlineServer] = useState(onlineServerUrl);
   const [onlineCode, setOnlineCode] = useState<string | null>(roomFromUrl);
+  const [quickIntro, setQuickIntro] = useState<string | null>(null);
   const [onlineNotice, setOnlineNotice] = useState("");
   const [watchTarget] = useState(watchFromUrl);
   const [profileNotice, setProfileNotice] = useState("");
@@ -206,7 +207,8 @@ export default function App() {
               server={onlineServer}
               onBack={() => navigate("home")}
               onAi={() => navigate("play-setup")}
-              onEnter={(code) => {
+              onEnter={(code, quick) => {
+                setQuickIntro(quick ? code : null);
                 setOnlineNotice("");
                 setOnlineCode(code);
                 go("online-room");
@@ -219,11 +221,13 @@ export default function App() {
             key={onlineCode}
             server={onlineServer}
             code={onlineCode}
+            quickIntro={quickIntro === onlineCode}
             onProgress={progress}
             onLeave={(message) => {
               inProgress.current = false;
               setOnlineNotice(message ?? "");
               setOnlineCode(null);
+              setQuickIntro(null);
               setRoomInUrl(null);
               go("online");
             }}

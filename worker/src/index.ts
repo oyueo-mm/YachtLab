@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { newRoomCode, normalizeCode, ROOM_LIMITS, type RoomRecord } from "../../src/online/room";
+import { newRoomCode, normalizeCode, parseRoomSettings, ROOM_LIMITS, type RoomRecord, type RoomSettings } from "../../src/online/room";
 import { readConfig, type ConfigVars, type OnlineConfig } from "./config";
 import { RoomHost, type HostSocket, type HostStorage } from "./host";
 import { AccountStore, type Sql } from "./account";
@@ -123,8 +123,8 @@ export class YachtRoom extends DurableObject<Env> {
 
   /* RPC from the Worker */
   /** `identity` is set only by the Worker after verifying the session (never taken from the client body). */
-  async create(code: string, name: unknown, identity?: { userId: string } | null, look?: PublicLook | null, maxPlayers = 2) {
-    return this.host.create(code, name, identity, look, maxPlayers);
+  async create(code: string, name: unknown, identity?: { userId: string } | null, look?: PublicLook | null, maxPlayers = 2, settings?: RoomSettings) {
+    return this.host.create(code, name, identity, look, maxPlayers, settings);
   }
   async join(name: unknown, identity?: { userId: string } | null, look?: PublicLook | null) {
     return this.host.join(name, identity, look);
@@ -721,12 +721,12 @@ async function clientKey(request: Request): Promise<string> {
   return [...new Uint8Array(digest).slice(0, 12)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function readBody(request: Request): Promise<{ name?: unknown; maxPlayers?: unknown }> {
+async function readBody(request: Request): Promise<{ name?: unknown; maxPlayers?: unknown; settings?: unknown }> {
   const length = Number(request.headers.get("content-length") ?? "0");
   if (length > MAX_BODY) throw new Error("too large");
   const text = await request.text();
   if (text.length > MAX_BODY) throw new Error("too large");
-  const body = JSON.parse(text || "{}") as { name?: unknown; maxPlayers?: unknown };
+  const body = JSON.parse(text || "{}") as { name?: unknown; maxPlayers?: unknown; settings?: unknown };
   return body ?? {};
 }
 async function readName(request: Request): Promise<unknown> {
@@ -797,7 +797,7 @@ export default {
       }
       // What this server offers (the page hides what is not available).
       if (url.pathname === "/api/features" && request.method === "GET")
-        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, serverAi: !!auth && env.SERVER_AI !== "off", economy: !!auth && env.ECONOMY === "on" }, allowed, "public, max-age=60");
+        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, createSettings: true, serverAi: !!auth && env.SERVER_AI !== "off", economy: !!auth && env.ECONOMY === "on" }, allowed, "public, max-age=60");
       // Public spectating list: cheap, cached briefly; no tokens, no keys, no account ids in it.
       if (url.pathname === "/api/spectate/rooms" && request.method === "GET") {
         if (await directory.hit("list:" + (await clientKey(request)), 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
@@ -918,11 +918,13 @@ export default {
 
       if (request.method === "POST" && parts.length === 2) {
         const body = await readBody(request);
+        const settings = body.settings === undefined ? undefined : parseRoomSettings(body.settings);
+        if (settings === null) return fail(400, "BAD_REQUEST", "경기 방식과 제한 시간을 확인해 주세요.", allowed);
         const slot = await directory.allocate(await clientKey(request));
         if (!slot.ok) return fail(slot.status, slot.code, slot.message, allowed);
         const identity = await seatIdentity();
         const seat = await seatInfo(identity, body.name);
-        const joined = await roomStub(slot.code!).create(slot.code!, seat.name, identity, seat.look, maxPlayersOf(body.maxPlayers));
+        const joined = await roomStub(slot.code!).create(slot.code!, seat.name, identity, seat.look, maxPlayersOf(body.maxPlayers), settings);
         if (!joined.ok) {
           await directory.release(slot.code!);
           return fail(joined.status, joined.error.code, joined.error.message, allowed);

@@ -320,3 +320,16 @@ describe("종료(close)", () => {
     await expect(fetch(srv.url + "/healthz")).rejects.toThrow();
   });
 });
+
+it("방 만들기의 진행 설정을 저장하고 지원하지 않는 시간을 거부한다", async () => {
+  const server = await boot();
+  const settings = { mode: "simultaneous", timeoutMs: 60_000 };
+  expect((await api(server, "/api/features")).body.createSettings).toBe(true);
+  expect((await api(server, "/api/rooms", { name: "민수", settings: { ...settings, timeoutMs: null } })).status).toBe(400);
+  const created = await api(server, "/api/rooms", { name: "민수", maxPlayers: 3, settings });
+  expect(created.status).toBe(201);
+  expect((await api(server, `/api/rooms/${created.body.code}`)).body).toMatchObject({ seats: 3, mode: "simultaneous" });
+  const client = new Client(server, created.body.code);
+  const welcome = await client.hello(created.body.token);
+  expect(welcome).toMatchObject({ lobby: { settings, maxPlayers: 3 } });
+});

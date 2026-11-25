@@ -25,6 +25,9 @@ import { session } from "../identity/account-client";
 import { startServerAi } from "../identity/economy-client";
 import { PlayerTag } from "./Looks";
 import { useNickname } from "../identity/display-name";
+import { ROUND_LIMITS, TURN_LIMITS } from "../online/wire";
+import type { RoomSettings } from "../online/room";
+import "./online-entry.css";
 
 /** The nickname this screen will use (edited on the profile page only). */
 function NickLine({ name }: { name: string }) {
@@ -151,7 +154,7 @@ const clock = (ms: number) => {
  * (public matches). An invite link (`?room=CODE`) opens InviteJoin for that room instead.
  * A server without quick match (older Worker, local Node dev server) shows the friend tab only.
  */
-export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server: string; onEnter: (code: string) => void; onBack: () => void; onAi?: () => void }) {
+export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server: string; onEnter: (code: string, quick?: boolean) => void; onBack: () => void; onAi?: () => void }) {
   const name = useNickname();
   const [inviteCode, setInviteCode] = useState<string | null>(roomFromUrl);
   const [features, setFeatures] = useState<Features | null>(null);
@@ -179,11 +182,11 @@ export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server:
   }, []);
 
   const trimmed = name.trim();
-  const enter = (seat: Seat, as = trimmed) => {
+  const enter = (seat: Seat, as = trimmed, quick = false) => {
     saveName(as);
     saveSeat({ ...seat, name: as, at: Date.now() });
     setRoomInUrl(seat.code);
-    onEnter(seat.code);
+    onEnter(seat.code, quick);
   };
   if (inviteCode && !savedSeat(inviteCode))
     return (
@@ -226,11 +229,11 @@ export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server:
             <LoaderCircle size={15} className="spin" /> 서버 정보를 불러오는 중…
           </p>
         ) : shown === "quick" ? (
-          <QuickPanel server={server} name={trimmed} serverAi={!!features.serverAi} onMatched={(seat, as) => enter(seat, as)} onAi={onAi} onReturn={(code) => (setRoomInUrl(code), onEnter(code))} />
+          <QuickPanel server={server} name={trimmed} serverAi={!!features.serverAi} onMatched={enter} onAi={onAi} onReturn={(code) => (setRoomInUrl(code), onEnter(code))} />
         ) : shown === "watch" ? (
           <WatchRooms server={server} />
         ) : (
-          <FriendPanel server={server} name={trimmed} enter={enter} onEnter={onEnter} />
+          <FriendPanel createSettings={!!features.createSettings} server={server} name={trimmed} enter={enter} onEnter={onEnter} />
         )}
       </div>
     </section>
@@ -238,7 +241,7 @@ export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server:
 }
 
 /** Invite a friend: create a room or join with a code (the original online screen). */
-function FriendPanel({ server, name, enter, onEnter }: { server: string; name: string; enter: (seat: Seat) => void; onEnter: (code: string) => void }) {
+function FriendPanel({ server, name, enter, onEnter, createSettings }: { createSettings: boolean; server: string; name: string; enter: (seat: Seat) => void; onEnter: (code: string) => void }) {
   const [code, setCode] = useState("");
   const [size, setSize] = useState(() => {
     try {
@@ -248,6 +251,7 @@ function FriendPanel({ server, name, enter, onEnter }: { server: string; name: s
       return 2;
     }
   });
+  const [settings, setSettings] = useState<RoomSettings>({ mode: "turns", timeoutMs: null });
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
   const [error, setError] = useState("");
   const [resume] = useState<SavedSeat[]>(savedSeats);
@@ -258,11 +262,11 @@ function FriendPanel({ server, name, enter, onEnter }: { server: string; name: s
     setError("");
     try {
       try {
-        localStorage.setItem("yachtlab.online.size", String(size));
+        if (kind === "create") localStorage.setItem("yachtlab.online.size", String(size));
       } catch {
         /* ignore */
       }
-      enter(kind === "create" ? await createRoom(server, name, size) : await joinRoom(server, target, name));
+      enter(kind === "create" ? await createRoom(server, name, size, createSettings ? settings : undefined) : await joinRoom(server, target, name));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -271,46 +275,71 @@ function FriendPanel({ server, name, enter, onEnter }: { server: string; name: s
   };
   return (
     <>
-      <div className="online-actions">
-        <form
-          className="online-card"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void run("join");
-          }}
-        >
-          <strong>초대 코드로 입장</strong>
-          <input
-            aria-label="초대 코드"
-            className="online-code-input"
-            value={code}
-            maxLength={6}
-            placeholder="ABC234"
-            autoCapitalize="characters"
-            autoComplete="off"
-            spellCheck={false}
-            onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
-          />
-          <button type="submit" className="secondary" disabled={!!busy}>
-            <LogIn size={16} /> {busy === "join" ? "입장 중…" : "입장하기"}
-          </button>
-        </form>
-        <div className="online-card">
-          <strong>새 방 만들기</strong>
+      <div className="online-actions friend-entry-choices">
+        <form className="online-card" aria-labelledby="create-room-title" onSubmit={(event) => {
+          event.preventDefault();
+          void run("create");
+        }}>
+          <h2 id="create-room-title"><Plus size={18} aria-hidden="true" /> 새 방 만들기</h2>
           <label className="room-size">
             최대 인원
             <select aria-label="최대 인원" value={size} onChange={(e) => setSize(Number(e.target.value))}>
               {Array.from({ length: 19 }, (_, i) => i + 2).map((n) => (
-                <option key={n} value={n}>
-                  {n === 2 ? "2명 (1:1)" : `${n}명`}
-                </option>
+                <option key={n} value={n}>{n === 2 ? "2명 (1:1)" : `${n}명`}</option>
               ))}
             </select>
           </label>
-          <button type="button" className="primary" disabled={!!busy} onClick={() => void run("create")}>
-            <Plus size={16} /> {busy === "create" ? "만드는 중…" : "방 만들기"}
+          {createSettings && (
+            <>
+              <label className="room-size">
+                진행 방식
+                <select value={settings.mode} onChange={(event) => {
+                  const simultaneous = event.target.value === "simultaneous";
+                  setSettings(simultaneous ? { mode: "simultaneous", timeoutMs: 90_000 } : { mode: "turns", timeoutMs: null });
+                }}>
+                  <option value="turns">순서대로</option>
+                  <option value="simultaneous">동시 진행</option>
+                </select>
+              </label>
+              <label className="room-size">
+                {settings.mode === "simultaneous" ? "라운드 제한 시간" : "턴 제한 시간"}
+                <select value={String(settings.timeoutMs)} onChange={(event) => {
+                  const timeoutMs = event.target.value === "null" ? null : Number(event.target.value);
+                  setSettings({ ...settings, timeoutMs });
+                }}>
+                  {(settings.mode === "simultaneous" ? ROUND_LIMITS : TURN_LIMITS).map((ms) => (
+                    <option key={String(ms)} value={String(ms)}>{ms === null ? "없음" : `${ms / 1000}초`}</option>
+                  ))}
+                </select>
+              </label>
+            </>
+          )}
+          <button type="submit" className="primary" disabled={!!busy}>
+            {busy === "create" ? "만드는 중…" : "방 만들기"}
           </button>
-        </div>
+        </form>
+        <form className="online-card" aria-labelledby="join-room-title" onSubmit={(event) => {
+          event.preventDefault();
+          void run("join");
+        }}>
+          <h2 id="join-room-title"><LogIn size={18} aria-hidden="true" /> 방 참가하기</h2>
+          <label className="friend-entry-code">
+            초대 코드
+            <input
+              className="online-code-input"
+              value={code}
+              maxLength={6}
+              placeholder="ABC234"
+              autoCapitalize="characters"
+              autoComplete="off"
+              spellCheck={false}
+              onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+            />
+          </label>
+          <button type="submit" className="secondary" disabled={!!busy}>
+            {busy === "join" ? "입장 중…" : "입장하기"}
+          </button>
+        </form>
       </div>
       {error && (
         <p className="error-message" role="alert">
@@ -349,7 +378,7 @@ function FriendPanel({ server, name, enter, onEnter }: { server: string; name: s
  * (off by default; only matches both players allowed are listed). After 20 s without an opponent the
  * player may keep waiting or play an AI match instead — an AI is always shown as an AI.
  */
-function QuickPanel({ server, name, serverAi, onMatched, onAi, onReturn }: { server: string; name: string; serverAi: boolean; onMatched: (seat: Seat, as: string) => void; onAi?: () => void; onReturn: (code: string) => void }) {
+function QuickPanel({ server, name, serverAi, onMatched, onAi, onReturn }: { server: string; name: string; serverAi: boolean; onMatched: (seat: Seat, as: string, quick?: boolean) => void; onAi?: () => void; onReturn: (code: string) => void }) {
   const [aiBusy, setAiBusy] = useState(false);
   const member = !!session();
   /** Server-verified AI match (members): the server rolls the dice and plays the AI seat. */
@@ -377,7 +406,9 @@ function QuickPanel({ server, name, serverAi, onMatched, onAi, onReturn }: { ser
   const start = (resume = pendingQuick()) => {
     setError("");
     setInMatch(null);
-    setSince(resume?.at ?? Date.now());
+    const started = Date.now();
+    setNow(started);
+    setSince(resume?.at ?? started);
     const as = resume?.name ?? name;
     if (!resume) saveName(as);
     const q = new QuickMatch(
@@ -387,7 +418,7 @@ function QuickPanel({ server, name, serverAi, onMatched, onAi, onReturn }: { ser
         onQueued: () => undefined,
         onMatched: (m) => {
           qm.current = null;
-          onMatched({ code: m.code, playerId: m.playerId, token: m.token }, m.name);
+          onMatched({ code: m.code, playerId: m.playerId, token: m.token }, m.name, true);
         },
         onEnd: (code, message, room) => {
           qm.current = null;
@@ -419,10 +450,12 @@ function QuickPanel({ server, name, serverAi, onMatched, onAi, onReturn }: { ser
   const waited = since === null ? 0 : now - since;
   if (since !== null)
     return (
-      <div className="quick-wait" role="status" aria-live="polite">
-        <Search size={26} className="quick-wait-icon" aria-hidden="true" />
-        <strong>상대를 찾는 중이에요</strong>
-        <span className="quick-wait-time">{clock(waited)}</span>
+      <div className="quick-wait">
+        <div className="quick-search-visual" aria-hidden="true">
+          <Search size={26} className="quick-wait-icon" />
+        </div>
+        <strong role="status">상대를 찾는 중이에요</strong>
+        <span className="quick-wait-time" role="timer" aria-label="매칭 경과 시간">{clock(waited)}</span>
         <span className="quick-wait-note">{session() ? "회원으로 매칭돼요." : "게스트로 매칭돼요."} 상대를 찾으면 바로 경기 화면으로 이동해요.</span>
         {waited >= 20_000 && (
           <div className="quick-wait-alt">

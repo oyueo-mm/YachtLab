@@ -1,4 +1,4 @@
-import { OnlineRoom, ROOM_LIMITS, type JoinResult, type RoomConnection, type RoomRecord, type SeatSpec } from "../../src/online/room";
+import { OnlineRoom, ROOM_LIMITS, type JoinResult, type RoomConnection, type RoomRecord, type RoomSettings, type SeatSpec } from "../../src/online/room";
 import type { PublicLook } from "../../src/economy/live/catalog";
 import type { MatchKind } from "../../src/economy/live/config";
 import type { DiceSource } from "../../src/online/dice-source";
@@ -192,9 +192,9 @@ export class RoomHost {
   }
 
   /** First seat of a brand-new room (called once by the Worker after the directory allocated the code). */
-  async create(code: string, name: unknown, identity?: { userId: string } | null, look?: PublicLook | null, maxPlayers = 2): Promise<JoinResult> {
+  async create(code: string, name: unknown, identity?: { userId: string } | null, look?: PublicLook | null, maxPlayers = 2, settings?: RoomSettings): Promise<JoinResult> {
     if (this.room) return { ok: false, status: 409, error: { code: "ROOM_CLOSED", message: "이미 사용 중인 방 코드입니다." } };
-    const room = OnlineRoom.create(code, this.deps(), { turnTimeoutMs: this.config.turnTimeoutMs, seats: maxPlayers });
+    const room = OnlineRoom.create(code, this.deps(), { turnTimeoutMs: this.config.turnTimeoutMs, seats: maxPlayers, settings });
     const joined = await room.join(name, identity, look);
     if (joined.ok) {
       this.room = room;
