@@ -121,5 +121,12 @@ export const AGENTS: Record<string, { v5: boolean; bayes?: boolean; v6?: string[
   "v7-N": { v5: true, v6: ["all"], describe: "v7-N: value of the 7x7 policy matrix game (mixed Nash) at each outcome", act: v7("N") },
   "v7-I1O": { v5: true, v6: ["all"], describe: "v7-I1O: reactive opponent turn (policy-set objective) -> opponent final-score mixture PMF; my open-loop policy-set best response to it", act: v7("I1O") },
   "v7-I1RO": { v5: true, v6: ["all"], describe: "v7-I1RO: as v7-I1O but the opponent's turn uses the v5-R objective", act: v7("I1RO") },
+  "v7-I2": { v5: true, v6: ["all"], describe: "v7-I2: reactive opponent turn (policy-set objective), then my exact next turn with P stop values (two-ply reaction)", act: v7("I2") },
+  "v7-I2R": { v5: true, v6: ["all"], describe: "v7-I2R: as v7-I2 but the opponent's turn uses the v5-R objective", act: v7("I2R") },
+  "v7-I1RO1": { v5: true, v6: ["all"], describe: "v7-I1RO1: I1RO with the DP Expert bank only (lightweight derivative; product-track candidate)", act: v7("I1RO1") },
+  "v7-I2RW4": { v5: true, v6: ["all"], describe: "v7-I2RW4: I2R when my remaining <= 4, else I1RO", act: v7("I2R", { window: 4, fallback: "I1RO" }) },
+  "v7-I2RW6": { v5: true, v6: ["all"], describe: "v7-I2RW6: I2R when my remaining <= 6, else I1RO", act: v7("I2R", { window: 6, fallback: "I1RO" }) },
+  "v7-I2RW8": { v5: true, v6: ["all"], describe: "v7-I2RW8: I2R when my remaining <= 8, else I1RO", act: v7("I2R", { window: 8, fallback: "I1RO" }) },
+  "v7-I2RO": { v5: true, v6: ["all"], describe: "v7-I2RO: reactive opponent turn (v5-R objective) -> opponent mixture PMF; my next turn solved exactly with P stop values against it", act: v7("I2RO") },
   "v7-I1B3": { v5: true, v6: ["all"], describe: "v7-I1 + exact interactive minimax when both <= 3", act: v7("I1", { endgame: "minimax", minimaxWindow: 3 }) },
 };

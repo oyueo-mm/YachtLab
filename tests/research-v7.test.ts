@@ -135,3 +135,36 @@ describe("v7 stop-value estimators", () => {
     }
   });
 });
+
+describe("v7 two-ply reaction (I2) and single-bank derivative", () => {
+  it("I1RO1 equals I1RO computed with the DP bank alone", () => {
+    for (const s of states().slice(0, 6)) {
+      const a = fill("I1RO1", B, s), b = fill("I1RO", B1, s);
+      each(sides(s).me.mask, (c, p) => expect(a[c * 64 + p]).toBe(b[c * 64 + p]));
+    }
+  });
+  it("I2 / I2R return win credits in [0, 1] (2/1 states)", () => {
+    for (let i = 0; i < 6; i++) {
+      const s = state(4000 + i, card([categories[i], categories[(i + 3) % 12]], (j) => 10 + ((j * 7 + i) % 13)), card([categories[(i + 5) % 12]], (j) => 11 + ((j * 5 + i) % 13)), (i % 2) as 0 | 1);
+      for (const kind of ["I2", "I2R"] as V7Kind[]) {
+        const v = fill(kind, B, s);
+        each(sides(s).me.mask, (c, p) => { expect(v[c * 64 + p]).toBeGreaterThanOrEqual(0); expect(v[c * 64 + p]).toBeLessThanOrEqual(1); });
+      }
+    }
+  });
+  it("I2R with one category left on both sides after my turn is close to the exact interactive value (2/1 states)", () => {
+    // me 2 open, opp 1 open: after my score -> opp's last turn, then my last turn (exact with P stop values).
+    // Only the opponent's objective (vs my DP future, not my actual reaction) is approximate.
+    let err = 0, n = 0;
+    for (let i = 0; i < 6; i++) {
+      const s = state(5000 + i, card([categories[i], categories[(i + 4) % 12]], (j) => 12 + ((j * 3 + i) % 11)), card([categories[(i + 7) % 12]], (j) => 12 + ((j * 5 + i) % 11)), (i % 2) as 0 | 1);
+      const { me, op } = sides(s), D = me.x - op.x, v = fill("I2R", B, s);
+      each(me.mask, (c, p) => {
+        const g = bonusGain(c, p, me.u), next = me.mask ^ (1 << c);
+        const exact = 1 - endgameValue(op.mask, op.u, next, nextUpper(c, p, me.u), -(D + g));
+        err += Math.abs(v[c * 64 + p] - exact); n++;
+      });
+    }
+    expect(err / n).toBeLessThan(0.02);
+  });
+});
