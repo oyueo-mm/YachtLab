@@ -104,16 +104,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [5c5acbe](https://github.com/oyueo-mm/YachtLab/commit/5c5acbe) | 2026-11-25 | Merge pull request #78 from oyueo-mm/codex/online-review-archive |
 | [f2471fd](https://github.com/oyueo-mm/YachtLab/commit/f2471fd) | 2026-11-25 | Merge pull request #77 from oyueo-mm/codex/review-release |
+| [e97cfd6](https://github.com/oyueo-mm/YachtLab/commit/e97cfd6) | 2026-11-25 | fix(review): prioritize the play position on narrow screens |
 | [73943e3](https://github.com/oyueo-mm/YachtLab/commit/73943e3) | 2026-11-25 | Merge pull request #76 from oyueo-mm/codex/field-feedback |
+| [11998c4](https://github.com/oyueo-mm/YachtLab/commit/11998c4) | 2026-11-25 | Merge branch 'codex/field-feedback' into codex/online-review-archive |
+| [2bb87af](https://github.com/oyueo-mm/YachtLab/commit/2bb87af) | 2026-11-25 | feat(review): archive authenticated online reviews with settlement |
 | [cc67ae3](https://github.com/oyueo-mm/YachtLab/commit/cc67ae3) | 2026-11-25 | test(review): defer the worker with ES2022 promises |
 | [7ecffed](https://github.com/oyueo-mm/YachtLab/commit/7ecffed) | 2026-11-25 | test(review): cancel and retry a blocked analysis worker |
 | [e10d402](https://github.com/oyueo-mm/YachtLab/commit/e10d402) | 2026-11-25 | feat(review): use bounded v5 endgame analysis and document metrics |
 | [b25e402](https://github.com/oyueo-mm/YachtLab/commit/b25e402) | 2026-11-25 | feat(review): analyze completed two-player games in a browser worker |
-| [cb80efb](https://github.com/oyueo-mm/YachtLab/commit/cb80efb) | 2026-11-25 | feat(product): guide first-time play and refine mobile browsing |
-| [c543b8d](https://github.com/oyueo-mm/YachtLab/commit/c543b8d) | 2026-11-25 | Merge PR #75: Win DP v5 research (exact policy PMF bank, exact endgame, PMF rollout) |
-| [3444ed6](https://github.com/oyueo-mm/YachtLab/commit/3444ed6) | 2026-11-25 | research(v5): move local 9501 reproduction shards to cross-check folder; record exact CI/local agreement on 11 matchups |
-| [44e469b](https://github.com/oyueo-mm/YachtLab/commit/44e469b) | 2026-11-25 | Merge remote-tracking branch 'origin/main' into ccr-4b6d4930-6rem08 |
 
 ## 최근 GitHub Actions 상태
 
@@ -121,10 +121,10 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
+| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45601878114) | success | 1d6fa91f06 |
+| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45590646884) | success | e97cfd6d3e |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45589713643) | success | f2471fd437 |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45586744966) | success | e97cfd6d3e |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45585808239) | success | 73943e3f43 |
-| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45585508173) | success | cb80efbd9a |
-| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45582993293) | success | 35387173e3 |
 
 ## 다음 채팅과 작업의 시작점
 

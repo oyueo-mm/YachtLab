@@ -115,14 +115,34 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "5c5acbe",
+      "date": "2026-11-25",
+      "subject": "Merge pull request #78 from oyueo-mm/codex/online-review-archive"
+    },
+    {
       "sha": "f2471fd",
       "date": "2026-11-25",
       "subject": "Merge pull request #77 from oyueo-mm/codex/review-release"
     },
     {
+      "sha": "e97cfd6",
+      "date": "2026-11-25",
+      "subject": "fix(review): prioritize the play position on narrow screens"
+    },
+    {
       "sha": "73943e3",
       "date": "2026-11-25",
       "subject": "Merge pull request #76 from oyueo-mm/codex/field-feedback"
+    },
+    {
+      "sha": "11998c4",
+      "date": "2026-11-25",
+      "subject": "Merge branch 'codex/field-feedback' into codex/online-review-archive"
+    },
+    {
+      "sha": "2bb87af",
+      "date": "2026-11-25",
+      "subject": "feat(review): archive authenticated online reviews with settlement"
     },
     {
       "sha": "cc67ae3",
@@ -143,52 +163,32 @@
       "sha": "b25e402",
       "date": "2026-11-25",
       "subject": "feat(review): analyze completed two-player games in a browser worker"
-    },
-    {
-      "sha": "cb80efb",
-      "date": "2026-11-25",
-      "subject": "feat(product): guide first-time play and refine mobile browsing"
-    },
-    {
-      "sha": "c543b8d",
-      "date": "2026-11-25",
-      "subject": "Merge PR #75: Win DP v5 research (exact policy PMF bank, exact endgame, PMF rollout)"
-    },
-    {
-      "sha": "3444ed6",
-      "date": "2026-11-25",
-      "subject": "research(v5): move local 9501 reproduction shards to cross-check folder; record exact CI/local agreement on 11 matchups"
-    },
-    {
-      "sha": "44e469b",
-      "date": "2026-11-25",
-      "subject": "Merge remote-tracking branch 'origin/main' into ccr-4b6d4930-6rem08"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
+      "status": "success",
+      "head": "1d6fa91f06",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45601878114"
+    },
+    {
+      "name": "Deploy YachtLab Online Worker (manual)",
+      "status": "success",
+      "head": "e97cfd6d3e",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45590646884"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "f2471fd437",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45589713643"
+    },
     {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
       "head": "e97cfd6d3e",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45586744966"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "73943e3f43",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45585808239"
-    },
-    {
-      "name": "Deploy YachtLab Online Worker (manual)",
-      "status": "success",
-      "head": "cb80efbd9a",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45585508173"
-    },
-    {
-      "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
-      "status": "success",
-      "head": "35387173e3",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45582993293"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
