@@ -129,9 +129,21 @@ test("온라인: 상대 입장 효과음은 새 입장에만 한 번, 재접속�
   await expect(a.getByRole("list", { name: "참가자" })).toContainText("손님");
   await expect.poll(async () => (await sounds(a)).filter((n) => n === "join").length).toBe(1);
   expect(await sounds(b)).not.toContain("join"); // the joiner does not hear itself
+  await a.getByRole("button", { name: "박수" }).click();
+  for (const player of [a, b]) {
+    await expect(player.getByRole("img", { name: "박수" }).or(player.locator(".table-feed .feed-text[aria-label=박수]"))).toBeVisible();
+    await expect.poll(async () => (await sounds(player)).filter((name) => name === "emote").length).toBe(1);
+  }
+  await b.getByRole("button", { name: "채팅·이모티콘" }).click();
+  await b.getByLabel("다른 사람 메시지 숨기기").check();
+  await b.keyboard.press("Escape");
+  await a.getByRole("button", { name: "좋아요" }).click();
+  await expect.poll(async () => (await sounds(a)).filter((name) => name === "emote").length).toBe(2);
+  expect((await sounds(b)).filter((name) => name === "emote")).toHaveLength(1);
   // the guest refreshes (reconnect): not a new arrival
   await b.reload();
   await expect(b.getByText("방장이 게임을 시작하면 바로 시작돼요.")).toBeVisible();
+  expect(await sounds(b)).not.toContain("emote");
   await a.waitForTimeout(500);
   expect((await sounds(a)).filter((n) => n === "join")).toHaveLength(1);
   // the host refreshes: the guest who is already there is not announced again

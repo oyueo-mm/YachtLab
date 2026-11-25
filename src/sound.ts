@@ -1,3 +1,4 @@
+import { dieSounds, emoteSound, type DiceMaterial, type EmoteSound } from "./sound-packs";
 import { getSettings } from "./settings";
 
 /**
@@ -38,7 +39,8 @@ export type Sfx =
   | "fxWhoosh"
   | "fxFanfare"
   /** Another player joined the online room. */
-  | "join";
+  | "join"
+  | "emote";
 
 /** Large straight: the glow moves one die per step; the notes use the same step. */
 export const STRAIGHT_STEP_S = 0.09;
@@ -50,9 +52,11 @@ export type SfxOptions = {
   intensity?: number;
   /** -1 (left) .. 1 (right). */
   pan?: number;
+  material?: DiceMaterial;
+  emote?: EmoteSound;
 };
 
-type LogEntry = { name: Sfx; delay: number; played: boolean; at: number };
+type LogEntry = { name: Sfx; delay: number; played: boolean; at: number; pack?: string };
 /** Small diagnostic ring buffer (also read by browser tests to verify sync and mute). */
 export const soundLog: LogEntry[] = [];
 if (typeof window !== "undefined") (window as unknown as { __yachtlabSound?: { log: LogEntry[] } }).__yachtlabSound = { log: soundLog };
@@ -315,7 +319,7 @@ function v3Shake(audio: AudioContext, out: AudioNode, t: number, k: number) {
  * at once, and the same kind of sound is not repeated within a few milliseconds (louder hits win).
  */
 export const MAX_VOICES = 10;
-const MIN_GAP: Partial<Record<Sfx, number>> = { impact: 0.018, clack: 0.024, roll: 0.06, settle: 0.08 };
+const MIN_GAP: Partial<Record<Sfx, number>> = { emote: 0.3, impact: 0.018, clack: 0.024, roll: 0.06, settle: 0.08 };
 /** Pure admission control for collision sounds (times in seconds, on the audio clock). */
 export function createVoiceBudget(maxVoices = MAX_VOICES) {
   let ends: number[] = [];
@@ -428,16 +432,93 @@ function playResult(audio: AudioContext, out: AudioNode, t: number, name: "win" 
   else [523.25, 783.99].forEach((f) => bell(audio, out, t, f, 0.9, 0.06));
 }
 
+type MaterialEvent = "throw" | "impact" | "clack" | "roll" | "settle";
+const isMaterialEvent = (name: Sfx): name is MaterialEvent =>
+  name === "throw" || name === "impact" || name === "clack" || name === "roll" || name === "settle";
+
+function materialVoice(audio: AudioContext, out: AudioNode, t: number, event: MaterialEvent, material: Exclude<DiceMaterial, "plastic">, k: number) {
+  const profile = dieSounds[material];
+  const movement = event === "throw" || event === "roll";
+  const body = event === "impact" || event === "settle";
+  const taps = event === "throw" ? 3 : event === "roll" ? 2 : 1;
+  for (let tap = 0; tap < taps; tap++) {
+    const start = t + tap * jitter(.18) * .026;
+    const pitch = profile.frequency * jitter(.095) * (event === "clack" ? 1.24 : 1);
+    const strength = k * jitter(.16) * (movement ? (.52 - tap * .08) : 1);
+    modes(audio, out, start, profile.overtones.map((ratio, index) => [
+      pitch * ratio, profile.decay * (body ? 1 : .74) / (1 + index * .33), .13 * strength / (1 + index * .8),
+    ]));
+  }
+  if (body) tone(audio, out, t, profile.body * jitter(.12), .055, .19 * k, "sine", profile.body * .63);
+  burst(audio, out, t, movement ? .065 : .021, (material === "lava" ? .12 : .065) * k, "bandpass", profile.texture, undefined, .75);
+}
+
+function emoteVoice(audio: AudioContext, out: AudioNode, t: number, pack: EmoteSound, k: number) {
+  switch (pack) {
+    case "clap":
+      for (let i = 0; i < 3; i++) burst(audio, out, t + i * .055, .023, .2 * k, "bandpass", 1700 * jitter(.24), 1050);
+      break;
+    case "party":
+      burst(audio, out, t, .13, .14 * k, "highpass", 2600, 5500);
+      notes(audio, out, t + .04, [659, 880, 1175], .049, .12, .07 * k, "triangle");
+      break;
+    case "fire":
+      burst(audio, out, t, .22, .12 * k, "bandpass", 390, 1750);
+      for (let i = 0; i < 5; i++) burst(audio, out, t + i * .031, .014, .07 * k, "highpass", 3300 * jitter(.28));
+      break;
+    case "bolt":
+      burst(audio, out, t, .095, .14 * k, "bandpass", 3400, 450);
+      tone(audio, out, t + .018, 900, .075, .045 * k, "sawtooth", 170);
+      break;
+    case "gem":
+      notes(audio, out, t, [1480, 2218, 2960], .043, .19, .085 * k, "sine");
+      break;
+    case "rattle":
+      settling(audio, out, t, .45 * k);
+      break;
+    case "rocket":
+      burst(audio, out, t, .22, .13 * k, "bandpass", 340, 2300);
+      tone(audio, out, t + .03, 280, .16, .075 * k, "triangle", 1020);
+      break;
+    case "wave":
+      burst(audio, out, t, .26, .12 * k, "lowpass", 490, 1350);
+      tone(audio, out, t, 290, .22, .07 * k, "sine", 160);
+      break;
+    case "chime":
+      notes(audio, out, t, [740, 1109], .061, .16, .078 * k, "sine");
+      break;
+    case "sigh":
+      tone(audio, out, t, 430, .16, .085 * k, "sine", 270);
+      break;
+    case "pop":
+      tone(audio, out, t, 460, .085, .1 * k, "triangle", 780);
+      break;
+  }
+}
+
+export function playEmoteSfx(id: string) {
+  playSfx("emote", { emote: emoteSound(id), intensity: .75 });
+}
+
 export function playSfx(name: Sfx, options: SfxOptions = {}) {
   const delay = Math.max(0, options.delay ?? 0);
   const engine = ready();
-  soundLog.push({ name, delay, played: !!engine, at: typeof performance !== "undefined" ? performance.now() : 0 });
+  soundLog.push({ name, delay, played: !!engine, pack: options.material ?? options.emote, at: typeof performance !== "undefined" ? performance.now() : 0 });
   if (soundLog.length > 200) soundLog.splice(0, soundLog.length - 200);
   if (!engine) return;
   const { audio } = engine;
   const k = Math.max(0.15, Math.min(1, options.intensity ?? 1));
   const out = voice(audio, engine.out, options.pan ?? 0);
   const t = audio.currentTime + delay + 0.005;
+  if (name === "emote") {
+    if (!admit(audio, name, t, .36, k)) return;
+    return emoteVoice(audio, out, t, options.emote ?? "pop", k);
+  }
+  if (options.material && options.material !== "plastic" && isMaterialEvent(name)) {
+    if ((name === "impact" || name === "clack") && k < .18) return;
+    if (name !== "throw" && !admit(audio, name, t, .3, k)) return;
+    return materialVoice(audio, out, t, name, options.material, k);
+  }
   if (variant === "v3") {
     switch (name) {
       case "impact":

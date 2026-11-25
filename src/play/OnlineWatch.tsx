@@ -8,7 +8,7 @@ import type { PlayerView } from "../online/server-engine";
 import type { SeriesSummary } from "../online/wire";
 import { announceScore, clearScoreFx } from "../score-fx";
 import { TableFeed, useTableChat } from "./SocialDock";
-import { PlayerTag, diceLookOf } from "./Looks";
+import { PlayerTag, diceLookOf, diceMaterialOf } from "./Looks";
 import { OnlineStandings } from "./OnlineMulti";
 import { MultiScoreboard } from "../MultiScoreboard";
 import type { MultiGame } from "../multi-engine";
@@ -195,7 +195,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
                 </p>
               </div>
             ) : (
-              <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
+              <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} material={diceMaterialOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
             )}
             {finished && (
               <div className="game-result" role="status">
@@ -271,7 +271,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
               굴림 <b>{rolls}</b> / 3
             </span>
           </div>
-          <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
+          <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} material={diceMaterialOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
           <div className="roll-area">
             <p className="watch-turn" role="status">
               {finished ? "경기가 끝났어요" : view.status === "lobby" ? "경기가 곧 시작돼요" : `${players[turnIndex]?.name ?? ""} 님의 차례 · 굴림 ${rolls}/3`}

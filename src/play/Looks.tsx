@@ -1,3 +1,4 @@
+import { diceMaterial } from "../sound-packs";
 import { itemById, lookAt, type PublicLook } from "../economy/live/catalog";
 import { useSettings } from "../settings";
 
@@ -31,6 +32,9 @@ export function PlayerTag({ name, look, me = false, compact = false }: { name: s
 /** Dice look of a player (current turn's player), for the 2D and 3D dice — at the level they chose. */
 export function diceLookOf(look?: PublicLook | null) {
   return lookAt(itemById(look?.dice), look?.diceLv ?? 1).dice ?? null;
+}
+export function diceMaterialOf(look?: PublicLook | null) {
+  return diceMaterial(look?.dice, diceLookOf(look));
 }
 /** Board colour of a look ("" = the default charcoal). */
 export function boardOf(look?: PublicLook | null) {

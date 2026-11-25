@@ -1,3 +1,4 @@
+import type { DiceMaterial } from "./sound-packs";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { beginDiceMotion, planThrow, takeThrowDirection, type ThrowPlan } from "./dice-motion";
 import { diceRenderer, getSettings, motionLevel, useSettings, type DiceRenderer } from "./settings";
@@ -243,7 +244,9 @@ export function Dice({
   onOrder,
   forceRenderer,
   holdOrder,
+  material = "plastic",
 }: {
+  material?: DiceMaterial;
   state: Pick<Game, "dice" | "order" | "rolls">;
   /** Held dice in selection order (exposed for tests; the 3D table uses it for the shelf). */
   holdOrder?: readonly number[];
@@ -324,12 +327,12 @@ export function Dice({
     }
     modeRef.current = { token: rollEvent, mode };
     if (mode === "none") {
-      playSfx("impact", { intensity: 0.5 });
+      playSfx("impact", { material, intensity: 0.5 });
       debug({ mode, token: rollEvent, targets, endedAt: performance.now() });
     }
     if (mode === "2.5d" && plans.size) {
       // Sound is scheduled from the same plan, so impacts are heard when the dice visibly land.
-      playSfx("throw");
+      playSfx("throw", { material });
       const hits: { at: number; intensity: number; pan: number }[] = [];
       plans.forEach((plan, id) => {
         const pan = (state.order.indexOf(id) - 2) * 0.25;
@@ -340,10 +343,10 @@ export function Dice({
       for (const hit of hits) {
         if (hit.at - last < 28) continue; // merge near-simultaneous clacks
         last = hit.at;
-        playSfx("impact", { delay: hit.at / 1000, intensity: hit.intensity, pan: hit.pan });
+        playSfx("impact", { material, delay: hit.at / 1000, intensity: hit.intensity, pan: hit.pan });
       }
       const end = Math.max(...[...plans.values()].map((p) => p.endAt));
-      playSfx("settle", { delay: end / 1000, intensity: 0.4 });
+      playSfx("settle", { material, delay: end / 1000, intensity: 0.4 });
       const done = beginDiceMotion(end + 400);
       const timer = window.setTimeout(() => {
         done();
@@ -398,7 +401,7 @@ export function Dice({
     setInFlight(new Set(Object.keys(targets).map(Number)));
     const rate = 1.15;
     const done = beginDiceMotion(((result.frameCount / result.fps) * 1000) / rate + 1500);
-    playSfx("throw");
+    playSfx("throw", { material });
     // Physics impacts drive the sound: louder for harder hits, rate-limited so five dice never get noisy.
     let lastHit = -Infinity,
       hitCount = 0;
@@ -411,10 +414,10 @@ export function Dice({
         lastHit = now;
         hitCount++;
         const intensity = Math.min(1, 0.12 + strength / 7) * (kind === "die" ? 0.75 : kind === "wall" ? 0.6 : 1);
-        playSfx("impact", { intensity, pan: (x - 0.5) * 1.2 });
+        playSfx(kind === "die" ? "clack" : "impact", { material, intensity, pan: (x - 0.5) * 1.2 });
       },
       onDone: () => {
-        playSfx("settle", { intensity: 0.35 });
+        playSfx("settle", { material, intensity: 0.35 });
         const times = [...stage!.frameTimes].slice(1).sort((a, b) => a - b);
         setInFlight(null);
         // Swap back to the DOM dice on the next frame, after they have been painted.

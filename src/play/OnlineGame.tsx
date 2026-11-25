@@ -29,7 +29,7 @@ import type { LobbyState, RematchState, SeriesSummary, SpectateState } from "../
 import { LobbyPanel, MultiTable } from "./OnlineMulti";
 import { SpectateControl } from "./Social";
 import { SocialDock, TableFeed, useTableChat } from "./SocialDock";
-import { PlayerTag, boardCssOf, boardOf, diceLookOf } from "./Looks";
+import { PlayerTag, boardCssOf, boardOf, diceLookOf, diceMaterialOf } from "./Looks";
 import { GUEST_LOOK, itemById, type PublicLook } from "../economy/live/catalog";
 import type { FxLook } from "../economy/live/content-items";
 import { FxBurst } from "./FxBurst";
@@ -675,7 +675,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
               </span>
             </div>
             {/* The dice show the theme of the player whose turn it is — the same on both screens. */}
-            <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={can && rolls > 0 && rolls < 3} animate rollEvent={rollEvent} onToggle={toggle} holdOrder={rolls > 0 ? keep : []} />
+            <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""])} material={diceMaterialOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={can && rolls > 0 && rolls < 3} animate rollEvent={rollEvent} onToggle={toggle} holdOrder={rolls > 0 ? keep : []} />
             <div className="roll-area">
               <button className={"primary roll-button" + (myTurn ? "" : " waiting")} disabled={!canRoll} onClick={roll}>
                 <Dices size={20} />

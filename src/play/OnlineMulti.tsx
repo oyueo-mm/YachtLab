@@ -10,7 +10,7 @@ import type { PlayerView } from "../online/server-engine";
 import type { LobbyState, RematchState } from "../online/wire";
 import { ROUND_LIMITS, TURN_LIMITS } from "../online/wire";
 import type { PublicLook } from "../economy/live/catalog";
-import { PlayerTag, boardCssOf, boardOf, diceLookOf } from "./Looks";
+import { PlayerTag, boardCssOf, boardOf, diceLookOf, diceMaterialOf } from "./Looks";
 import { Celebrate } from "../ui/Celebrate";
 import type { Celebration } from "../game-feel";
 import { QuickPicks } from "../QuickPicks";
@@ -249,7 +249,7 @@ export function MultiTable(p: {
               굴림 <b>{p.rolls}</b> / 3{timer && <span className="turn-timer"> · 남은 시간 {timer}</span>}
             </span>
           </div>
-          <DiceArea state={game} colors={diceLookOf(p.looks[simultaneous ? p.me : (view.turn?.playerId ?? "")])} interactive={p.can && p.rolls > 0 && p.rolls < 3} animate rollEvent={p.rollEvent} onToggle={p.onToggle} holdOrder={p.rolls > 0 ? p.keep : []} />
+          <DiceArea state={game} colors={diceLookOf(p.looks[simultaneous ? p.me : (view.turn?.playerId ?? "")])} material={diceMaterialOf(p.looks[simultaneous ? p.me : (view.turn?.playerId ?? "")])} interactive={p.can && p.rolls > 0 && p.rolls < 3} animate rollEvent={p.rollEvent} onToggle={p.onToggle} holdOrder={p.rolls > 0 ? p.keep : []} />
           <div className="roll-area">
             <button className={"primary roll-button" + (myTurn ? "" : " waiting")} disabled={!p.canRoll} onClick={p.onRoll}>
               <Dices size={20} />
