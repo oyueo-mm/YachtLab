@@ -1,5 +1,10 @@
 import { chooseAlgorithm,scoreCategory , startAI } from "./helpers";
 import { test, expect } from "@playwright/test";
+
+// These tests exercise the network loader, including simulated delays and failures.
+// The separate PWA tests exercise the same loader through the service worker cache.
+test.use({ serviceWorkers: "block" });
+
 async function selectDP(page: import("@playwright/test").Page) {
   await page.getByLabel("Greedy", { exact: true }).uncheck();
   await page.getByLabel("Expectimax", { exact: true }).uncheck();
