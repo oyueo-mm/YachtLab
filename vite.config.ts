@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import dpManifest from "./src/dp-manifest.json";
 
 /**
  * Build id: the commit (or the build time). The page compares its own id with `version.json`
@@ -32,6 +33,7 @@ const offlineFiles = (): Plugin => ({
     order: "post",
     handler(_options, bundle) {
       const assets = Object.keys(bundle).filter((file) => /^assets\/(?:index|worker|stage|table)-.*\.(?:js|css)$/.test(file));
+      assets.push(`ai/${dpManifest.asset}`);
       const source = readFileSync(new URL("./src/pwa-worker.js", import.meta.url), "utf8");
       this.emitFile({
         type: "asset",

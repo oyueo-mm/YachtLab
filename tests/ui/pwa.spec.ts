@@ -39,6 +39,14 @@ test("설치 가능한 매니페스트와 버전별 캐시는 로컬·기본 AI�
   await expect(page.getByRole("button", { name: "주사위 굴리기" })).toBeEnabled({ timeout: 15_000 });
 });
 
+test("최고 난이도 AI는 오프라인에서 점수 표를 불러와 첫 차례를 마친다", async ({ page, context }) => {
+  await ready(page);
+  await context.setOffline(true);
+  await page.reload();
+  await startAI(page, { algorithm: "Win DP v4-D", first: "AI 먼저" });
+  await expect(page.getByRole("button", { name: "주사위 굴리기" })).toBeEnabled({ timeout: 20_000 });
+});
+
 test("모바일 설치 안내 닫기는 새로고침 뒤에도 유지된다", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
