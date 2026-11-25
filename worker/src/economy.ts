@@ -1,7 +1,9 @@
+import { DRAW_COST, DRAW_DAILY_LIMIT, DUPLICATE_COINS, HANDS, drawAvailable, drawHand, drawItems, type DrawPool, type DrawReceipt, type DrawStatus } from "../../src/economy/live/draw";
+import { seasonActive } from "../../src/economy/live/seasons";
 import type { MatchReceipt } from "../../src/economy/live/receipt";
 import { ECONOMY, SLOTS, economyDay } from "../../src/economy/live/config";
 import { DEFAULT_LOADOUT, DEFAULT_SLOTS, isDefaultItem, itemById, priceOf, publicLook, sanitizeLoadout, slotPrice, upgradeCost, validateLoadout, type Loadout, type PublicLook, type Slots } from "../../src/economy/live/catalog";
-import { applyMatch, loadEconState, rerollDaily, unlockAchievements, type EconState, type Grant, type RewardInput } from "../../src/economy/live/rewards";
+import { applyMatch, loadEconState, replaceQuests, unlockAchievements, type EconState, type Grant, type RewardInput } from "../../src/economy/live/rewards";
 
 /**
  * Coins, gems, inventory and progress of ONE account (Phase 5/6) — runs inside the account's own
@@ -32,15 +34,24 @@ export type LedgerRow = { id: string; at: number; kind: string; coins: number; g
 export type InventoryEntry = { id: string; level: number; via: string; at: number };
 export type EconomySnapshot = {
   config: string;
+  serverTime: number;
   wallet: Wallet;
   inventory: InventoryEntry[];
   slots: Slots;
   loadout: Loadout;
   look: PublicLook;
-  state: Pick<EconState, "day" | "week" | "daily" | "weekly" | "dailyAll" | "weeklyAll" | "rerolls" | "rewarded" | "counters" | "achievements" | "streak">;
+  state: Pick<EconState, "day" | "week" | "daily" | "weekly" | "dailyAll" | "weeklyAll" | "rerolls" | "weeklyRerolls" | "rewarded" | "counters" | "achievements" | "streak">;
   ledger: LedgerRow[];
 };
 export type MatchEconomyResult = { applied: boolean; grants: Grant[]; firstToday: boolean; reason: string; wallet?: Wallet; receipt: MatchReceipt };
+/** Uniform Web Crypto output, including bounds that do not divide 2^32. */
+function randomBelow(bound: number) {
+  const sample = new Uint32Array(1);
+  const limit = 2 ** 32 - (2 ** 32 % bound);
+  do { crypto.getRandomValues(sample); } while (sample[0] >= limit);
+  return sample[0] % bound;
+}
+
 type Fail = { ok: false; code: string; message: string };
 
 export class EconomyStore {
@@ -53,6 +64,8 @@ export class EconomyStore {
     this.sql.exec(
       "CREATE TABLE IF NOT EXISTS ledger (event_id TEXT PRIMARY KEY, at INTEGER NOT NULL, kind TEXT NOT NULL, coins INTEGER NOT NULL, gems INTEGER NOT NULL, coins_after INTEGER NOT NULL, gems_after INTEGER NOT NULL, funding TEXT NOT NULL, label TEXT NOT NULL, config TEXT NOT NULL)",
     );
+    this.sql.exec("CREATE TABLE IF NOT EXISTS draws (request_id TEXT PRIMARY KEY, day INTEGER NOT NULL, receipt TEXT NOT NULL)");
+    this.sql.exec("CREATE INDEX IF NOT EXISTS draws_by_day ON draws (day)");
     this.sql.exec("CREATE TABLE IF NOT EXISTS inventory (item_id TEXT PRIMARY KEY, level INTEGER NOT NULL, via TEXT NOT NULL, at INTEGER NOT NULL)");
   }
 
@@ -192,11 +205,11 @@ export class EconomyStore {
     });
   }
 
-  rerollQuest(userId: string, index: number, now: number): { ok: true; snapshot: EconomySnapshot } | Fail {
+  rerollQuest(userId: string, index: number | "all", now: number, period: "daily" | "weekly" = "daily", expected?: number): { ok: true; snapshot: EconomySnapshot } | Fail {
     return this.sql.transaction(() => {
       this.ensure(userId, now);
       const state = loadEconState(this.row()!.data, userId, now);
-      const r = rerollDaily(state, userId, index);
+      const r = replaceQuests(state, userId, period, expected ?? (period === "daily" ? state.day : state.week), index);
       if (!r.ok) return { ok: false, code: "QUEST", message: r.message } as Fail;
       this.saveState(r.state, now);
       return { ok: true, snapshot: this.snapshot(userId, now) } as const;
@@ -219,7 +232,7 @@ export class EconomyStore {
       const key = `buy:${requestId}`;
       if (this.sql.exec("SELECT 1 FROM ledger WHERE event_id = ?", key).toArray().length) return { ok: true, duplicate: true, snapshot: this.snapshot(userId, now) } as const;
       const item = itemById(itemId);
-      if (!item || item.retired) return { ok: false, code: "ITEM", message: "판매하지 않는 아이템이에요." } as Fail;
+      if (!item || item.retired || (item.season && !seasonActive(item.season, now))) return { ok: false, code: "ITEM", message: "판매하지 않는 아이템이에요." } as Fail;
       if (item.acquisition === "achievement") return { ok: false, code: "NOT_FOR_SALE", message: "업적으로만 얻을 수 있는 아이템이에요." } as Fail;
       if (isDefaultItem(item)) return { ok: false, code: "OWNED", message: "기본으로 가진 아이템이에요." } as Fail;
       if (currency !== "coins" && currency !== "gems") return { ok: false, code: "CURRENCY", message: "결제 수단을 골라 주세요." } as Fail;
@@ -232,6 +245,51 @@ export class EconomyStore {
       this.sql.exec("INSERT INTO inventory (item_id, level, via, at) VALUES (?, 1, ?, ?)", item.id, currency, now);
       this.itemsAchievements(userId, now);
       return { ok: true, duplicate: false, snapshot: this.snapshot(userId, now) } as const;
+    });
+  }
+
+  private drawsToday(now: number) {
+    return this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM draws WHERE day = ?", economyDay(now)).toArray()[0].n;
+  }
+
+  drawStatus(now: number): DrawStatus {
+    return {
+      now,
+      remaining: Math.max(0, DRAW_DAILY_LIMIT - this.drawsToday(now)),
+      history: this.sql.exec<{ receipt: string }>("SELECT receipt FROM draws ORDER BY rowid DESC LIMIT 30").toArray()
+        .map(({ receipt }) => JSON.parse(receipt) as DrawReceipt),
+    };
+  }
+
+  /** The receipt, inventory, debit, duplicate compensation and related rewards commit together. */
+  draw(userId: string, pool: DrawPool, requestId: string, now: number) {
+    return this.sql.transaction(() => {
+      const previous = this.sql.exec<{ receipt: string }>("SELECT receipt FROM draws WHERE request_id = ?", requestId).toArray()[0];
+      if (previous) {
+        const receipt = JSON.parse(previous.receipt) as DrawReceipt;
+        if (receipt.pool !== pool) return { ok: false, code: "DRAW_REQUEST", message: "이미 사용한 뽑기 요청이에요." } as Fail;
+        return { ok: true, duplicate: true, receipt, draw: this.drawStatus(now), snapshot: this.snapshot(userId, now) } as const;
+      }
+      if (!drawAvailable(pool, now)) return { ok: false, code: "DRAW_CLOSED", message: "시즌 뽑기 기간이 아니에요." } as Fail;
+      if (this.drawsToday(now) >= DRAW_DAILY_LIMIT) return { ok: false, code: "DRAW_LIMIT", message: "오늘의 뽑기 횟수를 모두 사용했어요." } as Fail;
+      this.ensure(userId, now);
+      if (this.row()!.coins < DRAW_COST) return { ok: false, code: "INSUFFICIENT", message: "코인이 부족해요." } as Fail;
+      const dice = Array.from({ length: 5 }, () => 1 + randomBelow(6));
+      const hand = drawHand(dice);
+      const items = drawItems(pool, HANDS[hand].tier);
+      if (!items.length) throw Error("Empty draw pool");
+      const item = items[randomBelow(items.length)];
+      const duplicateCoins = this.owned().has(item.id) ? DUPLICATE_COINS : 0;
+      const receipt: DrawReceipt = { requestId, at: now, pool, dice, hand, itemId: item.id, cost: DRAW_COST, duplicateCoins };
+      this.post([{ id: `draw:${requestId}`, kind: "draw", coins: -DRAW_COST, gems: 0, label: `뽑기 · ${item.name}` },
+        ...(duplicateCoins ? [{ id: `draw-duplicate:${requestId}`, kind: "draw-duplicate", coins: duplicateCoins, gems: 0, label: `뽑기 중복 · ${item.name}` }] : []),
+      ], now);
+      if (!duplicateCoins) {
+        this.sql.exec("INSERT INTO inventory (item_id, level, via, at) VALUES (?, 1, 'draw', ?)", item.id, now);
+        this.itemsAchievements(userId, now);
+      }
+      this.sql.exec("INSERT INTO draws (request_id, day, receipt) VALUES (?, ?, ?)", requestId, economyDay(now), JSON.stringify(receipt));
+      return { ok: true, duplicate: false, receipt, draw: this.drawStatus(now), snapshot: this.snapshot(userId, now) } as const;
     });
   }
 
@@ -301,12 +359,13 @@ export class EconomyStore {
     const state = loadEconState(r?.data, userId, now);
     return {
       config: ECONOMY.version,
+      serverTime: now,
       wallet: { coins: r?.coins ?? 0, gems: r?.gems ?? 0 },
       inventory: this.sql.exec<{ item_id: string; level: number; via: string; at: number }>("SELECT item_id, level, via, at FROM inventory ORDER BY at").toArray().map((x) => ({ id: x.item_id, level: x.level, via: x.via, at: x.at })),
       slots,
       loadout,
       look: publicLook(loadout, owned),
-      state: { day: state.day, week: state.week, daily: state.daily, weekly: state.weekly, dailyAll: state.dailyAll, weeklyAll: state.weeklyAll, rerolls: state.rerolls, rewarded: state.rewarded, counters: state.counters, achievements: state.achievements, streak: state.streak },
+      state: { day: state.day, week: state.week, daily: state.daily, weekly: state.weekly, dailyAll: state.dailyAll, weeklyAll: state.weeklyAll, rerolls: state.rerolls, weeklyRerolls: state.weeklyRerolls ?? 0, rewarded: state.rewarded, counters: state.counters, achievements: state.achievements, streak: state.streak },
       ledger: this.sql
         .exec<{ event_id: string; at: number; kind: string; coins: number; gems: number; coins_after: number; gems_after: number; label: string }>(
           "SELECT event_id, at, kind, coins, gems, coins_after, gems_after, label FROM ledger ORDER BY rowid DESC LIMIT ?",

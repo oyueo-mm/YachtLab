@@ -12,7 +12,6 @@ import OnlineEntry from "./play/OnlineEntry";
 import OnlineGame from "./play/OnlineGame";
 import OnlineWatch from "./play/OnlineWatch";
 import Profile from "./shell/Profile";
-import { ItemsPage, QuestsPage } from "./shell/EconomyPages";
 import MatchRewards, { type PendingReward } from "./shell/MatchRewards";
 import { completeSignIn, session } from "./identity/account-client";
 import { syncAccountNickname } from "./identity/display-name";
@@ -33,6 +32,8 @@ import { aiMatchConfig, finalizeNames, getAiSetup, getLocalSetup, type AiMatchCo
 
 // Research tools are a separate, lazily loaded chunk (see routes.ts "lab" tier).
 const LabScreen = lazy(() => import("./lab/LabScreen"));
+const ItemsPage = lazy(() => import("./shell/EconomyPages").then((module) => ({ default: module.ItemsPage })));
+const QuestsPage = lazy(() => import("./shell/EconomyPages").then((module) => ({ default: module.QuestsPage })));
 
 type LocalConfig = { players: string[]; order: LocalOrder };
 const localConfig = (): LocalConfig => {
@@ -266,8 +267,12 @@ export default function App() {
           />
         )}
         {(page === "profile" || page === "account") && <Profile key={profileNotice} server={onlineServer} notice={profileNotice} snapshot={profile.snapshot} accountSettings={page === "account"} />}
-        {(page === "shop" || page === "inventory") && <ItemsPage server={onlineServer} go={navigate} route={page} />}
-        {(page === "quests" || page === "achievements") && <QuestsPage server={onlineServer} go={navigate} achievements={page === "achievements"} />}
+        {(page === "shop" || page === "inventory" || page === "draw" || page === "quests" || page === "achievements") && (
+          <Suspense fallback={<p className="econ-note" role="status"><BrandMark /> 불러오는 중…</p>}>
+            {(page === "shop" || page === "inventory" || page === "draw") && <ItemsPage key={session() ?? "guest"} server={onlineServer} go={navigate} route={page} />}
+            {(page === "quests" || page === "achievements") && <QuestsPage key={session() ?? "guest"} server={onlineServer} go={navigate} achievements={page === "achievements"} />}
+          </Suspense>
+        )}
         {page === "friends" && <FriendsPage server={onlineServer} go={navigate} />}
         {page === "spectate" && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "spectate" && onlineServer && (watchTarget ? <OnlineWatch key={watchTarget.code + watchTarget.key} server={onlineServer} code={watchTarget.code} watchKey={watchTarget.key} onLeave={() => navigate("home")} /> : (

@@ -114,7 +114,7 @@ export function PhysicalDice({
 
   const { reducedEffects } = useSettings();
   useEffect(() => {
-    table.current?.setColors(colors && reducedEffects ? { ...colors, anim: undefined } : colors);
+    table.current?.setColors(colors && reducedEffects ? { ...colors, anim: undefined, trail: undefined, landing: undefined } : colors);
   }, [JSON.stringify(colors), reducedEffects, dims]);
 
   useEffect(

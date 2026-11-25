@@ -129,7 +129,7 @@ test("상점: 강화형 상품은 사기 전에 Lv.1~3 차이를 미리 보고, 
   const dialog = page.getByRole("dialog", { name: "황금 상세" });
   await expect(dialog.getByRole("tab")).toHaveCount(3);
   await dialog.getByRole("tab", { name: "Lv.3" }).click();
-  await expect(dialog.getByText("Lv.3 · 움직이는 빛")).toBeVisible();
+  await expect(dialog.getByText("Lv.3 · 충돌과 착지에 금빛 조각 추가")).toBeVisible();
   await expect(dialog.getByText("재화가 부족해요. 미리보기는 그대로 볼 수 있어요.")).toBeVisible();
   await page.keyboard.press("Escape");
   await page.getByRole("tab", { name: /^닉네임 효과/ }).click();
@@ -306,4 +306,41 @@ test("상점 미리보기는 소재별 굴림 소리와 강화 전 이모티콘 
   await page.getByRole("button", { name: "소리 듣기" }).click();
   await expect.poll(sound).toContainEqual(["emote", "bolt"]);
   expect(account.requests).toHaveLength(0);
+});
+
+test("뽑기 응답이 끊겨도 새로고침 후 같은 요청 ID로 정확히 같은 보상을 확인한다", async ({ page }) => {
+  const acc = account();
+  await page.addInitScript((value) => localStorage.setItem("yachtlab.session.v1", value), SESSION);
+  const submitted: string[] = [];
+  let receipt: Record<string, unknown> | undefined;
+  await page.route(SERVER + "/**", async (route) => {
+    if (!route.request().url().endsWith("/api/me/shop/draw") || route.request().method() === "OPTIONS") return acc.handle(route);
+    const at = Date.parse("2026-12-10T12:00:00+09:00");
+    if (route.request().method() === "POST") {
+      const { requestId } = route.request().postDataJSON();
+      submitted.push(requestId);
+      if (!receipt) {
+        receipt = { requestId, pool: "standard", at, hand: "pair", dice: [2, 2, 4, 1, 6], itemId: "dice.mint", duplicateCoins: 0, cost: 250 };
+        acc.snap.wallet.coins -= 250;
+        return route.abort();
+      }
+    }
+    return route.fulfill({
+      status: 200, headers: { "access-control-allow-origin": "*" }, json: {
+        snapshot: acc.snap, draw: { now: at, remaining: receipt ? 4 : 5, history: receipt ? [receipt] : [] }, ...(receipt ? { receipt } : {}),
+      },
+    });
+  });
+  await page.goto(`?online-server=${encodeURIComponent(SERVER)}#draw`);
+  await page.getByRole("button", { name: "250코인으로 1회 뽑기" }).click();
+  await page.getByRole("dialog", { name: "주사위를 굴릴까요?" }).getByRole("button", { name: "뽑기", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("같은 요청");
+  await page.reload();
+  await page.getByRole("button", { name: "결과 확인" }).click();
+  await expect(page.locator(".draw-result")).toContainText("민트");
+  await expect(page.locator(".draw-result")).toContainText("2 · 2 · 4 · 1 · 6");
+  expect(submitted).toEqual([submitted[0], submitted[0]]);
+  await expect(page.getByTestId("coins")).toHaveText("1,250");
+  await page.getByText("족보와 상품별 확률", { exact: true }).click();
+  await expect(page.getByText("요트 · 신화 · 6/7776 (0.077%)")).toBeVisible();
 });

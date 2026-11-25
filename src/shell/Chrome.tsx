@@ -319,7 +319,7 @@ export function TopBar({ route, server, profile, navigate, openSettings }: {
       <div className="shell-top-right">
         {shopLinks.map(({ route: target, title, Icon }) => (
           <button type="button" key={target} className="header-shop icon-button shell-icon" aria-label={title}
-            aria-current={target === route ? "page" : undefined} title={title} onClick={() => target !== route && navigate(target)}>
+            aria-current={target === route || (target === "shop" && route === "draw") ? "page" : undefined} title={title} onClick={() => target !== route && navigate(target)}>
             <Icon size={19} aria-hidden="true" /><span>{title}</span>
           </button>
         ))}

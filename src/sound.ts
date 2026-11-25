@@ -1,3 +1,4 @@
+import { socialItem } from "./social/catalog";
 import { dieSounds, emoteSound, type DiceMaterial, type EmoteSound } from "./sound-packs";
 import { getSettings } from "./settings";
 
@@ -497,7 +498,8 @@ function emoteVoice(audio: AudioContext, out: AudioNode, t: number, pack: EmoteS
 }
 
 export function playEmoteSfx(id: string) {
-  playSfx("emote", { emote: emoteSound(id), intensity: .75 });
+  const style = socialItem(id)?.style;
+  playSfx("emote", { emote: style === "spark" ? "chime" : style === "impact" ? "bolt" : emoteSound(id), intensity: style === "impact" ? .55 : .75 });
 }
 
 export function playSfx(name: Sfx, options: SfxOptions = {}) {

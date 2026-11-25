@@ -161,18 +161,18 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
       <div className="item-stage">
         <div className="stage-feed">
           <div className="table-feed">
-            <span key={replay} className={"feed-msg " + (s?.kind ?? "chat") + (css ? " " + css : "") + (s?.kind === "emote" ? ` emote-lv${lv}` : "")}>
+            <span key={replay} className={"feed-msg " + (s?.kind ?? "chat") + (css ? " " + css : "") + (s?.kind === "emote" ? ` emote-lv${lv}` : "") + (s && s.style !== "default" ? ` social-${s.style}` : "")}>
               <b className="feed-from">친구</b>
               <span className="feed-text">{s?.text}</span>
             </span>
           </div>
-          <p className="stage-note">경기 중 보드 아래에 이렇게 보여요{item.category === "bubble" ? " (말풍선은 내가 보내는 모든 메시지에 적용)" : ""}.</p>
+          <p className="stage-note">경기 중 메시지가 이렇게 보여요{item.category === "bubble" ? " (말풍선은 내가 보내는 모든 메시지에 적용)" : ""}.</p>
         </div>
         <div className="stage-actions">
           <button type="button" className="secondary" onClick={() => setReplay((n) => n + 1)}>
             <Play size={15} /> 다시 보기
           </button>
-          {item.category === "emote" && (
+          {(item.category === "emote" || s && s.style !== "default") && (
             <button type="button" className="secondary" onClick={() => {
               unlockAudio();
               setReplay((n) => n + 1);

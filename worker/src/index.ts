@@ -1,3 +1,4 @@
+import type { DrawPool } from "../../src/economy/live/draw";
 import type { MatchEconomyResult } from "./economy";
 import { DurableObject } from "cloudflare:workers";
 import { newRoomCode, normalizeCode, parseRoomSettings, ROOM_LIMITS, type RoomRecord, type RoomSettings } from "../../src/online/room";
@@ -43,6 +44,7 @@ export interface Env extends ConfigVars {
   FRIENDS: DurableObjectNamespace<FriendIndex>;
   /** "on" enables official coins/gems/quests/achievements/shop (feature flag). */
   ECONOMY?: string;
+  DICE_DRAW?: string;
   /** "off" disables server AI matches (kill switch, default on). */
   SERVER_AI?: string;
   /** Operations metrics endpoint (`GET /api/admin/metrics`), off unless this secret (≥ 32 chars) is set. */
@@ -402,7 +404,7 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     if (g.length) await this.hub().count("econ.welcome").catch(() => undefined);
     return { ok: true as const, snapshot: this.econ.snapshot(p.userId, Date.now()) };
   }
-  private async econAction(kind: string, fn: (userId: string, now: number) => { ok: true; duplicate?: boolean; snapshot: unknown } | { ok: false; code: string; message: string }, metric?: (r: { ok: true; duplicate?: boolean }) => string | null) {
+  private async econAction<T extends { ok: true; duplicate?: boolean; snapshot: unknown } | { ok: false; code: string; message: string }>(kind: string, fn: (userId: string, now: number) => T, metric?: (r: { ok: true; duplicate?: boolean }) => string | null) {
     if (!this.economyOn) return { ok: false as const, code: "ECONOMY_OFF", message: "재화 기능은 아직 준비 중이에요." };
     const p = this.store.profile();
     if (!p) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
@@ -428,8 +430,18 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   async setLoadout(loadout: unknown) {
     return this.econAction("loadout", (u, n) => this.econ.setLoadout(u, loadout, n));
   }
-  async rerollQuest(index: number) {
-    return this.econAction("reroll", (u, n) => this.econ.rerollQuest(u, index, n), () => "quest.reroll");
+  async rerollQuest(index: number | "all", period: "daily" | "weekly" = "daily", expected?: number) {
+    return this.econAction("reroll", (u, n) => this.econ.rerollQuest(u, index, n, period, expected), () => "quest.reroll");
+  }
+  async drawStatus() {
+    if (this.env.DICE_DRAW !== "on") return { ok: false as const, code: "ECONOMY_OFF", message: "뽑기는 아직 준비 중이에요." };
+    return this.econAction("drawStatus", (userId, now) => ({
+      ok: true as const, snapshot: this.econ.snapshot(userId, now), draw: this.econ.drawStatus(now),
+    }));
+  }
+  async draw(pool: DrawPool, requestId: string) {
+    if (this.env.DICE_DRAW !== "on") return { ok: false as const, code: "ECONOMY_OFF", message: "뽑기는 아직 준비 중이에요." };
+    return this.econAction("draw", (u, n) => this.econ.draw(u, pool, requestId, n), () => "shop.draw");
   }
   /** Ledger ↔ balance check (administrator). */
   async verifyLedger() {

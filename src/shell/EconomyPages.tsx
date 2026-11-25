@@ -1,5 +1,7 @@
 import ShopRail from "./ShopRail";
-import { useCallback, useEffect, useState } from "react";
+import DrawPanel from "./DrawPanel";
+import { SEASONS, seasonActive } from "../economy/live/seasons";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Check, Coins, Gem, RefreshCw, Sparkles, X } from "lucide-react";
 import { ACHIEVEMENTS, ECONOMY, QUESTS, SLOTS, TIERS, nextDayStart, nextWeekStart, type TierId } from "../economy/live/config";
 import { CATEGORIES, DEFAULT_LOADOUT, ITEMS, SINGLE_SLOTS, itemById, priceOf, publicLook, slotPrice, upgradeCost, type ItemCategory, type ItemDef, type Loadout } from "../economy/live/catalog";
@@ -7,6 +9,7 @@ import { EconomyError, buy, buySlot, economy, rerollQuest, saveLoadout, signedIn
 import { PlayerTag } from "../play/Looks";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { BrandMark } from "../ui/BrandLoading";
+import { motionLevel, useSettings } from "../settings";
 import { useNickname } from "../identity/display-name";
 import { ItemStage, ItemThumb, LevelTabs, categoryLabel, tierLabel } from "./ItemViews";
 import type { Route } from "../routes";
@@ -44,7 +47,7 @@ function useEconomy(server: string | null) {
       setBusy(false);
     }
   };
-  return { snap, error, busy, act, load };
+  return { snap, error, busy, act, load, setSnap };
 }
 
 function Gate({ server, go, children }: { server: string | null; go: Go; children: React.ReactNode }) {
@@ -68,19 +71,21 @@ type Owned = ReadonlyMap<string, number>;
 const isOwned = (i: ItemDef, owned: Owned) => i.acquisition === "default" || owned.has(i.id);
 
 /** Card in a grid: the item's look, name, tier and price / state. Tapping opens the detail. */
-function ItemCard({ item, owned, level, badge, price, onOpen }: { item: ItemDef; owned: boolean; level: number; badge?: string; price?: React.ReactNode; onOpen: () => void }) {
+function ItemCard({ item, owned, level, badge, price, equipped, action, onOpen }: { item: ItemDef; owned: boolean; level: number; badge?: string; price?: React.ReactNode; equipped?: boolean; action?: React.ReactNode; onOpen: () => void }) {
   return (
-    <li className={"item-card tier-" + item.tier + (owned ? " owned" : "")} data-item={item.id}>
+    <li className={"item-card tier-" + item.tier + (owned ? " owned" : "") + (equipped ? " equipped" : "")} data-item={item.id}>
       <button type="button" className="item-card-button" onClick={onOpen} aria-label={`${item.name} 자세히`}>
         <ItemThumb item={item} level={level} />
         <span className="item-card-name">{item.name}</span>
         <span className="item-preview-label">효과 미리보기</span>
         <span className="item-card-meta">
           <span className={"tier-chip tier-" + item.tier}>{tierLabel(item.tier)}</span>
+          {item.season && <span className="lv-chip">시즌</span>}
           {item.maxLevel > 1 && <span className="lv-chip">Lv.{owned ? level : 1}/{item.maxLevel}</span>}
         </span>
         {badge ? <span className="item-card-badge">{badge}</span> : price}
       </button>
+      {action}
     </li>
   );
 }
@@ -109,14 +114,24 @@ const stageDescriptions = {
 function ItemDetail({ item, initialLevel, unlocked, onClose, children }: { item: ItemDef; initialLevel: number; unlocked?: number; onClose: () => void; children: (previewLevel: number) => React.ReactNode }) {
   const [level, setLevel] = useState(initialLevel);
   const descriptions = item.category === "board" || item.category === "emote" ? stageDescriptions[item.category] : item.levels;
+  const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", esc);
-    return () => document.removeEventListener("keydown", esc);
-  }, [onClose]);
+    const surface = dialog.current;
+    const previous = document.activeElement;
+    surface?.showModal();
+    return () => {
+      surface?.close();
+      if (previous instanceof HTMLElement) previous.focus({ preventScroll: true });
+    };
+  }, []);
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div className="modal item-detail" role="dialog" aria-label={`${item.name} 상세`} onClick={(e) => e.stopPropagation()}>
+    <dialog ref={dialog} className="modal item-detail" aria-label={`${item.name} 상세`}
+      onCancel={(event) => { event.preventDefault(); onClose(); }}
+      onClick={(event) => {
+        if (event.target !== event.currentTarget) return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) onClose();
+      }}>
         <div className="item-detail-head">
           <div>
             <h2>{item.name}</h2>
@@ -129,12 +144,12 @@ function ItemDetail({ item, initialLevel, unlocked, onClose, children }: { item:
             <X size={18} />
           </button>
         </div>
+        {item.season && <p className="item-level-note">{SEASONS[item.season].name} · 시즌 이후에도 소유 상품을 쓸 수 있어요.</p>}
         <ItemStage item={item} level={level} />
         <LevelTabs item={item} level={level} setLevel={setLevel} unlocked={unlocked} />
         {descriptions && <p className="item-level-note">Lv.{level} · {descriptions[level - 1]}</p>}
         <div className="item-detail-actions">{children(level)}</div>
-      </div>
-    </div>
+    </dialog>
   );
 }
 
@@ -145,15 +160,18 @@ type PriceFilter = "all" | "coins" | "gems" | "afford";
 type EconomyState = ReturnType<typeof useEconomy>;
 type EconomyProps = { server: string | null; go: Go; economyState: EconomyState; active: boolean };
 
-export function ItemsPage({ server, go, route }: { server: string | null; go: Go; route: "shop" | "inventory" }) {
+export function ItemsPage({ server, go, route }: { server: string | null; go: Go; route: "shop" | "inventory" | "draw" }) {
   const economyState = useEconomy(server);
-  return <section className="econ-page items-hub" aria-labelledby="items-title">
+  const motion = motionLevel(useSettings());
+  return <section className="econ-page items-hub" data-preview-motion={motion === "full" ? "full" : "static"} aria-labelledby="items-title">
     <h1 id="items-title">상점과 인벤토리</h1>
     <div className="item-tabs" role="tablist" aria-label="상품 관리">
       <button type="button" role="tab" aria-selected={route === "shop"} onClick={() => route !== "shop" && go("shop")}>상품</button>
+      <button type="button" role="tab" aria-selected={route === "draw"} onClick={() => route !== "draw" && go("draw")}>뽑기</button>
       <button type="button" role="tab" aria-selected={route === "inventory"} onClick={() => route !== "inventory" && go("inventory")}>인벤토리</button>
     </div>
     <ShopPage server={server} go={go} economyState={economyState} active={route === "shop"} />
+    {route === "draw" && <Gate server={server} go={go}>{server && <DrawPanel server={server} onWallet={economyState.setSnap} />}</Gate>}
     <InventoryPage server={server} go={go} economyState={economyState} active={route === "inventory"} />
   </section>;
 }
@@ -168,7 +186,8 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
   const [notice, setNotice] = useState("");
   const owned = ownedMap(snap);
   const wallet = snap?.wallet ?? { coins: 0, gems: 0 };
-  const forSale = ITEMS.filter((i) => !i.retired && i.acquisition !== "default");
+  const forSale = ITEMS.filter((i) => !i.retired && i.acquisition !== "default" &&
+    (!i.season || (snap?.serverTime !== undefined && seasonActive(i.season, snap.serverTime))));
   const counts = Object.fromEntries(CATEGORIES.map((c) => [c.id, forSale.filter((i) => i.category === c.id).length])) as Record<ItemCategory, number>;
   const list = forSale.filter((i) => {
     if ((cat && i.category !== cat) || (tier !== "all" && i.tier !== tier)) return false;
@@ -458,24 +477,11 @@ function InventoryPage({ server, go, economyState, active }: EconomyProps) {
               {mine
                 .filter((i) => i.category === cat)
                 .map((i) => (
-                  <li key={i.id} className={"item-card tier-" + i.tier + (isEquipped(i) ? " equipped" : "")} data-item={i.id}>
-                    <button type="button" className="item-card-button" onClick={() => setOpen(i)} aria-label={`${i.name} 자세히`}>
-                      <ItemThumb item={i} level={shownLevel(i)} />
-                      <span className="item-card-name">{i.name}</span>
-                      <span className="item-preview-label">효과 미리보기</span>
-                      <span className="item-card-meta">
-                        <span className={"tier-chip tier-" + i.tier}>{tierLabel(i.tier)}</span>
-                        {i.maxLevel > 1 && (
-                          <span className="lv-chip">
-                            Lv.{owned.get(i.id) ?? 1}/{i.maxLevel}
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                    <button type="button" className={"item-equip " + (isEquipped(i) ? "primary" : "secondary")} aria-pressed={isEquipped(i)} aria-label={`${i.name} ${isEquipped(i) ? (listKind ? "해제" : "장착됨") : "장착"}`} onClick={() => toggle(i)}>
+                  <ItemCard key={i.id} item={i} owned equipped={isEquipped(i)} level={shownLevel(i)} onOpen={() => setOpen(i)}
+                    action={<button type="button" className={"item-equip " + (isEquipped(i) ? "primary" : "secondary")}
+                      aria-pressed={isEquipped(i)} aria-label={`${i.name} ${isEquipped(i) ? (listKind ? "해제" : "장착됨") : "장착"}`} onClick={() => toggle(i)}>
                       {isEquipped(i) ? (listKind ? "해제" : "장착 중") : "장착"}
-                    </button>
-                  </li>
+                    </button>} />
                 ))}
             </ul>
           </>
@@ -535,6 +541,7 @@ const until = (t: number) => {
 
 export function QuestsPage({ server, go, achievements }: { server: string | null; go: Go; achievements: boolean }) {
   const [period, setPeriod] = useState<"daily" | "weekly">("daily");
+  const [replace, setReplace] = useState<{ period: "daily" | "weekly"; expected: number } | null>(null);
   const { snap, error, busy, act } = useEconomy(server);
   const row = (q: { id: string; progress: number; done: boolean }, i: number, period: "daily" | "weekly") => {
     const def = QUESTS.find((d) => d.id === q.id);
@@ -558,7 +565,7 @@ export function QuestsPage({ server, go, achievements }: { server: string | null
             <Check size={14} /> 받음
           </span>
         ) : period === "daily" && (snap?.state.rerolls ?? 1) < ECONOMY.quests.dailyRerolls ? (
-          <button type="button" className="secondary" disabled={busy} onClick={() => void act(() => rerollQuest(server!, i))} aria-label={`${def.label} 교체`}>
+          <button type="button" className="secondary" disabled={busy} onClick={() => void act(() => rerollQuest(server!, i, "daily", snap!.state.day))} aria-label={`${def.label} 교체`}>
             <RefreshCw size={14} /> 교체
           </button>
         ) : null}
@@ -592,6 +599,12 @@ export function QuestsPage({ server, go, achievements }: { server: string | null
                 {period === "daily" ? "일일 퀘스트" : "주간 퀘스트"} <small>{until(period === "daily" ? nextDayStart(Date.now()) : nextWeekStart(Date.now()))} 뒤 초기화 · {period === "daily" ? "매일" : "매주 월요일"} 00:00(한국 시간)</small>
               </h2>
               <ul className="quest-list">{snap.state[period].map((q, i) => row(q, i, period))}</ul>
+              {snap.state.weeklyRerolls !== undefined && snap.state[period].some((quest) => !quest.done) &&
+                (period === "daily" ? snap.state.rerolls < ECONOMY.quests.dailyRerolls : snap.state.weeklyRerolls === 0) &&
+                <button type="button" className="secondary" disabled={busy} onClick={() => setReplace({
+                  period, expected: period === "daily" ? snap.state.day : snap.state.week,
+                })}><RefreshCw size={15} /> 미완료 퀘스트 전체 교체</button>}
+              <p className="econ-note">{period === "daily" ? "일일은 개별 또는 전체 교체 중 하루 한 번 무료로 선택할 수 있어요." : "주간 미완료 퀘스트는 주에 한 번 함께 무료로 교체할 수 있어요."}</p>
               <p className="econ-note">
                 모두 완료하면 {period === "daily" ? ECONOMY.quests.dailyAllBonus.coins : ECONOMY.quests.weeklyAllBonus.coins}코인·보석 {period === "daily" ? ECONOMY.quests.dailyAllBonus.gems : ECONOMY.quests.weeklyAllBonus.gems} {snap.state[period === "daily" ? "dailyAll" : "weeklyAll"] ? "(받음)" : ""}
               </p>
@@ -614,6 +627,12 @@ export function QuestsPage({ server, go, achievements }: { server: string | null
           </>
         )}
       </Gate>
+      <ConfirmDialog open={!!replace} title="미완료 퀘스트를 모두 바꿀까요?"
+        message="완료한 퀘스트와 받은 보상은 그대로예요. 교체되는 퀘스트는 처음부터 진행해요."
+        confirmLabel="전체 교체" onCancel={() => setReplace(null)} onConfirm={() => {
+          if (replace) void act(() => rerollQuest(server!, "all", replace.period, replace.expected));
+          setReplace(null);
+        }} />
     </section>
   );
 }

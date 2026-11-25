@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { DRAW_COST, DRAW_DAILY_LIMIT, DRAW_TIERS, DUPLICATE_COINS, drawItems, enumerateDrawHands } from "../src/economy/live/draw";
+import { SEASONS } from "../src/economy/live/seasons";
+import { describe, expect, it, vi } from "vitest";
 import { DatabaseSync } from "node:sqlite";
 import { ACHIEVEMENTS, ECONOMY, QUESTS, economyDay, economyWeek, nextDayStart } from "../src/economy/live/config";
-import { applyMatch, matchStats, newEconState, rerollDaily, type RewardInput } from "../src/economy/live/rewards";
+import { applyMatch, matchStats, newEconState, replaceQuests, rerollDaily, type RewardInput } from "../src/economy/live/rewards";
 import { DEFAULT_LOADOUT, DEFAULT_SLOTS, ITEMS, itemById, lookAt, priceOf, slotPrice, upgradeCost, validateLoadout, sanitizeLook } from "../src/economy/live/catalog";
 import { EconomyStore, type EconSql } from "../worker/src/economy";
 import { categories, type Card } from "../src/engine";
@@ -192,10 +194,10 @@ describe("상품·가격·장착 검증", () => {
     expect(priceOf(itemById("dice.ink")!, "gems")).toBeNull(); // coins only
     expect(priceOf(itemById("profile.whale")!, "coins")).toBeNull(); // gems only
     expect(priceOf(itemById("title.300")!, "coins")).toBeNull(); // achievement only
-    expect(upgradeCost(itemById("nameFx.rainbow")!, 1)).toBe(12000);
-    expect(upgradeCost(itemById("nameFx.rainbow")!, 2)).toBe(25000);
+    expect(upgradeCost(itemById("nameFx.rainbow")!, 1)).toBe(9600);
+    expect(upgradeCost(itemById("nameFx.rainbow")!, 2)).toBe(20000);
     expect(upgradeCost(itemById("nameFx.rainbow")!, 3)).toBeNull();
-    expect(upgradeCost(itemById("emote.fire")!, 1)).toBe(150);
+    expect(upgradeCost(itemById("emote.fire")!, 1)).toBe(110);
     expect(upgradeCost(itemById("chat.nice")!, 1)).toBeNull();
     expect([4, 5, 6, 7, 8].map((n) => slotPrice("emote", n, "coins"))).toEqual([500, 1000, 1500, 2500, null]);
     expect(slotPrice("chat", 6, "gems")).toBe(25);
@@ -287,7 +289,7 @@ describe("재화 원장 (계정 저장소, node:sqlite)", () => {
     store.welcome(U, now, null); // 200 coins, 20 gems
     for (let i = 0; i < 20; i++) store.applyMatch(U, old.createdAt, match(100 + i, { opponentUserId: "u_o" + i }), now);
     const coins = store.snapshot(U, now).wallet.coins;
-    const results = await Promise.all(["dice.mint", "bubble.mint", "profile.star", "emote.fire", "emote.wow"].map((id, i) => Promise.resolve().then(() => store.buy(U, id, "coins", "c" + i + "-xxxxxx", now))));
+    const results = await Promise.all(["dice.mint", "dice.pastel_pink", "dice.pastel_sky", "dice.pastel_lemon", "dice.pastel_peach"].map((id, i) => Promise.resolve().then(() => store.buy(U, id, "coins", "c" + i + "-xxxxxx", now))));
     const ok = results.filter((r) => r.ok).length;
     expect(ok).toBe(Math.min(5, Math.floor(coins / 300)));
     expect(store.snapshot(U, now).wallet.coins).toBe(coins - ok * 300);
@@ -307,7 +309,7 @@ describe("재화 원장 (계정 저장소, node:sqlite)", () => {
     expect(r.ok ? "ok" : r.code).toBe("MAX_LEVEL");
     const snap = store.snapshot(U, now);
     expect(snap.inventory.find((i) => i.id === "emote.fire")?.level).toBe(3);
-    expect(snap.wallet).toEqual({ coins: 1200 - 150 - 300, gems: 1020 - 40 });
+    expect(snap.wallet).toEqual({ coins: 1200 - 110 - 225, gems: 1020 - 30 });
     expect(store.verify().ok).toBe(true);
   });
 
@@ -335,16 +337,16 @@ describe("재화 원장 (계정 저장소, node:sqlite)", () => {
 });
 
 describe("아이템 콘텐츠 (H, 2026-11-25)", () => {
-  it("상품군별 목표 수량(합계 200)·고유 ID·기존 ID 보존", () => {
+  it("상품군과 시즌 추가 수량·고유 ID·기존 ID 보존", () => {
     const count = (c: string) => ITEMS.filter((i) => i.category === c && !i.retired).length;
-    expect({ dice: count("dice"), board: count("board"), emote: count("emote"), chat: count("chat"), bubble: count("bubble"), profile: count("profile"), nameFx: count("nameFx"), fx: count("fx"), title: count("title") }).toEqual({ dice: 30, board: 20, emote: 30, chat: 30, bubble: 15, profile: 25, nameFx: 15, fx: 15, title: 20 });
-    expect(ITEMS.length).toBe(200);
+    expect({ dice: count("dice"), board: count("board"), emote: count("emote"), chat: count("chat"), bubble: count("bubble"), profile: count("profile"), nameFx: count("nameFx"), fx: count("fx"), title: count("title") }).toEqual({ dice: 31, board: 21, emote: 41, chat: 43, bubble: 16, profile: 28, nameFx: 15, fx: 16, title: 21 });
+    expect(ITEMS.length).toBe(232);
     expect(new Set(ITEMS.map((i) => i.id)).size).toBe(ITEMS.length);
-    // ids bought before this change keep their category, tier and meaning
-    for (const [id, cat, tier] of [["dice.mint", "dice", "common"], ["dice.royal", "dice", "mythic"], ["board.felt", "board", "rare"], ["bubble.gold", "bubble", "legendary"], ["profile.whale", "profile", "rare"], ["nameFx.rainbow", "nameFx", "mythic"], ["fx.confetti", "fx", "legendary"], ["title.dicer", "title", "rare"], ["emote.fire", "emote", "common"], ["chat.lucky", "chat", "rare"], ["title.300", "title", "special"]] as const)
+    // 기존 상품 ID와 분류는 그대로 사용하며 변경 대상의 새 등급을 확인한다
+    for (const [id, cat, tier] of [["dice.mint", "dice", "common"], ["dice.royal", "dice", "mythic"], ["board.felt", "board", "rare"], ["bubble.gold", "bubble", "epic"], ["profile.whale", "profile", "rare"], ["nameFx.rainbow", "nameFx", "mythic"], ["fx.confetti", "fx", "legendary"], ["title.dicer", "title", "rare"], ["emote.fire", "emote", "common"], ["chat.lucky", "chat", "rare"], ["title.300", "title", "special"]] as const)
       expect(itemById(id), id).toMatchObject({ category: cat, tier });
   });
-  it("같은 등급 안에 여러 디자인, 가격은 등급표 그대로(M3i-W30), 특수 등급 신규 판매 없음", () => {
+  it("같은 등급 안에 여러 디자인, 가격은 상품군에 따라 차등 적용, 특수 등급 신규 판매 없음", () => {
     for (const cat of ["dice", "board", "emote", "chat", "bubble", "profile", "nameFx", "fx", "title"])
       for (const tier of ["rare", "epic", "legendary"]) {
         const n = ITEMS.filter((i) => i.category === cat && i.tier === tier).length;
@@ -355,10 +357,13 @@ describe("아이템 콘텐츠 (H, 2026-11-25)", () => {
     for (const i of ITEMS.filter((x) => x.acquisition !== "default" && x.tier !== "special")) {
       const c = priceOf(i, "coins"),
         g = priceOf(i, "gems");
-      if (c !== null) expect(c, i.id).toBe(prices[i.tier][0]);
-      if (g !== null) expect(g, i.id).toBe(prices[i.tier][1]);
+      if (c !== null) expect(c, i.id).toBeLessThanOrEqual(prices[i.tier][0]);
+      if (g !== null) expect(g, i.id).toBeLessThanOrEqual(prices[i.tier][1]);
       expect(c !== null || g !== null, i.id).toBe(true);
     }
+    expect(priceOf(itemById("chat.nice")!, "coins")).toBe(165);
+    expect(priceOf(itemById("chat.best_try")!, "coins")).toBe(3000);
+    expect(priceOf(itemById("emote.fire")!, "coins")).toBe(225);
     expect(ITEMS.filter((i) => i.tier === "special").map((i) => i.id).sort()).toEqual(["title.300", "title.310", "title.lucky_star", "title.perfect"]);
   });
   it("강화 단계가 있는 상품은 Lv.2·Lv.3 외형이 실제로 다르다", () => {
@@ -376,5 +381,82 @@ describe("아이템 콘텐츠 (H, 2026-11-25)", () => {
     const classes = new Set<string>();
     for (const i of ITEMS) for (const lv of [1, 2, 3]) for (const c of (lookAt(i, lv).css ?? "").split(/\s+/).filter(Boolean)) classes.add(c);
     for (const c of classes) if (!c.startsWith("fx-") && !c.startsWith("title-common")) expect(css.includes("." + c), c).toBe(true);
+  });
+});
+
+
+describe("족보 뽑기와 시즌·전체 교체", () => {
+  it("7,776개의 순서 있는 눈을 정확히 한 족보로 분류하고 모든 등급에 상품이 있다", () => {
+    const count = enumerateDrawHands();
+    expect(count).toEqual({ none: 240, pair: 2880, twoPair: 1800, triple: 1200, small: 960, full: 300, four: 150, large: 240, yacht: 6 });
+    expect(Object.values(count).reduce((sum, n) => sum + n, 0)).toBe(7776);
+    for (const pool of ["standard", "christmas-2026"] as const) {
+      for (const tier of DRAW_TIERS) {
+        const items = drawItems(pool, tier);
+        expect(items.length).toBeGreaterThan(0);
+        expect(items.every((i) => i.tier === tier && (pool === "standard" ? !i.season : i.season === pool))).toBe(true);
+      }
+    }
+  });
+
+  it("완료·보상은 보존하고 개별·전체가 일일 교체 횟수를 공유하며 주간은 따로 초기화한다", () => {
+    const state = newEconState(U, T0);
+    state.daily[0] = { ...state.daily[0], progress: 2, done: true };
+    state.daily[1].progress = 1;
+    const all = replaceQuests(state, U, "daily", state.day, "all");
+    expect(all.ok).toBe(true);
+    if (!all.ok) throw Error(all.message);
+    expect(all.state.daily[0]).toEqual(state.daily[0]);
+    expect(all.state.daily[1]).toMatchObject({ progress: 0, done: false });
+    expect(all.state.daily[1].id).not.toBe(state.daily[1].id);
+    expect(rerollDaily(all.state, U, 1).ok).toBe(false);
+    expect(replaceQuests(state, U, "daily", state.day - 1, "all").ok).toBe(false);
+    const weekly = replaceQuests(all.state, U, "weekly", state.week, "all");
+    expect(weekly.ok && weekly.state.weeklyRerolls).toBe(1);
+    expect(weekly.ok && replaceQuests(weekly.state, U, "weekly", state.week, "all").ok).toBe(false);
+  });
+
+  it("이전 DB를 재사용하며 실패·재시도·동시 요청·환급·시즌 경계를 원장과 함께 검증한다", async () => {
+    const db = sql();
+    const previous = new EconomyStore(db);
+    previous.init();
+    previous.welcome(U, T0, null);
+    // Existing accounts have v1 progress, inventory and no draws table.
+    db.db.exec("DROP TABLE draws");
+    db.db.exec("UPDATE econ SET coins = 2400, gems = 20");
+    db.db.exec("INSERT INTO ledger VALUES ('fixture', 0, 'fixture', 2200, 0, 2400, 20, 'play', 'fixture', 'M3i-W30@1')");
+    db.db.exec("INSERT INTO inventory VALUES ('dice.lava', 3, 'coins', 0)");
+    const store = new EconomyStore(db);
+    store.init();
+    expect(store.snapshot(U, T0).inventory).toContainEqual({ id: "dice.lava", at: 0, via: "coins", level: 3 });
+    const { start, end } = SEASONS["christmas-2026"];
+    expect(store.buy(U, "profile.snowman", "coins", "outside-sale", start - 1).ok).toBe(false);
+    expect(store.draw(U, "christmas-2026", "outside-draw", start - 1).ok).toBe(false);
+    const rng = vi.spyOn(crypto, "getRandomValues").mockImplementation((array) => array);
+    try {
+      db.db.exec("CREATE TRIGGER draw_failure BEFORE INSERT ON draws BEGIN SELECT RAISE(ABORT, 'test rollback'); END");
+      expect(() => store.draw(U, "christmas-2026", "rolled-back", start)).toThrow(/test rollback/);
+      expect(store.snapshot(U, start).wallet.coins).toBe(2400);
+      expect(store.drawStatus(start).history).toHaveLength(0);
+      expect(store.snapshot(U, start).inventory).toHaveLength(1);
+      db.db.exec("DROP TRIGGER draw_failure");
+      const [a, b] = await Promise.all([0, 1].map(() => Promise.resolve().then(() => store.draw(U, "christmas-2026", "season-first", start))));
+      expect(a.ok && b.ok && a.receipt).toEqual(a.ok && b.ok && b.receipt);
+      expect(a.ok && b.ok && [a.duplicate, b.duplicate].sort()).toEqual([false, true]);
+      expect(a.ok && a.receipt).toMatchObject({ dice: [1, 1, 1, 1, 1], itemId: "dice.christmas", duplicateCoins: 0 });
+      expect(store.draw(U, "standard", "season-first", start).ok).toBe(false);
+      const duplicate = store.draw(U, "christmas-2026", "season-second", start);
+      expect(duplicate.ok && duplicate.receipt.duplicateCoins).toBe(DUPLICATE_COINS);
+      for (let i = 2; i < DRAW_DAILY_LIMIT; i++) expect(store.draw(U, "christmas-2026", "additional-" + i, start).ok).toBe(true);
+      expect(store.draw(U, "christmas-2026", "over-limit", start).ok).toBe(false);
+      expect(store.drawStatus(start).remaining).toBe(0);
+      expect(store.snapshot(U, start).wallet.coins).toBe(2400 - DRAW_DAILY_LIMIT * DRAW_COST + (DRAW_DAILY_LIMIT - 1) * DUPLICATE_COINS);
+      expect(store.draw(U, "christmas-2026", "season-first", end).ok).toBe(true);
+      expect(store.draw(U, "christmas-2026", "season-after", end).ok).toBe(false);
+      expect(store.setLoadout(U, { ...DEFAULT_LOADOUT, dice: "dice.christmas" }, end).ok).toBe(true);
+      expect(store.verify().ok).toBe(true);
+    } finally {
+      rng.mockRestore();
+    }
   });
 });

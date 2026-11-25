@@ -50,7 +50,7 @@ const ach = (id: string, group: AchievementDef["group"], label: string, key: str
 });
 
 export const ECONOMY = {
-  version: "M3i-W30@1",
+  version: "M3i-W30@2",
   model: "M3i-W30",
   /** Per-match coins by mode (completed matches of signed-in players only). */
   match: {
