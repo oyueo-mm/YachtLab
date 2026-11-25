@@ -5,11 +5,12 @@
  * The tier is a structural boundary only (lab screens live in src/lab and load lazily) so they
  * could become an optional plan later. No payment, subscription or access control exists.
  */
-export type Route = "home" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "records" | "profile" | "shop" | "inventory" | "quests" | "achievements" | "friends" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab" | "economy-lab";
+export type Route = "home" | "tutorial" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "records" | "profile" | "shop" | "inventory" | "quests" | "achievements" | "friends" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab" | "economy-lab";
 export type Shell = "lobby" | "game" | "lab" | "page";
 
 export const routes: Record<Route, { title: string; shell: Shell; tier: "core" | "lab" }> = {
   home: { title: "YachtLab", shell: "lobby", tier: "core" },
+  tutorial: { title: "한 차례 연습하기", shell: "page", tier: "core" },
   offline: { title: "오프라인 대전", shell: "page", tier: "core" },
   online: { title: "온라인 대전", shell: "page", tier: "core" },
   "online-room": { title: "온라인 대전", shell: "game", tier: "core" },

@@ -1,3 +1,5 @@
+import { FirstTurnGuide } from "./Tutorial";
+import { MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useState } from "react";
 import { Check, Crown, Dices, Flag, Home, Play, RotateCcw, Timer, Trophy, Wifi, WifiOff } from "lucide-react";
 import { categories, type Category } from "../engine";
@@ -9,6 +11,8 @@ import type { LobbyState, RematchState } from "../online/wire";
 import { ROUND_LIMITS, TURN_LIMITS } from "../online/wire";
 import type { PublicLook } from "../economy/live/catalog";
 import { PlayerTag, boardCssOf, boardOf, diceLookOf } from "./Looks";
+import { Celebrate } from "../ui/Celebrate";
+import type { Celebration } from "../game-feel";
 import { QuickPicks } from "../QuickPicks";
 
 type ViewPlayer = PlayerView["players"][number];
@@ -158,7 +162,7 @@ export function OnlineStandings({ view, me, online, looks, final = false, select
               </span>
               <span className="online-standing-state">{state}</span>
               <span className="multi-standing-progress">{filled}/12</span>
-              <strong>{p.total}점</strong>
+              <strong><ScoreTotal value={p.total} />점</strong>
             </li>
           );
         })}
@@ -191,6 +195,9 @@ export function MultiTable(p: {
   canRoll: boolean;
   remaining: number | null;
   feedback: string;
+  showGuide: boolean;
+  milestones: { best: boolean; comeback: boolean };
+  celebration: Celebration;
   error: React.ReactNode;
   rematch: RematchState | null;
   isHost: boolean;
@@ -227,10 +234,11 @@ export function MultiTable(p: {
         </div>
         {p.banner}
         <section
-          className={"game-board throw-tray" + (p.rolls === 0 ? " dice-ready" : "") + (boardOf(p.looks[p.me]) ? " board-themed" : "") + (boardCssOf(p.looks[p.me]) ? " " + boardCssOf(p.looks[p.me]) : "")}
+          className={"game-board throw-tray" + (p.canRoll && nearYacht(game.dice, p.rolls, players[meIndex]?.card) ? " yacht-near" : "") + (p.rolls === 0 ? " dice-ready" : "") + (boardOf(p.looks[p.me]) ? " board-themed" : "") + (boardCssOf(p.looks[p.me]) ? " " + boardCssOf(p.looks[p.me]) : "")}
           style={boardOf(p.looks[p.me]) ? ({ "--board-color": boardOf(p.looks[p.me]) } as React.CSSProperties) : undefined}
           aria-label="게임 보드"
         >
+          <Celebrate value={p.celebration} />
           <div className="board-top">
             <span className="turn-indicator">
               <i />
@@ -247,7 +255,8 @@ export function MultiTable(p: {
               {finished ? "경기 종료" : myTurn ? (p.rolls === 0 ? "주사위 굴리기" : "다시 굴리기") : waiting ? "이번 라운드 기록 완료" : iAmOut ? "기권함" : `${turnName} 님의 차례`}
               {myTurn && <span>{3 - p.rolls}회 남음</span>}
             </button>
-            <p className="online-turn-line">{waiting ? `아직 기록하지 않은 ${Object.keys(view.progress ?? {}).length}명을 기다리고 있어요.` : myTurn && p.rolls === 3 ? "점수 칸을 선택하세요" : ""}</p>
+            <FirstTurnGuide rolls={p.rolls} active={p.showGuide && myTurn} busy={false} />
+            <p className="online-turn-line">{waiting ? `아직 기록하지 않은 ${Object.keys(view.progress ?? {}).length}명을 기다리고 있어요.` : myTurn && !p.showGuide && p.rolls === 3 ? "점수 칸을 선택하세요" : ""}</p>
             <QuickPicks values={p.dice.map((d) => d.value)} card={players[meIndex]?.card ?? {}} rolls={p.rolls} canScore={p.can} onScore={p.onScore} />
           </div>
           {finished && (
@@ -255,6 +264,7 @@ export function MultiTable(p: {
               <Trophy size={25} />
               <h2>{resultTitle(view, p.me)}</h2>
               <MultiRematch rematch={p.rematch} isHost={p.isHost} mine={mine} onOp={p.onRematch} />
+              <MatchMilestones {...p.milestones} />
               <div className="game-result-actions">
                 <button className="secondary" onClick={p.onHome}>
                   <Home size={15} /> 나가기
@@ -265,7 +275,7 @@ export function MultiTable(p: {
         </section>
         <div className="table-chat">{p.social}</div>
         {p.feedback && (
-          <p className="game-feedback" role="status">
+          <p className="game-feedback" role="status" key={p.feedback}>
             {p.feedback}
           </p>
         )}

@@ -75,6 +75,10 @@ test("로그인 전에는 상점이 로그인을 안내한다(가짜 잔액 없�
 test("상점: 카드형 그리드·상품군 탭·등급/가격 필터·업적 전용 표시, 상세에서 미리보기 후 확인을 거쳐 구매(요청 ID)", async ({ page }) => {
   const acc = await open(page, "shop");
   await expect(page.getByTestId("coins")).toHaveText("1,500");
+  await expect(page.getByRole("tab", { name: "둘러보기" })).toHaveAttribute("aria-selected", "true");
+  const diceSection = page.getByRole("region", { name: "주사위" });
+  await expect(diceSection.locator(".item-card")).toHaveCount(4);
+  await diceSection.getByRole("button", { name: "주사위 더 보기" }).click();
   await expect(page.getByRole("tab", { name: /^주사위/ })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".item-card")).toHaveCount(29); // every dice design for sale
   await expect(page.locator('[data-item="dice.royal"] .item-card-price .short').first()).toBeVisible(); // not affordable
@@ -106,6 +110,7 @@ test("상점: 카드형 그리드·상품군 탭·등급/가격 필터·업적 �
 
 test("상점: 강화형 상품은 사기 전에 Lv.1~3 차이를 미리 보고, 잔액이 부족해도 미리보기는 열린다", async ({ page }) => {
   await open(page, "shop");
+  await page.getByRole("tab", { name: /^주사위/ }).click();
   await page.getByRole("button", { name: "황금 자세히" }).click();
   const dialog = page.getByRole("dialog", { name: "황금 상세" });
   await expect(dialog.getByRole("tab")).toHaveCount(3);
@@ -118,6 +123,9 @@ test("상점: 강화형 상품은 사기 전에 Lv.1~3 차이를 미리 보고, 
   const nf = page.getByRole("dialog", { name: "오로라 상세" });
   await nf.getByRole("tab", { name: "Lv.2" }).click();
   await expect(nf.locator(".profile-card-sample .player-name")).toHaveClass(/namefx-aurora fx-lv2/);
+  await nf.getByRole("button", { name: "같은 등급 상품 보기" }).click();
+  await expect(page.getByLabel("등급")).not.toHaveValue("all");
+  await expect(page.getByRole("list", { name: "상품" })).toBeVisible();
 });
 
 test("인벤토리: 장착 미리보기·상품군 탭·기본 이모티콘 4·채팅 6, 순서 변경 후 저장", async ({ page }) => {
@@ -148,4 +156,37 @@ test("퀘스트: 진행도·보상·초기화 시각·하루 1회 교체·받은
   await expect(page.getByText("달성 3 /")).toBeVisible();
   await expect(page.getByText("???").first()).toBeVisible();
   await expect(page.getByText("300점 이상")).toHaveCount(0);
+});
+
+test("회원 홈에서 서버가 반환한 잔액과 장착 외형을 보여 준다", async ({ page }) => {
+  const acc = await open(page, "home");
+  acc.snap.look = { ...acc.snap.look, nameFx: "nameFx.aurora", nameFxLv: 2, title: "title.300" };
+  await page.reload();
+  const account = page.getByRole("region", { name: "내 계정" });
+  await expect(account).toContainText("회원");
+  await expect(account.getByTestId("coins")).toHaveText("1,500");
+  await expect(account.getByTestId("gems")).toHaveText("30");
+  await expect(account.locator(".player-icon")).toBeVisible();
+  await expect(account.locator(".player-name")).toHaveClass(/namefx-aurora fx-lv2/);
+  await expect(account.locator(".player-title")).toBeVisible();
+});
+
+test("게스트 홈에 계정 안내가 있고 휴대폰에서는 주요 메뉴로 이동할 수 있다", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.goto("#home");
+  const account = page.getByRole("region", { name: "내 계정" });
+  await expect(account).toContainText("게스트");
+  await expect(account.locator(".player-name")).toContainText("요트러");
+  await expect(account.locator(".player-icon")).toBeVisible();
+  await expect(account.getByTestId("coins")).toHaveCount(0);
+  const grid = page.getByRole("navigation", { name: "내 메뉴" });
+  expect(await grid.evaluate((node) => getComputedStyle(node).gridTemplateColumns.split(" ").length)).toBe(3);
+  await account.getByRole("button", { name: "로그인 안내" }).click();
+  await expect(page.getByRole("region", { name: "로그인" })).toBeVisible();
+  await page.getByRole("button", { name: "메뉴", exact: true }).click();
+  const menu = page.getByRole("dialog", { name: "메뉴" });
+  await menu.getByRole("button", { name: "퀘스트" }).click();
+  await expect(page).toHaveURL(/#quests$/);
+  await expect(menu).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

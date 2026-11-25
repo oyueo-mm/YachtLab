@@ -214,6 +214,25 @@ Sixes·Choice 조건은 정책마다 50,000번 Monte Carlo 검산. **근거:** [
 - **운영 Worker(Workers Free):** 2·4·6·10·20인 동시 진행 각 1경기 완주, 오류 0, 20인 ack p50 114 / p95 195 ms. 일일 경기 예산 28→49(가중 ⌈N/2⌉ = 1+2+3+5+10).
 - **공개 사이트(빌드 01b2deb):** 4인 동시 진행 PC 1 + 휴대폰 2 + 데스크톱 1, 새로고침 복귀·12라운드 완주·순위 일치·페이지 오류 0.
 
+### 제품 회귀 검증 (2026-11-25)
+
+- PR #62 병합 후 Pages 검증에서 317 통과·52 건너뜀·1 실패. PR #63 첫 실행에서 3D의 동일한 효과음 로그 가정이 발견됐다. 두 렌더러의 고정 시드 테스트는 데스크톱 Chromium과 Pixel 7 에뮬레이션에서 각 3회, 총 12회 통과했다. [실패 main](https://github.com/oyueo-mm/YachtLab/actions/runs/45530495861) · [첫 복구 PR 실행](https://github.com/oyueo-mm/YachtLab/actions/runs/45548310144)
+- 휴대폰 360~430px에서 한 열 점수 목록 697px, 두 열 366.5px, 두 열의 최소 행 높이 54px. 320px에는 한 열을 사용한다. [온보딩 PR](https://github.com/oyueo-mm/YachtLab/pull/66)
+- 실제 브라우저의 네트워크를 끈 뒤 캐시된 앱으로 로컬 경기에서 점수를 기록했고 Greedy AI가 첫 차례를 마쳤다. iOS 설치 안내는 브라우저 에뮬레이션으로 검증했다. [PWA PR](https://github.com/oyueo-mm/YachtLab/pull/64)
+- 최고 난이도가 참조하는 공개 DP 점수 표를 추가로 캐시했다. Chromium 데스크톱과 Pixel 7 에뮬레이션에서 네트워크를 끈 상태로 공개 AI 난이도 5종의 첫 차례를 모두 검증했다. 데스크톱은 최고 난이도로 12라운드를 완주했다. Win DP v4-D의 첫 차례를 Playwright 회귀에 포함했다. [PWA PR](https://github.com/oyueo-mm/YachtLab/pull/64)
+- PWA의 Chromium 설치 가능성 검사에서 오류 0건. 연속 두 빌드 테스트에서 기존 탭이 열린 동안 새 워커가 대기했고, 기존 탭을 닫은 후 자기 이전 버전 캐시만 정리했다. 이어 오프라인에서 새 앱 셸을 열었다. [PWA PR](https://github.com/oyueo-mm/YachtLab/pull/64)
+- 통합 기능 빌드 `649e588`에서 Chromium 데스크톱과 Pixel 7 에뮬레이션 Playwright 341 통과·53 건너뜀·실패 0. 통합 Vitest 48파일 402개와 프로덕션 빌드 통과. 동일 빌드에서 WebKit 데스크톱 튜토리얼, iPhone 에뮬레이션 설치 안내와 기록 조작을 확인했다. [통합 PR](https://github.com/oyueo-mm/YachtLab/pull/71)
+- 이후 main에 반영된 #72의 일반 굴림 테스트와 #63의 라지 스트레이트 시드를 함께 적용해 2.5D·3D와 백그라운드 조건을 데스크톱·모바일에서 총 10회 검증했다. [배포 복구 PR](https://github.com/oyueo-mm/YachtLab/pull/63)
+- #72로 재개된 공개 Pages에서 라지 스트레이트 효과음은 예정된 착지보다 약 724 ms(Chromium 데스크톱), 726 ms(Pixel 7 에뮬레이션) 먼저 시작했다. 두 브라우저에서 음소거 저장은 통과했다. #63 검증은 단위 400개, Playwright 322개 통과·52개 건너뜀으로 완료해 main에 병합했다. [#72 Pages 배포](https://github.com/oyueo-mm/YachtLab/actions/runs/45555056303) · [#63 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/45556257980)
+- #63의 main Pages 빌드 `ae0d375-mwvr5nsq`에서 예약된 착지보다 35.7 ms(Chromium 데스크톱), 33.4 ms(Pixel 7 에뮬레이션) 뒤에 특수음이 시작했다. 두 브라우저에서 음소거 저장을 확인했다. main CI는 단위 400개, Playwright 322개 통과·52개 건너뜀이다. [main CI·Pages](https://github.com/oyueo-mm/YachtLab/actions/runs/45559140000)
+- #71의 첫 통합 CI에서 데스크톱 보상 테스트가 대기실 경기 시작 전에 시간 초과했다. 이후 실행에서는 대기실이 표시되기 전 참가 폼의 빈 필드가 같은 접근성 이름으로 조회된 것을 확인했다. 대기실 내부에 6자리 코드가 표시되면 초대를 열고 플레이어 양쪽이 입장한 뒤 보상을 검증한다. [첫 통합 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/45556958502) · [원인을 확인한 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/45560823207)
+- 별도 공개 검증 기록은 #72 빌드에서 PC와 Pixel 7 간 빠른 대전, 공개 관전 목록, 채팅·이모티콘 20/20 전달, 이탈 후 종료와 관전 목록 정리를 확인했다. 운영 Google 계정으로 친구·초대·상점 구매·장착을 확인하는 일은 남아 있다. [공개 검증 기록](https://github.com/oyueo-mm/YachtLab/pull/73)
+
+### #71 배포와 호환성 (2026-11-25)
+
+- 기존 브라우저 번들과 새 로컬 workerd 조합에서 5개 통과·1개 건너뜀(320px 테스트는 동일 실행에서 데스크톱으로 제한). 12라운드 완주, 관전·채팅, 재접속, 재대결과 두 경기 기록 분리를 확인했다. 별도 시험에서 이전 Worker의 SQLite에 남긴 저장 데이터와 두 좌석 토큰을 새 Worker가 읽었고, 기존 주사위와 굴림 횟수에서 점수를 기록해 다음 턴으로 진행했다. [릴리스 PR](https://github.com/oyueo-mm/YachtLab/pull/71)
+- Worker 배포와 단위 402개가 통과했다. 이전 공개 클라이언트에서 운영 Worker와 초대 경기, 굴림·새로고침 후 복원·기록·종료를 확인했다. 새 기능 플래그가 있고 비인증 보상 조회는 HTTP 401이다. [Worker 배포](https://github.com/oyueo-mm/YachtLab/actions/runs/45567699361) · [라이브 체크](https://github.com/oyueo-mm/YachtLab/actions/runs/45567970811)
+- 통합 PR의 단위 402개·Playwright 347개 통과·53개 건너뜀과 빌드가 통과했다. Pages 실행 및 공개 브라우저 결과는 릴리스 기록에 연결했다. [통합 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/45564029603) · [Pages](https://github.com/oyueo-mm/YachtLab/actions/runs/45568048965) · [릴리스 PR](https://github.com/oyueo-mm/YachtLab/pull/71)
 ## 2026-11-25 Win DP v5 — 정확 PMF 롤아웃·정확 2인 종반 (연구 브랜치)
 
 상세·방법·한계: [V5-APEX-RESEARCH](./V5-APEX-RESEARCH.md). 규칙 12칸 YachtLab-12, `createGame(seed, true)`, 시드마다 좌석 교대 2경기, 승 1/무 0.5/패 0, 시드쌍 단위 99% 정규 근사 CI. 모델 커밋: 브랜치 `ccr-4b6d4930-6rem08`(코드 `f9093a3` 이후 알고리즘 불변, 이후 커밋은 평가·문서). 상대 v3 = `winDPv3Decision ?? DP Expert`(기본 Gaussian), v4-D = `src/ai.ts` 등록 구성(v3.3 pack 없음).

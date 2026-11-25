@@ -5,18 +5,21 @@ import { type AnalysisSource } from "./ReplayViewer";
 import { type Replay } from "./replay";
 import LocalGame from "./LocalGame";
 import MyGames from "./MyGames";
+import Tutorial from "./play/Tutorial";
 import HumanGame from "./play/HumanGame";
 import OnlineEntry from "./play/OnlineEntry";
 import OnlineGame from "./play/OnlineGame";
 import OnlineWatch from "./play/OnlineWatch";
 import Profile from "./shell/Profile";
 import { AchievementsPage, InventoryPage, QuestsPage, ShopPage } from "./shell/EconomyPages";
-import { completeSignIn } from "./identity/account-client";
+import MatchRewards, { type PendingReward } from "./shell/MatchRewards";
+import { completeSignIn, session } from "./identity/account-client";
 import { syncAccountNickname } from "./identity/display-name";
 import { FriendsPage, InviteToasts, refreshInbox, startInbox } from "./shell/Friends";
 import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl } from "./online/client";
 import { currentRoute, routes, type Route } from "./routes";
 import { LabNav, SettingsDialog, TopBar } from "./shell/Chrome";
+import InstallBanner from "./shell/InstallBanner";
 import { Lobby, OfflineSelect, OnlineSoon } from "./shell/Lobby";
 import { AiSetupScreen, LocalSetupScreen } from "./shell/Setup";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
@@ -49,6 +52,8 @@ export default function App() {
   // Online play needs a configured server; without one the online screen stays "준비 중".
   const [onlineServer] = useState(onlineServerUrl);
   const [onlineCode, setOnlineCode] = useState<string | null>(roomFromUrl);
+  const [quickIntro, setQuickIntro] = useState<string | null>(null);
+  const [pendingReward, setPendingReward] = useState<PendingReward | null>(null);
   const [onlineNotice, setOnlineNotice] = useState("");
   const [watchTarget] = useState(watchFromUrl);
   const [profileNotice, setProfileNotice] = useState("");
@@ -191,7 +196,15 @@ export default function App() {
             </button>
           </p>
         )}
-        {page === "home" && <Lobby navigate={navigate} />}
+        <InstallBanner active={page === "home"} />
+        {page === "home" && onlineServer && pendingReward && <MatchRewards
+          key={pendingReward.matchId}
+          server={onlineServer}
+          pending={pendingReward}
+          consume={() => setPendingReward(null)}
+        />}
+        {page === "home" && <Lobby navigate={navigate} server={onlineServer} />}
+        {page === "tutorial" && <Tutorial onHome={() => navigate("home")} />}
         {page === "offline" && <OfflineSelect navigate={navigate} />}
         {(page === "online" || page === "online-room") && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "online" && onlineServer && (
@@ -206,7 +219,8 @@ export default function App() {
               server={onlineServer}
               onBack={() => navigate("home")}
               onAi={() => navigate("play-setup")}
-              onEnter={(code) => {
+              onEnter={(code, quick) => {
+                setQuickIntro(quick ? code : null);
                 setOnlineNotice("");
                 setOnlineCode(code);
                 go("online-room");
@@ -219,11 +233,17 @@ export default function App() {
             key={onlineCode}
             server={onlineServer}
             code={onlineCode}
+            quickIntro={quickIntro === onlineCode}
+            onFinished={(matchId) => {
+              const account = session();
+              if (account) setPendingReward({ matchId, account });
+            }}
             onProgress={progress}
             onLeave={(message) => {
               inProgress.current = false;
               setOnlineNotice(message ?? "");
               setOnlineCode(null);
+              setQuickIntro(null);
               setRoomInUrl(null);
               go("online");
             }}

@@ -1,3 +1,5 @@
+import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./play/Tutorial";
+import { nearYacht, ScoreTotal } from "./ui/GameMoments";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Dices, History, RotateCcw, SlidersHorizontal, Trophy } from "lucide-react";
 import { DiceArea } from "./DiceArea";
@@ -45,6 +47,7 @@ export default function LocalGame({
   const [viewReplay, setViewReplay] = useState<MultiReplay | null>(null);
   const [allScores, setAllScores] = useState(false);
   const [mobileScoreOpen, setMobileScoreOpen] = useState(false);
+  const [showGuide, setShowGuide] = useState(() => !hasRecordedFirstScore());
   const [gameFeedback, setGameFeedback] = useState("");
   const [rollEvent, setRollEvent] = useState(0);
   const [pending, setPending] = useState<PendingAction>(null);
@@ -103,6 +106,8 @@ export default function LocalGame({
   const recordScore = (category: Category) => {
     if (!canAct || !state.rolls || state.cards[state.player][category] !== undefined) return;
     act({ type: "score", category });
+    markFirstScoreRecorded();
+    setShowGuide(false);
     setMobileScoreOpen(false);
   };
   const standings = state.done ? multiStandings(state) : [];
@@ -138,13 +143,13 @@ export default function LocalGame({
               <div key={i} className={"multi-player-chip " + (!state.done && state.player === i ? "selected" : "")}>
                 <span title={names[i]}>{names[i]}</span>
                 <strong>
-                  {total(card)}
+                  <ScoreTotal value={total(card)} />
                   <small>점</small>
                 </strong>
               </div>
             ))}
           </div>
-          <section className={"game-board throw-tray " + (state.rolls === 0 ? "multi-dice-ready" : "")} aria-label="사람 vs 사람 게임 보드" {...gesture}>
+          <section className={"game-board throw-tray " + (state.rolls === 0 ? "multi-dice-ready" : "") + (canAct && nearYacht(state.dice, state.rolls, state.cards[state.player]) ? " yacht-near" : "")} aria-label="사람 vs 사람 게임 보드" {...gesture}>
             <Celebrate value={celebration} />
             <div className="board-top">
               <span className="turn-indicator">
@@ -162,7 +167,8 @@ export default function LocalGame({
                 {state.rolls === 0 ? "주사위 굴리기" : "다시 굴리기"}
                 <span>{3 - state.rolls}회 남음</span>
               </button>
-              <p>{!state.done && !rolling && state.rolls === 3 ? "점수 칸을 선택하세요" : ""}</p>
+              <FirstTurnGuide rolls={state.rolls} active={showGuide && active} busy={rolling} />
+              {!showGuide && !state.done && !rolling && state.rolls === 3 && <p>점수 칸을 선택하세요</p>}
               <QuickPicks values={state.dice.map((d) => d.value)} card={state.cards[state.player]} rolls={state.rolls} canScore={canAct && !state.done} onScore={recordScore} />
             </div>
             {state.done && (
@@ -188,7 +194,7 @@ export default function LocalGame({
             </MobileScoreSheet>
           )}
           {gameFeedback && (
-            <p className="game-feedback" role="status">
+            <p className="game-feedback" role="status" key={gameFeedback}>
               {gameFeedback}
             </p>
           )}

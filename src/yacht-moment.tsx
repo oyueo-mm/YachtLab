@@ -3,6 +3,7 @@ import { Sparkles } from "lucide-react";
 import { STRAIGHT_STEP_S, playSfx } from "./sound";
 import { useSettings } from "./settings";
 import { DieIcon } from "./Dice";
+import { isDiceBusy } from "./dice-motion";
 import { useDiceBusy } from "./useDiceBusy";
 
 /** Five dice showing the same face after at least one roll (presentation only; nothing is scored). */
@@ -27,16 +28,20 @@ export function YachtFlash({ dice, rolls, rollEvent }: { dice: readonly { value:
   const [active, setActive] = useState<Shown | null>(null);
   const yacht = isYachtDice(dice, rolls);
   useEffect(() => {
-    if (!yacht || busy || rollEvent === shownFor.current) return;
+    // The renderer starts motion in a layout effect, after this render read the store.
+    if (!yacht || isDiceBusy() || rollEvent === shownFor.current) return;
     shownFor.current = rollEvent;
     const entry = { key: rollEvent, value: dice[0].value };
     log(entry);
     setActive(entry);
     playSfx("yachtHit");
-    const timer = window.setTimeout(() => setActive(null), 1700);
-    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yacht, busy, rollEvent]);
+  useEffect(() => {
+    if (!active) return;
+    const timer = window.setTimeout(() => setActive(null), 1700);
+    return () => window.clearTimeout(timer);
+  }, [active]);
   if (!active) return null;
   return (
     <div key={active.key} className="yacht-flash" role="status" aria-live="polite">
@@ -76,16 +81,19 @@ export function StraightFlash({ dice, rolls, rollEvent }: { dice: readonly { val
   const [active, setActive] = useState<StraightShown | null>(null);
   const values = largeStraightOf(dice, rolls);
   useEffect(() => {
-    if (!values || busy || rollEvent === shownFor.current) return;
+    if (!values || isDiceBusy() || rollEvent === shownFor.current) return;
     shownFor.current = rollEvent;
     const entry = { key: rollEvent, values };
     if (typeof window !== "undefined") ((window as unknown as { __yachtlabStraight?: StraightShown[] }).__yachtlabStraight ??= []).push(entry);
     setActive(entry);
     playSfx("straightHit");
-    const timer = window.setTimeout(() => setActive(null), STRAIGHT_MS);
-    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!values, busy, rollEvent]);
+  useEffect(() => {
+    if (!active) return;
+    const timer = window.setTimeout(() => setActive(null), STRAIGHT_MS);
+    return () => window.clearTimeout(timer);
+  }, [active]);
   if (!active) return null;
   return (
     <div key={active.key} className={"straight-flash" + (reducedEffects ? " static" : "")} role="status" aria-live="polite">

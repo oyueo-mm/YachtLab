@@ -7,6 +7,9 @@ import { guest, importedIds, localRecords, markImported } from "../identity/loca
 import { deleteAccount, importRecords, me, serverRecords, session, setNickname as saveRemoteNickname, signInAvailable, signOut, startSignIn, type Profile as AccountProfile } from "../identity/account-client";
 import { saveName } from "../online/client";
 import { useNickname } from "../identity/display-name";
+import { PlayerTag } from "../play/Looks";
+import { WalletBar } from "./EconomyPages";
+import { useProfileEconomy } from "./HomeProfile";
 import { ConfirmDialog, type PendingAction } from "../ui/ConfirmDialog";
 
 const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 1000) / 10}%`);
@@ -74,6 +77,7 @@ export default function Profile({ server, notice }: { server: string | null; not
       .catch(() => setRemote(null));
   }, [signedIn, server]);
 
+  const { snapshot } = useProfileEconomy(server);
   const localName = useNickname();
   const nickname = account?.nickname ?? localName;
   const shownName = nickname || "이름 없음";
@@ -119,9 +123,9 @@ export default function Profile({ server, notice }: { server: string | null; not
   return (
     <section className="profile" aria-labelledby="profile-title">
       <header className="profile-head">
-        <span className="profile-avatar" aria-hidden="true">
+        {!snapshot && <span className="profile-avatar" aria-hidden="true">
           {nickname ? graphemes(nickname)[0] : <UserRound size={26} />}
-        </span>
+        </span>}
         <div className="profile-id">
           {editing ? (
             <form
@@ -141,7 +145,7 @@ export default function Profile({ server, notice }: { server: string | null; not
             </form>
           ) : (
             <h1 id="profile-title">
-              <span className="profile-name">{shownName}</span>
+              <span className="profile-name">{snapshot ? <PlayerTag name={shownName} look={snapshot.look} me /> : shownName}</span>
               <button
                 type="button"
                 className="icon-button"
@@ -162,11 +166,36 @@ export default function Profile({ server, notice }: { server: string | null; not
           </p>
         </div>
       </header>
+      {snapshot && <WalletBar snap={snapshot} />}
       {message && (
         <p className="profile-message" role="status">
           {message}
         </p>
       )}
+
+      {!signedIn && <section className="profile-account" aria-label="로그인">
+        {loginReady && server && inApp ? (
+          <>
+            <p className="profile-note">이 앱 안의 브라우저에서는 Google 로그인이 막혀 있어요. Chrome·Safari 같은 기본 브라우저로 열어 로그인해 주세요. 게임은 여기서도 그대로 할 수 있어요.</p>
+            {/KAKAOTALK/i.test(navigator.userAgent) && (
+              <a className="secondary" href={"kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href.split("#")[0] + "#profile")}>
+                기본 브라우저로 열기
+              </a>
+            )}
+          </>
+        ) : loginReady && server ? (
+          <>
+            <p className="profile-note">로그인하면 기록이 계정에 저장되고 다른 기기에서도 볼 수 있어요. 로그인하지 않아도 모든 게임을 할 수 있어요.</p>
+            <button type="button" className="primary" onClick={() => void startSignIn(server).catch((e) => setMessage(e.message))}>
+              <LogIn size={16} /> Google로 로그인
+            </button>
+            <p className="profile-fine">Google 계정의 식별자만 사용하고 이메일·이름·사진은 받지 않아요.</p>
+          </>
+        ) : (
+          <p className="profile-note">회원 로그인은 준비 중이에요. 지금은 이 기기에만 기록이 저장돼요.</p>
+        )}
+        <p className="profile-fine">게스트 기록은 이 브라우저에만 있어요. 브라우저 데이터를 지우면 함께 사라져요.</p>
+      </section>}
 
       <div className="segmented profile-modes" role="radiogroup" aria-label="기록 종류">
         {(
@@ -294,9 +323,7 @@ export default function Profile({ server, notice }: { server: string | null; not
         </>
       )}
 
-      <section className="profile-account" aria-label="계정">
-        {signedIn ? (
-          <>
+      {signedIn && <section className="profile-account" aria-label="계정">
             <p className="profile-note">
               <ShieldCheck size={15} /> 온라인 경기 결과는 서버가 직접 기록해요. 다른 기기에서 로그인해도 같은 기록이 보여요.
             </p>
@@ -327,29 +354,7 @@ export default function Profile({ server, notice }: { server: string | null; not
                 <Trash2 size={15} /> 계정 삭제
               </button>
             </div>
-          </>
-        ) : loginReady && server && inApp ? (
-          <>
-            <p className="profile-note">이 앱 안의 브라우저에서는 Google 로그인이 막혀 있어요. Chrome·Safari 같은 기본 브라우저로 열어 로그인해 주세요. 게임은 여기서도 그대로 할 수 있어요.</p>
-            {/KAKAOTALK/i.test(navigator.userAgent) && (
-              <a className="secondary" href={"kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href.split("#")[0] + "#profile")}>
-                기본 브라우저로 열기
-              </a>
-            )}
-          </>
-        ) : loginReady && server ? (
-          <>
-            <p className="profile-note">로그인하면 기록이 계정에 저장되고 다른 기기에서도 볼 수 있어요. 로그인하지 않아도 모든 게임을 할 수 있어요.</p>
-            <button type="button" className="primary" onClick={() => void startSignIn(server).catch((e) => setMessage(e.message))}>
-              <LogIn size={16} /> Google로 로그인
-            </button>
-            <p className="profile-fine">Google 계정의 식별자만 사용하고 이메일·이름·사진은 받지 않아요.</p>
-          </>
-        ) : (
-          <p className="profile-note">회원 로그인은 준비 중이에요. 지금은 이 기기에만 기록이 저장돼요.</p>
-        )}
-        {!signedIn && <p className="profile-fine">게스트 기록은 이 브라우저에만 있어요. 브라우저 데이터를 지우면 함께 사라져요.</p>}
-      </section>
+      </section>}
       <ConfirmDialog
         open={!!confirm}
         title={confirm?.title ?? ""}

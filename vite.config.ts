@@ -2,6 +2,8 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import dpManifest from "./src/dp-manifest.json";
 
 /**
  * Build id: the commit (or the build time). The page compares its own id with `version.json`
@@ -23,9 +25,28 @@ const versionFile = (): Plugin => ({
   },
 });
 
+const offlineFiles = (): Plugin => ({
+  name: "yachtlab-offline-files",
+  apply: "build",
+  enforce: "post",
+  generateBundle: {
+    order: "post",
+    handler(_options, bundle) {
+      const assets = Object.keys(bundle).filter((file) => /^assets\/(?:index|worker|stage|table)-.*\.(?:js|css)$/.test(file));
+      assets.push(`ai/${dpManifest.asset}`);
+      const source = readFileSync(new URL("./src/pwa-worker.js", import.meta.url), "utf8");
+      this.emitFile({
+        type: "asset",
+        fileName: "sw.js",
+        source: `const BUILD = ${JSON.stringify(BUILD_ID)};\nconst ASSETS = ${JSON.stringify(assets)};\n${source}`,
+      });
+    },
+  },
+});
+
 export default defineConfig({
   base: "/YachtLab/",
-  plugins: [react(), tailwindcss(), versionFile()],
+  plugins: [react(), tailwindcss(), versionFile(), offlineFiles()],
   define: { __BUILD_ID__: JSON.stringify(BUILD_ID) },
   worker: { format: "es" },
   test: { include: ["tests/**/*.test.ts"], testTimeout: 60000 },

@@ -112,74 +112,86 @@
   ],
   "recentSourceCommits": [
     {
-      "sha": "55d1120",
+      "sha": "9f297f3",
       "date": "2026-11-25",
-      "subject": "Merge PR #62: 채팅 근본 수정·PC 게임 화면·라지 스트레이트·결과 소리·상점/인벤토리·아이템 200종·친구"
+      "subject": "Merge pull request #74 from oyueo-mm/codex/ux-rollout-docs"
     },
     {
-      "sha": "8f6c81e",
+      "sha": "38d4fc7",
       "date": "2026-11-25",
-      "subject": "feat(friends): 친구 목록·친구 초대 (회원 전용, 공개 친구 코드)"
+      "subject": "docs(context): record onboarding rollout and Worker compatibility"
     },
     {
-      "sha": "f902206",
+      "sha": "ca1c894",
       "date": "2026-11-25",
-      "subject": "feat(game): PC 게임 화면·라지 스트레이트 연출·결과 소리 후보·상점/인벤토리·실제 미리보기·아이템 200종"
+      "subject": "Merge pull request #71 from oyueo-mm/codex/ux-followup"
     },
     {
-      "sha": "f29f51d",
+      "sha": "642aac0",
       "date": "2026-11-25",
-      "subject": "fix(chat): 채팅·이모티콘 미전송 근본 원인 수정과 보드 하단 보내기 바"
+      "subject": "docs(context): confirm the public audio fix and reward test diagnosis"
     },
     {
-      "sha": "2bf5f07",
+      "sha": "5c6d098",
       "date": "2026-11-25",
-      "subject": "Merge PR #61: 온라인 대전 개선 — 빠른 대전 공개·프로필 닉네임·화면 간소화·방 자동 정리·다인 관전"
+      "subject": "test(rewards): wait for the lobby invite code before joining"
     },
     {
-      "sha": "fb77ba5",
+      "sha": "b17c01f",
       "date": "2026-11-25",
-      "subject": "feat(online): 빠른 대전 공개 필수화·프로필 닉네임·온라인 화면 간소화·방 자동 정리·다인 관전 화면"
+      "subject": "Merge PR #73: 2026-11-25 공개 사이트 검증 결과"
     },
     {
-      "sha": "f82c989",
+      "sha": "af980d3",
       "date": "2026-11-25",
-      "subject": "Merge PR #60: 온라인 친구 다인전 배포·공개 사이트 검증 기록"
+      "subject": "Merge main into docs branch (PR #63 audio fix): keep both deployment notes"
     },
     {
-      "sha": "24820a6",
-      "date": "2026-11-24",
-      "subject": "docs: 온라인 친구 다인전 배포·공개 사이트 검증 기록"
+      "sha": "a035614",
+      "date": "2026-11-25",
+      "subject": "test(pwa): exercise DP network failures outside the offline cache"
     },
     {
-      "sha": "01b2deb",
-      "date": "2026-11-24",
-      "subject": "Merge PR #59: 온라인 친구 다인전 2~20명 — 순차·동시 진행"
+      "sha": "89ff550",
+      "date": "2026-11-25",
+      "subject": "docs(context): record follow-up regression and public smoke details"
     },
     {
-      "sha": "7c29ef9",
-      "date": "2026-11-24",
-      "subject": "docs(online): multiplayer load test on the deployed Worker (2-20 players, simultaneous)"
+      "sha": "9a2fe20",
+      "date": "2026-11-25",
+      "subject": "test(rewards): provision the guest seat before checking settlement"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "YachtLab gameplay UI targeted smoke",
-      "status": "success",
-      "head": "8f6c81ee6d",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45527818079"
-    },
-    {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "8f6c81ee6d",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45527818059"
+      "head": "38d4fc70fa",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45568286683"
+    },
+    {
+      "name": "YachtLab Online live check (manual)",
+      "status": "success",
+      "head": "7a4fe605a5",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45567970811"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
       "status": "success",
-      "head": "2bf5f07e75",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45525787155"
+      "head": "642aac0220",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45567699361"
+    },
+    {
+      "name": "YachtLab gameplay UI targeted smoke",
+      "status": "success",
+      "head": "642aac0220",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45564029822"
+    },
+    {
+      "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
+      "status": "success",
+      "head": "96b0025dff",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45558614547"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

@@ -8,6 +8,7 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { useNickname } from "../identity/display-name";
 import { ItemStage, ItemThumb, LevelTabs, categoryLabel, tierLabel } from "./ItemViews";
 import type { Route } from "../routes";
+import "./shop-browse.css";
 
 /**
  * Phase 5/6 pages: 상점 (shop), 인벤토리 (inventory / equip / upgrade), 퀘스트, 업적. Separate pages,
@@ -95,9 +96,10 @@ function ItemCard({ item, owned, level, badge, price, onOpen }: { item: ItemDef;
 }
 
 /** Category tabs shared by the shop and the inventory. */
-function CategoryTabs({ value, onChange, counts }: { value: ItemCategory; onChange: (c: ItemCategory) => void; counts?: Partial<Record<ItemCategory, number>> }) {
+function CategoryTabs({ value, onChange, counts, all }: { value: ItemCategory | null; onChange: (c: ItemCategory) => void; counts?: Partial<Record<ItemCategory, number>>; all?: () => void }) {
   return (
     <div className="item-tabs" role="tablist" aria-label="상품군">
+      {all && <button type="button" role="tab" aria-selected={value === null} className={value === null ? "active" : ""} onClick={all}>둘러보기</button>}
       {CATEGORIES.map((c) => (
         <button key={c.id} type="button" role="tab" aria-selected={value === c.id} className={value === c.id ? "active" : ""} onClick={() => onChange(c.id)}>
           {c.label}
@@ -146,7 +148,7 @@ type PriceFilter = "all" | "coins" | "gems" | "afford";
 
 export function ShopPage({ server, go }: { server: string | null; go: Go }) {
   const { snap, error, busy, act } = useEconomy(server);
-  const [cat, setCat] = useState<ItemCategory>("dice");
+  const [cat, setCat] = useState<ItemCategory | null>(null);
   const [tier, setTier] = useState<TierId | "all">("all");
   const [price, setPrice] = useState<PriceFilter>("all");
   const [open, setOpen] = useState<ItemDef | null>(null);
@@ -157,7 +159,7 @@ export function ShopPage({ server, go }: { server: string | null; go: Go }) {
   const forSale = ITEMS.filter((i) => !i.retired && i.acquisition !== "default");
   const counts = Object.fromEntries(CATEGORIES.map((c) => [c.id, forSale.filter((i) => i.category === c.id).length])) as Record<ItemCategory, number>;
   const list = forSale.filter((i) => {
-    if (i.category !== cat || (tier !== "all" && i.tier !== tier)) return false;
+    if ((cat && i.category !== cat) || (tier !== "all" && i.tier !== tier)) return false;
     const c = priceOf(i, "coins"),
       g = priceOf(i, "gems");
     if (price === "coins") return c !== null;
@@ -165,6 +167,9 @@ export function ShopPage({ server, go }: { server: string | null; go: Go }) {
     if (price === "afford") return !owned.has(i.id) && ((c !== null && c <= wallet.coins) || (g !== null && g <= wallet.gems));
     return true;
   });
+  const tierOrder = (item: ItemDef) => TIERS.findIndex((entry) => entry.id === item.tier);
+  const ordered = list.slice().sort((a, b) => tierOrder(a) - tierOrder(b));
+  const group = (category: ItemCategory) => ordered.filter((item) => item.category === category);
   const purchase = async (i: ItemDef, currency: "coins" | "gems") => {
     const r = await act(() => buy(server!, i.id, currency), `${i.name}을(를) 샀어요. 인벤토리에서 장착할 수 있어요.`);
     if (r) setNotice(r);
@@ -189,6 +194,13 @@ export function ShopPage({ server, go }: { server: string | null; go: Go }) {
       </span>
     );
   };
+  const cards = (items: ItemDef[], label: string) => (
+    <ul className="item-grid" aria-label={label}>
+      {items.map((item) => (
+        <ItemCard key={item.id} item={item} owned={owned.has(item.id)} level={owned.get(item.id) ?? 1} badge={owned.has(item.id) ? "보유 중" : undefined} price={priceLine(item)} onOpen={() => setOpen(item)} />
+      ))}
+    </ul>
+  );
   return (
     <section className="econ-page shop-page" aria-labelledby="shop-title">
       <div className="econ-head">
@@ -196,7 +208,7 @@ export function ShopPage({ server, go }: { server: string | null; go: Go }) {
         <WalletBar snap={snap} />
       </div>
       <Gate server={server} go={go}>
-        <CategoryTabs value={cat} onChange={setCat} counts={counts} />
+        <CategoryTabs value={cat} onChange={setCat} counts={counts} all={() => setCat(null)} />
         <div className="econ-filters">
           <select aria-label="등급" value={tier} onChange={(e) => setTier(e.target.value as TierId | "all")}>
             <option value="all">전체 등급</option>
@@ -219,15 +231,31 @@ export function ShopPage({ server, go }: { server: string | null; go: Go }) {
             {error}
           </p>
         )}
-        {list.length === 0 ? (
-          <p className="econ-note">조건에 맞는 상품이 없어요.</p>
-        ) : (
-          <ul className="item-grid" aria-label="상품">
-            {list.map((i) => (
-              <ItemCard key={i.id} item={i} owned={owned.has(i.id)} level={owned.get(i.id) ?? i.maxLevel} badge={owned.has(i.id) ? "보유 중" : undefined} price={priceLine(i)} onOpen={() => setOpen(i)} />
-            ))}
-          </ul>
+        {ordered.length === 0 && <p className="econ-note">조건에 맞는 상품이 없어요.</p>}
+        {cat && ordered.length > 0 && (
+          <section className="shop-section" aria-label={categoryLabel(cat)}>
+            <h2>{categoryLabel(cat)}</h2>
+            {cards(ordered, "상품")}
+          </section>
         )}
+        {!cat && CATEGORIES.map(({ id, label }) => {
+          const items = group(id);
+          if (!items.length) return null;
+          return (
+            <section className="shop-section shop-section-preview" aria-labelledby={`shop-section-${id}`} key={id}>
+              <div className="shop-section-head">
+                <h2 id={`shop-section-${id}`}>{label}</h2>
+                {items.length > 4 && (
+                  <button type="button" className="secondary" aria-label={`${label} 더 보기`} onClick={() => {
+                    setCat(id);
+                    window.scrollTo(0, 0);
+                  }}>더 보기</button>
+                )}
+              </div>
+              {cards(items.slice(0, 4), label + " 상품")}
+            </section>
+          );
+        })}
         <h2 className="econ-sub">장착 슬롯 확장</h2>
         <div className="slot-shop">
           {(["emote", "chat"] as const).map((kind) => {
@@ -287,6 +315,13 @@ export function ShopPage({ server, go }: { server: string | null; go: Go }) {
                     <Gem size={15} /> {fmt(g)} 보석으로 구매
                   </button>
                 )}
+                <button type="button" className="text-button" onClick={() => {
+                  setCat(i.category);
+                  setTier(i.tier);
+                  setPrice("all");
+                  setOpen(null);
+                  window.scrollTo(0, 0);
+                }}>같은 등급 상품 보기</button>
                 {((c !== null && wallet.coins < c) || c === null) && (g === null || wallet.gems < g) && <small className="item-short">재화가 부족해요. 미리보기는 그대로 볼 수 있어요.</small>}
               </>
             );

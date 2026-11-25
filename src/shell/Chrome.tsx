@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { FlaskConical, History, House, Maximize, Minimize, Settings, Volume2, VolumeX, X } from "lucide-react";
+import { FlaskConical, History, House, Maximize, Menu, Minimize, Settings, Volume2, VolumeX, X } from "lucide-react";
 import { diceRenderer, updateSettings, useSettings, webglAvailable, type DiceQuality } from "../settings";
 import { playSfx, unlockAudio } from "../sound";
 import { labTools, routes, type Route } from "../routes";
+import { session } from "../identity/account-client";
+import { useInbox } from "./Friends";
 
 export function SoundToggle() {
   const { muted } = useSettings();
@@ -193,6 +195,45 @@ export function SettingsDialog({ open, onClose, navigate, inGame = false }: { op
   );
 }
 
+const mobileDestinations: Route[] = ["home", "online", "offline", "profile", "friends", "quests", "shop", "inventory", "achievements", "records"];
+
+function MobileMenu({ route, navigate }: { route: Route; navigate: (r: Route) => void }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const box = useInbox();
+  const friendAlerts = session() ? box.requests + box.invites.filter((invite) => invite.expires > Date.now()).length : 0;
+  useEffect(() => {
+    dialog.current?.close();
+  }, [route]);
+  return (
+    <>
+      <button type="button" className="icon-button shell-icon shell-mobile-menu" aria-label="메뉴" aria-haspopup="dialog" onClick={() => dialog.current?.showModal()}>
+        <Menu size={20} aria-hidden="true" />
+      </button>
+      <dialog ref={dialog} className="mobile-nav-dialog" aria-label="메뉴" onClick={(event) => {
+        if (event.target === event.currentTarget) dialog.current?.close();
+      }}>
+        <div className="mobile-nav-heading">
+          <strong>메뉴</strong>
+          <button type="button" className="icon-button" aria-label="메뉴 닫기" onClick={() => dialog.current?.close()}>
+            <X size={20} aria-hidden="true" />
+          </button>
+        </div>
+        <nav className="mobile-nav-links" aria-label="주요 메뉴">
+          {mobileDestinations.map((target) => (
+            <button type="button" key={target} aria-current={route === target ? "page" : undefined} onClick={() => {
+              dialog.current?.close();
+              if (target !== route) navigate(target);
+            }}>
+              {target === "home" ? "홈" : routes[target].title}
+              {target === "friends" && friendAlerts > 0 && <b className="menu-badge" aria-label={`새 알림 ${friendAlerts}개`}>{friendAlerts}</b>}
+            </button>
+          ))}
+        </nav>
+      </dialog>
+    </>
+  );
+}
+
 /** Top bar: home on the left, sound/settings (and fullscreen in games) on the right. */
 export function TopBar({ route, navigate, openSettings }: { route: Route; navigate: (r: Route) => void; openSettings: () => void }) {
   const info = routes[route];
@@ -200,6 +241,7 @@ export function TopBar({ route, navigate, openSettings }: { route: Route; naviga
   return (
     <header className={`shell-top shell-top-${info.shell}`}>
       <div className="shell-top-left">
+        {info.shell !== "game" && <MobileMenu route={route} navigate={navigate} />}
         {home ? (
           <span className="wordmark" aria-label="YachtLab">
             Yacht<b>Lab</b>
