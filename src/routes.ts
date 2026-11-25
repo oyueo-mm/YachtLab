@@ -5,7 +5,7 @@
  * The tier is a structural boundary only (lab screens live in src/lab and load lazily) so they
  * could become an optional plan later. No payment, subscription or access control exists.
  */
-export type Route = "home" | "tutorial" | "practice" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "records" | "profile" | "shop" | "inventory" | "quests" | "achievements" | "friends" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab" | "economy-lab";
+export type Route = "home" | "tutorial" | "practice" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "records" | "profile" | "account" | "shop" | "inventory" | "quests" | "achievements" | "friends" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab" | "economy-lab";
 export type Shell = "lobby" | "game" | "lab" | "page";
 
 export const routes: Record<Route, { title: string; shell: Shell; tier: "core" | "lab" }> = {
@@ -21,6 +21,7 @@ export const routes: Record<Route, { title: string; shell: Shell; tier: "core" |
   play: { title: "사람 vs AI", shell: "game", tier: "core" },
   pvp: { title: "사람 vs 사람", shell: "game", tier: "core" },
   records: { title: "내 기록", shell: "page", tier: "core" },
+  account: { title: "계정 설정", shell: "page", tier: "core" },
   profile: { title: "프로필", shell: "page", tier: "core" },
   shop: { title: "상점", shell: "page", tier: "core" },
   inventory: { title: "인벤토리", shell: "page", tier: "core" },
@@ -40,11 +41,16 @@ export const labTools = ["watch", "tournament", "analysis", "dice-lab", "economy
 export const isRoute = (value: string): value is Route => Object.prototype.hasOwnProperty.call(routes, value);
 export const currentRoute = (): Route => {
   const id = location.hash.slice(1);
-  if (id === "tutorial") return "home";
-  if (isRoute(id)) return id;
+  if (id !== "tutorial" && isRoute(id)) return id;
   // A watch link whose #spectate was dropped still opens the spectator screen.
   if (new URLSearchParams(location.search).get("watch")) return "spectate";
   // An invite link whose #online was dropped by a messenger still opens the online screen.
   if (/^[A-Z2-9]{6}$/i.test(new URLSearchParams(location.search).get("room") ?? "")) return "online";
   return "home";
 };
+
+/** The advanced product controls have an explicit research entry. This is a UI preference. */
+export function researchToolsEnabled() {
+  return typeof location !== "undefined" &&
+    (new URLSearchParams(location.search).get("lab") === "1" || routes[currentRoute()].tier === "lab");
+}

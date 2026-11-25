@@ -296,7 +296,7 @@
   background: #21181799;
 }
 
-.guided-tutorial {
+.page-tutorial .guided-tutorial {
   position: relative;
   z-index: 51;
   border-radius: 12px;
@@ -307,3 +307,22 @@
 .guided-tutorial .tutorial-heading {
   margin-bottom: 8px;
 }
+
+.guided-dice { position: relative; width: 100%; }
+.guided-dice .physical-dice { height: clamp(235px, 42dvh, 395px); min-height: 0; width: 100%; }
+.guided-dice:empty { min-height: 235px; }
+.guided-dice .die-hit:not(:disabled) { border: 2px solid #ff846e; outline-offset: 0; }
+.tutorial-rules { width: 100%; min-width: 0; padding: 0; border: 0; }
+.tutorial-rules h2 { font-size: 18px; margin-bottom: 6px; }
+.tutorial-rules details { border-top: 1px solid var(--line); }
+.tutorial-rules summary { padding: 12px 0; min-height: 44px; }
+.tutorial-rules ul { list-style: none; padding: 0; }
+.tutorial-rules li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
+.tutorial-rules li p { font-size: 13px; margin: 3px 0 0; color: var(--muted); }
+.tutorial-example-dice { display: flex; gap: 3px; }
+.tutorial-example-dice .die-icon { width: clamp(16px, 4.5vw, 27px); height: auto; color: #646464; }
+.tutorial-example-dice .matched { color: var(--red-deep); }
+.tutorial-example-dice .matched rect { fill: #fff1ee; }
+.tutorial-example-score { color: var(--red-deep); white-space: nowrap; }
+.tutorial-bonus-example { display: flex; flex-wrap: wrap; gap: 8px; padding-block: 10px; font-size: 13px; }
+.tutorial-bonus-example strong { flex-basis: 100%; }

@@ -12,7 +12,7 @@ import { saveName } from "../online/client";
 import { useNickname } from "../identity/display-name";
 import { PlayerTag } from "../play/Looks";
 import { WalletBar } from "./EconomyPages";
-import { useProfileEconomy } from "./HomeProfile";
+import type { Snapshot } from "../identity/economy-client";
 import { ConfirmDialog, type PendingAction } from "../ui/ConfirmDialog";
 
 const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 1000) / 10}%`);
@@ -39,7 +39,7 @@ function Trend({ scores }: { scores: number[] }) {
  * sign-in configured — the account controls. Guests get everything that this device knows, with a
  * plain note that clearing browser data removes it. No invented numbers: empty states say so.
  */
-export default function Profile({ server, notice }: { server: string | null; notice?: string }) {
+export default function Profile({ server, notice, snapshot, accountSettings = false }: { server: string | null; notice?: string; snapshot: Snapshot | null; accountSettings?: boolean }) {
   const [account, setAccount] = useState<AccountProfile | null>(null);
   const [signedIn, setSignedIn] = useState(() => !!session());
   const [loginReady, setLoginReady] = useState(false);
@@ -80,7 +80,11 @@ export default function Profile({ server, notice }: { server: string | null; not
       .catch(() => setRemote(null));
   }, [signedIn, server]);
 
-  const { snapshot } = useProfileEconomy(server);
+  useEffect(() => {
+    if (!accountSettings) return;
+    const frame = requestAnimationFrame(() => document.getElementById("profile-account-settings")?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [accountSettings, signedIn]);
   const localName = useNickname();
   const nickname = account?.nickname ?? localName;
   const shownName = nickname || "이름 없음";
@@ -163,7 +167,6 @@ export default function Profile({ server, notice }: { server: string | null; not
             </h1>
           )}
           <p className="profile-meta">
-            <span className={"profile-badge" + (signedIn ? " member" : "")}>{signedIn ? "회원" : "게스트"}</span>
             <span className="profile-nick-note">{signedIn ? "계정 닉네임 · 모든 대전에 쓰여요" : "이 기기 닉네임 · 모든 대전에 쓰여요"}</span>
             {Number.isFinite(firstPlay) && <span>{signedIn ? "가입" : "처음 플레이"} {date(firstPlay)}</span>}
           </p>
@@ -176,7 +179,7 @@ export default function Profile({ server, notice }: { server: string | null; not
         </p>
       )}
 
-      {!signedIn && <section className="profile-account" aria-label="로그인">
+      {!signedIn && <section id="profile-account-settings" tabIndex={-1} className="profile-account" aria-label="로그인">
         {loginReady && server && inApp ? (
           <>
             <p className="profile-note">이 앱 안의 브라우저에서는 Google 로그인이 막혀 있어요. Chrome·Safari 같은 기본 브라우저로 열어 로그인해 주세요. 게임은 여기서도 그대로 할 수 있어요.</p>
@@ -338,7 +341,7 @@ export default function Profile({ server, notice }: { server: string | null; not
         </>
       )}
 
-      {signedIn && <section className="profile-account" aria-label="계정">
+      {signedIn && <section id="profile-account-settings" tabIndex={-1} className="profile-account" aria-label="계정">
             <p className="profile-note">
               <ShieldCheck size={15} /> 온라인 경기 결과는 서버가 직접 기록해요. 다른 기기에서 로그인해도 같은 기록이 보여요.
             </p>
