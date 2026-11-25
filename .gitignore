@@ -15,3 +15,4 @@ public/ai/*.f64
 .wrangler/
 .wrangler-state/
 worker/.wrangler/
+training/v6-rust/target/

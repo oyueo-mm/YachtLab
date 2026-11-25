@@ -1,0 +1,720 @@
+{
+ "note": "Example payloads of yachtlab-analysis-v6 (research engine). actions are truncated to the top 8 here; the API returns every legal action. Values are model values, not true optimal win rates.",
+ "engines": {
+  "V6_LIVE": {
+   "name": "v6-live",
+   "depth": 1,
+   "brWindow": 4,
+   "minimaxWindow": 0,
+   "budgetMs": 50
+  },
+  "V6_REVIEW": {
+   "name": "v6-review",
+   "depth": 2,
+   "brWindow": 6,
+   "minimaxWindow": 3,
+   "budgetMs": 5000
+  }
+ },
+ "midGameReview": {
+  "schema": "yachtlab-analysis-v6",
+  "model": {
+   "name": "v6-review",
+   "version": "v6-research-2026-11-25.1",
+   "stage": "br-depth2",
+   "policySet": [
+    "exp(-0.08)",
+    "exp(-0.04)",
+    "exp(-0.02)",
+    "DP Expert",
+    "exp(0.02)",
+    "exp(0.04)",
+    "exp(0.08)"
+   ],
+   "opponentModel": "fixed DP Expert future-score PMF",
+   "depth": 2,
+   "brWindow": 6,
+   "minimaxWindow": 3
+  },
+  "exactness": {
+   "kind": "exact-vs-fixed-opponent-distribution",
+   "note": "my next 2 turn(s) solved exactly, then the best of the policy set; opponent future fixed",
+   "numericTolerance": 1e-12
+  },
+  "budget": {
+   "budgetMs": 5000,
+   "elapsedMs": 59.55419200000006
+  },
+  "position": {
+   "player": 0,
+   "rollsUsed": 1,
+   "rollsLeft": 2,
+   "dice": [
+    2,
+    5,
+    1,
+    3,
+    2
+   ],
+   "myTotal": 122,
+   "opponentTotal": 98,
+   "myRemaining": 7,
+   "opponentRemaining": 7
+  },
+  "preRollValue": 0.8900805202576193,
+  "currentValue": 0.8852754079438375,
+  "actions": [
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     1,
+     3
+    ],
+    "kept": [
+     2,
+     3,
+     5
+    ],
+    "label": "고정 2·3·5",
+    "winCredit": 0.8852754079438375,
+    "pWin": 0.8830488782496452,
+    "pTie": 0.004453059388384507,
+    "pLoss": 0.11249806236197032,
+    "expectedFinal": 243.46202301649075,
+    "lossVsBest": 0,
+    "tiedWithBest": true
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     3
+    ],
+    "kept": [
+     2,
+     3
+    ],
+    "label": "고정 2·3",
+    "winCredit": 0.8831672294152185,
+    "pWin": 0.8808953298431822,
+    "pTie": 0.0045437991440720514,
+    "pLoss": 0.11456087101274576,
+    "expectedFinal": 243.09148405413694,
+    "lossVsBest": 0.002108178528618998,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     3
+    ],
+    "kept": [
+     3
+    ],
+    "label": "고정 3",
+    "winCredit": 0.8821409526965355,
+    "pWin": 0.8798461696787362,
+    "pTie": 0.0045895660355977546,
+    "pLoss": 0.11556426428566606,
+    "expectedFinal": 242.9118818546748,
+    "lossVsBest": 0.003134455247302048,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     4
+    ],
+    "kept": [
+     2,
+     2
+    ],
+    "label": "고정 2·2",
+    "winCredit": 0.8820749038492023,
+    "pWin": 0.8797588260682173,
+    "pTie": 0.004632155561969496,
+    "pLoss": 0.11560901836981319,
+    "expectedFinal": 242.92296079650347,
+    "lossVsBest": 0.003200504094635237,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "kept": [
+     1,
+     2,
+     3,
+     5
+    ],
+    "label": "고정 1·2·3·5",
+    "winCredit": 0.8817736026562638,
+    "pWin": 0.8794889844390275,
+    "pTie": 0.00456923643447317,
+    "pLoss": 0.11594177912649938,
+    "expectedFinal": 242.8012585012284,
+    "lossVsBest": 0.0035018052875737116,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     1,
+     3
+    ],
+    "kept": [
+     3,
+     5
+    ],
+    "label": "고정 3·5",
+    "winCredit": 0.8815566155739648,
+    "pWin": 0.879263979706539,
+    "pTie": 0.004585271734850736,
+    "pLoss": 0.11615074855861024,
+    "expectedFinal": 242.83447370475167,
+    "lossVsBest": 0.0037187923698727143,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     3,
+     4
+    ],
+    "kept": [
+     2,
+     2,
+     3
+    ],
+    "label": "고정 2·2·3",
+    "winCredit": 0.8814966760758783,
+    "pWin": 0.8791806453424439,
+    "pTie": 0.0046320614668684795,
+    "pLoss": 0.11618729319068763,
+    "expectedFinal": 242.7908316670915,
+    "lossVsBest": 0.003778731867959184,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     2,
+     3
+    ],
+    "kept": [
+     1,
+     2,
+     3
+    ],
+    "label": "고정 1·2·3",
+    "winCredit": 0.8794920035071011,
+    "pWin": 0.8771683037159068,
+    "pTie": 0.004647399582387899,
+    "pLoss": 0.11818429670170529,
+    "expectedFinal": 242.45921169985024,
+    "lossVsBest": 0.005783404436736417,
+    "tiedWithBest": false
+   }
+  ],
+  "best": {
+   "label": "고정 2·3·5",
+   "tiedActions": [
+    "고정 2·3·5"
+   ]
+  },
+  "scoreDiffDPExpert": {
+   "offset": -179,
+   "pmfLength": 374,
+   "pmfFirst10": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    6.458517507770387e-37,
+    2.3846851663736546e-32,
+    5.945861826828167e-28,
+    6.731804756601761e-25,
+    1.030269899201743e-23
+   ]
+  },
+  "accuracy": {
+   "measuredError": "see docs/context/V6-APEX-RESEARCH.md §value accuracy (MAE vs exact interactive value by remaining categories)"
+  },
+  "actionsTotal": 30
+ },
+ "midGameLive": {
+  "schema": "yachtlab-analysis-v6",
+  "model": {
+   "name": "v6-live",
+   "version": "v6-research-2026-11-25.1",
+   "stage": "policy-set",
+   "policySet": [
+    "exp(-0.08)",
+    "exp(-0.04)",
+    "exp(-0.02)",
+    "DP Expert",
+    "exp(0.02)",
+    "exp(0.04)",
+    "exp(0.08)"
+   ],
+   "opponentModel": "fixed DP Expert future-score PMF",
+   "depth": 1,
+   "brWindow": 4,
+   "minimaxWindow": 0
+  },
+  "exactness": {
+   "kind": "exact-vs-fixed-opponent-distribution",
+   "note": "my next 1 turn(s) solved exactly, then the best of the policy set; opponent future fixed",
+   "numericTolerance": 1e-12
+  },
+  "budget": {
+   "budgetMs": 50,
+   "elapsedMs": 5.039354999999887
+  },
+  "position": {
+   "player": 0,
+   "rollsUsed": 1,
+   "rollsLeft": 2,
+   "dice": [
+    2,
+    5,
+    1,
+    3,
+    2
+   ],
+   "myTotal": 122,
+   "opponentTotal": 98,
+   "myRemaining": 7,
+   "opponentRemaining": 7
+  },
+  "preRollValue": 0.8898582752561764,
+  "currentValue": 0.885031900974749,
+  "actions": [
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     1,
+     3
+    ],
+    "kept": [
+     2,
+     3,
+     5
+    ],
+    "label": "고정 2·3·5",
+    "winCredit": 0.885031900974749,
+    "pWin": 0.8828095729042195,
+    "pTie": 0.00444465614105916,
+    "pLoss": 0.11274577095472138,
+    "expectedFinal": 243.46202301649075,
+    "lossVsBest": 0,
+    "tiedWithBest": true
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     3
+    ],
+    "kept": [
+     2,
+     3
+    ],
+    "label": "고정 2·3",
+    "winCredit": 0.8829184811393952,
+    "pWin": 0.8806495592414532,
+    "pTie": 0.004537843795884053,
+    "pLoss": 0.11481259696266279,
+    "expectedFinal": 243.09148405413694,
+    "lossVsBest": 0.002113419835353847,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     3
+    ],
+    "kept": [
+     3
+    ],
+    "label": "고정 3",
+    "winCredit": 0.8818917126303824,
+    "pWin": 0.879598388963971,
+    "pTie": 0.0045866473328227495,
+    "pLoss": 0.11581496370320622,
+    "expectedFinal": 242.9118818546748,
+    "lossVsBest": 0.00314018834436669,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     4
+    ],
+    "kept": [
+     2,
+     2
+    ],
+    "label": "고정 2·2",
+    "winCredit": 0.8818495223724586,
+    "pWin": 0.8795376844840792,
+    "pTie": 0.004623675776759197,
+    "pLoss": 0.1158386397391616,
+    "expectedFinal": 242.92296079650347,
+    "lossVsBest": 0.0031823786022904255,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "kept": [
+     1,
+     2,
+     3,
+     5
+    ],
+    "label": "고정 1·2·3·5",
+    "winCredit": 0.8815225409087928,
+    "pWin": 0.8792425293680882,
+    "pTie": 0.004560023081408869,
+    "pLoss": 0.1161974475505029,
+    "expectedFinal": 242.8012585012284,
+    "lossVsBest": 0.0035093600659562574,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     1,
+     3
+    ],
+    "kept": [
+     3,
+     5
+    ],
+    "label": "고정 3·5",
+    "winCredit": 0.8813036121924562,
+    "pWin": 0.8790140631261392,
+    "pTie": 0.00457909813263399,
+    "pLoss": 0.11640683874122684,
+    "expectedFinal": 242.83447370475167,
+    "lossVsBest": 0.00372828878229281,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     3,
+     4
+    ],
+    "kept": [
+     2,
+     2,
+     3
+    ],
+    "label": "고정 2·2·3",
+    "winCredit": 0.8812621384010614,
+    "pWin": 0.8789491903744175,
+    "pTie": 0.0046258960532878785,
+    "pLoss": 0.11642491357229458,
+    "expectedFinal": 242.7908316670915,
+    "lossVsBest": 0.0037697625736876628,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     2,
+     3
+    ],
+    "kept": [
+     1,
+     2,
+     3
+    ],
+    "label": "고정 1·2·3",
+    "winCredit": 0.8792119166219224,
+    "pWin": 0.8768933107634314,
+    "pTie": 0.004637211716981672,
+    "pLoss": 0.11846947751958697,
+    "expectedFinal": 242.45921169985024,
+    "lossVsBest": 0.0058199843528266015,
+    "tiedWithBest": false
+   }
+  ],
+  "best": {
+   "label": "고정 2·3·5",
+   "tiedActions": [
+    "고정 2·3·5"
+   ]
+  },
+  "scoreDiffDPExpert": {
+   "offset": -179,
+   "pmfLength": 374,
+   "pmfFirst10": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    6.458517507770387e-37,
+    2.3846851663736546e-32,
+    5.945861826828167e-28,
+    6.731804756601761e-25,
+    1.030269899201743e-23
+   ]
+  },
+  "accuracy": {
+   "measuredError": "see docs/context/V6-APEX-RESEARCH.md §value accuracy (MAE vs exact interactive value by remaining categories)"
+  },
+  "actionsTotal": 30
+ },
+ "endgameReview": {
+  "schema": "yachtlab-analysis-v6",
+  "model": {
+   "name": "v6-review",
+   "version": "v6-research-2026-11-25.1",
+   "stage": "minimax",
+   "policySet": [
+    "exp(-0.08)",
+    "exp(-0.04)",
+    "exp(-0.02)",
+    "DP Expert",
+    "exp(0.02)",
+    "exp(0.04)",
+    "exp(0.08)"
+   ],
+   "opponentModel": "fixed DP Expert future-score PMF",
+   "depth": 2,
+   "brWindow": 6,
+   "minimaxWindow": 3
+  },
+  "exactness": {
+   "kind": "exact-interactive",
+   "note": "exact two-player expectiminimax over all remaining categories (both maximise win credit)",
+   "numericTolerance": 1e-12
+  },
+  "budget": {
+   "budgetMs": 5000,
+   "elapsedMs": 11.710021999999753
+  },
+  "position": {
+   "player": 0,
+   "rollsUsed": 1,
+   "rollsLeft": 2,
+   "dice": [
+    3,
+    5,
+    6,
+    1,
+    5
+   ],
+   "myTotal": 213,
+   "opponentTotal": 196,
+   "myRemaining": 2,
+   "opponentRemaining": 2
+  },
+  "preRollValue": null,
+  "currentValue": 0.9396778914521396,
+  "actions": [
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     1
+    ],
+    "kept": [
+     3,
+     5
+    ],
+    "label": "고정 3·5",
+    "winCredit": 0.9396778914521396,
+    "pWin": null,
+    "pTie": null,
+    "pLoss": null,
+    "expectedFinal": 244.59081649831668,
+    "lossVsBest": 0,
+    "tiedWithBest": true
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     1,
+     2
+    ],
+    "kept": [
+     3,
+     5,
+     6
+    ],
+    "label": "고정 3·5·6",
+    "winCredit": 0.938959311668529,
+    "pWin": null,
+    "pTie": null,
+    "pLoss": null,
+    "expectedFinal": 245.69867022442907,
+    "lossVsBest": 0.0007185797836106733,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     1,
+     3
+    ],
+    "kept": [
+     1,
+     3,
+     5
+    ],
+    "label": "고정 1·3·5",
+    "winCredit": 0.9382619484685074,
+    "pWin": null,
+    "pTie": null,
+    "pLoss": null,
+    "expectedFinal": 243.49323096844674,
+    "lossVsBest": 0.0014159429836322346,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     1
+    ],
+    "kept": [
+     5
+    ],
+    "label": "고정 5",
+    "winCredit": 0.9375345485972107,
+    "pWin": null,
+    "pTie": null,
+    "pLoss": null,
+    "expectedFinal": 243.99115558855706,
+    "lossVsBest": 0.002143342854928898,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     0
+    ],
+    "kept": [
+     3
+    ],
+    "label": "고정 3",
+    "winCredit": 0.9370126917120637,
+    "pWin": null,
+    "pTie": null,
+    "pLoss": null,
+    "expectedFinal": 243.11062144519667,
+    "lossVsBest": 0.002665199740075952,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [],
+    "kept": [],
+    "label": "고정 없음",
+    "winCredit": 0.936282503204807,
+    "pWin": null,
+    "pTie": null,
+    "pLoss": null,
+    "expectedFinal": 243.14529868841745,
+    "lossVsBest": 0.0033953882473326535,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     1,
+     2
+    ],
+    "kept": [
+     5,
+     6
+    ],
+    "label": "고정 5·6",
+    "winCredit": 0.9362169786371632,
+    "pWin": null,
+    "pTie": null,
+    "pLoss": null,
+    "expectedFinal": 244.75439514816023,
+    "lossVsBest": 0.0034609128149764024,
+    "tiedWithBest": false
+   },
+   {
+    "kind": "reroll",
+    "ids": [
+     0,
+     2
+    ],
+    "kept": [
+     3,
+     6
+    ],
+    "label": "고정 3·6",
+    "winCredit": 0.9359399190769458,
+    "pWin": null,
+    "pTie": null,
+    "pLoss": null,
+    "expectedFinal": 243.5188629270303,
+    "lossVsBest": 0.0037379723751937988,
+    "tiedWithBest": false
+   }
+  ],
+  "best": {
+   "label": "고정 3·5",
+   "tiedActions": [
+    "고정 3·5"
+   ]
+  },
+  "scoreDiffDPExpert": {
+   "offset": -63,
+   "pmfLength": 141,
+   "pmfFirst10": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    8.015994448621261e-12,
+    6.682946939913257e-11,
+    2.800960880846676e-10,
+    9.138970144717029e-10,
+    2.827993020501762e-9
+   ]
+  },
+  "accuracy": {
+   "measuredError": "see docs/context/V6-APEX-RESEARCH.md §value accuracy (MAE vs exact interactive value by remaining categories)"
+  },
+  "actionsTotal": 25
+ },
+ "decisionVsLuck": {
+  "decisionLoss": 0,
+  "luck": -0.01914585145228742,
+  "before": 0.8852754079438375,
+  "playedValue": 0.8852754079438375,
+  "after": 0.8661295564915501
+ }
+}
