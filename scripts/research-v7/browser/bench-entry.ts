@@ -9,7 +9,7 @@ import { winDPv5Decision, type V5Config } from "../../../src/research-v5/apex";
 import { winDPv7Decision, clearV7Cache, type V7Config } from "../../../src/research-v7/apex7";
 import type { V7Kind } from "../../../src/research-v7/interactive";
 
-type Msg = { wasm: ArrayBuffer; dp: ArrayBuffer; kind: string; window?: number; fallback?: string; games: number; seed0: number };
+type Msg = { wasm: ArrayBuffer; dp: ArrayBuffer; kind: string; window?: number; fallback?: string; games: number; seed0: number; b3?: boolean };
 const heap = () => ((performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize ?? 0) / 2 ** 20;
 
 export async function run(m: Msg) {
@@ -22,8 +22,10 @@ export async function run(m: Msg) {
   const initMs = performance.now() - t0;
   const heapAfterInit = heap();
   const base: V5Config = { bank, dpValue: dpFutureValue, endgame: "none" };
-  const cand: V7Config = { ...base, v7: { banks: [bank], dp: bank }, kind: m.kind as V7Kind, window: m.window, fallback: m.fallback as V7Kind | undefined };
-  const act = (s: Game, who: "cand" | "ref") => (who === "ref" ? winDPv5Decision(s, base) : m.kind === "R" ? winDPv5Decision(s, base) : winDPv7Decision(s, cand));
+  const ref: V5Config = base;
+  const own: V5Config = m.b3 ? { ...base, endgame: "minimax", minimaxWindow: 3 } : base;
+  const cand: V7Config = { ...own, v7: { banks: [bank], dp: bank }, kind: m.kind as V7Kind, window: m.window, fallback: m.fallback as V7Kind | undefined };
+  const act = (s: Game, who: "cand" | "ref") => (who === "ref" ? winDPv5Decision(s, ref) : m.kind === "R" ? winDPv5Decision(s, own) : winDPv7Decision(s, cand));
   const times: number[] = [];
   let credit = 0, heapPeak = heapAfterInit;
   for (let g = 0; g < m.games; g++) {
@@ -46,7 +48,7 @@ export async function run(m: Msg) {
   }
   times.sort((x, y) => x - y);
   const q = (p: number) => times[Math.min(times.length - 1, Math.floor(p * times.length))];
-  return { kind: m.kind, window: m.window ?? null, games: m.games, credit: credit / m.games, decisions: times.length, initMs, bankBuildMs: r.buildMs,
+  return { kind: m.kind, b3: !!m.b3, window: m.window ?? null, games: m.games, credit: credit / m.games, decisions: times.length, initMs, bankBuildMs: r.buildMs,
     wasmMemoryMiB: r.memoryBytes / 2 ** 20, jsHeapMiB: { before: heapBefore, afterInit: heapAfterInit, peak: heapPeak, end: heap() },
     ms: { mean: times.reduce((x, y) => x + y, 0) / times.length, p50: q(0.5), p95: q(0.95), p99: q(0.99), max: times[times.length - 1] } };
 }

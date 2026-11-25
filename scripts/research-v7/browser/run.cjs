@@ -6,7 +6,7 @@
 const { chromium, devices } = require("playwright");
 const esbuild = require("esbuild");
 const fs = require("fs"), zlib = require("zlib"), path = require("path");
-const [mode = "desktop", kind = "I2RO1", games = "20", win, fb] = process.argv.slice(2);
+const [mode = "desktop", kind = "I2RO1", games = "20", win, fb, b3] = process.argv.slice(2);
 const root = path.join(__dirname, "../../..");
 const manifest = require(path.join(root, "src/dp-manifest.json"));
 const dp = zlib.gunzipSync(fs.readFileSync(path.join(root, "public/ai", manifest.asset)));
@@ -20,7 +20,7 @@ const workerSrc = bundle + "\nonmessage = async (e) => { try { postMessage(await
   if (mode === "mobile-main") { const cdp = await ctx.newCDPSession(page); await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 }); }
   await page.setContent("<html><body>bench</body></html>");
   if (mode === "mobile-main") await page.addScriptTag({ content: bundle });
-  const msg = { kind, games: Number(games), seed0: 97000, window: win ? Number(win) : undefined, fallback: fb };
+  const msg = { kind, games: Number(games), seed0: 97000, window: win && win !== "-" ? Number(win) : undefined, fallback: fb && fb !== "-" ? fb : undefined, b3: b3 === "b3" };
   const res = await page.evaluate(async ({ src, wasmB64, dpB64, msg, inWorker }) => {
     const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0)).buffer;
     const data = { ...msg, wasm: b64(wasmB64), dp: b64(dpB64) };
