@@ -187,3 +187,10 @@ export function v6TurnStartValue(mask: number, u: number, base: number, oMask: n
   const ct = creditTable(oBase, (cfg.opponentBank ?? cfg.bank).get(oMask, uo));
   return new Searcher(cfg.banks, ct).value(mask, u, base, depth, 0);
 }
+
+/** My v6-P policy-set value for a position where the OPPONENT moves next (my turn not started). */
+export function v6PolicySetChildValue(mask: number, u: number, base: number, oMask: number, uo: number, oBase: number, cfg: V6Config): number {
+  const ct = creditTable(oBase, (cfg.opponentBank ?? cfg.bank).get(oMask, uo));
+  if (mask === 0) return credit(ct, base);
+  return policySetValue(cfg.banks, mask, canonicalUpper(mask, u), base, ct);
+}
