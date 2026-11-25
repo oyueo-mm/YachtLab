@@ -199,4 +199,14 @@ describe("v7 two-ply reaction (I2) and single-bank derivative", () => {
       each(sides(s).me.mask, (c, p) => { expect(a[c * 64 + p]).toBeGreaterThanOrEqual(0); expect(a[c * 64 + p]).toBeLessThanOrEqual(1); });
     }
   }, 120_000);
+  it("productV7Decision (I2RO1, single bank of a v5 config) equals winDPv7Decision with banks=[dp]", async () => {
+    const { productV7Decision } = await import("../src/research-v7/product");
+    for (const s of states().slice(0, 6)) {
+      clearV7Cache();
+      const a = productV7Decision(s, v5);
+      clearV7Cache();
+      const b = winDPv7Decision(s, { ...v5, v7: B1, kind: "I2RO1" });
+      expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+    }
+  }, 120_000);
 });
