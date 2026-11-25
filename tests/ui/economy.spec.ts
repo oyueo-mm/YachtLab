@@ -239,6 +239,8 @@ test("보드 미리보기는 실제 굴림 면에 소재가 적용되고 킵한 
   const kept = await die.getAttribute("aria-label");
   await dialog.getByRole("button", { name: "굴려 보기" }).click();
   await expect(die).toHaveAttribute("aria-label", kept!);
+  await dialog.getByRole("button", { name: "족보 효과 보기" }).click();
+  await expect(board.locator(".score-fx-label")).toContainText("라지 스트레이트");
   expect(account.requests).toHaveLength(0);
 });
 

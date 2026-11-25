@@ -1,3 +1,4 @@
+import { announceScore, clearScoreFx } from "../score-fx";
 import { diceMaterial } from "../sound-packs";
 import { useEffect, useRef, useState } from "react";
 import { Dices, Play, Volume2 } from "lucide-react";
@@ -115,6 +116,16 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
   const [rolls, setRolls] = useState(0);
   const [rollEvent, setRollEvent] = useState(0);
   const [replay, setReplay] = useState(0);
+  const previewGrand = () => {
+    unlockAudio();
+    const example = [1, 2, 3, 4, 5].map((value, id) => ({ value, id, held: false }));
+    setDice(example);
+    setRolls(1);
+    announceScore(example, "large");
+  };
+  useEffect(() => {
+    if (item.category === "board") return clearScoreFx;
+  }, [item]);
   const roll = () => {
     unlockAudio();
     setDice((previous) => randomDice().map((die, index) => previous[index].held ? previous[index] : die));
@@ -132,9 +143,13 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
         <section className={"game-board throw-tray stage-board" + theme.className} style={theme.style} aria-label="미리보기 보드">
           <DiceArea state={state} forceRenderer={renderer} colors={item.category === "dice" ? (look.dice ?? null) : null} material={diceMaterial(item.id, look.dice)} interactive animate rollEvent={rollEvent} onToggle={(id) => setDice((previous) => previous.map((die) => die.id === id ? { ...die, held: !die.held } : die))} />
         </section>
-        <button type="button" className="primary stage-action" onClick={roll}>
-          <Dices size={17} /> 굴려 보기
-        </button>
+        <div className="stage-actions">
+          <button type="button" className="primary stage-action" onClick={roll}>
+            <Dices size={17} /> 굴려 보기
+          </button>
+          {item.category === "board" && level === 3 &&
+            <button type="button" className="secondary stage-action" onClick={previewGrand}>족보 효과 보기</button>}
+        </div>
       </div>
     );
   }

@@ -111,9 +111,15 @@ function CategoryTabs({ value, onChange, counts, all }: { value: ItemCategory | 
   );
 }
 
+const stageDescriptions = {
+  board: ["정적 표면", "움직이는 조명", "굴림·킵·족보 반응"],
+  emote: ["기본 이모티콘", "애니메이션", "강화 애니메이션과 빛"],
+} as const;
+
 /** The detail sheet: large real preview (level tabs), facts, and the action buttons given by the page. */
 function ItemDetail({ item, initialLevel, unlocked, onClose, children }: { item: ItemDef; initialLevel: number; unlocked?: number; onClose: () => void; children: (previewLevel: number) => React.ReactNode }) {
   const [level, setLevel] = useState(initialLevel);
+  const descriptions = item.category === "board" || item.category === "emote" ? stageDescriptions[item.category] : item.levels;
   useEffect(() => {
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", esc);
@@ -136,7 +142,7 @@ function ItemDetail({ item, initialLevel, unlocked, onClose, children }: { item:
         </div>
         <LevelTabs item={item} level={level} setLevel={setLevel} unlocked={unlocked} />
         <ItemStage item={item} level={level} />
-        {item.levels && <p className="item-level-note">Lv.{level} · {item.levels[level - 1]}</p>}
+        {item.levels && descriptions && <p className="item-level-note">Lv.{level} · {descriptions[level - 1]}</p>}
         <div className="item-detail-actions">{children(level)}</div>
       </div>
     </div>
