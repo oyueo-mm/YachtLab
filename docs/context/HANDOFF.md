@@ -6,7 +6,7 @@
 
 > **재화·퀘스트·업적·상점 작업이면 먼저 [실서비스 경제](../economy/LIVE-ECONOMY.md)** — 실제 구현(M3i-W30, 설정 `src/economy/live/config.ts`, 상품 `catalog.ts`, 규칙 `rewards.ts`, 원장 `worker/src/economy.ts`, D-040~D-042). 연구 배경은 [경제 연구](../economy/ECONOMY-RESEARCH.md). 온라인 매칭·관전방·서버 AI는 [MATCHMAKING](../online/MATCHMAKING.md)·[SERVER-AI-MATCH](../online/SERVER-AI-MATCH.md)(D-038·D-039).
 >
-> **2026-11-25 완성도·콘텐츠·친구 작업 이후라면** [제품 개발 현황](./PRODUCT-2026-11-24.md)의 "2026-11-25" 절, [친구 시스템](../online/FRIENDS.md), [아이템 콘텐츠](../economy/ITEM-CONTENT.md)와 D-045~D-050을 먼저 본다: 빠른 대전 공개 필수·프로필 닉네임(D-045), 방 생명주기·`left` 기권(D-046), 채팅 미전송 근본 원인(D-047), PC 게임 화면(D-048), 라지 스트레이트·결과 소리(D-049), 상점·인벤토리·아이템 200종·미리보기(D-050), 친구·초대(D-051).
+> **2026-11-25 완성도·콘텐츠·친구 작업 이후라면** [제품 개발 현황](./PRODUCT-2026-11-24.md)의 "2026-11-25" 절, [친구 시스템](../online/FRIENDS.md), [아이템 콘텐츠](../economy/ITEM-CONTENT.md)와 D-045~D-052를 먼저 본다: 빠른 대전 공개 필수·프로필 닉네임(D-045), 방 생명주기·`left` 기권(D-046), 채팅 미전송 근본 원인(D-047), PC 게임 화면(D-048), 라지 스트레이트·결과 소리(D-049), 상점·인벤토리·아이템 200종·미리보기(D-050), 친구·초대(D-051), 착지 뒤 특수 효과음과 Pages 회귀 검증(D-052).
 >
 > **게임·온라인·계정(제품) 작업이면 먼저 [제품 개발 현황](./PRODUCT-2026-11-24.md)** — 제품 Phase 번호, 완료/미검증/외부 설정 필요 구분, 배포 기록, 백로그. 설계는 [소셜·계정](../online/SOCIAL-AND-ACCOUNTS.md), 모바일·성능은 [PR A 문서](../ui/PHASE-A-2026-11.md).
 
