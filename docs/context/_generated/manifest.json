@@ -112,6 +112,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "2bf5f07",
+      "date": "2026-11-25",
+      "subject": "Merge PR #61: 온라인 대전 개선 — 빠른 대전 공개·프로필 닉네임·화면 간소화·방 자동 정리·다인 관전"
+    },
+    {
+      "sha": "fb77ba5",
+      "date": "2026-11-25",
+      "subject": "feat(online): 빠른 대전 공개 필수화·프로필 닉네임·온라인 화면 간소화·방 자동 정리·다인 관전 화면"
+    },
+    {
       "sha": "f82c989",
       "date": "2026-11-25",
       "subject": "Merge PR #60: 온라인 친구 다인전 배포·공개 사이트 검증 기록"
@@ -150,24 +160,14 @@
       "sha": "acf0c16",
       "date": "2026-11-24",
       "subject": "docs(product): Phase 4.5-6 deployment record and public site verification"
-    },
-    {
-      "sha": "42a3071",
-      "date": "2026-11-24",
-      "subject": "Merge PR #57: 테스트 서버 종료가 미사용 사전 연결을 기다리던 main CI afterAll 시간 초과 수정"
-    },
-    {
-      "sha": "d21194a",
-      "date": "2026-11-24",
-      "subject": "fix(test-server): shutdown no longer waits for pre-opened browser sockets; close test contexts"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "24820a6b8a",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45417677602"
+      "head": "fb77ba56d2",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45520808287"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",

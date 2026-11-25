@@ -101,6 +101,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [2bf5f07](https://github.com/oyueo-mm/YachtLab/commit/2bf5f07) | 2026-11-25 | Merge PR #61: 온라인 대전 개선 — 빠른 대전 공개·프로필 닉네임·화면 간소화·방 자동 정리·다인 관전 |
+| [fb77ba5](https://github.com/oyueo-mm/YachtLab/commit/fb77ba5) | 2026-11-25 | feat(online): 빠른 대전 공개 필수화·프로필 닉네임·온라인 화면 간소화·방 자동 정리·다인 관전 화면 |
 | [f82c989](https://github.com/oyueo-mm/YachtLab/commit/f82c989) | 2026-11-25 | Merge PR #60: 온라인 친구 다인전 배포·공개 사이트 검증 기록 |
 | [24820a6](https://github.com/oyueo-mm/YachtLab/commit/24820a6) | 2026-11-24 | docs: 온라인 친구 다인전 배포·공개 사이트 검증 기록 |
 | [01b2deb](https://github.com/oyueo-mm/YachtLab/commit/01b2deb) | 2026-11-24 | Merge PR #59: 온라인 친구 다인전 2~20명 — 순차·동시 진행 |
@@ -109,8 +111,6 @@
 | [eff12d2](https://github.com/oyueo-mm/YachtLab/commit/eff12d2) | 2026-11-24 | feat(online): friend rooms for 2-20 players with turn-by-turn and simultaneous modes |
 | [f98566c](https://github.com/oyueo-mm/YachtLab/commit/f98566c) | 2026-11-24 | Merge PR #58: Phase 4.5~6 배포 기록·공개 사이트 검증 결과 |
 | [acf0c16](https://github.com/oyueo-mm/YachtLab/commit/acf0c16) | 2026-11-24 | docs(product): Phase 4.5-6 deployment record and public site verification |
-| [42a3071](https://github.com/oyueo-mm/YachtLab/commit/42a3071) | 2026-11-24 | Merge PR #57: 테스트 서버 종료가 미사용 사전 연결을 기다리던 main CI afterAll 시간 초과 수정 |
-| [d21194a](https://github.com/oyueo-mm/YachtLab/commit/d21194a) | 2026-11-24 | fix(test-server): shutdown no longer waits for pre-opened browser sockets; close test contexts |
 
 ## 최근 GitHub Actions 상태
 
@@ -118,7 +118,7 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45417677602) | success | 24820a6b8a |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45520808287) | success | fb77ba56d2 |
 | [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45406992672) | success | eff12d24a3 |
 
 ## 다음 채팅과 작업의 시작점
