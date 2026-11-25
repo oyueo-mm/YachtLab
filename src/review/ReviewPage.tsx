@@ -147,10 +147,7 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
   const result = values?.[selected];
   const rows = values?.filter((entry) => match.steps[entry.index].before.player === participant) ?? [];
   const biggest = [...rows].filter((entry) => ["?!", "?", "??"].includes(grade(entry)))
-    .sort((a, b) => {
-      const severity = (entry: Assessment) => winLoss(entry) === undefined ? entry.loss / 8 : winLoss(entry)! / 10;
-      return severity(b) - severity(a);
-    }).slice(0, 3);
+    .sort((a, b) => relativeLoss(b) - relativeLoss(a)).slice(0, 3);
   const previous = localSummaries.filter((item) => item.model === analysisModel.version && JSON.stringify(item.players) === JSON.stringify(match.players))
     .sort((a, b) => a.at - b.at);
   const recommendation = result?.options.reduce((best, option) => (option.winCredit ?? -1) > (best.winCredit ?? -1) ? option : best);
@@ -318,6 +315,11 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
       </div>
     </>
   );
+}
+
+function relativeLoss(row: Assessment) {
+  const loss = winLoss(row);
+  return loss === undefined ? row.loss / 8 : loss / 10;
 }
 
 function GradeMark({ row }: { row?: Assessment }) {

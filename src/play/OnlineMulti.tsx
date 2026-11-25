@@ -321,6 +321,7 @@ export function MultiTable(p: {
 function resultTitle(view: PlayerView, me: string) {
   const mine = view.standings?.find((s) => s.playerId === me);
   if (!mine) return "경기 종료";
+  if (mine.rank === 1 && view.players.length === 2 && view.winners.length === 2) return "무승부";
   if (mine.rank === 1) return view.winners.length > 1 ? "공동 1위!" : "1위로 승리했습니다!";
   return `${mine.rank}위 · ${mine.points}점`;
 }
