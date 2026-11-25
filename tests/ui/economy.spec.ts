@@ -179,6 +179,8 @@ test("게스트 홈에 계정 안내가 있고 휴대폰에서는 주요 메뉴�
   await expect(account.locator(".player-name")).toContainText("요트러");
   await expect(account.locator(".player-icon")).toBeVisible();
   await expect(account.getByTestId("coins")).toHaveCount(0);
+  const grid = page.getByRole("navigation", { name: "내 메뉴" });
+  expect(await grid.evaluate((node) => getComputedStyle(node).gridTemplateColumns.split(" ").length)).toBe(3);
   await account.getByRole("button", { name: "로그인 안내" }).click();
   await expect(page.getByRole("region", { name: "로그인" })).toBeVisible();
   await page.getByRole("button", { name: "메뉴", exact: true }).click();
