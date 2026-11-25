@@ -121,7 +121,7 @@ test("로비에서 오프라인 모드로 이동하면 시연 없이 게임 화�
   await expect(page.getByRole("button", { name: "주사위 굴리기" })).toBeVisible();
   await expect(page.locator(".home-demo")).toHaveCount(0);
   await page.getByRole("button", { name: "홈으로" }).click();
-  await page.getByRole("button", { name: "연구실" }).click();
+  await page.goto("#lab");
   await page.getByRole("navigation", { name: "연구실 메뉴" }).getByRole("link", { name: "AI 대전 관전" }).click();
   await expect(page.getByRole("heading", { name: "AI 대전 관전" })).toBeVisible();
   await expect(page.locator(".home-demo")).toHaveCount(0);

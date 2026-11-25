@@ -43,7 +43,7 @@ test("AI 설정: 이름·AI 먼저가 실제 게임·점수판·기보에 반영
 });
 
 test("AI 설정: 미구현 13칸 규칙은 선택할 수 없고 고급 설정의 연구용 알고리즘은 난이도와 분리된다", async ({ page }) => {
-  await page.goto("#play-setup");
+  await page.goto("?lab=1#play-setup");
   const rules = page.getByRole("group", { name: "게임 규칙" });
   await expect(rules.getByRole("radio")).toHaveCount(2);
   await expect(rules.getByRole("radio").nth(0)).toBeChecked();
@@ -378,8 +378,8 @@ test("홈: 주사위 체험 영역 없이 제목·설명·온라인(강조, 첫 
   const [online, offline] = [(await cards.nth(0).boundingBox())!, (await cards.nth(1).boundingBox())!];
   expect(online.height).toBeGreaterThan(offline.height);
   expect(online.y).toBeLessThan(offline.y);
-  await expect(page.getByRole("button", { name: "내 기록" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "연구실" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "내 기록" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "연구실" })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
@@ -387,7 +387,7 @@ test("홈: 주사위 체험 영역 없이 제목·설명·온라인(강조, 첫 
 
 test("연구용 알고리즘: 전체 목록·검색·유형 분류, 연구 전용은 선택 불가, 선택한 모델이 실제 대국에 사용된다", async ({ page }) => {
   test.setTimeout(90000);
-  await page.goto("#play-setup");
+  await page.goto("?lab=1#play-setup");
   await page.getByText("고급 설정", { exact: true }).click();
   await page.getByText("연구용 알고리즘 직접 선택").click();
   const list = page.getByRole("radiogroup", { name: "연구용 알고리즘" });

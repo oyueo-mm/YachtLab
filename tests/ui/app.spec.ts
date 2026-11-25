@@ -2,7 +2,7 @@ import { chooseAlgorithm,scoreCategory , startAI } from "./helpers";
 import { test, expect, type Page } from "@playwright/test";
 async function openLabTool(page: Page, name: string) {
   // Research tools moved from the old sidebar into the lab (연구실) menu.
-  await page.getByRole("button", { name: "연구실" }).click();
+  await page.goto("#lab");
   await page.getByRole("navigation", { name: "연구실 메뉴" }).getByRole("link", { name, exact: true }).click();
 }
 test("홈은 게임 모드 로비이고 연구 기능은 연구실 메뉴에서 열린다", async ({ page }) => {
