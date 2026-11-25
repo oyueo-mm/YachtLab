@@ -22,6 +22,9 @@ export function Lobby({ navigate }: { navigate: Go }) {
         <h1 id="lobby-title">요트다이스를 플레이해보세요</h1>
         <p>AI와 대결하거나 친구와 함께 즐겨보세요.</p>
       </div>
+      <button type="button" className="secondary lobby-tutorial" onClick={() => navigate("tutorial")}>
+        {tutorialSeen() ? "튜토리얼 다시 보기" : "처음이라면 · 한 차례 연습하기"}
+      </button>
       <div className="lobby-modes">
         <button type="button" className="mode-card mode-online mode-primary mode-main" onClick={() => navigate("online")}>
           <span className="mode-icon" aria-hidden="true">
@@ -46,9 +49,6 @@ export function Lobby({ navigate }: { navigate: Go }) {
           <ArrowRight className="mode-arrow" size={20} aria-hidden="true" />
         </button>
       </div>
-      <button type="button" className="secondary lobby-tutorial" onClick={() => navigate("tutorial")}>
-        {tutorialSeen() ? "튜토리얼 다시 보기" : "처음이라면 · 한 차례 연습하기"}
-      </button>
       <nav className="lobby-menu" aria-label="내 메뉴">
         {(
           [
