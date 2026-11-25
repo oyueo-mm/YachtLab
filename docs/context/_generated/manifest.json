@@ -112,6 +112,26 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "55d1120",
+      "date": "2026-11-25",
+      "subject": "Merge PR #62: 채팅 근본 수정·PC 게임 화면·라지 스트레이트·결과 소리·상점/인벤토리·아이템 200종·친구"
+    },
+    {
+      "sha": "8f6c81e",
+      "date": "2026-11-25",
+      "subject": "feat(friends): 친구 목록·친구 초대 (회원 전용, 공개 친구 코드)"
+    },
+    {
+      "sha": "f902206",
+      "date": "2026-11-25",
+      "subject": "feat(game): PC 게임 화면·라지 스트레이트 연출·결과 소리 후보·상점/인벤토리·실제 미리보기·아이템 200종"
+    },
+    {
+      "sha": "f29f51d",
+      "date": "2026-11-25",
+      "subject": "fix(chat): 채팅·이모티콘 미전송 근본 원인 수정과 보드 하단 보내기 바"
+    },
+    {
       "sha": "2bf5f07",
       "date": "2026-11-25",
       "subject": "Merge PR #61: 온라인 대전 개선 — 빠른 대전 공개·프로필 닉네임·화면 간소화·방 자동 정리·다인 관전"
@@ -140,40 +160,26 @@
       "sha": "7c29ef9",
       "date": "2026-11-24",
       "subject": "docs(online): multiplayer load test on the deployed Worker (2-20 players, simultaneous)"
-    },
-    {
-      "sha": "c639522",
-      "date": "2026-11-24",
-      "subject": "test(load): run the multiplayer load test against a deployed Worker (--url/--origin/--sizes)"
-    },
-    {
-      "sha": "eff12d2",
-      "date": "2026-11-24",
-      "subject": "feat(online): friend rooms for 2-20 players with turn-by-turn and simultaneous modes"
-    },
-    {
-      "sha": "f98566c",
-      "date": "2026-11-24",
-      "subject": "Merge PR #58: Phase 4.5~6 배포 기록·공개 사이트 검증 결과"
-    },
-    {
-      "sha": "acf0c16",
-      "date": "2026-11-24",
-      "subject": "docs(product): Phase 4.5-6 deployment record and public site verification"
     }
   ],
   "recentWorkflowRuns": [
     {
+      "name": "YachtLab gameplay UI targeted smoke",
+      "status": "success",
+      "head": "8f6c81ee6d",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45527818079"
+    },
+    {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "fb77ba56d2",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45520808287"
+      "head": "8f6c81ee6d",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45527818059"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
       "status": "success",
-      "head": "eff12d24a3",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45406992672"
+      "head": "2bf5f07e75",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45525787155"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

@@ -101,16 +101,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [55d1120](https://github.com/oyueo-mm/YachtLab/commit/55d1120) | 2026-11-25 | Merge PR #62: 채팅 근본 수정·PC 게임 화면·라지 스트레이트·결과 소리·상점/인벤토리·아이템 200종·친구 |
+| [8f6c81e](https://github.com/oyueo-mm/YachtLab/commit/8f6c81e) | 2026-11-25 | feat(friends): 친구 목록·친구 초대 (회원 전용, 공개 친구 코드) |
+| [f902206](https://github.com/oyueo-mm/YachtLab/commit/f902206) | 2026-11-25 | feat(game): PC 게임 화면·라지 스트레이트 연출·결과 소리 후보·상점/인벤토리·실제 미리보기·아이템 200종 |
+| [f29f51d](https://github.com/oyueo-mm/YachtLab/commit/f29f51d) | 2026-11-25 | fix(chat): 채팅·이모티콘 미전송 근본 원인 수정과 보드 하단 보내기 바 |
 | [2bf5f07](https://github.com/oyueo-mm/YachtLab/commit/2bf5f07) | 2026-11-25 | Merge PR #61: 온라인 대전 개선 — 빠른 대전 공개·프로필 닉네임·화면 간소화·방 자동 정리·다인 관전 |
 | [fb77ba5](https://github.com/oyueo-mm/YachtLab/commit/fb77ba5) | 2026-11-25 | feat(online): 빠른 대전 공개 필수화·프로필 닉네임·온라인 화면 간소화·방 자동 정리·다인 관전 화면 |
 | [f82c989](https://github.com/oyueo-mm/YachtLab/commit/f82c989) | 2026-11-25 | Merge PR #60: 온라인 친구 다인전 배포·공개 사이트 검증 기록 |
 | [24820a6](https://github.com/oyueo-mm/YachtLab/commit/24820a6) | 2026-11-24 | docs: 온라인 친구 다인전 배포·공개 사이트 검증 기록 |
 | [01b2deb](https://github.com/oyueo-mm/YachtLab/commit/01b2deb) | 2026-11-24 | Merge PR #59: 온라인 친구 다인전 2~20명 — 순차·동시 진행 |
 | [7c29ef9](https://github.com/oyueo-mm/YachtLab/commit/7c29ef9) | 2026-11-24 | docs(online): multiplayer load test on the deployed Worker (2-20 players, simultaneous) |
-| [c639522](https://github.com/oyueo-mm/YachtLab/commit/c639522) | 2026-11-24 | test(load): run the multiplayer load test against a deployed Worker (--url/--origin/--sizes) |
-| [eff12d2](https://github.com/oyueo-mm/YachtLab/commit/eff12d2) | 2026-11-24 | feat(online): friend rooms for 2-20 players with turn-by-turn and simultaneous modes |
-| [f98566c](https://github.com/oyueo-mm/YachtLab/commit/f98566c) | 2026-11-24 | Merge PR #58: Phase 4.5~6 배포 기록·공개 사이트 검증 결과 |
-| [acf0c16](https://github.com/oyueo-mm/YachtLab/commit/acf0c16) | 2026-11-24 | docs(product): Phase 4.5-6 deployment record and public site verification |
 
 ## 최근 GitHub Actions 상태
 
@@ -118,8 +118,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45520808287) | success | fb77ba56d2 |
-| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45406992672) | success | eff12d24a3 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45527818079) | success | 8f6c81ee6d |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45527818059) | success | 8f6c81ee6d |
+| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45525787155) | success | 2bf5f07e75 |
 
 ## 다음 채팅과 작업의 시작점
 
