@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
-import { fixSeed, SEEDS, scoreCategory, startAI, startLocal, withMotion } from "./helpers";
+import { SEEDS, fixSeed, scoreCategory, startAI, startLocal, withMotion } from "./helpers";
 
 type DebugRoll = { mode: string; token: number; targets: Record<string, number>; finals?: Record<string, number>; endedAt?: number };
 const lastRoll = (page: Page) => page.evaluate(() => (window as unknown as { __yachtlabDice?: { last: DebugRoll } }).__yachtlabDice?.last ?? null);
@@ -307,6 +307,29 @@ test("WebGL을 쓸 수 없으면 2.5D 연출로 대체되고 3D 품질은 선택
   const quality = page.getByRole("combobox", { name: "주사위 애니메이션 품질" });
   expect(await quality.locator("option").evaluateAll((o) => (o as HTMLOptionElement[]).filter((x) => x.disabled).map((x) => x.value))).toEqual(["3d-high", "3d"]);
   await expect(page.getByRole("dialog", { name: "설정" })).toContainText("3D를 지원하지 않아");
+});
+
+test("3D 효과음은 실제 충돌에서 재생되고 개수가 제한되며 고정·해제 소리가 난다", async ({ page }) => {
+  // A first roll without a combination (a large straight / yacht adds its own moment sound after settling).
+  await fixSeed(page, SEEDS.none);
+  await open3d(page);
+  await page.getByRole("button", { name: "주사위 굴리기" }).click();
+  await settled(page);
+  const log = () => page.evaluate(() => (window as unknown as { __yachtlabSound: { log: { name: string; delay: number }[] } }).__yachtlabSound.log.map((e) => ({ ...e })));
+  let entries = await log();
+  const names = entries.map((e) => e.name);
+  expect(names[0]).toBe("throw");
+  expect(names.at(-1)).toBe("settle");
+  const impacts = entries.filter((e) => e.name === "impact");
+  expect(impacts.length).toBeGreaterThan(0);
+  expect(impacts.length).toBeLessThanOrEqual(14);
+  expect(impacts.every((e) => e.delay === 0)).toBe(true); // played live at the rendered collision frame
+  await clickDie(page, 0);
+  await settled(page);
+  await clickDie(page, 0);
+  await settled(page);
+  entries = await log();
+  expect(entries.map((e) => e.name)).toEqual(expect.arrayContaining(["hold", "release"]));
 });
 
 test("3D 효과음은 실제 충돌과 착지 뒤 라지 스트레이트 순서를 지키고 고정·해제 소리가 난다", async ({ page }) => {
