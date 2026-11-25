@@ -30,6 +30,10 @@
 .review-mistakes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .review-actions select { max-width: 100%; }
 @media (max-width: 680px) {
+  .review-dialog[open] { display: flex; flex-direction: column; }
+  .review-dialog[open] > * { flex-shrink: 0; }
+  .review-summary { order: 1; }
+  .review-distribution { order: 2; }
   .review-position { grid-template-columns: minmax(0, 1fr); }
   .review-position .scoreboard { display: block; }
   .review-dialog button { min-height: 44px; }

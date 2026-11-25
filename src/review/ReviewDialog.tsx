@@ -138,7 +138,7 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
         {error && <p role="alert">{error}</p>}
         <button type="button" className="secondary" onClick={() => { setError(""); setCompleted(0); setRun(run + 1); setActive(true); }}>분석 다시 시도</button>
       </div>}
-      {values && <section aria-label="경기 전체 분석">
+      {values && <section className="review-summary" aria-label="경기 전체 분석">
         <label>플레이어 <select value={participant} onChange={(e) => {
           const seat = Number(e.target.value) as 0 | 1;
           const index = match.steps.findIndex((entry) => entry.before.player === seat);
