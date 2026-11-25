@@ -12,7 +12,8 @@ import OnlineGame from "./play/OnlineGame";
 import OnlineWatch from "./play/OnlineWatch";
 import Profile from "./shell/Profile";
 import { AchievementsPage, InventoryPage, QuestsPage, ShopPage } from "./shell/EconomyPages";
-import { completeSignIn } from "./identity/account-client";
+import MatchRewards, { type PendingReward } from "./shell/MatchRewards";
+import { completeSignIn, session } from "./identity/account-client";
 import { syncAccountNickname } from "./identity/display-name";
 import { FriendsPage, InviteToasts, refreshInbox, startInbox } from "./shell/Friends";
 import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl } from "./online/client";
@@ -51,6 +52,7 @@ export default function App() {
   const [onlineServer] = useState(onlineServerUrl);
   const [onlineCode, setOnlineCode] = useState<string | null>(roomFromUrl);
   const [quickIntro, setQuickIntro] = useState<string | null>(null);
+  const [pendingReward, setPendingReward] = useState<PendingReward | null>(null);
   const [onlineNotice, setOnlineNotice] = useState("");
   const [watchTarget] = useState(watchFromUrl);
   const [profileNotice, setProfileNotice] = useState("");
@@ -193,6 +195,12 @@ export default function App() {
             </button>
           </p>
         )}
+        {page === "home" && onlineServer && pendingReward && <MatchRewards
+          key={pendingReward.matchId}
+          server={onlineServer}
+          pending={pendingReward}
+          consume={() => setPendingReward(null)}
+        />}
         {page === "home" && <Lobby navigate={navigate} server={onlineServer} />}
         {page === "tutorial" && <Tutorial onHome={() => navigate("home")} />}
         {page === "offline" && <OfflineSelect navigate={navigate} />}
@@ -224,6 +232,10 @@ export default function App() {
             server={onlineServer}
             code={onlineCode}
             quickIntro={quickIntro === onlineCode}
+            onFinished={(matchId) => {
+              const account = session();
+              if (account) setPendingReward({ matchId, account });
+            }}
             onProgress={progress}
             onLeave={(message) => {
               inProgress.current = false;

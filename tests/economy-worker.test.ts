@@ -154,6 +154,18 @@ describe("경제 통합 시나리오 (wrangler dev + 가짜 로컬 로그인)", 
     // 10 completion (+3 win / +2 draw) + 5 new-member boost
     expect([15, 17, 18]).toContain(matchRow.coins);
     expect(ea.state.counters.match).toBe(1);
+    const receiptPath = `/api/me/records/${ca.view!.matchId}/reward`;
+    const receipt = await call(a.session, receiptPath);
+    expect(receipt.status).toBe(200);
+    expect(receipt.body.receipt).toMatchObject({
+      before: e0.body.snapshot.wallet,
+      after: ea.wallet,
+      grants: expect.arrayContaining([expect.objectContaining({ kind: "match", coins: matchRow.coins })]),
+    });
+    expect(receipt.body.receipt.quests.every((row: { previous: number; progress: number }) => row.previous < row.progress)).toBe(true);
+    expect((await call(a.session, receiptPath)).body).toEqual(receipt.body);
+    expect((await call(a.session, "/api/me/economy")).body.snapshot.wallet).toEqual(ea.wallet);
+    expect((await fetch(worker.url + receiptPath, { headers: { origin: ORIGIN } })).status).toBe(401);
     const ledgerCheck = await (await fetch(worker.url + "/api/admin/ledger/" + a.userId, { headers: { authorization: "Bearer " + ADMIN } })).json();
     expect(ledgerCheck).toMatchObject({ ok: true, problems: [] });
     expect((await fetch(worker.url + "/api/admin/metrics")).status).toBe(404); // no admin token → hidden

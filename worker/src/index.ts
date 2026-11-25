@@ -1,3 +1,4 @@
+import type { MatchEconomyResult } from "./economy";
 import { DurableObject } from "cloudflare:workers";
 import { newRoomCode, normalizeCode, parseRoomSettings, ROOM_LIMITS, type RoomRecord, type RoomSettings } from "../../src/online/room";
 import { readConfig, type ConfigVars, type OnlineConfig } from "./config";
@@ -453,6 +454,9 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   async me() {
     return this.store.profile();
   }
+  async matchReward(matchId: string) {
+    return this.store.matchReward(matchId);
+  }
   async records(limit: number) {
     return this.store.records(limit);
   }
@@ -513,17 +517,20 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     const now = Date.now();
     // The record and its rewards are stored in ONE transaction, keyed by the match id: a repeated
     // delivery finds the record and grants nothing; a crash leaves neither.
-    const result = this.econSql().transaction(() => {
-      if (!this.store.recordMatch(record)) return null;
-      if (!p || !this.economyOn) return null;
+    const settlement: { current: MatchEconomyResult | null } = { current: null };
+    this.econSql().transaction(() => this.store.recordMatch(record, () => {
+      if (!p || !this.economyOn) return undefined;
       this.welcome(now);
-      return this.econ.applyMatch(
+      settlement.current = this.econ.applyMatch(
         p.userId,
         p.createdAt,
         { matchId: record.recordId, kind: record.kind ?? "friend", outcome: record.outcome, endReason: record.endReason, score: record.score, card: record.card, opponentUserId: record.opponent.userId, stats: record.stats, endedAt: record.endedAt },
         now,
       );
-    });
+      const receipt = settlement.current.receipt;
+      return receipt.quests.length || receipt.grants.length ? receipt : undefined;
+    }));
+    const result = settlement.current;
     if (result) {
       // Privacy-light operations counters (no ids): issuance, quests, achievements, daily actives.
       const coins = result.grants.reduce((a, g) => a + g.coins, 0);

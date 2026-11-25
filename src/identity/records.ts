@@ -1,3 +1,4 @@
+import type { MatchReceipt } from "../economy/live/receipt";
 import { bonus, categories, total, upper, type Card, type Category } from "../engine";
 
 /**
@@ -43,6 +44,8 @@ export type MatchRecord = {
   stats?: { firstRollYachts: number; firstRollLarge: number; finalRoundYacht: boolean; yachtFaces: number[]; comeback30: boolean };
   /** Server records of matches with more than two players: how many played, my final rank, the mode. */
   field?: { players: number; rank: number; mode: "turns" | "simultaneous" };
+  /** Private presentation data attached by the server at settlement. */
+  reward?: MatchReceipt;
 };
 
 /** Domain event emitted when a match result is final — the hook for quests/coins/achievements later. */

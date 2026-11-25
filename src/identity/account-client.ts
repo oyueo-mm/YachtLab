@@ -1,3 +1,4 @@
+import type { MatchReceipt } from "../economy/live/receipt";
 import type { MatchRecord } from "./records";
 
 /**
@@ -144,3 +145,5 @@ export async function deleteAccount(server: string) {
   await api(server, "/api/me/delete", { body: { confirm: "DELETE" } });
   setSession(null);
 }
+
+export const matchReward = (server: string, matchId: string) => api<{ receipt: MatchReceipt | null }>(server, `/api/me/records/${encodeURIComponent(matchId)}/reward`).then((r) => r.receipt);
