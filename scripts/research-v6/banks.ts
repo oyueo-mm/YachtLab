@@ -1,7 +1,7 @@
 // Cached exact PMF banks of the v6 exponential-utility policy family.
 // Files live under training/checkpoints/v6/ (git-ignored, ~300 MB each as Float64).
 //   npx tsx scripts/research-v6/banks.ts build -0.04 0.04   # build (and cache) banks
-import { existsSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { RiskPolicy, buildRiskBank } from "../../src/research-v6/risk.ts";
 import { serializeBank, loadBankFile, loadDPExpertBank } from "../research-v5/bank-io.ts";
 import type { PolicyPmfBank } from "../../src/research-v5/policy-pmf.ts";
@@ -31,6 +31,15 @@ export function loadRiskBank(lam: number, log = true): PolicyPmfBank {
   Object.defineProperty(bank, "name", { value: nameOf(lam) });
   cache.set(lam, bank);
   return bank;
+}
+/** Exp-utility value table Z of a lambda policy (needed for exact likelihoods), cached as Float64. */
+const polCache = new Map<number, RiskPolicy>();
+export function loadRiskPolicy(lam: number): RiskPolicy {
+  const hit = polCache.get(lam); if (hit) return hit;
+  const file = new URL(`riskZ_${lam}.f64`, dir), pol = new RiskPolicy(lam);
+  if (existsSync(file)) { const b = readFileSync(file); pol.Z.set(new Float64Array(b.buffer, b.byteOffset, b.byteLength / 8)); }
+  else { pol.build(); mkdirSync(dir, { recursive: true }); writeFileSync(file, Buffer.from(pol.Z.buffer)); }
+  polCache.set(lam, pol); return pol;
 }
 export const loadRiskBanks = (lams: number[]) => lams.map((l) => loadRiskBank(l));
 

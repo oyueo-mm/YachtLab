@@ -12,8 +12,9 @@ import { upper } from "../../src/engine.ts";
 import { loadDPExpertBank, loadPolicyBank } from "./bank-io.ts";
 import { loadDPTable } from "./load-dp.ts";
 import { winDPv6Decision, type V6Config } from "../../src/research-v6/apex6.ts";
-import { loadRiskBanks, DEFAULT_LAMBDAS } from "../research-v6/banks.ts";
-import type { PolicyPmfBank } from "../../src/research-v5/policy-pmf.ts";
+import { loadRiskBanks, loadRiskPolicy, DEFAULT_LAMBDAS } from "../research-v6/banks.ts";
+import { RiskOpponentFilter } from "../../src/research-v6/bayes6.ts";
+import { PolicyPmfBank as PolicyPmfBankCtor, type PolicyPmfBank } from "../../src/research-v5/policy-pmf.ts";
 
 export type AgentName = string;
 let cfgBase: Omit<V5Config, "endgame"> | null = null;
@@ -41,6 +42,19 @@ const v6Banks = new Map<string, PolicyPmfBank[]>();
 const V6_SETS: Record<string, number[]> = { all: DEFAULT_LAMBDAS, three: [-0.04, 0, 0.04], dp: [0] };
 const v6 = (set: string, extra: Partial<V6Config> = {}) => (s: Game) =>
   winDPv6Decision(s, { ...cfgBase!, endgame: "none", banks: v6Banks.get(set)!, ...extra } as V6Config);
+const v6Filters = new Map<number, RiskOpponentFilter>();
+function v6Bayes(s: Game, discount: number) {
+  let f = v6Filters.get(discount);
+  if (!f) { f = new RiskOpponentFilter(DEFAULT_LAMBDAS.map((l, i) => ({ name: String(l), policy: loadRiskPolicy(l), bank: v6Banks.get("all")![i] })), { epsilon: 0.02, discount }); v6Filters.set(discount, f); }
+  const opp = s.cards[1 - s.player];
+  f.observe(opp);
+  const mix = f.mixture(maskOf(opp), Math.min(63, upper(opp)));
+  const fake = new PolicyPmfBankCtor("opponent posterior", () => NaN);
+  const om = maskOf(opp), cu = Math.min(63, upper(opp));
+  for (let u = 0; u < 64; u++) fake.pmf[om * 64 + u] = mix;
+  void cu;
+  return v6("all", { opponentBank: fake })(s);
+}
 /** Load whatever the named agents need (call after initAgents, before timing). */
 export function prepareAgents(names: string[]) {
   for (const n of names) for (const set of AGENTS[n].v6 ?? []) if (!v6Banks.has(set)) v6Banks.set(set, loadRiskBanks(V6_SETS[set]));
@@ -88,6 +102,8 @@ export const AGENTS: Record<string, { v5: boolean; bayes?: boolean; v6?: string[
   "v6-L": { v5: true, v6: ["all"], describe: "v6-P vs opponent policy set (same 7 exp-utility policies), opponent picks the worst for me (maximin)", act: (s) => v6("all", { oppBanks: v6Banks.get("all"), oppMode: "maximin" })(s) },
   "v6-Lm": { v5: true, v6: ["all"], describe: "v6-P vs uniform mixture of the 7 opponent exp-utility policies", act: (s) => v6("all", { oppBanks: v6Banks.get("all"), oppMode: "mixture" })(s) },
   "v6-C": { v5: true, v6: ["all"], describe: "v6-P + ridge residual (exact interactive - policy-set, dev 9021 game-split fit) on child values when both <= 4", act: (s) => v6("all", { residual: residualModel() })(s) },
+  "v6-D": { v5: true, v6: ["all"], describe: "v6-P vs Bayesian posterior mixture over 7 exp-utility opponent hypotheses (exact likelihood, eps 0.02)", act: (s) => v6Bayes(s, 1) },
+  "v6-Dd": { v5: true, v6: ["all"], describe: "v6-D with discounted (lambda 0.7) posterior to track strategy switches", act: (s) => v6Bayes(s, 0.7) },
   "v6-PB3": { v5: true, v6: ["all"], describe: "v6-P + exact interactive minimax when both <= 3", act: v6("all", { endgame: "minimax", minimaxWindow: 3 }) },
   "v6-A4B3": { v5: true, v6: ["all"], describe: "v6-A4 + exact interactive minimax when both <= 3", act: v6("all", { brWindow: 4, endgame: "minimax", minimaxWindow: 3 }) },
   "v5-E5": { v5: true, describe: "v5-B3 + depth-2 PMF-expectimax final-category choice when top-2 gap < 0.05", act: (s) => winDPv5EDecision(s, { ...cfgBase!, endgame: "minimax", minimaxWindow: 3, gap: 0.05 }) },

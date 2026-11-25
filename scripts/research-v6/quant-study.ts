@@ -8,10 +8,10 @@
 import { createGame, transition, type Game } from "../../src/engine.ts";
 import { winDPv5Decision, type V5Config } from "../../src/research-v5/apex.ts";
 import { PolicyPmfBank } from "../../src/research-v5/policy-pmf.ts";
-import { canonicalUpper } from "../../src/research-v5/kernel.ts";
+import { canonicalUpper, popcount } from "../../src/research-v5/kernel.ts";
 import { winDPv2Decision } from "../../src/competitive-v2.ts";
 import * as dp from "../../src/dp.ts";
-import { loadDPExpertBank } from "../research-v5/bank-io.ts";
+import { loadDPExpertBank, loadBankFile } from "../research-v5/bank-io.ts";
 
 const N = Number(process.argv[2] ?? 4000);
 const { bank, T } = loadDPExpertBank(false);
@@ -48,16 +48,23 @@ const ENC: Enc[] = [
   { name: "float64+trunc1e-6", bytesPerFloat: 8, map: trunc(1e-6), sparse: true },
   { name: "float64+trunc1e-4", bytesPerFloat: 8, map: trunc(1e-4), sparse: true },
 ];
+// --bank FILE[,FILE]: evaluate externally produced banks (e.g. PMF neural distillation) instead
+const ext = (() => { const i = process.argv.indexOf("--bank"); return i < 0 ? [] : process.argv[i + 1].split(","); })();
+// --hybrid K: exact PMF for masks with <= K open categories, external bank otherwise (Hybrid Exact-Neural)
+const hyb = (() => { const i = process.argv.indexOf("--hybrid"); return i < 0 ? [] : process.argv[i + 1].split(",").map(Number); })();
+const ENCS: Enc[] = ext.length ? ext.flatMap((f) => { const b = loadBankFile(f, () => NaN); const ks = hyb.length ? hyb : [-1];
+  return ks.map((K) => ({ name: f.split("/").pop()! + (K >= 0 ? `+exact<=${K}` : ""), bytesPerFloat: 8, map: (p: Float64Array, k?: number) => (popcount(k! >> 6) <= K ? p : b.pmf[k!]!), exactFloats: K } as unknown as Enc)); }) : ENC;
 const rows = [];
-for (const enc of ENC) {
+for (const enc of ENCS) {
   const qb = new PolicyPmfBank(enc.name, () => NaN);
   let stored = 0;
   for (let mask = 0; mask < 4096; mask++) for (let u = 0; u < 64; u++) {
     const cu = canonicalUpper(mask, u), k = mask * 64 + u;
     if (cu !== u) continue;
-    const q = enc.map(bank.pmf[k]!);
+    const q = (enc.map as (p: Float64Array, k: number) => Float64Array)(bank.pmf[k]!, k);
     qb.pmf[k] = q;
-    if (enc.sparse) { let lo = 0, hi = q.length - 1; while (lo < hi && q[lo] === 0) lo++; while (hi > lo && q[hi] === 0) hi--; stored += hi - lo + 1; } else stored += q.length;
+    const K = (enc as unknown as { exactFloats?: number }).exactFloats;
+    if (K !== undefined && popcount(mask) > K) { /* neural part: counted separately below */ } else if (enc.sparse) { let lo = 0, hi = q.length - 1; while (lo < hi && q[lo] === 0) lo++; while (hi > lo && q[hi] === 0) hi--; stored += hi - lo + 1; } else stored += q.length;
   }
   for (let mask = 0; mask < 4096; mask++) for (let u = 0; u < 64; u++) { const cu = canonicalUpper(mask, u); if (cu !== u) qb.pmf[mask * 64 + u] = qb.pmf[mask * 64 + cu]; }
   let agree = 0, material = 0, regretSum = 0, regretMax = 0, valErrMax = 0, nearN = 0, nearAgree = 0, extN = 0, extErrMax = 0;
