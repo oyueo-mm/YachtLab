@@ -103,6 +103,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [73943e3](https://github.com/oyueo-mm/YachtLab/commit/73943e3) | 2026-11-25 | Merge pull request #76 from oyueo-mm/codex/field-feedback |
+| [cb80efb](https://github.com/oyueo-mm/YachtLab/commit/cb80efb) | 2026-11-25 | feat(product): guide first-time play and refine mobile browsing |
 | [c543b8d](https://github.com/oyueo-mm/YachtLab/commit/c543b8d) | 2026-11-25 | Merge PR #75: Win DP v5 research (exact policy PMF bank, exact endgame, PMF rollout) |
 | [3444ed6](https://github.com/oyueo-mm/YachtLab/commit/3444ed6) | 2026-11-25 | research(v5): move local 9501 reproduction shards to cross-check folder; record exact CI/local agreement on 11 matchups |
 | [44e469b](https://github.com/oyueo-mm/YachtLab/commit/44e469b) | 2026-11-25 | Merge remote-tracking branch 'origin/main' into ccr-4b6d4930-6rem08 |
@@ -111,8 +113,6 @@
 | [9f297f3](https://github.com/oyueo-mm/YachtLab/commit/9f297f3) | 2026-11-25 | Merge pull request #74 from oyueo-mm/codex/ux-rollout-docs |
 | [38d4fc7](https://github.com/oyueo-mm/YachtLab/commit/38d4fc7) | 2026-11-25 | docs(context): record onboarding rollout and Worker compatibility |
 | [ca1c894](https://github.com/oyueo-mm/YachtLab/commit/ca1c894) | 2026-11-25 | Merge pull request #71 from oyueo-mm/codex/ux-followup |
-| [642aac0](https://github.com/oyueo-mm/YachtLab/commit/642aac0) | 2026-11-25 | docs(context): confirm the public audio fix and reward test diagnosis |
-| [5c6d098](https://github.com/oyueo-mm/YachtLab/commit/5c6d098) | 2026-11-25 | test(rewards): wait for the lobby invite code before joining |
 
 ## 최근 GitHub Actions 상태
 
@@ -120,11 +120,10 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45574012195) | success | 3444ed6cb3 |
-| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45574012188) | success | 3444ed6cb3 |
-| [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45567970811) | success | 7a4fe605a5 |
-| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45567699361) | success | 642aac0220 |
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45564029822) | success | 642aac0220 |
+| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45585508173) | success | cb80efbd9a |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45584077888) | cancelled | 2bb87afb31 |
+| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45582993293) | success | 35387173e3 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45581351876) | success | cb80efbd9a |
 
 ## 다음 채팅과 작업의 시작점
 

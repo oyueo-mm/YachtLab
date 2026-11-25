@@ -114,6 +114,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "73943e3",
+      "date": "2026-11-25",
+      "subject": "Merge pull request #76 from oyueo-mm/codex/field-feedback"
+    },
+    {
+      "sha": "cb80efb",
+      "date": "2026-11-25",
+      "subject": "feat(product): guide first-time play and refine mobile browsing"
+    },
+    {
       "sha": "c543b8d",
       "date": "2026-11-25",
       "subject": "Merge PR #75: Win DP v5 research (exact policy PMF bank, exact endgame, PMF rollout)"
@@ -152,48 +162,32 @@
       "sha": "ca1c894",
       "date": "2026-11-25",
       "subject": "Merge pull request #71 from oyueo-mm/codex/ux-followup"
-    },
-    {
-      "sha": "642aac0",
-      "date": "2026-11-25",
-      "subject": "docs(context): confirm the public audio fix and reward test diagnosis"
-    },
-    {
-      "sha": "5c6d098",
-      "date": "2026-11-25",
-      "subject": "test(rewards): wait for the lobby invite code before joining"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "Test and deploy YachtLab",
+      "name": "Deploy YachtLab Online Worker (manual)",
       "status": "success",
-      "head": "3444ed6cb3",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45574012195"
+      "head": "cb80efbd9a",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45585508173"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "cancelled",
+      "head": "2bb87afb31",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45584077888"
     },
     {
       "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
       "status": "success",
-      "head": "3444ed6cb3",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45574012188"
-    },
-    {
-      "name": "YachtLab Online live check (manual)",
-      "status": "success",
-      "head": "7a4fe605a5",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45567970811"
-    },
-    {
-      "name": "Deploy YachtLab Online Worker (manual)",
-      "status": "success",
-      "head": "642aac0220",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45567699361"
+      "head": "35387173e3",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45582993293"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
-      "head": "642aac0220",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45564029822"
+      "head": "cb80efbd9a",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45581351876"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
