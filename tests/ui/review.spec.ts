@@ -1,10 +1,13 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { startOnlineServer } from "../../server/online/server";
 import { scoreCategory } from "./helpers";
 import { categories, createGame, transition, type Action } from "../../src/engine";
 import type { Replay } from "../../src/replay";
 
-test("저장된 1:1 기보의 Worker 복기에서 그래프와 복습을 선택한다", async ({ page }) => {
+// These cases need to hold the dedicated Worker request independently of the PWA cache.
+test.use({ serviceWorkers: "block" });
+
+async function seedReview(page: Page, trial = false) {
   const initialState = createGame(40);
   const players: Replay["metadata"]["players"] = [{ name: "복기A", type: "human" }, { name: "복기B", type: "human" }];
   const replay: Replay = {
@@ -26,7 +29,7 @@ test("저장된 1:1 기보의 Worker 복기에서 그래프와 복습을 선택�
       act({ type: "score", category });
     }
   }
-  await page.goto("#records");
+  await page.goto(trial ? "?ai-model=v5-r#records" : "#records");
   await page.evaluate(async (saved) => {
     await new Promise<void>((resolve, reject) => {
       const req = indexedDB.open("YachtLabReplays", 1);
@@ -41,6 +44,10 @@ test("저장된 1:1 기보의 Worker 복기에서 그래프와 복습을 선택�
     });
   }, replay);
   await page.getByRole("button", { name: "새로고침" }).click();
+}
+
+test("저장된 1:1 기보의 게임 리뷰에서 그래프와 다시 도전을 선택한다", async ({ page }) => {
+  await seedReview(page);
   let release = () => {};
   let onRequest = () => {};
   const blocked = new Promise<void>((resolve) => { release = resolve; });
@@ -117,4 +124,21 @@ test("온라인 경기 중 복기는 숨기고 서버가 종료한 본인 경기
     await guest.close();
     await worker.close();
   }
+});
+
+
+test("v5-R 시험 리뷰는 중반 추정과 정확 종반을 구분하고 값이 없는 확률을 표시하지 않는다", async ({ page }) => {
+  await seedReview(page, true);
+  await page.getByRole("button", { name: "게임 리뷰" }).click();
+  const review = page.getByRole("dialog", { name: "게임 리뷰" });
+  const win = review.getByRole("group", { name: "승리점수율 그래프" });
+  await expect(win).toBeVisible({ timeout: 35_000 });
+  await expect(review.getByText("모델 추정", { exact: true })).toBeVisible();
+  await review.getByText("분석 정보", { exact: true }).click();
+  await expect(review.getByText(/내 선택의 예상 승리 .* 무승부 .* 패배/)).toBeVisible();
+  await review.getByRole("combobox", { name: "그래프" }).selectOption("winLuck");
+  await expect(review.getByRole("group", { name: "승리점수율 기준 주사위 운 그래프" }).locator("output")).toContainText("%p");
+  await review.getByRole("button", { name: "마지막", exact: true }).click();
+  await expect(review.getByText("정확 종반", { exact: true })).toBeVisible();
+  await expect(review.getByText(/내 선택의 예상 승리 .* 무승부 .* 패배/)).toHaveCount(0);
 });

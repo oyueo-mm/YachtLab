@@ -25,6 +25,8 @@ export type Value = {
   action: Choice;
   expected: number;
   winCredit?: number;
+  winExpected?: number;
+  winOutcomes?: { win: number; tie: number; loss: number };
 };
 
 export type Assessment = {
@@ -33,10 +35,15 @@ export type Assessment = {
   actual: Value;
   loss: number;
   luck?: number;
+  winLuck?: number;
+  preRollValue?: number;
+  exactness?: "exact" | "estimate";
   distribution?: { difference: number; mass: number }[];
 };
 
 export const reviewModel = { name: "DP Expert 기대점수 · Win DP v5 종반 승리점수율", version: "yachtlab-review-v2" } as const;
+
+export const productReviewModel = { name: "v5-R 단일 은행 · 정확 종반 · 분석 API v6", version: "yachtlab-analysis-v6.1-wasm-f32" };
 
 export type ReviewEvent =
   | { type: "progress"; completed: number }
