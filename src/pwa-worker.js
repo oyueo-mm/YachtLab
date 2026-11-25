@@ -8,7 +8,10 @@ const staticFiles = new Set(ASSETS.map((file) => new URL(file, scope).href));
 self.addEventListener("install", (event) => {
   // Use one consistent build. A failed install leaves the previous worker/cache in place.
   const requests = [shell, ...staticFiles].map((url) => new Request(url, { cache: "reload", credentials: "omit" }));
-  event.waitUntil(caches.open(cacheName).then((cache) => cache.addAll(requests)));
+  event.waitUntil(caches.open(cacheName).then((cache) => cache.addAll(requests)).catch(async (error) => {
+    await caches.delete(cacheName);
+    throw error;
+  }));
 });
 
 self.addEventListener("activate", (event) => {
@@ -26,10 +29,10 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== scope.origin || url.search) return;
   if (request.mode === "navigate" && (url.pathname === scope.pathname || url.href === shell)) {
     event.respondWith(fetch(request).catch(async () => {
-      const cached = await (await caches.open(cacheName)).match(shell);
+      const cached = await caches.match(shell, { cacheName });
       return cached ?? Response.error();
     }));
   } else if (staticFiles.has(url.href)) {
-    event.respondWith(caches.open(cacheName).then(async (cache) => (await cache.match(url.href)) ?? fetch(request)));
+    event.respondWith(caches.match(url.href, { cacheName }).then((cached) => cached ?? fetch(request)));
   }
 });
