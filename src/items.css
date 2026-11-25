@@ -1288,7 +1288,12 @@
   flex-wrap: wrap;
 }
 
-.online-game:not(.online-multi) .score-summary:has(.social-seat) { display: flex; }
+@media (min-width: 761px) {
+  .online-game:not(.online-multi) .score-summary:has(.social-seat) { display: flex; }
+}
+.multi-profile-chat > .player-tag { padding-inline: 4px; }
+.feed-from .player-icon { width: 20px; height: 20px; font-size: 13px; }
+.feed-from .player-tag { gap: 4px; }
 .online-game .social-seat { position: relative; }
 .online-game .social-seat .anchored-feed {
   position: absolute; z-index: 5; inset: auto 0 calc(100% - 2px) 0;
@@ -1299,3 +1304,5 @@
 .anchored-feed .feed-msg.emote .feed-text { font-size: 28px; }
 .chat-history { max-height: 7rem; overflow: auto; margin: 4px 0; padding-left: 22px; }
 .table-chat.near-profile { margin-top: 0; }
+
+:is(.page-play, .page-pvp, .page-online-room) { overflow-anchor: none; }

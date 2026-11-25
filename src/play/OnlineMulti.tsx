@@ -15,6 +15,7 @@ import { PlayerTag, useBoardTheme, diceLookOf, diceMaterialOf } from "./Looks";
 import { Celebrate } from "../ui/Celebrate";
 import type { Celebration } from "../game-feel";
 import { QuickPicks } from "../QuickPicks";
+import { BrandMark } from "../ui/BrandLoading";
 
 type ViewPlayer = PlayerView["players"][number];
 const secs = (ms: number | null) => (ms === null ? "없음" : `${ms / 1000}초`);
@@ -52,6 +53,7 @@ export function LobbyPanel(p: {
       <div className="lobby-count">
         참가자 <strong>{p.players.length}</strong> / {p.seats}명
       </div>
+      {p.players.length < 2 && <p className="online-wait" role="status"><BrandMark /> 상대가 들어오기를 기다리는 중이에요.</p>}
       <ul className="online-players" aria-label="참가자">
         {p.players.map((x) => (
           <li key={x.playerId} data-player={x.playerId}>
@@ -183,7 +185,6 @@ export function MultiTable(p: {
   me: string;
   online: string[];
   looks: Record<string, PublicLook>;
-  /** Messages + send bar, shown under the board. */
   social: React.ReactNode;
   status: "connecting" | "online" | "reconnecting" | "closed";
   tools: React.ReactNode;
@@ -237,6 +238,10 @@ export function MultiTable(p: {
           {p.tools}
         </div>
         {p.banner}
+        <div className="table-chat multi-profile-chat">
+          <PlayerTag name={players[meIndex]?.name ?? "나"} look={p.looks[p.me]} me compact />
+          {p.social}
+        </div>
         <section
           className={"game-board throw-tray" + (p.canRoll && nearYacht(game.dice, p.rolls, players[meIndex]?.card) ? " yacht-near" : "") + (p.rolls === 0 ? " dice-ready" : "") + theme.className}
           style={theme.style}
@@ -281,7 +286,6 @@ export function MultiTable(p: {
             </MatchResult>
           )}
         </section>
-        <div className="table-chat">{p.social}</div>
         {p.feedback && (
           <p className="game-feedback" role="status" key={p.feedback}>
             {p.feedback}
