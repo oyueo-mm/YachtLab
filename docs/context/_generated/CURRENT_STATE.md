@@ -101,6 +101,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [4b34933](https://github.com/oyueo-mm/YachtLab/commit/4b34933) | 2026-11-25 | Merge PR #72: 효과음 순서 테스트 결정적으로·배포 기록 |
+| [c6bb12c](https://github.com/oyueo-mm/YachtLab/commit/c6bb12c) | 2026-11-25 | test: 효과음 순서 테스트를 조합 없는 고정 첫 굴림으로 결정적으로, 배포 기록 |
 | [55d1120](https://github.com/oyueo-mm/YachtLab/commit/55d1120) | 2026-11-25 | Merge PR #62: 채팅 근본 수정·PC 게임 화면·라지 스트레이트·결과 소리·상점/인벤토리·아이템 200종·친구 |
 | [8f6c81e](https://github.com/oyueo-mm/YachtLab/commit/8f6c81e) | 2026-11-25 | feat(friends): 친구 목록·친구 초대 (회원 전용, 공개 친구 코드) |
 | [f902206](https://github.com/oyueo-mm/YachtLab/commit/f902206) | 2026-11-25 | feat(game): PC 게임 화면·라지 스트레이트 연출·결과 소리 후보·상점/인벤토리·실제 미리보기·아이템 200종 |
@@ -109,8 +111,6 @@
 | [fb77ba5](https://github.com/oyueo-mm/YachtLab/commit/fb77ba5) | 2026-11-25 | feat(online): 빠른 대전 공개 필수화·프로필 닉네임·온라인 화면 간소화·방 자동 정리·다인 관전 화면 |
 | [f82c989](https://github.com/oyueo-mm/YachtLab/commit/f82c989) | 2026-11-25 | Merge PR #60: 온라인 친구 다인전 배포·공개 사이트 검증 기록 |
 | [24820a6](https://github.com/oyueo-mm/YachtLab/commit/24820a6) | 2026-11-24 | docs: 온라인 친구 다인전 배포·공개 사이트 검증 기록 |
-| [01b2deb](https://github.com/oyueo-mm/YachtLab/commit/01b2deb) | 2026-11-24 | Merge PR #59: 온라인 친구 다인전 2~20명 — 순차·동시 진행 |
-| [7c29ef9](https://github.com/oyueo-mm/YachtLab/commit/7c29ef9) | 2026-11-24 | docs(online): multiplayer load test on the deployed Worker (2-20 players, simultaneous) |
 
 ## 최근 GitHub Actions 상태
 
@@ -118,9 +118,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45527818079) | success | 8f6c81ee6d |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45527818059) | success | 8f6c81ee6d |
-| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45525787155) | success | 2bf5f07e75 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45554440061) | success | 649e588e39 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45553742675) | cancelled | 77d397dd29 |
+| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45553349795) | success | f9093a3a4a |
 
 ## 다음 채팅과 작업의 시작점
 
