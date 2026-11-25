@@ -247,6 +247,7 @@ test("설치 팝업은 긴 회원 닉네임과 잔액이 있는 320~430px 홈을
     const popup = page.getByRole("complementary", { name: "앱 설치" });
     await expect(popup).toBeVisible();
     expect(await profile.boundingBox()).toEqual(before);
+    expect((await popup.boundingBox())!.y).toBeGreaterThanOrEqual(before!.y + before!.height);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     await popup.getByRole("button", { name: "설치 안내 닫기" }).click();
     await expect(popup).toHaveCount(0);
