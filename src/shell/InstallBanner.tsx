@@ -27,6 +27,7 @@ export default function InstallBanner({ active }: { active: boolean }) {
 
   useEffect(() => {
     const prompt = (event: Event) => {
+      if (!window.matchMedia("(max-width: 760px)").matches) return;
       event.preventDefault();
       setOffer(event as InstallPrompt);
     };
