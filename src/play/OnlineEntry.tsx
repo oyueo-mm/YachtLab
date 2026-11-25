@@ -251,7 +251,9 @@ function FriendPanel({ server, name, enter, onEnter, createSettings }: { createS
       return 2;
     }
   });
-  const [settings, setSettings] = useState<RoomSettings>({ mode: "turns", timeoutMs: null });
+  // Without an explicit selection, preserve the deployment's existing room default.
+  const [settings, setSettings] = useState<RoomSettings | null>(null);
+  const mode = settings?.mode ?? "turns";
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
   const [error, setError] = useState("");
   const [resume] = useState<SavedSeat[]>(savedSeats);
@@ -266,7 +268,7 @@ function FriendPanel({ server, name, enter, onEnter, createSettings }: { createS
       } catch {
         /* ignore */
       }
-      enter(kind === "create" ? await createRoom(server, name, size, createSettings ? settings : undefined) : await joinRoom(server, target, name));
+      enter(kind === "create" ? await createRoom(server, name, size, createSettings && settings ? settings : undefined) : await joinRoom(server, target, name));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -293,21 +295,22 @@ function FriendPanel({ server, name, enter, onEnter, createSettings }: { createS
             <>
               <label className="room-size">
                 진행 방식
-                <select value={settings.mode} onChange={(event) => {
+                <select value={mode} onChange={(event) => {
                   const simultaneous = event.target.value === "simultaneous";
-                  setSettings(simultaneous ? { mode: "simultaneous", timeoutMs: 90_000 } : { mode: "turns", timeoutMs: null });
+                  setSettings(simultaneous ? { mode: "simultaneous", timeoutMs: 90_000 } : null);
                 }}>
                   <option value="turns">순서대로</option>
                   <option value="simultaneous">동시 진행</option>
                 </select>
               </label>
               <label className="room-size">
-                {settings.mode === "simultaneous" ? "라운드 제한 시간" : "턴 제한 시간"}
-                <select value={String(settings.timeoutMs)} onChange={(event) => {
-                  const timeoutMs = event.target.value === "null" ? null : Number(event.target.value);
-                  setSettings({ ...settings, timeoutMs });
+                {mode === "simultaneous" ? "라운드 제한 시간" : "턴 제한 시간"}
+                <select value={settings ? String(settings.timeoutMs) : "default"} onChange={(event) => {
+                  const selected = event.target.value;
+                  setSettings(selected === "default" ? null : { mode, timeoutMs: selected === "null" ? null : Number(selected) });
                 }}>
-                  {(settings.mode === "simultaneous" ? ROUND_LIMITS : TURN_LIMITS).map((ms) => (
+                  {mode === "turns" && <option value="default">서버 기본값</option>}
+                  {(mode === "simultaneous" ? ROUND_LIMITS : TURN_LIMITS).map((ms) => (
                     <option key={String(ms)} value={String(ms)}>{ms === null ? "없음" : `${ms / 1000}초`}</option>
                   ))}
                 </select>
