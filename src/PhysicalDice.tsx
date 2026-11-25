@@ -1,3 +1,4 @@
+import type { DiceMaterial } from "./sound-packs";
 import { useSettings } from "./settings";
 import type { DiceLook } from "./dice3d/face-paint";
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
@@ -50,7 +51,9 @@ export function PhysicalDice({
   onShiftHold,
   onFailure,
   colors = null,
+  material = "plastic",
 }: {
+  material?: DiceMaterial;
   /** Dice theme (online: the current turn's player). */
   colors?: DiceLook | null;
   module: DiceTableModule;
@@ -332,7 +335,7 @@ export function PhysicalDice({
     setFlying(new Set(moving.map((d) => d.id)));
     const rate = 1.25;
     const done = beginDiceMotion(((result.frameCount / result.fps) * 1000) / rate + 2000);
-    playSfx("throw");
+    playSfx("throw", { material });
     let lastHit = -Infinity,
       hits = 0,
       firstFrameAt = 0;
@@ -341,7 +344,7 @@ export function PhysicalDice({
       onFrame: () => {
         if (!firstFrameAt) firstFrameAt = performance.now();
       },
-      onRoll: (level) => playSfx("roll", { intensity: level, pan: 0 }),
+      onRoll: (level) => playSfx("roll", { material, intensity: level, pan: 0 }),
       onImpact: ({ strength, kind, x }) => {
         // Sound follows the rendered collision: louder and heavier for harder hits, dice knock drier.
         const now = performance.now();
@@ -349,7 +352,7 @@ export function PhysicalDice({
         lastHit = now;
         hits++;
         const intensity = Math.min(1, 0.1 + strength / 9) * (kind === "wall" ? 0.65 : 1);
-        playSfx(kind === "die" ? "clack" : "impact", { intensity, pan: (x - 0.5) * 1.2 });
+        playSfx(kind === "die" ? "clack" : "impact", { material, intensity, pan: (x - 0.5) * 1.2 });
       },
       onDone: () => {
         const last = (result.frameCount - 1) * 7;
@@ -366,7 +369,7 @@ export function PhysicalDice({
           } else tray.current.set(tr.id, pose);
         }
         pending.forEach((run) => run());
-        playSfx("settle", { intensity: 0.35 });
+        playSfx("settle", { material, intensity: 0.35 });
         setFlying(new Set());
         refresh();
         done();

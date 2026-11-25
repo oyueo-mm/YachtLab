@@ -241,3 +241,18 @@ test("보드 미리보기는 실제 굴림 면에 소재가 적용되고 킵한 
   await expect(die).toHaveAttribute("aria-label", kept!);
   expect(account.requests).toHaveLength(0);
 });
+
+test("상점 미리보기는 소재별 굴림 소리와 강화 전 이모티콘 효과음을 사용한다", async ({ page }) => {
+  const account = await open(page, "shop");
+  await page.getByRole("tab", { name: /^주사위/ }).click();
+  await page.getByRole("button", { name: "황금 자세히" }).click();
+  await page.getByRole("button", { name: "굴려 보기" }).click();
+  const sound = () => page.evaluate(() => (window as any).__yachtlabSound.log.map(({ name, pack }: { name: string; pack?: string }) => [name, pack]));
+  await expect.poll(sound).toContainEqual(["impact", "gold"]);
+  await page.keyboard.press("Escape");
+  await page.getByRole("tab", { name: /^이모티콘/ }).click();
+  await page.getByRole("button", { name: "번개 자세히" }).click();
+  await page.getByRole("button", { name: "소리 듣기" }).click();
+  await expect.poll(sound).toContainEqual(["emote", "bolt"]);
+  expect(account.requests).toHaveLength(0);
+});

@@ -1,3 +1,4 @@
+import { diceMaterial } from "../sound-packs";
 import { itemById, lookAt, type ItemDef, type PublicLook } from "../economy/live/catalog";
 import type { CSSProperties } from "react";
 import { motionLevel, useSettings } from "../settings";
@@ -32,6 +33,9 @@ export function PlayerTag({ name, look, me = false, compact = false }: { name: s
 /** Dice look of a player (current turn's player), for the 2D and 3D dice — at the level they chose. */
 export function diceLookOf(look?: PublicLook | null) {
   return lookAt(itemById(look?.dice), look?.diceLv ?? 1).dice ?? null;
+}
+export function diceMaterialOf(look?: PublicLook | null) {
+  return diceMaterial(look?.dice, diceLookOf(look));
 }
 /** The same frame, tray and shelf style in the game and in item previews. */
 export function boardTheme(item: ItemDef | null | undefined, level = 1, motion = true) {

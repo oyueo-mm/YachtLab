@@ -1,3 +1,4 @@
+import { diceMaterial } from "../sound-packs";
 import { useEffect, useRef, useState } from "react";
 import { Dices, Play, Volume2 } from "lucide-react";
 import { CATEGORIES, itemById, lookAt, publicLook, DEFAULT_LOADOUT, type ItemDef, type PublicLook } from "../economy/live/catalog";
@@ -7,7 +8,7 @@ import { DiceArea } from "../DiceArea";
 import { boardTheme, PlayerTag } from "../play/Looks";
 import { FxBurst, GLYPH } from "../play/FxBurst";
 import { socialItem } from "../social/catalog";
-import { playSfx, unlockAudio } from "../sound";
+import { playEmoteSfx, playSfx, unlockAudio } from "../sound";
 import { DieIcon } from "../Dice";
 import { diceRenderer, motionLevel, useSettings } from "../settings";
 
@@ -129,7 +130,7 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
     return (
       <div className="item-stage">
         <section className={"game-board throw-tray stage-board" + theme.className} style={theme.style} aria-label="미리보기 보드">
-          <DiceArea state={state} forceRenderer={renderer} colors={item.category === "dice" ? (look.dice ?? null) : null} interactive animate rollEvent={rollEvent} onToggle={(id) => setDice((previous) => previous.map((die) => die.id === id ? { ...die, held: !die.held } : die))} />
+          <DiceArea state={state} forceRenderer={renderer} colors={item.category === "dice" ? (look.dice ?? null) : null} material={diceMaterial(item.id, look.dice)} interactive animate rollEvent={rollEvent} onToggle={(id) => setDice((previous) => previous.map((die) => die.id === id ? { ...die, held: !die.held } : die))} />
         </section>
         <button type="button" className="primary stage-action" onClick={roll}>
           <Dices size={17} /> 굴려 보기
@@ -156,8 +157,12 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
           <button type="button" className="secondary" onClick={() => setReplay((n) => n + 1)}>
             <Play size={15} /> 다시 보기
           </button>
-          {item.category === "emote" && level >= 3 && (
-            <button type="button" className="secondary" onClick={() => (unlockAudio(), playSfx("yachtHit"))}>
+          {item.category === "emote" && (
+            <button type="button" className="secondary" onClick={() => {
+              unlockAudio();
+              setReplay((n) => n + 1);
+              playEmoteSfx(item.id);
+            }}>
               <Volume2 size={15} /> 소리 듣기
             </button>
           )}
