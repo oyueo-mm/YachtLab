@@ -50,6 +50,9 @@ test("4인전: 48턴 완주, 공동 우승 가능 및 완성된 기보", async (
     await scoreCategory(page);
   }
   await expect(page.locator(".game-result")).toContainText(/승리|공동 우승/);
+  await expect(page.locator(".match-result-dialog .game-result-actions button")).toHaveCount(2);
+  await page.getByRole("button", { name: "결과 닫기" }).click();
+  await expect(page.locator(".scoreboard")).toBeVisible();
   await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(48);
   await expect(page.locator(".multi-standing-row")).toHaveCount(4);
   await page.getByRole("button", { name: "기보 보기" }).click();
@@ -61,6 +64,7 @@ test("4인전: 48턴 완주, 공동 우승 가능 및 완성된 기보", async (
   expect(record.finalState.done).toBe(true);
   expect(record.finalState.cards).toHaveLength(4);
   await page.getByRole("button", { name: "기보 닫기" }).click();
+  await page.getByRole("button", { name: "경기 결과", exact: true }).click();
   await page.getByRole("button", { name: "한 번 더 플레이" }).click();
   await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(0);
   await expect(page.locator(".multi-player-chip")).toHaveCount(4);
