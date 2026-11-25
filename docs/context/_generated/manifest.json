@@ -120,6 +120,11 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "0fb8443",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #92 from oyueo-mm/codex/online-yacht-economy"
+    },
+    {
       "sha": "38b99af",
       "date": "2026-11-26",
       "subject": "Merge pull request #91 from oyueo-mm/codex/online-yacht-player-ui"
@@ -130,9 +135,29 @@
       "subject": "Merge pull request #90 from oyueo-mm/codex/online-yacht-brand"
     },
     {
+      "sha": "8e00f31",
+      "date": "2026-11-26",
+      "subject": "Make dice input checks deterministic and document bundle odds"
+    },
+    {
+      "sha": "8fec5cc",
+      "date": "2026-11-26",
+      "subject": "Merge branch 'codex/online-yacht-player-ui' into codex/online-yacht-economy"
+    },
+    {
       "sha": "f32027e",
       "date": "2026-11-26",
       "subject": "Show hidden-chat status and check combined match history"
+    },
+    {
+      "sha": "eee472b",
+      "date": "2026-11-26",
+      "subject": "Merge branch 'codex/online-yacht-player-ui' into codex/online-yacht-economy"
+    },
+    {
+      "sha": "770476c",
+      "date": "2026-11-26",
+      "subject": "Reset the dice view on rematch and record release verification"
     },
     {
       "sha": "2196a28",
@@ -140,48 +165,29 @@
       "subject": "Keep desktop scores in one table beside the chat profiles"
     },
     {
-      "sha": "f5b186c",
+      "sha": "c814f61",
       "date": "2026-11-26",
-      "subject": "Keep the chat popover on-screen and the mobile dock above the dice"
-    },
-    {
-      "sha": "b90ae6a",
-      "date": "2026-11-26",
-      "subject": "Retain profile messages for multiplayer spectators"
-    },
-    {
-      "sha": "21e8824",
-      "date": "2026-11-26",
-      "subject": "Keep score focus stable and surface table chat near player profiles"
-    },
-    {
-      "sha": "85301a2",
-      "date": "2026-11-26",
-      "subject": "Merge branch 'codex/online-yacht-brand' into codex/online-yacht-player-ui"
-    },
-    {
-      "sha": "953577a",
-      "date": "2026-11-26",
-      "subject": "Check the revised header in game and keep the guest wordmark visible"
-    },
-    {
-      "sha": "7892b0e",
-      "date": "2026-11-26",
-      "subject": "Unify player panels, simplify reviews and anchor match chat"
+      "subject": "Record desktop and mobile brand comparisons"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "Test and deploy YachtLab",
-      "status": "cancelled",
-      "head": "2a6aaa8b5c",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45717102298"
-    },
-    {
       "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
       "status": "success",
-      "head": "4346765f22",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45715456148"
+      "head": "e638a623b1",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45717549260"
+    },
+    {
+      "name": "Deploy YachtLab Online Worker (manual)",
+      "status": "success",
+      "head": "8e00f3172f",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45717409511"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "cancelled",
+      "head": "38b99afbff",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45717239764"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",

@@ -109,16 +109,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [0fb8443](https://github.com/oyueo-mm/YachtLab/commit/0fb8443) | 2026-11-26 | Merge pull request #92 from oyueo-mm/codex/online-yacht-economy |
 | [38b99af](https://github.com/oyueo-mm/YachtLab/commit/38b99af) | 2026-11-26 | Merge pull request #91 from oyueo-mm/codex/online-yacht-player-ui |
 | [2a6aaa8](https://github.com/oyueo-mm/YachtLab/commit/2a6aaa8) | 2026-11-26 | Merge pull request #90 from oyueo-mm/codex/online-yacht-brand |
+| [8e00f31](https://github.com/oyueo-mm/YachtLab/commit/8e00f31) | 2026-11-26 | Make dice input checks deterministic and document bundle odds |
+| [8fec5cc](https://github.com/oyueo-mm/YachtLab/commit/8fec5cc) | 2026-11-26 | Merge branch 'codex/online-yacht-player-ui' into codex/online-yacht-economy |
 | [f32027e](https://github.com/oyueo-mm/YachtLab/commit/f32027e) | 2026-11-26 | Show hidden-chat status and check combined match history |
+| [eee472b](https://github.com/oyueo-mm/YachtLab/commit/eee472b) | 2026-11-26 | Merge branch 'codex/online-yacht-player-ui' into codex/online-yacht-economy |
+| [770476c](https://github.com/oyueo-mm/YachtLab/commit/770476c) | 2026-11-26 | Reset the dice view on rematch and record release verification |
 | [2196a28](https://github.com/oyueo-mm/YachtLab/commit/2196a28) | 2026-11-26 | Keep desktop scores in one table beside the chat profiles |
-| [f5b186c](https://github.com/oyueo-mm/YachtLab/commit/f5b186c) | 2026-11-26 | Keep the chat popover on-screen and the mobile dock above the dice |
-| [b90ae6a](https://github.com/oyueo-mm/YachtLab/commit/b90ae6a) | 2026-11-26 | Retain profile messages for multiplayer spectators |
-| [21e8824](https://github.com/oyueo-mm/YachtLab/commit/21e8824) | 2026-11-26 | Keep score focus stable and surface table chat near player profiles |
-| [85301a2](https://github.com/oyueo-mm/YachtLab/commit/85301a2) | 2026-11-26 | Merge branch 'codex/online-yacht-brand' into codex/online-yacht-player-ui |
-| [953577a](https://github.com/oyueo-mm/YachtLab/commit/953577a) | 2026-11-26 | Check the revised header in game and keep the guest wordmark visible |
-| [7892b0e](https://github.com/oyueo-mm/YachtLab/commit/7892b0e) | 2026-11-26 | Unify player panels, simplify reviews and anchor match chat |
+| [c814f61](https://github.com/oyueo-mm/YachtLab/commit/c814f61) | 2026-11-26 | Record desktop and mobile brand comparisons |
 
 ## 최근 GitHub Actions 상태
 
@@ -126,8 +126,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45717102298) | cancelled | 2a6aaa8b5c |
-| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45715456148) | success | 4346765f22 |
+| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45717549260) | success | e638a623b1 |
+| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45717409511) | success | 8e00f3172f |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45717239764) | cancelled | 38b99afbff |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45686563250) | success | 8e00f3172f |
 
 ## 다음 채팅과 작업의 시작점
