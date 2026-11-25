@@ -45,6 +45,7 @@ export function PhysicalDice({
   holdOrder = [],
   adaptive = false,
   interactive,
+  focusDie,
   rollEvent,
   onToggle,
   onOrder,
@@ -66,6 +67,7 @@ export function PhysicalDice({
   /** "자동" quality: lower the canvas resolution after repeatedly slow throws. */
   adaptive?: boolean;
   interactive: boolean;
+  focusDie?: number;
   rollEvent: number;
   onToggle?: (id: number) => void;
   onOrder?: (ids: number[]) => void;
@@ -496,14 +498,15 @@ export function PhysicalDice({
   const pick = (event: MouseEvent<HTMLButtonElement>, id: number) => {
     event.stopPropagation();
     if (!interactive || busy) return;
-    if (event.detail === 0 || !dims) return onToggle?.(id); // keyboard activation
+    if (focusDie !== undefined && id !== focusDie) return;
+    if (focusDie !== undefined || event.detail === 0 || !dims) return onToggle?.(id); // keyboard activation
     onToggle?.(nearest(event.clientX, event.clientY, Infinity) ?? id);
   };
   /** Taps in the small gaps around a die still reach it. */
   const pickGap = (event: MouseEvent<HTMLDivElement>) => {
     if (!interactive || busy || !dims) return;
     const id = nearest(event.clientX, event.clientY, dims.size * 0.75);
-    if (id !== null) onToggle?.(id);
+    if (id !== null && (focusDie === undefined || id === focusDie)) onToggle?.(id);
   };
   const keys = (event: KeyboardEvent<HTMLButtonElement>, id: number) => {
     if (!event.altKey || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
@@ -543,7 +546,7 @@ export function PhysicalDice({
               data-die-id={id}
               data-zone={d.held ? "hold" : "tray"}
               style={t ? { left: t.cx - dims.size / 2, top: t.cy - dims.size / 2, width: dims.size, height: dims.size } : { display: "none" }}
-              disabled={!interactive || busy || !state.rolls}
+              disabled={!interactive || busy || !state.rolls || (focusDie !== undefined && id !== focusDie)}
               aria-pressed={d.held}
               aria-label={`주사위 ${id + 1}, ${d.value}, ${d.held ? "고정됨" : "고정 안 됨"}`}
               title="클릭: 고정/해제 (고정한 순서대로 아래 칸에 놓여요)"

@@ -67,7 +67,7 @@ export function DiceArea({ forceRenderer, colors = null, material, ...props }: P
   if (physical)
     return (
       <>
-        <PhysicalDice key={renderer} colors={colors} material={material} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} adaptive={!forceRenderer && settings.diceQuality === "auto"} interactive={!!props.interactive} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onFailure={() => setFailed(true)} />
+        <PhysicalDice key={renderer} colors={colors} material={material} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} adaptive={!forceRenderer && settings.diceQuality === "auto"} interactive={!!props.interactive} focusDie={props.focusDie} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onFailure={() => setFailed(true)} />
         <ScoreFxLabel fx={fx} />
         {props.animate && <YachtFlash dice={props.state.dice} rolls={props.state.rolls} rollEvent={props.rollEvent ?? 0} />}
         {props.animate && <StraightFlash dice={props.state.dice} rolls={props.state.rolls} rollEvent={props.rollEvent ?? 0} />}

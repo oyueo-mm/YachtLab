@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { type Match } from "./match";
 import { type AnalysisSource } from "./ReplayViewer";
@@ -60,7 +60,7 @@ export default function App() {
   const [onlineNotice, setOnlineNotice] = useState("");
   const [watchTarget] = useState(watchFromUrl);
   const [profileNotice, setProfileNotice] = useState("");
-  useEffect(() => registerVisit(tutorialReturn !== null), [tutorialReturn]);
+  useLayoutEffect(() => registerVisit(tutorialReturn !== null), [tutorialReturn]);
   // Members: friend requests and room invites (checked once a minute while the site is visible).
   useEffect(() => startInbox(onlineServer), [onlineServer]);
   // …and right away when the home menu or the friends page opens (badge / invites without waiting).
@@ -210,10 +210,10 @@ export default function App() {
         />}
         {page === "home" && <Lobby navigate={navigate} server={onlineServer} />}
         {page === "tutorial" && <Tutorial returning={!!tutorialDestination.current && tutorialDestination.current !== "home"} onExit={() => {
-          if (tutorialDestination.current === "tutorial") go("home");
-          else if (tutorialDestination.current) enter(tutorialDestination.current);
+          if (tutorialDestination.current) enter(tutorialDestination.current);
           else go("home");
         }} />}
+        {page === "practice" && <Tutorial practiceOnly onExit={() => go("home")} />}
         {page === "offline" && <OfflineSelect navigate={navigate} />}
         {(page === "online" || page === "online-room") && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "online" && onlineServer && (
