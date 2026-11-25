@@ -127,5 +127,6 @@ export const AGENTS: Record<string, { v5: boolean; bayes?: boolean; v6?: string[
   "v7-I2RW4": { v5: true, v6: ["all"], describe: "v7-I2RW4: I2R when my remaining <= 4, else I1RO", act: v7("I2R", { window: 4, fallback: "I1RO" }) },
   "v7-I2RW6": { v5: true, v6: ["all"], describe: "v7-I2RW6: I2R when my remaining <= 6, else I1RO", act: v7("I2R", { window: 6, fallback: "I1RO" }) },
   "v7-I2RW8": { v5: true, v6: ["all"], describe: "v7-I2RW8: I2R when my remaining <= 8, else I1RO", act: v7("I2R", { window: 8, fallback: "I1RO" }) },
+  "v7-I2RO": { v5: true, v6: ["all"], describe: "v7-I2RO: reactive opponent turn (v5-R objective) -> opponent mixture PMF; my next turn solved exactly with P stop values against it", act: v7("I2RO") },
   "v7-I1B3": { v5: true, v6: ["all"], describe: "v7-I1 + exact interactive minimax when both <= 3", act: v7("I1", { endgame: "minimax", minimaxWindow: 3 }) },
 };
