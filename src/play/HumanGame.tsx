@@ -1,3 +1,4 @@
+import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useEffect, useRef, useState } from "react";
 import { Trophy, Dices, RotateCcw, ArrowRight, ChevronRight, History, SlidersHorizontal } from "lucide-react";
 import { createGame, transition, total, names, type Category } from "../engine";
@@ -23,6 +24,7 @@ import { useDiceBusy } from "../useDiceBusy";
 import { useYachtReady } from "../yacht-moment";
 import { BonusChip, QuickPicks } from "../QuickPicks";
 import { announceScore, clearScoreFx } from "../score-fx";
+import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./Tutorial";
 
 /**
  * Human vs AI. All choices (difficulty, names, who starts, AI pace) come from the setup screen;
@@ -80,6 +82,8 @@ export default function HumanGame({
   const [aiTurn, setAiTurn] = useState(0),
     [caption, setCaption] = useState(""),
     [gameFeedback, setGameFeedback] = useState("");
+  const [showGuide, setShowGuide] = useState(() => !hasRecordedFirstScore());
+  const [milestones, setMilestones] = useState({ best: false, comeback: false });
   const [rollEvent, setRollEvent] = useState(0);
   const [aiPreviewCategory, setAiPreviewCategory] = useState<Category | null>(null);
   const rolling = useDiceBusy();
@@ -95,6 +99,10 @@ export default function HumanGame({
       // This device's record (profile/stats). Trust level: client-reported, never server-verified.
       const mine = total(next.cards[humanSeat]),
         theirs = total(next.cards[aiSeat]);
+      setMilestones({
+        best: beatDeviceScore("ai", mine),
+        comeback: next.winner === humanSeat && updated.frames.some((frame) => behindAfterNine(frame.state.cards, humanSeat)),
+      });
       saveLocalRecord({
         recordId: newRecordId(),
         mode: "ai",
@@ -167,6 +175,7 @@ export default function HumanGame({
     setAiTurn((n) => n + 1); // re-arm the AI even when it is seat 0 and moves first
     setCaption("");
     setGameFeedback("");
+    setMilestones({ best: false, comeback: false });
     setMobileScoreOpen(false);
     setAiPreviewCategory(null);
   };
@@ -179,6 +188,8 @@ export default function HumanGame({
   const recordScore = (category: Category) => {
     if (!can || state.rolls === 0 || state.cards[humanSeat][category] !== undefined) return;
     act({ type: "score", category });
+    markFirstScoreRecorded();
+    setShowGuide(false);
     setMobileScoreOpen(false);
   };
   const mine = state.player === humanSeat;
@@ -217,7 +228,7 @@ export default function HumanGame({
               <div key={seat} className={state.player === seat ? "selected" : ""} data-seat={seat} data-role={seat === humanSeat ? "human" : "ai"}>
                 <span>{labels[seat]}</span>
                 <strong>
-                  {total(state.cards[seat])}
+                  <ScoreTotal value={total(state.cards[seat])} />
                   <small>점</small>
                 </strong>
               </div>
@@ -231,7 +242,7 @@ export default function HumanGame({
             </div>
             <BonusChip card={state.cards[humanSeat]} />
           </div>
-          <section className={"game-board throw-tray" + (state.rolls === 0 ? " dice-ready" : "")} aria-label="게임 보드" {...gesture}>
+          <section className={"game-board throw-tray" + (state.rolls === 0 ? " dice-ready" : "") + (can && nearYacht(state.dice, state.rolls, state.cards[humanSeat]) ? " yacht-near" : "")} aria-label="게임 보드" {...gesture}>
             <Celebrate value={celebration} />
             <div className="board-top">
               <span className="turn-indicator">
@@ -261,9 +272,7 @@ export default function HumanGame({
                 {state.rolls === 0 ? "주사위 굴리기" : "다시 굴리기"}
                 <span>{3 - state.rolls}회 남음</span>
               </button>
-              <p>
-                {!state.done && mine && !rolling && state.rolls === 3 ? "점수 칸을 선택하세요" : ""}
-              </p>
+              <p>{!showGuide && !state.done && mine && !rolling && state.rolls === 3 ? "점수 칸을 선택하세요" : ""}</p>
               <QuickPicks values={state.dice.map((d) => d.value)} card={state.cards[humanSeat]} rolls={state.rolls} canScore={can} onScore={recordScore} />
             </div>
             {caption && (
@@ -279,6 +288,7 @@ export default function HumanGame({
                 <p>
                   {total(state.cards[humanSeat])} : {total(state.cards[aiSeat])}
                 </p>
+                <MatchMilestones {...milestones} />
                 <div className="game-result-actions">
                   <button className="primary" onClick={restart}>
                     한 번 더 플레이
@@ -292,13 +302,14 @@ export default function HumanGame({
             )}
           </section>
           <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : state.rolls} canScore={can} yacht={yachtReady} />
+          <FirstTurnGuide rolls={state.rolls} active={showGuide && mine && !state.done} busy={rolling} />
           {mobileScoreOpen && (
             <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}>
               <MobileQuickScore cards={state.cards} dice={state.dice} rolls={rolling ? 0 : state.rolls} current={state.player} labels={labels} canScore={can} onScore={recordScore} />
             </MobileScoreSheet>
           )}
           {gameFeedback && (
-            <p className="game-feedback" role="status">
+            <p className="game-feedback" role="status" key={gameFeedback}>
               {gameFeedback}
             </p>
           )}

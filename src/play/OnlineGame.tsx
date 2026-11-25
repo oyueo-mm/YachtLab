@@ -1,3 +1,5 @@
+import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./Tutorial";
+import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Copy, Crown, Dices, Flag, Home, LogOut, Play, RotateCcw, Share2, Trophy, UserRound, Wifi, WifiOff, X } from "lucide-react";
 import { names, type Category, type Game } from "../engine";
@@ -72,7 +74,7 @@ function recordOnDevice(view: PlayerView, me: string) {
   });
 }
 
-export default function OnlineGame({ server, code, onLeave, onProgress }: { server: string; code: string; onLeave: (message?: string) => void; onProgress?: (inProgress: boolean) => void }) {
+export default function OnlineGame({ server, code, quickIntro = false, onLeave, onProgress, onFinished }: { server: string; code: string; quickIntro?: boolean; onFinished?: (matchId: string) => void; onLeave: (message?: string) => void; onProgress?: (inProgress: boolean) => void }) {
   const seat = useMemo(() => savedSeat(code), [code]);
   const [view, setView] = useState<PlayerView | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
@@ -89,11 +91,16 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const announced = useRef(new Set<string>());
   /** Bumped on every catch-up sync (welcome after load/reconnect): sounds stay silent for it. */
   const [syncKey, setSyncKey] = useState(0);
+  const [milestones, setMilestones] = useState({ best: false, comeback: false });
+  const wasBehind = useRef(false);
   const [rollEvent, setRollEvent] = useState(0);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [showGuide, setShowGuide] = useState(() => !hasRecordedFirstScore());
   const [feedback, setFeedback] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"code" | "link" | null>(null);
+  const lastCopy = useRef(0);
+  const [intro, setIntro] = useState(quickIntro);
   const [mobileScoreOpen, setMobileScoreOpen] = useState(false);
   const [confirm, setConfirm] = useState<PendingAction>(null);
   const [deadline, setDeadline] = useState<number | null>(null);
@@ -163,6 +170,8 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           for (const p of next.players) announced.current.add(p.playerId);
           clearScoreFx();
           setFeedback("");
+          setMilestones({ best: false, comeback: false });
+          wasBehind.current = false;
           setError("");
           setMobileScoreOpen(false);
         }
@@ -172,6 +181,10 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         if (live && prev) {
           for (const e of next.events) {
             if (e.seq < prev.version) continue;
+            if (e.type === "categoryScored" && e.playerId === me && !e.auto && !hasRecordedFirstScore()) {
+              markFirstScoreRecorded();
+              setShowGuide(false);
+            }
             // Simultaneous rounds: only my own dice move on my table (others play their own dice).
             const mine = !simultaneous || ("playerId" in e && e.playerId === me);
             if (e.type === "diceRolled" && mine) {
@@ -206,7 +219,19 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           return ordered;
         });
         if (next.turn?.dice.length) lastDice.current = next.turn.dice;
-        if (next.status === "finished" && me && next.standings) recordOnDevice(next, me);
+        if (me && next.status === "playing") {
+          const index = next.players.findIndex((player) => player.playerId === me);
+          if (index >= 0 && behindAfterNine(next.players.map((player) => player.card), index)) wasBehind.current = true;
+        }
+        if (next.status === "finished" && me && next.standings) {
+          const player = next.players.find((item) => item.playerId === me);
+          if (live && prev?.status === "playing" && player && Object.keys(player.card).length === 12) {
+            const comeback = wasBehind.current && next.winners.length === 1 && next.winners[0] === me;
+            setMilestones({ best: beatDeviceScore("online", player.total, next.matchId), comeback });
+          }
+          recordOnDevice(next, me);
+          if (prev?.matchId === next.matchId && prev.status === "playing") onFinished?.(next.matchId);
+        }
         viewRef.current = next;
         setView(next);
         const remainingMs = next.mode === "simultaneous" ? next.roundRemainingMs : next.turn?.remainingMs;
@@ -273,6 +298,12 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   }, [deadline, anyAway]);
 
   const playing = view?.status === "playing";
+  useEffect(() => {
+    if (!intro || !playing) return;
+    const timeout = window.setTimeout(() => setIntro(false), 1900);
+    return () => window.clearTimeout(timeout);
+  }, [intro, playing]);
+  useEffect(() => () => window.clearTimeout(lastCopy.current), []);
   useEffect(() => onProgress?.(!!playing), [playing]);
   useEffect(() => () => onProgress?.(false), []);
 
@@ -357,7 +388,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   // first = shared win, any other place = the calm "finished" sound).
   const myRank = view?.standings?.find((x) => x.playerId === me?.playerId)?.rank;
   const soundOutcome = !finished ? null : players.length > 2 ? (myRank === 1 ? (winners.length > 1 ? "winShared" : "win") : "lose") : outcome;
-  const celebration = useGameSounds(game.cards, finished, soundOutcome, syncKey);
+  const celebration = useGameSounds(players.length > 2 ? [players[meIndex]?.card ?? {}] : game.cards, finished, soundOutcome, syncKey);
 
 
   if (!seat) return null;
@@ -392,15 +423,16 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   if (view.status === "lobby") {
     const link = inviteLink(code);
     const canShare = typeof navigator.share === "function";
-    /** Copy the invite link; falls back to a selection copy for in-app browsers without the Clipboard API. */
-    const copy = async () => {
+    /** Copy the invitation; falls back to a selection copy for in-app browsers without the Clipboard API. */
+    const copy = async (kind: "code" | "link") => {
+      const text = kind === "code" ? code : link;
       let ok = false;
       try {
-        await navigator.clipboard.writeText(link);
+        await navigator.clipboard.writeText(text);
         ok = true;
       } catch {
         const field = document.createElement("textarea");
-        field.value = link;
+        field.value = text;
         field.setAttribute("readonly", "");
         field.style.position = "fixed";
         field.style.opacity = "0";
@@ -414,8 +446,9 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         field.remove();
       }
       if (ok) {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1800);
+        window.clearTimeout(lastCopy.current);
+        setCopied(kind);
+        lastCopy.current = window.setTimeout(() => setCopied(null), 1800);
       } else setError("복사하지 못했어요. 아래 링크를 길게 눌러 복사해 주세요.");
     };
     const share = async () => {
@@ -433,8 +466,11 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           <span>초대 코드</span>
           <strong aria-label="초대 코드">{code}</strong>
           <div className="online-invite-actions">
-            <button type="button" className="primary" onClick={() => void copy()}>
-              <Copy size={15} /> {copied ? "링크를 복사했어요" : "초대 링크 복사"}
+            <button type="button" className="primary" onClick={() => void copy("link")}>
+              <Copy size={15} /> {copied === "link" ? "링크를 복사했어요" : "초대 링크 복사"}
+            </button>
+            <button type="button" className="secondary" onClick={() => void copy("code")}>
+              <Copy size={15} /> {copied === "code" ? "코드를 복사했어요" : "초대 코드 복사"}
             </button>
             {canShare && (
               <button type="button" className="secondary" onClick={() => void share()}>
@@ -539,6 +575,9 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           canRoll={canRoll}
           remaining={remaining}
           feedback={feedback}
+          showGuide={showGuide && status === "online" && !rolling}
+          milestones={milestones}
+          celebration={celebration}
           error={<ErrorMessage message={error} />}
           rematch={rematch}
           isHost={(lobby?.hostId ?? players[0]?.playerId) === me?.playerId}
@@ -586,7 +625,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                   {p.playerId === aiSeat && <span className="ai-badge">서버 AI</span>}
                 </span>
                 <strong>
-                  {p.total}
+                  <ScoreTotal value={p.total} />
                   <small>점</small>
                 </strong>
               </div>
@@ -602,12 +641,19 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           </div>
           {banner}
           <section
-            className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (boardOf(myLook) ? " board-themed" : "") + (boardCssOf(myLook) ? " " + boardCssOf(myLook) : "")}
+            className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (canRoll && nearYacht(game.dice, rolls, players[meIndex]?.card) ? " yacht-near" : "") + (boardOf(myLook) ? " board-themed" : "") + (boardCssOf(myLook) ? " " + boardCssOf(myLook) : "")}
             style={boardOf(myLook) ? ({ "--board-color": boardOf(myLook) } as React.CSSProperties) : undefined}
             aria-label="게임 보드"
             {...gesture}
           >
             <Celebrate value={celebration} />
+            {intro && playing && me && opponent && (
+              <div className="quick-match-intro" role="status" aria-label="빠른 대전 매칭 완료">
+                <PlayerTag name={players[meIndex].name} look={looks[me.playerId] ?? GUEST_LOOK} me />
+                <strong aria-hidden="true">VS</strong>
+                <PlayerTag name={opponent.name} look={looks[opponent.playerId] ?? GUEST_LOOK} />
+              </div>
+            )}
             {yachtFx && <FxBurst key={yachtFx.seed} fx={yachtFx.fx} level={yachtFx.level} seed={yachtFx.seed} />}
             <div className="board-top">
               <span className="turn-indicator">
@@ -626,9 +672,10 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                 {myTurn ? (rolls === 0 ? "주사위 굴리기" : "다시 굴리기") : finished ? "경기 종료" : `${players[turnIndex]?.name ?? "상대"} 님의 차례`}
                 {myTurn && <span>{3 - rolls}회 남음</span>}
               </button>
+              <FirstTurnGuide rolls={rolls} active={showGuide && myTurn && status === "online"} busy={rolling} />
               <p className="online-turn-line">
                 {remaining !== null && <span className="turn-timer">남은 시간 {clock(remaining)}</span>}
-                {myTurn && !rolling && rolls === 3 ? " 점수 칸을 선택하세요" : ""}
+                {myTurn && !rolling && !showGuide && rolls === 3 ? " 점수 칸을 선택하세요" : ""}
               </p>
               <QuickPicks values={game.dice.map((d) => d.value)} card={players[meIndex]?.card ?? {}} rolls={rolls} canScore={can} onScore={record} />
             </div>
@@ -650,6 +697,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                     <UserRound size={15} /> {opponent.name} 님 프로필
                   </button>
                 )}
+                <MatchMilestones {...milestones} />
                 <RematchControls rematch={rematch} me={me?.playerId ?? ""} opponentName={opponent?.name ?? "상대"} onOp={(op) => conn.current?.rematch(op)} />
                 <div className="game-result-actions">
                   <button
@@ -690,7 +738,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
             {dock}
           </div>
           {feedback && (
-            <p className="game-feedback" role="status">
+            <p className="game-feedback" role="status" key={feedback}>
               {feedback}
             </p>
           )}

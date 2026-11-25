@@ -336,3 +336,15 @@ describe("Phase 4.5 — 빠른 대전·공개 관전 (wrangler dev, local)", () 
     expect(a.ws.readyState).toBeGreaterThanOrEqual(2);
   }, 30_000);
 });
+
+it("Worker에서 생성 시의 진행 방식을 저장하고 입력을 검증한다", async () => {
+  const settings = { mode: "simultaneous", timeoutMs: 120_000 };
+  expect((await api(main, "/api/features")).body.createSettings).toBe(true);
+  expect((await api(main, "/api/rooms", { name: "민수", settings: { ...settings, timeoutMs: 1 } })).status).toBe(400);
+  const created = await api(main, "/api/rooms", { name: "민수", maxPlayers: 4, settings });
+  expect(created.status).toBe(201);
+  expect((await api(main, `/api/rooms/${created.body.code}`)).body).toMatchObject({ seats: 4, mode: "simultaneous" });
+  const client = new Client(main.url, created.body.code);
+  const welcome = await client.hello(created.body.token);
+  expect(welcome).toMatchObject({ lobby: { settings, maxPlayers: 4 } });
+});

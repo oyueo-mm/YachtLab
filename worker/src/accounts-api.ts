@@ -1,3 +1,4 @@
+import type { MatchReceipt } from "../../src/economy/live/receipt";
 import { sanitizeRecord, type MatchRecord } from "../../src/identity/records";
 import { GOOGLE, OidcError, USER_ID, beginLogin, finishLogin, seal, sha256, unseal, userIdFor, type LoginState, type OidcProvider } from "./oidc";
 import type { PrivateProfile, PublicProfile } from "./account";
@@ -43,6 +44,7 @@ export interface UserApi {
   authenticate(session: string): Promise<boolean>;
   me(): Promise<PrivateProfile | null>;
   records(limit: number): Promise<MatchRecord[]>;
+  matchReward?(matchId: string): Promise<{ receipt: MatchReceipt | null } | null>;
   setNickname(nickname: unknown): Promise<{ ok: true; nickname: string } | { ok: false; message: string }>;
   importRecords(records: MatchRecord[], source: "device" | "guest-import", guestId: string | null): Promise<{ added: number; skipped: number } | { error: string }>;
   logout(session: string): Promise<void>;
@@ -191,6 +193,11 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
   const user = b.user(me.userId);
   if (path === "/api/me" && method === "GET") return reply(200, { profile: await user.me() });
   if (path === "/api/me/records" && method === "GET") return reply(200, { records: await user.records(Number(url.searchParams.get("limit") ?? 300) || 300) });
+  const reward = /^\/api\/me\/records\/([A-Za-z0-9_-]{4,64})\/reward$/.exec(path);
+  if (reward && method === "GET" && user.matchReward) {
+    const result = await user.matchReward(reward[1]);
+    return result ? reply(200, result) : fail(404, "NOT_FOUND", "경기 기록을 아직 찾을 수 없어요.");
+  }
   /* ---------------- economy (server-side only; the client never sends amounts) ---------------- */
   const econ = (r: EconResult) => (r.ok ? reply(200, { snapshot: r.snapshot, duplicate: r.duplicate ?? false }) : fail(r.code === "ECONOMY_OFF" ? 404 : r.code === "INSUFFICIENT" ? 402 : 400, r.code, r.message));
   if (path === "/api/me/economy" && method === "GET" && user.economy) return econ(await user.economy());

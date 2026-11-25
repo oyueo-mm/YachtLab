@@ -27,6 +27,7 @@ export default function MobileQuickScore({
   onScore: (category: Category) => void;
 }) {
   const [view, setView] = useState(current);
+  const [compact, setCompact] = useState(false);
   useEffect(() => setView(current), [current]);
   const card = cards[view],
     canRecord = canScore && view === current && rolls > 0,
@@ -34,7 +35,7 @@ export default function MobileQuickScore({
     yachtReady = view === current && isYachtDice(dice, rolls) && card.yacht === undefined;
   return (
     <section className="mobile-quick-score" aria-label="모바일 점수표">
-      <div className="mobile-score-player-picker">
+      {cards.length > 1 && <div className="mobile-score-player-picker">
         {cards.length <= 2 ? (
           <div className="mobile-score-tabs" role="group" aria-label="플레이어 선택">
             {cards.map((_, i) => (
@@ -55,7 +56,7 @@ export default function MobileQuickScore({
             </select>
           </label>
         )}
-      </div>
+      </div>}
       <div className="mobile-quick-bonus">
         <span className="category-cell">
           <span>
@@ -65,7 +66,13 @@ export default function MobileQuickScore({
         </span>
         <BonusProgress card={card} />
       </div>
-      {canRecord && <p className="mobile-quick-instruction">점수를 누르면 바로 기록돼요</p>}
+      <div className="mobile-quick-toolbar">
+        {canRecord && <p className="mobile-quick-instruction">점수를 누르면 바로 기록돼요</p>}
+        <button type="button" className="mobile-compact-toggle text-button" aria-pressed={compact} onClick={() => setCompact(!compact)}>
+          두 열 보기
+        </button>
+      </div>
+      <div className={"mobile-quick-groups" + (compact ? " compact" : "")}>
       {[categories.slice(0, 6), categories.slice(6)].map((group, groupIndex) => (
         <div className="mobile-quick-group" key={groupIndex}>
           <div className="mobile-quick-group-title">{groupIndex === 0 ? "상단" : "하단"}</div>
@@ -92,7 +99,14 @@ export default function MobileQuickScore({
                 ) : (
                   <div className="mobile-quick-row-static">
                     {name}
-                    <strong className={fixed === undefined ? "empty-score" : "fixed-score"}>{fixed === undefined ? "—" : fixed + "점"}</strong>
+                    {fixed === undefined ? (
+                      <strong className="empty-score">—</strong>
+                    ) : (
+                      <div className="mobile-recorded-score">
+                        <strong className="fixed-score">{fixed}점</strong>
+                        <small className="score-recorded-label">기록됨</small>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -100,6 +114,7 @@ export default function MobileQuickScore({
           })}
         </div>
       ))}
+      </div>
     </section>
   );
 }

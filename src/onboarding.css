@@ -1,0 +1,237 @@
+.lobby-tutorial {
+  min-height: 44px;
+  justify-self: start;
+}
+
+.tutorial {
+  display: grid;
+  gap: 16px;
+  width: min(100%, 850px);
+  margin-inline: auto;
+}
+
+.tutorial-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tutorial-heading h1 {
+  font-size: clamp(22px, 4vw, 34px);
+}
+
+.tutorial-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.tutorial .game-board {
+  min-height: 270px;
+}
+
+.tutorial-score,
+.tutorial-rules,
+.tutorial-result {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.tutorial-score h2 {
+  padding: 0 10px 6px;
+  font-size: 17px;
+}
+
+.tutorial-result {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.tutorial-result .game-feedback {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.tutorial-rules summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.tutorial-rules dl,
+.tutorial-rules p {
+  margin-top: 12px;
+}
+
+.tutorial-rules dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 12px 18px;
+}
+
+.tutorial-rules dt {
+  font-weight: 700;
+}
+
+.tutorial-rules dd {
+  margin: 2px 0 0;
+  color: var(--muted);
+}
+
+.first-turn-guide {
+  padding: 8px 12px;
+  color: var(--ink);
+  background: #f5f3f2;
+  border-radius: 9px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.roll-area .first-turn-guide {
+  max-width: 38ch;
+  color: var(--ink);
+  margin: 8px auto 0;
+}
+
+@media (min-width: 761px) {
+  .tutorial-grid:has(.tutorial-score) {
+    grid-template-columns: minmax(0, 3fr) minmax(265px, 2fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .tutorial .game-board {
+    min-height: 215px;
+    padding-inline: 10px;
+  }
+}
+
+.mobile-quick-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-inline: 10px;
+}
+
+.mobile-quick-toolbar .mobile-quick-instruction {
+  padding: 0;
+}
+
+.mobile-compact-toggle {
+  min-height: 44px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.mobile-compact-toggle[aria-pressed="true"] {
+  color: var(--red-deep);
+  background: #fff3ef;
+}
+
+@container (min-width: 332px) {
+  .mobile-quick-groups.compact {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .mobile-quick-groups.compact .mobile-quick-row :is(.mobile-quick-row-live, .mobile-quick-row-static) {
+    min-height: 54px;
+    gap: 3px;
+    padding: 4px 5px;
+  }
+
+  .mobile-quick-groups.compact .mobile-quick-name {
+    flex-wrap: wrap;
+    gap: 2px;
+    font-size: 12px;
+    line-height: 1.15;
+  }
+
+  .mobile-quick-groups.compact .mobile-quick-name > span:not(.category-icon) {
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .mobile-quick-groups.compact .mobile-quick-name .category-icon,
+  .mobile-quick-groups.compact .score-recorded-label {
+    display: none;
+  }
+
+  .mobile-quick-groups.compact .mobile-quick-score-button > strong {
+    min-width: 35px;
+    padding-inline: 3px;
+    font-size: 13px;
+  }
+}
+
+.mobile-quick-score {
+  container-type: inline-size;
+}
+
+@container (max-width: 331px) {
+  .mobile-compact-toggle {
+    display: none;
+  }
+
+  .mobile-quick-toolbar .mobile-quick-instruction {
+    padding-block: 10px;
+  }
+}
+
+.tutorial .mobile-compact-toggle {
+  display: none;
+}
+
+.game-left > .first-turn-guide {
+  margin-top: 8px;
+}
+
+@media (max-width: 760px) {
+  .page-play .game-left > .first-turn-guide {
+    order: 2;
+  }
+}
+
+.mobile-quick-row .mobile-quick-score-button {
+  width: auto;
+  min-width: 0;
+}
+
+.mobile-quick-name {
+  flex: 1;
+}
+
+@media (max-width: 760px) {
+  .dice-row .die-wrap .hold-label.visible {
+    display: inline-flex !important;
+    position: absolute;
+    z-index: 1;
+    inset: auto auto -14px 50%;
+    width: max-content;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    background: #fff3ef;
+    color: var(--red-deep);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .physical-dice .die-button.die-hit.held {
+    border-color: #e9998e;
+    box-shadow: 0 0 0 1px #291515;
+  }
+
+  .physical-dice .hold-slot {
+    border-color: #777;
+  }
+}

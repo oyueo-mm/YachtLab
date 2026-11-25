@@ -213,3 +213,17 @@ Sixes·Choice 조건은 정책마다 50,000번 Monte Carlo 검산. **근거:** [
 - **workerd 로컬(wrangler dev):** 2·4·6·10·20인 × 순차/동시 전부 완주·오류 0·최종 순위 전원 일치. 4라운드 후 전원 동시 재접속 폭주, 8라운드 후 서버 재시작 → 같은 상태로 이어짐.
 - **운영 Worker(Workers Free):** 2·4·6·10·20인 동시 진행 각 1경기 완주, 오류 0, 20인 ack p50 114 / p95 195 ms. 일일 경기 예산 28→49(가중 ⌈N/2⌉ = 1+2+3+5+10).
 - **공개 사이트(빌드 01b2deb):** 4인 동시 진행 PC 1 + 휴대폰 2 + 데스크톱 1, 새로고침 복귀·12라운드 완주·순위 일치·페이지 오류 0.
+
+### 제품 회귀 검증 (2026-11-25)
+
+- PR #62 병합 후 Pages 검증에서 317 통과·52 건너뜀·1 실패. PR #63 첫 실행에서 3D의 동일한 효과음 로그 가정이 발견됐다. 두 렌더러의 고정 시드 테스트는 데스크톱 Chromium과 Pixel 7 에뮬레이션에서 각 3회, 총 12회 통과했다. [실패 main](https://github.com/oyueo-mm/YachtLab/actions/runs/45530495861) · [첫 복구 PR 실행](https://github.com/oyueo-mm/YachtLab/actions/runs/45548310144)
+- 휴대폰 360~430px에서 한 열 점수 목록 697px, 두 열 366.5px, 두 열의 최소 행 높이 54px. 320px에는 한 열을 사용한다. [온보딩 PR](https://github.com/oyueo-mm/YachtLab/pull/66)
+- 실제 브라우저의 네트워크를 끈 뒤 캐시된 앱으로 로컬 경기에서 점수를 기록했고 Greedy AI가 첫 차례를 마쳤다. iOS 설치 안내는 브라우저 에뮬레이션으로 검증했다. [PWA PR](https://github.com/oyueo-mm/YachtLab/pull/64)
+- 최고 난이도가 참조하는 공개 DP 점수 표를 추가로 캐시했다. Chromium 데스크톱과 Pixel 7 에뮬레이션에서 네트워크를 끈 상태로 공개 AI 난이도 5종의 첫 차례를 모두 검증했다. 데스크톱은 최고 난이도로 12라운드를 완주했다. Win DP v4-D의 첫 차례를 Playwright 회귀에 포함했다. [PWA PR](https://github.com/oyueo-mm/YachtLab/pull/64)
+- PWA의 Chromium 설치 가능성 검사에서 오류 0건. 연속 두 빌드 테스트에서 기존 탭이 열린 동안 새 워커가 대기했고, 기존 탭을 닫은 후 자기 이전 버전 캐시만 정리했다. 이어 오프라인에서 새 앱 셸을 열었다. [PWA PR](https://github.com/oyueo-mm/YachtLab/pull/64)
+- 통합 기능 빌드 `649e588`에서 Chromium 데스크톱과 Pixel 7 에뮬레이션 Playwright 341 통과·53 건너뜀·실패 0. 통합 Vitest 48파일 402개와 프로덕션 빌드 통과. 동일 빌드에서 WebKit 데스크톱 튜토리얼, iPhone 에뮬레이션 설치 안내와 기록 조작을 확인했다. [통합 PR](https://github.com/oyueo-mm/YachtLab/pull/71)
+- 이후 main에 반영된 #72의 일반 굴림 테스트와 #63의 라지 스트레이트 시드를 함께 적용해 2.5D·3D와 백그라운드 조건을 데스크톱·모바일에서 총 10회 검증했다. [배포 복구 PR](https://github.com/oyueo-mm/YachtLab/pull/63)
+- #72로 재개된 공개 Pages에서 라지 스트레이트 효과음은 예정된 착지보다 약 724 ms(Chromium 데스크톱), 726 ms(Pixel 7 에뮬레이션) 먼저 시작했다. 두 브라우저에서 음소거 저장은 통과했다. #63 검증은 단위 400개, Playwright 322개 통과·52개 건너뜀으로 완료해 main에 병합했다. [#72 Pages 배포](https://github.com/oyueo-mm/YachtLab/actions/runs/45555056303) · [#63 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/45556257980)
+- #63의 main Pages 빌드 `ae0d375-mwvr5nsq`에서 예약된 착지보다 35.7 ms(Chromium 데스크톱), 33.4 ms(Pixel 7 에뮬레이션) 뒤에 특수음이 시작했다. 두 브라우저에서 음소거 저장을 확인했다. main CI는 단위 400개, Playwright 322개 통과·52개 건너뜀이다. [main CI·Pages](https://github.com/oyueo-mm/YachtLab/actions/runs/45559140000)
+- #71의 첫 통합 CI에서 데스크톱 보상 테스트가 대기실 경기 시작 전에 시간 초과했다. 이후 실행에서는 대기실이 표시되기 전 참가 폼의 빈 필드가 같은 접근성 이름으로 조회된 것을 확인했다. 대기실 내부에 6자리 코드가 표시되면 초대를 열고 플레이어 양쪽이 입장한 뒤 보상을 검증한다. [첫 통합 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/45556958502) · [원인을 확인한 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/45560823207)
+- 별도 공개 검증 기록은 #72 빌드에서 PC와 Pixel 7 간 빠른 대전, 공개 관전 목록, 채팅·이모티콘 20/20 전달, 이탈 후 종료와 관전 목록 정리를 확인했다. 운영 Google 계정으로 친구·초대·상점 구매·장착을 확인하는 일은 남아 있다. [공개 검증 기록](https://github.com/oyueo-mm/YachtLab/pull/73)
