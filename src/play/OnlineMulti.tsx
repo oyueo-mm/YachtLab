@@ -11,7 +11,7 @@ import type { PlayerView } from "../online/server-engine";
 import type { LobbyState, RematchState } from "../online/wire";
 import { ROUND_LIMITS, TURN_LIMITS } from "../online/wire";
 import type { PublicLook } from "../economy/live/catalog";
-import { PlayerTag, boardCssOf, boardOf, diceLookOf } from "./Looks";
+import { PlayerTag, useBoardTheme, diceLookOf } from "./Looks";
 import { Celebrate } from "../ui/Celebrate";
 import type { Celebration } from "../game-feel";
 import { QuickPicks } from "../QuickPicks";
@@ -210,6 +210,7 @@ export function MultiTable(p: {
   onRematch: (op: "request" | "cancel" | "start") => void;
   onHome: () => void;
 }) {
+  const theme = useBoardTheme(p.looks[p.me]);
   const { view } = p;
   const players = view.players;
   const meIndex = Math.max(0, players.findIndex((x) => x.playerId === p.me));
@@ -237,8 +238,8 @@ export function MultiTable(p: {
         </div>
         {p.banner}
         <section
-          className={"game-board throw-tray" + (p.canRoll && nearYacht(game.dice, p.rolls, players[meIndex]?.card) ? " yacht-near" : "") + (p.rolls === 0 ? " dice-ready" : "") + (boardOf(p.looks[p.me]) ? " board-themed" : "") + (boardCssOf(p.looks[p.me]) ? " " + boardCssOf(p.looks[p.me]) : "")}
-          style={boardOf(p.looks[p.me]) ? ({ "--board-color": boardOf(p.looks[p.me]) } as React.CSSProperties) : undefined}
+          className={"game-board throw-tray" + (p.canRoll && nearYacht(game.dice, p.rolls, players[meIndex]?.card) ? " yacht-near" : "") + (p.rolls === 0 ? " dice-ready" : "") + theme.className}
+          style={theme.style}
           aria-label="게임 보드"
         >
           <Celebrate value={p.celebration} />
