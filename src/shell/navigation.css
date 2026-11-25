@@ -95,6 +95,9 @@
 @media (max-width: 450px) {
   .app-shell .shell-top { padding-inline: 6px; gap: 2px; }
   .app-shell .shell-top-left, .app-shell .shell-top-right { gap: 0; }
+  .shell-top:has(.top-wallet) .wordmark span { display: none; }
+}
+@media (max-width: 370px) {
   .shell-top .wordmark span { display: none; }
 }
 

@@ -380,7 +380,7 @@ test("족보 툴팁은 로컬 대전 점수판에서도 같은 내용으로 열�
   await expect(page.getByRole("tooltip")).toContainText("다섯 개가 모두 같은 눈은 풀 하우스가 아니에요");
 });
 
-test("게임 화면은 상단 홈·사운드·설정과 넓은 보드를 제공하고 넘치지 않는다", async ({ page }) => {
+test("게임 화면은 상단 홈·상품·설정과 넓은 보드를 제공하고 넘치지 않는다", async ({ page }) => {
   await page.goto("#play");
   const top = page.locator(".shell-top");
   const home = (await top.getByRole("button", { name: "홈으로" }).boundingBox())!;
@@ -388,7 +388,9 @@ test("게임 화면은 상단 홈·사운드·설정과 넓은 보드를 제공�
   const width = page.viewportSize()!.width;
   expect(home.x).toBeLessThan(width / 4);
   expect(settings.x).toBeGreaterThan(width * 0.6);
-  await expect(top.getByRole("button", { name: /효과음/ })).toBeVisible();
+  await expect(top.getByRole("button", { name: /효과음/ })).toHaveCount(0);
+  await expect(top.getByRole("button", { name: "상점", exact: true })).toBeVisible();
+  await expect(top.getByRole("button", { name: "인벤토리", exact: true })).toBeVisible();
   const board = (await page.getByLabel("게임 보드").boundingBox())!;
   if (isMobile(page)) expect(board.width).toBeGreaterThan(width - 40);
   else {
