@@ -1,0 +1,497 @@
+{
+ "z": 2.5758,
+ "rows": [
+  {
+   "a": "v7-I1RO",
+   "b": "v2",
+   "family": 9102,
+   "shards": 5,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.50975,
+   "ci": [
+    0.5015962638660175,
+    0.5179037361339826
+   ],
+   "se": 0.0031655160082236697,
+   "wins": 5056,
+   "ties": 83,
+   "losses": 4861,
+   "winRate": 0.5056,
+   "tieRate": 0.0083,
+   "lossRate": 0.4861,
+   "meanScoreA": 189.4294,
+   "meanScoreB": 191.1658,
+   "meanDiff": -1.7364000000000033,
+   "elo": 6.775852844142418,
+   "eloCi": [
+    1.1092015103005206,
+    12.446111278023016
+   ],
+   "varianceReductionFactor": 2.473478676573708,
+   "latencyA": {
+    "decisions": 343317,
+    "meanMs": 2.1594499119530877,
+    "p50": 0.030902954325135904,
+    "p95": 12.302687708123818,
+    "p99": 15.488166189124811,
+    "maxMs": 81.19449799999711,
+    "diffFromDPRate": 0.060413553654494245,
+    "stages": {
+     "v7-I1RO": 343317
+    }
+   },
+   "latencyB": {
+    "decisions": 343174,
+    "meanMs": 0.3921032374538804,
+    "p50": 0.04265795188015926,
+    "p95": 0.11748975549395294,
+    "p99": 10.232929922807541,
+    "maxMs": 187.89779399998952,
+    "diffFromDPRate": 0.012769032619021254,
+    "stages": {
+     "-": 343174
+    }
+   },
+   "cpuSeconds": 912.35292087,
+   "describe": {
+    "v7-I1RO": "v7-I1RO: as v7-I1O but the opponent's turn uses the v5-R objective",
+    "v2": "Win DP v2 (deployed default competitive)"
+   }
+  },
+  {
+   "a": "v6-P",
+   "b": "v2",
+   "family": 9102,
+   "shards": 5,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.50905,
+   "ci": [
+    0.5009359830046454,
+    0.5171640169953546
+   ],
+   "se": 0.0031500958907347766,
+   "wins": 5046,
+   "ties": 89,
+   "losses": 4865,
+   "winRate": 0.5046,
+   "tieRate": 0.0089,
+   "lossRate": 0.4865,
+   "meanScoreA": 189.2974,
+   "meanScoreB": 191.1274,
+   "meanDiff": -1.829999999999984,
+   "elo": 6.28927096732476,
+   "eloCi": [
+    0.6503883662263106,
+    11.931468799386165
+   ],
+   "varianceReductionFactor": 2.4963747862635213,
+   "latencyA": {
+    "decisions": 343335,
+    "meanMs": 0.20612488785296887,
+    "p50": 0.026915348039269153,
+    "p95": 0.8511380382023764,
+    "p99": 1.288249551693134,
+    "maxMs": 23.35400600000139,
+    "diffFromDPRate": 0.060625919291653924,
+    "stages": {
+     "policy-set": 343335
+    }
+   },
+   "latencyB": {
+    "decisions": 343197,
+    "meanMs": 0.396559343263497,
+    "p50": 0.04265795188015926,
+    "p95": 0.12302687708123815,
+    "p99": 10.232929922807541,
+    "maxMs": 167.1544759999997,
+    "diffFromDPRate": 0.013135312954367317,
+    "stages": {
+     "-": 343197
+    }
+   },
+   "cpuSeconds": 242.04850409,
+   "describe": {
+    "v6-P": "v6-P policy-set rollout: future me = best of exp-utility policies lambda in {-0.08,-0.04,-0.02,0,0.02,0.04,0.08}",
+    "v2": "Win DP v2 (deployed default competitive)"
+   }
+  },
+  {
+   "a": "v7-I1RO",
+   "b": "v5-R",
+   "family": 9102,
+   "shards": 5,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.5009,
+   "ci": [
+    0.4963681603690006,
+    0.5054318396309995
+   ],
+   "se": 0.001759391113828485,
+   "wins": 4964,
+   "ties": 90,
+   "losses": 4946,
+   "winRate": 0.4964,
+   "tieRate": 0.009,
+   "lossRate": 0.4946,
+   "meanScoreA": 189.3391,
+   "meanScoreB": 189.2493,
+   "meanDiff": 0.08979999999999677,
+   "elo": 0.6253847293567861,
+   "eloCi": [
+    -2.523705042496608,
+    3.7745772612704025
+   ],
+   "varianceReductionFactor": 8.004438765559579,
+   "latencyA": {
+    "decisions": 343481,
+    "meanMs": 2.1374032375764638,
+    "p50": 0.029512092266663854,
+    "p95": 12.302687708123818,
+    "p99": 15.488166189124811,
+    "maxMs": 66.33230599999979,
+    "diffFromDPRate": 0.06147938313909648,
+    "stages": {
+     "v7-I1RO": 343481
+    }
+   },
+   "latencyB": {
+    "decisions": 343516,
+    "meanMs": 0.07553982442156748,
+    "p50": 0.06165950018614822,
+    "p95": 0.1548816618912481,
+    "p99": 0.20417379446695297,
+    "maxMs": 11.445275000000038,
+    "diffFromDPRate": 0.06154880704246673,
+    "stages": {
+     "rollout": 343516
+    }
+   },
+   "cpuSeconds": 796.8342859060001,
+   "describe": {
+    "v7-I1RO": "v7-I1RO: as v7-I1O but the opponent's turn uses the v5-R objective",
+    "v5-R": "v5 rollout everywhere (no special endgame)"
+   }
+  },
+  {
+   "a": "v6-P",
+   "b": "v5-R",
+   "family": 9102,
+   "shards": 5,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.5001,
+   "ci": [
+    0.49606783368131296,
+    0.504132166318687
+   ],
+   "se": 0.0015654034935503535,
+   "wins": 4954,
+   "ties": 94,
+   "losses": 4952,
+   "winRate": 0.4954,
+   "tieRate": 0.0094,
+   "lossRate": 0.4952,
+   "meanScoreA": 189.3546,
+   "meanScoreB": 189.1783,
+   "meanDiff": 0.17629999999999768,
+   "elo": 0.06948711803099993,
+   "eloCi": [
+    -2.7324053465604043,
+    2.871388621186315
+   ],
+   "varianceReductionFactor": 10.107160190508834,
+   "latencyA": {
+    "decisions": 343482,
+    "meanMs": 0.21760788739147838,
+    "p50": 0.026915348039269153,
+    "p95": 0.8912509381337456,
+    "p99": 1.6982436524617444,
+    "maxMs": 19.933896999999888,
+    "diffFromDPRate": 0.061787808385883394,
+    "stages": {
+     "policy-set": 343482
+    }
+   },
+   "latencyB": {
+    "decisions": 343535,
+    "meanMs": 0.08116755068915725,
+    "p50": 0.06456542290346556,
+    "p95": 0.16982436524617442,
+    "p99": 0.30902954325135906,
+    "maxMs": 15.873673999999937,
+    "diffFromDPRate": 0.06210138704935451,
+    "stages": {
+     "rollout": 343535
+    }
+   },
+   "cpuSeconds": 139.275850309,
+   "describe": {
+    "v6-P": "v6-P policy-set rollout: future me = best of exp-utility policies lambda in {-0.08,-0.04,-0.02,0,0.02,0.04,0.08}",
+    "v5-R": "v5 rollout everywhere (no special endgame)"
+   }
+  },
+  {
+   "a": "v7-I1",
+   "b": "v6-P",
+   "family": 9102,
+   "shards": 5,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.5026,
+   "ci": [
+    0.4991837862693407,
+    0.5060162137306594
+   ],
+   "se": 0.0013262728979964845,
+   "wins": 4975,
+   "ties": 102,
+   "losses": 4923,
+   "winRate": 0.4975,
+   "tieRate": 0.0102,
+   "lossRate": 0.4923,
+   "meanScoreA": 189.3602,
+   "meanScoreB": 189.386,
+   "meanDiff": -0.02580000000000382,
+   "elo": 1.8066813290560284,
+   "eloCi": [
+    -0.5671638946432294,
+    4.18069524746357
+   ],
+   "varianceReductionFactor": 14.068676233183245,
+   "latencyA": {
+    "decisions": 343484,
+    "meanMs": 11.303067426747733,
+    "p50": 0.03715352290971726,
+    "p95": 74.13102413009177,
+    "p99": 97.72372209558107,
+    "maxMs": 195.2517780000053,
+    "diffFromDPRate": 0.06126922942553365,
+    "stages": {
+     "v7-I1": 343484
+    }
+   },
+   "latencyB": {
+    "decisions": 343512,
+    "meanMs": 0.20106975918749276,
+    "p50": 0.028183829312644536,
+    "p95": 0.7413102413009175,
+    "p99": 1.023292992280754,
+    "maxMs": 22.916920999996364,
+    "diffFromDPRate": 0.061252590884743476,
+    "stages": {
+     "policy-set": 343512
+    }
+   },
+   "cpuSeconds": 3991.120495476,
+   "describe": {
+    "v7-I1": "v7-I1: one reactive opponent turn (opponent maximises its win credit with its policy set vs my DP PMF), then my closed-loop policy-set leaf vs opponent DP",
+    "v6-P": "v6-P policy-set rollout: future me = best of exp-utility policies lambda in {-0.08,-0.04,-0.02,0,0.02,0.04,0.08}"
+   }
+  },
+  {
+   "a": "v7-I1R",
+   "b": "v6-P",
+   "family": 9102,
+   "shards": 5,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.50255,
+   "ci": [
+    0.49908790937844066,
+    0.5060120906215594
+   ],
+   "se": 0.0013440836328749756,
+   "wins": 4975,
+   "ties": 101,
+   "losses": 4924,
+   "winRate": 0.4975,
+   "tieRate": 0.0101,
+   "lossRate": 0.4924,
+   "meanScoreA": 189.4238,
+   "meanScoreB": 189.4039,
+   "meanDiff": 0.019900000000006912,
+   "elo": 1.7719368489643443,
+   "eloCi": [
+    -0.6337861813064142,
+    4.177829803242087
+   ],
+   "varianceReductionFactor": 13.699690879956112,
+   "latencyA": {
+    "decisions": 343474,
+    "meanMs": 5.678501555238575,
+    "p50": 0.030902954325135904,
+    "p95": 35.48133892335755,
+    "p99": 46.77351412871981,
+    "maxMs": 151.22905999999784,
+    "diffFromDPRate": 0.061279747520918616,
+    "stages": {
+     "v7-I1R": 343474
+    }
+   },
+   "latencyB": {
+    "decisions": 343512,
+    "meanMs": 0.2096941128402997,
+    "p50": 0.026915348039269153,
+    "p95": 0.8128305161640992,
+    "p99": 1.0715193052376064,
+    "maxMs": 14.952959999995073,
+    "diffFromDPRate": 0.06117399101050327,
+    "stages": {
+     "policy-set": 343512
+    }
+   },
+   "cpuSeconds": 2059.184734684,
+   "describe": {
+    "v7-I1R": "v7-I1R: as v7-I1 but the opponent's turn uses the v5-R objective (DP future vs my DP future)",
+    "v6-P": "v6-P policy-set rollout: future me = best of exp-utility policies lambda in {-0.08,-0.04,-0.02,0,0.02,0.04,0.08}"
+   }
+  },
+  {
+   "a": "v7-I1O",
+   "b": "v6-P",
+   "family": 9102,
+   "shards": 5,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.50165,
+   "ci": [
+    0.4984719805571057,
+    0.5048280194428943
+   ],
+   "se": 0.001233798991728532,
+   "wins": 4968,
+   "ties": 97,
+   "losses": 4935,
+   "winRate": 0.4968,
+   "tieRate": 0.0097,
+   "lossRate": 0.4935,
+   "meanScoreA": 189.3225,
+   "meanScoreB": 189.3845,
+   "meanDiff": -0.06200000000001182,
+   "elo": 1.1465415941826822,
+   "eloCi": [
+    -1.0617799651253619,
+    3.354955797710831
+   ],
+   "varianceReductionFactor": 16.265095648082934,
+   "latencyA": {
+    "decisions": 343510,
+    "meanMs": 7.592908522045969,
+    "p50": 0.033884415613920256,
+    "p95": 51.28613839913648,
+    "p99": 67.60829753919819,
+    "maxMs": 155.5367799999949,
+    "diffFromDPRate": 0.061264592006055135,
+    "stages": {
+     "v7-I1O": 343510
+    }
+   },
+   "latencyB": {
+    "decisions": 343499,
+    "meanMs": 0.17642961274705193,
+    "p50": 0.028183829312644536,
+    "p95": 0.7413102413009175,
+    "p99": 0.9772372209558107,
+    "maxMs": 16.607514000032097,
+    "diffFromDPRate": 0.06114137159060143,
+    "stages": {
+     "policy-set": 343499
+    }
+   },
+   "cpuSeconds": 2709.2819257170004,
+   "describe": {
+    "v7-I1O": "v7-I1O: reactive opponent turn (policy-set objective) -> opponent final-score mixture PMF; my open-loop policy-set best response to it",
+    "v6-P": "v6-P policy-set rollout: future me = best of exp-utility policies lambda in {-0.08,-0.04,-0.02,0,0.02,0.04,0.08}"
+   }
+  },
+  {
+   "a": "v7-I1RO",
+   "b": "v6-P",
+   "family": 9102,
+   "shards": 5,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.50155,
+   "ci": [
+    0.49838237130339863,
+    0.5047176286966015
+   ],
+   "se": 0.0012297650037275596,
+   "wins": 4966,
+   "ties": 99,
+   "losses": 4935,
+   "winRate": 0.4966,
+   "tieRate": 0.0099,
+   "lossRate": 0.4935,
+   "meanScoreA": 189.3917,
+   "meanScoreB": 189.4328,
+   "meanDiff": -0.041100000000000136,
+   "elo": 1.077053765291188,
+   "eloCi": [
+    -1.1240474684952377,
+    3.2782414600857632
+   ],
+   "varianceReductionFactor": 16.368693840571826,
+   "latencyA": {
+    "decisions": 343497,
+    "meanMs": 2.1493450257207303,
+    "p50": 0.029512092266663854,
+    "p95": 12.302687708123818,
+    "p99": 15.488166189124811,
+    "maxMs": 77.06401400000323,
+    "diffFromDPRate": 0.06120286348934634,
+    "stages": {
+     "v7-I1RO": 343497
+    }
+   },
+   "latencyB": {
+    "decisions": 343496,
+    "meanMs": 0.1912923073456434,
+    "p50": 0.026915348039269153,
+    "p95": 0.8128305161640992,
+    "p99": 0.9772372209558107,
+    "maxMs": 21.61838600000192,
+    "diffFromDPRate": 0.06106912453129003,
+    "stages": {
+     "policy-set": 343496
+    }
+   },
+   "cpuSeconds": 842.6375955149999,
+   "describe": {
+    "v7-I1RO": "v7-I1RO: as v7-I1O but the opponent's turn uses the v5-R objective",
+    "v6-P": "v6-P policy-set rollout: future me = best of exp-utility policies lambda in {-0.08,-0.04,-0.02,0,0.02,0.04,0.08}"
+   }
+  }
+ ],
+ "contrasts": [
+  {
+   "candidate": "v7-I1RO",
+   "baseline": "v6-P",
+   "opponent": "v2",
+   "family": 9102,
+   "pairs": 5000,
+   "delta": 0.0007,
+   "ci": [
+    -0.0022200519315561176,
+    0.003620051931556118
+   ],
+   "changedPairs": 145
+  },
+  {
+   "candidate": "v7-I1RO",
+   "baseline": "v6-P",
+   "opponent": "v5-R",
+   "family": 9102,
+   "pairs": 5000,
+   "delta": 0.0008,
+   "ci": [
+    -0.0024379230523434354,
+    0.004037923052343436
+   ],
+   "changedPairs": 164
+  }
+ ]
+}

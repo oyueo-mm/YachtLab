@@ -5,6 +5,9 @@ on:
     paths:
       - src/research-v5/**
       - src/research-v6/**
+      - src/research-v7/**
+      - scripts/research-v7/**
+      - tests/research-v7.test.ts
       - scripts/research-v6/**
       - tests/research-v6.test.ts
       - scripts/research-v5/**
@@ -12,10 +15,13 @@ on:
       - tests/research-v5.test.ts
       - .github/workflows/v5-apex-research.yml
   push:
-    branches: [ccr-4b6d4930-6rem08, claude/compassionate-rubin-792mit]
+    branches: [ccr-4b6d4930-6rem08, claude/compassionate-rubin-792mit, claude/yachtlab-v7-research-ngcrhe]
     paths:
       - src/research-v5/**
       - src/research-v6/**
+      - src/research-v7/**
+      - scripts/research-v7/**
+      - tests/research-v7.test.ts
       - scripts/research-v6/**
       - tests/research-v6.test.ts
       - scripts/research-v5/**
@@ -57,8 +63,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: v5/v6 unit tests (PMF mass/mean, solver cross-checks, RNG invariance, analysis API, risk family)
-        run: npx vitest run tests/research-v5.test.ts tests/research-v6.test.ts tests/research-v6-integration.test.ts
+      - name: v5/v6/v7 unit tests (PMF mass/mean, solver cross-checks, RNG invariance, analysis API, risk family)
+        run: npx vitest run tests/research-v5.test.ts tests/research-v6.test.ts tests/research-v6-integration.test.ts tests/research-v7.test.ts
       - name: Native C++ bank build and TypeScript cross-check
         run: |
           g++ -O3 -std=c++17 training/v5-native/pmf_bank.cpp -o pmf_bank

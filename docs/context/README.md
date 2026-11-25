@@ -23,6 +23,8 @@
 
 **[Win DP v6 연구 — 지수효용 정책군·전 구간 최적 대응·WASM·분석 API v6 (2026-11-25)](./V6-APEX-RESEARCH.md)** — 정확 λ-정책 PMF 은행, v6-P/A/L/C/D 후보와 사전 등록 확증(개선 없음), WASM/Rust 은행 생성기, 양자화·증류 결정 연구, `yachtlab-analysis-v6` 계약. 70개 기법 상태표 포함.
 
+**[Win DP v7 연구 — 상대 1턴 반응 정지가치·정확 결정 손실 벤치마크 (2026-11-25)](./V7-APEX-RESEARCH.md)** — v7-I1/I1RO, regret 벤치마크, 사전 등록 확증(v6-P 대비 9531 50.091% Holm 미달, 재현 9541 50.136% 유의).
+
 **[v6 제품 통합 인수인계 (Codex용)](./V6-INTEGRATION-HANDOFF.md)** — v5-R·WASM 은행 생성기·Float32/INT16 은행 형식·분석 API v6 통합 계약과 점검 목록.
 
 **[Win DP v3.1 연구 계획·한계·독립 실험](./V31-RESEARCH.md)** — 3턴 v3와 마지막 1턴 정확 BR을 결합한 연구용 후보. 결과는 자동 검증 후 [_generated/V31-LATEST.md](./_generated/V31-LATEST.md)에 기록되며 **현재 SOTA 주장이 아님**.

@@ -15,6 +15,8 @@ import { winDPv6Decision, type V6Config } from "../../src/research-v6/apex6.ts";
 import { loadRiskBanks, loadRiskPolicy, DEFAULT_LAMBDAS } from "../research-v6/banks.ts";
 import { RiskOpponentFilter } from "../../src/research-v6/bayes6.ts";
 import { PolicyPmfBank as PolicyPmfBankCtor, type PolicyPmfBank } from "../../src/research-v5/policy-pmf.ts";
+import { winDPv7Decision, type V7Config } from "../../src/research-v7/apex7.ts";
+import type { V7Kind } from "../../src/research-v7/interactive.ts";
 
 export type AgentName = string;
 let cfgBase: Omit<V5Config, "endgame"> | null = null;
@@ -42,6 +44,11 @@ const v6Banks = new Map<string, PolicyPmfBank[]>();
 const V6_SETS: Record<string, number[]> = { all: DEFAULT_LAMBDAS, three: [-0.04, 0, 0.04], dp: [0] };
 const v6 = (set: string, extra: Partial<V6Config> = {}) => (s: Game) =>
   winDPv6Decision(s, { ...cfgBase!, endgame: "none", banks: v6Banks.get(set)!, ...extra } as V6Config);
+// v7 agents (research-v7): stop-value estimators of src/research-v7/interactive.ts
+const v7 = (kind: V7Kind, extra: Partial<V7Config> = {}) => (s: Game) => {
+  const banks = v6Banks.get("all")!;
+  return winDPv7Decision(s, { ...cfgBase!, endgame: "none", v7: { banks, dp: banks[DEFAULT_LAMBDAS.indexOf(0)] }, kind, ...extra } as V7Config);
+};
 const v6Filters = new Map<number, RiskOpponentFilter>();
 function v6Bayes(s: Game, discount: number) {
   let f = v6Filters.get(discount);
@@ -107,4 +114,12 @@ export const AGENTS: Record<string, { v5: boolean; bayes?: boolean; v6?: string[
   "v6-PB3": { v5: true, v6: ["all"], describe: "v6-P + exact interactive minimax when both <= 3", act: v6("all", { endgame: "minimax", minimaxWindow: 3 }) },
   "v6-A4B3": { v5: true, v6: ["all"], describe: "v6-A4 + exact interactive minimax when both <= 3", act: v6("all", { brWindow: 4, endgame: "minimax", minimaxWindow: 3 }) },
   "v5-E5": { v5: true, describe: "v5-B3 + depth-2 PMF-expectimax final-category choice when top-2 gap < 0.05", act: (s) => winDPv5EDecision(s, { ...cfgBase!, endgame: "minimax", minimaxWindow: 3, gap: 0.05 }) },
+  "v7-P": { v5: true, v6: ["all"], describe: "v7 sanity: estimator P through the v7 engine (must equal v6-P decisions)", act: v7("P") },
+  "v7-I1": { v5: true, v6: ["all"], describe: "v7-I1: one reactive opponent turn (opponent maximises its win credit with its policy set vs my DP PMF), then my closed-loop policy-set leaf vs opponent DP", act: v7("I1") },
+  "v7-I1R": { v5: true, v6: ["all"], describe: "v7-I1R: as v7-I1 but the opponent's turn uses the v5-R objective (DP future vs my DP future)", act: v7("I1R") },
+  "v7-I1D": { v5: true, v6: ["all"], describe: "v7-I1D ablation: opponent's next turn is DP Expert (non-reactive), then my closed-loop policy-set leaf", act: v7("I1D") },
+  "v7-N": { v5: true, v6: ["all"], describe: "v7-N: value of the 7x7 policy matrix game (mixed Nash) at each outcome", act: v7("N") },
+  "v7-I1O": { v5: true, v6: ["all"], describe: "v7-I1O: reactive opponent turn (policy-set objective) -> opponent final-score mixture PMF; my open-loop policy-set best response to it", act: v7("I1O") },
+  "v7-I1RO": { v5: true, v6: ["all"], describe: "v7-I1RO: as v7-I1O but the opponent's turn uses the v5-R objective", act: v7("I1RO") },
+  "v7-I1B3": { v5: true, v6: ["all"], describe: "v7-I1 + exact interactive minimax when both <= 3", act: v7("I1", { endgame: "minimax", minimaxWindow: 3 }) },
 };
