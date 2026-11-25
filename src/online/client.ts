@@ -1,3 +1,4 @@
+import type { RoomSettings } from "./room";
 import { validateNickname } from "../identity/nickname";
 import type { OnlineAction } from "./protocol";
 import { authHeader, session } from "../identity/account-client";
@@ -177,13 +178,13 @@ async function call<T>(base: string, path: string, body?: unknown): Promise<T> {
   return data as T;
 }
 /** A friend room for 2..20 players (the host picks the size; 2 = the classic 1:1 room). */
-export const createRoom = (base: string, name: string, maxPlayers = 2) => call<JoinResponse>(base, "/api/rooms", { name, maxPlayers });
+export const createRoom = (base: string, name: string, maxPlayers = 2, settings?: RoomSettings) => call<JoinResponse>(base, "/api/rooms", { name, maxPlayers, settings });
 export const joinRoom = (base: string, code: string, name: string) => call<JoinResponse>(base, `/api/rooms/${code}/join`, { name });
 export const roomSummary = (base: string, code: string) => call<RoomSummary>(base, `/api/rooms/${code}`);
 
 /* ------------------------------------------------------------- features / public spectating ------------------------------------------------------------- */
 
-export type Features = { quickMatch: boolean; publicSpectate: boolean; signIn: boolean; serverAi?: boolean; economy?: boolean };
+export type Features = { quickMatch: boolean; publicSpectate: boolean; signIn: boolean; serverAi?: boolean; economy?: boolean; createSettings?: boolean };
 const featureCache = new Map<string, Promise<Features>>();
 /** What the server offers. An older server (or the local Node dev server) answers 404: friend play only. */
 export function serverFeatures(base: string): Promise<Features> {

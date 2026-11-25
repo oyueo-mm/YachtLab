@@ -45,11 +45,18 @@ test("빠른 대전: 두 기기가 자동으로 매칭되어 경기 화면으로
   const b = await device(browser, "phone");
   await quick(a, "민수", true);
   await expect(a.getByText("상대를 찾는 중이에요")).toBeVisible();
+  await expect(a.getByRole("timer", { name: "매칭 경과 시간" })).toHaveText(/0:0[1-9]/);
   // refresh while waiting: the wait continues with the same ticket
   await a.reload();
   await expect(a.getByText("상대를 찾는 중이에요")).toBeVisible();
   await quick(b, "지민", true);
-  for (const p of [a, b]) await expect(p.locator(".roll-button")).toBeVisible({ timeout: 15_000 });
+  await Promise.all([a, b].map(async (page) => {
+    const intro = page.getByRole("status", { name: "빠른 대전 매칭 완료" });
+    await expect(intro).toContainText("민수");
+    await expect(intro).toContainText("지민");
+    await expect(intro).toContainText("VS");
+    await expect(page.locator(".roll-button")).toBeVisible();
+  }));
   await expect(a.locator(".score-summary")).toContainText("민수");
   await expect(a.locator(".score-summary")).toContainText("지민");
   // PC tool row: chat + emotes next to the board, spectate and resign grouped apart, all visible

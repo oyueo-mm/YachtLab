@@ -71,6 +71,15 @@ export const ROOM_LIMITS = {
 import { MAX_PLAYERS, ROUND_LIMITS, TURN_LIMITS } from "./wire";
 export { MAX_PLAYERS, ROUND_LIMITS, TURN_LIMITS };
 export type RoomSettings = { mode: "turns" | "simultaneous"; timeoutMs: number | null };
+
+export function parseRoomSettings(value: unknown): RoomSettings | null {
+  if (!isRecord(value)) return null;
+  const { mode, timeoutMs } = value;
+  if (mode === "simultaneous" && typeof timeoutMs === "number" && ROUND_LIMITS.includes(timeoutMs)) return { mode, timeoutMs };
+  if (mode === "turns" && (timeoutMs === null || typeof timeoutMs === "number") && TURN_LIMITS.includes(timeoutMs)) return { mode, timeoutMs };
+  return null;
+}
+
 /** What everyone in the lobby sees: who is host, who is ready, the match settings. */
 export type { LobbyState } from "./wire";
 
@@ -239,13 +248,13 @@ export class OnlineRoom {
     this.state = state ?? rebuildFromEvents(record.log);
   }
 
-  static create(code: string, deps: RoomDeps, options: { turnTimeoutMs?: number | null; seats?: number } = {}): OnlineRoom {
+  static create(code: string, deps: RoomDeps, options: { turnTimeoutMs?: number | null; seats?: number; settings?: RoomSettings } = {}): OnlineRoom {
     if (!CODE_PATTERN.test(code)) throw Error("잘못된 방 코드입니다.");
     const now = deps.now();
     const seats = Math.max(2, Math.min(MAX_PLAYERS, Math.floor(options.seats ?? 2)));
     // Every match has its own random id (records, rematches); the room code is only the address.
     const state = createOnlineMatch({ matchId: newMatchId(deps.random), seats, turnTimeoutMs: options.turnTimeoutMs ?? null }, now);
-    const record: RoomRecord = { wire: WIRE_VERSION, code, createdAt: now, touchedAt: now, credentials: {}, log: state.log, matchNo: 1 };
+    const record: RoomRecord = { wire: WIRE_VERSION, code, createdAt: now, touchedAt: now, credentials: {}, log: state.log, matchNo: 1, ...(options.settings ? { settings: options.settings } : {}) };
     return new OnlineRoom(record, deps, state);
   }
 
@@ -716,9 +725,9 @@ export class OnlineRoom {
       if ((this.record.ready?.[playerId] === true) === msg.ready) return conn.send({ t: "lobby", lobby: this.lobbyState() });
       next = { ...this.record, ready: { ...(this.record.ready ?? {}), [playerId]: msg.ready } };
     } else if (msg.t === "settings") {
-      const allowed = msg.mode === "simultaneous" ? ROUND_LIMITS.includes(msg.timeoutMs as number) : TURN_LIMITS.includes(msg.timeoutMs);
-      if (!allowed) return fail(msg.mode === "simultaneous" ? "동시 진행은 라운드 제한 시간이 필요해요." : "지원하지 않는 제한 시간이에요.");
-      next = { ...this.record, settings: { mode: msg.mode, timeoutMs: msg.timeoutMs } };
+      const settings = parseRoomSettings(msg);
+      if (!settings) return fail(msg.mode === "simultaneous" ? "동시 진행은 라운드 제한 시간이 필요해요." : "지원하지 않는 제한 시간이에요.");
+      next = { ...this.record, settings };
     } else {
       if (!this.state.players.some((p) => p.playerId === msg.to) || (this.record.departed ?? []).includes(msg.to)) return fail("방에 있는 사람에게만 넘길 수 있어요.");
       next = { ...this.record, hostId: msg.to };
