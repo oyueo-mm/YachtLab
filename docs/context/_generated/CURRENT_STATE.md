@@ -118,11 +118,11 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45568286683) | success | 38d4fc70fa |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45574012195) | success | 3444ed6cb3 |
+| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45574012188) | success | 3444ed6cb3 |
 | [YachtLab Online live check (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45567970811) | success | 7a4fe605a5 |
 | [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45567699361) | success | 642aac0220 |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45564029822) | success | 642aac0220 |
-| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45558614547) | success | 96b0025dff |
 
 ## 다음 채팅과 작업의 시작점
 

@@ -166,8 +166,14 @@
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "38d4fc70fa",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45568286683"
+      "head": "3444ed6cb3",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45574012195"
+    },
+    {
+      "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
+      "status": "success",
+      "head": "3444ed6cb3",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45574012188"
     },
     {
       "name": "YachtLab Online live check (manual)",
@@ -186,12 +192,6 @@
       "status": "success",
       "head": "642aac0220",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45564029822"
-    },
-    {
-      "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
-      "status": "success",
-      "head": "96b0025dff",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45558614547"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
