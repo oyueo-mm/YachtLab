@@ -1,4 +1,5 @@
 import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./play/Tutorial";
+import { nearYacht, ScoreTotal } from "./ui/GameMoments";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Dices, History, RotateCcw, SlidersHorizontal, Trophy } from "lucide-react";
 import { DiceArea } from "./DiceArea";
@@ -142,13 +143,13 @@ export default function LocalGame({
               <div key={i} className={"multi-player-chip " + (!state.done && state.player === i ? "selected" : "")}>
                 <span title={names[i]}>{names[i]}</span>
                 <strong>
-                  {total(card)}
+                  <ScoreTotal value={total(card)} />
                   <small>점</small>
                 </strong>
               </div>
             ))}
           </div>
-          <section className={"game-board throw-tray " + (state.rolls === 0 ? "multi-dice-ready" : "")} aria-label="사람 vs 사람 게임 보드" {...gesture}>
+          <section className={"game-board throw-tray " + (state.rolls === 0 ? "multi-dice-ready" : "") + (canAct && nearYacht(state.dice, state.rolls, state.cards[state.player]) ? " yacht-near" : "")} aria-label="사람 vs 사람 게임 보드" {...gesture}>
             <Celebrate value={celebration} />
             <div className="board-top">
               <span className="turn-indicator">

@@ -1,4 +1,5 @@
 import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./Tutorial";
+import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Copy, Crown, Dices, Flag, Home, LogOut, Play, RotateCcw, Share2, Trophy, UserRound, Wifi, WifiOff, X } from "lucide-react";
 import { names, type Category, type Game } from "../engine";
@@ -90,6 +91,8 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const announced = useRef(new Set<string>());
   /** Bumped on every catch-up sync (welcome after load/reconnect): sounds stay silent for it. */
   const [syncKey, setSyncKey] = useState(0);
+  const [milestones, setMilestones] = useState({ best: false, comeback: false });
+  const wasBehind = useRef(false);
   const [rollEvent, setRollEvent] = useState(0);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
@@ -167,6 +170,8 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           for (const p of next.players) announced.current.add(p.playerId);
           clearScoreFx();
           setFeedback("");
+          setMilestones({ best: false, comeback: false });
+          wasBehind.current = false;
           setError("");
           setMobileScoreOpen(false);
         }
@@ -214,7 +219,18 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           return ordered;
         });
         if (next.turn?.dice.length) lastDice.current = next.turn.dice;
-        if (next.status === "finished" && me && next.standings) recordOnDevice(next, me);
+        if (me && next.status === "playing") {
+          const index = next.players.findIndex((player) => player.playerId === me);
+          if (index >= 0 && behindAfterNine(next.players.map((player) => player.card), index)) wasBehind.current = true;
+        }
+        if (next.status === "finished" && me && next.standings) {
+          const player = next.players.find((item) => item.playerId === me);
+          if (live && prev?.status === "playing" && player && Object.keys(player.card).length === 12) {
+            const comeback = wasBehind.current && next.winners.length === 1 && next.winners[0] === me;
+            setMilestones({ best: beatDeviceScore("online", player.total, next.matchId), comeback });
+          }
+          recordOnDevice(next, me);
+        }
         viewRef.current = next;
         setView(next);
         const remainingMs = next.mode === "simultaneous" ? next.roundRemainingMs : next.turn?.remainingMs;
@@ -371,7 +387,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   // first = shared win, any other place = the calm "finished" sound).
   const myRank = view?.standings?.find((x) => x.playerId === me?.playerId)?.rank;
   const soundOutcome = !finished ? null : players.length > 2 ? (myRank === 1 ? (winners.length > 1 ? "winShared" : "win") : "lose") : outcome;
-  const celebration = useGameSounds(game.cards, finished, soundOutcome, syncKey);
+  const celebration = useGameSounds(players.length > 2 ? [players[meIndex]?.card ?? {}] : game.cards, finished, soundOutcome, syncKey);
 
 
   if (!seat) return null;
@@ -559,6 +575,8 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           remaining={remaining}
           feedback={feedback}
           showGuide={showGuide && status === "online" && !rolling}
+          milestones={milestones}
+          celebration={celebration}
           error={<ErrorMessage message={error} />}
           rematch={rematch}
           isHost={(lobby?.hostId ?? players[0]?.playerId) === me?.playerId}
@@ -606,7 +624,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
                   {p.playerId === aiSeat && <span className="ai-badge">서버 AI</span>}
                 </span>
                 <strong>
-                  {p.total}
+                  <ScoreTotal value={p.total} />
                   <small>점</small>
                 </strong>
               </div>
@@ -622,7 +640,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           </div>
           {banner}
           <section
-            className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (boardOf(myLook) ? " board-themed" : "") + (boardCssOf(myLook) ? " " + boardCssOf(myLook) : "")}
+            className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (canRoll && nearYacht(game.dice, rolls, players[meIndex]?.card) ? " yacht-near" : "") + (boardOf(myLook) ? " board-themed" : "") + (boardCssOf(myLook) ? " " + boardCssOf(myLook) : "")}
             style={boardOf(myLook) ? ({ "--board-color": boardOf(myLook) } as React.CSSProperties) : undefined}
             aria-label="게임 보드"
             {...gesture}
@@ -678,6 +696,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
                     <UserRound size={15} /> {opponent.name} 님 프로필
                   </button>
                 )}
+                <MatchMilestones {...milestones} />
                 <RematchControls rematch={rematch} me={me?.playerId ?? ""} opponentName={opponent?.name ?? "상대"} onOp={(op) => conn.current?.rematch(op)} />
                 <div className="game-result-actions">
                   <button

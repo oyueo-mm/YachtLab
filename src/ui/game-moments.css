@@ -1,0 +1,52 @@
+.yacht-near {
+  box-shadow: inset 0 0 0 1px #e890824d;
+}
+
+.yacht-near .roll-button:enabled {
+  box-shadow: 0 0 0 2px #e890827d;
+}
+
+.match-milestones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.match-milestones li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: #fff2ee;
+  color: #8f3026;
+  font-size: 12px;
+  font-weight: 700;
+  animation: total-pop 350ms ease-out both;
+}
+
+.score-total-pop {
+  display: inline-block;
+  animation: total-pop 300ms ease-out both;
+}
+
+@keyframes total-pop {
+  0% { transform: scale(.93); }
+  45% { transform: scale(1.08); }
+  100% { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .match-milestones li,
+  .score-total-pop {
+    animation: none;
+  }
+}
+
+.score-summary strong > .score-total-value {
+  color: inherit;
+  font: inherit;
+}

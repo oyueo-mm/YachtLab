@@ -1,3 +1,4 @@
+import { ScoreTotal } from "./ui/GameMoments";
 import { Star, Sigma } from "lucide-react";
 import { categories, names, score, total, type Category } from "./engine";
 import { CategoryIcon, BonusProgress } from "./Scoreboard";
@@ -44,7 +45,7 @@ export function MultiScoreboard({
             ))}
             <tr className="total-row">
               <th><Sigma size={17} /> 총점</th>
-              {indices.map((i) => <td key={i}>{total(state.cards[i])}</td>)}
+              {indices.map((i) => <td key={i}><ScoreTotal value={total(state.cards[i])} /></td>)}
             </tr>
           </tbody>
         </table>
@@ -109,7 +110,7 @@ export function MultiStandings({ state, labels }: { state: MultiGame; labels: st
             <span className="multi-rank">{item.rank}위</span>
             <span className="multi-standing-name">{labels[item.player]}</span>
             <span className="multi-standing-progress">{item.finished}/12</span>
-            <strong>{item.points}점</strong>
+            <strong><ScoreTotal value={item.points} />점</strong>
           </div>
         ))}
       </div>
