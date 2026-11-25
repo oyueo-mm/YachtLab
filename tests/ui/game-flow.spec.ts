@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
-import { scoreCategory, startAI, startLocal, withMotion } from "./helpers";
+import { SEEDS, fixSeed, scoreCategory, startAI, startLocal, withMotion } from "./helpers";
 
 type DebugRoll = { mode: string; token: number; targets: Record<string, number>; finals?: Record<string, number>; endedAt?: number };
 const lastRoll = (page: Page) => page.evaluate(() => (window as unknown as { __yachtlabDice?: { last: DebugRoll } }).__yachtlabDice?.last ?? null);
@@ -310,6 +310,8 @@ test("WebGL을 쓸 수 없으면 2.5D 연출로 대체되고 3D 품질은 선택
 });
 
 test("3D 효과음은 실제 충돌에서 재생되고 개수가 제한되며 고정·해제 소리가 난다", async ({ page }) => {
+  // A first roll without a combination (a large straight / yacht adds its own moment sound after settling).
+  await fixSeed(page, SEEDS.none);
   await open3d(page);
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
   await settled(page);
