@@ -266,6 +266,10 @@
     margin-top: 10px;
     margin-bottom: 0;
   }
+  /* Chat right under the score button, within thumb reach (same order, later in the page). */
+  .page-online-room .game-left > .table-chat {
+    order: 1;
+  }
   .page-online-room .game-left > .score-summary {
     order: 2;
     width: 100%;

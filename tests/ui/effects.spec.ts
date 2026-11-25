@@ -36,6 +36,40 @@ test("요트가 나오면 점수 칸 선택 전에도 자동으로 강조하고(
   expect(await page.evaluate(() => document.querySelectorAll(".fixed-score").length)).toBe(0);
 });
 
+test("라지 스트레이트가 나오면 숫자 순서대로 빛나는 전용 연출·소리가 한 번(요트보다 짧게), 입력은 막지 않고 점수는 자동 기록하지 않는다", async ({ page }) => {
+  await fixSeed(page, SEEDS.large);
+  await page.goto("#play");
+  await page.getByRole("button", { name: "주사위 굴리기" }).click();
+  const flash = page.locator(".straight-flash");
+  await expect(flash).toContainText("라지 스트레이트");
+  const faces = await page.evaluate(() => (window as unknown as { __yachtlabStraight: { values: number[] }[] }).__yachtlabStraight.map((e) => e.values));
+  expect(faces).toHaveLength(1);
+  expect([[1, 2, 3, 4, 5], [2, 3, 4, 5, 6]]).toContainEqual(faces[0]);
+  // the glow goes face by face in that order (staggered delays), one sound, no yacht moment
+  const delays = await flash.locator(".straight-die").evaluateAll((els) => els.map((e) => (e as HTMLElement).style.animationDelay));
+  expect(delays).toEqual(["0s", "0.09s", "0.18s", "0.27s", "0.36s"]);
+  expect((await sounds(page)).filter((n) => n === "straightHit")).toHaveLength(1);
+  expect(await sounds(page)).not.toContain("yachtHit");
+  await expect(page.locator(".yacht-flash")).toHaveCount(0);
+  await expect(page.locator(".roll-button")).toBeEnabled();
+  // shorter than the yacht moment (1.1 s vs 1.7 s) and not replayed by re-renders
+  await expect(flash).toHaveCount(0, { timeout: 1600 });
+  await page.waitForTimeout(400);
+  expect((await sounds(page)).filter((n) => n === "straightHit")).toHaveLength(1);
+  expect(await page.evaluate(() => document.querySelectorAll(".fixed-score").length)).toBe(0);
+});
+
+test("결과 소리 후보는 효과음 시연에서 비교하고 고른 후보가 저장된다 (기본: 밝은 팡파르)", async ({ page }) => {
+  await page.goto("#dice-lab");
+  const sets = page.getByRole("radiogroup", { name: "결과 소리 후보" });
+  await expect(sets.getByRole("radio")).toHaveCount(4);
+  await expect(sets.locator("label.checked")).toContainText("밝은 팡파르");
+  await sets.getByText("종소리").click();
+  await page.getByRole("group", { name: "결과 소리 듣기" }).getByRole("button", { name: "공동 1위" }).click();
+  expect(await sounds(page)).toContain("winShared");
+  expect(await page.evaluate(() => localStorage.getItem("yachtlab.sound.result"))).toBe("chime");
+});
+
 test("효과음 끄기 설정은 새로고침 후에도 유지되고, 꺼져 있으면 소리를 재생하지 않는다", async ({ page }) => {
   await fixSeed(page, SEEDS.yacht);
   await page.goto("#home");

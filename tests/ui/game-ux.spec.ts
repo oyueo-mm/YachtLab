@@ -132,3 +132,18 @@ test("모바일에서는 중복 점수판을 없애고 상단 게임 도구를 �
   expect(Math.max(...tools.map((t) => t.y)) - Math.min(...tools.map((t) => t.y))).toBeLessThan(6);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test("PC 게임 화면: 위쪽 점수 요약·라운드 칸 없이 오른쪽 점수판이 라운드·차례를 보여 주고, 휴대폰은 요약·라운드를 그대로 둔다", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await startAI(page, { algorithm: "Greedy" });
+  await expect(page.locator(".score-summary")).toBeHidden();
+  await expect(page.locator(".scoreboard .score-round")).toHaveText("1 / 12 라운드");
+  await expect(page.locator(".scoreboard thead th.current .turn-badge")).toHaveText("차례");
+  // the board starts right under the tool row (the freed space went to the table)
+  const tools = (await page.locator(".game-tools").boundingBox())!;
+  const board = (await page.locator(".game-board").boundingBox())!;
+  expect(board.y - (tools.y + tools.height)).toBeLessThan(30);
+  await page.setViewportSize({ width: 390, height: 790 });
+  await expect(page.locator(".score-summary")).toBeVisible();
+  await expect(page.locator(".score-summary .round")).toContainText("12");
+});

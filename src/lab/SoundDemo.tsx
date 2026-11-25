@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Volume2 } from "lucide-react";
-import { playSfx, setSfxVariant, sfxVariant, unlockAudio, type Sfx, type SfxVariant } from "../sound";
+import { RESULT_SETS, playSfx, resultSoundSet, setResultSoundSet, setSfxVariant, sfxVariant, unlockAudio, type ResultSet, type Sfx, type SfxVariant } from "../sound";
 
 /** A throw as heard in a game: shake, a few hits of decreasing strength, dice knocking, rolling, rest. */
 function throwSequence() {
@@ -26,6 +26,7 @@ const SINGLE: [string, () => void][] = [
   ["구르기", () => playSfx("roll", { intensity: 0.8 })],
   ["멈춤", () => playSfx("settle", { intensity: 0.5 })],
   ["요트 달성", () => playSfx("yachtHit")],
+  ["라지 스트레이트", () => playSfx("straightHit")],
   ["상대 입장", () => playSfx("join")],
 ];
 
@@ -35,6 +36,7 @@ const SINGLE: [string, () => void][] = [
  */
 export default function SoundDemo() {
   const [variant, setVariant] = useState<SfxVariant>(sfxVariant);
+  const [result, setResult] = useState<ResultSet>(resultSoundSet);
   // Leaving the lab restores the current sounds for games.
   useEffect(() => () => setSfxVariant("v2"), []);
   const pick = (v: SfxVariant) => {
@@ -66,6 +68,38 @@ export default function SoundDemo() {
           </button>
         ))}
       </div>
+      <h3 className="sound-demo-sub">경기 결과 소리</h3>
+      <div className="segmented sound-result-sets" role="radiogroup" aria-label="결과 소리 후보">
+        {RESULT_SETS.map((r) => (
+          <label key={r.id} className={result === r.id ? "checked" : ""} title={r.note}>
+            <input
+              type="radio"
+              name="result-set"
+              checked={result === r.id}
+              onChange={() => {
+                setResultSoundSet(r.id);
+                setResult(r.id);
+              }}
+            />
+            <span>{r.label}</span>
+          </label>
+        ))}
+      </div>
+      <div className="sound-demo-buttons" role="group" aria-label="결과 소리 듣기">
+        {(
+          [
+            ["승리 (단독 1위)", "win"],
+            ["공동 1위", "winShared"],
+            ["패배 · 2위 이하", "lose"],
+            ["무승부", "draw"],
+          ] as const
+        ).map(([label, name]) => (
+          <button key={name} type="button" className="secondary" onClick={() => play(() => playSfx(name))}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="setup-note">고른 결과 소리는 이 기기의 게임에 그대로 쓰여요(기본: 밝은 팡파르). 음량·음소거 설정을 따라요.</p>
       <p className="setup-note">효과음은 모두 브라우저에서 합성해요(외부 음원 없음). 이전·현재·후보 버전으로 같은 소리를 비교해 보세요. 후보(v3)는 휴대폰 스피커에서도 들리는 음역과 짧은 잡음 타격음을 쓴 실험 버전이에요. 게임에는 항상 현재 버전이 쓰여요.</p>
     </div>
   );

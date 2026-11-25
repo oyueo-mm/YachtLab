@@ -27,8 +27,21 @@ export type Sfx =
   | "draw"
   /** Five of a kind just came up (before any score is chosen). */
   | "yachtHit"
+  /** A large straight just came up: five rising notes, in step with the dice lighting up (softer and shorter than the yacht). */
+  | "straightHit"
+  /** Multi-player: first place shared with others. */
+  | "winShared"
+  /** Lv.3 special-effect items (presentation only). */
+  | "fxSparkle"
+  | "fxCoin"
+  | "fxBell"
+  | "fxWhoosh"
+  | "fxFanfare"
   /** Another player joined the online room. */
   | "join";
+
+/** Large straight: the glow moves one die per step; the notes use the same step. */
+export const STRAIGHT_STEP_S = 0.09;
 
 export type SfxOptions = {
   /** Seconds from now. Used to line sounds up with dice keyframes. */
@@ -326,6 +339,95 @@ const admit = (audio: AudioContext, name: Sfx, start: number, length: number, k:
 const notes = (audio: AudioContext, out: AudioNode, start: number, freqs: number[], step: number, length: number, gain: number, type: OscillatorType) =>
   freqs.forEach((f, i) => tone(audio, out, start + i * step, f, length, gain, type));
 
+/* --------------------------------------------------------------- result sounds --------------------------------------------------------------- */
+/**
+ * Win / shared first place / loss / draw candidates (D, 2026-11-25), all synthesized here (no assets).
+ * Compared side by side in 주사위 실험실 → 효과음 시연; the default is the one judged best for:
+ *  win — bright, a sense of achievement; loss — calm, not punishing; draw — neutral, closed;
+ *  shared first — the win figure without the final lift. Volume / mute settings apply as usual.
+ */
+export type ResultSet = "classic" | "fanfare" | "marimba" | "chime";
+export const RESULT_SETS: readonly { id: ResultSet; label: string; note: string }[] = [
+  { id: "fanfare", label: "밝은 팡파르 (기본)", note: "승리 상승 아르페지오 + 화음, 패배는 부드러운 해결 화음" },
+  { id: "marimba", label: "마림바", note: "짧은 나무 타악 느낌, 패배는 낮은 두 음" },
+  { id: "chime", label: "종소리", note: "배음이 있는 맑은 종, 무승부는 열린 5도" },
+  { id: "classic", label: "이전 소리", note: "2026-11-24까지의 승리·패배·무승부" },
+];
+const RESULT_KEY = "yachtlab.sound.result";
+let resultSet: ResultSet = (() => {
+  try {
+    const v = typeof localStorage !== "undefined" ? localStorage.getItem(RESULT_KEY) : null;
+    return RESULT_SETS.some((r) => r.id === v) ? (v as ResultSet) : "fanfare";
+  } catch {
+    return "fanfare";
+  }
+})();
+export const resultSoundSet = () => resultSet;
+export function setResultSoundSet(id: ResultSet) {
+  resultSet = id;
+  try {
+    localStorage.setItem(RESULT_KEY, id);
+  } catch {
+    /* private mode */
+  }
+}
+/** A bell-like tone: a sine with a few decaying inharmonic partials. */
+function bell(audio: AudioContext, out: AudioNode, start: number, freq: number, length: number, gain: number) {
+  tone(audio, out, start, freq, length, gain, "sine");
+  tone(audio, out, start, freq * 2.01, length * 0.6, gain * 0.35, "sine");
+  tone(audio, out, start, freq * 3.03, length * 0.35, gain * 0.15, "sine");
+}
+/** A short wooden pluck (triangle with a fast decay and a soft click). */
+function pluck(audio: AudioContext, out: AudioNode, start: number, freq: number, gain: number) {
+  tone(audio, out, start, freq, 0.22, gain, "triangle");
+  tone(audio, out, start, freq * 4, 0.04, gain * 0.25, "sine");
+}
+function playResult(audio: AudioContext, out: AudioNode, t: number, name: "win" | "winShared" | "lose" | "draw") {
+  const set = resultSet;
+  if (set === "classic") {
+    if (name === "win" || name === "winShared") {
+      notes(audio, out, t, [392, 523.25, 659.25, 783.99], 0.09, 0.24, 0.15, "triangle");
+      if (name === "win") [523.25, 659.25, 783.99].forEach((f) => tone(audio, out, t + 0.38, f, 0.6, 0.07, "sine"));
+    } else if (name === "lose") notes(audio, out, t, [440, 392, 329.63], 0.14, 0.3, 0.12, "sine");
+    else notes(audio, out, t, [523.25, 523.25], 0.16, 0.22, 0.12, "triangle");
+    return;
+  }
+  if (set === "fanfare") {
+    if (name === "win") {
+      // G4 C5 E5 G5 → C6, then a warm C major chord with a little shimmer
+      notes(audio, out, t, [392, 523.25, 659.25, 783.99], 0.085, 0.2, 0.14, "triangle");
+      tone(audio, out, t + 0.36, 1046.5, 0.55, 0.13, "triangle");
+      [523.25, 659.25, 783.99, 1046.5].forEach((f) => tone(audio, out, t + 0.4, f, 0.9, 0.055, "sine"));
+      for (let i = 0; i < 5; i++) burst(audio, out, t + 0.42 + i * 0.07, 0.04, 0.025, "highpass", 7000);
+    } else if (name === "winShared") {
+      notes(audio, out, t, [392, 523.25, 659.25], 0.085, 0.2, 0.13, "triangle");
+      [523.25, 783.99].forEach((f) => tone(audio, out, t + 0.28, f, 0.7, 0.06, "sine"));
+    } else if (name === "lose") {
+      // a soft plagal cadence (F → C), low and short: "끝났어요", not "졌어요!"
+      [349.23, 440, 523.25].forEach((f) => tone(audio, out, t, f, 0.5, 0.05, "sine"));
+      [329.63, 392, 523.25].forEach((f) => tone(audio, out, t + 0.42, f, 0.8, 0.05, "sine"));
+    } else {
+      // draw: two even notes closing on an open fifth
+      tone(audio, out, t, 523.25, 0.25, 0.09, "triangle");
+      tone(audio, out, t + 0.2, 523.25, 0.25, 0.09, "triangle");
+      [392, 523.25].forEach((f) => tone(audio, out, t + 0.42, f, 0.6, 0.06, "sine"));
+    }
+    return;
+  }
+  if (set === "marimba") {
+    if (name === "win") [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => pluck(audio, out, t + i * 0.07, f, 0.16));
+    else if (name === "winShared") [523.25, 659.25, 783.99].forEach((f, i) => pluck(audio, out, t + i * 0.08, f, 0.15));
+    else if (name === "lose") [392, 329.63].forEach((f, i) => pluck(audio, out, t + i * 0.18, f, 0.13));
+    else [440, 440].forEach((f, i) => pluck(audio, out, t + i * 0.18, f, 0.13));
+    return;
+  }
+  // chime
+  if (name === "win") [783.99, 1046.5, 1318.5, 1567.98].forEach((f, i) => bell(audio, out, t + i * 0.1, f, 0.8, 0.09));
+  else if (name === "winShared") [783.99, 1046.5, 1318.5].forEach((f, i) => bell(audio, out, t + i * 0.1, f, 0.7, 0.08));
+  else if (name === "lose") [659.25, 523.25].forEach((f, i) => bell(audio, out, t + i * 0.2, f, 0.9, 0.07));
+  else [523.25, 783.99].forEach((f) => bell(audio, out, t, f, 0.9, 0.06));
+}
+
 export function playSfx(name: Sfx, options: SfxOptions = {}) {
   const delay = Math.max(0, options.delay ?? 0);
   const engine = ready();
@@ -429,14 +531,35 @@ export function playSfx(name: Sfx, options: SfxOptions = {}) {
       [523.25, 659.25, 783.99].forEach((f) => tone(audio, out, t + 0.36, f, 0.55, 0.08, "sine"));
       break;
     case "win":
-      notes(audio, out, t, [392, 523.25, 659.25, 783.99], 0.09, 0.24, 0.15, "triangle");
-      [523.25, 659.25, 783.99].forEach((f) => tone(audio, out, t + 0.38, f, 0.6, 0.07, "sine"));
-      break;
+    case "winShared":
     case "lose":
-      notes(audio, out, t, [440, 392, 329.63], 0.14, 0.3, 0.12, "sine");
-      break;
     case "draw":
-      notes(audio, out, t, [523.25, 523.25], 0.16, 0.22, 0.12, "triangle");
+      playResult(audio, out, t, name);
+      break;
+    case "fxSparkle":
+      for (let i = 0; i < 6; i++) tone(audio, out, t + i * 0.05, 1568 + i * 220, 0.12, 0.05, "sine");
+      for (let i = 0; i < 4; i++) burst(audio, out, t + i * 0.07, 0.03, 0.03, "highpass", 7000);
+      break;
+    case "fxCoin":
+      [0, 0.09, 0.18].forEach((d) => {
+        tone(audio, out, t + d, 1975.5, 0.08, 0.07, "square");
+        tone(audio, out, t + d + 0.05, 2637, 0.14, 0.06, "square");
+      });
+      break;
+    case "fxBell":
+      [1046.5, 1318.5, 1568].forEach((f, i) => bell(audio, out, t + i * 0.12, f, 0.7, 0.06));
+      break;
+    case "fxWhoosh":
+      burst(audio, out, t, 0.45, 0.12, "bandpass", 400, 3200, 0.9);
+      tone(audio, out, t + 0.3, 1318.5, 0.3, 0.05, "sine");
+      break;
+    case "fxFanfare":
+      notes(audio, out, t, [523.25, 659.25, 783.99, 1046.5], 0.07, 0.18, 0.1, "square");
+      tone(audio, out, t + 0.3, 1046.5, 0.45, 0.06, "triangle");
+      break;
+    case "straightHit": // large straight: five quick rising notes (in step with the dice glow), no chord tail
+      [523.25, 587.33, 659.25, 783.99, 880].forEach((f, i) => tone(audio, out, t + i * STRAIGHT_STEP_S, f, 0.16, 0.085, "triangle"));
+      tone(audio, out, t + 4 * STRAIGHT_STEP_S + 0.05, 1046.5, 0.3, 0.05, "sine");
       break;
     case "yachtHit": // five of a kind: a quick bright sparkle rising over a soft chord
       notes(audio, out, t, [783.99, 987.77, 1174.66, 1567.98, 1975.53], 0.045, 0.18, 0.11, "triangle");

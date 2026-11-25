@@ -21,9 +21,13 @@ import type { OnlineAction } from "../online/protocol";
 import type { PlayerView } from "../online/server-engine";
 import type { LobbyState, RematchState, SeriesSummary, SpectateState } from "../online/wire";
 import { LobbyPanel, MultiTable } from "./OnlineMulti";
-import { ChipBubble, EmoteBar, SocialPanel, SpectateControl, useBubbles } from "./Social";
-import { PlayerTag, boardOf, diceLookOf } from "./Looks";
-import { GUEST_LOOK, type PublicLook } from "../economy/live/catalog";
+import { SpectateControl } from "./Social";
+import { SocialDock, TableFeed, useTableChat } from "./SocialDock";
+import { PlayerTag, boardCssOf, boardOf, diceLookOf } from "./Looks";
+import { GUEST_LOOK, itemById, type PublicLook } from "../economy/live/catalog";
+import type { FxLook } from "../economy/live/content-items";
+import { FxBurst } from "./FxBurst";
+import { FriendInvite } from "../shell/Friends";
 import { saveLocalRecord } from "../identity/local";
 import { RULES_ID } from "../identity/records";
 import { publicProfile, type PublicProfile } from "../identity/account-client";
@@ -98,17 +102,20 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const viewRef = useRef<PlayerView | null>(null);
   const lastDice = useRef<number[]>([1, 2, 3, 4, 5]);
   const rolling = useDiceBusy();
-  const social = useBubbles();
-  const hideRef = useRef(social.hideOpponent);
-  hideRef.current = social.hideOpponent;
+  const chat = useTableChat(seat?.playerId ?? null);
   const [rematch, setRematch] = useState<RematchState | null>(null);
   const [series, setSeries] = useState<SeriesSummary | null>(null);
   const [spectate, setSpectate] = useState<SpectateState | null>(null);
   const [members, setMembers] = useState<Record<string, string>>({});
   const [looks, setLooks] = useState<Record<string, PublicLook>>({});
+  const looksRef = useRef(looks);
+  looksRef.current = looks;
+  const [yachtFx, setYachtFx] = useState<{ fx: FxLook; level: number; seed: string } | null>(null);
   const [aiSeat, setAiSeat] = useState<string | null>(null);
   const [lobby, setLobby] = useState<LobbyState | null>(null);
   const settings = useSettings();
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   const [profileOf, setProfileOf] = useState<string | null>(null);
 
   useEffect(() => {
@@ -170,6 +177,13 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
             if (e.type === "diceRolled" && mine) {
               rolled = true;
               kept = e.kept;
+            } else if (e.type === "categoryScored" && e.category === "yacht" && e.points === 50 && looksRef.current[e.playerId]?.fxLv && (looksRef.current[e.playerId]?.fxLv ?? 1) >= 2 && looksRef.current[e.playerId]?.fx !== "fx.none") {
+              // Lv.2 special effects also play on that player's yacht (every screen, once per event).
+              const lk = looksRef.current[e.playerId];
+              const fxl = itemById(lk.fx)?.look.fx;
+              if (fxl && (e.playerId === me || settingsRef.current.opponentFx)) setYachtFx({ fx: fxl, level: lk.fxLv, seed: `${next.matchId}-${e.seq}` });
+              if (mine) announceScore(e.dice.map((value, id) => ({ id, value })), e.category);
+              setFeedback(`${e.playerId === me ? "나" : nameOf(e.playerId)} · ${names[e.category]} ${e.points}점 기록`);
             } else if (e.type === "categoryScored" && mine) {
               // The dice that made the combination rise (3D) — same effect as offline play.
               announceScore(e.dice.map((value, id) => ({ id, value })), e.category);
@@ -213,10 +227,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         setOnline(list);
         if (awayAt) setAway(awayAt);
       },
-      onSaid(from, id) {
-        if (from !== viewRef.current?.you?.playerId && hideRef.current) return;
-        social.show(from, id);
-      },
+      onSaid: chat.received,
       onSpectate: setSpectate,
       onMembers: setMembers,
       onLooks: setLooks,
@@ -226,12 +237,18 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
         setRematch(r);
         setSeries(sr);
       },
-      onNotice(code, message) {
-        if (code === "LOBBY" || code === "REMATCH" || code === "SOCIAL_RATE_LIMITED" || code === "INVALID_SOCIAL" || code === "SPECTATE") setError(message);
+      onNotice(code, message, extra) {
+        // Chat refusals are shown on the chat bar itself, never as "sent".
+        if (code === "SOCIAL_RATE_LIMITED" || code === "INVALID_SOCIAL") return chat.refused(code, message, extra?.retryMs);
+        if (code === "LOBBY" || code === "REMATCH" || code === "SPECTATE") setError(message);
         // A refused toggle: show the server's state again (the switch moved optimistically).
         if (code === "SPECTATE") setSpectate((s) => (s ? { ...s } : s));
       },
-      onStatus: setStatus,
+      onStatus(next) {
+        setStatus(next);
+        // A new socket has a fresh server-side rate bucket; a pending send on the old one is lost.
+        if (next === "online") chat.reset();
+      },
       onFatal: (message) => onLeave(message),
     });
     conn.current = c;
@@ -243,6 +260,11 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [server, code]);
 
+  useEffect(() => {
+    if (!yachtFx) return;
+    const t = setTimeout(() => setYachtFx(null), 2400);
+    return () => clearTimeout(t);
+  }, [yachtFx]);
   const anyAway = Object.keys(away).length > 0;
   useEffect(() => {
     if (deadline === null && !anyAway) return;
@@ -272,6 +294,10 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const me = view?.you ?? null;
   const players = view?.players ?? [];
   const myLook = (me && looks[me.playerId]) || GUEST_LOOK;
+  const nameMap = Object.fromEntries(players.map((p) => [p.playerId, p.name]));
+  const say = (id: string) => conn.current?.say(id) ?? false;
+  const feed = <TableFeed chat={chat} names={nameMap} looks={looks} me={me?.playerId ?? null} />;
+  const dock = <SocialDock chat={chat} look={myLook} online={status === "online"} transport={say} />;
   const opponent = players.find((p) => p.playerId !== me?.playerId) ?? null;
   /* ------------------------------------------------- derived game table (hooks stay above early returns) ------------------------------------------------- */
   const turn = view?.turn ?? null;
@@ -297,6 +323,8 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
     actions: view?.version ?? 0,
   };
   const labels = players.map((p) => p.name) as [string, string];
+  /** PC score sheet headers (the top summary is phone-only): who I am, who is the server AI. */
+  const scoreLabels = players.map((p) => p.name + (p.playerId === me?.playerId ? " (나)" : p.playerId === aiSeat ? " · AI" : "")) as [string, string];
   const can = myTurn && !sending && !rolling && status === "online";
   const allHeld = keep.length === 5;
   const canRoll = can && rolls < 3 && !(rolls > 0 && allHeld);
@@ -322,13 +350,14 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
   const winnerLook = finished && winners.length === 1 ? looks[winners[0]] : undefined;
   const winnerFxItem = winnerLook && winnerLook.fx !== "fx.none" && (winners[0] === me?.playerId || settings.opponentFx) ? winnerLook : undefined;
   const winnerFx = winnerFxItem ? ` fx-confetti fx-lv${winnerFxItem.fxLv}` : "";
-  const fxSound = winnerFxItem?.fxLv === 3 && !!view?.matchId;
-  useEffect(() => {
-    if (fxSound) playSfx("bonus");
-  }, [fxSound, view?.matchId]);
+  const winnerFxLook = winnerFxItem ? itemById(winnerFxItem.fx)?.look.fx : undefined;
   const gesture = useThrowGesture(canRoll, roll);
   const yachtReady = useYachtReady(game.dice, rolls, myTurn && players[meIndex]?.card.yacht === undefined);
-  const celebration = useGameSounds(game.cards, finished, outcome, syncKey);
+  // Result sound from my side: 1:1 win / loss / draw; larger rooms by rank (sole first = win, shared
+  // first = shared win, any other place = the calm "finished" sound).
+  const myRank = view?.standings?.find((x) => x.playerId === me?.playerId)?.rank;
+  const soundOutcome = !finished ? null : players.length > 2 ? (myRank === 1 ? (winners.length > 1 ? "winShared" : "win") : "lose") : outcome;
+  const celebration = useGameSounds(game.cards, finished, soundOutcome, syncKey);
 
 
   if (!seat) return null;
@@ -412,12 +441,12 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
                 <Share2 size={15} /> 공유
               </button>
             )}
+            <FriendInvite server={server} room={code} freeSeats={view.seats - players.length} />
           </div>
           <input className="online-invite-link" aria-label="초대 링크" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
         </div>
         <div className="online-lobby-tools">
           <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />
-          <SocialPanel look={myLook} onSend={(id) => conn.current?.say(id) ?? false} hideOpponent={social.hideOpponent} setHideOpponent={social.setHideOpponent} disabled={status !== "online"} />
         </div>
         <LobbyPanel
           lobby={lobby}
@@ -430,7 +459,6 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
               <strong>
                 <PlayerTag name={p.name} look={looks[p.playerId]} me={p.playerId === me?.playerId} />
               </strong>
-              <ChipBubble bubble={social.bubbles[p.playerId]} look={looks[p.playerId]} mine={p.playerId === me?.playerId} />
             </>
           )}
           disabled={status !== "online" || sending}
@@ -439,6 +467,10 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           onTransfer={(to) => conn.current?.transferHost(to)}
           onStart={() => void send({ type: "start" })}
         />
+        <div className="lobby-chat">
+          {feed}
+          {dock}
+        </div>
         <ErrorMessage message={error} />
         <button
           type="button"
@@ -459,12 +491,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
 
   const toolGroups = (
     <>
-            {/* Chat and emotes: right next to the board, always rendered (disabled while offline). */}
-            <div className="online-tool-group online-social-tools">
-              <EmoteBar look={myLook} onSend={(id) => conn.current?.say(id) ?? false} disabled={status !== "online"} />
-              <SocialPanel look={myLook} onSend={(id) => conn.current?.say(id) ?? false} hideOpponent={social.hideOpponent} setHideOpponent={social.setHideOpponent} disabled={status !== "online"} />
-            </div>
-            {/* Room settings, kept apart from the chat buttons. */}
+            {/* Room settings (chat and emotes are in the bar under the board). */}
             <div className="online-tool-group online-room-tools">
               {!aiSeat && <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />}
               {playing && (
@@ -495,7 +522,12 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           me={me?.playerId ?? ""}
           online={online}
           looks={looks}
-          bubbles={social.bubbles}
+          social={
+            <>
+              {feed}
+              {dock}
+            </>
+          }
           status={status}
           tools={toolGroups}
           banner={banner}
@@ -548,7 +580,6 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           <div className="score-summary">
             {players.map((p, seatIndex) => (
               <div key={p.playerId} className={!finished && turnIndex === seatIndex ? "selected" : ""} data-seat={seatIndex} data-role={p.playerId === me?.playerId ? "human" : "opponent"}>
-                <ChipBubble bubble={social.bubbles[p.playerId]} look={looks[p.playerId]} mine={p.playerId === me?.playerId} />
                 <span>
                   <PlayerTag name={p.name} look={looks[p.playerId]} me={p.playerId === me?.playerId} compact />
                   {p.playerId === me?.playerId ? " (나)" : ""}
@@ -571,12 +602,13 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           </div>
           {banner}
           <section
-            className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (boardOf(myLook) ? " board-themed" : "")}
+            className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (boardOf(myLook) ? " board-themed" : "") + (boardCssOf(myLook) ? " " + boardCssOf(myLook) : "")}
             style={boardOf(myLook) ? ({ "--board-color": boardOf(myLook) } as React.CSSProperties) : undefined}
             aria-label="게임 보드"
             {...gesture}
           >
             <Celebrate value={celebration} />
+            {yachtFx && <FxBurst key={yachtFx.seed} fx={yachtFx.fx} level={yachtFx.level} seed={yachtFx.seed} />}
             <div className="board-top">
               <span className="turn-indicator">
                 <i />
@@ -602,6 +634,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
             </div>
             {finished && (
               <div className={"game-result online-result" + winnerFx} role="status">
+                {winnerFxLook && winnerFxItem && <FxBurst fx={winnerFxLook} level={winnerFxItem.fxLv} seed={view.matchId} />}
                 <Trophy size={25} />
                 <h2>{outcome === "draw" ? "무승부입니다" : outcome === "win" ? "승리했습니다!" : `${players.find((p) => p.playerId === winners[0])?.name ?? "상대"} 님이 승리했습니다`}</h2>
                 <p className="online-final">
@@ -651,6 +684,11 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
               <MobileQuickScore cards={game.cards} dice={game.dice} rolls={rolling ? 0 : rolls} current={turnIndex} labels={labels} canScore={can} onScore={record} />
             </MobileScoreSheet>
           )}
+          {/* Messages and the send bar under the board: never over the dice or the roll button. */}
+          <div className="table-chat">
+            {feed}
+            {dock}
+          </div>
           {feedback && (
             <p className="game-feedback" role="status">
               {feedback}
@@ -658,7 +696,7 @@ export default function OnlineGame({ server, code, onLeave, onProgress }: { serv
           )}
           <ErrorMessage message={error} />
         </div>
-        <Scoreboard state={game} labels={labels} selectPlayer={meIndex} select={can ? record : undefined} />
+        <Scoreboard state={game} labels={scoreLabels} round={game.round} selectPlayer={meIndex} select={can ? record : undefined} />
       </div>
       {profileOf && <OpponentProfile server={server} userId={profileOf} onClose={() => setProfileOf(null)} />}
       <ConfirmDialog

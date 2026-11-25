@@ -1,3 +1,5 @@
+import { useSettings } from "./settings";
+import type { DiceLook } from "./dice3d/face-paint";
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { arrayMove } from "@dnd-kit/sortable";
 import type { Game } from "./engine";
@@ -50,7 +52,7 @@ export function PhysicalDice({
   colors = null,
 }: {
   /** Dice theme (online: the current turn's player). */
-  colors?: { face: string; pip: string; edge: string } | null;
+  colors?: DiceLook | null;
   module: DiceTableModule;
   quality: "3d" | "3d-high";
   state: Pick<Game, "dice" | "order" | "rolls">;
@@ -105,9 +107,10 @@ export function PhysicalDice({
     return () => ro.disconnect();
   }, []);
 
+  const { reducedEffects } = useSettings();
   useEffect(() => {
-    table.current?.setColors(colors);
-  }, [colors?.face, colors?.pip, colors?.edge, dims]);
+    table.current?.setColors(colors && reducedEffects ? { ...colors, anim: undefined } : colors);
+  }, [JSON.stringify(colors), reducedEffects, dims]);
 
   useEffect(
     () => () => {

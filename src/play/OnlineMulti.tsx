@@ -8,8 +8,7 @@ import type { PlayerView } from "../online/server-engine";
 import type { LobbyState, RematchState } from "../online/wire";
 import { ROUND_LIMITS, TURN_LIMITS } from "../online/wire";
 import type { PublicLook } from "../economy/live/catalog";
-import { PlayerTag, diceLookOf } from "./Looks";
-import { ChipBubble } from "./Social";
+import { PlayerTag, boardCssOf, boardOf, diceLookOf } from "./Looks";
 import { QuickPicks } from "../QuickPicks";
 
 type ViewPlayer = PlayerView["players"][number];
@@ -124,7 +123,7 @@ export function LobbyPanel(p: {
 }
 
 /** Live ranking: rank, name, score, cards filled, and this round's state (simultaneous) or whose turn it is. */
-export function OnlineStandings({ view, me, online, looks, bubbles, final = false, selected, onSelect }: { view: PlayerView; me: string; online: string[]; looks: Record<string, PublicLook>; bubbles: Record<string, { id: string; key: number }>; final?: boolean; selected?: string | null; onSelect?: (playerId: string) => void }) {
+export function OnlineStandings({ view, me, online, looks, final = false, selected, onSelect }: { view: PlayerView; me: string; online: string[]; looks: Record<string, PublicLook>; final?: boolean; selected?: string | null; onSelect?: (playerId: string) => void }) {
   const rows = [...view.players].sort((a, b) => Number(a.status !== "active") - Number(b.status !== "active") || b.total - a.total || a.seat - b.seat);
   let rank = 0;
   let prev: ViewPlayer | null = null;
@@ -156,7 +155,6 @@ export function OnlineStandings({ view, me, online, looks, bubbles, final = fals
               <span className="online-standing-name">
                 <PlayerTag name={p.name} look={looks[p.playerId]} me={p.playerId === me} compact />
                 {p.playerId === me ? " (나)" : ""}
-                <ChipBubble bubble={bubbles[p.playerId]} look={looks[p.playerId]} mine={p.playerId === me} />
               </span>
               <span className="online-standing-state">{state}</span>
               <span className="multi-standing-progress">{filled}/12</span>
@@ -180,7 +178,8 @@ export function MultiTable(p: {
   me: string;
   online: string[];
   looks: Record<string, PublicLook>;
-  bubbles: Record<string, { id: string; key: number }>;
+  /** Messages + send bar, shown under the board. */
+  social: React.ReactNode;
   status: "connecting" | "online" | "reconnecting" | "closed";
   tools: React.ReactNode;
   banner: React.ReactNode;
@@ -227,7 +226,11 @@ export function MultiTable(p: {
           {p.tools}
         </div>
         {p.banner}
-        <section className={"game-board throw-tray" + (p.rolls === 0 ? " dice-ready" : "")} aria-label="게임 보드">
+        <section
+          className={"game-board throw-tray" + (p.rolls === 0 ? " dice-ready" : "") + (boardOf(p.looks[p.me]) ? " board-themed" : "") + (boardCssOf(p.looks[p.me]) ? " " + boardCssOf(p.looks[p.me]) : "")}
+          style={boardOf(p.looks[p.me]) ? ({ "--board-color": boardOf(p.looks[p.me]) } as React.CSSProperties) : undefined}
+          aria-label="게임 보드"
+        >
           <div className="board-top">
             <span className="turn-indicator">
               <i />
@@ -260,13 +263,14 @@ export function MultiTable(p: {
             </div>
           )}
         </section>
+        <div className="table-chat">{p.social}</div>
         {p.feedback && (
           <p className="game-feedback" role="status">
             {p.feedback}
           </p>
         )}
         {p.error}
-        <OnlineStandings view={view} me={p.me} online={p.online} looks={p.looks} bubbles={p.bubbles} final={finished} />
+        <OnlineStandings view={view} me={p.me} online={p.online} looks={p.looks} final={finished} />
       </div>
       <div className="multi-scores online-multi-scores">
         {players.length > 8 && (

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
-import { playSfx } from "./sound";
+import { STRAIGHT_STEP_S, playSfx } from "./sound";
+import { useSettings } from "./settings";
+import { DieIcon } from "./Dice";
 import { useDiceBusy } from "./useDiceBusy";
 
 /** Five dice showing the same face after at least one roll (presentation only; nothing is scored). */
@@ -50,3 +52,52 @@ export function useYachtReady(dice: readonly { value: number }[], rolls: number,
   const busy = useDiceBusy();
   return open && !busy && isYachtDice(dice, rolls);
 }
+
+/** Five dice forming 1–5 or 2–6 after at least one roll (presentation only). */
+export function largeStraightOf(dice: readonly { value: number }[], rolls: number): number[] | null {
+  if (rolls === 0 || dice.length !== 5) return null;
+  const values = [...dice.map((d) => d.value)].sort((a, b) => a - b);
+  const ok = values.every((v, i) => i === 0 || v === values[i - 1] + 1);
+  return ok ? values : null;
+}
+type StraightShown = { key: number; values: number[] };
+
+/**
+ * Large straight moment (D, 2026-11-25): the faces light up one by one in order (1→5 or 2→6) with five
+ * rising notes on the same beat — lighter and shorter than the yacht moment (1.1 s vs 1.7 s, no chord
+ * tail, no shake). Once per throw (keyed by the roll event: a refresh, reconnect or re-render never
+ * replays it), after the dice have stopped; never intercepts input; shown on every screen that shows
+ * these dice (both players and spectators). "효과 줄이기" keeps only a still label.
+ */
+export function StraightFlash({ dice, rolls, rollEvent }: { dice: readonly { value: number }[]; rolls: number; rollEvent: number }) {
+  const busy = useDiceBusy();
+  const { reducedEffects } = useSettings();
+  const shownFor = useRef(rollEvent);
+  const [active, setActive] = useState<StraightShown | null>(null);
+  const values = largeStraightOf(dice, rolls);
+  useEffect(() => {
+    if (!values || busy || rollEvent === shownFor.current) return;
+    shownFor.current = rollEvent;
+    const entry = { key: rollEvent, values };
+    if (typeof window !== "undefined") ((window as unknown as { __yachtlabStraight?: StraightShown[] }).__yachtlabStraight ??= []).push(entry);
+    setActive(entry);
+    playSfx("straightHit");
+    const timer = window.setTimeout(() => setActive(null), STRAIGHT_MS);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!values, busy, rollEvent]);
+  if (!active) return null;
+  return (
+    <div key={active.key} className={"straight-flash" + (reducedEffects ? " static" : "")} role="status" aria-live="polite">
+      <div className="straight-row" aria-hidden="true">
+        {active.values.map((v, i) => (
+          <span key={v} className="straight-die" style={{ animationDelay: `${i * STRAIGHT_STEP_S}s` }}>
+            <DieIcon value={v} />
+          </span>
+        ))}
+      </div>
+      <span className="straight-label">라지 스트레이트</span>
+    </div>
+  );
+}
+export const STRAIGHT_MS = 1100;

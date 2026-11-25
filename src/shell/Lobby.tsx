@@ -1,6 +1,7 @@
 import { ArrowRight, Backpack, Bot, Dices, Globe, ListChecks, Smartphone, Store, Trophy, UserRound, UsersRound } from "lucide-react";
 import { DieIcon } from "../Dice";
 import type { Route } from "../routes";
+import { useInbox } from "./Friends";
 
 type Go = (route: Route) => void;
 
@@ -9,6 +10,7 @@ type Go = (route: Route) => void;
  * main card; offline play (AI / same device) is the second card. Research tools stay behind "연구실".
  */
 export function Lobby({ navigate }: { navigate: Go }) {
+  const box = useInbox();
   return (
     <section className="lobby lobby-v3" aria-labelledby="lobby-title">
       <div className="lobby-hero">
@@ -50,12 +52,18 @@ export function Lobby({ navigate }: { navigate: Go }) {
             ["inventory", "인벤토리", Backpack],
             ["quests", "퀘스트", ListChecks],
             ["achievements", "업적", Trophy],
+            ["friends", "친구", UsersRound],
             ["profile", "프로필", UserRound],
           ] as const
         ).map(([route, label, Icon]) => (
           <button key={route} type="button" className="lobby-menu-item" onClick={() => navigate(route)}>
             <Icon size={18} aria-hidden="true" />
             <span>{label}</span>
+            {route === "friends" && box.requests + box.invites.length > 0 && (
+              <b className="menu-badge" aria-label={`새 알림 ${box.requests + box.invites.length}개`}>
+                {box.requests + box.invites.length}
+              </b>
+            )}
           </button>
         ))}
       </nav>

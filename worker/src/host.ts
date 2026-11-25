@@ -60,6 +60,8 @@ export type HostEvents = {
   deliverRecord?: (userId: string, record: MatchRecord) => Promise<boolean>;
   /** Public spectating list: the room's entry (or null to remove it). Best effort. */
   publish?: (code: string, entry: ReturnType<OnlineRoom["publicEntry"]>) => Promise<void> | void;
+  /** Signed-in members started (room code) or finished (null) a match — for friends' presence. */
+  memberStatus?: (userIds: string[], room: string | null) => Promise<void> | void;
   /** A quick match finished (its players may queue again). */
   matchEnded?: (code: string) => Promise<void> | void;
   /** Operations counters for a finished match (mode, completed or not, duration). No player data. */
@@ -228,6 +230,16 @@ export class RoomHost {
   }
 
   private published = "";
+  private lastStatus: string | null = null;
+  /** Friend invites (J): whether `userId` sits in this friend room's waiting room and seats are left. */
+  inviteState(userId: string): { ok: true; seats: number; players: number } | { ok: false; reason: "not-member" | "started" | "full" | "closed" } {
+    const room = this.room;
+    if (!room || this.deleted || room.isClosed) return { ok: false, reason: "closed" };
+    if (room.kind !== "friend" || !Object.values(room.members()).includes(userId)) return { ok: false, reason: "not-member" };
+    if (room.match.status !== "lobby") return { ok: false, reason: "started" };
+    if (room.match.players.length >= room.match.seats) return { ok: false, reason: "full" };
+    return { ok: true, seats: room.match.seats, players: room.match.players.length };
+  }
   private endedSent = false;
   private finishedFor = "";
   /** Push the public list entry when it changed (round, scores, spectators) — at most a few times per round. */
@@ -241,6 +253,12 @@ export class RoomHost {
       const end = log[log.length - 1]?.at ?? started;
       const completed = !log.some((e) => e.type === "playerForfeited");
       await Promise.resolve(this.events.finished({ kind: room.kind, completed, durationMs: Math.max(0, end - started), members: Object.keys(room.members()).length })).catch(() => undefined);
+    }
+    if (room.match.status !== this.lastStatus) {
+      const before = this.lastStatus;
+      this.lastStatus = room.match.status;
+      const members = Object.values(room.members());
+      if (members.length && (room.match.status === "playing" || before === "playing")) await Promise.resolve(this.events.memberStatus?.(members, room.match.status === "playing" ? room.code : null)).catch(() => undefined);
     }
     if (room.kind === "random" && room.match.status === "finished" && !this.endedSent) {
       this.endedSent = true;

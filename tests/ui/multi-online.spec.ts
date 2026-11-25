@@ -121,7 +121,10 @@ test("2인 방은 기존 1:1 화면 그대로(준비 없이 시작)", async ({ b
   await expect(b.getByText("방장이 게임을 시작하면 바로 시작돼요.")).toBeVisible();
   await a.getByRole("button", { name: "게임 시작" }).click();
   await expect(a.locator(".turn-indicator")).toContainText("나의 차례");
-  await expect(a.locator(".score-summary")).toBeVisible(); // the 1:1 layout
+  // the 1:1 layout: on PC the score sheet carries the scores, round and whose turn it is (no top summary)
+  await expect(a.locator(".score-summary")).toBeHidden();
+  await expect(a.locator(".scoreboard .score-round")).toHaveText("1 / 12 라운드");
+  await expect(a.locator(".scoreboard thead th.current .turn-badge")).toHaveText("차례");
   await expect(a.getByRole("region", { name: "실시간 순위" })).toHaveCount(0);
 });
 

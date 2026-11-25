@@ -51,6 +51,7 @@ export function Scoreboard({
   onClear,
   previewCategory = null,
   selectPlayer = 0,
+  round,
 }: {
   state: Game;
   labels?: [string, string];
@@ -60,6 +61,8 @@ export function Scoreboard({
   onClear?: () => void;
   previewCategory?: Category | null;
   selectPlayer?: 0 | 1;
+  /** Shown in the title (PC: the separate round box above the board is gone). */
+  round?: number;
 }) {
   // Five of a kind on the table: the current player's open yacht row lights up (nothing is recorded).
   const yachtReady = useYachtReady(state.dice, state.rolls, !state.done && state.cards[state.player]?.yacht === undefined);
@@ -67,7 +70,11 @@ export function Scoreboard({
     <section className="scoreboard panel" aria-label="점수판">
       <div className="score-title">
         <h2>점수판</h2>
-
+        {round !== undefined && (
+          <span className="score-round" aria-label={`라운드 ${Math.min(12, round)} / 12`}>
+            {state.done ? "경기 종료" : `${Math.min(12, round)} / 12 라운드`}
+          </span>
+        )}
       </div>
       <table>
         <thead>
@@ -78,8 +85,10 @@ export function Scoreboard({
                 scope="col"
                 key={i}
                 className={state.player === i && !state.done ? "current" : ""}
+                aria-current={state.player === i && !state.done ? "true" : undefined}
               >
-                {label}
+                <span className="score-col-name">{label}</span>
+                {state.player === i && !state.done && <span className="turn-badge">차례</span>}
               </th>
             ))}
           </tr>

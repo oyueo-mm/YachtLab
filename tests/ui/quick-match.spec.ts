@@ -55,12 +55,12 @@ test("빠른 대전: 두 기기가 자동으로 매칭되어 경기 화면으로
   // PC tool row: chat + emotes next to the board, spectate and resign grouped apart, all visible
   for (const name of ["채팅·이모티콘", "관전 설정"]) await expect(a.getByRole("button", { name, exact: true })).toBeVisible();
   await expect(a.getByRole("button", { name: "기권" })).toBeVisible();
-  await expect(a.getByRole("group", { name: "이모티콘 보내기" }).getByRole("button")).toHaveCount(4);
+  await expect(a.getByRole("group", { name: "이모티콘 보내기" }).locator(".dock-emote")).toHaveCount(4);
   // phone: the Phase 3 row (chat / spectate / resign), emotes inside the panel
   for (const name of ["채팅·이모티콘", "관전 설정"]) await expect(b.getByRole("button", { name, exact: true })).toBeVisible();
   // a quick emote shows on the other screen
   await a.getByRole("group", { name: "이모티콘 보내기" }).getByRole("button", { name: "박수" }).click();
-  await expect(b.locator(".chip-bubble.emote")).toHaveText("👏");
+  await expect(b.locator(".table-feed .feed-msg.emote .feed-text")).toHaveText("👏");
   // public spectating list → watch
   const w = await device(browser, "desktop");
   await w.goto(entry());
@@ -86,7 +86,7 @@ test("PC 폭별로 방 번호·채팅·이모티콘·관전·기권 버튼이 �
       const box = await a.getByRole("button", { name, exact: true }).boundingBox();
       expect(box, `${name} @${width}`).not.toBeNull();
       expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1);
-      expect(box!.y).toBeLessThan(900);
+      expect(box!.y + box!.height).toBeLessThanOrEqual(900);
     };
     await expect(a.locator(".online-code-chip")).toBeVisible();
     for (const name of ["채팅·이모티콘", "관전 설정", "기권"]) await inView(name);

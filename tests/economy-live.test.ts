@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DatabaseSync } from "node:sqlite";
 import { ACHIEVEMENTS, ECONOMY, QUESTS, economyDay, economyWeek, nextDayStart } from "../src/economy/live/config";
 import { applyMatch, matchStats, newEconState, rerollDaily, type RewardInput } from "../src/economy/live/rewards";
-import { DEFAULT_LOADOUT, DEFAULT_SLOTS, ITEMS, itemById, priceOf, slotPrice, upgradeCost, validateLoadout, sanitizeLook } from "../src/economy/live/catalog";
+import { DEFAULT_LOADOUT, DEFAULT_SLOTS, ITEMS, itemById, lookAt, priceOf, slotPrice, upgradeCost, validateLoadout, sanitizeLook } from "../src/economy/live/catalog";
 import { EconomyStore, type EconSql } from "../worker/src/economy";
 import { categories, type Card } from "../src/engine";
 
@@ -331,5 +331,50 @@ describe("재화 원장 (계정 저장소, node:sqlite)", () => {
     // force a failure inside the transaction: an amount that is not an integer
     expect(() => db.transaction(() => (store as unknown as { post: (e: unknown[], n: number) => void }).post([{ id: "x1", kind: "t", coins: -5, gems: 0, label: "" }, { id: "x2", kind: "t", coins: 0.5, gems: 0, label: "" }], now))).toThrow();
     expect(JSON.stringify(store.snapshot(U, now))).toBe(before);
+  });
+});
+
+describe("아이템 콘텐츠 (H, 2026-11-25)", () => {
+  it("상품군별 목표 수량(합계 200)·고유 ID·기존 ID 보존", () => {
+    const count = (c: string) => ITEMS.filter((i) => i.category === c && !i.retired).length;
+    expect({ dice: count("dice"), board: count("board"), emote: count("emote"), chat: count("chat"), bubble: count("bubble"), profile: count("profile"), nameFx: count("nameFx"), fx: count("fx"), title: count("title") }).toEqual({ dice: 30, board: 20, emote: 30, chat: 30, bubble: 15, profile: 25, nameFx: 15, fx: 15, title: 20 });
+    expect(ITEMS.length).toBe(200);
+    expect(new Set(ITEMS.map((i) => i.id)).size).toBe(ITEMS.length);
+    // ids bought before this change keep their category, tier and meaning
+    for (const [id, cat, tier] of [["dice.mint", "dice", "common"], ["dice.royal", "dice", "mythic"], ["board.felt", "board", "rare"], ["bubble.gold", "bubble", "legendary"], ["profile.whale", "profile", "rare"], ["nameFx.rainbow", "nameFx", "mythic"], ["fx.confetti", "fx", "legendary"], ["title.dicer", "title", "rare"], ["emote.fire", "emote", "common"], ["chat.lucky", "chat", "rare"], ["title.300", "title", "special"]] as const)
+      expect(itemById(id), id).toMatchObject({ category: cat, tier });
+  });
+  it("같은 등급 안에 여러 디자인, 가격은 등급표 그대로(M3i-W30), 특수 등급 신규 판매 없음", () => {
+    for (const cat of ["dice", "board", "emote", "chat", "bubble", "profile", "nameFx", "fx", "title"])
+      for (const tier of ["rare", "epic", "legendary"]) {
+        const n = ITEMS.filter((i) => i.category === cat && i.tier === tier).length;
+        if (n) expect(n, `${cat}/${tier}`).toBeGreaterThanOrEqual(1);
+      }
+    expect(ITEMS.filter((i) => i.category === "dice" && i.tier === "epic").length).toBeGreaterThanOrEqual(5);
+    const prices: Record<string, [number, number]> = { common: [300, 40], rare: [1000, 120], epic: [3000, 300], legendary: [10000, 600], mythic: [25000, 1200] };
+    for (const i of ITEMS.filter((x) => x.acquisition !== "default" && x.tier !== "special")) {
+      const c = priceOf(i, "coins"),
+        g = priceOf(i, "gems");
+      if (c !== null) expect(c, i.id).toBe(prices[i.tier][0]);
+      if (g !== null) expect(g, i.id).toBe(prices[i.tier][1]);
+      expect(c !== null || g !== null, i.id).toBe(true);
+    }
+    expect(ITEMS.filter((i) => i.tier === "special").map((i) => i.id).sort()).toEqual(["title.300", "title.310", "title.lucky_star", "title.perfect"]);
+  });
+  it("강화 단계가 있는 상품은 Lv.2·Lv.3 외형이 실제로 다르다", () => {
+    for (const i of ITEMS.filter((x) => x.maxLevel > 1 && x.levelLooks)) {
+      const l1 = JSON.stringify(lookAt(i, 1)),
+        l2 = JSON.stringify(lookAt(i, 2)),
+        l3 = JSON.stringify(lookAt(i, 3));
+      expect(new Set([l1, l2, l3]).size, i.id).toBe(3);
+    }
+    for (const i of ITEMS.filter((x) => x.maxLevel > 1)) expect(i.levels?.length, i.id).toBe(i.maxLevel);
+  });
+  it("모든 외형 클래스가 실제 CSS에 있다(빈 외형 없음)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const css = readFileSync("src/items-content.css", "utf8") + readFileSync("src/items.css", "utf8");
+    const classes = new Set<string>();
+    for (const i of ITEMS) for (const lv of [1, 2, 3]) for (const c of (lookAt(i, lv).css ?? "").split(/\s+/).filter(Boolean)) classes.add(c);
+    for (const c of classes) if (!c.startsWith("fx-") && !c.startsWith("title-common")) expect(css.includes("." + c), c).toBe(true);
   });
 });

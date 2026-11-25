@@ -10,7 +10,7 @@
  * levels live in src/economy/live/catalog.ts; this file only holds the texts.
  */
 export type SocialKind = "chat" | "emote";
-export type SocialTier = "basic" | "common" | "rare" | "epic" | "legendary";
+export type SocialTier = "basic" | "common" | "rare" | "epic" | "legendary" | "mythic";
 export type SocialItem = {
   id: string;
   kind: SocialKind;
@@ -57,6 +57,44 @@ export const SOCIAL_ITEMS: readonly SocialItem[] = [
   emote("dice", "🎲", "주사위", "rare"),
   emote("sparkles", "✨", "반짝", "epic"),
   emote("crown", "👑", "왕관", "legendary"),
+  // 2026-11-25 content (H): standard Unicode emoji only (no characters or artwork of unclear rights)
+  emote("cool", "😎", "멋짐", "common"),
+  emote("think", "🤔", "고민", "common"),
+  emote("sweat", "😅", "머쓱", "common"),
+  emote("please", "🙏", "부탁", "common"),
+  emote("sleepy", "😴", "졸림", "common"),
+  emote("yay", "🥳", "신남", "common"),
+  emote("fired_up", "😤", "의욕", "common"),
+  emote("clover", "🍀", "행운", "rare"),
+  emote("target", "🎯", "명중", "rare"),
+  emote("hundred", "💯", "백점", "rare"),
+  emote("rocket", "🚀", "로켓", "rare"),
+  emote("rainbow", "🌈", "무지개", "rare"),
+  emote("whale", "🐳", "고래", "epic"),
+  emote("bolt", "⚡", "번개", "epic"),
+  emote("cake", "🍰", "케이크", "epic"),
+  emote("gem", "💎", "보석", "legendary"),
+  emote("trophy", "🏆", "트로피", "legendary"),
+  emote("starlight", "🌟", "별빛", "mythic"),
+  // chat presets (H)
+  chat("learn", "한 수 배웁니다!", "common"),
+  chat("nervous", "긴장되네요…", "common"),
+  chat("good_pick", "좋은 선택이에요!", "common"),
+  chat("almost", "아깝다!", "common"),
+  chat("still_chance", "아직 기회 있어요!", "common"),
+  chat("fun_game", "재밌는 판이네요!", "common"),
+  chat("dice_help", "주사위님 도와주세요!", "common"),
+  chat("comeback", "역전 가자!", "common"),
+  chat("this_time", "이번엔 진짜다!", "common"),
+  chat("nice_roll", "멋진 굴림이었어요!", "common"),
+  chat("yacht_chance", "요트 각이다!", "rare"),
+  chat("bonus_get", "보너스 확보!", "rare"),
+  chat("go_straight", "스트레이트 노려볼게요!", "rare"),
+  chat("calm", "침착하게 갑시다.", "rare"),
+  chat("not_over", "끝날 때까지 몰라요!", "rare"),
+  chat("lucky_day", "오늘 주사위가 저를 좋아하네요!", "epic"),
+  chat("legend_game", "전설의 한 판!", "epic"),
+  chat("see_you", "모두 즐거웠어요, 또 만나요!", "legendary"),
 ];
 
 const byId = new Map(SOCIAL_ITEMS.map((item) => [item.id, item]));
@@ -93,3 +131,11 @@ export function allowSocial(bucket: SocialBucket, id: string, now: number): bool
   return true;
 }
 export const newSocialBucket = (now: number): SocialBucket => ({ tokens: SOCIAL_LIMITS.burst, at: now });
+
+/** ms until `id` may be sent again from this bucket (the same rules as `allowSocial`). */
+export function socialRetryMs(b: SocialBucket, id: string, now: number): number {
+  const tokens = Math.min(SOCIAL_LIMITS.burst, b.tokens + ((now - b.at) / 1000) * SOCIAL_LIMITS.refillPerSecond);
+  const forToken = tokens >= 1 ? 0 : ((1 - tokens) / SOCIAL_LIMITS.refillPerSecond) * 1000;
+  const forSame = b.lastId === id && b.lastAt !== undefined ? Math.max(0, SOCIAL_LIMITS.sameItemGapMs - (now - b.lastAt)) : 0;
+  return Math.ceil(Math.max(forToken, forSame));
+}

@@ -237,21 +237,22 @@ for (const kind of ["node", "workers"] as const) {
             .textContent(),
         ).toContain(String(scoreA[0]));
 
-        // Phase 3 — emote and preset chat after the match: shown live on the other screen, only inside
-        // the sender's score chip; hiding the opponent's messages works; free text cannot be typed.
+        // Emote and preset chat after the match: shown live under the board on both screens; hiding the
+        // other players' messages works (and the feed says so); free text cannot be typed.
         await a.getByRole("button", { name: "채팅·이모티콘" }).click();
         await expect(a.getByRole("dialog", { name: "채팅·이모티콘" }).locator("input[type=text], textarea")).toHaveCount(0);
         await a.getByRole("dialog", { name: "채팅·이모티콘" }).getByRole("button", { name: "박수" }).click();
-        await expect(b.locator(".score-summary [data-role='opponent'] .chip-bubble")).toHaveText("👏");
-        await expect(a.locator(".score-summary [data-role='human'] .chip-bubble")).toHaveText("👏");
+        await expect(b.locator(".table-feed .feed-msg:not(.mine) .feed-text")).toHaveText("👏");
+        await expect(a.locator(".table-feed .feed-msg.mine .feed-text")).toHaveText("👏");
         await b.getByRole("button", { name: "채팅·이모티콘" }).click();
-        await b.getByLabel("상대 메시지 숨기기").check();
+        await b.getByLabel("다른 사람 메시지 숨기기").check();
         await b.keyboard.press("Escape");
-        await a.waitForTimeout(800);
+        await a.waitForTimeout(1600);
         await a.getByRole("button", { name: "채팅·이모티콘" }).click();
         await a.getByRole("button", { name: "좋은 경기였어요!" }).click();
-        await expect(a.locator(".score-summary [data-role='human'] .chip-bubble")).toHaveText("좋은 경기였어요!");
-        await expect(b.locator(".chip-bubble")).toHaveCount(0);
+        await expect(a.locator(".table-feed .feed-msg.mine .feed-text").first()).toHaveText("좋은 경기였어요!");
+        await expect(b.locator(".table-feed .feed-msg:not(.mine)")).toHaveCount(0, { timeout: 6000 });
+        await expect(b.locator(".feed-hidden")).toBeVisible();
 
         // Rematch: request → the other screen is asked (also after a reload) → accept → a new match in the
         // same room, the other player moves first, scores start from 0.
@@ -325,8 +326,8 @@ for (const kind of ["node", "workers"] as const) {
         await expect(w.getByText(/관전 중/)).toBeVisible();
         await a.getByRole("button", { name: "채팅·이모티콘" }).click();
         await a.getByRole("button", { name: "잘 부탁해요!" }).click();
-        await expect(b.locator(".chip-bubble")).toHaveText("잘 부탁해요!");
-        await expect(w.locator(".chip-bubble")).toHaveText("잘 부탁해요!");
+        await expect(b.locator(".table-feed .feed-text")).toHaveText("잘 부탁해요!");
+        await expect(w.locator(".table-feed .feed-text")).toHaveText("잘 부탁해요!");
         for (let turn = 0; turn < 24; turn++) {
           if (turn === 7) {
             await b.reload();

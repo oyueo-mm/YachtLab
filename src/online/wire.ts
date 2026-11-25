@@ -66,7 +66,8 @@ export type ServerMessage =
   | { t: "spectate"; spectate: SpectateState }
   /** Spectator welcome: neutral view (`you` is null, no legal moves, no command ids, no tokens). */
   | { t: "watching"; code: string; view: PlayerView; online: string[]; hold: HoldState | null; series: SeriesSummary; spectators: number; looks?: Record<string, PublicLook>; kind?: MatchKind; ai?: AiSeat | null; lobby?: LobbyState }
-  | { t: "error"; code: string; message: string }
+  /** Social refusals also carry the item and how long until it could be sent (ms). */
+  | { t: "error"; code: string; message: string; id?: string; retryMs?: number }
   | { t: "pong" };
 
 /** Held dice of the current turn, in the order they were selected — identical on every screen. */

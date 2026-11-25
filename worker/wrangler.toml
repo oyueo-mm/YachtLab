@@ -40,6 +40,10 @@ class_name = "GuestLink"
 name = "HUB"
 class_name = "MatchHub"
 
+[[durable_objects.bindings]]
+name = "FRIENDS"
+class_name = "FriendIndex"
+
 # Workers Free supports only SQLite-backed Durable Objects.
 [[migrations]]
 tag = "v1"
@@ -52,6 +56,10 @@ new_sqlite_classes = ["UserStore", "GuestLink"]
 [[migrations]]
 tag = "v3"
 new_sqlite_classes = ["MatchHub"]
+
+[[migrations]]
+tag = "v4"
+new_sqlite_classes = ["FriendIndex"]
 
 [vars]
 # Only the GitHub Pages site may call this server (browsers always send Origin).

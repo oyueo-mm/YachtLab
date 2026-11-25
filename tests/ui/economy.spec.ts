@@ -72,27 +72,64 @@ test("로그인 전에는 상점이 로그인을 안내한다(가짜 잔액 없�
   await expect(page.getByTestId("coins")).toHaveText("–");
 });
 
-test("상점: 잔액·필터·코인/보석 가격·업적 전용 표시, 구매 요청은 요청 ID와 함께 보내고 보유 표시가 바뀐다", async ({ page }) => {
+test("상점: 카드형 그리드·상품군 탭·등급/가격 필터·업적 전용 표시, 상세에서 미리보기 후 확인을 거쳐 구매(요청 ID)", async ({ page }) => {
   const acc = await open(page, "shop");
   await expect(page.getByTestId("coins")).toHaveText("1,500");
+  await expect(page.getByRole("tab", { name: /^주사위/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".item-card")).toHaveCount(29); // every dice design for sale
+  await expect(page.locator('[data-item="dice.royal"] .item-card-price .short').first()).toBeVisible(); // not affordable
+  await page.getByLabel("등급").selectOption("common");
+  await expect(page.locator(".item-card")).toHaveCount(6);
+  await page.getByLabel("가격").selectOption("afford");
+  await expect(page.locator(".item-card")).toHaveCount(6);
+  await page.getByLabel("등급").selectOption("all");
+  await page.getByLabel("가격").selectOption("all");
+  await page.getByRole("tab", { name: /^칭호/ }).click();
   await expect(page.locator('[data-item="title.300"]')).toContainText("업적 보상");
-  await expect(page.locator('[data-item="dice.royal"]').getByRole("button", { name: /코인 25000/ })).toBeDisabled(); // not enough coins
-  await page.getByLabel("상품군").selectOption("dice");
-  await expect(page.locator(".shop-item")).toHaveCount(4);
-  await page.getByRole("button", { name: "민트 코인 300으로 구매" }).click();
+  await page.getByRole("tab", { name: /^주사위/ }).click();
+  // detail: preview first (nothing is sent), then buy with a confirmation
+  const before = acc.requests.length;
+  await page.getByRole("button", { name: "민트 자세히" }).click();
+  const dialog = page.getByRole("dialog", { name: "민트 상세" });
+  await expect(dialog.getByRole("button", { name: "굴려 보기" })).toBeVisible();
+  await dialog.getByRole("button", { name: "굴려 보기" }).click();
+  expect(acc.requests.length).toBe(before);
+  await dialog.getByRole("button", { name: "민트 코인 300으로 구매" }).click();
+  await expect(page.getByRole("dialog", { name: "구매할까요?" })).toBeVisible();
+  await page.getByRole("button", { name: "구매", exact: true }).click();
   await expect(page.locator('[data-item="dice.mint"]')).toContainText("보유 중");
   await expect(page.getByTestId("coins")).toHaveText("1,200");
   expect(acc.requests.at(-1)).toMatchObject({ path: "/api/me/shop/buy", itemId: "dice.mint", currency: "coins", requestId: expect.stringMatching(/^[A-Za-z0-9_-]{8,}$/) });
   await expect(page.getByRole("button", { name: "이모티콘 슬롯 코인 구매" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test("인벤토리: 기본 이모티콘 4·채팅 6 장착, 슬롯 한도, 순서 변경 후 저장", async ({ page }) => {
+test("상점: 강화형 상품은 사기 전에 Lv.1~3 차이를 미리 보고, 잔액이 부족해도 미리보기는 열린다", async ({ page }) => {
+  await open(page, "shop");
+  await page.getByRole("button", { name: "황금 자세히" }).click();
+  const dialog = page.getByRole("dialog", { name: "황금 상세" });
+  await expect(dialog.getByRole("tab")).toHaveCount(3);
+  await dialog.getByRole("tab", { name: "Lv.3" }).click();
+  await expect(dialog.getByText("Lv.3 · 움직이는 빛")).toBeVisible();
+  await expect(dialog.getByText("재화가 부족해요. 미리보기는 그대로 볼 수 있어요.")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("tab", { name: /^닉네임 효과/ }).click();
+  await page.getByRole("button", { name: "오로라 자세히" }).click();
+  const nf = page.getByRole("dialog", { name: "오로라 상세" });
+  await nf.getByRole("tab", { name: "Lv.2" }).click();
+  await expect(nf.locator(".profile-card-sample .player-name")).toHaveClass(/namefx-aurora fx-lv2/);
+});
+
+test("인벤토리: 장착 미리보기·상품군 탭·기본 이모티콘 4·채팅 6, 순서 변경 후 저장", async ({ page }) => {
   const acc = await open(page, "inventory");
+  await expect(page.getByRole("region", { name: "장착 미리보기" }).or(page.locator(".loadout-preview"))).toBeVisible();
+  await page.getByRole("tab", { name: /^이모티콘/ }).click();
   await expect(page.getByText("이모티콘 장착 4/4")).toBeVisible();
-  await expect(page.getByText("채팅 장착 6/6")).toBeVisible();
   const order = page.getByRole("list", { name: "이모티콘 순서" });
   await expect(order.locator("li")).toHaveCount(4);
   await order.locator("li").nth(1).getByRole("button", { name: "앞으로" }).click();
+  await page.getByRole("tab", { name: /^채팅/ }).click();
+  await expect(page.getByText("채팅 장착 6/6")).toBeVisible();
   await page.getByRole("button", { name: "장착 저장" }).click();
   await expect(page.getByText("장착을 저장했어요")).toBeVisible();
   expect(acc.requests.at(-1)!.loadout.emotes).toEqual(["emote.party", "emote.smile", "emote.clap", "emote.thumbs_up"]);
