@@ -45,6 +45,7 @@
     "yacht"
   ],
   "documentation": [
+    "AI-REVIEW.md",
     "AUTOMATION.md",
     "DECISIONS.md",
     "EXPERIMENT-ZOO-2026-11-20.md",
@@ -114,9 +115,34 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "f2471fd",
+      "date": "2026-11-25",
+      "subject": "Merge pull request #77 from oyueo-mm/codex/review-release"
+    },
+    {
       "sha": "73943e3",
       "date": "2026-11-25",
       "subject": "Merge pull request #76 from oyueo-mm/codex/field-feedback"
+    },
+    {
+      "sha": "cc67ae3",
+      "date": "2026-11-25",
+      "subject": "test(review): defer the worker with ES2022 promises"
+    },
+    {
+      "sha": "7ecffed",
+      "date": "2026-11-25",
+      "subject": "test(review): cancel and retry a blocked analysis worker"
+    },
+    {
+      "sha": "e10d402",
+      "date": "2026-11-25",
+      "subject": "feat(review): use bounded v5 endgame analysis and document metrics"
+    },
+    {
+      "sha": "b25e402",
+      "date": "2026-11-25",
+      "subject": "feat(review): analyze completed two-player games in a browser worker"
     },
     {
       "sha": "cb80efb",
@@ -137,34 +163,21 @@
       "sha": "44e469b",
       "date": "2026-11-25",
       "subject": "Merge remote-tracking branch 'origin/main' into ccr-4b6d4930-6rem08"
-    },
-    {
-      "sha": "18efd2c",
-      "date": "2026-11-25",
-      "subject": "docs(v5): confirmation results (family 9501), ablations, meta-game, cost; RESULTS/CONTEXT updates"
-    },
-    {
-      "sha": "d55a953",
-      "date": "2026-11-25",
-      "subject": "docs(v5): recommendations and limitations; aggregate confirmation run 45558614547 [v5-aggregate]"
-    },
-    {
-      "sha": "9f297f3",
-      "date": "2026-11-25",
-      "subject": "Merge pull request #74 from oyueo-mm/codex/ux-rollout-docs"
-    },
-    {
-      "sha": "38d4fc7",
-      "date": "2026-11-25",
-      "subject": "docs(context): record onboarding rollout and Worker compatibility"
-    },
-    {
-      "sha": "ca1c894",
-      "date": "2026-11-25",
-      "subject": "Merge pull request #71 from oyueo-mm/codex/ux-followup"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "YachtLab gameplay UI targeted smoke",
+      "status": "success",
+      "head": "e97cfd6d3e",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45586744966"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "73943e3f43",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45585808239"
+    },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
       "status": "success",
@@ -172,22 +185,10 @@
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45585508173"
     },
     {
-      "name": "Test and deploy YachtLab",
-      "status": "cancelled",
-      "head": "2bb87afb31",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45584077888"
-    },
-    {
       "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
       "status": "success",
       "head": "35387173e3",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45582993293"
-    },
-    {
-      "name": "YachtLab gameplay UI targeted smoke",
-      "status": "success",
-      "head": "cb80efbd9a",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45581351876"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
