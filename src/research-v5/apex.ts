@@ -305,7 +305,7 @@ const oppTurnCache = new Map<number, { keys: Int32Array; prob: Float64Array }>()
 const d2Scratch = new Scratch();
 const d2Turn = new TurnScratch();
 
-function rolloutTurnStart(myMask: number, myU: number, myBase: number, oMask: number, oU: number, oBase: number, cfg: V5Config): number {
+export function rolloutTurnStart(myMask: number, myU: number, myBase: number, oMask: number, oU: number, oBase: number, cfg: V5Config): number {
   if (myMask === 0) { const D = myBase - oBase; return D > 0 ? 1 : D === 0 ? 0.5 : 0; }
   const ct = creditTable(oBase, (cfg.opponentBank ?? cfg.bank).get(oMask, oU));
   const val = d2Scratch.val;

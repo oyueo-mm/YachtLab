@@ -19,6 +19,8 @@
 
 **제품(게임·온라인·계정) 작업:** [제품 개발 현황 2026-11-24](./PRODUCT-2026-11-24.md) · [온라인 소셜·계정 설계](../online/SOCIAL-AND-ACCOUNTS.md) · [모바일 성능·UI (PR A)](../ui/PHASE-A-2026-11.md) · 결정 D-025~D-028.
 
+**[Win DP v5 연구 — 정확 정책 PMF·정확 2인 종반·PMF 롤아웃 (2026-11-25)](./V5-APEX-RESEARCH.md)** — 전 상태 정확 DP Expert PMF 은행, 정확 expectiminimax 종반, v5-R(Apex 주 후보) 확증 대국. 연구 브랜치, 기본 AI 불변.
+
 **[Win DP v3.1 연구 계획·한계·독립 실험](./V31-RESEARCH.md)** — 3턴 v3와 마지막 1턴 정확 BR을 결합한 연구용 후보. 결과는 자동 검증 후 [_generated/V31-LATEST.md](./_generated/V31-LATEST.md)에 기록되며 **현재 SOTA 주장이 아님**.
 
 
