@@ -101,16 +101,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [ae0d375](https://github.com/oyueo-mm/YachtLab/commit/ae0d375) | 2026-11-25 | Merge pull request #63 from oyueo-mm/codex/pages-audio-regression |
+| [9deda39](https://github.com/oyueo-mm/YachtLab/commit/9deda39) | 2026-11-25 | Bring the ordinary-roll coverage from main into the audio fix |
 | [4b34933](https://github.com/oyueo-mm/YachtLab/commit/4b34933) | 2026-11-25 | Merge PR #72: 효과음 순서 테스트 결정적으로·배포 기록 |
+| [1009014](https://github.com/oyueo-mm/YachtLab/commit/1009014) | 2026-11-25 | test(game): verify paused AI state with an expiring straight effect |
 | [c6bb12c](https://github.com/oyueo-mm/YachtLab/commit/c6bb12c) | 2026-11-25 | test: 효과음 순서 테스트를 조합 없는 고정 첫 굴림으로 결정적으로, 배포 기록 |
+| [241df3d](https://github.com/oyueo-mm/YachtLab/commit/241df3d) | 2026-11-25 | test(ci): measure the server AI CPU budget on the executing thread |
+| [0a5625d](https://github.com/oyueo-mm/YachtLab/commit/0a5625d) | 2026-11-25 | test(game): cover straight fanfare after 3D collisions |
+| [6f2a601](https://github.com/oyueo-mm/YachtLab/commit/6f2a601) | 2026-11-25 | fix(game): play combination fanfares after dice settle |
 | [55d1120](https://github.com/oyueo-mm/YachtLab/commit/55d1120) | 2026-11-25 | Merge PR #62: 채팅 근본 수정·PC 게임 화면·라지 스트레이트·결과 소리·상점/인벤토리·아이템 200종·친구 |
 | [8f6c81e](https://github.com/oyueo-mm/YachtLab/commit/8f6c81e) | 2026-11-25 | feat(friends): 친구 목록·친구 초대 (회원 전용, 공개 친구 코드) |
-| [f902206](https://github.com/oyueo-mm/YachtLab/commit/f902206) | 2026-11-25 | feat(game): PC 게임 화면·라지 스트레이트 연출·결과 소리 후보·상점/인벤토리·실제 미리보기·아이템 200종 |
-| [f29f51d](https://github.com/oyueo-mm/YachtLab/commit/f29f51d) | 2026-11-25 | fix(chat): 채팅·이모티콘 미전송 근본 원인 수정과 보드 하단 보내기 바 |
-| [2bf5f07](https://github.com/oyueo-mm/YachtLab/commit/2bf5f07) | 2026-11-25 | Merge PR #61: 온라인 대전 개선 — 빠른 대전 공개·프로필 닉네임·화면 간소화·방 자동 정리·다인 관전 |
-| [fb77ba5](https://github.com/oyueo-mm/YachtLab/commit/fb77ba5) | 2026-11-25 | feat(online): 빠른 대전 공개 필수화·프로필 닉네임·온라인 화면 간소화·방 자동 정리·다인 관전 화면 |
-| [f82c989](https://github.com/oyueo-mm/YachtLab/commit/f82c989) | 2026-11-25 | Merge PR #60: 온라인 친구 다인전 배포·공개 사이트 검증 기록 |
-| [24820a6](https://github.com/oyueo-mm/YachtLab/commit/24820a6) | 2026-11-24 | docs: 온라인 친구 다인전 배포·공개 사이트 검증 기록 |
 
 ## 최근 GitHub Actions 상태
 
@@ -118,9 +118,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45554440061) | success | 649e588e39 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45553742675) | cancelled | 77d397dd29 |
-| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45553349795) | success | f9093a3a4a |
+| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45558460538) | success | 99df523d01 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45556958548) | success | 262ff1ea5a |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45556257980) | success | 9deda3918d |
 
 ## 다음 채팅과 작업의 시작점
 

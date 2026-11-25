@@ -112,14 +112,44 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "ae0d375",
+      "date": "2026-11-25",
+      "subject": "Merge pull request #63 from oyueo-mm/codex/pages-audio-regression"
+    },
+    {
+      "sha": "9deda39",
+      "date": "2026-11-25",
+      "subject": "Bring the ordinary-roll coverage from main into the audio fix"
+    },
+    {
       "sha": "4b34933",
       "date": "2026-11-25",
       "subject": "Merge PR #72: 효과음 순서 테스트 결정적으로·배포 기록"
     },
     {
+      "sha": "1009014",
+      "date": "2026-11-25",
+      "subject": "test(game): verify paused AI state with an expiring straight effect"
+    },
+    {
       "sha": "c6bb12c",
       "date": "2026-11-25",
       "subject": "test: 효과음 순서 테스트를 조합 없는 고정 첫 굴림으로 결정적으로, 배포 기록"
+    },
+    {
+      "sha": "241df3d",
+      "date": "2026-11-25",
+      "subject": "test(ci): measure the server AI CPU budget on the executing thread"
+    },
+    {
+      "sha": "0a5625d",
+      "date": "2026-11-25",
+      "subject": "test(game): cover straight fanfare after 3D collisions"
+    },
+    {
+      "sha": "6f2a601",
+      "date": "2026-11-25",
+      "subject": "fix(game): play combination fanfares after dice settle"
     },
     {
       "sha": "55d1120",
@@ -130,56 +160,26 @@
       "sha": "8f6c81e",
       "date": "2026-11-25",
       "subject": "feat(friends): 친구 목록·친구 초대 (회원 전용, 공개 친구 코드)"
-    },
-    {
-      "sha": "f902206",
-      "date": "2026-11-25",
-      "subject": "feat(game): PC 게임 화면·라지 스트레이트 연출·결과 소리 후보·상점/인벤토리·실제 미리보기·아이템 200종"
-    },
-    {
-      "sha": "f29f51d",
-      "date": "2026-11-25",
-      "subject": "fix(chat): 채팅·이모티콘 미전송 근본 원인 수정과 보드 하단 보내기 바"
-    },
-    {
-      "sha": "2bf5f07",
-      "date": "2026-11-25",
-      "subject": "Merge PR #61: 온라인 대전 개선 — 빠른 대전 공개·프로필 닉네임·화면 간소화·방 자동 정리·다인 관전"
-    },
-    {
-      "sha": "fb77ba5",
-      "date": "2026-11-25",
-      "subject": "feat(online): 빠른 대전 공개 필수화·프로필 닉네임·온라인 화면 간소화·방 자동 정리·다인 관전 화면"
-    },
-    {
-      "sha": "f82c989",
-      "date": "2026-11-25",
-      "subject": "Merge PR #60: 온라인 친구 다인전 배포·공개 사이트 검증 기록"
-    },
-    {
-      "sha": "24820a6",
-      "date": "2026-11-24",
-      "subject": "docs: 온라인 친구 다인전 배포·공개 사이트 검증 기록"
     }
   ],
   "recentWorkflowRuns": [
     {
+      "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
+      "status": "success",
+      "head": "99df523d01",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45558460538"
+    },
+    {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
-      "head": "649e588e39",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45554440061"
+      "head": "262ff1ea5a",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45556958548"
     },
     {
       "name": "Test and deploy YachtLab",
-      "status": "cancelled",
-      "head": "77d397dd29",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45553742675"
-    },
-    {
-      "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
       "status": "success",
-      "head": "f9093a3a4a",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45553349795"
+      "head": "9deda3918d",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45556257980"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

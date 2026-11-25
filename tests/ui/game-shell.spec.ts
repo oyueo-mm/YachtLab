@@ -3,7 +3,7 @@ import { SEEDS, fixSeed, withMotion } from "./helpers";
 
 const isMobile = (page: Page) => (page.viewportSize()?.width ?? 1440) <= 760;
 const noHorizontalScroll = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
-type SoundEntry = { name: string; delay: number; played: boolean };
+type SoundEntry = { name: string; delay: number; played: boolean; at: number };
 const soundLog = (page: Page) => page.evaluate(() => ((window as unknown as { __yachtlabSound: { log: SoundEntry[] } }).__yachtlabSound.log as SoundEntry[]).map((e) => ({ ...e })));
 const clearSound = (page: Page) =>
   page.evaluate(() => {
@@ -196,6 +196,51 @@ test("효과음은 2.5D 착지 시점과 맞춰 예약되고 음소거하면 재
   await expect.poll(async () => (await soundLog(page)).length).toBeGreaterThan(0);
   log = await soundLog(page);
   expect(log.every((e) => !e.played)).toBe(true);
+});
+
+test("2.5D 효과음은 던지기 → 충돌 → 착지 → 라지 스트레이트 순서로 재생되고 음소거를 따른다", async ({ page }) => {
+  await fixSeed(page, SEEDS.large);
+  await withMotion(page, "2.5d");
+  await page.goto("#play");
+  const roll = page.getByRole("button", { name: "주사위 굴리기" });
+  const flash = page.locator(".straight-flash");
+  await roll.click(); // user gesture unlocks audio
+  await expect(flash).toBeVisible();
+
+  const log = await soundLog(page);
+  const impacts = log.filter((entry) => entry.name === "impact").map((entry) => entry.delay);
+  expect(impacts.length).toBeGreaterThan(0);
+  expect(log.map((entry) => entry.name)).toEqual(["throw", ...impacts.map(() => "impact"), "settle", "straightHit"]);
+  expect(impacts.every((delay) => delay > 0.05 && delay < 0.8)).toBe(true);
+  expect([...impacts].sort((a, b) => a - b)).toEqual(impacts);
+  const settle = log.at(-2)!;
+  const straight = log.at(-1)!;
+  expect(settle.delay).toBeGreaterThanOrEqual(Math.max(...impacts));
+  expect(straight.at).toBeGreaterThanOrEqual(settle.at + settle.delay * 1000);
+  expect(straight.played).toBe(true);
+
+  await clearSound(page);
+  await page.locator(".die-button").first().click();
+  await expect.poll(async () => (await soundLog(page)).map((entry) => entry.name)).toContain("hold");
+
+  await page.getByRole("button", { name: "효과음 끄기" }).click();
+  await clearSound(page);
+  const reroll = page.getByRole("button", { name: "다시 굴리기" });
+  await reroll.click();
+  await expect(reroll).toBeEnabled();
+  const mutedReroll = await soundLog(page);
+  expect(mutedReroll.map((entry) => entry.name)).toEqual(expect.arrayContaining(["throw", "impact", "settle"]));
+  expect(mutedReroll.every((entry) => !entry.played)).toBe(true);
+
+  // Reproduce the same straight after a reload with the persisted mute setting.
+  await page.reload();
+  await roll.click();
+  await expect(flash).toBeVisible();
+  const mutedStraight = await soundLog(page);
+  const mutedNames = mutedStraight.map((entry) => entry.name);
+  expect(mutedNames).toContain("impact");
+  expect(mutedNames).toEqual(["throw", ...mutedNames.filter((name) => name === "impact"), "settle", "straightHit"]);
+  expect(mutedStraight.every((entry) => !entry.played)).toBe(true);
 });
 
 test("트레이를 옆으로 쓸어 던지면 굴리고, 주사위에서 시작한 드래그는 던지지 않는다", async ({ page }) => {
