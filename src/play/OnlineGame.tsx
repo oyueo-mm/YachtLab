@@ -1,3 +1,4 @@
+import { BrandMark } from "../ui/BrandLoading";
 import { MatchRewardSummary } from "../shell/MatchRewards";
 import { MatchResult } from "../ui/MatchResult";
 import ReviewLauncher from "../review/ReviewLauncher";
@@ -407,7 +408,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   if (!view)
     return (
       <p className="online-connecting" role="status">
-        {status === "reconnecting" ? "서버에 다시 연결하는 중이에요…" : "방에 연결하는 중이에요…"}
+        <BrandMark /> {status === "reconnecting" ? "서버에 다시 연결하는 중이에요…" : "방에 연결하는 중이에요…"}
       </p>
     );
 
@@ -419,7 +420,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const banner =
     status !== "online" ? (
       <p className="online-banner offline" role="status">
-        <WifiOff size={15} /> 연결이 끊어졌어요. 다시 연결하는 중이에요…
+        <BrandMark /> 연결이 끊어졌어요. 다시 연결하는 중이에요…
       </p>
     ) : awayNames.length ? (
       <p className="online-banner" role="status">

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 281 64" role="img" aria-label="Online Yacht">
+  <rect width="64" height="64" rx="14" fill="#251c1c"/>
+  <path d="M32 10 14 38h18z" fill="#fff7ee"/>
+  <path d="M36 13v25h15z" fill="#ff675b"/>
+  <path d="M11 42h43l-7 9H18z" fill="#fff7ee"/>
+  <g fill="#251c1c"><circle cx="24" cy="33" r="2"/><circle cx="27" cy="28" r="2"/><circle cx="30" cy="23" r="2"/></g>
+  <path d="M20 55h24" stroke="#ff675b" stroke-width="2" stroke-linecap="round"/>
+  <text x="78" y="44" font-family="system-ui,sans-serif" font-weight="800" font-size="31" letter-spacing="-1" fill="#251c1c">Online <tspan fill="#a92529">Yacht</tspan></text>
+</svg>

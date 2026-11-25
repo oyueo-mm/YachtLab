@@ -1,5 +1,6 @@
+import { BrandMark } from "../ui/BrandLoading";
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Bot, Eye, LoaderCircle, LogIn, Plus, Search, Shuffle, UserRound, UsersRound, X } from "lucide-react";
+import { ArrowRight, Bot, Eye, LogIn, Plus, Shuffle, UserRound, UsersRound, X } from "lucide-react";
 import {
   QuickMatch,
   createRoom,
@@ -94,7 +95,7 @@ function InviteJoin({ server, code, onJoined, onOther }: { server: string; code:
       <div className="setup-body">
         {state === "loading" ? (
           <p className="online-lead" role="status">
-            <LoaderCircle size={15} className="spin" /> 방 정보를 불러오는 중…
+            <BrandMark /> 방 정보를 불러오는 중…
           </p>
         ) : (
           <>
@@ -226,7 +227,7 @@ export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server:
         {shown !== "watch" && <NickLine name={trimmed} />}
         {!features ? (
           <p className="online-lead" role="status">
-            <LoaderCircle size={15} className="spin" /> 서버 정보를 불러오는 중…
+            <BrandMark /> 서버 정보를 불러오는 중…
           </p>
         ) : shown === "quick" ? (
           <QuickPanel server={server} name={trimmed} serverAi={!!features.serverAi} onMatched={enter} onAi={onAi} onReturn={(code) => (setRoomInUrl(code), onEnter(code))} />
@@ -456,9 +457,7 @@ function QuickPanel({ server, name, serverAi, onMatched, onAi, onReturn }: { ser
   if (since !== null)
     return (
       <div className="quick-wait">
-        <div className="quick-search-visual" aria-hidden="true">
-          <Search size={26} className="quick-wait-icon" />
-        </div>
+        <BrandMark radar />
         <strong role="status">상대를 찾는 중이에요</strong>
         <span className="quick-wait-time" role="timer" aria-label="매칭 경과 시간">{clock(waited)}</span>
         <span className="quick-wait-note">{session() ? "회원으로 매칭돼요." : "게스트로 매칭돼요."} 상대를 찾으면 바로 경기 화면으로 이동해요.</span>
@@ -499,7 +498,7 @@ function QuickPanel({ server, name, serverAi, onMatched, onAi, onReturn }: { ser
       </p>
       {serverAi && member && (
         <button type="button" className="secondary" disabled={aiBusy} onClick={() => void startAi()}>
-          <Bot size={16} /> {aiBusy ? "AI 대전 준비 중…" : "서버 AI와 대전 (보통)"}
+          {aiBusy ? <BrandMark /> : <Bot size={16} />} {aiBusy ? "AI 대전 준비 중…" : "서버 AI와 대전 (보통)"}
         </button>
       )}
       {error && (
@@ -556,7 +555,7 @@ function WatchRooms({ server }: { server: string }) {
       )}
       {rooms === null ? (
         <p className="online-lead" role="status">
-          <LoaderCircle size={15} className="spin" /> 불러오는 중…
+          <BrandMark /> 불러오는 중…
         </p>
       ) : rooms.length === 0 ? (
         <p className="watch-empty">지금 공개된 경기가 없어요.</p>

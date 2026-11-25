@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "YachtLab",
-  "short_name": "YachtLab",
+  "name": "온라인 요트다이스",
+  "short_name": "Online Yacht",
   "lang": "ko",
   "description": "주사위를 굴리고 점수를 기록하는 요트 다이스",
   "start_url": "./#home",

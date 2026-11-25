@@ -37,7 +37,7 @@ test.describe("최초 방문", () => {
     await expect(page.getByRole("button", { name: "튜토리얼 다시 보기" })).toHaveCount(0);
     await page.goto("#tutorial");
     await expect(guide).toHaveCount(0);
-    await page.getByRole("button", { name: "메뉴", exact: true }).click();
+    await page.goto("#offline");
     await page.getByRole("button", { name: "한 차례 연습하기" }).click();
     await expect(page.getByRole("region", { name: "한 차례 연습하기" })).toBeVisible();
     await expect(guide).toHaveCount(0);

@@ -118,7 +118,7 @@ test("일반 메뉴와 설정에서 연구실을 숨기고 기존 딥링크와 �
 
 test("설정: 음소거·음량·애니메이션 품질·모션 간단히가 브라우저에 저장되고 게임 중에는 환경설정만 보인다", async ({ page }) => {
   await page.goto("#play");
-  await expect(page.getByRole("button", { name: "효과음 끄기" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "효과음 끄기" })).toHaveCount(0);
   await page.getByRole("button", { name: "설정", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "설정" });
   // In a game only presentation settings are offered (rules/difficulty live in the setup screen).
@@ -130,7 +130,9 @@ test("설정: 음소거·음량·애니메이션 품질·모션 간단히가 브
   await dialog.getByRole("switch", { name: "효과음" }).uncheck();
   await expect(dialog.getByRole("slider", { name: "효과음 음량" })).toBeDisabled();
   await dialog.getByRole("button", { name: "설정 닫기" }).click();
-  await expect(page.getByRole("button", { name: "효과음 켜기" })).toBeVisible();
+  await page.getByRole("button", { name: "설정", exact: true }).click();
+  await expect(page.getByRole("switch", { name: "효과음", exact: true })).not.toBeChecked();
+  await page.getByRole("button", { name: "설정 닫기" }).click();
   await page.reload();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("yachtlab.settings.v1")!))).toEqual({ muted: true, volume: 0.3, reducedEffects: true, diceQuality: "2.5d", opponentFx: true });
   await page.getByRole("button", { name: "설정", exact: true }).click();
@@ -143,7 +145,7 @@ test("설정: 음소거·음량·애니메이션 품질·모션 간단히가 브
   // Broken storage must not break the game.
   await page.evaluate(() => localStorage.setItem("yachtlab.settings.v1", "{not json"));
   await page.reload();
-  await expect(page.getByRole("button", { name: "효과음 끄기" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "효과음 끄기" })).toHaveCount(0);
 });
 
 test("2.5D 주사위: 연출 후 엔진 결과와 같은 눈에서 멈추고 고정 주사위는 움직이지 않는다", async ({ page }) => {
@@ -224,7 +226,9 @@ test("효과음은 2.5D 착지 시점과 맞춰 예약되고 음소거하면 재
   await clearSound(page);
   await page.locator(".die-button").first().click();
   await expect.poll(async () => (await soundLog(page)).map((e) => e.name)).toContain("hold");
-  await page.getByRole("button", { name: "효과음 끄기" }).click();
+  await page.getByRole("button", { name: "설정", exact: true }).click();
+  await page.getByRole("switch", { name: "효과음", exact: true }).uncheck();
+  await page.getByRole("button", { name: "설정 닫기" }).click();
   await clearSound(page);
   await page.getByRole("button", { name: "다시 굴리기" }).click();
   await expect.poll(async () => (await soundLog(page)).length).toBeGreaterThan(0);
@@ -257,7 +261,9 @@ test("2.5D 효과음은 던지기 → 충돌 → 착지 → 라지 스트레이�
   await page.locator(".die-button").first().click();
   await expect.poll(async () => (await soundLog(page)).map((entry) => entry.name)).toContain("hold");
 
-  await page.getByRole("button", { name: "효과음 끄기" }).click();
+  await page.getByRole("button", { name: "설정", exact: true }).click();
+  await page.getByRole("switch", { name: "효과음", exact: true }).uncheck();
+  await page.getByRole("button", { name: "설정 닫기" }).click();
   await clearSound(page);
   const reroll = page.getByRole("button", { name: "다시 굴리기" });
   await reroll.click();

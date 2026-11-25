@@ -73,7 +73,7 @@ export default function InstallBanner({ active }: { active: boolean }) {
     <aside className="install-banner" aria-label="앱 설치">
       <img src={`${import.meta.env.BASE_URL}icons/app-192.png`} alt="" width={32} height={32} />
       <div>
-        <strong>YachtLab 설치</strong>
+        <strong>온라인 요트다이스 설치</strong>
         <p>{instructions ? "Safari의 공유 메뉴에서 ‘홈 화면에 추가’를 선택하세요." : "홈 화면에서 바로 열어요."}</p>
       </div>
       {offer ? (

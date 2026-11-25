@@ -1,5 +1,8 @@
 # YachtLab
 
+플레이 서비스의 이름은 **온라인 요트다이스(Online Yacht)**입니다. [게임 시작](https://oyueo-mm.github.io/YachtLab/) · [규칙과 전략](https://oyueo-mm.github.io/YachtLab/guide/) · [제품 변경과 운영 확인](docs/context/ONLINE-YACHT-PRODUCT.md)
+
+
 한국어 요트 다이스 게임과 AI 전략 실험실. React · TypeScript · Vite · Tailwind CSS · Web Worker · PyTorch.
 
 대상 공개 주소: https://oyueo-mm.github.io/YachtLab/

@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { LoaderCircle } from "lucide-react";
+import { BrandMark } from "./ui/BrandLoading";
 import { type Match } from "./match";
 import { type AnalysisSource } from "./ReplayViewer";
 import { type Replay } from "./replay";
@@ -177,7 +177,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     window.scrollTo?.(0, 0);
-    document.title = page === "home" ? "YachtLab" : routes[page].title + " · YachtLab";
+    document.title = page === "home" ? "온라인 요트다이스 · Online Yacht" : routes[page].title + " · Online Yacht";
   }, [page]);
   const shell = routes[page].shell;
   // Online screens need the latest page (server protocol); an old cached page asks for a reload.
@@ -220,7 +220,7 @@ export default function App() {
           if (tutorialDestination.current) enter(tutorialDestination.current);
           else go("home");
         }} />}
-        {page === "practice" && <Tutorial practiceOnly onExit={() => go("home")} />}
+        {page === "practice" && <Tutorial practiceOnly onExit={() => go("offline")} />}
         {page === "offline" && <OfflineSelect navigate={navigate} />}
         {(page === "online" || page === "online-room") && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "online" && onlineServer && (
@@ -287,7 +287,7 @@ export default function App() {
           <Suspense
             fallback={
               <p className="lab-loading" role="status">
-                <LoaderCircle size={16} className="spin" /> 연구실을 불러오는 중
+                <BrandMark /> 연구실을 불러오는 중
               </p>
             }
           >

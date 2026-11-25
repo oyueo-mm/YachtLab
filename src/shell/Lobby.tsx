@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, Dices, Globe, Smartphone, UsersRound } from "lucide-react";
+import { ArrowRight, BookOpen, Bot, Dices, Globe, Smartphone, UsersRound } from "lucide-react";
 import type { Route } from "../routes";
 
 type Go = (route: Route) => void;
@@ -33,6 +33,7 @@ export function Lobby({ navigate }: { navigate: Go }) {
           <ArrowRight className="mode-arrow" size={20} aria-hidden="true" />
         </button>
       </div>
+      <a className="lobby-guide" href={`${import.meta.env.BASE_URL}guide/`}> <BookOpen size={17} aria-hidden="true" /> 규칙과 전략</a>
     </section>
   );
 }
@@ -65,6 +66,9 @@ export function OfflineSelect({ navigate }: { navigate: Go }) {
           <ArrowRight className="mode-arrow" size={22} aria-hidden="true" />
         </button>
       </div>
+      <button type="button" className="secondary mode-practice" onClick={() => navigate("practice")}>
+        <Dices size={18} aria-hidden="true" /> 한 차례 연습하기
+      </button>
     </section>
   );
 }

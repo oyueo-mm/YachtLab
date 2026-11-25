@@ -180,6 +180,7 @@ export default function Profile({ server, notice, snapshot, accountSettings = fa
       )}
 
       {!signedIn && <section id="profile-account-settings" tabIndex={-1} className="profile-account" aria-label="로그인">
+        <img className="login-brand" src={`${import.meta.env.BASE_URL}icons/online-yacht-wordmark.svg`} alt="Online Yacht" width="140" height="32" />
         {loginReady && server && inApp ? (
           <>
             <p className="profile-note">이 앱 안의 브라우저에서는 Google 로그인이 막혀 있어요. Chrome·Safari 같은 기본 브라우저로 열어 로그인해 주세요. 게임은 여기서도 그대로 할 수 있어요.</p>

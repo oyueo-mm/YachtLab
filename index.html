@@ -1,1 +1,60 @@
-<!doctype html><html lang="ko"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="theme-color" content="#ffffff"/><meta name="description" content="요트 다이스를 플레이하고 인공지능의 전략을 실험하는 YachtLab"/><link rel="manifest" href="%BASE_URL%manifest.webmanifest"/><link rel="apple-touch-icon" href="%BASE_URL%icons/apple-touch-icon.png"/><title>YachtLab</title></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <title>온라인 요트다이스 · Online Yacht</title>
+  <meta name="description" content="친구나 AI와 무료로 요트다이스를 플레이하세요. 12칸 규칙과 족보, 상단 보너스, 초보 전략을 안내합니다.">
+  <link rel="canonical" href="https://oyueo-mm.github.io/YachtLab/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Online Yacht">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:title" content="온라인 요트다이스 · Online Yacht">
+  <meta property="og:description" content="친구나 AI와 즐기는 무료 온라인 요트다이스.">
+  <meta property="og:url" content="https://oyueo-mm.github.io/YachtLab/">
+  <meta property="og:image" content="https://oyueo-mm.github.io/YachtLab/icons/share.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Online Yacht 워드마크와 주사위 눈이 들어간 돛단배 로고">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="%BASE_URL%icons/favicon-48.png" type="image/png" sizes="48x48">
+  <link rel="manifest" href="%BASE_URL%manifest.webmanifest">
+  <link rel="apple-touch-icon" href="%BASE_URL%icons/apple-touch-icon.png">
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@graph":[
+      {"@type":"WebSite","url":"https://oyueo-mm.github.io/YachtLab/","name":"Online Yacht","alternateName":"온라인 요트다이스","inLanguage":"ko"},
+      {"@type":"VideoGame","url":"https://oyueo-mm.github.io/YachtLab/","name":"온라인 요트다이스","alternateName":"Online Yacht","gamePlatform":"Web browser","applicationCategory":"GameApplication","operatingSystem":"Any","inLanguage":"ko","isAccessibleForFree":true,"image":"https://oyueo-mm.github.io/YachtLab/icons/share.jpg"}
+    ]
+  }
+  </script>
+  <style>
+    .initial-shell{max-width:44rem;margin:12vh auto;padding:0 1rem;text-align:center;font:1rem system-ui,sans-serif;color:#251c1c}
+    .initial-shell img{width:64px;height:64px}
+    .initial-shell a{color:#a92529;margin-inline:.4rem}
+    .initial-shell h1{font-size:clamp(1.65rem,5vw,2.4rem)}
+    @media (prefers-reduced-motion:no-preference){
+      .initial-shell img{animation:initial-bob 1.4s .2s ease-in-out 2}
+      @keyframes initial-bob{50%{transform:translateY(-3px)}}
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <main class="initial-shell">
+      <img src="%BASE_URL%icons/online-yacht.svg" alt="" width="64" height="64">
+      <h1>온라인 요트다이스</h1>
+      <p>주사위 5개로 친구나 AI와 무료로 플레이하세요.</p>
+      <nav aria-label="게임과 도움말">
+        <a href="#online">친구와 온라인 대전</a>
+        <a href="#offline">오프라인 AI 대전</a>
+        <a href="%BASE_URL%guide/">규칙과 전략</a>
+      </nav>
+      <noscript><p>게임을 시작하려면 자바스크립트를 켜 주세요. 도움말은 지금도 읽을 수 있어요.</p></noscript>
+    </main>
+  </div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
