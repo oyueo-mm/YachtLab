@@ -89,4 +89,5 @@ const out = {
 mkdirSync(outDir, { recursive: true });
 const file = `${outDir}/${A}_vs_${B}-f${family}-s${shard}.json.gz`;
 writeFileSync(file, gzipSync(JSON.stringify(out)));
-console.log(JSON.stringify({ file, a: A, b: B, family, shard, games: out.games, winCredit: out.winCredit, elapsedSeconds: out.elapsedSeconds, msPerDecisionA: stats[A].ms / stats[A].decisions }));
+const pc: number[] = []; for (let i = 0; i < raw.length; i += 5) pc.push(((raw[i + 1] > raw[i + 2] ? 1 : raw[i + 1] === raw[i + 2] ? 0.5 : 0) + (raw[i + 3] > raw[i + 4] ? 1 : raw[i + 3] === raw[i + 4] ? 0.5 : 0)) / 2);
+console.log("V5_SHARD " + JSON.stringify({ file, a: A, b: B, family, shard, pairs, games: out.games, winCredit: out.winCredit, pairCreditSum: pc.reduce((x, y) => x + y, 0), pairCreditSumSq: pc.reduce((x, y) => x + y * y, 0), wins, ties, losses, elapsedSeconds: out.elapsedSeconds, msPerDecisionA: stats[A].ms / stats[A].decisions }));

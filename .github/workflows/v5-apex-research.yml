@@ -84,3 +84,30 @@ jobs:
         with:
           name: v5-tournament-${{ matrix.shard }}
           path: out/
+  ci-confirm:
+    # Independent CI reproduction on the pre-registered family 9502; runs only when the
+    # pushed commit message contains [v5-ci-confirm]. Never deploys.
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[v5-ci-confirm]')
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      max-parallel: 8
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Paired seat-swapped shard (family 9502, 2500 pairs per matchup)
+        run: |
+          for m in v5-R:v2 v5-R:v3 v5-R:dp; do
+            V5_COMMIT=$GITHUB_SHA npx tsx scripts/research-v5/bench.ts --a ${m%%:*} --b ${m##*:} --family 9502 --shard ${{ matrix.shard }} --pairs 2500 --out out
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v5-ci-confirm-${{ matrix.shard }}
+          path: out/
