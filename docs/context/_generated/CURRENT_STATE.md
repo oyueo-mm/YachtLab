@@ -104,21 +104,22 @@
 - [V6-APEX-RESEARCH.md](../V6-APEX-RESEARCH.md)
 - [V6-INTEGRATION-HANDOFF.md](../V6-INTEGRATION-HANDOFF.md)
 - [V7-APEX-RESEARCH.md](../V7-APEX-RESEARCH.md)
+- [V7-PRODUCT-HANDOFF.md](../V7-PRODUCT-HANDOFF.md)
 
 ## 최근 Git 커밋 (맥락 자동 커밋 제외)
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [187b387](https://github.com/oyueo-mm/YachtLab/commit/187b387) | 2026-11-26 | Merge PR #93: Win DP v7.1/v7.2 research (9551 result, single-bank I2RO1 confirmed > v4-D, I3, exact solver K=7) |
 | [e7a9933](https://github.com/oyueo-mm/YachtLab/commit/e7a9933) | 2026-11-26 | Add Google Search Console verification meta tag |
 | [0fb8443](https://github.com/oyueo-mm/YachtLab/commit/0fb8443) | 2026-11-26 | Merge pull request #92 from oyueo-mm/codex/online-yacht-economy |
+| [e638a62](https://github.com/oyueo-mm/YachtLab/commit/e638a62) | 2026-11-25 | research(v7.2): pre-register final free 'very hard' selection games (family 9591) + latency eligibility (Pixel 7 x4 emulation) for I2R1/I2R1W6/I2RO1B3/v5-B3 |
 | [38b99af](https://github.com/oyueo-mm/YachtLab/commit/38b99af) | 2026-11-26 | Merge pull request #91 from oyueo-mm/codex/online-yacht-player-ui |
 | [2a6aaa8](https://github.com/oyueo-mm/YachtLab/commit/2a6aaa8) | 2026-11-26 | Merge pull request #90 from oyueo-mm/codex/online-yacht-brand |
-| [8e00f31](https://github.com/oyueo-mm/YachtLab/commit/8e00f31) | 2026-11-26 | Make dice input checks deterministic and document bundle odds |
-| [8fec5cc](https://github.com/oyueo-mm/YachtLab/commit/8fec5cc) | 2026-11-26 | Merge branch 'codex/online-yacht-player-ui' into codex/online-yacht-economy |
-| [f32027e](https://github.com/oyueo-mm/YachtLab/commit/f32027e) | 2026-11-26 | Show hidden-chat status and check combined match history |
-| [eee472b](https://github.com/oyueo-mm/YachtLab/commit/eee472b) | 2026-11-26 | Merge branch 'codex/online-yacht-player-ui' into codex/online-yacht-economy |
-| [770476c](https://github.com/oyueo-mm/YachtLab/commit/770476c) | 2026-11-26 | Reset the dice view on rematch and record release verification |
-| [2196a28](https://github.com/oyueo-mm/YachtLab/commit/2196a28) | 2026-11-26 | Keep desktop scores in one table beside the chat profiles |
+| [4346765](https://github.com/oyueo-mm/YachtLab/commit/4346765) | 2026-11-25 | Merge remote-tracking branch 'origin/claude/yachtlab-v7-research-ngcrhe' into claude/serene-planck-15tbo2 |
+| [6332349](https://github.com/oyueo-mm/YachtLab/commit/6332349) | 2026-11-25 | docs(context): 9571 verdict in RESULTS/DECISIONS |
+| [3648531](https://github.com/oyueo-mm/YachtLab/commit/3648531) | 2026-11-25 | research(v7.2): clean product benchmarks (Node, Chromium worker, Pixel 7 x4 emulation) for I2RO1/v5-R/I2R1; handoff updated with 9571 verdict and recommendation |
+| [1ec5396](https://github.com/oyueo-mm/YachtLab/commit/1ec5396) | 2026-11-25 | research(v7.2): product confirmation 9571 — HA1 accepted (I2RO1 vs v4-D 50.548%), HA2 not accepted (vs v5-R 50.064%, p 0.041); same-seed v5-R vs v4-D 50.547% |
 
 ## 최근 GitHub Actions 상태
 
@@ -126,7 +127,7 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45720000134) | success | 0fb8443547 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45725099331) | cancelled | e7a99336a2 |
 | [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45717549260) | success | e638a623b1 |
 | [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45717409511) | success | 8e00f3172f |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45686563250) | success | 8e00f3172f |
