@@ -4,7 +4,7 @@
 
 ## 조사 범위와 직접 응답
 
-2026-11-26 14:24~14:29 UTC(23:24~23:29 KST). 비로그인 클라우드에서 데스크톱 첫 응답을 확인했다. Google은 `hl/gl=ko/kr, en/us`와 `pws=0`, Bing은 `mkt=ko-KR, en-US`, 네이버는 한국 통합검색에 두 언어의 질의를 그대로 입력했다. 언어·시장 파라미터로 지정한 표본이다. 한국·미국 실사용자 위치, 모바일 검색 화면, 개인화, 시점별 변동은 검증하지 않았다. 검색량·순위·색인 상태는 산정하지 않았다.
+2026-11-26 14:24~14:29 UTC(23:24~23:29 KST). 비로그인 클라우드에서 데스크톱 첫 응답을 확인했다. Google은 `hl/gl=ko/kr, en/us`와 `pws=0`, Bing은 `mkt=ko-KR, en-US`, 네이버는 한국 통합검색에 두 언어의 질의를 그대로 입력했다. 언어·시장 파라미터로 지정한 표본이다. 한국·미국 실사용자 위치, 모바일 검색 화면, 개인화, 시점별 변동은 검증하지 않았다. Search Console 등 계정 보고서와 검색량 데이터에는 접근하지 못했습니다. 공개 표본으로 검색량·순위·색인 상태를 산정하지 않았습니다.
 
 - **한국어 18개** · 요트다이스, 요트 다이스, 야추다이스, 야추 다이스, 요트다이스 온라인, 야추 다이스 무료, 요트다이스 PC, 요트다이스 모바일, 요트다이스 친구, 야추 다이스 멀티, 요트다이스 혼자, 요트다이스 AI, 요트다이스 룰, 요트 다이스 규칙, 요트다이스 점수판, 요트다이스 족보, 요트다이스 확률, 요트다이스 전략.
 - **영어 10개** · Yacht Dice Online, Yahtzee Online, Yacht Dice Online free, Yahtzee Online multiplayer, Yacht Dice rules, Yacht Dice scorecard, Yacht Dice probability, Yahtzee optimal strategy, Yahtzee dynamic programming, Yacht Dice AI research.
@@ -48,4 +48,17 @@
 
 홈 → 모드·도구, 규칙 ↔ 점수판, 전략 → 확률 계산기, 각 안내 → 해당 플레이 화면의 일반 HTML 링크를 본문에 둔다. 현재 홈의 `WebSite`·`VideoGame`, 가이드의 `BreadcrumbList`·`HowTo`와 계산기의 `WebApplication`에 맞춰 화면에 실제 표시되는 정보로 메타데이터를 작성한다. [홈](https://oyueo-mm.github.io/YachtLab/) · [가이드](https://oyueo-mm.github.io/YachtLab/guide/) · [계산기](https://oyueo-mm.github.io/YachtLab/probability/)
 
-Google의 FAQ 리치 결과는 주로 정부·건강 사이트에 제한되며 HowTo 리치 결과 제공은 종료됐습니다. FAQ와 진행 순서 마크업은 실제 페이지의 내용과 맞춰 유지합니다. 연구 문서에는 해당 언어를 표시한 TechArticle과 양방향 hreflang을 사용합니다. [FAQ 리치 결과](https://developers.google.com/search/docs/appearance/structured-data/faqpage) · [Google 변경 공지](https://developers.google.com/search/blog/2023/08/howto-faq-changes) · [hreflang 가이드](https://developers.google.com/search/docs/specialty/international/localized-versions)
+Google은 HowTo 리치 결과를 2023년에, FAQ 리치 결과를 2026년 5월에 종료했습니다. FAQ와 진행 순서 마크업은 실제 페이지의 내용과 맞춰 유지합니다. 연구 문서에는 해당 언어를 표시한 TechArticle과 양방향 hreflang을 사용합니다. [Google Search 문서 갱신 이력](https://developers.google.com/search/updates) · [Google 변경 공지](https://developers.google.com/search/blog/2023/08/howto-faq-changes) · [hreflang 가이드](https://developers.google.com/search/docs/specialty/international/localized-versions)
+
+## 로컬 배포 빌드의 성능 표본
+
+새 Chromium 컨텍스트를 사용해 같은 머신에서 기존 안정화 빌드와 SEO 빌드를 각각 세 번 열었습니다. 로컬 서버, 서비스 워커 비활성, 데스크톱 1280×900 및 모바일 에뮬레이션 360×800 기준입니다. 모바일 기기 실측이나 필드 Core Web Vitals를 산정하지 않았습니다.
+
+| 페이지 | 데스크톱 LCP 중앙값 | 모바일 LCP 중앙값 | 인코딩 응답 본문 합계 |
+|---|---:|---:|---:|
+| 안정화 빌드 홈 | 380 ms | 320 ms | 265,074 B |
+| SEO 빌드 홈 | 368 ms | 344 ms | 265,057 B |
+| 한국어 연구 | 264 ms | 200 ms | 18,077 B |
+| 영어 연구 | 200 ms | 176 ms | 16,986 B |
+
+연구 문서는 JavaScript 요청이 없었고 360px에서 문서 가로 스크롤이 없었습니다. 넓은 표는 내부에서 스크롤됩니다. 세 번의 로컬 표본에서 관찰한 LCP 차이로 운영 환경의 성능 변화를 판정하지 않습니다.
