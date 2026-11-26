@@ -100,6 +100,7 @@
 - [SELFPLAY-2026-11-20-FINAL.md](../SELFPLAY-2026-11-20-FINAL.md)
 - [SELFPLAY-RESEARCH.md](../SELFPLAY-RESEARCH.md)
 - [SEO-AUTOMATION.md](../SEO-AUTOMATION.md)
+- [STABILITY-2026-11-26.md](../STABILITY-2026-11-26.md)
 - [TECHNIQUES.md](../TECHNIQUES.md)
 - [V31-RESEARCH.md](../V31-RESEARCH.md)
 - [V32-EXACT-FORECAST.md](../V32-EXACT-FORECAST.md)
@@ -114,6 +115,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [a8f70cd](https://github.com/oyueo-mm/YachtLab/commit/a8f70cd) | 2026-11-26 | Merge pull request #106 from oyueo-mm/codex/yachtlab-stability-20261126 |
+| [a2e53d1](https://github.com/oyueo-mm/YachtLab/commit/a2e53d1) | 2026-11-26 | Fix settings scrolling, invite history and multiplayer shortcuts |
 | [b8f4782](https://github.com/oyueo-mm/YachtLab/commit/b8f4782) | 2026-11-26 | Merge pull request #103 from oyueo-mm/claude/great-sagan-cevdax |
 | [1e288e2](https://github.com/oyueo-mm/YachtLab/commit/1e288e2) | 2026-11-26 | test(ui): explicit 30 s budget for the in-browser tournament; record production rollout |
 | [2788297](https://github.com/oyueo-mm/YachtLab/commit/2788297) | 2026-11-26 | Merge pull request #102 from oyueo-mm/claude/great-sagan-cevdax |
@@ -122,8 +125,6 @@
 | [3b2ff1e](https://github.com/oyueo-mm/YachtLab/commit/3b2ff1e) | 2026-11-26 | test+docs: polish verification, sweep contact sheets, BGM render in idle time, test race fix |
 | [2e4501f](https://github.com/oyueo-mm/YachtLab/commit/2e4501f) | 2026-11-26 | perf+docs: lazy effect/music chunks, level texts split; polish report, decisions D-068..D-073, audio licences |
 | [c141d34](https://github.com/oyueo-mm/YachtLab/commit/c141d34) | 2026-11-26 | feat(seo,ui): visual rules page, categorized FAQ, home links trimmed; tests for polish |
-| [5d81351](https://github.com/oyueo-mm/YachtLab/commit/5d81351) | 2026-11-26 | feat(items): unique dice, board and emote upgrade effects |
-| [e627852](https://github.com/oyueo-mm/YachtLab/commit/e627852) | 2026-11-26 | Merge pull request #101 from oyueo-mm/claude/wizardly-bohr-1usbx5 |
 
 ## 최근 GitHub Actions 상태
 
@@ -131,8 +132,8 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45812674316) | success | 1e288e2583 |
-| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45812380394) | success | 8b921dab04 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45839983539) | success | a2e53d1ffa |
+| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45833196799) | success | 222db725ba |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45809130867) | success | 93b2e2c5ac |
 
 ## 다음 채팅과 작업의 시작점

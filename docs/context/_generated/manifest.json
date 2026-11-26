@@ -74,6 +74,7 @@
     "SELFPLAY-2026-11-20-FINAL.md",
     "SELFPLAY-RESEARCH.md",
     "SEO-AUTOMATION.md",
+    "STABILITY-2026-11-26.md",
     "TECHNIQUES.md",
     "V31-RESEARCH.md",
     "V32-EXACT-FORECAST.md",
@@ -125,6 +126,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "a8f70cd",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #106 from oyueo-mm/codex/yachtlab-stability-20261126"
+    },
+    {
+      "sha": "a2e53d1",
+      "date": "2026-11-26",
+      "subject": "Fix settings scrolling, invite history and multiplayer shortcuts"
+    },
+    {
       "sha": "b8f4782",
       "date": "2026-11-26",
       "subject": "Merge pull request #103 from oyueo-mm/claude/great-sagan-cevdax"
@@ -163,30 +174,20 @@
       "sha": "c141d34",
       "date": "2026-11-26",
       "subject": "feat(seo,ui): visual rules page, categorized FAQ, home links trimmed; tests for polish"
-    },
-    {
-      "sha": "5d81351",
-      "date": "2026-11-26",
-      "subject": "feat(items): unique dice, board and emote upgrade effects"
-    },
-    {
-      "sha": "e627852",
-      "date": "2026-11-26",
-      "subject": "Merge pull request #101 from oyueo-mm/claude/wizardly-bohr-1usbx5"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "1e288e2583",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45812674316"
+      "head": "a2e53d1ffa",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45839983539"
     },
     {
       "name": "SEO IndexNow",
       "status": "success",
-      "head": "8b921dab04",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45812380394"
+      "head": "222db725ba",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45833196799"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
