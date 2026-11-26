@@ -1,0 +1,1621 @@
+[
+  {
+    "name": "chromium-320 geometry",
+    "version": "156.0.8078.79",
+    "mobileScore": true,
+    "before": {
+      "screen": [
+        320,
+        568
+      ],
+      "scroll": [
+        320,
+        568
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0,
+          "bottom": 0,
+          "client": [
+            0,
+            0
+          ],
+          "scroll": [
+            0,
+            0
+          ],
+          "overflow": "hidden"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 19,
+          "y": 212,
+          "w": 282,
+          "h": 54,
+          "bottom": 266,
+          "client": [
+            282,
+            54
+          ],
+          "scroll": [
+            282,
+            54
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 8,
+          "y": 125,
+          "w": 304,
+          "h": 228,
+          "bottom": 353,
+          "client": [
+            302,
+            226
+          ],
+          "scroll": [
+            302,
+            226
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": []
+    },
+    "after": {
+      "screen": [
+        320,
+        568
+      ],
+      "scroll": [
+        320,
+        568
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0,
+          "bottom": 0,
+          "client": [
+            0,
+            0
+          ],
+          "scroll": [
+            0,
+            0
+          ],
+          "overflow": "hidden"
+        },
+        ".mobile-score-scroll": {
+          "x": 0,
+          "y": 122,
+          "w": 320,
+          "h": 446,
+          "bottom": 568,
+          "client": [
+            320,
+            446
+          ],
+          "scroll": [
+            320,
+            909
+          ],
+          "overflow": "auto"
+        },
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 19,
+          "y": 212,
+          "w": 282,
+          "h": 54,
+          "bottom": 266,
+          "client": [
+            282,
+            54
+          ],
+          "scroll": [
+            282,
+            54
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 8,
+          "y": 125,
+          "w": 304,
+          "h": 228,
+          "bottom": 353,
+          "client": [
+            302,
+            226
+          ],
+          "scroll": [
+            302,
+            226
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": [
+        [
+          "mobile-score-scroll",
+          446,
+          909
+        ]
+      ]
+    }
+  },
+  {
+    "name": "chromium-320",
+    "status": "pass"
+  },
+  {
+    "name": "chromium-landscape geometry",
+    "version": "156.0.8078.79",
+    "mobileScore": false,
+    "before": {
+      "screen": [
+        863,
+        360
+      ],
+      "scroll": [
+        863,
+        380
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 524,
+          "y": 66,
+          "w": 320,
+          "h": 294,
+          "bottom": 360,
+          "client": [
+            318,
+            292
+          ],
+          "scroll": [
+            318,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 139,
+          "y": 215,
+          "w": 247,
+          "h": 50,
+          "bottom": 264,
+          "client": [
+            247,
+            50
+          ],
+          "scroll": [
+            247,
+            50
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 19,
+          "y": 118,
+          "w": 488,
+          "h": 184,
+          "bottom": 301,
+          "client": [
+            486,
+            182
+          ],
+          "scroll": [
+            486,
+            182
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": [
+        [
+          "scoreboard panel",
+          292,
+          803
+        ]
+      ]
+    },
+    "after": {
+      "screen": [
+        863,
+        360
+      ],
+      "scroll": [
+        863,
+        380
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 524,
+          "y": 66,
+          "w": 320,
+          "h": 294,
+          "bottom": 360,
+          "client": [
+            318,
+            292
+          ],
+          "scroll": [
+            318,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 139,
+          "y": 215,
+          "w": 247,
+          "h": 50,
+          "bottom": 264,
+          "client": [
+            247,
+            50
+          ],
+          "scroll": [
+            247,
+            50
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 19,
+          "y": 118,
+          "w": 488,
+          "h": 184,
+          "bottom": 301,
+          "client": [
+            486,
+            182
+          ],
+          "scroll": [
+            486,
+            182
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": [
+        [
+          "scoreboard panel",
+          292,
+          803
+        ]
+      ]
+    }
+  },
+  {
+    "name": "chromium-landscape",
+    "status": "pass"
+  },
+  {
+    "name": "chromium-tablet geometry",
+    "version": "156.0.8078.79",
+    "mobileScore": false,
+    "before": {
+      "screen": [
+        768,
+        1024
+      ],
+      "scroll": [
+        768,
+        1031
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 431,
+          "y": 76,
+          "w": 320,
+          "h": 805,
+          "bottom": 881,
+          "client": [
+            318,
+            803
+          ],
+          "scroll": [
+            318,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 92,
+          "y": 827,
+          "w": 247,
+          "h": 56,
+          "bottom": 883,
+          "client": [
+            247,
+            56
+          ],
+          "scroll": [
+            247,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 17,
+          "y": 130,
+          "w": 398,
+          "h": 800,
+          "bottom": 930,
+          "client": [
+            396,
+            798
+          ],
+          "scroll": [
+            396,
+            798
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": []
+    },
+    "after": {
+      "screen": [
+        768,
+        1024
+      ],
+      "scroll": [
+        768,
+        1031
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 431,
+          "y": 76,
+          "w": 320,
+          "h": 805,
+          "bottom": 881,
+          "client": [
+            318,
+            803
+          ],
+          "scroll": [
+            318,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 92,
+          "y": 827,
+          "w": 247,
+          "h": 56,
+          "bottom": 883,
+          "client": [
+            247,
+            56
+          ],
+          "scroll": [
+            247,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 17,
+          "y": 130,
+          "w": 398,
+          "h": 800,
+          "bottom": 930,
+          "client": [
+            396,
+            798
+          ],
+          "scroll": [
+            396,
+            798
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": []
+    }
+  },
+  {
+    "name": "chromium-tablet",
+    "status": "pass"
+  },
+  {
+    "name": "chromium-1024 geometry",
+    "version": "156.0.8078.79",
+    "mobileScore": false,
+    "before": {
+      "screen": [
+        1024,
+        600
+      ],
+      "scroll": [
+        1024,
+        642
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 671,
+          "y": 76,
+          "w": 330,
+          "h": 516,
+          "bottom": 592,
+          "client": [
+            328,
+            514
+          ],
+          "scroll": [
+            328,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 213,
+          "y": 457,
+          "w": 247,
+          "h": 56,
+          "bottom": 513,
+          "client": [
+            247,
+            56
+          ],
+          "scroll": [
+            247,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 23,
+          "y": 130,
+          "w": 629,
+          "h": 430,
+          "bottom": 560,
+          "client": [
+            627,
+            428
+          ],
+          "scroll": [
+            627,
+            428
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": [
+        [
+          "scoreboard panel",
+          514,
+          803
+        ]
+      ]
+    },
+    "after": {
+      "screen": [
+        1024,
+        600
+      ],
+      "scroll": [
+        1024,
+        642
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 671,
+          "y": 76,
+          "w": 330,
+          "h": 516,
+          "bottom": 592,
+          "client": [
+            328,
+            514
+          ],
+          "scroll": [
+            328,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 213,
+          "y": 457,
+          "w": 247,
+          "h": 56,
+          "bottom": 513,
+          "client": [
+            247,
+            56
+          ],
+          "scroll": [
+            247,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 23,
+          "y": 130,
+          "w": 629,
+          "h": 430,
+          "bottom": 560,
+          "client": [
+            627,
+            428
+          ],
+          "scroll": [
+            627,
+            428
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": [
+        [
+          "scoreboard panel",
+          514,
+          803
+        ]
+      ]
+    }
+  },
+  {
+    "name": "chromium-1024",
+    "status": "pass"
+  },
+  {
+    "name": "chromium-1366 geometry",
+    "version": "156.0.8078.79",
+    "mobileScore": false,
+    "before": {
+      "screen": [
+        1366,
+        768
+      ],
+      "scroll": [
+        1366,
+        810
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 940,
+          "y": 76,
+          "w": 396,
+          "h": 684,
+          "bottom": 760,
+          "client": [
+            394,
+            682
+          ],
+          "scroll": [
+            394,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 348,
+          "y": 623,
+          "w": 247,
+          "h": 56,
+          "bottom": 679,
+          "client": [
+            247,
+            56
+          ],
+          "scroll": [
+            247,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 30,
+          "y": 130,
+          "w": 882,
+          "h": 598,
+          "bottom": 728,
+          "client": [
+            880,
+            596
+          ],
+          "scroll": [
+            880,
+            596
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": [
+        [
+          "scoreboard panel",
+          682,
+          803
+        ]
+      ]
+    },
+    "after": {
+      "screen": [
+        1366,
+        768
+      ],
+      "scroll": [
+        1366,
+        810
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 940,
+          "y": 76,
+          "w": 396,
+          "h": 684,
+          "bottom": 760,
+          "client": [
+            394,
+            682
+          ],
+          "scroll": [
+            394,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 348,
+          "y": 623,
+          "w": 247,
+          "h": 56,
+          "bottom": 679,
+          "client": [
+            247,
+            56
+          ],
+          "scroll": [
+            247,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 30,
+          "y": 130,
+          "w": 882,
+          "h": 598,
+          "bottom": 728,
+          "client": [
+            880,
+            596
+          ],
+          "scroll": [
+            880,
+            596
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": [
+        [
+          "scoreboard panel",
+          682,
+          803
+        ]
+      ]
+    }
+  },
+  {
+    "name": "chromium-1366",
+    "status": "pass"
+  },
+  {
+    "name": "chromium-1920 geometry",
+    "version": "156.0.8078.79",
+    "mobileScore": false,
+    "before": {
+      "screen": [
+        1920,
+        1080
+      ],
+      "scroll": [
+        1920,
+        1080
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 1370,
+          "y": 76,
+          "w": 430,
+          "h": 805,
+          "bottom": 881,
+          "client": [
+            428,
+            803
+          ],
+          "scroll": [
+            428,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 607,
+          "y": 825,
+          "w": 247,
+          "h": 56,
+          "bottom": 881,
+          "client": [
+            247,
+            56
+          ],
+          "scroll": [
+            247,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 120,
+          "y": 130,
+          "w": 1222,
+          "h": 800,
+          "bottom": 930,
+          "client": [
+            1220,
+            798
+          ],
+          "scroll": [
+            1220,
+            798
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": []
+    },
+    "after": {
+      "screen": [
+        1920,
+        1080
+      ],
+      "scroll": [
+        1920,
+        1080
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 1370,
+          "y": 76,
+          "w": 430,
+          "h": 805,
+          "bottom": 881,
+          "client": [
+            428,
+            803
+          ],
+          "scroll": [
+            428,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 607,
+          "y": 825,
+          "w": 247,
+          "h": 56,
+          "bottom": 881,
+          "client": [
+            247,
+            56
+          ],
+          "scroll": [
+            247,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 120,
+          "y": 130,
+          "w": 1222,
+          "h": 800,
+          "bottom": 930,
+          "client": [
+            1220,
+            798
+          ],
+          "scroll": [
+            1220,
+            798
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": []
+    }
+  },
+  {
+    "name": "chromium-1920",
+    "status": "pass"
+  },
+  {
+    "name": "chromium-2560 geometry",
+    "version": "156.0.8078.79",
+    "mobileScore": false,
+    "before": {
+      "screen": [
+        2560,
+        1440
+      ],
+      "scroll": [
+        2560,
+        1440
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 1690,
+          "y": 76,
+          "w": 430,
+          "h": 805,
+          "bottom": 881,
+          "client": [
+            428,
+            803
+          ],
+          "scroll": [
+            428,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 927,
+          "y": 825,
+          "w": 247,
+          "h": 56,
+          "bottom": 881,
+          "client": [
+            247,
+            56
+          ],
+          "scroll": [
+            247,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 440,
+          "y": 130,
+          "w": 1222,
+          "h": 800,
+          "bottom": 930,
+          "client": [
+            1220,
+            798
+          ],
+          "scroll": [
+            1220,
+            798
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": []
+    },
+    "after": {
+      "screen": [
+        2560,
+        1440
+      ],
+      "scroll": [
+        2560,
+        1440
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 1690,
+          "y": 76,
+          "w": 430,
+          "h": 805,
+          "bottom": 881,
+          "client": [
+            428,
+            803
+          ],
+          "scroll": [
+            428,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 927,
+          "y": 825,
+          "w": 247,
+          "h": 56,
+          "bottom": 881,
+          "client": [
+            247,
+            56
+          ],
+          "scroll": [
+            247,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 440,
+          "y": 130,
+          "w": 1222,
+          "h": 800,
+          "bottom": 930,
+          "client": [
+            1220,
+            798
+          ],
+          "scroll": [
+            1220,
+            798
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": []
+    }
+  },
+  {
+    "name": "chromium-2560",
+    "status": "pass"
+  },
+  {
+    "name": "edge-desktop geometry",
+    "version": "142.0.3595.94",
+    "mobileScore": false,
+    "before": {
+      "screen": [
+        1440,
+        900
+      ],
+      "scroll": [
+        1440,
+        942
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 991,
+          "y": 76,
+          "w": 418,
+          "h": 805,
+          "bottom": 881,
+          "client": [
+            416,
+            803
+          ],
+          "scroll": [
+            416,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 374,
+          "y": 755,
+          "w": 247,
+          "h": 56,
+          "bottom": 811,
+          "client": [
+            247,
+            56
+          ],
+          "scroll": [
+            247,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 32,
+          "y": 130,
+          "w": 931,
+          "h": 730,
+          "bottom": 860,
+          "client": [
+            929,
+            728
+          ],
+          "scroll": [
+            929,
+            728
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": []
+    },
+    "after": {
+      "screen": [
+        1440,
+        900
+      ],
+      "scroll": [
+        1440,
+        942
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 991,
+          "y": 76,
+          "w": 418,
+          "h": 805,
+          "bottom": 881,
+          "client": [
+            416,
+            803
+          ],
+          "scroll": [
+            416,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 374,
+          "y": 755,
+          "w": 247,
+          "h": 56,
+          "bottom": 811,
+          "client": [
+            247,
+            56
+          ],
+          "scroll": [
+            247,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 32,
+          "y": 130,
+          "w": 931,
+          "h": 730,
+          "bottom": 860,
+          "client": [
+            929,
+            728
+          ],
+          "scroll": [
+            929,
+            728
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": []
+    }
+  },
+  {
+    "name": "edge-desktop",
+    "status": "pass"
+  },
+  {
+    "name": "chrome-desktop geometry",
+    "version": "158.0.8127.88",
+    "mobileScore": false,
+    "before": {
+      "screen": [
+        1366,
+        768
+      ],
+      "scroll": [
+        1366,
+        810
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 940,
+          "y": 76,
+          "w": 396,
+          "h": 684,
+          "bottom": 760,
+          "client": [
+            394,
+            682
+          ],
+          "scroll": [
+            394,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 348,
+          "y": 623,
+          "w": 247,
+          "h": 56,
+          "bottom": 679,
+          "client": [
+            247,
+            56
+          ],
+          "scroll": [
+            247,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 30,
+          "y": 130,
+          "w": 882,
+          "h": 598,
+          "bottom": 728,
+          "client": [
+            880,
+            596
+          ],
+          "scroll": [
+            880,
+            596
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": [
+        [
+          "scoreboard panel",
+          682,
+          803
+        ]
+      ]
+    },
+    "after": {
+      "screen": [
+        1366,
+        768
+      ],
+      "scroll": [
+        1366,
+        810
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 940,
+          "y": 76,
+          "w": 396,
+          "h": 684,
+          "bottom": 760,
+          "client": [
+            394,
+            682
+          ],
+          "scroll": [
+            394,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 348,
+          "y": 623,
+          "w": 247,
+          "h": 56,
+          "bottom": 679,
+          "client": [
+            247,
+            56
+          ],
+          "scroll": [
+            247,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 30,
+          "y": 130,
+          "w": 882,
+          "h": 598,
+          "bottom": 728,
+          "client": [
+            880,
+            596
+          ],
+          "scroll": [
+            880,
+            596
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": [
+        [
+          "scoreboard panel",
+          682,
+          803
+        ]
+      ]
+    }
+  },
+  {
+    "name": "chrome-desktop",
+    "status": "pass"
+  },
+  {
+    "name": "webkit-ios geometry",
+    "version": "27.2",
+    "mobileScore": true,
+    "before": {
+      "screen": [
+        390,
+        664
+      ],
+      "scroll": [
+        390,
+        664
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0,
+          "bottom": 0,
+          "client": [
+            0,
+            0
+          ],
+          "scroll": [
+            0,
+            0
+          ],
+          "overflow": "hidden"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 23,
+          "y": 229,
+          "w": 344,
+          "h": 54,
+          "bottom": 283,
+          "client": [
+            344,
+            54
+          ],
+          "scroll": [
+            344,
+            54
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 12,
+          "y": 127,
+          "w": 366,
+          "h": 243,
+          "bottom": 370,
+          "client": [
+            364,
+            241
+          ],
+          "scroll": [
+            364,
+            241
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": []
+    },
+    "after": {
+      "screen": [
+        390,
+        664
+      ],
+      "scroll": [
+        390,
+        664
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 0,
+          "y": 0,
+          "w": 0,
+          "h": 0,
+          "bottom": 0,
+          "client": [
+            0,
+            0
+          ],
+          "scroll": [
+            0,
+            0
+          ],
+          "overflow": "hidden"
+        },
+        ".mobile-score-scroll": {
+          "x": 0,
+          "y": 134,
+          "w": 390,
+          "h": 530,
+          "bottom": 664,
+          "client": [
+            390,
+            530
+          ],
+          "scroll": [
+            390,
+            916
+          ],
+          "overflow": "auto"
+        },
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 23,
+          "y": 229,
+          "w": 344,
+          "h": 54,
+          "bottom": 283,
+          "client": [
+            344,
+            54
+          ],
+          "scroll": [
+            344,
+            54
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 12,
+          "y": 127,
+          "w": 366,
+          "h": 243,
+          "bottom": 370,
+          "client": [
+            364,
+            241
+          ],
+          "scroll": [
+            364,
+            241
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": [
+        [
+          "mobile-score-scroll",
+          530,
+          916
+        ]
+      ]
+    }
+  },
+  {
+    "name": "webkit-ios",
+    "status": "pass"
+  },
+  {
+    "name": "firefox-desktop geometry",
+    "version": "157.0",
+    "mobileScore": false,
+    "before": {
+      "screen": [
+        1440,
+        900
+      ],
+      "scroll": [
+        1440,
+        942
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 991,
+          "y": 76,
+          "w": 418,
+          "h": 805,
+          "bottom": 881,
+          "client": [
+            416,
+            803
+          ],
+          "scroll": [
+            416,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 374,
+          "y": 755,
+          "w": 245,
+          "h": 56,
+          "bottom": 811,
+          "client": [
+            245,
+            56
+          ],
+          "scroll": [
+            245,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 32,
+          "y": 130,
+          "w": 931,
+          "h": 730,
+          "bottom": 860,
+          "client": [
+            929,
+            728
+          ],
+          "scroll": [
+            929,
+            728
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": []
+    },
+    "after": {
+      "screen": [
+        1440,
+        900
+      ],
+      "scroll": [
+        1440,
+        942
+      ],
+      "rects": {
+        ".scoreboard": {
+          "x": 991,
+          "y": 76,
+          "w": 418,
+          "h": 805,
+          "bottom": 881,
+          "client": [
+            416,
+            803
+          ],
+          "scroll": [
+            416,
+            803
+          ],
+          "overflow": "auto"
+        },
+        ".mobile-score-scroll": null,
+        ".game-screen": null,
+        ".roll-button": {
+          "x": 374,
+          "y": 755,
+          "w": 245,
+          "h": 56,
+          "bottom": 811,
+          "client": [
+            245,
+            56
+          ],
+          "scroll": [
+            245,
+            56
+          ],
+          "overflow": "visible"
+        },
+        ".game-shell": null,
+        ".game-board": {
+          "x": 32,
+          "y": 130,
+          "w": 931,
+          "h": 730,
+          "bottom": 860,
+          "client": [
+            929,
+            728
+          ],
+          "scroll": [
+            929,
+            728
+          ],
+          "overflow": "hidden"
+        },
+        ".online-nick": null
+      },
+      "scrollers": []
+    }
+  },
+  {
+    "name": "firefox-desktop",
+    "status": "pass"
+  }
+]

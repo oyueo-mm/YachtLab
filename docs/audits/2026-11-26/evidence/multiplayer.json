@@ -1,0 +1,82 @@
+[
+  {
+    "name": "Quick match desktop geometry",
+    "screen": [
+      1366,
+      768
+    ],
+    "scroll": [
+      1366,
+      800
+    ],
+    "rects": {
+      ".scoreboard": {
+        "x": 940,
+        "y": 76,
+        "w": 396,
+        "h": 684,
+        "bottom": 760,
+        "client": [
+          394,
+          682
+        ],
+        "scroll": [
+          394,
+          740
+        ],
+        "overflow": "auto"
+      },
+      ".mobile-score-scroll": null,
+      ".game-screen": null,
+      ".roll-button": {
+        "x": 351,
+        "y": 523,
+        "w": 241,
+        "h": 56,
+        "bottom": 579,
+        "client": [
+          241,
+          56
+        ],
+        "scroll": [
+          241,
+          56
+        ],
+        "overflow": "visible"
+      },
+      ".game-shell": null,
+      ".game-board": {
+        "x": 30,
+        "y": 311,
+        "w": 882,
+        "h": 438,
+        "bottom": 749,
+        "client": [
+          880,
+          436
+        ],
+        "scroll": [
+          880,
+          436
+        ],
+        "overflow": "hidden"
+      },
+      ".online-nick": null
+    },
+    "scrollers": [
+      [
+        "scoreboard panel",
+        682,
+        740
+      ]
+    ]
+  },
+  {
+    "name": "Guest quick match, reload while waiting, roll, emote, reconnect",
+    "status": "pass"
+  },
+  {
+    "name": "Guest invite, first visit detour, 2-player full game, review and rematch",
+    "status": "pass"
+  }
+]

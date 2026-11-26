@@ -1,0 +1,9 @@
+{
+  "mode": "simultaneous",
+  "seats": 20,
+  "rounds": 12,
+  "turns": 240,
+  "completed": true,
+  "consistentStandings": true,
+  "elapsedSeconds": 3.8
+}

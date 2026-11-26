@@ -1,0 +1,158 @@
+[
+  {
+    "version": "13.6.0",
+    "measuredAt": "2026-11-26T04:44:22.868Z",
+    "formFactor": "mobile",
+    "url": "https://oyueo-mm.github.io/YachtLab/",
+    "categories": {
+      "performance": 0.44,
+      "accessibility": 0.95,
+      "best-practices": 1,
+      "seo": 1,
+      "agentic-browsing": 0.5
+    },
+    "metrics": {
+      "first-contentful-paint": 1726.092,
+      "largest-contentful-paint": 4720.092000000001,
+      "cumulative-layout-shift": 0.03407643840948241,
+      "total-blocking-time": 18749,
+      "speed-index": 8769.824587465077,
+      "total-byte-weight": 400786
+    },
+    "resources": [
+      {
+        "path": "/YachtLab/",
+        "transferBytes": 2034,
+        "decodedBytes": 3539
+      },
+      {
+        "path": "/YachtLab/assets/index-DVSrFARk.js",
+        "transferBytes": 200940,
+        "decodedBytes": 625998
+      },
+      {
+        "path": "/YachtLab/assets/index-CKw7buLI.css",
+        "transferBytes": 39355,
+        "decodedBytes": 192543
+      },
+      {
+        "path": "/YachtLab/icons/online-yacht.svg",
+        "transferBytes": 455,
+        "decodedBytes": 489
+      },
+      {
+        "path": "/YachtLab/manifest.webmanifest",
+        "transferBytes": 808,
+        "decodedBytes": 598
+      },
+      {
+        "path": "/YachtLab/assets/table-BI0_lRB6.js",
+        "transferBytes": 5736,
+        "decodedBytes": 14001
+      },
+      {
+        "path": "/YachtLab/assets/stage-x8WM_ROY.js",
+        "transferBytes": 147966,
+        "decodedBytes": 562943
+      },
+      {
+        "path": "/YachtLab/assets/face-paint-BneiHj8f.js",
+        "transferBytes": 1755,
+        "decodedBytes": 4354
+      },
+      {
+        "path": "/YachtLab/version.json",
+        "transferBytes": 196,
+        "decodedBytes": 28
+      },
+      {
+        "path": "/YachtLab/icons/favicon-48.png",
+        "transferBytes": 1541,
+        "decodedBytes": 1365
+      }
+    ],
+    "accessibility": {
+      "aria-prohibited-attr": [
+        "section.game-board > div.guided-dice > div.physical-dice > div.dice-hold-area"
+      ]
+    }
+  },
+  {
+    "version": "13.6.0",
+    "measuredAt": "2026-11-26T04:46:09.681Z",
+    "formFactor": "desktop",
+    "url": "https://oyueo-mm.github.io/YachtLab/",
+    "categories": {
+      "performance": 0.4,
+      "accessibility": 0.95,
+      "best-practices": 1,
+      "seo": 1,
+      "agentic-browsing": 0.47
+    },
+    "metrics": {
+      "first-contentful-paint": 823.6555,
+      "largest-contentful-paint": 3165.6555,
+      "cumulative-layout-shift": 0.08355324074074075,
+      "total-blocking-time": 8613,
+      "speed-index": 5814.354496168561,
+      "total-byte-weight": 400783
+    },
+    "resources": [
+      {
+        "path": "/YachtLab/",
+        "transferBytes": 2037,
+        "decodedBytes": 3539
+      },
+      {
+        "path": "/YachtLab/assets/index-DVSrFARk.js",
+        "transferBytes": 200941,
+        "decodedBytes": 625998
+      },
+      {
+        "path": "/YachtLab/assets/index-CKw7buLI.css",
+        "transferBytes": 39371,
+        "decodedBytes": 192543
+      },
+      {
+        "path": "/YachtLab/icons/online-yacht.svg",
+        "transferBytes": 469,
+        "decodedBytes": 489
+      },
+      {
+        "path": "/YachtLab/manifest.webmanifest",
+        "transferBytes": 807,
+        "decodedBytes": 598
+      },
+      {
+        "path": "/YachtLab/assets/table-BI0_lRB6.js",
+        "transferBytes": 5692,
+        "decodedBytes": 14001
+      },
+      {
+        "path": "/YachtLab/assets/stage-x8WM_ROY.js",
+        "transferBytes": 147930,
+        "decodedBytes": 562943
+      },
+      {
+        "path": "/YachtLab/assets/face-paint-BneiHj8f.js",
+        "transferBytes": 1619,
+        "decodedBytes": 4354
+      },
+      {
+        "path": "/YachtLab/version.json",
+        "transferBytes": 322,
+        "decodedBytes": 28
+      },
+      {
+        "path": "/YachtLab/icons/favicon-48.png",
+        "transferBytes": 1595,
+        "decodedBytes": 1365
+      }
+    ],
+    "accessibility": {
+      "aria-prohibited-attr": [
+        "section.game-board > div.guided-dice > div.physical-dice > div.dice-hold-area"
+      ]
+    }
+  }
+]

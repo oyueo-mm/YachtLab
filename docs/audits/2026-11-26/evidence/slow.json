@@ -1,0 +1,13 @@
+[
+  {
+    "name": "Throttled first action",
+    "availableMs": 6436,
+    "cpuRate": 4,
+    "latencyMs": 300,
+    "downBytesPerSecond": 75000
+  },
+  {
+    "name": "Cold production build with throttled CPU and local network",
+    "status": "pass"
+  }
+]

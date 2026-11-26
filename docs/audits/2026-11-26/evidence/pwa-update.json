@@ -1,0 +1,17 @@
+{
+  "first": [
+    "yachtlab-static-/YachtLab/-audit-one",
+    "unrelated-audit-cache"
+  ],
+  "waiting": [
+    "yachtlab-static-/YachtLab/-audit-one",
+    "unrelated-audit-cache",
+    "yachtlab-static-/YachtLab/-audit-two"
+  ],
+  "active": [
+    "unrelated-audit-cache",
+    "yachtlab-static-/YachtLab/-audit-two"
+  ],
+  "offlineGuide": true,
+  "offlinePractice": true
+}

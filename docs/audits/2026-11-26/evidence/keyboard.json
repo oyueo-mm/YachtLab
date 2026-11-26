@@ -1,0 +1,21 @@
+[
+  {
+    "name": "Nickname viewport geometry",
+    "beforeScroll": {
+      "x": 148.46875,
+      "y": 90,
+      "width": 65.765625,
+      "height": 45
+    },
+    "afterScroll": {
+      "x": 148.46875,
+      "y": 90,
+      "width": 65.765625,
+      "height": 45
+    }
+  },
+  {
+    "name": "Focused nickname field after viewport height reduction",
+    "status": "pass"
+  }
+]

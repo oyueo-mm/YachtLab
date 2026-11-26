@@ -1,0 +1,232 @@
+{
+  "seed": 112626,
+  "usersPerScenario": 500,
+  "days": 30,
+  "hands": {
+    "none": 240,
+    "pair": 2880,
+    "twoPair": 1800,
+    "triple": 1200,
+    "small": 960,
+    "full": 300,
+    "four": 150,
+    "large": 240,
+    "yacht": 6
+  },
+  "pools": {
+    "standard": {
+      "common": 57,
+      "rare": 48,
+      "epic": 46,
+      "legendary": 27,
+      "mythic": 12
+    },
+    "holiday": {
+      "common": 3,
+      "rare": 2,
+      "epic": 2,
+      "legendary": 2,
+      "mythic": 1
+    }
+  },
+  "scenarios": [
+    {
+      "skill": "beginner",
+      "perDay": 2,
+      "activeDays": 3,
+      "strategy": "save",
+      "average": {
+        "coins": 1244.86,
+        "gems": 61.96,
+        "draws": 0,
+        "duplicates": 0,
+        "drawSpent": 0,
+        "duplicatePaid": 0,
+        "owned": 0,
+        "upgrades": 0,
+        "itemCost": 0,
+        "match": 351.89,
+        "quest": 391.32,
+        "quest-bonus": 18.36,
+        "achievement": 283.29,
+        "welcome": 200
+      }
+    },
+    {
+      "skill": "beginner",
+      "perDay": 2,
+      "activeDays": 3,
+      "strategy": "draw",
+      "average": {
+        "coins": 131.06,
+        "gems": 61.96,
+        "draws": 4.46,
+        "duplicates": 0.05,
+        "drawSpent": 1115,
+        "duplicatePaid": 1.2,
+        "owned": 4.41,
+        "upgrades": 0,
+        "itemCost": 0,
+        "match": 351.89,
+        "quest": 391.32,
+        "quest-bonus": 18.36,
+        "achievement": 283.29,
+        "welcome": 200
+      }
+    },
+    {
+      "skill": "beginner",
+      "perDay": 2,
+      "activeDays": 3,
+      "strategy": "buy-and-upgrade",
+      "average": {
+        "coins": 1244.86,
+        "gems": 61.96,
+        "draws": 0,
+        "duplicates": 0,
+        "drawSpent": 0,
+        "duplicatePaid": 0,
+        "owned": 0,
+        "upgrades": 0,
+        "itemCost": 0,
+        "match": 351.89,
+        "quest": 391.32,
+        "quest-bonus": 18.36,
+        "achievement": 283.29,
+        "welcome": 200
+      }
+    },
+    {
+      "skill": "intermediate",
+      "perDay": 5,
+      "activeDays": 5,
+      "strategy": "save",
+      "average": {
+        "coins": 4744.19,
+        "gems": 160.67,
+        "draws": 0,
+        "duplicates": 0,
+        "drawSpent": 0,
+        "duplicatePaid": 0,
+        "owned": 0,
+        "upgrades": 0,
+        "itemCost": 0,
+        "match": 1390.3,
+        "quest": 2191.31,
+        "quest-bonus": 355.47,
+        "achievement": 607.11,
+        "welcome": 200
+      }
+    },
+    {
+      "skill": "intermediate",
+      "perDay": 5,
+      "activeDays": 5,
+      "strategy": "draw",
+      "average": {
+        "coins": 123.49,
+        "gems": 160.67,
+        "draws": 18.58,
+        "duplicates": 1.01,
+        "drawSpent": 4646,
+        "duplicatePaid": 25.3,
+        "owned": 17.57,
+        "upgrades": 0,
+        "itemCost": 0,
+        "match": 1390.3,
+        "quest": 2191.31,
+        "quest-bonus": 355.47,
+        "achievement": 607.11,
+        "welcome": 200
+      }
+    },
+    {
+      "skill": "intermediate",
+      "perDay": 5,
+      "activeDays": 5,
+      "strategy": "buy-and-upgrade",
+      "average": {
+        "coins": 562.19,
+        "gems": 160.67,
+        "draws": 0,
+        "duplicates": 0,
+        "drawSpent": 0,
+        "duplicatePaid": 0,
+        "owned": 1,
+        "upgrades": 0.79,
+        "itemCost": 4182,
+        "match": 1390.3,
+        "quest": 2191.31,
+        "quest-bonus": 355.47,
+        "achievement": 607.11,
+        "welcome": 200
+      }
+    },
+    {
+      "skill": "intermediate",
+      "perDay": 12,
+      "activeDays": 7,
+      "strategy": "save",
+      "average": {
+        "coins": 9730.19,
+        "gems": 322.47,
+        "draws": 0,
+        "duplicates": 0,
+        "drawSpent": 0,
+        "duplicatePaid": 0,
+        "owned": 0,
+        "upgrades": 0,
+        "itemCost": 0,
+        "match": 3979.77,
+        "quest": 3384.14,
+        "quest-bonus": 756.97,
+        "achievement": 1409.31,
+        "welcome": 200
+      }
+    },
+    {
+      "skill": "intermediate",
+      "perDay": 12,
+      "activeDays": 7,
+      "strategy": "draw",
+      "average": {
+        "coins": 128.69,
+        "gems": 322.47,
+        "draws": 38.86,
+        "duplicates": 4.5,
+        "drawSpent": 9714,
+        "duplicatePaid": 112.5,
+        "owned": 34.36,
+        "upgrades": 0,
+        "itemCost": 0,
+        "match": 3979.77,
+        "quest": 3384.14,
+        "quest-bonus": 756.97,
+        "achievement": 1409.31,
+        "welcome": 200
+      }
+    },
+    {
+      "skill": "intermediate",
+      "perDay": 12,
+      "activeDays": 7,
+      "strategy": "buy-and-upgrade",
+      "average": {
+        "coins": 2230.19,
+        "gems": 322.47,
+        "draws": 0,
+        "duplicates": 0,
+        "drawSpent": 0,
+        "duplicatePaid": 0,
+        "owned": 1,
+        "upgrades": 2,
+        "itemCost": 7500,
+        "match": 3979.77,
+        "quest": 3384.14,
+        "quest-bonus": 756.97,
+        "achievement": 1409.31,
+        "welcome": 200
+      }
+    }
+  ]
+}
