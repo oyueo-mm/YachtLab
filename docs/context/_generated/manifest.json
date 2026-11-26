@@ -127,9 +127,19 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "5fcb642",
+      "date": "2026-11-27",
+      "subject": "Merge pull request #108 from oyueo-mm/claude/profile-2026-11"
+    },
+    {
       "sha": "dd128b8",
       "date": "2026-11-27",
       "subject": "Merge pull request #105 from oyueo-mm/claude/solo-play-2026-11"
+    },
+    {
+      "sha": "6f254dd",
+      "date": "2026-11-26",
+      "subject": "Merge branch 'claude/solo-play-2026-11' into claude/profile-2026-11"
     },
     {
       "sha": "b9b7ab3",
@@ -140,6 +150,11 @@
       "sha": "f6365bb",
       "date": "2026-11-26",
       "subject": "Merge remote-tracking branch 'origin/main' into claude/solo-play-2026-11"
+    },
+    {
+      "sha": "d8f7bd3",
+      "date": "2026-11-26",
+      "subject": "feat(profile): game profile with records, recent matches, solo stats, equipped looks, collection and achievements"
     },
     {
       "sha": "b2a6c3c",
@@ -160,35 +175,26 @@
       "sha": "9e0e45e",
       "date": "2026-11-26",
       "subject": "Record current search markup guidance and performance samples"
-    },
-    {
-      "sha": "87ef6e3",
-      "date": "2026-11-26",
-      "subject": "Align static and hydrated home search content"
-    },
-    {
-      "sha": "56258b4",
-      "date": "2026-11-26",
-      "subject": "Publish bilingual Yacht Dice research and intent-focused guides"
-    },
-    {
-      "sha": "a8f70cd",
-      "date": "2026-11-26",
-      "subject": "Merge pull request #106 from oyueo-mm/codex/yachtlab-stability-20261126"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "6f254dd4db",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45850214514"
-    },
-    {
       "name": "SEO IndexNow",
       "status": "success",
-      "head": "7dc4e92cb6",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45847906620"
+      "head": "76b9a062e8",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45856679287"
+    },
+    {
+      "name": "YachtLab gameplay UI targeted smoke",
+      "status": "success",
+      "head": "3e1b5851c4",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45855547616"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "3e1b5851c4",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45855547527"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
