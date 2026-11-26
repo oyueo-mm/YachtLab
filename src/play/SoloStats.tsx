@@ -3,7 +3,7 @@ import type { SoloStats } from "../solo/records";
 const fmt = (v: number | null, digits = 1) => (v === null ? "—" : v.toFixed(digits));
 
 /** Recent scores as a single line (one series, no legend; every point has a hover title). */
-function Trend({ points, best }: { points: SoloStats["recent"]; best: number | null }) {
+export function Trend({ points, best }: { points: SoloStats["recent"]; best: number | null }) {
   if (points.length < 2) return <p className="solo-empty">두 판 이상 플레이하면 최근 점수 흐름이 보여요.</p>;
   const w = 300, h = 96, pad = 8;
   const scores = points.map((p) => p.score);
@@ -25,7 +25,7 @@ function Trend({ points, best }: { points: SoloStats["recent"]; best: number | n
   );
 }
 
-function Distribution({ rows }: { rows: SoloStats["distribution"] }) {
+export function Distribution({ rows }: { rows: SoloStats["distribution"] }) {
   const max = Math.max(1, ...rows.map((r) => r.count));
   return (
     <ol className="solo-dist" aria-label="점수 분포">
