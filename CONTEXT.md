@@ -14,6 +14,8 @@
 ## 맥락 읽는 순서
 
 > **온라인 요트다이스 제품 개편** → [브랜드, 메뉴, 검색 및 배포 인수인계](docs/context/ONLINE-YACHT-PRODUCT.md).
+>
+> **제품 개선·성장 기반(2026-11-26: CI 샤드, 게임판 중심 UI, 비회원 상점, SEO 페이지·계산기, 공유, UTM)** → [GROWTH-2026-11-26](docs/context/GROWTH-2026-11-26.md) (D-060~D-065, 완료/미완료 구분).
 
 > **AI 승률 연구(Win DP v5, 정확 PMF·정확 2인 종반)** → [V5-APEX-RESEARCH](docs/context/V5-APEX-RESEARCH.md) (연구 브랜치, 기본 AI 불변, D-V5-1). 확증: v5-R vs Win DP v2 **50.626%**(100k, 99% CI 50.372–50.879), vs v3 50.479%, vs DP Expert 51.223%.
 > **AI 승률 연구(Win DP v6, 정책군 롤아웃·전 구간 BR·WASM)** → [V6-APEX-RESEARCH](docs/context/V6-APEX-RESEARCH.md) (연구 브랜치, 기본 AI 불변, D-V6-1). **v6-P가 v5-R과의 직접 대결에서 50.131%(9511, 10만 경기)·50.209%(9512 재현)로 작지만 유의하게 우위**(공통 상대 v2 이득은 미확정). 실행 최적화: WASM PMF 생성기(TS와 비트 동일, 브라우저 워커 8.1 s), 로더 RSS 677→379 MB, Float32 결정 손실 0.
