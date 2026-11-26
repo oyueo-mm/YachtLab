@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "endpoints": {
+    "bing": {
+      "urls": {
+        "https://oyueo-mm.github.io/YachtLab/": "2026-11-26",
+        "https://oyueo-mm.github.io/YachtLab/guide/": "2026-11-26",
+        "https://oyueo-mm.github.io/YachtLab/faq/": "2026-11-26",
+        "https://oyueo-mm.github.io/YachtLab/ai/": "2026-11-26",
+        "https://oyueo-mm.github.io/YachtLab/multiplayer/": "2026-11-26",
+        "https://oyueo-mm.github.io/YachtLab/strategy/": "2026-11-26",
+        "https://oyueo-mm.github.io/YachtLab/scores/": "2026-11-26",
+        "https://oyueo-mm.github.io/YachtLab/probability/": "2026-11-26"
+      },
+      "lastSuccess": {
+        "at": "2026-11-26T09:38:12.972Z",
+        "status": 202,
+        "count": 8
+      }
+    },
+    "naver": {
+      "urls": {
+        "https://oyueo-mm.github.io/YachtLab/": "2026-11-26",
+        "https://oyueo-mm.github.io/YachtLab/guide/": "2026-11-26",
+        "https://oyueo-mm.github.io/YachtLab/faq/": "2026-11-26",
+        "https://oyueo-mm.github.io/YachtLab/ai/": "2026-11-26",
+        "https://oyueo-mm.github.io/YachtLab/multiplayer/": "2026-11-26",
+        "https://oyueo-mm.github.io/YachtLab/strategy/": "2026-11-26",
+        "https://oyueo-mm.github.io/YachtLab/scores/": "2026-11-26",
+        "https://oyueo-mm.github.io/YachtLab/probability/": "2026-11-26"
+      },
+      "lastSuccess": {
+        "at": "2026-11-26T09:38:12.972Z",
+        "status": 200,
+        "count": 8
+      }
+    }
+  },
+  "sitemap": "https://oyueo-mm.github.io/YachtLab/sitemap.xml",
+  "updatedAt": "2026-11-26T09:38:12.972Z"
+}

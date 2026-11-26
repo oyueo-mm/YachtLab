@@ -1,0 +1,129 @@
+{
+  "checkedAt": "2026-11-26T09:38:15.293Z",
+  "base": "https://oyueo-mm.github.io/YachtLab/",
+  "entries": [
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/",
+      "lastmod": "2026-11-26"
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/guide/",
+      "lastmod": "2026-11-26"
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/faq/",
+      "lastmod": "2026-11-26"
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/ai/",
+      "lastmod": "2026-11-26"
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/multiplayer/",
+      "lastmod": "2026-11-26"
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/strategy/",
+      "lastmod": "2026-11-26"
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/scores/",
+      "lastmod": "2026-11-26"
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/probability/",
+      "lastmod": "2026-11-26"
+    }
+  ],
+  "pages": [
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/",
+      "lastmod": "2026-11-26",
+      "status": 200,
+      "title": "온라인 요트다이스(야추 다이스) · 무료 AI·친구 멀티 | Online Yacht",
+      "canonical": "https://oyueo-mm.github.io/YachtLab/",
+      "robots": "",
+      "problems": []
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/guide/",
+      "lastmod": "2026-11-26",
+      "status": 200,
+      "title": "요트다이스 규칙과 족보, 확률, 초보 전략 · Online Yacht",
+      "canonical": "https://oyueo-mm.github.io/YachtLab/guide/",
+      "robots": "",
+      "problems": []
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/faq/",
+      "lastmod": "2026-11-26",
+      "status": 200,
+      "title": "요트다이스·야추 자주 묻는 질문 | 야찌와 차이 · Online Yacht",
+      "canonical": "https://oyueo-mm.github.io/YachtLab/faq/",
+      "robots": "",
+      "problems": []
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/ai/",
+      "lastmod": "2026-11-26",
+      "status": 200,
+      "title": "요트다이스 AI 대전 | 야추 인공지능과 무료 대결 · Online Yacht",
+      "canonical": "https://oyueo-mm.github.io/YachtLab/ai/",
+      "robots": "",
+      "problems": []
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/multiplayer/",
+      "lastmod": "2026-11-26",
+      "status": 200,
+      "title": "요트다이스 친구 대전 | 야추 멀티·2인용 무료 온라인 · Online Yacht",
+      "canonical": "https://oyueo-mm.github.io/YachtLab/multiplayer/",
+      "robots": "",
+      "problems": []
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/strategy/",
+      "lastmod": "2026-11-26",
+      "status": 200,
+      "title": "요트다이스 전략·공략 | 야추 확률로 보는 킵 선택 · Online Yacht",
+      "canonical": "https://oyueo-mm.github.io/YachtLab/strategy/",
+      "robots": "",
+      "problems": []
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/scores/",
+      "lastmod": "2026-11-26",
+      "status": 200,
+      "title": "요트다이스 족보·점수판 | 야추 점수 계산기 (실제 주사위용) · Online Yacht",
+      "canonical": "https://oyueo-mm.github.io/YachtLab/scores/",
+      "robots": "",
+      "problems": []
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/probability/",
+      "lastmod": "2026-11-26",
+      "status": 200,
+      "title": "요트다이스 확률 계산기 | 야추 족보 확률·킵 추천 · Online Yacht",
+      "canonical": "https://oyueo-mm.github.io/YachtLab/probability/",
+      "robots": "",
+      "problems": []
+    }
+  ],
+  "keys": {
+    "https://oyueo-mm.github.io/b3678a0369af6c2c422e25516dad7aab.txt": true,
+    "https://oyueo-mm.github.io/YachtLab/b3678a0369af6c2c422e25516dad7aab.txt": true
+  },
+  "resources": {
+    "https://oyueo-mm.github.io/YachtLab/icons/favicon-48.png": 200,
+    "https://oyueo-mm.github.io/YachtLab/icons/app-192.png": 200,
+    "https://oyueo-mm.github.io/YachtLab/manifest.webmanifest": 200,
+    "https://oyueo-mm.github.io/YachtLab/icons/apple-touch-icon.png": 200,
+    "https://oyueo-mm.github.io/YachtLab/assets/index-C6hPZsz5.css": 200,
+    "https://oyueo-mm.github.io/YachtLab/assets/index-CP0NRCZB.js": 200,
+    "https://oyueo-mm.github.io/YachtLab/icons/online-yacht.svg": 200,
+    "https://oyueo-mm.github.io/YachtLab/icons/online-yacht-wordmark.svg": 200,
+    "https://oyueo-mm.github.io/YachtLab/site/page.css": 200
+  },
+  "errors": [],
+  "warnings": []
+}
