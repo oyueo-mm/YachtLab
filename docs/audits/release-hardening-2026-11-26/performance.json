@@ -4,7 +4,7 @@
   "node": "24.22.3",
   "mobile": {
     "baseline": "31c66e3",
-    "candidate": "3c71f41",
+    "candidate": "a66e842",
     "variants": [
       "baseline",
       "candidate"
@@ -15,219 +15,207 @@
         "name": "baseline",
         "cycle": 1,
         "version": "13.6.0",
-        "performance": 0.6,
+        "performance": 0.69,
         "accessibility": 0.95,
         "aria": 0,
         "metrics": {
-          "first-contentful-paint": 915.3769,
-          "largest-contentful-paint": 3727.5653500000003,
-          "cumulative-layout-shift": 0,
-          "total-blocking-time": 3404.3115500000004,
-          "total-byte-weight": 403781
+          "first-contentful-paint": 906.1268,
+          "largest-contentful-paint": 2535.2098459594727,
+          "cumulative-layout-shift": 0.15406428774119563,
+          "total-blocking-time": 997.4366,
+          "total-byte-weight": 249169
         },
         "timings": [],
         "boot": [
           {
-            "url": "/YachtLab/assets/table-BI0_lRB6.js",
-            "total": 1682.548,
-            "scripting": 29.53600000000001,
-            "scriptParseCompile": 0.152
+            "url": "/YachtLab/assets/index-O6O0zm5X.js",
+            "total": 1144.4800000000005,
+            "scripting": 746.4160000000006,
+            "scriptParseCompile": 12.796
           },
           {
-            "url": "/YachtLab/assets/index-O6O0zm5X.js",
-            "total": 1595.9520000000011,
-            "scripting": 906.816000000001,
-            "scriptParseCompile": 3.808
+            "url": "/YachtLab/assets/table-BI0_lRB6.js",
+            "total": 482.22,
+            "scripting": 14.779999999999996,
+            "scriptParseCompile": 0.132
           },
           {
             "url": "Unattributable",
-            "total": 1213.3640000000014,
-            "scripting": 8.836,
+            "total": 303.4480000000004,
+            "scripting": 8.859999999999998,
             "scriptParseCompile": 0
           },
           {
             "url": "/YachtLab/",
-            "total": 406.30400000000003,
-            "scripting": 4.932,
-            "scriptParseCompile": 0.88
-          },
-          {
-            "url": "/YachtLab/assets/index-BL8WFqlJ.css",
-            "total": 121.548,
-            "scripting": 0,
-            "scriptParseCompile": 0
+            "total": 283.792,
+            "scripting": 4.532,
+            "scriptParseCompile": 0.676
           }
         ],
-        "localWireBodyBytes": 2337427
+        "localWireBodyBytes": 2183513
       },
       {
         "name": "candidate",
         "cycle": 1,
         "version": "13.6.0",
-        "performance": 0.91,
+        "performance": 0.96,
         "accessibility": 1,
         "aria": 1,
         "metrics": {
-          "first-contentful-paint": 903.8345999999999,
-          "largest-contentful-paint": 2593.79325,
-          "cumulative-layout-shift": 0.1199878493317132,
-          "total-blocking-time": 171.5,
+          "first-contentful-paint": 908.7168999999999,
+          "largest-contentful-paint": 2541.396125,
+          "cumulative-layout-shift": 0,
+          "total-blocking-time": 132,
           "total-byte-weight": 249543
         },
         "timings": [],
         "boot": [
           {
-            "url": "/YachtLab/assets/index-23R_AA6D.js",
-            "total": 717.5000000000009,
-            "scripting": 389.0400000000008,
-            "scriptParseCompile": 9.408
+            "url": "/YachtLab/assets/index-CQOUGWdz.js",
+            "total": 589.0880000000006,
+            "scripting": 372.9040000000007,
+            "scriptParseCompile": 5.604
           },
           {
             "url": "Unattributable",
-            "total": 459.9840000000003,
-            "scripting": 21.132,
+            "total": 353.89200000000034,
+            "scripting": 6.763999999999999,
             "scriptParseCompile": 0
           },
           {
             "url": "/YachtLab/",
-            "total": 199.08800000000005,
-            "scripting": 4.82,
-            "scriptParseCompile": 0.616
-          },
-          {
-            "url": "/YachtLab/assets/index-C6hPZsz5.css",
-            "total": 63.227999999999994,
-            "scripting": 0,
-            "scriptParseCompile": 0
+            "total": 188.74800000000002,
+            "scripting": 4.532,
+            "scriptParseCompile": 0.68
           }
         ],
-        "localWireBodyBytes": 2120266
+        "localWireBodyBytes": 2120256
       },
       {
         "name": "candidate",
         "cycle": 2,
         "version": "13.6.0",
-        "performance": 0.86,
+        "performance": 0.96,
         "accessibility": 1,
         "aria": 1,
         "metrics": {
-          "first-contentful-paint": 902.077,
-          "largest-contentful-paint": 2787.1155000000003,
-          "cumulative-layout-shift": 0.1199878493317132,
-          "total-blocking-time": 278.9615,
+          "first-contentful-paint": 902.3113000000001,
+          "largest-contentful-paint": 2514.8891250000006,
+          "cumulative-layout-shift": 0,
+          "total-blocking-time": 132.57782500000008,
           "total-byte-weight": 249543
         },
         "timings": [],
         "boot": [
           {
-            "url": "/YachtLab/assets/index-23R_AA6D.js",
-            "total": 813.6400000000008,
-            "scripting": 544.5600000000007,
-            "scriptParseCompile": 5.356
+            "url": "/YachtLab/assets/index-CQOUGWdz.js",
+            "total": 600.768,
+            "scripting": 310.52400000000006,
+            "scriptParseCompile": 12.348
           },
           {
             "url": "Unattributable",
-            "total": 573.4040000000003,
-            "scripting": 7.744000000000001,
+            "total": 283.1400000000005,
+            "scripting": 6.779999999999999,
             "scriptParseCompile": 0
           },
           {
             "url": "/YachtLab/",
-            "total": 199.04000000000002,
-            "scripting": 8.892,
-            "scriptParseCompile": 0.812
+            "total": 178.676,
+            "scripting": 8.695999999999998,
+            "scriptParseCompile": 1.124
+          },
+          {
+            "url": "/YachtLab/assets/index-C6hPZsz5.css",
+            "total": 60.26,
+            "scripting": 0,
+            "scriptParseCompile": 0
           }
         ],
-        "localWireBodyBytes": 2120266
+        "localWireBodyBytes": 2120256
       },
       {
         "name": "baseline",
         "cycle": 2,
         "version": "13.6.0",
-        "performance": 0.66,
+        "performance": 0.67,
         "accessibility": 0.95,
         "aria": 0,
         "metrics": {
-          "first-contentful-paint": 911.0068000000001,
-          "largest-contentful-paint": 2772.0102,
-          "cumulative-layout-shift": 0.1199878493317132,
-          "total-blocking-time": 1466.5,
-          "total-byte-weight": 249169
-        },
-        "timings": [],
-        "boot": [
-          {
-            "url": "/YachtLab/assets/index-O6O0zm5X.js",
-            "total": 1180.0120000000002,
-            "scripting": 791.7360000000003,
-            "scriptParseCompile": 6.112
-          },
-          {
-            "url": "/YachtLab/assets/table-BI0_lRB6.js",
-            "total": 992.1679999999999,
-            "scripting": 22.547999999999995,
-            "scriptParseCompile": 0.256
-          },
-          {
-            "url": "Unattributable",
-            "total": 454.4360000000004,
-            "scripting": 9.995999999999999,
-            "scriptParseCompile": 0
-          },
-          {
-            "url": "/YachtLab/",
-            "total": 343.85999999999996,
-            "scripting": 14.363999999999997,
-            "scriptParseCompile": 0.9
-          },
-          {
-            "url": "/YachtLab/assets/face-paint-BneiHj8f.js",
-            "total": 58.724,
-            "scripting": 0,
-            "scriptParseCompile": 0.22
-          }
-        ],
-        "localWireBodyBytes": 2183513
-      },
-      {
-        "name": "baseline",
-        "cycle": 3,
-        "version": "13.6.0",
-        "performance": 0.66,
-        "accessibility": 0.95,
-        "aria": 0,
-        "metrics": {
-          "first-contentful-paint": 905.5797,
-          "largest-contentful-paint": 2735.3695500000003,
+          "first-contentful-paint": 904.1238000000001,
+          "largest-contentful-paint": 2696.6857000000005,
           "cumulative-layout-shift": 0.15406428774119563,
-          "total-blocking-time": 1132.71015,
+          "total-blocking-time": 1104,
           "total-byte-weight": 249169
         },
         "timings": [],
         "boot": [
           {
             "url": "/YachtLab/assets/index-O6O0zm5X.js",
-            "total": 1135.2320000000007,
-            "scripting": 774.7520000000006,
-            "scriptParseCompile": 5.6
+            "total": 1082.2520000000006,
+            "scripting": 718.1480000000007,
+            "scriptParseCompile": 5.508
           },
           {
             "url": "/YachtLab/assets/table-BI0_lRB6.js",
-            "total": 647.476,
-            "scripting": 25.528000000000002,
+            "total": 642.1039999999999,
+            "scripting": 12.119999999999996,
             "scriptParseCompile": 0.092
           },
           {
             "url": "Unattributable",
-            "total": 308.63200000000006,
-            "scripting": 11.752,
+            "total": 427.5640000000003,
+            "scripting": 12.716000000000003,
             "scriptParseCompile": 0
           },
           {
             "url": "/YachtLab/",
-            "total": 211.472,
-            "scripting": 8.352,
-            "scriptParseCompile": 0.9720000000000001
+            "total": 158.45599999999996,
+            "scripting": 4.456,
+            "scriptParseCompile": 0.796
+          }
+        ],
+        "localWireBodyBytes": 2183513
+      },
+      {
+        "name": "baseline",
+        "cycle": 3,
+        "version": "13.6.0",
+        "performance": 0.67,
+        "accessibility": 0.95,
+        "aria": 0,
+        "metrics": {
+          "first-contentful-paint": 904.463,
+          "largest-contentful-paint": 2525.5460459594724,
+          "cumulative-layout-shift": 0.15406428774119563,
+          "total-blocking-time": 1257.7685,
+          "total-byte-weight": 249169
+        },
+        "timings": [],
+        "boot": [
+          {
+            "url": "/YachtLab/assets/index-O6O0zm5X.js",
+            "total": 1092.5840000000007,
+            "scripting": 712.6400000000008,
+            "scriptParseCompile": 6.116
+          },
+          {
+            "url": "/YachtLab/assets/table-BI0_lRB6.js",
+            "total": 542.1479999999999,
+            "scripting": 12.279999999999992,
+            "scriptParseCompile": 0.108
+          },
+          {
+            "url": "Unattributable",
+            "total": 375.3960000000002,
+            "scripting": 8.159999999999998,
+            "scriptParseCompile": 0
+          },
+          {
+            "url": "/YachtLab/",
+            "total": 207.73600000000002,
+            "scripting": 4.32,
+            "scriptParseCompile": 0.744
           }
         ],
         "localWireBodyBytes": 2183513
@@ -236,46 +224,46 @@
         "name": "candidate",
         "cycle": 3,
         "version": "13.6.0",
-        "performance": 0.8,
+        "performance": 0.93,
         "accessibility": 1,
         "aria": 1,
         "metrics": {
-          "first-contentful-paint": 902.8436999999999,
-          "largest-contentful-paint": 2870.26555,
-          "cumulative-layout-shift": 0.1199878493317132,
-          "total-blocking-time": 433,
+          "first-contentful-paint": 903.8852999999999,
+          "largest-contentful-paint": 2672.82795,
+          "cumulative-layout-shift": 0,
+          "total-blocking-time": 205,
           "total-byte-weight": 249543
         },
         "timings": [],
         "boot": [
           {
-            "url": "/YachtLab/assets/index-23R_AA6D.js",
-            "total": 1156.6799999999998,
-            "scripting": 778.9759999999998,
-            "scriptParseCompile": 5.44
+            "url": "/YachtLab/assets/index-CQOUGWdz.js",
+            "total": 771.0600000000009,
+            "scripting": 463.3360000000008,
+            "scriptParseCompile": 6.292
           },
           {
             "url": "Unattributable",
-            "total": 354.9240000000005,
-            "scripting": 9.848,
+            "total": 361.58400000000023,
+            "scripting": 10.491999999999999,
             "scriptParseCompile": 0
           },
           {
             "url": "/YachtLab/",
-            "total": 183.50799999999998,
-            "scripting": 4.58,
-            "scriptParseCompile": 0.64
+            "total": 165.94400000000002,
+            "scripting": 5.6240000000000006,
+            "scriptParseCompile": 1.436
           }
         ],
-        "localWireBodyBytes": 2120266
+        "localWireBodyBytes": 2120256
       }
     ],
     "interaction": [
       {
         "name": "baseline",
         "cycle": 1,
-        "readyMs": 2866,
-        "keepReadyMs": 5718,
+        "readyMs": 2662,
+        "keepReadyMs": 5441,
         "cache": {
           "ready": true,
           "keys": 1
@@ -285,8 +273,8 @@
       {
         "name": "candidate",
         "cycle": 1,
-        "readyMs": 2610,
-        "keepReadyMs": 5172,
+        "readyMs": 2347,
+        "keepReadyMs": 4954,
         "cache": {
           "ready": true,
           "keys": 1
@@ -296,8 +284,8 @@
       {
         "name": "candidate",
         "cycle": 2,
-        "readyMs": 2713,
-        "keepReadyMs": 5243,
+        "readyMs": 2495,
+        "keepReadyMs": 4743,
         "cache": {
           "ready": true,
           "keys": 1
@@ -307,8 +295,8 @@
       {
         "name": "baseline",
         "cycle": 2,
-        "readyMs": 2773,
-        "keepReadyMs": 4907,
+        "readyMs": 2656,
+        "keepReadyMs": 5131,
         "cache": {
           "ready": true,
           "keys": 1
@@ -318,8 +306,8 @@
       {
         "name": "baseline",
         "cycle": 3,
-        "readyMs": 2782,
-        "keepReadyMs": 4886,
+        "readyMs": 2748,
+        "keepReadyMs": 4823,
         "cache": {
           "ready": true,
           "keys": 1
@@ -329,8 +317,8 @@
       {
         "name": "candidate",
         "cycle": 3,
-        "readyMs": 2489,
-        "keepReadyMs": 4880,
+        "readyMs": 2949,
+        "keepReadyMs": 5670,
         "cache": {
           "ready": true,
           "keys": 1
@@ -341,7 +329,7 @@
   },
   "desktop": {
     "baseline": "31c66e3",
-    "candidate": "3c71f41",
+    "candidate": "a66e842",
     "variants": [
       "baseline",
       "candidate"
@@ -352,35 +340,41 @@
         "name": "baseline",
         "cycle": 1,
         "version": "13.6.0",
-        "performance": 0.97,
+        "performance": 0.71,
         "accessibility": 0.95,
         "aria": 0,
         "metrics": {
-          "first-contentful-paint": 252.18920000000003,
-          "largest-contentful-paint": 574.2838,
+          "first-contentful-paint": 253.88009999999997,
+          "largest-contentful-paint": 655.14714788208,
           "cumulative-layout-shift": 0.09772942441555031,
-          "total-blocking-time": 70.5,
+          "total-blocking-time": 753,
           "total-byte-weight": 249169
         },
         "timings": [],
         "boot": [
           {
             "url": "/YachtLab/assets/index-O6O0zm5X.js",
-            "total": 274.02799999999996,
-            "scripting": 189.60199999999998,
-            "scriptParseCompile": 0.945
+            "total": 568.4079999999993,
+            "scripting": 406.0959999999993,
+            "scriptParseCompile": 1.28
           },
           {
             "url": "/YachtLab/assets/table-BI0_lRB6.js",
-            "total": 145.343,
-            "scripting": 5.073999999999999,
-            "scriptParseCompile": 0.046
+            "total": 540.12,
+            "scripting": 5.993999999999998,
+            "scriptParseCompile": 0.058
           },
           {
             "url": "Unattributable",
-            "total": 97.52600000000008,
-            "scripting": 3.4459999999999997,
+            "total": 229.0599999999995,
+            "scripting": 4.941,
             "scriptParseCompile": 0
+          },
+          {
+            "url": "/YachtLab/",
+            "total": 110.09099999999998,
+            "scripting": 2.725,
+            "scriptParseCompile": 0.196
           }
         ],
         "localWireBodyBytes": 2183513
@@ -393,170 +387,176 @@
         "accessibility": 1,
         "aria": 1,
         "metrics": {
-          "first-contentful-paint": 243.72820000000002,
-          "largest-contentful-paint": 523.16025,
-          "cumulative-layout-shift": 0.08355324074074075,
-          "total-blocking-time": 14,
+          "first-contentful-paint": 244.90699999999998,
+          "largest-contentful-paint": 637.8605,
+          "cumulative-layout-shift": 0,
+          "total-blocking-time": 113.5,
           "total-byte-weight": 249543
         },
         "timings": [],
         "boot": [
           {
-            "url": "/YachtLab/assets/index-23R_AA6D.js",
-            "total": 189.45800000000017,
-            "scripting": 83.76300000000019,
-            "scriptParseCompile": 1.144
+            "url": "/YachtLab/assets/index-CQOUGWdz.js",
+            "total": 451.83199999999994,
+            "scripting": 173.41899999999995,
+            "scriptParseCompile": 0.868
           },
           {
             "url": "Unattributable",
-            "total": 83.31,
-            "scripting": 2.715,
-            "scriptParseCompile": 0
-          }
-        ],
-        "localWireBodyBytes": 2120266
-      },
-      {
-        "name": "candidate",
-        "cycle": 2,
-        "version": "13.6.0",
-        "performance": 0.98,
-        "accessibility": 1,
-        "aria": 1,
-        "metrics": {
-          "first-contentful-paint": 242.3166,
-          "largest-contentful-paint": 586.9748999999999,
-          "cumulative-layout-shift": 0.08355324074074075,
-          "total-blocking-time": 29,
-          "total-byte-weight": 249543
-        },
-        "timings": [],
-        "boot": [
-          {
-            "url": "/YachtLab/assets/index-23R_AA6D.js",
-            "total": 233.90100000000018,
-            "scripting": 169.42700000000016,
-            "scriptParseCompile": 1.651
-          },
-          {
-            "url": "Unattributable",
-            "total": 96.03500000000004,
-            "scripting": 1.964,
-            "scriptParseCompile": 0
-          }
-        ],
-        "localWireBodyBytes": 2120266
-      },
-      {
-        "name": "baseline",
-        "cycle": 2,
-        "version": "13.6.0",
-        "performance": 0.95,
-        "accessibility": 0.95,
-        "aria": 0,
-        "metrics": {
-          "first-contentful-paint": 244.1361,
-          "largest-contentful-paint": 641.26962394104,
-          "cumulative-layout-shift": 0.09772942441555031,
-          "total-blocking-time": 128.93194999999997,
-          "total-byte-weight": 249169
-        },
-        "timings": [],
-        "boot": [
-          {
-            "url": "/YachtLab/assets/index-O6O0zm5X.js",
-            "total": 394.78899999999925,
-            "scripting": 271.8359999999993,
-            "scriptParseCompile": 0.962
-          },
-          {
-            "url": "/YachtLab/assets/table-BI0_lRB6.js",
-            "total": 160.751,
-            "scripting": 4.425999999999999,
-            "scriptParseCompile": 0.031
-          },
-          {
-            "url": "Unattributable",
-            "total": 77.81700000000016,
-            "scripting": 1.98,
-            "scriptParseCompile": 0
-          }
-        ],
-        "localWireBodyBytes": 2183513
-      },
-      {
-        "name": "baseline",
-        "cycle": 3,
-        "version": "13.6.0",
-        "performance": 0.93,
-        "accessibility": 0.95,
-        "aria": 0,
-        "metrics": {
-          "first-contentful-paint": 246.7346,
-          "largest-contentful-paint": 655.6019,
-          "cumulative-layout-shift": 0.09772942441555031,
-          "total-blocking-time": 163.5,
-          "total-byte-weight": 249169
-        },
-        "timings": [],
-        "boot": [
-          {
-            "url": "/YachtLab/assets/index-O6O0zm5X.js",
-            "total": 401.41699999999946,
-            "scripting": 269.88599999999946,
-            "scriptParseCompile": 0.95
-          },
-          {
-            "url": "/YachtLab/assets/table-BI0_lRB6.js",
-            "total": 154.187,
-            "scripting": 3.9229999999999987,
-            "scriptParseCompile": 1.937
-          },
-          {
-            "url": "Unattributable",
-            "total": 122.8570000000001,
-            "scripting": 2.165,
-            "scriptParseCompile": 0
-          }
-        ],
-        "localWireBodyBytes": 2183513
-      },
-      {
-        "name": "candidate",
-        "cycle": 3,
-        "version": "13.6.0",
-        "performance": 0.89,
-        "accessibility": 1,
-        "aria": 1,
-        "metrics": {
-          "first-contentful-paint": 247.88119999999998,
-          "largest-contentful-paint": 719.8218,
-          "cumulative-layout-shift": 0.08355324074074075,
-          "total-blocking-time": 242.5,
-          "total-byte-weight": 249543
-        },
-        "timings": [],
-        "boot": [
-          {
-            "url": "/YachtLab/assets/index-23R_AA6D.js",
-            "total": 599.7069999999998,
-            "scripting": 365.56799999999976,
-            "scriptParseCompile": 3.836
-          },
-          {
-            "url": "Unattributable",
-            "total": 219.92899999999972,
-            "scripting": 2.567,
+            "total": 137.8550000000001,
+            "scripting": 5.271000000000001,
             "scriptParseCompile": 0
           },
           {
             "url": "/YachtLab/",
-            "total": 106.74999999999999,
-            "scripting": 1.2690000000000001,
-            "scriptParseCompile": 0.154
+            "total": 132.88200000000003,
+            "scripting": 1.7489999999999992,
+            "scriptParseCompile": 0.211
           }
         ],
-        "localWireBodyBytes": 2120266
+        "localWireBodyBytes": 2120256
+      },
+      {
+        "name": "candidate",
+        "cycle": 2,
+        "version": "13.6.0",
+        "performance": 1,
+        "accessibility": 1,
+        "aria": 1,
+        "metrics": {
+          "first-contentful-paint": 244.6746,
+          "largest-contentful-paint": 612.0119000000001,
+          "cumulative-layout-shift": 0,
+          "total-blocking-time": 57.5,
+          "total-byte-weight": 249543
+        },
+        "timings": [],
+        "boot": [
+          {
+            "url": "/YachtLab/assets/index-CQOUGWdz.js",
+            "total": 313.248,
+            "scripting": 181.50199999999998,
+            "scriptParseCompile": 8.649
+          },
+          {
+            "url": "Unattributable",
+            "total": 130.31900000000005,
+            "scripting": 2.16,
+            "scriptParseCompile": 0
+          },
+          {
+            "url": "/YachtLab/",
+            "total": 84.23100000000001,
+            "scripting": 1.2790000000000001,
+            "scriptParseCompile": 0.522
+          }
+        ],
+        "localWireBodyBytes": 2120256
+      },
+      {
+        "name": "baseline",
+        "cycle": 2,
+        "version": "13.6.0",
+        "performance": 0.96,
+        "accessibility": 0.95,
+        "aria": 0,
+        "metrics": {
+          "first-contentful-paint": 241.52620000000002,
+          "largest-contentful-paint": 765.2893,
+          "cumulative-layout-shift": 0.09772942441555031,
+          "total-blocking-time": 101,
+          "total-byte-weight": 403781
+        },
+        "timings": [],
+        "boot": [
+          {
+            "url": "/YachtLab/assets/index-O6O0zm5X.js",
+            "total": 294.49599999999987,
+            "scripting": 214.90299999999985,
+            "scriptParseCompile": 0.919
+          },
+          {
+            "url": "/YachtLab/assets/table-BI0_lRB6.js",
+            "total": 142.197,
+            "scripting": 4.2410000000000005,
+            "scriptParseCompile": 0.022
+          },
+          {
+            "url": "Unattributable",
+            "total": 119.85099999999996,
+            "scripting": 1.793,
+            "scriptParseCompile": 0
+          }
+        ],
+        "localWireBodyBytes": 2337427
+      },
+      {
+        "name": "baseline",
+        "cycle": 3,
+        "version": "13.6.0",
+        "performance": 0.97,
+        "accessibility": 0.95,
+        "aria": 0,
+        "metrics": {
+          "first-contentful-paint": 242.5066,
+          "largest-contentful-paint": 564.7598999999999,
+          "cumulative-layout-shift": 0.09772942441555031,
+          "total-blocking-time": 75,
+          "total-byte-weight": 249169
+        },
+        "timings": [],
+        "boot": [
+          {
+            "url": "/YachtLab/assets/index-O6O0zm5X.js",
+            "total": 302.4599999999999,
+            "scripting": 193.15099999999995,
+            "scriptParseCompile": 1.249
+          },
+          {
+            "url": "/YachtLab/assets/table-BI0_lRB6.js",
+            "total": 124.99600000000002,
+            "scripting": 3.1409999999999996,
+            "scriptParseCompile": 0.021
+          },
+          {
+            "url": "Unattributable",
+            "total": 79.03700000000002,
+            "scripting": 2.1879999999999997,
+            "scriptParseCompile": 0
+          }
+        ],
+        "localWireBodyBytes": 2183513
+      },
+      {
+        "name": "candidate",
+        "cycle": 3,
+        "version": "13.6.0",
+        "performance": 1,
+        "accessibility": 1,
+        "aria": 1,
+        "metrics": {
+          "first-contentful-paint": 244.36939999999998,
+          "largest-contentful-paint": 568.5541000000001,
+          "cumulative-layout-shift": 0,
+          "total-blocking-time": 14.000000000000057,
+          "total-byte-weight": 249543
+        },
+        "timings": [],
+        "boot": [
+          {
+            "url": "/YachtLab/assets/index-CQOUGWdz.js",
+            "total": 185.56500000000028,
+            "scripting": 107.60200000000027,
+            "scriptParseCompile": 1.697
+          },
+          {
+            "url": "Unattributable",
+            "total": 80.6060000000001,
+            "scripting": 2.018,
+            "scriptParseCompile": 0
+          }
+        ],
+        "localWireBodyBytes": 2120256
       }
     ],
     "interaction": []
