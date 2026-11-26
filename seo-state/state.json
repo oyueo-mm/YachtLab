@@ -8,12 +8,12 @@
           "fingerprint": "a0f880678ed90eaf"
         },
         "https://oyueo-mm.github.io/YachtLab/guide/": {
-          "lastmod": "2026-11-26",
-          "fingerprint": "983a39419acce488"
+          "lastmod": "2026-11-27",
+          "fingerprint": "2d52cb7ff7c14fb8"
         },
         "https://oyueo-mm.github.io/YachtLab/faq/": {
-          "lastmod": "2026-11-26",
-          "fingerprint": "5e3447540d71af56"
+          "lastmod": "2026-11-27",
+          "fingerprint": "23f17c4e91d75ed1"
         },
         "https://oyueo-mm.github.io/YachtLab/ai/": {
           "lastmod": "2026-11-26",
@@ -45,9 +45,9 @@
         }
       },
       "lastSuccess": {
-        "at": "2026-11-26T15:00:33.501Z",
+        "at": "2026-11-26T16:13:31.905Z",
         "status": 200,
-        "count": 10
+        "count": 2
       }
     },
     "naver": {
@@ -57,12 +57,12 @@
           "fingerprint": "a0f880678ed90eaf"
         },
         "https://oyueo-mm.github.io/YachtLab/guide/": {
-          "lastmod": "2026-11-26",
-          "fingerprint": "983a39419acce488"
+          "lastmod": "2026-11-27",
+          "fingerprint": "2d52cb7ff7c14fb8"
         },
         "https://oyueo-mm.github.io/YachtLab/faq/": {
-          "lastmod": "2026-11-26",
-          "fingerprint": "5e3447540d71af56"
+          "lastmod": "2026-11-27",
+          "fingerprint": "23f17c4e91d75ed1"
         },
         "https://oyueo-mm.github.io/YachtLab/ai/": {
           "lastmod": "2026-11-26",
@@ -94,12 +94,12 @@
         }
       },
       "lastSuccess": {
-        "at": "2026-11-26T15:00:33.501Z",
+        "at": "2026-11-26T16:13:31.905Z",
         "status": 200,
-        "count": 10
+        "count": 2
       }
     }
   },
   "sitemap": "https://oyueo-mm.github.io/YachtLab/sitemap.xml",
-  "updatedAt": "2026-11-26T15:19:29.341Z"
+  "updatedAt": "2026-11-26T16:13:31.905Z"
 }

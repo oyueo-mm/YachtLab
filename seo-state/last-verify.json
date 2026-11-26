@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-26T15:19:31.928Z",
+  "checkedAt": "2026-11-26T16:13:32.773Z",
   "base": "https://oyueo-mm.github.io/YachtLab/",
   "entries": [
     {
@@ -8,7 +8,7 @@
     },
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/guide/",
-      "lastmod": "2026-11-26"
+      "lastmod": "2026-11-27"
     },
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/research/",
@@ -20,7 +20,7 @@
     },
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/faq/",
-      "lastmod": "2026-11-26"
+      "lastmod": "2026-11-27"
     },
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/ai/",
@@ -56,8 +56,8 @@
     },
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/guide/",
-      "lastmod": "2026-11-26",
-      "fingerprint": "983a39419acce488",
+      "lastmod": "2026-11-27",
+      "fingerprint": "2d52cb7ff7c14fb8",
       "status": 200,
       "title": "요트다이스 룰·족보 | 12칸 점수 계산과 보너스 · Online Yacht",
       "canonical": "https://oyueo-mm.github.io/YachtLab/guide/",
@@ -86,8 +86,8 @@
     },
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/faq/",
-      "lastmod": "2026-11-26",
-      "fingerprint": "5e3447540d71af56",
+      "lastmod": "2026-11-27",
+      "fingerprint": "23f17c4e91d75ed1",
       "status": 200,
       "title": "요트다이스 FAQ | 야추와 Yahtzee 규칙 차이 · Online Yacht",
       "canonical": "https://oyueo-mm.github.io/YachtLab/faq/",
@@ -154,8 +154,8 @@
     "https://oyueo-mm.github.io/YachtLab/icons/app-192.png": 200,
     "https://oyueo-mm.github.io/YachtLab/manifest.webmanifest": 200,
     "https://oyueo-mm.github.io/YachtLab/icons/apple-touch-icon.png": 200,
-    "https://oyueo-mm.github.io/YachtLab/assets/index-LVA0vNTx.css": 200,
-    "https://oyueo-mm.github.io/YachtLab/assets/index-0sNvibvH.js": 200,
+    "https://oyueo-mm.github.io/YachtLab/assets/index-Du-LDiVX.css": 200,
+    "https://oyueo-mm.github.io/YachtLab/assets/index-Doi7TDa6.js": 200,
     "https://oyueo-mm.github.io/YachtLab/icons/online-yacht.svg": 200,
     "https://oyueo-mm.github.io/YachtLab/site/page.css": 200,
     "https://oyueo-mm.github.io/YachtLab/icons/online-yacht-wordmark.svg": 200,
