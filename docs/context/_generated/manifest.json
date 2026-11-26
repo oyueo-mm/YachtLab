@@ -124,6 +124,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "e627852",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #101 from oyueo-mm/claude/wizardly-bohr-1usbx5"
+    },
+    {
+      "sha": "c4d854c",
+      "date": "2026-11-26",
+      "subject": "docs(seo): record the first production IndexNow run (D-067)"
+    },
+    {
       "sha": "4f2f24f",
       "date": "2026-11-26",
       "subject": "Merge pull request #100 from oyueo-mm/claude/wizardly-bohr-1usbx5"
@@ -162,24 +172,20 @@
       "sha": "b9be8eb",
       "date": "2026-11-26",
       "subject": "docs(v7): final 9591 S3/S4 results; pause AI research, keep v4-D as 'very hard', hold v5-R/I2RO1 swap (D-V7-6)"
-    },
-    {
-      "sha": "41f3a2f",
-      "date": "2026-11-26",
-      "subject": "Merge pull request #95 from oyueo-mm/codex/yachtlab-release-hardening-20261126"
-    },
-    {
-      "sha": "7ba0f51",
-      "date": "2026-11-26",
-      "subject": "Record the final zero-shift first-paint measurements"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "5530819f77",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45791566905"
+      "head": "c4d854cb9b",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45799668276"
+    },
+    {
+      "name": "SEO IndexNow",
+      "status": "success",
+      "head": "3b3f7c744e",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45793761026"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
