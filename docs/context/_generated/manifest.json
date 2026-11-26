@@ -47,6 +47,7 @@
   "documentation": [
     "AI-REVIEW.md",
     "AUTOMATION.md",
+    "COLLECTIONS-2026-11-27.md",
     "DECISIONS.md",
     "EXPERIMENT-ZOO-2026-11-20.md",
     "EXPERIMENT-ZOO.md",
@@ -127,6 +128,11 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "24cd79f",
+      "date": "2026-11-27",
+      "subject": "Merge pull request #109 from oyueo-mm/claude/collections-2026-11"
+    },
+    {
       "sha": "5fcb642",
       "date": "2026-11-27",
       "subject": "Merge pull request #108 from oyueo-mm/claude/profile-2026-11"
@@ -135,6 +141,11 @@
       "sha": "dd128b8",
       "date": "2026-11-27",
       "subject": "Merge pull request #105 from oyueo-mm/claude/solo-play-2026-11"
+    },
+    {
+      "sha": "3e1b585",
+      "date": "2026-11-26",
+      "subject": "feat(collections): theme collections, 11 nature/element items, synergy effects, limited-time UI, 2.5D effects"
     },
     {
       "sha": "6f254dd",
@@ -165,30 +176,20 @@
       "sha": "b8bb5b9",
       "date": "2026-11-27",
       "subject": "Merge pull request #104 from oyueo-mm/claude/audio-mix-2026-11"
-    },
-    {
-      "sha": "d6d8414",
-      "date": "2026-11-26",
-      "subject": "Merge pull request #107 from oyueo-mm/codex/yachtlab-search-research-20261126"
-    },
-    {
-      "sha": "9e0e45e",
-      "date": "2026-11-26",
-      "subject": "Record current search markup guidance and performance samples"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "YachtLab gameplay UI targeted smoke",
+      "status": "success",
+      "head": "5e504df06e",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45857583358"
+    },
     {
       "name": "SEO IndexNow",
       "status": "success",
       "head": "76b9a062e8",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45856679287"
-    },
-    {
-      "name": "YachtLab gameplay UI targeted smoke",
-      "status": "success",
-      "head": "3e1b5851c4",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45855547616"
     },
     {
       "name": "Test and deploy YachtLab",
