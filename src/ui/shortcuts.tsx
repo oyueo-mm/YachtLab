@@ -11,7 +11,7 @@ import { Sheet, toast } from "./kit";
  *
  * Never handled: keys with Ctrl / Alt / Meta (browser shortcuts), keys typed into inputs, text areas,
  * selects, contenteditable elements or open listboxes, and auto-repeat of action keys (holding Space
- * rolls once). Inside an open modal (settings, confirm dialogs) only Esc and ? reach the page.
+ * rolls once). Dialogs and popups keep game shortcuts away from the underlying page.
  */
 type Handler = (e: KeyboardEvent) => boolean;
 const stack: { id: number; handler: Handler; inDialog: boolean }[] = [];
@@ -41,8 +41,9 @@ export function installShortcuts() {
   if (installed || typeof window === "undefined") return;
   installed = true;
   window.addEventListener("keydown", (e) => {
-    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
     if (isTyping(e.target)) return;
+    if (document.querySelector("[role=dialog]:not(dialog)")) return;
     const s = getSettings();
     if (!s.shortcuts) return;
     // Screen keys first (topmost registration).
@@ -159,6 +160,7 @@ export function useGameShortcuts(g: GameKeys) {
     if (k === "ArrowDown" || k === "ArrowUp") {
       const list = categories.filter((c) => s.open.includes(c));
       if (!list.length) return false;
+      if (e.repeat) return true;
       const cur = pickedRef.current ? list.indexOf(pickedRef.current) : -1;
       const next = cur < 0 ? (k === "ArrowDown" ? 0 : list.length - 1) : (cur + (k === "ArrowDown" ? 1 : -1) + list.length) % list.length;
       setPicked(list[next]);

@@ -79,6 +79,19 @@ test("빠른 대전: 두 기기가 자동으로 매칭되어 경기 화면으로
   await row.getByRole("button", { name: "관전하기" }).click();
   await expect(w.getByText(/관전 중/).first()).toBeVisible({ timeout: 15_000 });
   await expect(w.locator(".roll-button")).toHaveCount(0);
+  const current = await a.locator(".roll-button").isEnabled() ? a : b;
+  const waiting = current === a ? b : a;
+  await waiting.keyboard.press("Space");
+  await w.keyboard.press("Space");
+  await expect(current.locator(".board-top b")).toHaveText("0");
+  await current.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+  await current.keyboard.press("Space");
+  await expect(current.locator(".board-top b")).toHaveText("1");
+  await current.keyboard.press("ArrowDown");
+  await expect(current.locator("tr.score-row-selected")).toHaveAttribute("data-category", "aces");
+  await current.keyboard.press("Enter");
+  await expect(current.locator(".board-top b")).toHaveText("0");
+  await expect(waiting.locator(".roll-button")).toBeEnabled();
 });
 
 test("PC 폭별로 방 번호·채팅·이모티콘·관전·기권 버튼이 모두 화면 안에 보인다", async ({ browser }, testInfo) => {

@@ -120,8 +120,12 @@ export default function App() {
   pageRef.current = page;
   const ignoreNextHash = useRef(false);
   const pendingHistory = useRef<{ idx: number; undo: () => void } | null>(null);
+  const historyKey = () => location.href + ":" + history.state?.idx;
+  const handledHistory = useRef("");
   /** Switch screens without touching the URL (the URL already says where we are). */
   const enter = (p: Route) => {
+    if (p === "online" || p === "online-room") setOnlineCode(roomFromUrl());
+    else if (new URLSearchParams(location.search).has("room")) setRoomInUrl(null);
     if ((p === "play" || p === "pvp") && pageRef.current !== p) {
       // Entering a game screen from elsewhere starts from the latest saved setup.
       if (p === "play") setAiConfig(localAiConfig());
@@ -132,9 +136,22 @@ export default function App() {
     pageRef.current = p;
     setPage(p);
   };
-  const pushRoute = (p: Route) => {
-    historyIndex.current += 1;
-    history.pushState({ idx: historyIndex.current }, "", "#" + p);
+  const pushRoute = (p: Route, room?: string, replace = false) => {
+    const url = new URL(location.href);
+    url.hash = p;
+    if (room) url.searchParams.set("room", room);
+    else url.searchParams.delete("room");
+    if (replace) history.replaceState({ ...history.state, idx: historyIndex.current }, "", url);
+    else history.pushState({ idx: ++historyIndex.current }, "", url);
+    handledHistory.current = historyKey();
+  };
+  const enterRoom = (code: string, quick?: boolean) => {
+    setQuickIntro(quick ? code : null);
+    setOnlineNotice("");
+    // An invite becomes the room entry. Going back cannot reopen and auto-join the same invite.
+    const replace = pageRef.current === "online-room" || (pageRef.current === "online" && roomFromUrl() === code);
+    pushRoute("online-room", code, replace);
+    enter("online-room");
   };
   const go = (p: Route) => {
     if (p === "watch") {
@@ -173,9 +190,13 @@ export default function App() {
     installShortcuts();
     if (diceRenderer().startsWith("3d")) preloadDiceTableWhenIdle();
     if (typeof history.state?.idx !== "number") history.replaceState({ idx: historyIndex.current }, "");
+    if (pageRef.current !== "online" && pageRef.current !== "online-room" && new URLSearchParams(location.search).has("room")) setRoomInUrl(null);
+    handledHistory.current = historyKey();
     // Back / forward / a hash typed in the address bar. Leaving a game in progress asks first;
     // cancelling steps the history back to the game entry instead of adding a new one.
     const fn = () => {
+      if (handledHistory.current === historyKey()) return;
+      handledHistory.current = historyKey();
       const state = history.state as { idx?: number } | null;
       if (ignoreNextHash.current) {
         ignoreNextHash.current = false;
@@ -199,9 +220,14 @@ export default function App() {
       }
       historyIndex.current = idx;
       enter(next);
+      handledHistory.current = historyKey();
     };
+    window.addEventListener("popstate", fn);
     window.addEventListener("hashchange", fn);
-    return () => window.removeEventListener("hashchange", fn);
+    return () => {
+      window.removeEventListener("popstate", fn);
+      window.removeEventListener("hashchange", fn);
+    };
   }, []);
   useEffect(() => {
     window.scrollTo?.(0, 0);
@@ -222,10 +248,7 @@ export default function App() {
         {page !== "tutorial" && !(page === "online-room" && inProgress.current) && page !== "play" && page !== "pvp" && (
           <InviteToasts
             server={onlineServer}
-            onJoined={(code) => {
-              setOnlineCode(code);
-              enter("online-room");
-            }}
+            onJoined={enterRoom}
           />
         )}
         {updateAvailable && (page === "online" || page === "online-room" || page === "spectate" || page === "home") && (
@@ -259,16 +282,11 @@ export default function App() {
               </p>
             )}
             <OnlineEntry
-              key={gameKey}
+              key={onlineCode ?? "online"}
               server={onlineServer}
               onBack={() => navigate("home")}
               onAi={() => navigate("play-setup")}
-              onEnter={(code, quick) => {
-                setQuickIntro(quick ? code : null);
-                setOnlineNotice("");
-                setOnlineCode(code);
-                go("online-room");
-              }}
+              onEnter={enterRoom}
             />
           </>
         )}
@@ -307,7 +325,7 @@ export default function App() {
             관전 링크가 올바르지 않아요.
           </p>
         ))}
-        {page === "online-room" && onlineServer && !onlineCode && <OnlineEntry server={onlineServer} onBack={() => navigate("home")} onEnter={(code) => { setOnlineCode(code); enter("online-room"); }} />}
+        {page === "online-room" && onlineServer && !onlineCode && <OnlineEntry server={onlineServer} onBack={() => navigate("home")} onEnter={enterRoom} />}
         {page === "play-setup" && <AiSetupScreen onBack={() => navigate("offline")} onStart={() => startLocalGame("play")} />}
         {page === "pvp-setup" && <LocalSetupScreen onBack={() => navigate("offline")} onStart={() => startLocalGame("pvp")} />}
         {page === "play" && <HumanGame key={gameKey} config={aiConfig} onBranch={branch} onAnalyze={analyze} onChangeSetup={() => go("play-setup")} onLeave={() => go("home")} onProgress={progress} />}
