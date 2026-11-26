@@ -36,6 +36,12 @@ export type ContentItem = {
   levelLooks?: Partial<ContentLook>[];
   /** Design family, for browsing (파스텔, 보석, 금속, 대리석, 나무, …). */
   family?: string;
+  /** Catalog revision that introduced the item (absent = launch catalog). A server that reports an older
+   * revision cannot sell it yet, so the shop shows it as "준비 중" instead of a failing purchase. */
+  rev?: number;
+  /** Not in the random draw pools (shop only): adding items to a pool would change the odds of the
+   * items already in it, which is an economy decision left to the owner (docs/context/COLLECTIONS-2026-11-27.md). */
+  drawExcluded?: true;
 };
 
 const D = (id: string, tier: TierId, name: string, family: string, look: DiceLook, opts: Partial<ContentItem> = {}): ContentItem => ({ id: "dice." + id, category: "dice", tier, name, family, acquisition: "either", look: { dice: look }, ...opts });
@@ -196,4 +202,28 @@ export const CONTENT_TITLES: ContentItem[] = [
   T("golden_hand", "legendary", "황금 손"),
 ];
 
-export const CONTENT_ITEMS: ContentItem[] = [...CONTENT_DICE, ...CONTENT_BOARDS, ...CONTENT_BUBBLES, ...CONTENT_PROFILES, ...CONTENT_NAMEFX, ...CONTENT_FX, ...CONTENT_TITLES];
+/**
+ * Nature & element collection (2026-11-27, catalog revision 2). Each new die pairs with a board of the
+ * same theme (src/economy/live/collections.ts); equipping both adds a synergy effect (board-synergy.ts).
+ * Prices follow the tier list; shop only until the owner decides about the draw pools.
+ */
+const NEW = { rev: 2, drawExcluded: true as const };
+/** Light-faced dice: Lv.2/Lv.3 add effects only — a pip glow would wash dark pips out on a pale face. */
+const effectsOnly: Pick<ContentItem, "maxLevel" | "levels" | "levelLooks"> = { maxLevel: 3, levels: DICE_LEVELS, levelLooks: [{}, {}] };
+export const COLLECTION_DICE: ContentItem[] = [
+  D("thunder", "legendary", "번개", "번개", { face: "#151a33", pip: "#f4f7ff", edge: "#0a0d1f", pattern: "lightning", accent: "#8fb4ff", finish: "satin" }, { ...glowUp("#a9c6ff", "sparkle"), ...NEW }),
+  D("meadow", "epic", "초원", "초원", { face: "#cfe8a6", pip: "#1f3a12", edge: "#93bf62", pattern: "grass", accent: "#5f9a36", finish: "matte" }, { ...effectsOnly, ...NEW }),
+  D("flower", "epic", "꽃밭", "꽃밭", { face: "#fff6ec", pip: "#4a2433", edge: "#f1d2bd", pattern: "petals", accent: "#ff8fb0", finish: "satin" }, { ...effectsOnly, ...NEW }),
+  D("sakura", "legendary", "벚꽃", "벚꽃", { face: "#ffe8ef", pip: "#5a2236", edge: "#f4bccb", pattern: "sakura", accent: "#7a4a3a", finish: "satin" }, { ...effectsOnly, ...NEW }),
+  D("abyss", "legendary", "심연", "심해", { face: "#06182a", pip: "#d8fffb", edge: "#020a13", pattern: "abyss", accent: "#3fe0d0", finish: "gloss" }, { ...glowUp("#5ff5e4", "pulse"), ...NEW }),
+];
+export const COLLECTION_BOARDS: ContentItem[] = [
+  B("storm", "legendary", "폭풍 번개", "번개", "#121834", "bd-storm", { ...boardUp("bd-storm bd-lv2", "bd-storm bd-lv3"), ...NEW }),
+  B("meadow", "epic", "초원", "초원", "#2f5a24", "bd-meadow", { ...boardUp("bd-meadow bd-lv2", "bd-meadow bd-lv3"), ...NEW }),
+  B("flower_field", "epic", "꽃밭", "꽃밭", "#355a2c", "bd-flowers", { ...boardUp("bd-flowers bd-lv2", "bd-flowers bd-lv3"), ...NEW }),
+  B("sakura", "legendary", "벚꽃길", "벚꽃", "#4a2a33", "bd-sakura", { ...boardUp("bd-sakura bd-lv2", "bd-sakura bd-lv3"), ...NEW }),
+  B("forest", "epic", "숲", "숲", "#1d3524", "bd-forest", { ...boardUp("bd-forest bd-lv2", "bd-forest bd-lv3"), ...NEW }),
+  B("volcano", "legendary", "화산", "용암", "#24100a", "bd-volcano", { ...boardUp("bd-volcano bd-lv2", "bd-volcano bd-lv3"), ...NEW }),
+];
+
+export const CONTENT_ITEMS: ContentItem[] = [...CONTENT_DICE, ...COLLECTION_DICE, ...CONTENT_BOARDS, ...COLLECTION_BOARDS, ...CONTENT_BUBBLES, ...CONTENT_PROFILES, ...CONTENT_NAMEFX, ...CONTENT_FX, ...CONTENT_TITLES];

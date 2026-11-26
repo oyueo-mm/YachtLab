@@ -224,6 +224,159 @@ function paintPattern(g: Ctx, look: DiceLook, value: number, k: number) {
       g.globalAlpha = 1;
       return;
     }
+    case "lightning": {
+      // a storm sky: soft cloud glow and two forked bolts (thin, so pips stay readable)
+      const sky = g.createRadialGradient(size * 0.25, size * 0.15, 0, size * 0.25, size * 0.15, size);
+      sky.addColorStop(0, "rgba(143,180,255,0.35)");
+      sky.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = sky;
+      g.fillRect(0, 0, size, size);
+      g.strokeStyle = accent;
+      g.lineJoin = "miter";
+      for (let i = 0; i < 2; i++) {
+        let x = (0.2 + r() * 0.6) * size,
+          y = 0;
+        g.globalAlpha = 0.8;
+        g.lineWidth = (1.4 - i * 0.4) * k;
+        g.shadowColor = accent;
+        g.shadowBlur = 4 * k;
+        g.beginPath();
+        g.moveTo(x, y);
+        while (y < size) {
+          x += (r() - 0.5) * 22 * k;
+          y += (8 + r() * 10) * k;
+          g.lineTo(x, y);
+          if (r() < 0.25) {
+            // a short fork
+            g.moveTo(x, y);
+            g.lineTo(x + (r() - 0.5) * 18 * k, y + 10 * k);
+            g.moveTo(x, y);
+          }
+        }
+        g.stroke();
+      }
+      g.shadowBlur = 0;
+      g.globalAlpha = 1;
+      return;
+    }
+    case "grass": {
+      // a lighter sky band and grass blades rising from the bottom edge
+      const sky = g.createLinearGradient(0, 0, 0, size);
+      sky.addColorStop(0, "rgba(255,255,255,0.35)");
+      sky.addColorStop(0.55, "rgba(255,255,255,0)");
+      g.fillStyle = sky;
+      g.fillRect(0, 0, size, size);
+      g.lineCap = "round";
+      for (let i = 0; i < 34; i++) {
+        const x = r() * size,
+          h = (12 + r() * 26) * k,
+          bend = (r() - 0.5) * 12 * k;
+        g.strokeStyle = r() < 0.5 ? accent : look.edge;
+        g.globalAlpha = 0.35 + r() * 0.35;
+        g.lineWidth = (0.9 + r() * 1.3) * k;
+        g.beginPath();
+        g.moveTo(x, size);
+        g.quadraticCurveTo(x + bend * 0.3, size - h * 0.6, x + bend, size - h);
+        g.stroke();
+      }
+      g.globalAlpha = 1;
+      return;
+    }
+    case "petals": {
+      // scattered five-petal flowers in two colours with yellow centres
+      const colours = [accent, look.edge, "#ffd36b"];
+      for (let i = 0; i < 7; i++) {
+        const cx = r() * size,
+          cy = r() * size,
+          pr = (3 + r() * 3.5) * k;
+        g.globalAlpha = 0.55;
+        g.fillStyle = colours[i % 2];
+        for (let a = 0; a < 5; a++) {
+          const t = (a / 5) * Math.PI * 2 + r();
+          g.beginPath();
+          g.ellipse(cx + Math.cos(t) * pr, cy + Math.sin(t) * pr, pr * 0.75, pr * 0.5, t, 0, Math.PI * 2);
+          g.fill();
+        }
+        g.globalAlpha = 0.8;
+        g.fillStyle = colours[2];
+        g.beginPath();
+        g.arc(cx, cy, pr * 0.45, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.globalAlpha = 1;
+      return;
+    }
+    case "sakura": {
+      // a pink wash, a dark branch across one corner and notched cherry-blossom petals
+      const wash = g.createLinearGradient(0, 0, size, size);
+      wash.addColorStop(0, "rgba(255,255,255,0.5)");
+      wash.addColorStop(1, "rgba(255,170,195,0.35)");
+      g.fillStyle = wash;
+      g.fillRect(0, 0, size, size);
+      g.strokeStyle = accent;
+      g.globalAlpha = 0.55;
+      g.lineWidth = 2.2 * k;
+      g.lineCap = "round";
+      g.beginPath();
+      g.moveTo(-2 * k, 18 * k);
+      g.quadraticCurveTo(22 * k, 10 * k, 40 * k, 4 * k);
+      g.moveTo(16 * k, 13 * k);
+      g.lineTo(24 * k, 22 * k);
+      g.stroke();
+      const petal = (cx: number, cy: number, pr: number, rot: number) => {
+        g.save();
+        g.translate(cx, cy);
+        g.rotate(rot);
+        g.beginPath();
+        g.moveTo(0, 0);
+        g.bezierCurveTo(-pr * 0.9, -pr * 0.4, -pr * 0.6, -pr * 1.3, -pr * 0.12, -pr * 1.2);
+        g.lineTo(0, -pr * 0.95); // the notch at the tip of a cherry petal
+        g.lineTo(pr * 0.12, -pr * 1.2);
+        g.bezierCurveTo(pr * 0.6, -pr * 1.3, pr * 0.9, -pr * 0.4, 0, 0);
+        g.fill();
+        g.restore();
+      };
+      g.fillStyle = "#ff9fba";
+      for (let i = 0; i < 9; i++) {
+        g.globalAlpha = 0.4 + r() * 0.35;
+        petal(r() * size, r() * size, (3.5 + r() * 3) * k, r() * Math.PI * 2);
+      }
+      g.globalAlpha = 1;
+      return;
+    }
+    case "abyss": {
+      // deep water: light shafts from above, faint caustic rings and bioluminescent dots
+      const shaft = g.createLinearGradient(0, 0, 0, size);
+      shaft.addColorStop(0, "rgba(63,224,208,0.22)");
+      shaft.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = shaft;
+      for (let i = 0; i < 3; i++) {
+        const x = (0.15 + r() * 0.7) * size;
+        g.beginPath();
+        g.moveTo(x - 4 * k, 0);
+        g.lineTo(x + 4 * k, 0);
+        g.lineTo(x + 14 * k, size);
+        g.lineTo(x - 2 * k, size);
+        g.fill();
+      }
+      g.strokeStyle = accent;
+      g.lineWidth = 0.7 * k;
+      for (let i = 0; i < 4; i++) {
+        g.globalAlpha = 0.18 + r() * 0.15;
+        g.beginPath();
+        g.ellipse(r() * size, r() * size, (8 + r() * 10) * k, (4 + r() * 5) * k, r() * Math.PI, 0, Math.PI * 2);
+        g.stroke();
+      }
+      g.fillStyle = accent;
+      for (let i = 0; i < 16; i++) {
+        g.globalAlpha = 0.3 + r() * 0.6;
+        g.beginPath();
+        g.arc(r() * size, r() * size, (0.5 + r() * 1.1) * k, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.globalAlpha = 1;
+      return;
+    }
     default:
       return;
   }

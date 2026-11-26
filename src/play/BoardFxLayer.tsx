@@ -4,6 +4,7 @@ import { boardFx, type Ambient, type BoardFxProfile, type BoardReaction } from "
 import { onFx, type FxEvent } from "../fx-bus";
 import { fxBudget, useSettings } from "../settings";
 import { playSfx } from "../sound";
+import { attachToTray } from "./tray-attach";
 
 /**
  * Living board layer (Lv.2 ambient, Lv.3 reactions). A canvas inside the tray surface, under the dice
@@ -19,22 +20,7 @@ export default function BoardFxLayer({ itemId, level, host, sound = true }: { it
   useEffect(() => {
     const section = host.current;
     if (!profile || budget <= 0 || !section) return;
-    let layer: BoardLayer | null = null;
-    let tries = 0;
-    // The tray element appears once the dice renderer has mounted (3D table or 2.5D row).
-    const attach = () => {
-      const tray = section.querySelector<HTMLElement>(".dice-tray-area, .dice-row");
-      if (!tray) {
-        if (tries++ < 40) timer = window.setTimeout(attach, 150);
-        return;
-      }
-      layer = new BoardLayer(tray, profile, level, budget, () => soundRef.current);
-    };
-    let timer = window.setTimeout(attach, 0);
-    return () => {
-      window.clearTimeout(timer);
-      layer?.dispose();
-    };
+    return attachToTray(section, (tray) => new BoardLayer(tray, profile, level, budget, () => soundRef.current));
   }, [itemId, level, budget, host, profile]);
   return null;
 }
@@ -319,6 +305,69 @@ function drawAmbient(g: CanvasRenderingContext2D, kind: Ambient, color: string, 
       g.globalAlpha = 0.08 * a;
       g.fillStyle = grad;
       g.fillRect(0, y - 40, w, 80);
+      break;
+    }
+    case "storm": {
+      // distant sheet lightning: rare double flashes that light the clouds from above
+      const cycle = t % 6.3;
+      const flash = cycle < 0.12 ? 1 - cycle / 0.12 : cycle > 0.22 && cycle < 0.3 ? 0.6 * (1 - (cycle - 0.22) / 0.08) : 0;
+      blob(g, w * (0.3 + 0.4 * Math.sin(Math.floor(t / 6.3) * 2.4)), h * 0.1, Math.max(w, h) * 0.55, color, (0.03 + 0.22 * flash) * a);
+      g.strokeStyle = color;
+      g.globalAlpha = 0.05 * a;
+      g.lineWidth = 1;
+      for (let i = 0; i < 4; i++) {
+        g.beginPath();
+        for (let x = 0; x <= w; x += 14) g.lineTo(x, h * (0.12 + i * 0.07) + Math.sin(x / 60 - t * 0.5 + i) * 5);
+        g.stroke();
+      }
+      break;
+    }
+    case "grass": {
+      // a strip of blades along the bottom edge, swaying in the wind
+      g.globalCompositeOperation = "source-over";
+      g.lineCap = "round";
+      const n = Math.round((w / 7) * (0.5 + 0.5 * budget));
+      for (let i = 0; i < n; i++) {
+        const x = (i / n) * w + ((i * 37) % 7);
+        const hh = 10 + ((i * 53) % 14);
+        const sway = Math.sin(t * 1.3 + x / 45) * 4 + Math.sin(t * 2.7 + i) * 1.2;
+        g.strokeStyle = i % 3 ? color : "#cfe8a6";
+        g.globalAlpha = 0.28 * a;
+        g.lineWidth = 1.4;
+        g.beginPath();
+        g.moveTo(x, h);
+        g.quadraticCurveTo(x + sway * 0.4, h - hh * 0.6, x + sway, h - hh);
+        g.stroke();
+      }
+      break;
+    }
+    case "canopy": {
+      // sun spots through moving leaves
+      for (let i = 0; i < 8; i++) {
+        const x = w * (((i * 0.37) % 1) + 0.06 * Math.sin(t * 0.35 + i * 1.9));
+        const y = h * (((i * 0.61) % 1) + 0.05 * Math.cos(t * 0.3 + i));
+        blob(g, x, y, 18 + 10 * Math.sin(t * 0.8 + i), color, (0.07 + 0.04 * Math.sin(t * 1.1 + i * 2)) * a);
+      }
+      break;
+    }
+    case "magma": {
+      // glowing veins under a crust, breathing slowly
+      g.strokeStyle = color;
+      g.lineJoin = "round";
+      for (let i = 0; i < 6; i++) {
+        g.globalAlpha = (0.08 + 0.07 * Math.sin(t * 0.9 + i * 1.3)) * a;
+        g.lineWidth = 2;
+        g.beginPath();
+        let x = (i * 0.19 % 1) * w, y = (i * 0.43 % 1) * h;
+        g.moveTo(x, y);
+        for (let j = 0; j < 5; j++) {
+          x += Math.sin(i * 3.1 + j * 1.7) * 40;
+          y += Math.cos(i * 2.3 + j * 1.1) * 26;
+          g.lineTo(x, y);
+        }
+        g.stroke();
+      }
+      blob(g, w * 0.5, h * 1.05, Math.max(w, h) * 0.5, color, (0.06 + 0.03 * Math.sin(t * 0.6)) * a);
       break;
     }
     default:

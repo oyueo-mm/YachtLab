@@ -67,7 +67,15 @@ export type ItemDef = {
   specialKind?: "achievement" | "symbolic-purchase";
   retired?: boolean;
   season?: SeasonId;
+  /** Catalog revision that introduced the item (absent = 1, the launch catalog). */
+  rev?: number;
+  /** Shop only: never in a random draw pool. */
+  drawExcluded?: true;
 };
+/** The newest catalog revision in this build (a server snapshot reports the one it sells). */
+export const CATALOG_REV = 2;
+/** Can this server sell the item yet? Older servers report no revision (= 1). */
+export const sellableOn = (item: ItemDef, serverRev: number | undefined) => (item.rev ?? 1) <= (serverRev ?? 1);
 
 const EMOTE_LEVELS = ["정적인 이모티콘", "애니메이션", "특수 효과·전용 사운드"];
 const social: ItemDef[] = SOCIAL_ITEMS.map((s) => ({

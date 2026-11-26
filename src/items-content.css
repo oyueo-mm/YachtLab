@@ -99,6 +99,41 @@
     linear-gradient(110deg, #412a0b, #745324 31%, #ab8241 50%, #654420 72%, #503309);
   --board-edge: #e5bc70; --board-slot: #b68b4044; --board-light: #ffdc9777; --board-accent: #ffe0a1;
 }
+/* 2026-11-27 nature & element collection: each surface has its own structure, not a recolour. */
+.bd-storm {
+  --board-surface: radial-gradient(ellipse at 22% -10%, #7f93c84d, transparent 55%), radial-gradient(ellipse at 80% -20%, #5c6ea047, transparent 50%),
+    repeating-linear-gradient(104deg, transparent 0 18px, #a9c6ff0a 19px 20px), linear-gradient(170deg, #252c4d, #151a33 55%, #0b0e1e);
+  --board-edge: #7e8fc4; --board-slot: #8fb4ff22; --board-light: #a9c6ff4d; --board-accent: #cfe0ff;
+}
+.bd-meadow {
+  --board-surface: repeating-linear-gradient(88deg, #b7e07c14 0 2px, transparent 2px 7px), repeating-linear-gradient(94deg, #2f5a2433 0 1px, transparent 1px 11px),
+    radial-gradient(ellipse at 50% -30%, #f4ffd64d, transparent 60%), linear-gradient(175deg, #4f8a35, #2f5a24 60%, #20421a);
+  --board-edge: #9cc46d; --board-slot: #d9f5a82b; --board-light: #f4ffd659; --board-accent: #e9ffb8;
+}
+.bd-flowers {
+  --board-surface: radial-gradient(circle at 12px 14px, #ff9fbd88 0 2px, transparent 3px) 0 0 / 46px 38px,
+    radial-gradient(circle at 31px 27px, #ffd36b80 0 1.6px, transparent 2.6px) 0 0 / 52px 44px,
+    radial-gradient(circle at 20px 6px, #c9a0ff70 0 1.6px, transparent 2.6px) 0 0 / 61px 53px,
+    repeating-linear-gradient(90deg, #8cc15214 0 1px, transparent 1px 6px), linear-gradient(170deg, #4b7a3a, #355a2c 60%, #263f20);
+  --board-edge: #c9a776; --board-slot: #ffe2b82a; --board-light: #ffe2b852; --board-accent: #ffd0e0;
+}
+.bd-sakura {
+  --board-surface: radial-gradient(ellipse at 8% 4%, #ffc4d666, transparent 32%), radial-gradient(ellipse at 92% 0%, #ffc4d655, transparent 30%),
+    repeating-linear-gradient(115deg, transparent 0 34px, #3b1f2833 35px 37px, transparent 38px 70px),
+    linear-gradient(165deg, #6b3b48, #4a2a33 55%, #301a21);
+  --board-edge: #d9a1b0; --board-slot: #ffc4d62e; --board-light: #ffd9e45c; --board-accent: #ffc4d6;
+}
+.bd-forest {
+  --board-surface: radial-gradient(ellipse 14px 9px at 20px 16px, #a9dd6733, transparent) 0 0 / 54px 46px,
+    radial-gradient(ellipse 10px 7px at 38px 30px, #d9f5a82a, transparent) 0 0 / 67px 58px,
+    repeating-linear-gradient(90deg, #0000 0 26px, #0b1a1133 27px 31px, #0000 32px 59px), linear-gradient(175deg, #2c4f33, #1d3524 55%, #12241a);
+  --board-edge: #7f9d6c; --board-slot: #a9dd672a; --board-light: #d9f5a84d; --board-accent: #eaff9e;
+}
+.bd-volcano {
+  --board-surface: repeating-conic-gradient(from 12deg at 37% 71%, #0000 0 22deg, #ff6a1a40 23deg 24deg, #0000 25deg 47deg),
+    radial-gradient(ellipse at 50% 120%, #ff6a1a55, transparent 55%), linear-gradient(160deg, #3a1d14, #24100a 55%, #140806);
+  --board-edge: #a3583a; --board-slot: #ff6a1a26; --board-light: #ff9a3c4d; --board-accent: #ffb067;
+}
 .bd-deepsea {
   --board-surface: repeating-radial-gradient(ellipse at 63% -18%, #68dbdd26 0 1px, transparent 3px 19px),
     radial-gradient(ellipse at 67% 5%, #176680, #0c324a 56%, #08172a 92%);
@@ -1164,3 +1199,9 @@ dialog.modal.item-detail::backdrop { background: #251c1c88; }
   position: relative;
   z-index: 1;
 }
+.stage-pair { display: flex; gap: 8px; align-items: flex-start; margin: 8px 2px 0; font-size: 12.5px; color: var(--muted); cursor: pointer; word-break: keep-all; }
+.stage-pair input { margin-top: 2px; accent-color: var(--red); }
+.stage-pair b { color: var(--ink); }
+/* 2.5D fallback Lv.3 dice effects: over the dice row, never interactive. */
+.dice-fx-25, .board-themed .dice-row > .dice-fx-25 { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.dice-row:has(> .dice-fx-25, > .board-fx-canvas) { position: relative; }

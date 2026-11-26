@@ -27,7 +27,7 @@ import { newSoloRecordId, saveSoloRecord, soloRecords } from "../solo/storage";
 import { previousBest, soloStats, type SoloRecord } from "../solo/records";
 import { syncSoloRecords } from "../solo/sync";
 import { equippedBoard, useOwnLook } from "./own-look";
-import { BoardFx } from "./BoardFx";
+import { BoardFx, SynergyFx } from "./BoardFx";
 import { diceLookOf, diceMaterialOf, useBoardTheme } from "./Looks";
 import { SoloStatsPanel } from "./SoloStats";
 import "./solo.css";
@@ -185,6 +185,7 @@ export default function SoloGame({ name, server, onLeave, onProgress, onRecords 
           >
             <Celebrate value={celebration} />
             <BoardFx itemId={look.board} level={look.boardLv ?? 1} host={boardRef} />
+            <SynergyFx dice={look.dice} board={look.board} level={Math.min(look.diceLv ?? 1, look.boardLv ?? 1)} host={boardRef} />
             <div className="board-top">
               <span className="turn-indicator"><i />{state.done ? "경기 종료" : "1인 플레이"}</span>
               <span>굴림 <b>{state.rolls}</b> / 3</span>

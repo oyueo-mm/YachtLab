@@ -32,7 +32,7 @@ import { announceScore, clearScoreFx } from "../score-fx";
 import { useGameShortcuts } from "../ui/shortcuts";
 import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./Tutorial";
 import { equippedBoard, useOwnLook } from "./own-look";
-import { BoardFx } from "./BoardFx";
+import { BoardFx, SynergyFx } from "./BoardFx";
 import { diceLookOf, diceMaterialOf, useBoardTheme } from "./Looks";
 
 /**
@@ -272,6 +272,7 @@ export default function HumanGame({
           <section className={"game-board throw-tray" + (state.rolls === 0 ? " dice-ready" : "") + (can && nearYacht(state.dice, state.rolls, state.cards[humanSeat]) ? " yacht-near" : "") + theme.className} style={theme.style} ref={boardRef} aria-label="게임 보드" {...gesture}>
             <Celebrate value={celebration} />
             <BoardFx itemId={look.board} level={look.boardLv ?? 1} host={boardRef} />
+            <SynergyFx dice={state.player === humanSeat ? look.dice : undefined} board={look.board} level={Math.min(look.diceLv ?? 1, look.boardLv ?? 1)} host={boardRef} />
             <div className="board-top">
               <span className="turn-indicator">
                 <i />

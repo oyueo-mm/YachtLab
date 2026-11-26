@@ -35,7 +35,7 @@ import type { LobbyState, RematchState, SeriesSummary, SpectateState } from "../
 import { LobbyPanel, MultiTable } from "./OnlineMulti";
 import { SpectateControl } from "./Social";
 import { SocialDock, TableFeed, useTableChat } from "./SocialDock";
-import { BoardFx } from "./BoardFx";
+import { BoardFx, SynergyFx } from "./BoardFx";
 import { PlayerTag, useBoardTheme, diceLookOf, diceMaterialOf, toneOf } from "./Looks";
 import { SeatChips } from "./SeatChips";
 import { GUEST_LOOK, itemById, type PublicLook } from "../economy/live/catalog";
@@ -671,6 +671,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           >
             <Celebrate value={celebration} />
             <BoardFx itemId={myLook.board} level={myLook.boardLv ?? 1} host={boardRef} />
+            <SynergyFx dice={turnIndex === meIndex ? myLook.dice : undefined} board={myLook.board} level={Math.min(myLook.diceLv ?? 1, myLook.boardLv ?? 1)} host={boardRef} />
             {intro && playing && me && opponent && (
               <div className="quick-match-intro" role="status" aria-label="빠른 대전 매칭 완료">
                 <PlayerTag name={players[meIndex].name} look={looks[me.playerId] ?? GUEST_LOOK} me tone="me" />

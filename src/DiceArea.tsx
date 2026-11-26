@@ -1,5 +1,6 @@
 import type { DiceMaterial } from "./sound-packs";
-import { useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
+import type { DiceLook } from "./dice3d/dice-look";
+import { lazy, Suspense, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { nextHoldOrder, shiftHoldOrder } from "./hold-order";
 import type { Game } from "./engine";
 import { Dice } from "./Dice";
@@ -32,7 +33,7 @@ type Props = {
   forceRenderer?: DiceRenderer;
   onRendererReady?: () => void;
   /** Dice theme (online play: the player whose turn it is; the same on every screen). */
-  colors?: { face: string; pip: string; edge: string } | null;
+  colors?: (DiceLook & { face: string; pip: string; edge: string }) | null;
 };
 
 /**
@@ -41,6 +42,12 @@ type Props = {
  *  - otherwise the original DOM row with 2.5D motion (or no motion), same hold/re-roll/score rules.
  * The mode only changes between turns (before the first roll), never in the middle of one.
  */
+const Dice25FxLayer = lazy(() => import("./dice3d/Dice25Fx"));
+/** 2.5D fallback (no WebGL / lighter motion): the die's own Lv.3 collision and landing effects. */
+function Dice25Fx(props: { itemId: string; soundEnabled: boolean }) {
+  return <Suspense fallback={null}><Dice25FxLayer {...props} /></Suspense>;
+}
+
 export function DiceArea({ forceRenderer, onRendererReady, colors = null, material, soundEnabled = true, ...props }: Props) {
   const settings = useSettings();
   const renderer = forceRenderer ?? diceRenderer(settings);
@@ -114,6 +121,7 @@ export function DiceArea({ forceRenderer, onRendererReady, colors = null, materi
         <Dice {...props} material={material} soundEnabled={soundEnabled} holdOrder={holdOrder} forceRenderer={renderer === "none" ? "none" : "2.5d"} />
       )}
       <ScoreFxFallback fx={fx} reduced={renderer === "none"} />
+      {renderer !== "none" && colors?.fx && (colors.fxLevel ?? 1) >= 3 && <Dice25Fx itemId={colors.fx} soundEnabled={soundEnabled} />}
       <ScoreFxLabel fx={fx} />
       {props.animate && <YachtFlash soundEnabled={soundEnabled} dice={props.state.dice} rolls={props.state.rolls} rollEvent={props.rollEvent ?? 0} />}
       {props.animate && <StraightFlash soundEnabled={soundEnabled} dice={props.state.dice} rolls={props.state.rolls} rollEvent={props.rollEvent ?? 0} />}

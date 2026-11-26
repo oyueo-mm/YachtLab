@@ -2,7 +2,7 @@ import { DRAW_COST, DRAW_DAILY_LIMIT, DUPLICATE_COINS, HANDS, drawAvailable, dra
 import { seasonActive } from "../../src/economy/live/seasons";
 import type { MatchReceipt } from "../../src/economy/live/receipt";
 import { ECONOMY, SLOTS, economyDay } from "../../src/economy/live/config";
-import { DEFAULT_LOADOUT, DEFAULT_SLOTS, isDefaultItem, itemById, priceOf, publicLook, sanitizeLoadout, slotPrice, upgradeCost, validateLoadout, type Loadout, type PublicLook, type Slots } from "../../src/economy/live/catalog";
+import { CATALOG_REV, DEFAULT_LOADOUT, DEFAULT_SLOTS, isDefaultItem, itemById, priceOf, publicLook, sanitizeLoadout, slotPrice, upgradeCost, validateLoadout, type Loadout, type PublicLook, type Slots } from "../../src/economy/live/catalog";
 import { applyMatch, loadEconState, replaceQuests, unlockAchievements, type EconState, type Grant, type RewardInput } from "../../src/economy/live/rewards";
 
 /**
@@ -34,6 +34,7 @@ export type LedgerRow = { id: string; at: number; kind: string; coins: number; g
 export type InventoryEntry = { id: string; level: number; via: string; at: number };
 export type EconomySnapshot = {
   config: string;
+  catalogRev?: number;
   serverTime: number;
   wallet: Wallet;
   inventory: InventoryEntry[];
@@ -360,6 +361,7 @@ export class EconomyStore {
     return {
       config: ECONOMY.version,
       serverTime: now,
+      catalogRev: CATALOG_REV,
       wallet: { coins: r?.coins ?? 0, gems: r?.gems ?? 0 },
       inventory: this.sql.exec<{ item_id: string; level: number; via: string; at: number }>("SELECT item_id, level, via, at FROM inventory ORDER BY at").toArray().map((x) => ({ id: x.item_id, level: x.level, via: x.via, at: x.at })),
       slots,

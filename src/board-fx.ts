@@ -13,7 +13,7 @@ import type { LandSound } from "./dice3d/dice-fx";
  * contrast, and is scaled by the effect budget (none for reduced motion; paused off screen / hidden).
  */
 export type Ambient =
-  | "caustics" | "rays" | "grid" | "aurora" | "sweep" | "twinkle" | "lamp" | "dunes" | "frost" | "sheen" | "none";
+  | "caustics" | "rays" | "grid" | "aurora" | "sweep" | "twinkle" | "lamp" | "dunes" | "frost" | "sheen" | "storm" | "grass" | "canopy" | "magma" | "none";
 export type BoardReaction = { burst?: Emitter[]; ring?: Ring[]; lines?: Lines[]; sound?: LandSound };
 export type BoardFxProfile = {
   lv2: string;
@@ -218,6 +218,75 @@ export const BOARD_FX: Record<string, BoardFxProfile> = {
       hold: { burst: [e("bubble", ["#a9fff6"], 2, { speed: [5, 15], gravity: -50 })] },
       grand: { burst: [e("glow", ["#74e7dc", "#a9fff6", "#c6a3ff"], 14, { speed: [20, 70], glow: true, size: [3, 6], life: [1, 1.5] })], ring: [ring("#a9fff6", 120, { width: 2, glow: true, life: 1.3 })], sound: "whoosh" },
       win: { burst: [e("glow", ["#74e7dc", "#a9fff6", "#c6a3ff"], 26, { speed: [30, 110], glow: true, size: [3, 7], life: [1.3, 2] }), e("bubble", ["#ffffff"], 10, { speed: [20, 60], gravity: -60 })], sound: "whoosh" },
+    },
+  },
+  /* ---------------- nature & element collection (2026-11-27) ---------------- */
+  "board.storm": {
+    lv2: "먹구름 속에서 마른번개가 번쩍여요", lv3: "충돌 지점에 전기가 튀고 요트·승리에 낙뢰가 내리쳐요",
+    ambient: "storm", ambientColor: "#a9c6ff",
+    drift: { spec: e("drop", ["#b9cdf5", "#8ea6d6"], 1, { speed: [80, 120], gravity: 260, life: [0.5, 0.8], size: [1, 1.8], alpha: 0.45 }), perSecond: 9, from: "top" },
+    react: {
+      roll: { lines: [{ kind: "arc", color: "#cfe0ff", n: 2, length: 60, life: 0.25, width: 1.5, glow: true }] },
+      land: { lines: [{ kind: "arc", color: "#a9c6ff", n: 3, length: 34, life: 0.3, width: 1.4, glow: true }], ring: [ring("#a9c6ff", 18, { life: 0.35, glow: true })], sound: "zap" },
+      hold: { burst: [e("spark", ["#e6eeff"], 3, { speed: [30, 70], glow: true, life: [0.15, 0.3] })] },
+      grand: { lines: [{ kind: "arc", color: "#ffffff", n: 7, length: 150, life: 0.5, width: 2.2, glow: true }], ring: [ring("#a9c6ff", 120, { width: 2.5, glow: true, life: 0.8 })], sound: "zap" },
+      win: { lines: [{ kind: "arc", color: "#ffffff", n: 10, length: 200, life: 0.6, width: 2.5, glow: true }], burst: [e("spark", ["#ffffff", "#a9c6ff"], 20, { speed: [80, 220], glow: true, life: [0.3, 0.6] })], sound: "zap" },
+    },
+  },
+  "board.meadow": {
+    lv2: "바람에 풀잎이 일렁이고 홀씨가 날려요", lv3: "착지하면 풀잎이 튀고 족보·승리에 나비가 날아올라요",
+    ambient: "grass", ambientColor: "#8cc152",
+    drift: { spec: e("glow", ["#ffffff", "#f4ffd6"], 1, { speed: [10, 22], life: [3, 5], size: [1.5, 2.5], gravity: -4, alpha: 0.6 }), perSecond: 1.5, from: "bottom" },
+    react: {
+      land: { burst: [e("leaf", ["#8cc152", "#b7e07c", "#5f9a36"], 4, { speed: [30, 70], gravity: 120, spin: 6, life: [0.4, 0.7], size: [2.5, 4] })] },
+      hold: { burst: [e("glow", ["#f4ffd6"], 2, { speed: [10, 25] })] },
+      grand: { burst: [e("petal", ["#ffe36b", "#ffffff", "#ffb3c8"], 14, { speed: [40, 120], spin: 6, gravity: -10, life: [0.9, 1.4] })], sound: "whoosh" },
+      win: { burst: [e("petal", ["#ffe36b", "#ffffff", "#ffb3c8", "#b7e07c"], 24, { speed: [50, 160], spin: 6, gravity: -14, life: [1.1, 1.7] })], sound: "chime" },
+    },
+  },
+  "board.flower_field": {
+    lv2: "꽃잎이 천천히 흩날리고 햇빛이 머물러요", lv3: "착지하면 꽃잎이 일고 족보·승리에 꽃보라가 쏟아져요",
+    ambient: "lamp", ambientColor: "#ffe2b8",
+    drift: { spec: e("petal", ["#ff9fbd", "#ffd36b", "#ffffff"], 1, { speed: [8, 18], life: [3, 5], size: [2.5, 4], gravity: 8, spin: 3, alpha: 0.8 }), perSecond: 2, from: "top" },
+    react: {
+      land: { burst: [e("petal", ["#ff9fbd", "#ffd36b"], 4, { speed: [30, 60], spin: 5, gravity: 30, life: [0.5, 0.8] })] },
+      hold: { burst: [e("flower", ["#ffb3c8"], 1, { speed: [5, 10], life: [0.5, 0.7], size: [4, 6] })] },
+      grand: { burst: [e("flower", ["#ff8fb0", "#ffd36b", "#c9a0ff"], 10, { speed: [40, 120], spin: 2, life: [0.9, 1.3], size: [5, 8] })], sound: "chime" },
+      win: { burst: [e("petal", ["#ff8fb0", "#ffd36b", "#ffffff", "#c9a0ff"], 30, { speed: [50, 170], spin: 6, gravity: 20, life: [1.2, 1.8] })], sound: "bell" },
+    },
+  },
+  "board.sakura": {
+    lv2: "벚꽃잎이 바람을 타고 흩날려요", lv3: "착지하면 꽃잎이 소용돌이치고 승리에 꽃비가 내려요",
+    ambient: "sheen", ambientColor: "#ffc4d6",
+    drift: { spec: e("petal", ["#ffc4d6", "#ffe3ea", "#ff9fba"], 1, { speed: [16, 30], life: [3.5, 5.5], size: [2.5, 4], gravity: 10, spin: 4, alpha: 0.85 }), perSecond: 3, from: "top" },
+    react: {
+      roll: { burst: [e("petal", ["#ffc4d6", "#ffe3ea"], 5, { speed: [80, 150], spin: 6, life: [0.6, 0.9], drag: 0.5 })] },
+      land: { ring: [ring("#ffc4d6", 18, { dashed: true, life: 0.6 })], burst: [e("petal", ["#ff9fba", "#ffe3ea"], 3, { speed: [20, 50], spin: 5, life: [0.6, 0.9] })] },
+      hold: { burst: [e("petal", ["#ffe3ea"], 2, { speed: [10, 25], spin: 4 })] },
+      grand: { burst: [e("petal", ["#ffc4d6", "#ffffff", "#ff9fba"], 20, { speed: [60, 160], spin: 7, life: [1, 1.5], drag: 0.4 })], sound: "chime" },
+      win: { burst: [e("petal", ["#ffc4d6", "#ffffff", "#ff9fba"], 34, { speed: [60, 190], spin: 7, gravity: 25, life: [1.4, 2] })], sound: "bell" },
+    },
+  },
+  "board.forest": {
+    lv2: "나뭇잎 사이로 햇살이 흔들려요", lv3: "착지하면 낙엽이 일고 족보·승리에 반딧불이 모여요",
+    ambient: "canopy", ambientColor: "#d9f5a8",
+    drift: { spec: e("leaf", ["#6fae6a", "#a9dd67", "#d0b15a"], 1, { speed: [6, 14], life: [3.5, 5], size: [2.5, 4], gravity: 10, spin: 3, alpha: 0.75 }), perSecond: 1.2, from: "top" },
+    react: {
+      land: { burst: [e("leaf", ["#6fae6a", "#d0b15a"], 3, { speed: [30, 60], spin: 6, gravity: 60, life: [0.5, 0.8] }), e("smoke", ["#9bb88a"], 2, { speed: [10, 20], grow: 2, alpha: 0.2, size: [5, 8], life: [0.5, 0.8] })] },
+      hold: { burst: [e("glow", ["#eaff9e"], 2, { speed: [8, 20], glow: true })] },
+      grand: { burst: [e("glow", ["#eaff9e", "#fff6b0"], 16, { speed: [20, 80], glow: true, gravity: -20, life: [1.2, 1.8], size: [2, 3.5] })], sound: "chime" },
+      win: { burst: [e("glow", ["#eaff9e", "#fff6b0"], 26, { speed: [30, 120], glow: true, gravity: -25, life: [1.4, 2.2], size: [2, 4] }), e("leaf", ["#6fae6a", "#a9dd67", "#d0b15a"], 12, { speed: [60, 150], spin: 6, gravity: 40 })], sound: "bell" },
+    },
+  },
+  "board.volcano": {
+    lv2: "현무암 틈으로 용암빛이 숨 쉬듯 일렁여요", lv3: "착지하면 불씨가 튀고 족보·승리에 용암이 분출해요",
+    ambient: "magma", ambientColor: "#ff6a1a",
+    drift: { spec: e("ember", ["#ff9a3c", "#ffd08a"], 1, { speed: [8, 18], life: [1.5, 2.5], size: [1.2, 2.2], gravity: -18, glow: true, alpha: 0.8 }), perSecond: 3, from: "bottom" },
+    react: {
+      land: { burst: [e("ember", ["#ff9a3c", "#ffd08a"], 5, { speed: [40, 90], gravity: 140, glow: true, life: [0.4, 0.7] })], lines: [{ kind: "crack", color: "#ff7a2a", n: 3, length: 22, life: 0.9, width: 1.4, glow: true }], sound: "fire" },
+      hold: { burst: [e("ember", ["#ffb067"], 2, { speed: [15, 30], glow: true })] },
+      grand: { burst: [e("flame", ["#ff6a1a", "#ffb067", "#ffe0a8"], 14, { speed: [80, 200], gravity: 220, glow: true, life: [0.6, 1] })], lines: [{ kind: "crack", color: "#ff7a2a", n: 8, length: 90, life: 1.3, width: 1.8, glow: true }], sound: "fire" },
+      win: { burst: [e("flame", ["#ff6a1a", "#ffb067", "#ffe0a8"], 24, { speed: [100, 240], gravity: 240, glow: true, life: [0.7, 1.2] }), e("smoke", ["#4a2a20"], 8, { speed: [20, 50], grow: 2.5, alpha: 0.3, size: [8, 12], life: [1, 1.5] })], sound: "fire" },
     },
   },
 };
