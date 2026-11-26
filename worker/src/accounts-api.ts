@@ -2,6 +2,7 @@ import { drawPool, type DrawPool, type DrawReceipt, type DrawStatus } from "../.
 import type { ReviewMatch } from "../../src/review/model";
 import type { MatchReceipt } from "../../src/economy/live/receipt";
 import { sanitizeRecord, type MatchRecord } from "../../src/identity/records";
+import { sanitizeSoloRecord, type SoloRecord } from "../../src/solo/records";
 import { GOOGLE, OidcError, USER_ID, beginLogin, finishLogin, seal, sha256, unseal, userIdFor, type LoginState, type OidcProvider } from "./oidc";
 import type { PrivateProfile, PublicProfile } from "./account";
 
@@ -18,6 +19,8 @@ import type { PrivateProfile, PublicProfile } from "./account";
  *   GET  /api/me/records               → match records (latest first)
  *   POST /api/me/nickname              { nickname }
  *   POST /api/me/import                { records, guestKey? }  → device / guest records (client-reported)
+ *   GET  /api/me/solo                  → 1인 플레이 records (client-reported, latest first)
+ *   POST /api/me/solo                  { records }  → add this device's 1인 플레이 records (idempotent)
  *   POST /api/me/logout | /api/me/logout-all
  *   POST /api/me/delete                { confirm: "DELETE" }   → account and all its data removed
  *   GET  /api/profiles/:userId         → public profile (nickname, join month, server-verified totals)
@@ -50,6 +53,8 @@ export interface UserApi {
   matchReward?(matchId: string): Promise<{ receipt: MatchReceipt | null } | null>;
   setNickname(nickname: unknown): Promise<{ ok: true; nickname: string } | { ok: false; message: string }>;
   importRecords(records: MatchRecord[], source: "device" | "guest-import", guestId: string | null): Promise<{ added: number; skipped: number } | { error: string }>;
+  soloRecords?(limit: number): Promise<SoloRecord[]>;
+  importSolo?(records: SoloRecord[]): Promise<{ added: number; skipped: number } | { error: string }>;
   logout(session: string): Promise<void>;
   logoutAll(): Promise<void>;
   deleteAccount(): Promise<string[]>;
@@ -198,6 +203,15 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
   const user = b.user(me.userId);
   if (path === "/api/me" && method === "GET") return reply(200, { profile: await user.me() });
   if (path === "/api/me/records" && method === "GET") return reply(200, { records: await user.records(Number(url.searchParams.get("limit") ?? 300) || 300) });
+  if (path === "/api/me/solo" && method === "GET" && user.soloRecords) return reply(200, { records: await user.soloRecords(1000) });
+  if (path === "/api/me/solo" && method === "POST" && user.importSolo) {
+    const input = await body(request, MAX_IMPORT_BODY);
+    if (!Array.isArray(input.records)) return fail(400, "INVALID", "기록 형식이 올바르지 않아요.");
+    const records = input.records.map((r) => sanitizeSoloRecord(r, b.now()));
+    if (records.some((r) => !r)) return fail(400, "INVALID", "올바르지 않은 기록이 있어요.");
+    const result = await user.importSolo(records as SoloRecord[]);
+    return "error" in result ? fail(400, "IMPORT", result.error) : reply(200, result);
+  }
   const reward = /^\/api\/me\/records\/([A-Za-z0-9_-]{4,64})\/reward$/.exec(path);
   if (reward && method === "GET" && user.matchReward) {
     const result = await user.matchReward(reward[1]);

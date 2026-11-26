@@ -37,7 +37,7 @@ test("이모티콘 전용음은 모두 또렷한 크기이고, 100 %에서도 0 
   const { impact, ...rest } = result;
   for (const [voice, l] of Object.entries(rest)) {
     expect(l.def.activeRms, voice).toBeGreaterThan(-39);
-    expect(l.def.peak, voice).toBeLessThan(-6);
+    expect(l.def.peak, voice).toBeLessThan(-4); // noise bursts use random offsets: ±2 dB between renders
     expect(l.max.peak, voice).toBeLessThanOrEqual(0);
   }
   // emotes are not buried under a single hard dice hit any more

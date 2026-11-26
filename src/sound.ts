@@ -95,7 +95,7 @@ export function setSfxVariant(v: SfxVariant) {
  *   category buses (dice · ui · moment · item · emote) → sfx bus (effects volume) ─┐
  *                                                     music (bgm.ts) → bgm bus ─────┼→ mix → limiter → speakers
  *
- * Effects and music share one brick-wall-ish limiter at −1.5 dBFS that only touches true peaks (the old
+ * Effects and music share one brick-wall-ish limiter at −3 dBFS that only touches true peaks (the old
  * −14 dB / 6:1 compressor squashed every loud effect and made emotes and item accents vanish under the
  * dice). Category gains are the balance measured by `scripts/audio/measure-levels.mjs`.
  */
@@ -167,7 +167,7 @@ function noiseFor(audio: BaseAudioContext) {
 type Graph = { mix: GainNode; sfx: GainNode; buses: Record<SfxBus, GainNode> };
 function buildGraph(audio: BaseAudioContext): Graph {
   const limiter = audio.createDynamicsCompressor();
-  limiter.threshold.value = -1.5;
+  limiter.threshold.value = -3;
   limiter.knee.value = 0;
   limiter.ratio.value = 20;
   limiter.attack.value = 0.001;
@@ -779,7 +779,7 @@ export function onSfxDuck(fn: (at: number, seconds: number) => void) {
  * per category, peaks kept under −8 dBFS at the default 70 %). Without them the quietest emote sounds
  * (e.g. 😏, 😤, clap) were 15 dB under the loudest and got lost under the dice.
  */
-export const LV3_TRIM_DB: Record<string, number> = { smile: 1, clap: 8, thumb: 3, laugh: 8, wow: 1, cry: 6, handshake: 2, fire: 7, dice: -6, sparkles: 3, crown: -1, cool: 5, think: 2, sweat: 8, please: 2, sleepy: 3, yay: 4, fired_up: 8, clover: 2, target: -4, hundred: 1, rocket: 4, whale: 2, bolt: 6, cake: 3, gem: 1, trophy: -1, starlight: 1, angry: 5, rage: -1, question: 6, question2: 4, exclaim: 3, exclaim2: 2, interrobang: 2, smirk: 8, confident: 3, gasp: 7, gift: 2 };
+export const LV3_TRIM_DB: Record<string, number> = { smile: 1, clap: 8, thumb: 3, laugh: 8, wow: 1, cry: 6, handshake: 2, fire: 7, dice: -6, sparkles: 3, crown: -1, cool: 5, think: 2, sweat: 8, please: 2, sleepy: 3, yay: 4, fired_up: 8, clover: 2, target: -4, hundred: 1, rocket: 4, whale: 2, bolt: 4, cake: 3, gem: 1, trophy: -1, starlight: 1, angry: 5, rage: -1, question: 6, question2: 4, exclaim: 3, exclaim2: 2, interrobang: 2, smirk: 8, confident: 3, gasp: 7, gift: 2 };
 export const EMOTE_TRIM_DB: Partial<Record<EmoteSound, number>> = { pop: 7, clap: 8, fire: 8, rattle: 10, sigh: 4, wave: 5, bolt: 7, rocket: 3, gem: -2 };
 export const LAND_TRIM_DB: Partial<Record<LandSound, number>> = { zap: 12, fire: 8, spark: 6, crack: 12, cosmic: 3, whoosh: 12, thud: -2, fizz: 3, coin: 2, glass: 2, pop: 2, ice: 1 };
 function trimmed(audio: BaseAudioContext, out: AudioNode, db: number | undefined) {

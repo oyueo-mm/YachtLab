@@ -5,7 +5,7 @@
  * The tier is a structural boundary only (lab screens live in src/lab and load lazily) so they
  * could become an optional plan later. No payment, subscription or access control exists.
  */
-export type Route = "home" | "tutorial" | "practice" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "records" | "profile" | "account" | "shop" | "draw" | "inventory" | "quests" | "achievements" | "friends" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab" | "economy-lab";
+export type Route = "home" | "tutorial" | "practice" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "solo" | "records" | "profile" | "account" | "shop" | "draw" | "inventory" | "quests" | "achievements" | "friends" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab" | "economy-lab";
 export type Shell = "lobby" | "game" | "lab" | "page";
 
 export const routes: Record<Route, { title: string; shell: Shell; tier: "core" | "lab" }> = {
@@ -19,6 +19,7 @@ export const routes: Record<Route, { title: string; shell: Shell; tier: "core" |
   "play-setup": { title: "사람 vs AI 설정", shell: "page", tier: "core" },
   "pvp-setup": { title: "사람 vs 사람 설정", shell: "page", tier: "core" },
   play: { title: "사람 vs AI", shell: "game", tier: "core" },
+  solo: { title: "1인 플레이", shell: "game", tier: "core" },
   pvp: { title: "사람 vs 사람", shell: "game", tier: "core" },
   records: { title: "내 기록", shell: "page", tier: "core" },
   account: { title: "계정 설정", shell: "page", tier: "core" },

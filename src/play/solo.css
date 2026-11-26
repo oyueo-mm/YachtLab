@@ -1,0 +1,36 @@
+/* 1인 플레이 (2026-11-27): same table as other modes; the summary shows score, personal best, round. */
+.solo-summary .solo-best span { display: flex; align-items: center; gap: 4px; }
+.solo-summary .solo-best strong { color: var(--ink); }
+.solo-grid .solo-scores { display: grid; gap: 12px; align-content: start; }
+.solo-pace { margin: 6px 2px 0; color: var(--muted); font-size: 13px; }
+.solo-final { margin: 2px 0; font-size: 34px; font-weight: 800; color: var(--ink); }
+.solo-final-note { margin: 0 0 8px; color: var(--muted); word-break: keep-all; }
+.solo-final-facts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 0; padding: 0; list-style: none; }
+.solo-final-facts li { padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px; font-size: 12.5px; color: var(--ink); background: #fff; }
+
+.solo-stats { padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.solo-stats h2 { margin: 0 0 10px; font-size: 16px; }
+.solo-stats h3 { margin: 14px 0 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.solo-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 8px; margin: 0; }
+.solo-kpis > div { padding: 8px 10px; border-radius: 10px; background: var(--soft); }
+.solo-kpis dt { font-size: 12px; color: var(--muted); }
+.solo-kpis dd { margin: 2px 0 0; font-size: 20px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.solo-kpis small { margin-left: 2px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.solo-trend { display: block; width: 100%; height: auto; max-height: 120px; overflow: visible; }
+.solo-trend polyline { fill: none; stroke: var(--red); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.solo-trend-dot circle { fill: var(--red); stroke: #fff; stroke-width: 2; }
+.solo-trend-dot circle.hit { fill: transparent; stroke: none; }
+.solo-trend-dot:hover circle:not(.hit) { r: 5.5; }
+.solo-trend-best { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 4; }
+.solo-dist { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.solo-dist li { display: grid; grid-template-columns: 64px 1fr 28px; align-items: center; gap: 8px; font-size: 12.5px; }
+.solo-dist-label { color: var(--muted); font-variant-numeric: tabular-nums; }
+.solo-dist-bar { height: 10px; border-radius: 4px; background: var(--soft); overflow: hidden; }
+.solo-dist-bar i { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--ink); }
+.solo-dist-count { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+.solo-empty, .solo-trust, .solo-sync-note { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); word-break: keep-all; }
+.solo-stats.compact .solo-trust { display: none; }
+.mode-card.mode-solo .mode-icon { color: var(--red); }
+@media (max-width: 760px) {
+  .solo-grid .solo-scores .solo-stats.compact { display: none; }
+}

@@ -1,3 +1,4 @@
+import type { SoloRecord } from "../../src/solo/records";
 import type { DrawPool } from "../../src/economy/live/draw";
 import type { MatchEconomyResult } from "./economy";
 import { DurableObject } from "cloudflare:workers";
@@ -500,6 +501,12 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     const p = this.store.profile();
     if (r.ok && p && this.friends.code()) await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).register(p.userId, r.nickname).catch(() => undefined);
     return r;
+  }
+  async soloRecords(limit: number) {
+    return this.store.soloRecords(limit);
+  }
+  async importSolo(records: SoloRecord[]) {
+    return this.store.importSolo(records, Date.now());
   }
   async importRecords(records: MatchRecord[], source: "device" | "guest-import", guestId: string | null) {
     const result = this.store.importRecords(records, source, Date.now());

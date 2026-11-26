@@ -3,7 +3,7 @@ import { Download, Pause, Play, Save, SkipBack, SkipForward, Trash2, Upload, X }
 import { Dice } from "./Dice";
 import { names, type Action } from "./engine";
 import { MultiScoreboard, MultiStandings } from "./MultiScoreboard";
-import { createMultiGame, type MultiGame } from "./multi-engine";
+import { createGameFor, type MultiGame } from "./multi-engine";
 import { downloadMultiReplay, parseMultiReplay, replaySeek, validateMultiReplay, type MultiReplay } from "./multi-replay";
 import { deleteMultiReplay, listMultiReplays, renameMultiReplay, saveMultiReplay } from "./multi-replay-storage";
 
@@ -26,7 +26,7 @@ export default function MultiReplayViewer({ replay, onClose }: { replay: MultiRe
   const [busy, setBusy] = useState(false);
   const seek = useMemo(() => replaySeek(view), [view]);
   const state = seek(index);
-  const previous = index === 0 ? createMultiGame(view.metadata.players.length, view.seed) : seek(index - 1);
+  const previous = index === 0 ? createGameFor(view.metadata.players.length, view.seed, view.version === 1) : seek(index - 1);
   const action = view.actions[index - 1];
   const labels = view.metadata.players.map((p) => p.name);
   const actor = previous.player;

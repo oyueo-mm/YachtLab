@@ -23,6 +23,9 @@ import { ConfirmDialog, type PendingAction } from "./ui/ConfirmDialog";
 import { orderPlayers, type LocalOrder } from "./setup";
 import { useDiceBusy } from "./useDiceBusy";
 import { announceScore, clearScoreFx } from "./score-fx";
+import { equippedBoard, useOwnLook } from "./play/own-look";
+import { BoardFx } from "./play/BoardFx";
+import { diceLookOf, diceMaterialOf, useBoardTheme } from "./play/Looks";
 
 const newSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 const asPlayers = (names: string[]) => names.map((name) => ({ type: "human" as const, name }));
@@ -61,6 +64,10 @@ export default function LocalGame({
   const record = useRef<MultiReplay | null>(null);
   if (!record.current) record.current = newMultiReplay(state, asPlayers(names), "사람 vs 사람");
   const rolling = useDiceBusy();
+  // One device, one owner: this device's equipped dice and board for every seat (presentation only).
+  const look = useOwnLook();
+  const theme = useBoardTheme(equippedBoard(look));
+  const boardRef = useRef<HTMLElement | null>(null);
 
   const active = !state.done && !viewReplay;
   const canAct = active && !rolling;
@@ -164,8 +171,9 @@ export default function LocalGame({
               </div>
             ))}
           </div>
-          <section className={"game-board throw-tray " + (state.rolls === 0 ? "multi-dice-ready" : "") + (canAct && nearYacht(state.dice, state.rolls, state.cards[state.player]) ? " yacht-near" : "")} aria-label="사람 vs 사람 게임 보드" {...gesture}>
+          <section className={"game-board throw-tray " + (state.rolls === 0 ? "multi-dice-ready" : "") + (canAct && nearYacht(state.dice, state.rolls, state.cards[state.player]) ? " yacht-near" : "") + theme.className} style={theme.style} ref={boardRef} aria-label="사람 vs 사람 게임 보드" {...gesture}>
             <Celebrate value={celebration} />
+            <BoardFx itemId={look.board} level={look.boardLv ?? 1} host={boardRef} />
             <div className="board-top">
               <span className="turn-indicator">
                 <i />
@@ -175,7 +183,7 @@ export default function LocalGame({
                 라운드 {state.round}/12 · 굴림 <b>{state.rolls}</b>/3
               </span>
             </div>
-            <DiceArea state={state} interactive={canAct} animate={active} rollEvent={rollEvent} onToggle={(id) => act({ type: "hold", ids: state.dice.filter((d) => (d.id === id ? !d.held : d.held)).map((d) => d.id) })} onOrder={(ids) => act({ type: "order", ids })} />
+            <DiceArea state={state} colors={diceLookOf(look)} material={diceMaterialOf(look)} interactive={canAct} animate={active} rollEvent={rollEvent} onToggle={(id) => act({ type: "hold", ids: state.dice.filter((d) => (d.id === id ? !d.held : d.held)).map((d) => d.id) })} onOrder={(ids) => act({ type: "order", ids })} />
             <div className="roll-area">
               <button className="primary roll-button" disabled={!canAct || state.rolls >= 3} onClick={() => act({ type: "roll" })}>
                 <Dices size={20} />

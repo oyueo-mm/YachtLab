@@ -1,3 +1,4 @@
+import type { SoloRecord } from "../../src/solo/records";
 import type { ReviewMatch } from "../../src/review/model";
 import type { MatchReceipt } from "../../src/economy/live/receipt";
 import { validateNickname } from "../../src/identity/nickname";
@@ -24,7 +25,7 @@ export interface Sql {
 
 export const SESSION_TTL_MS = 30 * 86_400_000;
 export const LOGIN_CODE_TTL_MS = 2 * 60_000;
-export const LIMITS = { importPerDay: 1000, importPerRequest: 200, nicknamePerDay: 10, maxRecords: 5000 } as const;
+export const LIMITS = { importPerDay: 1000, importPerRequest: 200, nicknamePerDay: 10, maxRecords: 5000, maxSoloRecords: 1000 } as const;
 
 export type PrivateProfile = { userId: string; provider: string; nickname: string | null; createdAt: number };
 export type PublicProfile = {
@@ -51,6 +52,8 @@ export class AccountStore {
     this.sql.exec("CREATE INDEX IF NOT EXISTS matches_ended ON matches (ended_at)");
     this.sql.exec("CREATE TABLE IF NOT EXISTS review_archive (record_id TEXT PRIMARY KEY, ended_at INTEGER NOT NULL, data TEXT NOT NULL)");
     this.sql.exec("CREATE TABLE IF NOT EXISTS guests (guest_id TEXT PRIMARY KEY, linked_at INTEGER NOT NULL)");
+    // 1인 플레이 personal records (client-reported only; never rankings, coins or achievements).
+    this.sql.exec("CREATE TABLE IF NOT EXISTS solo_records (record_id TEXT PRIMARY KEY, ended_at INTEGER NOT NULL, score INTEGER NOT NULL, data TEXT NOT NULL)");
   }
 
   private limited(kind: string, max: number, now: number, amount = 1): boolean {
@@ -190,6 +193,31 @@ export class AccountStore {
     let added = 0;
     for (const r of records) if (this.insert({ ...r, source, verification: "client-reported" })) added++;
     return { added, skipped: records.length - added };
+  }
+
+  /** 1인 플레이 records from this account's devices (already sanitized). Duplicates are ignored. */
+  importSolo(records: SoloRecord[], now: number): { added: number; skipped: number } | { error: string } {
+    if (!this.exists()) return { error: "계정을 찾을 수 없어요." };
+    if (records.length > LIMITS.importPerRequest) return { error: `한 번에 ${LIMITS.importPerRequest}개까지 보낼 수 있어요.` };
+    const count = this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM solo_records").toArray()[0]?.n ?? 0;
+    if (count + records.length > LIMITS.maxSoloRecords) return { error: "저장할 수 있는 1인 플레이 기록 수를 넘었어요." };
+    if (this.limited("solo", LIMITS.importPerDay, now, records.length)) return { error: "오늘은 기록을 더 저장할 수 없어요." };
+    let added = 0;
+    for (const r of records) {
+      const exists = this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM solo_records WHERE record_id = ?", r.recordId).toArray()[0]?.n ?? 0;
+      if (exists) continue;
+      const { replayId: _local, owner: _owner, ...stored } = r;
+      this.sql.exec("INSERT INTO solo_records (record_id, ended_at, score, data) VALUES (?, ?, ?, ?)", r.recordId, r.endedAt, r.score, JSON.stringify({ ...stored, source: "device", verification: "client-reported" }));
+      added++;
+    }
+    return { added, skipped: records.length - added };
+  }
+
+  soloRecords(limit = 1000): SoloRecord[] {
+    return this.sql
+      .exec<{ data: string }>("SELECT data FROM solo_records ORDER BY ended_at DESC LIMIT ?", Math.max(1, Math.min(1000, limit)))
+      .toArray()
+      .map((r) => JSON.parse(r.data) as SoloRecord);
   }
 
   records(limit = 300): MatchRecord[] {

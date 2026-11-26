@@ -31,6 +31,9 @@ import { BonusChip, QuickPicks } from "../QuickPicks";
 import { announceScore, clearScoreFx } from "../score-fx";
 import { useGameShortcuts } from "../ui/shortcuts";
 import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./Tutorial";
+import { equippedBoard, useOwnLook } from "./own-look";
+import { BoardFx } from "./BoardFx";
+import { diceLookOf, diceMaterialOf, useBoardTheme } from "./Looks";
 
 /**
  * Human vs AI. All choices (difficulty, names, who starts, AI pace) come from the setup screen;
@@ -97,6 +100,10 @@ export default function HumanGame({
   const [rollEvent, setRollEvent] = useState(0);
   const [aiPreviewCategory, setAiPreviewCategory] = useState<Category | null>(null);
   const rolling = useDiceBusy();
+  // The player's own equipped dice and board (presentation only; the AI rolls the default dice).
+  const look = useOwnLook();
+  const theme = useBoardTheme(equippedBoard(look));
+  const boardRef = useRef<HTMLElement | null>(null);
   const commit = (action: Parameters<typeof transition>[1], decision?: Decision) => {
     const before = stateRef.current;
     const updated = appendFrame(record.current, action, decision);
@@ -262,8 +269,9 @@ export default function HumanGame({
             </div>
             <BonusChip card={state.cards[humanSeat]} />
           </div>
-          <section className={"game-board throw-tray" + (state.rolls === 0 ? " dice-ready" : "") + (can && nearYacht(state.dice, state.rolls, state.cards[humanSeat]) ? " yacht-near" : "")} aria-label="게임 보드" {...gesture}>
+          <section className={"game-board throw-tray" + (state.rolls === 0 ? " dice-ready" : "") + (can && nearYacht(state.dice, state.rolls, state.cards[humanSeat]) ? " yacht-near" : "") + theme.className} style={theme.style} ref={boardRef} aria-label="게임 보드" {...gesture}>
             <Celebrate value={celebration} />
+            <BoardFx itemId={look.board} level={look.boardLv ?? 1} host={boardRef} />
             <div className="board-top">
               <span className="turn-indicator">
                 <i />
@@ -276,6 +284,8 @@ export default function HumanGame({
             <DiceArea
               key={record.current.metadata.id}
               state={state}
+              colors={state.player === humanSeat ? diceLookOf(look) : null}
+              material={state.player === humanSeat ? diceMaterialOf(look) : undefined}
               interactive={can}
               animate
               rollEvent={rollEvent}

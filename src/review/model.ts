@@ -20,6 +20,8 @@ export type ReviewMatch = {
   /** The viewer's seat when known (online: the server's `you`; AI games: the human seat). */
   me?: 0 | 1;
   device?: true;
+  /** 1인 플레이: one player; seat 1 is empty and only expected score is analysed. */
+  solo?: true;
   steps: Situation[];
 };
 

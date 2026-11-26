@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, Bot, Dices, Globe, Smartphone, UsersRound } from "lucide-react";
+import { ArrowRight, BookOpen, Bot, Dices, Globe, Smartphone, Trophy, UsersRound } from "lucide-react";
 import type { Route } from "../routes";
 
 type Go = (route: Route) => void;
@@ -29,7 +29,7 @@ export function Lobby({ navigate }: { navigate: Go }) {
           </span>
           <span className="mode-text">
             <strong>오프라인 대전</strong>
-            <span>AI 대전 · 한 기기에서 함께</span>
+            <span>1인 플레이 · AI 대전 · 한 기기에서 함께</span>
           </span>
           <ArrowRight className="mode-arrow" size={20} aria-hidden="true" />
         </button>
@@ -43,13 +43,23 @@ export function Lobby({ navigate }: { navigate: Go }) {
   );
 }
 
-export function OfflineSelect({ navigate }: { navigate: Go }) {
+export function OfflineSelect({ navigate, startSolo }: { navigate: Go; startSolo: () => void }) {
   return (
     <section className="mode-select" aria-labelledby="offline-title">
       <h1 id="offline-title" className="lobby-title">
         오프라인 대전
       </h1>
       <div className="lobby-modes">
+        <button type="button" className="mode-card mode-solo" onClick={startSolo}>
+          <span className="mode-icon" aria-hidden="true">
+            <Trophy size={26} />
+          </span>
+          <span className="mode-text">
+            <strong>1인 플레이</strong>
+            <span>12라운드 혼자 최고 점수 도전</span>
+          </span>
+          <ArrowRight className="mode-arrow" size={22} aria-hidden="true" />
+        </button>
         <button type="button" className="mode-card mode-ai" onClick={() => navigate("play-setup")}>
           <span className="mode-icon" aria-hidden="true">
             <Bot size={26} />
@@ -71,9 +81,6 @@ export function OfflineSelect({ navigate }: { navigate: Go }) {
           <ArrowRight className="mode-arrow" size={22} aria-hidden="true" />
         </button>
       </div>
-      <button type="button" className="secondary mode-practice" onClick={() => navigate("practice")}>
-        <Dices size={18} aria-hidden="true" /> 한 차례 연습하기
-      </button>
     </section>
   );
 }
