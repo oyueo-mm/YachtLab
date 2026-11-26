@@ -280,8 +280,7 @@ describe("Online Phase 2 — local WebSocket server", () => {
     const evil = new Client(s, code, "https://evil.example");
     await expect(evil.opened()).rejects.toThrow();
     a.ws.send("x".repeat(3000));
-    await new Promise((r) => setTimeout(r, 50));
-    expect(a.closed?.code).toBe(1009);
+    await expect(a.waitForClose()).resolves.toBe(1009);
     // per-IP creation limit (3/min here; the first room above used one)
     const s2 = await boot({ perMinute: { create: 3, join: 30 } });
     for (let i = 0; i < 3; i++) expect((await api(s2, "/api/rooms", { name: "n" + i })).status).toBe(201);
@@ -294,8 +293,7 @@ describe("Online Phase 2 — local WebSocket server", () => {
     const s4 = await boot();
     const r = await twoPlayerRoom(s4);
     for (let i = 0; i < 60; i++) r.a.ws.send(JSON.stringify({ t: "ping" }));
-    await new Promise((res) => setTimeout(res, 100));
-    expect(r.a.closed?.code).toBe(1008);
+    await expect(r.a.waitForClose()).resolves.toBe(1008);
   });
 });
 

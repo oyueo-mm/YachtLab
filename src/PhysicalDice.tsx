@@ -524,7 +524,7 @@ export function PhysicalDice({
   return (
     <div ref={root} className="physical-dice" data-ready={!!dims} data-hold-order={holdOrder.join(",")} onClick={pickGap}>
       <div className="dice-tray-area" style={dims ? { height: dims.trayH * dims.size } : undefined} />
-      <div className="dice-hold-area" style={dims ? { height: HOLD_UNITS * dims.size } : undefined} aria-label="고정한 주사위 자리">
+      <div className="dice-hold-area" style={dims ? { height: HOLD_UNITS * dims.size } : undefined} aria-hidden="true">
         {dims &&
           [0, 1, 2, 3, 4].map((i) => {
             const s = slotAt(i);

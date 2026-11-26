@@ -1,0 +1,541 @@
+{
+  "commit": "6fc0940884cb43f3aa9aba0464b21cac27949bf8",
+  "variants": [
+    "baseline"
+  ],
+  "browser": "/usr/bin/chromium",
+  "lighthouse": [],
+  "interaction": [
+    {
+      "name": "baseline",
+      "cycle": 1,
+      "readyMs": 2754,
+      "keepReadyMs": 4712,
+      "cache": {
+        "ready": true,
+        "keys": 1
+      },
+      "marks": {
+        "dice-load-start": 2451,
+        "dice-load-end": 2533,
+        "dice-context-start": 2579,
+        "dice-context-end": 2667,
+        "dice-warm-start": 2780,
+        "dice-warm-compiled": 2828,
+        "dice-warm-textures": 2857,
+        "dice-warm-end": 2902
+      },
+      "server": [
+        {
+          "path": "/YachtLab/",
+          "bytes": 1607,
+          "ms": 19
+        },
+        {
+          "path": "/YachtLab/assets/index-DcvxEpWz.js",
+          "bytes": 199986,
+          "ms": 305
+        },
+        {
+          "path": "/YachtLab/assets/index-CmSp55Bf.css",
+          "bytes": 37803,
+          "ms": 310
+        },
+        {
+          "path": "/YachtLab/icons/online-yacht.svg",
+          "bytes": 259,
+          "ms": 332
+        },
+        {
+          "path": "/YachtLab/sw.js",
+          "bytes": 1242,
+          "ms": 1919
+        },
+        {
+          "path": "/YachtLab/index.html",
+          "bytes": 1607,
+          "ms": 1954
+        },
+        {
+          "path": "/YachtLab/assets/index-CmSp55Bf.css",
+          "bytes": 37803,
+          "ms": 1955
+        },
+        {
+          "path": "/YachtLab/assets/EconomyPages-DXTpdVxW.css",
+          "bytes": 938,
+          "ms": 1959
+        },
+        {
+          "path": "/YachtLab/assets/ReviewPage-BL3-Opx4.css",
+          "bytes": 1506,
+          "ms": 1965
+        },
+        {
+          "path": "/YachtLab/assets/index-DcvxEpWz.js",
+          "bytes": 199986,
+          "ms": 1965
+        },
+        {
+          "path": "/YachtLab/assets/EconomyPages-DhkAgy92.js",
+          "bytes": 13355,
+          "ms": 1971
+        },
+        {
+          "path": "/YachtLab/assets/chevron-left-vSUcgEn7.js",
+          "bytes": 141,
+          "ms": 1996
+        },
+        {
+          "path": "/YachtLab/assets/face-paint-BneiHj8f.js",
+          "bytes": 1453,
+          "ms": 1998
+        },
+        {
+          "path": "/YachtLab/assets/volume-2-qllQHV0s.js",
+          "bytes": 269,
+          "ms": 2003
+        },
+        {
+          "path": "/YachtLab/assets/table-DEAj_b6w.js",
+          "bytes": 5551,
+          "ms": 2004
+        },
+        {
+          "path": "/YachtLab/assets/stage-Qgo6Hws0.js",
+          "bytes": 146902,
+          "ms": 2008
+        },
+        {
+          "path": "/YachtLab/assets/ReviewPage-DxSdLcN5.js",
+          "bytes": 8211,
+          "ms": 2008
+        },
+        {
+          "path": "/YachtLab/assets/review-worker-DKww7tl-.js",
+          "bytes": 13738,
+          "ms": 2008
+        },
+        {
+          "path": "/YachtLab/assets/worker-PigtWJDJ.js",
+          "bytes": 139016,
+          "ms": 2018
+        },
+        {
+          "path": "/YachtLab/assets/pmf-sJeaGB_Y.wasm",
+          "bytes": 2480,
+          "ms": 2019
+        },
+        {
+          "path": "/YachtLab/assets/product-worker-BIkqDyHe.js",
+          "bytes": 22789,
+          "ms": 2021
+        },
+        {
+          "path": "/YachtLab/ai/dp-values-cf1c1a4d65c0.f64.gz",
+          "bytes": 1324626,
+          "ms": 2026
+        },
+        {
+          "path": "/YachtLab/icons/online-yacht.svg",
+          "bytes": 259,
+          "ms": 2030
+        },
+        {
+          "path": "/YachtLab/icons/online-yacht-wordmark.svg",
+          "bytes": 380,
+          "ms": 2030
+        },
+        {
+          "path": "/YachtLab/icons/santa-penguin.svg",
+          "bytes": 365,
+          "ms": 2037
+        },
+        {
+          "path": "/YachtLab/icons/rudolph.svg",
+          "bytes": 401,
+          "ms": 2038
+        },
+        {
+          "path": "/YachtLab/icons/harbor-snowman.svg",
+          "bytes": 350,
+          "ms": 2042
+        },
+        {
+          "path": "/YachtLab/guide/index.html",
+          "bytes": 3711,
+          "ms": 2042
+        },
+        {
+          "path": "/YachtLab/version.json",
+          "bytes": 42,
+          "ms": 2498
+        },
+        {
+          "path": "/YachtLab/icons/favicon-48.png",
+          "bytes": 1365,
+          "ms": 2516
+        },
+        {
+          "path": "/YachtLab/icons/favicon-48.png",
+          "bytes": 1365,
+          "ms": 3723
+        }
+      ]
+    },
+    {
+      "name": "baseline",
+      "cycle": 2,
+      "readyMs": 2480,
+      "keepReadyMs": 4428,
+      "cache": {
+        "ready": true,
+        "keys": 1
+      },
+      "marks": {
+        "dice-load-start": 2180,
+        "dice-load-end": 2261,
+        "dice-context-start": 2306,
+        "dice-context-end": 2388,
+        "dice-warm-start": 2601,
+        "dice-warm-compiled": 2652,
+        "dice-warm-textures": 2676,
+        "dice-warm-end": 2738
+      },
+      "server": [
+        {
+          "path": "/YachtLab/",
+          "bytes": 1607,
+          "ms": 21
+        },
+        {
+          "path": "/YachtLab/assets/index-DcvxEpWz.js",
+          "bytes": 199986,
+          "ms": 304
+        },
+        {
+          "path": "/YachtLab/assets/index-CmSp55Bf.css",
+          "bytes": 37803,
+          "ms": 305
+        },
+        {
+          "path": "/YachtLab/icons/online-yacht.svg",
+          "bytes": 259,
+          "ms": 306
+        },
+        {
+          "path": "/YachtLab/sw.js",
+          "bytes": 1242,
+          "ms": 1863
+        },
+        {
+          "path": "/YachtLab/index.html",
+          "bytes": 1607,
+          "ms": 1881
+        },
+        {
+          "path": "/YachtLab/assets/index-CmSp55Bf.css",
+          "bytes": 37803,
+          "ms": 1882
+        },
+        {
+          "path": "/YachtLab/assets/EconomyPages-DXTpdVxW.css",
+          "bytes": 938,
+          "ms": 1888
+        },
+        {
+          "path": "/YachtLab/assets/ReviewPage-BL3-Opx4.css",
+          "bytes": 1506,
+          "ms": 1892
+        },
+        {
+          "path": "/YachtLab/assets/index-DcvxEpWz.js",
+          "bytes": 199986,
+          "ms": 1894
+        },
+        {
+          "path": "/YachtLab/assets/EconomyPages-DhkAgy92.js",
+          "bytes": 13355,
+          "ms": 1897
+        },
+        {
+          "path": "/YachtLab/assets/chevron-left-vSUcgEn7.js",
+          "bytes": 141,
+          "ms": 1902
+        },
+        {
+          "path": "/YachtLab/assets/face-paint-BneiHj8f.js",
+          "bytes": 1453,
+          "ms": 1903
+        },
+        {
+          "path": "/YachtLab/assets/volume-2-qllQHV0s.js",
+          "bytes": 269,
+          "ms": 1910
+        },
+        {
+          "path": "/YachtLab/assets/table-DEAj_b6w.js",
+          "bytes": 5551,
+          "ms": 1915
+        },
+        {
+          "path": "/YachtLab/assets/stage-Qgo6Hws0.js",
+          "bytes": 146902,
+          "ms": 1917
+        },
+        {
+          "path": "/YachtLab/assets/ReviewPage-DxSdLcN5.js",
+          "bytes": 8211,
+          "ms": 1917
+        },
+        {
+          "path": "/YachtLab/assets/review-worker-DKww7tl-.js",
+          "bytes": 13738,
+          "ms": 1921
+        },
+        {
+          "path": "/YachtLab/assets/worker-PigtWJDJ.js",
+          "bytes": 139016,
+          "ms": 1925
+        },
+        {
+          "path": "/YachtLab/assets/pmf-sJeaGB_Y.wasm",
+          "bytes": 2480,
+          "ms": 1926
+        },
+        {
+          "path": "/YachtLab/assets/product-worker-BIkqDyHe.js",
+          "bytes": 22789,
+          "ms": 1949
+        },
+        {
+          "path": "/YachtLab/ai/dp-values-cf1c1a4d65c0.f64.gz",
+          "bytes": 1324626,
+          "ms": 1951
+        },
+        {
+          "path": "/YachtLab/icons/online-yacht.svg",
+          "bytes": 259,
+          "ms": 1960
+        },
+        {
+          "path": "/YachtLab/icons/online-yacht-wordmark.svg",
+          "bytes": 380,
+          "ms": 1960
+        },
+        {
+          "path": "/YachtLab/icons/santa-penguin.svg",
+          "bytes": 365,
+          "ms": 1960
+        },
+        {
+          "path": "/YachtLab/icons/rudolph.svg",
+          "bytes": 401,
+          "ms": 1966
+        },
+        {
+          "path": "/YachtLab/icons/harbor-snowman.svg",
+          "bytes": 350,
+          "ms": 1966
+        },
+        {
+          "path": "/YachtLab/guide/index.html",
+          "bytes": 3711,
+          "ms": 1966
+        },
+        {
+          "path": "/YachtLab/version.json",
+          "bytes": 42,
+          "ms": 2224
+        },
+        {
+          "path": "/YachtLab/icons/favicon-48.png",
+          "bytes": 1365,
+          "ms": 2225
+        },
+        {
+          "path": "/YachtLab/icons/favicon-48.png",
+          "bytes": 1365,
+          "ms": 3485
+        }
+      ]
+    },
+    {
+      "name": "baseline",
+      "cycle": 3,
+      "readyMs": 2603,
+      "keepReadyMs": 4576,
+      "cache": {
+        "ready": true,
+        "keys": 1
+      },
+      "marks": {
+        "dice-load-start": 2218,
+        "dice-load-end": 2372,
+        "dice-context-start": 2441,
+        "dice-context-end": 2526,
+        "dice-warm-start": 2623,
+        "dice-warm-compiled": 2667,
+        "dice-warm-textures": 2685,
+        "dice-warm-end": 2732
+      },
+      "server": [
+        {
+          "path": "/YachtLab/",
+          "bytes": 1607,
+          "ms": 15
+        },
+        {
+          "path": "/YachtLab/assets/index-DcvxEpWz.js",
+          "bytes": 199986,
+          "ms": 409
+        },
+        {
+          "path": "/YachtLab/assets/index-CmSp55Bf.css",
+          "bytes": 37803,
+          "ms": 412
+        },
+        {
+          "path": "/YachtLab/icons/online-yacht.svg",
+          "bytes": 259,
+          "ms": 420
+        },
+        {
+          "path": "/YachtLab/sw.js",
+          "bytes": 1242,
+          "ms": 1936
+        },
+        {
+          "path": "/YachtLab/index.html",
+          "bytes": 1607,
+          "ms": 1962
+        },
+        {
+          "path": "/YachtLab/assets/index-CmSp55Bf.css",
+          "bytes": 37803,
+          "ms": 1969
+        },
+        {
+          "path": "/YachtLab/assets/EconomyPages-DXTpdVxW.css",
+          "bytes": 938,
+          "ms": 1971
+        },
+        {
+          "path": "/YachtLab/assets/ReviewPage-BL3-Opx4.css",
+          "bytes": 1506,
+          "ms": 1987
+        },
+        {
+          "path": "/YachtLab/assets/index-DcvxEpWz.js",
+          "bytes": 199986,
+          "ms": 1992
+        },
+        {
+          "path": "/YachtLab/assets/EconomyPages-DhkAgy92.js",
+          "bytes": 13355,
+          "ms": 1994
+        },
+        {
+          "path": "/YachtLab/assets/chevron-left-vSUcgEn7.js",
+          "bytes": 141,
+          "ms": 1996
+        },
+        {
+          "path": "/YachtLab/assets/face-paint-BneiHj8f.js",
+          "bytes": 1453,
+          "ms": 2006
+        },
+        {
+          "path": "/YachtLab/assets/volume-2-qllQHV0s.js",
+          "bytes": 269,
+          "ms": 2007
+        },
+        {
+          "path": "/YachtLab/assets/table-DEAj_b6w.js",
+          "bytes": 5551,
+          "ms": 2015
+        },
+        {
+          "path": "/YachtLab/assets/stage-Qgo6Hws0.js",
+          "bytes": 146902,
+          "ms": 2015
+        },
+        {
+          "path": "/YachtLab/assets/ReviewPage-DxSdLcN5.js",
+          "bytes": 8211,
+          "ms": 2015
+        },
+        {
+          "path": "/YachtLab/assets/review-worker-DKww7tl-.js",
+          "bytes": 13738,
+          "ms": 2023
+        },
+        {
+          "path": "/YachtLab/assets/worker-PigtWJDJ.js",
+          "bytes": 139016,
+          "ms": 2024
+        },
+        {
+          "path": "/YachtLab/assets/pmf-sJeaGB_Y.wasm",
+          "bytes": 2480,
+          "ms": 2031
+        },
+        {
+          "path": "/YachtLab/assets/product-worker-BIkqDyHe.js",
+          "bytes": 22789,
+          "ms": 2031
+        },
+        {
+          "path": "/YachtLab/ai/dp-values-cf1c1a4d65c0.f64.gz",
+          "bytes": 1324626,
+          "ms": 2059
+        },
+        {
+          "path": "/YachtLab/icons/online-yacht.svg",
+          "bytes": 259,
+          "ms": 2059
+        },
+        {
+          "path": "/YachtLab/icons/online-yacht-wordmark.svg",
+          "bytes": 380,
+          "ms": 2062
+        },
+        {
+          "path": "/YachtLab/icons/santa-penguin.svg",
+          "bytes": 365,
+          "ms": 2066
+        },
+        {
+          "path": "/YachtLab/icons/rudolph.svg",
+          "bytes": 401,
+          "ms": 2067
+        },
+        {
+          "path": "/YachtLab/icons/harbor-snowman.svg",
+          "bytes": 350,
+          "ms": 2072
+        },
+        {
+          "path": "/YachtLab/guide/index.html",
+          "bytes": 3711,
+          "ms": 2074
+        },
+        {
+          "path": "/YachtLab/version.json",
+          "bytes": 42,
+          "ms": 2254
+        },
+        {
+          "path": "/YachtLab/icons/favicon-48.png",
+          "bytes": 1365,
+          "ms": 2257
+        },
+        {
+          "path": "/YachtLab/icons/favicon-48.png",
+          "bytes": 1365,
+          "ms": 3338
+        }
+      ]
+    }
+  ]
+}

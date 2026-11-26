@@ -24,17 +24,20 @@ function holds(values: number[]): number[][] {
   visit(1, []);
   return out;
 }
-const outcomeCache = new Map<number, { values: number[]; p: number }[]>();
+// Each face uses a 3-bit field (counts are 0..5). Keys add when dice sets are combined.
+const diceKey = (values: number[]) => values.reduce((key, face) => key + (1 << (3 * (face - 1))), 0);
+type Outcome = { values: number[]; key: number; p: number };
+const outcomeCache = new Map<number, Outcome[]>();
 const fact = [1, 1, 2, 6, 24, 120];
 function outcomes(n: number) {
   const cached = outcomeCache.get(n);
   if (cached) return cached;
-  const out: { values: number[]; p: number }[] = [];
+  const out: Outcome[] = [];
   const visit = (start: number, values: number[]) => {
     if (values.length === n) {
       const counts = Array(7).fill(0);
       values.forEach((v) => counts[v]++);
-      out.push({ values, p: fact[n] / counts.reduce((a, c) => a * fact[c], 1) / 6 ** n });
+      out.push({ values, key: diceKey(values), p: fact[n] / counts.reduce((a, c) => a * fact[c], 1) / 6 ** n });
       return;
     }
     for (let v = start; v <= 6; v++) visit(v, [...values, v]);
@@ -43,9 +46,9 @@ function outcomes(n: number) {
   outcomeCache.set(n, out);
   return out;
 }
-const bestNow = (values: number[], card: Card) => {
+const bestNow = (values: number[], open: Category[]) => {
   let best: { category: Category; value: number } | null = null;
-  for (const c of available(card)) {
+  for (const c of open) {
     const v = score(values, c);
     if (!best || v > best.value) best = { category: c, value: v };
   }
@@ -54,14 +57,27 @@ const bestNow = (values: number[], card: Card) => {
 
 /** One decision for the current turn (rolls ≥ 1). */
 export function serverAiMove(dice: number[], rolls: number, card: Card): AiMove {
-  const now = bestNow(dice, card);
+  const open = available(card);
+  const now = bestNow(dice, open);
   if (rolls >= 3) return { type: "score", category: now.category };
+  // Multiple hold/outcome pairs lead to the same final dice. A decision has one fixed card,
+  // so the best score for each final hand only needs to be computed once.
+  const handScores = new Map<number, number>([[diceKey(dice), now.value]]);
   let bestHold: number[] | null = null;
   let bestValue = now.value;
   for (const held of holds(dice)) {
     if (held.length >= 5) continue;
     let e = 0;
-    for (const o of outcomes(5 - held.length)) e += o.p * bestNow([...held, ...o.values], card).value;
+    const heldKey = diceKey(held);
+    for (const outcome of outcomes(5 - held.length)) {
+      const key = heldKey + outcome.key;
+      let value = handScores.get(key);
+      if (value === undefined) {
+        value = bestNow([...held, ...outcome.values], open).value;
+        handScores.set(key, value);
+      }
+      e += outcome.p * value;
+    }
     if (e > bestValue + 1e-9) {
       bestValue = e;
       bestHold = held;

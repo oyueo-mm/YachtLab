@@ -216,15 +216,13 @@ describe("Online Phase 3 — Workers + SQLite Durable Objects (wrangler dev, loc
     const evil = new Client(w.url, code, "https://evil.example");
     await expect(evil.opened()).rejects.toThrow();
     b.ws.send("x".repeat(3000));
-    await new Promise((r) => setTimeout(r, 200));
-    expect(b.closed?.code).toBe(1009);
+    await expect(b.waitForClose()).resolves.toBe(1009);
     expect((await api(w, "/api/rooms", { name: "n2" })).status).toBe(201);
     expect((await api(w, "/api/rooms", { name: "n3" })).status).toBe(201);
     expect((await api(w, "/api/rooms", { name: "n4" })).status).toBe(429);
     const r = await twoPlayerRoom(main);
     for (let i = 0; i < 60; i++) r.a.ws.send(JSON.stringify({ t: "hold", keep: [] }));
-    await new Promise((res) => setTimeout(res, 300));
-    expect(r.a.closed?.code).toBe(1008);
+    await expect(r.a.waitForClose()).resolves.toBe(1008);
   }, 60_000);
 
   it("Phase 4: 로그인 설정이 없으면 계정 API는 꺼져 있고(성공한 척 없음) 방 생성·입장은 그대로 동작한다", async () => {
