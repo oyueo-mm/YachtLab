@@ -1,11 +1,12 @@
 import { Select } from "../ui/kit";
 import ShopRail from "./ShopRail";
 import DrawPanel, { DrawOdds } from "./DrawPanel";
-import { SEASONS, seasonActive } from "../economy/live/seasons";
+import { SEASONS, seasonActive, seasonUpcoming, remainingText } from "../economy/live/seasons";
+import { COLLECTIONS, collectionProgress, collectionsOf, synergyOf } from "../economy/live/collections";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Check, Coins, Gem, RefreshCw, Sparkles, X } from "lucide-react";
 import { ACHIEVEMENTS, ECONOMY, QUESTS, SLOTS, TIERS, nextDayStart, nextWeekStart, type TierId } from "../economy/live/config";
-import { CATEGORIES, DEFAULT_LOADOUT, ITEMS, SINGLE_SLOTS, itemById, priceOf, publicLook, slotPrice, upgradeCost, type ItemCategory, type ItemDef, type Loadout } from "../economy/live/catalog";
+import { CATEGORIES, DEFAULT_LOADOUT, ITEMS, SINGLE_SLOTS, itemById, priceOf, publicLook, sellableOn, slotPrice, upgradeCost, type ItemCategory, type ItemDef, type Loadout } from "../economy/live/catalog";
 import { EconomyError, buy, buySlot, economy, rerollQuest, saveLoadout, signedIn, upgrade, type Snapshot } from "../identity/economy-client";
 import { PlayerTag } from "../play/Looks";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
@@ -120,7 +121,7 @@ type Owned = ReadonlyMap<string, number>;
 const isOwned = (i: ItemDef, owned: Owned) => i.acquisition === "default" || owned.has(i.id);
 
 /** Card in a grid: the item's look, name, tier and price / state. Tapping opens the detail. */
-function ItemCard({ item, owned, level, badge, price, equipped, action, onOpen }: { item: ItemDef; owned: boolean; level: number; badge?: string; price?: React.ReactNode; equipped?: boolean; action?: React.ReactNode; onOpen: () => void }) {
+function ItemCard({ item, owned, level, badge, price, equipped, action, onOpen, preparing = false }: { item: ItemDef; owned: boolean; level: number; badge?: string; price?: React.ReactNode; equipped?: boolean; action?: React.ReactNode; onOpen: () => void; preparing?: boolean }) {
   return (
     <li className={"item-card tier-" + item.tier + (owned ? " owned" : "") + (equipped ? " equipped" : "")} data-item={item.id}>
       <button type="button" className="item-card-button" onClick={onOpen} aria-label={`${item.name} 자세히`}>
@@ -129,7 +130,8 @@ function ItemCard({ item, owned, level, badge, price, equipped, action, onOpen }
         <span className="item-preview-label">효과 미리보기</span>
         <span className="item-card-meta">
           <span className={"tier-chip tier-" + item.tier}>{tierLabel(item.tier)}</span>
-          {item.season && <span className="lv-chip">시즌</span>}
+          {item.season && <span className="lv-chip limited">기간 한정</span>}
+          {preparing && <span className="lv-chip">준비 중</span>}
           {item.maxLevel > 1 && <span className="lv-chip">Lv.{owned ? level : 1}/{item.maxLevel}</span>}
         </span>
         {badge ? <span className="item-card-badge">{badge}</span> : price}
@@ -160,7 +162,7 @@ const stageDescriptions = {
 } as const;
 
 /** The detail sheet: large real preview (level tabs), facts, and the action buttons given by the page. */
-function ItemDetail({ item, initialLevel, unlocked, onClose, children }: { item: ItemDef; initialLevel: number; unlocked?: number; onClose: () => void; children: (previewLevel: number) => React.ReactNode }) {
+function ItemDetail({ item, initialLevel, unlocked, onClose, children, now = Date.now() }: { item: ItemDef; initialLevel: number; unlocked?: number; onClose: () => void; children: (previewLevel: number) => React.ReactNode; now?: number }) {
   const [level, setLevel] = useState(initialLevel);
   const season = item.season && SEASONS[item.season];
   const descriptions = item.category === "board" || item.category === "emote" ? stageDescriptions[item.category] : item.levels;
@@ -194,7 +196,8 @@ function ItemDetail({ item, initialLevel, unlocked, onClose, children }: { item:
             <X size={18} />
           </button>
         </div>
-        {season && <p className="item-level-note">{season.name} · {saleDate.format(season.start)} ~ {saleDate.format(season.end)} (한국 시간). 시즌 이후에도 소유 상품을 쓸 수 있어요.</p>}
+        {season && <p className="item-level-note item-limited-note"><b>기간 한정</b> {season.name} · {saleDate.format(season.start)} ~ {saleDate.format(season.end)} (한국 시간){remainingText(item.season!, now)}. 판매가 끝나도 이미 가진 상품은 계속 쓸 수 있어요. {season.rerun}</p>}
+        {collectionsOf(item.id).map((c) => <p key={c.id} className="item-level-note item-collection-note" style={{ "--col": c.color } as React.CSSProperties}><b>{c.name} 컬렉션</b> · 같은 컬렉션의 주사위와 보드판을 함께 장착하면 시너지 연출: {c.synergy}</p>)}
         <ItemStage item={item} level={level} />
         <LevelTabs item={item} level={level} setLevel={setLevel} unlocked={unlocked} />
         <div className="item-detail-actions">{children(level)}</div>
@@ -246,6 +249,7 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
   const [cat, setCat] = useState<ItemCategory | null>(null);
   const [tier, setTier] = useState<TierId | "all">("all");
   const [price, setPrice] = useState<PriceFilter>("all");
+  const [collection, setCollection] = useState<string>("all");
   const [open, setOpen] = useState<ItemDef | null>(null);
   const [confirm, setConfirm] = useState<{ item: ItemDef; currency: "coins" | "gems"; amount: number } | null>(null);
   const [notice, setNotice] = useState("");
@@ -256,6 +260,10 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
   // Guests see the catalogue too (seasons by this device's clock until the server's time is known).
   const now = snap?.serverTime ?? Date.now();
   const forSale = ITEMS.filter((i) => !i.retired && i.acquisition !== "default" && (!i.season || seasonActive(i.season, now)));
+  const upcoming = ITEMS.filter((i) => !i.retired && i.season && seasonUpcoming(i.season, now));
+  // Items of a newer catalog revision than the server's: preview only until the server sells them.
+  const preparing = (i: ItemDef) => !sellableOn(i, snap?.catalogRev);
+  const inCollection = (i: ItemDef) => collection === "all" || collectionsOf(i.id).some((c) => c.id === collection);
   // Back from sign-in: the same tab, filters, item and scroll position — never an automatic purchase.
   useEffect(() => {
     if (!active || !member || !snap) return;
@@ -272,7 +280,7 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
   const resumeState = (item: ItemDef | null) => ({ route: "shop" as const, cat, tier, price, item: item?.id ?? null, scrollY: window.scrollY });
   const counts = Object.fromEntries(CATEGORIES.map((c) => [c.id, forSale.filter((i) => i.category === c.id).length])) as Record<ItemCategory, number>;
   const list = forSale.filter((i) => {
-    if ((cat && i.category !== cat) || (tier !== "all" && i.tier !== tier)) return false;
+    if ((cat && i.category !== cat) || (tier !== "all" && i.tier !== tier) || !inCollection(i)) return false;
     const c = priceOf(i, "coins"),
       g = priceOf(i, "gems");
     if (price === "coins") return c !== null;
@@ -289,6 +297,7 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
   };
   const priceLine = (i: ItemDef) => {
     if (owned.has(i.id)) return null;
+    if (preparing(i)) return <span className="item-card-price">판매 준비 중</span>;
     if (i.acquisition === "achievement") return <span className="item-card-price">업적 보상</span>;
     const c = priceOf(i, "coins"),
       g = priceOf(i, "gems");
@@ -308,7 +317,7 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
     );
   };
   const cards = (items: ItemDef[]) => items.map((item) => (
-    <ItemCard key={item.id} item={item} owned={owned.has(item.id)} level={owned.get(item.id) ?? 1} badge={owned.has(item.id) ? "보유 중" : undefined} price={priceLine(item)} onOpen={() => setOpen(item)} />
+    <ItemCard key={item.id} item={item} owned={owned.has(item.id)} level={owned.get(item.id) ?? 1} badge={owned.has(item.id) ? "보유 중" : undefined} price={priceLine(item)} preparing={preparing(item)} onOpen={() => setOpen(item)} />
   ));
   if (!active) return null;
   return (
@@ -320,7 +329,14 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
             options={[{ value: "all" as TierId | "all", label: "전체 등급" }, ...TIERS.filter((t) => t.id !== "basic").map((t) => ({ value: t.id as TierId | "all", label: t.label }))]} />
           <Select label="가격" value={price} onChange={setPrice}
             options={[{ value: "all", label: "모든 가격" }, { value: "coins", label: "코인으로 구매" }, { value: "gems", label: "보석으로 구매" }, ...(member ? [{ value: "afford" as PriceFilter, label: "지금 살 수 있는 것" }] : [])]} />
+          <Select label="테마 컬렉션" value={collection} onChange={setCollection}
+            options={[{ value: "all", label: "모든 테마" }, ...COLLECTIONS.map((c) => ({ value: c.id, label: `${c.name} 컬렉션` }))]} />
         </div>
+        {collection !== "all" && (() => {
+          const c = COLLECTIONS.find((x) => x.id === collection)!;
+          const p = collectionProgress(c, new Set(owned.keys()));
+          return <p className="collection-banner" style={{ "--col": c.color } as React.CSSProperties}><b>{c.name} 컬렉션</b> {member ? `보유 ${p.have}/${p.total}` : `${p.total}개 상품`} · 시너지: {c.synergy}</p>;
+        })()}
         {busy && <p className="econ-note" role="status"><BrandMark /> 처리 중…</p>}
         {notice && <p className="econ-ok" role="status">{notice}</p>}
         {error && (
@@ -342,6 +358,13 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
             </section>
           );
         })}
+        {upcoming.length > 0 && collection === "all" && !cat && (
+          <section className="shop-section shop-upcoming" aria-label="판매 예정 기간 한정 상품">
+            <h2>판매 예정 · 기간 한정</h2>
+            <p className="econ-note">{[...new Set(upcoming.map((i) => i.season!))].map((id) => `${SEASONS[id].name}: ${saleDate.format(SEASONS[id].start)}부터`).join(" · ")} (한국 시간)</p>
+            <ShopRail label="판매 예정">{upcoming.map((item) => <ItemCard key={item.id} item={item} owned={owned.has(item.id)} level={1} badge="판매 예정" onOpen={() => setOpen(item)} />)}</ShopRail>
+          </section>
+        )}
         <h2 className="econ-sub">장착 슬롯 확장</h2>
         <Gate server={server} go={go}>
         <div className="slot-shop">
@@ -373,7 +396,7 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
         </Gate>
       {askLogin && <LoginPrompt server={server} action={askLogin} resume={resumeState(open)} go={go} onClose={() => setAskLogin(null)} />}
       {active && open && (
-        <ItemDetail item={open} initialLevel={1} onClose={() => setOpen(null)}>
+        <ItemDetail item={open} initialLevel={1} now={now} onClose={() => setOpen(null)}>
           {() => {
             const i = open;
             if (owned.has(i.id))
@@ -388,6 +411,8 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
                 </>
               );
             if (i.acquisition === "achievement") return <span className="shop-owned">업적으로만 얻을 수 있어요</span>;
+            if (i.season && !seasonActive(i.season, now)) return <span className="shop-owned">{seasonUpcoming(i.season, now) ? `판매 예정 · ${saleDate.format(SEASONS[i.season].start)}부터 (한국 시간)` : "판매 기간이 끝났어요."}</span>;
+            if (preparing(i)) return <span className="shop-owned">판매 준비 중이에요. 서버가 새 상품을 열면 바로 살 수 있어요. 미리보기는 지금도 볼 수 있어요.</span>;
             const c = priceOf(i, "coins"),
               g = priceOf(i, "gems");
             if (!member)
@@ -504,6 +529,12 @@ function InventoryPage({ server, go, economyState, active }: EconomyProps) {
           </p>
         ) : (
           <>
+            {(() => {
+              const syn = synergyOf(draft.dice, draft.board);
+              const hint = !syn ? COLLECTIONS.find((c) => c.dice.includes(draft.dice) || c.boards.includes(draft.board)) : null;
+              return syn ? <p className="collection-banner active" style={{ "--col": syn.color } as React.CSSProperties}><b>{syn.name} 시너지 켜짐</b> · {syn.synergy}</p>
+                : hint ? <p className="collection-banner" style={{ "--col": hint.color } as React.CSSProperties}><b>{hint.name} 컬렉션</b> · 같은 테마의 {hint.dice.includes(draft.dice) ? "보드판" : "주사위"}을 함께 장착하면 시너지 연출이 켜져요.</p> : null;
+            })()}
             <div className="loadout-preview" aria-label="장착 미리보기">
               <div className="loadout-card">
                 <PlayerTag name={name} look={publicLook(draft, owned)} me />

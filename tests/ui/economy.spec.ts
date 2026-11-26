@@ -106,14 +106,14 @@ test("상점: 가로 상품 목록·상품군 탭·등급/가격 필터·업적 
   await expect(page.getByRole("tab", { name: "둘러보기" })).toHaveAttribute("aria-selected", "true");
   const diceSection = page.getByRole("region", { name: "주사위" });
   const rail = diceSection.getByRole("list", { name: "주사위 상품" });
-  await expect(rail.locator(".item-card")).toHaveCount(29);
+  await expect(rail.locator(".item-card")).toHaveCount(34); // 29 launch dice + 5 of the 2026-11-27 collection (shown as "판매 준비 중" on an older server)
   await diceSection.getByRole("button", { name: "주사위 다음 상품" }).click();
   await expect.poll(() => rail.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
   await expect(page.getByRole("button", { name: /더 보기/ })).toHaveCount(0);
   await page.getByRole("tab", { name: /^주사위/ }).click();
   await expect(page.getByRole("tab", { name: /^주사위/ })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("list", { name: "주사위 상품" })).not.toHaveClass(/shop-rail/);
-  await expect(page.locator(".item-card")).toHaveCount(29); // every dice design for sale
+  await expect(page.locator(".item-card")).toHaveCount(34); // every dice design (29 + 5 collection)
   await expect(page.locator('[data-item="dice.royal"] .item-card-price .short').first()).toBeVisible(); // not affordable
   await pickOption(page, "등급", "일반");
   await expect(page.locator(".item-card")).toHaveCount(6);

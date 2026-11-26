@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefO
 import { beginDiceMotion, planThrow, takeThrowDirection, type ThrowPlan } from "./dice-motion";
 import { diceRenderer, getSettings, motionLevel, useSettings, type DiceRenderer } from "./settings";
 import { playSfx } from "./sound";
+import { emitFx } from "./fx-bus";
 
 /* ---------------------------------------------------------------------------------------------
  * 3D dice (three.js + cannon-es) live in a separate lazily loaded chunk. Until it is loaded, or
@@ -351,6 +352,21 @@ export function Dice({
       }
       const end = Math.max(...[...plans.values()].map((p) => p.endAt));
       sound("settle", { material, delay: end / 1000, intensity: 0.4 });
+      // Presentation events for boards, synergy and 2.5D item effects (the same bus as the 3D table).
+      emitFx({ type: "roll" });
+      const at = (id: number) => {
+        const r = rowRef.current?.querySelector<HTMLElement>(`[data-die-id="${id}"]`)?.getBoundingClientRect();
+        return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : {};
+      };
+      plans.forEach((plan, id) => {
+        const strongest = plan.impacts.reduce((best, hit) => (hit.intensity > (best?.intensity ?? 0) ? hit : best), plan.impacts[0]);
+        if (strongest) {
+          const timer = window.setTimeout(() => emitFx({ type: "impact", ...at(id), strength: strongest.intensity }), strongest.at);
+          cleanups.push(() => window.clearTimeout(timer));
+        }
+        const landed = window.setTimeout(() => emitFx({ type: "land", ...at(id), strength: 1 }), plan.endAt);
+        cleanups.push(() => window.clearTimeout(landed));
+      });
       const done = beginDiceMotion(end + 400);
       const timer = window.setTimeout(() => {
         done();

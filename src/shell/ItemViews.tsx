@@ -2,7 +2,9 @@ import { announceScore, clearScoreFx } from "../score-fx";
 import { diceMaterial } from "../sound-packs";
 import { useEffect, useRef, useState } from "react";
 import { Dices, Play, Volume2 } from "lucide-react";
-import { BoardFx } from "../play/BoardFx";
+import { BoardFx, SynergyFx } from "../play/BoardFx";
+import { collectionsOf } from "../economy/live/collections";
+
 import { EmoteGlyph } from "../play/EmoteGlyph";
 import { emitFx } from "../fx-bus";
 import { CATEGORIES, itemById, lookAt, publicLook, DEFAULT_LOADOUT, type ItemDef, type PublicLook } from "../economy/live/catalog";
@@ -119,6 +121,7 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
   const [rolls, setRolls] = useState(0);
   const [rollEvent, setRollEvent] = useState(0);
   const [replay, setReplay] = useState(0);
+  const [pair, setPair] = useState(false);
   const boardRef = useRef<HTMLElement | null>(null);
   // Preview sounds follow the global settings (mute / effects switch / volume); no extra switch.
   const previewGrand = () => {
@@ -164,13 +167,26 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
   const settings = useSettings();
   const renderer = diceRenderer(settings);
   if (item.category === "dice" || item.category === "board") {
-    const theme = item.category === "board" ? boardTheme(item, level, motionLevel(settings) === "full") : { className: "" };
+    // Collection combo preview: the same theme's die on its board, with the synergy (nothing is saved).
+    const collection = item.category === "dice" || item.category === "board" ? collectionsOf(item.id).find((c) => c.dice.length && c.boards.length) : undefined;
+    const partner = pair && collection ? itemById(item.category === "dice" ? collection.boards[0] : collection.dice[0]) : null;
+    const boardItem = item.category === "board" ? item : partner;
+    const diceItem = item.category === "dice" ? item : partner;
+    const diceLook = diceItem ? lookAt(diceItem, diceItem === item ? level : 3).dice ?? null : null;
+    const theme = boardItem ? boardTheme(boardItem, boardItem === item ? level : 3, motionLevel(settings) === "full") : { className: "" };
     return (
       <div className="item-stage">
         <section ref={boardRef} className={"game-board throw-tray stage-board" + theme.className} style={theme.style} aria-label="미리보기 보드">
-          <DiceArea state={state} forceRenderer={renderer} colors={item.category === "dice" ? (look.dice ?? null) : null} material={diceMaterial(item.id, look.dice)} interactive animate rollEvent={rollEvent} onToggle={(id) => setDice((previous) => previous.map((die) => die.id === id ? { ...die, held: !die.held } : die))} />
-          {item.category === "board" && <BoardFx itemId={item.id} level={level} host={boardRef} />}
+          <DiceArea key={partner?.id ?? "solo"} state={state} forceRenderer={renderer} colors={diceLook} material={diceMaterial(diceItem?.id ?? item.id, diceLook ?? undefined)} interactive animate rollEvent={rollEvent} onToggle={(id) => setDice((previous) => previous.map((die) => die.id === id ? { ...die, held: !die.held } : die))} />
+          {boardItem && <BoardFx itemId={boardItem.id} level={boardItem === item ? level : 3} host={boardRef} />}
+          {partner && diceItem && boardItem && <SynergyFx dice={diceItem.id} board={boardItem.id} level={Math.min(3, level + 1)} host={boardRef} />}
         </section>
+        {collection && (
+          <label className="stage-pair">
+            <input type="checkbox" checked={pair} onChange={(e) => setPair(e.target.checked)} />
+            <span><b>{collection.name} 컬렉션 조합 미리보기</b> · {collection.synergy}</span>
+          </label>
+        )}
         <div className="stage-actions">
           <button type="button" className="primary stage-action" onClick={roll}>
             <Dices size={17} /> 굴려 보기

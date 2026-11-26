@@ -57,7 +57,7 @@ export function drawAvailable(pool: DrawPool, now: number) {
 }
 
 export function drawItems(pool: DrawPool, tier: DrawTier) {
-  return ITEMS.filter((item) => item.tier === tier && !item.retired &&
+  return ITEMS.filter((item) => item.tier === tier && !item.retired && !item.drawExcluded &&
     (item.acquisition === "either" || item.acquisition === "coins") &&
     (pool === "standard" ? !item.season : item.season === pool));
 }

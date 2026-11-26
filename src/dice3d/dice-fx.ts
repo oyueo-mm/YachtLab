@@ -274,6 +274,43 @@ export const DICE_FX: Record<string, DiceFxProfile> = {
     land: { burst: [e("flake", ["#ffd75e", "#fff0b3", "#c09226"], 12, { speed: [60, 130], spin: 12, gravity: 260, life: [0.5, 0.8] }), e("star", ["#ffffff", "#fff4c2"], 4, { speed: [30, 70], glow: true })], ring: [ring("#ffd75e", 26, { width: 3, glow: true }), ring("#fff0b3", 38, { delay: 0.09, width: 1.5, glow: true })] },
     sound: "coin",
   },
+  /* ---------------- nature & element collection (2026-11-27) ---------------- */
+  "dice.thunder": {
+    lv2: "구르는 길을 따라 푸른 전기가 지지직 흘러요", lv3: "부딪히면 번개가 갈라지고 착지하면 전격이 사방으로 퍼져요",
+    trail: [e("spark", ["#ffffff", "#a9c6ff", "#6f8fff"], 1, { speed: [30, 70], gravity: 0, drag: 0.2, life: [0.12, 0.25], size: [2.5, 5], glow: true })],
+    streak: { colors: ["#cfe0ff", "#6f8fff"], width: 1.6, life: 0.16, glow: true },
+    impact: { burst: [e("spark", ["#ffffff", "#a9c6ff"], 5, { speed: [90, 170], life: [0.12, 0.25], size: [3, 6], glow: true })], lines: [{ kind: "arc", color: "#cfe0ff", n: 2, length: 26, life: 0.22, width: 1.4, glow: true }] },
+    land: { burst: [e("spark", ["#ffffff", "#a9c6ff", "#6f8fff"], 9, { speed: [100, 200], life: [0.15, 0.3], size: [3, 6], glow: true })], lines: [{ kind: "arc", color: "#e6eeff", n: 5, length: 38, life: 0.3, width: 1.6, glow: true }], ring: [ring("#a9c6ff", 22, { glow: true, life: 0.35 })] },
+    sound: "zap",
+  },
+  "dice.meadow": {
+    lv2: "풀잎과 홀씨가 바람을 타고 따라와요", lv3: "착지하면 풀잎이 흩어지고 작은 들꽃이 고개를 내밀어요",
+    trail: [e("leaf", ["#8cc152", "#b7e07c"], 1, { speed: [6, 14], spin: 5, gravity: 20, life: [0.5, 0.8], size: [2.5, 4] }), e("glow", ["#ffffff"], 0.4, { speed: [4, 10], gravity: -20, life: [0.6, 0.9], size: [1.5, 2.2], alpha: 0.7 })],
+    impact: { burst: [e("leaf", ["#8cc152", "#5f9a36"], 3, { speed: [30, 60], spin: 6, gravity: 80 })] },
+    land: { burst: [e("leaf", ["#8cc152", "#b7e07c", "#5f9a36"], 8, { speed: [40, 90], spin: 7, gravity: 90, life: [0.5, 0.8] }), e("flower", ["#fff27a", "#ffffff"], 2, { speed: [8, 18], life: [0.8, 1.1], size: [4, 6] })] },
+    sound: "whoosh",
+  },
+  "dice.flower": {
+    lv2: "작은 꽃송이가 피었다 지며 따라와요", lv3: "착지하면 꽃이 활짝 피고 꽃잎이 둥글게 흩날려요",
+    trail: [e("flower", ["#ff8fb0", "#ffd36b", "#c9a0ff"], 0.6, { speed: [3, 8], life: [0.5, 0.8], size: [3.5, 5.5], spin: 1, grow: 1.3 })],
+    impact: { burst: [e("petal", ["#ff8fb0", "#ffd36b"], 3, { speed: [30, 60], spin: 5 })] },
+    land: { burst: [e("flower", ["#ff8fb0", "#ffd36b", "#c9a0ff"], 4, { speed: [15, 35], life: [0.8, 1.1], size: [5, 8], spin: 1, grow: 1.4 }), e("petal", ["#ffb3c8", "#fff0a8"], 8, { speed: [40, 80], spin: 6, drag: 0.4, life: [0.7, 1] })], ring: [ring("#ffb3c8", 24, { dashed: true, life: 0.7 })] },
+    sound: "chime",
+  },
+  "dice.sakura": {
+    lv2: "벚꽃잎이 회오리치며 따라와요", lv3: "착지하면 꽃잎이 소복이 내려앉고 가지 그림자가 일렁여요",
+    trail: [e("petal", ["#ffc4d6", "#ffe3ea", "#ff9fba"], 1.2, { speed: [8, 20], spin: 6, gravity: 25, drag: 0.4, life: [0.6, 1], size: [2.5, 4.5] })],
+    impact: { burst: [e("petal", ["#ffc4d6", "#ffffff"], 4, { speed: [40, 80], spin: 7, drag: 0.4 })] },
+    land: { burst: [e("petal", ["#ffc4d6", "#ffe3ea", "#ff9fba"], 14, { speed: [30, 90], spin: 7, gravity: 30, drag: 0.5, life: [0.9, 1.3], size: [2.5, 5] })], ring: [ring("#ffc4d6", 28, { life: 0.8, fill: "rgba(255,196,214,0.10)" })] },
+    sound: "chime",
+  },
+  "dice.abyss": {
+    lv2: "심해의 발광 입자가 은은하게 따라와요", lv3: "착지하면 기포가 솟고 발광 물결이 두 겹으로 퍼져요",
+    trail: [e("glow", ["#3fe0d0", "#9ffff4"], 1, { speed: [2, 8], life: [0.6, 0.9], size: [1.5, 3], glow: true, alpha: 0.8 }), e("bubble", ["#bff3ff"], 0.4, { gravity: -50, speed: [4, 10], life: [0.5, 0.8], size: [1.5, 3] })],
+    impact: { burst: [e("bubble", ["#bff3ff", "#ffffff"], 4, { speed: [20, 50], gravity: -60, size: [1.5, 3.5] })] },
+    land: { burst: [e("bubble", ["#bff3ff", "#9ffff4", "#ffffff"], 10, { speed: [20, 60], gravity: -90, life: [0.7, 1.1], size: [1.5, 4] }), e("glow", ["#3fe0d0"], 6, { speed: [20, 50], glow: true, life: [0.6, 0.9] })], ring: [ring("#3fe0d0", 22, { glow: true, life: 0.8 }), ring("#9ffff4", 34, { delay: 0.15, life: 0.9 })] },
+    sound: "glass",
+  },
 };
 
 /** Profile for a dice item (null for the basic die and unknown ids). */

@@ -11,6 +11,8 @@ import type { QuestSlot } from "../economy/live/rewards";
 export type Snapshot = {
   config: string;
   serverTime?: number;
+  /** Catalog revision the server sells (absent on servers before 2026-11-27 = 1). */
+  catalogRev?: number;
   wallet: { coins: number; gems: number };
   inventory: { id: string; level: number; via: string; at: number }[];
   slots: Slots;

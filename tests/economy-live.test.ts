@@ -338,9 +338,11 @@ describe("재화 원장 (계정 저장소, node:sqlite)", () => {
 
 describe("아이템 콘텐츠 (H, 2026-11-25)", () => {
   it("상품군과 시즌 추가 수량·고유 ID·기존 ID 보존", () => {
-    const count = (c: string) => ITEMS.filter((i) => i.category === c && !i.retired).length;
+    // launch catalog (revision 1) is unchanged; the 2026-11-27 collection adds 5 dice and 6 boards (rev 2)
+    const count = (c: string) => ITEMS.filter((i) => i.category === c && !i.retired && !i.rev).length;
     expect({ dice: count("dice"), board: count("board"), emote: count("emote"), chat: count("chat"), bubble: count("bubble"), profile: count("profile"), nameFx: count("nameFx"), fx: count("fx"), title: count("title") }).toEqual({ dice: 31, board: 21, emote: 41, chat: 43, bubble: 16, profile: 28, nameFx: 15, fx: 16, title: 21 });
-    expect(ITEMS.length).toBe(232);
+    expect(ITEMS.filter((i) => !i.rev).length).toBe(232);
+    expect(ITEMS.filter((i) => i.rev === 2).length).toBe(11);
     expect(new Set(ITEMS.map((i) => i.id)).size).toBe(ITEMS.length);
     // 기존 상품 ID와 분류는 그대로 사용하며 변경 대상의 새 등급을 확인한다
     for (const [id, cat, tier] of [["dice.mint", "dice", "common"], ["dice.royal", "dice", "mythic"], ["board.felt", "board", "rare"], ["bubble.gold", "bubble", "epic"], ["profile.whale", "profile", "rare"], ["nameFx.rainbow", "nameFx", "mythic"], ["fx.confetti", "fx", "legendary"], ["title.dicer", "title", "rare"], ["emote.fire", "emote", "common"], ["chat.lucky", "chat", "rare"], ["title.300", "title", "special"]] as const)

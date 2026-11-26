@@ -15,7 +15,9 @@ describe("cosmetic upgrade effects (2026-11-26)", () => {
   });
   it("every non-basic die has its own Lv.2/Lv.3 profile and keeps its body colours", () => {
     const dice = of("dice");
-    expect(dice.length).toBe(30);
+    // launch catalog unchanged (30) + the 2026-11-27 collection (rev 2)
+    expect(dice.filter((d) => !d.rev).length).toBe(30);
+    expect(dice.filter((d) => d.rev === 2).length).toBe(5);
     for (const d of dice) {
       expect(DICE_FX[d.id], d.id).toBeTruthy();
       expect(d.maxLevel).toBe(3);
@@ -35,7 +37,8 @@ describe("cosmetic upgrade effects (2026-11-26)", () => {
   });
   it("all non-basic boards are upgradable with a profile; ids, tiers and prices are unchanged", () => {
     const boards = of("board");
-    expect(boards.length).toBe(20);
+    expect(boards.filter((b) => !b.rev).length).toBe(20);
+    expect(boards.filter((b) => b.rev === 2).length).toBe(6);
     for (const b of boards) {
       expect(BOARD_FX[b.id], b.id).toBeTruthy();
       expect(b.maxLevel).toBe(3);

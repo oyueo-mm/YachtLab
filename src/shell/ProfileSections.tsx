@@ -3,6 +3,7 @@ import { Award, Dices, Flame, LayoutGrid, Medal, Pin, Sparkles, Trophy } from "l
 import { ITEMS, itemById, type ItemCategory, type PublicLook } from "../economy/live/catalog";
 import { achievementById } from "../economy/live/config";
 import { SEASONS } from "../economy/live/seasons";
+import { COLLECTIONS, collectionProgress } from "../economy/live/collections";
 import type { Snapshot } from "../identity/economy-client";
 import type { MatchRecord, Stats } from "../identity/records";
 import { SOLO_BUCKETS } from "../solo/records";
@@ -184,6 +185,18 @@ export function CollectionProgress({ snapshot }: { snapshot: Snapshot | null }) 
                 <span className="profile-collect-n">{r.have}/{r.total}</span>
               </li>
             ))}
+          </ul>
+          <h3>테마 컬렉션</h3>
+          <ul className="profile-themes">
+            {COLLECTIONS.map((c) => {
+              const p = collectionProgress(c, owned);
+              return (
+                <li key={c.id} className={p.have === p.total ? "complete" : p.have ? "" : "empty"} style={{ "--col": c.color } as React.CSSProperties} title={c.synergy}>
+                  <span>{c.name}</span>
+                  <small>{p.have}/{p.total}{p.synergyReady ? " · 시너지" : ""}</small>
+                </li>
+              );
+            })}
           </ul>
           {seasonal.length > 0 && (
             <p className="profile-limited"><b>기간 한정</b> {seasonal.map((i) => `${i.name}${i.season ? ` (${SEASONS[i.season].name})` : ""}`).join(", ")}</p>

@@ -230,6 +230,10 @@ export default function App() {
     };
     window.addEventListener("popstate", fn);
     window.addEventListener("hashchange", fn);
+    // A hash changed between the first render and these listeners (a deep link or a quick link while the
+    // app was still starting) would otherwise be lost: follow it now.
+    const early = currentRoute();
+    if (early !== pageRef.current) enter(early);
     return () => {
       window.removeEventListener("popstate", fn);
       window.removeEventListener("hashchange", fn);

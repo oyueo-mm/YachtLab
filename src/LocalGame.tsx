@@ -24,7 +24,7 @@ import { orderPlayers, type LocalOrder } from "./setup";
 import { useDiceBusy } from "./useDiceBusy";
 import { announceScore, clearScoreFx } from "./score-fx";
 import { equippedBoard, useOwnLook } from "./play/own-look";
-import { BoardFx } from "./play/BoardFx";
+import { BoardFx, SynergyFx } from "./play/BoardFx";
 import { diceLookOf, diceMaterialOf, useBoardTheme } from "./play/Looks";
 
 const newSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
@@ -174,6 +174,7 @@ export default function LocalGame({
           <section className={"game-board throw-tray " + (state.rolls === 0 ? "multi-dice-ready" : "") + (canAct && nearYacht(state.dice, state.rolls, state.cards[state.player]) ? " yacht-near" : "") + theme.className} style={theme.style} ref={boardRef} aria-label="사람 vs 사람 게임 보드" {...gesture}>
             <Celebrate value={celebration} />
             <BoardFx itemId={look.board} level={look.boardLv ?? 1} host={boardRef} />
+            <SynergyFx dice={look.dice} board={look.board} level={Math.min(look.diceLv ?? 1, look.boardLv ?? 1)} host={boardRef} />
             <div className="board-top">
               <span className="turn-indicator">
                 <i />
