@@ -1,0 +1,488 @@
+{
+  "bgm": {
+    "home": {
+      "peak": -1.6,
+      "rms": -20,
+      "activeRms": -20
+    },
+    "lobby": {
+      "peak": -1.4,
+      "rms": -20,
+      "activeRms": -20
+    },
+    "game": {
+      "peak": -3,
+      "rms": -22,
+      "activeRms": -22
+    },
+    "shop": {
+      "peak": -1,
+      "rms": -22.4,
+      "activeRms": -22.4
+    },
+    "review": {
+      "peak": -2.8,
+      "rms": -21,
+      "activeRms": -21
+    },
+    "win": {
+      "peak": -1.4,
+      "rms": -20,
+      "activeRms": -20
+    },
+    "lose": {
+      "peak": -2.3,
+      "rms": -20,
+      "activeRms": -20
+    }
+  },
+  "sfx": {
+    "throw": {
+      "peak": -23,
+      "rms": -54.2,
+      "activeRms": -42
+    },
+    "impact@1": {
+      "peak": -18.8,
+      "rms": -46.1,
+      "activeRms": -32.1
+    },
+    "impact@0.4": {
+      "peak": -23.8,
+      "rms": -53.7,
+      "activeRms": -36.7
+    },
+    "clack@0.8": {
+      "peak": -27.1,
+      "rms": -61.8,
+      "activeRms": -44.8
+    },
+    "roll@0.7": {
+      "peak": -21.4,
+      "rms": -53.9,
+      "activeRms": -39.9
+    },
+    "settle": {
+      "peak": -26.2,
+      "rms": -55.9,
+      "activeRms": -43.7
+    },
+    "hold": {
+      "peak": -25.6,
+      "rms": -56.7,
+      "activeRms": -39.8
+    },
+    "score": {
+      "peak": -17.6,
+      "rms": -42.7,
+      "activeRms": -31.7
+    },
+    "bonus": {
+      "peak": -17.9,
+      "rms": -39.8,
+      "activeRms": -31.3
+    },
+    "combo": {
+      "peak": -18.2,
+      "rms": -44.3,
+      "activeRms": -33.4
+    },
+    "straightHit": {
+      "peak": -20.6,
+      "rms": -41.2,
+      "activeRms": -35
+    },
+    "yachtHit": {
+      "peak": -15.4,
+      "rms": -37,
+      "activeRms": -31.1
+    },
+    "yacht": {
+      "peak": -12.3,
+      "rms": -33.6,
+      "activeRms": -28.4
+    },
+    "grand": {
+      "peak": -13.2,
+      "rms": -35.1,
+      "activeRms": -29.2
+    },
+    "win": {
+      "peak": -15,
+      "rms": -34.1,
+      "activeRms": -30.3
+    },
+    "lose": {
+      "peak": -15.8,
+      "rms": -37.8,
+      "activeRms": -33.6
+    },
+    "fxFanfare": {
+      "peak": -18.8,
+      "rms": -37.6,
+      "activeRms": -31.4
+    },
+    "fxCoin": {
+      "peak": -21.6,
+      "rms": -42.2,
+      "activeRms": -33.6
+    },
+    "diceFx:chime": {
+      "peak": -18.7,
+      "rms": -42.3,
+      "activeRms": -34.3
+    },
+    "diceFx:bell": {
+      "peak": -17.2,
+      "rms": -38.8,
+      "activeRms": -33
+    },
+    "diceFx:pop": {
+      "peak": -19.2,
+      "rms": -46.8,
+      "activeRms": -34.5
+    },
+    "diceFx:fizz": {
+      "peak": -18.5,
+      "rms": -43.1,
+      "activeRms": -33.9
+    },
+    "diceFx:ice": {
+      "peak": -20.9,
+      "rms": -44.1,
+      "activeRms": -34.1
+    },
+    "diceFx:thud": {
+      "peak": -23.2,
+      "rms": -46.1,
+      "activeRms": -33.9
+    },
+    "diceFx:crack": {
+      "peak": -15.3,
+      "rms": -51.1,
+      "activeRms": -37.2
+    },
+    "diceFx:spark": {
+      "peak": -11.5,
+      "rms": -46.4,
+      "activeRms": -34.2
+    },
+    "diceFx:zap": {
+      "peak": -19.3,
+      "rms": -49.6,
+      "activeRms": -35.6
+    },
+    "diceFx:fire": {
+      "peak": -12.4,
+      "rms": -44.4,
+      "activeRms": -35.2
+    },
+    "diceFx:coin": {
+      "peak": -23.6,
+      "rms": -45.8,
+      "activeRms": -35.8
+    },
+    "diceFx:whoosh": {
+      "peak": -22,
+      "rms": -48.2,
+      "activeRms": -38.2
+    },
+    "diceFx:glass": {
+      "peak": -19.2,
+      "rms": -43.6,
+      "activeRms": -34.4
+    },
+    "diceFx:cosmic": {
+      "peak": -20.9,
+      "rms": -40.1,
+      "activeRms": -32.7
+    },
+    "boardFx:cosmic": {
+      "peak": -23.8,
+      "rms": -42.9,
+      "activeRms": -35.4
+    },
+    "emote:clap": {
+      "peak": -10.1,
+      "rms": -45.4,
+      "activeRms": -33.2
+    },
+    "emote:party": {
+      "peak": -18.9,
+      "rms": -41.8,
+      "activeRms": -31.8
+    },
+    "emote:fire": {
+      "peak": -12.3,
+      "rms": -44.8,
+      "activeRms": -32.6
+    },
+    "emote:bolt": {
+      "peak": -17.7,
+      "rms": -47.5,
+      "activeRms": -33.5
+    },
+    "emote:gem": {
+      "peak": -17.9,
+      "rms": -40.8,
+      "activeRms": -30.8
+    },
+    "emote:rattle": {
+      "peak": -15.5,
+      "rms": -44.6,
+      "activeRms": -32.4
+    },
+    "emote:rocket": {
+      "peak": -17,
+      "rms": -43.9,
+      "activeRms": -32.9
+    },
+    "emote:chime": {
+      "peak": -17.8,
+      "rms": -42.7,
+      "activeRms": -31.7
+    },
+    "emote:wave": {
+      "peak": -18.3,
+      "rms": -41.9,
+      "activeRms": -31
+    },
+    "emote:pop": {
+      "peak": -16.7,
+      "rms": -45.6,
+      "activeRms": -31.6
+    },
+    "emote:sigh": {
+      "peak": -20.9,
+      "rms": -44,
+      "activeRms": -31.8
+    },
+    "emoteLv3:smile": {
+      "peak": -16.6,
+      "rms": -40.7,
+      "activeRms": -30.7
+    },
+    "emoteLv3:party": {
+      "peak": -16.1,
+      "rms": -39.2,
+      "activeRms": -30.7
+    },
+    "emoteLv3:clap": {
+      "peak": -9.6,
+      "rms": -41.2,
+      "activeRms": -32.7
+    },
+    "emoteLv3:thumb": {
+      "peak": -16.2,
+      "rms": -41.4,
+      "activeRms": -31.4
+    },
+    "emoteLv3:laugh": {
+      "peak": -11,
+      "rms": -38.1,
+      "activeRms": -31.2
+    },
+    "emoteLv3:wow": {
+      "peak": -17.6,
+      "rms": -38.9,
+      "activeRms": -30.4
+    },
+    "emoteLv3:cry": {
+      "peak": -15.2,
+      "rms": -36,
+      "activeRms": -30.8
+    },
+    "emoteLv3:handshake": {
+      "peak": -16.9,
+      "rms": -39,
+      "activeRms": -30.5
+    },
+    "emoteLv3:fire": {
+      "peak": -9.4,
+      "rms": -40.2,
+      "activeRms": -32.3
+    },
+    "emoteLv3:dice": {
+      "peak": -9.7,
+      "rms": -38.2,
+      "activeRms": -30.2
+    },
+    "emoteLv3:sparkles": {
+      "peak": -19.4,
+      "rms": -38.7,
+      "activeRms": -30.7
+    },
+    "emoteLv3:crown": {
+      "peak": -17.3,
+      "rms": -36,
+      "activeRms": -30.1
+    },
+    "emoteLv3:cool": {
+      "peak": -16,
+      "rms": -39.6,
+      "activeRms": -31.1
+    },
+    "emoteLv3:think": {
+      "peak": -17.6,
+      "rms": -38.8,
+      "activeRms": -30.3
+    },
+    "emoteLv3:sweat": {
+      "peak": -15.5,
+      "rms": -41.3,
+      "activeRms": -31.3
+    },
+    "emoteLv3:please": {
+      "peak": -17.1,
+      "rms": -37.8,
+      "activeRms": -30.3
+    },
+    "emoteLv3:sleepy": {
+      "peak": -16.3,
+      "rms": -37.9,
+      "activeRms": -31.7
+    },
+    "emoteLv3:yay": {
+      "peak": -10.7,
+      "rms": -40.2,
+      "activeRms": -31
+    },
+    "emoteLv3:fired_up": {
+      "peak": -13.5,
+      "rms": -42.2,
+      "activeRms": -33
+    },
+    "emoteLv3:clover": {
+      "peak": -18.5,
+      "rms": -39.6,
+      "activeRms": -30.4
+    },
+    "emoteLv3:target": {
+      "peak": -13.2,
+      "rms": -41.5,
+      "activeRms": -30.6
+    },
+    "emoteLv3:hundred": {
+      "peak": -16.1,
+      "rms": -39.4,
+      "activeRms": -30.2
+    },
+    "emoteLv3:rocket": {
+      "peak": -15,
+      "rms": -37.8,
+      "activeRms": -31.2
+    },
+    "emoteLv3:rainbow": {
+      "peak": -20,
+      "rms": -37.8,
+      "activeRms": -30.4
+    },
+    "emoteLv3:whale": {
+      "peak": -19.7,
+      "rms": -37.5,
+      "activeRms": -30.9
+    },
+    "emoteLv3:bolt": {
+      "peak": -7.9,
+      "rms": -39.3,
+      "activeRms": -30.1
+    },
+    "emoteLv3:cake": {
+      "peak": -16.2,
+      "rms": -40.1,
+      "activeRms": -31.6
+    },
+    "emoteLv3:gem": {
+      "peak": -14.9,
+      "rms": -37.4,
+      "activeRms": -30.4
+    },
+    "emoteLv3:trophy": {
+      "peak": -17.2,
+      "rms": -35.6,
+      "activeRms": -30.1
+    },
+    "emoteLv3:starlight": {
+      "peak": -17.1,
+      "rms": -35.7,
+      "activeRms": -30.1
+    },
+    "emoteLv3:angry": {
+      "peak": -12.5,
+      "rms": -40.3,
+      "activeRms": -31.1
+    },
+    "emoteLv3:rage": {
+      "peak": -12.9,
+      "rms": -38.4,
+      "activeRms": -29.9
+    },
+    "emoteLv3:question": {
+      "peak": -18.2,
+      "rms": -42.3,
+      "activeRms": -30
+    },
+    "emoteLv3:question2": {
+      "peak": -13.6,
+      "rms": -39.7,
+      "activeRms": -30.5
+    },
+    "emoteLv3:exclaim": {
+      "peak": -21.2,
+      "rms": -44.7,
+      "activeRms": -30.7
+    },
+    "emoteLv3:exclaim2": {
+      "peak": -15.6,
+      "rms": -40.7,
+      "activeRms": -30.7
+    },
+    "emoteLv3:interrobang": {
+      "peak": -15.6,
+      "rms": -40.6,
+      "activeRms": -31.4
+    },
+    "emoteLv3:smirk": {
+      "peak": -19.4,
+      "rms": -48.3,
+      "activeRms": -38.3
+    },
+    "emoteLv3:confident": {
+      "peak": -16.7,
+      "rms": -37.8,
+      "activeRms": -30.4
+    },
+    "emoteLv3:gasp": {
+      "peak": -16.3,
+      "rms": -44.7,
+      "activeRms": -32.5
+    },
+    "emoteLv3:gift": {
+      "peak": -14.5,
+      "rms": -37.6,
+      "activeRms": -30.6
+    }
+  },
+  "curve": {
+    "1": {
+      "sfxDb": 6,
+      "bgmDb": 0
+    },
+    "0.1": {
+      "sfxDb": -24,
+      "bgmDb": -20
+    },
+    "0.3": {
+      "sfxDb": -17.3,
+      "bgmDb": -15.6
+    },
+    "0.5": {
+      "sfxDb": -10.6,
+      "bgmDb": -11.1
+    },
+    "0.7": {
+      "sfxDb": -4,
+      "bgmDb": -6.7
+    }
+  }
+}
