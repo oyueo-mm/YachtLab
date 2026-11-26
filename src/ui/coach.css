@@ -1,0 +1,18 @@
+/* Guided tours (src/ui/Coach.tsx): a spotlight on the real UI and one small card. Nothing is blocked. */
+.coach { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+.coach-dim { position: absolute; inset: 0; background: #18121233; }
+.coach-spot { position: absolute; border-radius: 12px; box-shadow: 0 0 0 9999px #18121244, 0 0 0 2px var(--red); transition: left .2s, top .2s, width .2s, height .2s; }
+.coach-card { position: absolute; pointer-events: auto; padding: 14px 16px 12px; border-radius: 14px; background: #fff; color: var(--ink); box-shadow: 0 12px 40px #1f141455; border: 1px solid var(--line); outline: none; }
+.coach-card strong { display: block; margin: 2px 0 4px; font-size: 15.5px; word-break: keep-all; }
+.coach-card p { margin: 0; font-size: 13.5px; line-height: 1.55; color: #3d3d3d; word-break: keep-all; }
+.coach-head { display: flex; align-items: center; justify-content: space-between; }
+.coach-count { font-size: 12px; font-weight: 700; color: var(--red); font-variant-numeric: tabular-nums; }
+.coach-skip { min-width: 36px; min-height: 36px; }
+.coach-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+.coach-actions > span { display: flex; gap: 6px; }
+.coach-actions button { min-height: 40px; display: inline-flex; align-items: center; gap: 2px; }
+.items-help { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; min-height: 36px; }
+@media (prefers-reduced-motion: reduce) { .coach-spot { transition: none; } }
+.items-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* phones: the card sits at the bottom (safe area aware); the spotlight stays visible above it */
+.coach-card.coach-sheet { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); top: auto; }
