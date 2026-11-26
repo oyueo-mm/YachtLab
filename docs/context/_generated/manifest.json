@@ -127,6 +127,11 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "b8bb5b9",
+      "date": "2026-11-27",
+      "subject": "Merge pull request #104 from oyueo-mm/claude/audio-mix-2026-11"
+    },
+    {
       "sha": "d6d8414",
       "date": "2026-11-26",
       "subject": "Merge pull request #107 from oyueo-mm/codex/yachtlab-search-research-20261126"
@@ -157,6 +162,11 @@
       "subject": "Fix settings scrolling, invite history and multiplayer shortcuts"
     },
     {
+      "sha": "5eeb06d",
+      "date": "2026-11-26",
+      "subject": "feat(audio): loudness-normalized BGM, category mix buses, perceptual volume curve, click fix"
+    },
+    {
       "sha": "b8f4782",
       "date": "2026-11-26",
       "subject": "Merge pull request #103 from oyueo-mm/claude/great-sagan-cevdax"
@@ -165,30 +175,20 @@
       "sha": "1e288e2",
       "date": "2026-11-26",
       "subject": "test(ui): explicit 30 s budget for the in-browser tournament; record production rollout"
-    },
-    {
-      "sha": "2788297",
-      "date": "2026-11-26",
-      "subject": "Merge pull request #102 from oyueo-mm/claude/great-sagan-cevdax"
-    },
-    {
-      "sha": "93b2e2c",
-      "date": "2026-11-26",
-      "subject": "Merge remote-tracking branch 'origin/main' into claude/great-sagan-cevdax"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "SEO IndexNow",
       "status": "success",
-      "head": "19a5d24c8a",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45842304037"
+      "head": "5d203d3b6e",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45844672003"
     },
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "9e0e45eece",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45841769924"
+      "head": "d6d84148d0",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45843299705"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
