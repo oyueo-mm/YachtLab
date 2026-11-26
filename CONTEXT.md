@@ -20,6 +20,7 @@
 > **AI 승률 연구(Win DP v5, 정확 PMF·정확 2인 종반)** → [V5-APEX-RESEARCH](docs/context/V5-APEX-RESEARCH.md) (연구 브랜치, 기본 AI 불변, D-V5-1). 확증: v5-R vs Win DP v2 **50.626%**(100k, 99% CI 50.372–50.879), vs v3 50.479%, vs DP Expert 51.223%.
 > **AI 승률 연구(Win DP v6, 정책군 롤아웃·전 구간 BR·WASM)** → [V6-APEX-RESEARCH](docs/context/V6-APEX-RESEARCH.md) (연구 브랜치, 기본 AI 불변, D-V6-1). **v6-P가 v5-R과의 직접 대결에서 50.131%(9511, 10만 경기)·50.209%(9512 재현)로 작지만 유의하게 우위**(공통 상대 v2 이득은 미확정). 실행 최적화: WASM PMF 생성기(TS와 비트 동일, 브라우저 워커 8.1 s), 로더 RSS 677→379 MB, Float32 결정 손실 0.
 > **AI 승률 연구(Win DP v7, 상대 반응 정지가치)** → [V7-APEX-RESEARCH](docs/context/V7-APEX-RESEARCH.md) (연구 브랜치, 기본 AI 불변, D-V7-1). v7-I1RO vs v6-P: 9531 50.091%(Holm 미달)·재현 9541 50.136%(유의).
+> **AI 연구 현황(2026-11-26): 잠정 종료** — 매우 어려움 v4-D 유지, v5-R·I2RO1 교체 보류(D-V7-6). 최종 후보 I2RO1은 v4-D 대비 확증(50.55%), v5-R과는 대국상 동등. → [V7-APEX-RESEARCH](docs/context/V7-APEX-RESEARCH.md) §9–11, [V7-PRODUCT-HANDOFF](docs/context/V7-PRODUCT-HANDOFF.md).
 > **AI 제품 통합(v5-R·WASM 은행·분석 API v6)** → [V6-INTEGRATION-HANDOFF](docs/context/V6-INTEGRATION-HANDOFF.md).
 >
 > **재화·상점·퀘스트·업적을 다룬다면** [실서비스 경제](docs/economy/LIVE-ECONOMY.md)부터(M3i-W30 실제 구현·원장·가격표·퀘스트·업적, 결정 D-040~D-042). 연구 배경: [경제 연구 보고서](docs/economy/ECONOMY-RESEARCH.md)(D-029~D-037).
