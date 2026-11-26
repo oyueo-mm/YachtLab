@@ -9,7 +9,7 @@ test("홈은 게임 모드 로비이고 연구 기능은 연구실 메뉴에서 
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("");
-  await expect(page.locator("main h1")).toHaveText("요트다이스를 플레이해보세요");
+  await expect(page.locator("main h1")).toHaveText("온라인 요트다이스");
   await expect(page.locator(".lobby .mode-card")).toHaveCount(2);
   await expect(page.locator(".hero, .home-demo, .sidebar")).toHaveCount(0);
   await expect(page.locator("header a")).toHaveCount(0);

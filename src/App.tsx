@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { BrandMark } from "./ui/BrandLoading";
 import { type Match } from "./match";
 import { type AnalysisSource } from "./ReplayViewer";
@@ -6,7 +6,7 @@ import { type Replay } from "./replay";
 import LocalGame from "./LocalGame";
 import MyGames from "./MyGames";
 import Tutorial from "./play/Tutorial";
-import { firstTutorialVisit, registerVisit } from "./play/tutorial-progress";
+import { beginFirstGameTutorial } from "./play/tutorial-progress";
 import HumanGame from "./play/HumanGame";
 import OnlineEntry from "./play/OnlineEntry";
 import OnlineGame from "./play/OnlineGame";
@@ -18,7 +18,7 @@ import { peekResume } from "./shell/login-resume";
 import { syncAccountNickname } from "./identity/display-name";
 import { FriendsPage, InviteToasts, refreshInbox, startInbox } from "./shell/Friends";
 import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl } from "./online/client";
-import { currentRoute, homeDescription, homeTitle, researchToolsEnabled, routeDescription, routes, type Route } from "./routes";
+import { currentRoute, researchToolsEnabled, routes, type Route } from "./routes";
 import { useProfileEconomy } from "./shell/profile-economy";
 import { LabNav, SettingsDialog, TopBar } from "./shell/Chrome";
 import InstallBanner from "./shell/InstallBanner";
@@ -48,9 +48,8 @@ const localAiConfig = () => {
 };
 
 export default function App() {
-  const [tutorialReturn] = useState(() => firstTutorialVisit() && !location.hash.startsWith("#login") ? currentRoute() : null);
-  const tutorialDestination = useRef(tutorialReturn);
-  const [page, setPage] = useState<Route>(tutorialReturn ? "tutorial" : currentRoute()),
+  const tutorialDestination = useRef<"play" | "pvp" | null>(null);
+  const [page, setPage] = useState<Route>(currentRoute),
     [replay, setReplay] = useState<Match | null>(null),
     [settingsOpen, setSettingsOpen] = useState(false);
   const [arenaSource, setArenaSource] = useState<{ replay: Replay; index: number } | null>(null),
@@ -69,7 +68,6 @@ export default function App() {
   const [onlineNotice, setOnlineNotice] = useState("");
   const [watchTarget] = useState(watchFromUrl);
   const [profileNotice, setProfileNotice] = useState("");
-  useLayoutEffect(() => registerVisit(tutorialReturn !== null), [tutorialReturn]);
   // Members: friend requests and room invites (checked once a minute while the site is visible).
   useEffect(() => startInbox(onlineServer), [onlineServer]);
   // …and right away when the home menu or the friends page opens (badge / invites without waiting).
@@ -134,6 +132,12 @@ export default function App() {
     pushRoute(p);
     enter(p);
   };
+  const startLocalGame = (destination: "play" | "pvp") => {
+    if (!beginFirstGameTutorial()) return go(destination);
+    pushRoute(destination);
+    tutorialDestination.current = destination;
+    enter("tutorial");
+  };
   /** Leaving a game in progress asks first (top-bar home, settings links). */
   const navigate = (p: Route) => {
     if (routes[page].shell === "game" && inProgress.current && p !== page) setLeaveTo(p);
@@ -186,9 +190,6 @@ export default function App() {
   }, []);
   useEffect(() => {
     window.scrollTo?.(0, 0);
-    document.title = page === "home" ? homeTitle : routes[page].title + " · Online Yacht";
-    document.querySelector('meta[name="description"]')?.setAttribute("content", routeDescription[page] ??
-      (page === "home" ? homeDescription : `Online Yacht의 ${routes[page].title} 화면입니다.`));
   }, [page]);
   const shell = routes[page].shell;
   // Online screens need the latest page (server protocol); an old cached page asks for a reload.
@@ -227,7 +228,7 @@ export default function App() {
           consume={() => setPendingReward(null)}
         />}
         {page === "home" && <Lobby navigate={navigate} />}
-        {page === "tutorial" && <Tutorial returning={!!tutorialDestination.current && tutorialDestination.current !== "home"} onExit={() => {
+        {page === "tutorial" && <Tutorial onExit={() => {
           if (tutorialDestination.current) enter(tutorialDestination.current);
           else go("home");
         }} />}
@@ -291,8 +292,8 @@ export default function App() {
           </p>
         ))}
         {page === "online-room" && onlineServer && !onlineCode && <OnlineEntry server={onlineServer} onBack={() => navigate("home")} onEnter={(code) => { setOnlineCode(code); enter("online-room"); }} />}
-        {page === "play-setup" && <AiSetupScreen onBack={() => navigate("offline")} onStart={() => go("play")} />}
-        {page === "pvp-setup" && <LocalSetupScreen onBack={() => navigate("offline")} onStart={() => go("pvp")} />}
+        {page === "play-setup" && <AiSetupScreen onBack={() => navigate("offline")} onStart={() => startLocalGame("play")} />}
+        {page === "pvp-setup" && <LocalSetupScreen onBack={() => navigate("offline")} onStart={() => startLocalGame("pvp")} />}
         {page === "play" && <HumanGame key={gameKey} config={aiConfig} onBranch={branch} onAnalyze={analyze} onChangeSetup={() => go("play-setup")} onLeave={() => go("home")} onProgress={progress} />}
         {page === "pvp" && <LocalGame key={gameKey} players={local.players} order={local.order} onChangeSetup={() => go("pvp-setup")} onLeave={() => go("home")} onProgress={progress} />}
         {page === "records" && <MyGames server={onlineServer} onBranch={branch} onAnalyze={analyze} />}

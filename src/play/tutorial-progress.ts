@@ -2,22 +2,23 @@ const VISIT = "yachtlab.visited.v1";
 const AUTO = "yachtlab.tutorial-auto.v1";
 const OUTCOME = "yachtlab.tutorial-outcome.v1";
 
-export function firstTutorialVisit() {
+export function registerVisit() {
   try {
-    if (localStorage.getItem(VISIT) || localStorage.getItem(AUTO) || localStorage.getItem(OUTCOME)) return false;
+    if (localStorage.getItem(VISIT)) return;
     // Installations from before the visit marker already have saved settings, profile or game data.
-    return !Object.keys(localStorage).some((key) => key.startsWith("yachtlab."));
-  } catch {
-    // Avoid forcing a tutorial on each reload if the browser blocks persistence.
-    return false;
-  }
+    const returning = Object.keys(localStorage).some((key) => key.startsWith("yachtlab."));
+    localStorage.setItem(VISIT, returning ? "1" : "new");
+  } catch {}
 }
 
-export function registerVisit(automatic: boolean) {
+export function beginFirstGameTutorial() {
   try {
-    if (automatic) localStorage.setItem(AUTO, "started");
-    localStorage.setItem(VISIT, "1");
-  } catch {}
+    if (localStorage.getItem(VISIT) !== "new" || localStorage.getItem(AUTO) || localStorage.getItem(OUTCOME)) return false;
+    localStorage.setItem(AUTO, "started");
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function finishTutorial(outcome: "completed" | "skipped") {

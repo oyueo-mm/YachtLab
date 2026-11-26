@@ -1,7 +1,13 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { scoreCategory, withMotion } from "./helpers";
 
-test.describe("최초 방문", () => {
+async function startFirstAiGame(page: Page) {
+  await page.goto("#play-setup");
+  await page.getByRole("button", { name: "게임 시작", exact: true }).click();
+  return page.getByRole("region", { name: "튜토리얼" });
+}
+
+test.describe("최초 방문과 첫 오프라인 게임", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
   test("앱 코드가 늦어도 정적 첫 화면의 여백은 페이지 전체를 밀지 않는다", async ({ page }) => {
@@ -15,8 +21,7 @@ test.describe("최초 방문", () => {
   });
 
   test("강조된 조작만 허용하고 고정 시나리오를 기록한다", async ({ page }) => {
-    await page.goto("");
-    const guide = page.getByRole("region", { name: "튜토리얼" });
+    const guide = await startFirstAiGame(page);
     await expect(guide).toBeVisible();
     const dice = guide.locator(".die-button");
     const roll = guide.locator(".roll-button");
@@ -41,7 +46,9 @@ test.describe("최초 방문", () => {
     await guide.getByText("하단 6칸 · 초이스부터 요트까지").click();
     await expect(guide.locator(".tutorial-rules li")).toHaveCount(12);
     await expect(guide.locator(".tutorial-example-score").last()).toHaveText("50점");
-    await guide.getByRole("button", { name: "홈으로 가기" }).click();
+    await guide.getByRole("button", { name: "계속하기" }).click();
+    await expect(page).toHaveURL(/#play$/);
+    await expect(page.getByRole("region", { name: "게임 보드" })).toBeVisible();
     await page.reload();
     await expect(guide).toHaveCount(0);
     await expect(page.getByRole("button", { name: "튜토리얼 다시 보기" })).toHaveCount(0);
@@ -65,8 +72,7 @@ test.describe("최초 방문", () => {
         return Reflect.apply(context, this, [type, options]);
       } as typeof context;
     });
-    await page.goto("");
-    const guide = page.getByRole("region", { name: "튜토리얼" });
+    const guide = await startFirstAiGame(page);
     const board = guide.locator(".guided-dice");
     const roll = guide.getByRole("button", { name: "주사위 굴리기" });
     await expect(roll).toBeEnabled();
@@ -81,25 +87,39 @@ test.describe("최초 방문", () => {
     expect(result).toBe("3d");
   });
 
-  test("초대 URL을 유지하고 건너뛴 뒤 다시 열지 않는다", async ({ page }) => {
-    await page.goto("?room=ABCDEF#online");
-    await page.getByRole("button", { name: "건너뛰기" }).click();
+  test("초대 URL을 유지하고 홈을 다시 불러와도 첫 게임에서만 튜토리얼을 보여 준다", async ({ page }) => {
+    await page.goto("?room=ABCDEF&utm_source=release-test#online");
+    await expect(page.locator(".page-online")).toBeVisible();
     await expect(page).toHaveURL(/room=ABCDEF#online$/);
+    const guide = page.getByRole("region", { name: "튜토리얼" });
+    await expect(guide).toHaveCount(0);
+    await page.goto("./?utm_source=release-test#home");
+    await expect(page.getByRole("heading", { name: "온라인 요트다이스" })).toBeVisible();
     await page.reload();
-    await expect(page.getByRole("region", { name: "튜토리얼" })).toHaveCount(0);
+    await expect(guide).toHaveCount(0);
+    await page.goto("#pvp-setup");
+    await page.getByRole("button", { name: "게임 시작", exact: true }).click();
+    await guide.getByRole("button", { name: "건너뛰기" }).click();
+    await expect(page).toHaveURL(/#pvp$/);
+    await expect(page.getByRole("region", { name: "사람 vs 사람 게임 보드" })).toBeVisible();
+    await startFirstAiGame(page);
+    await expect(guide).toHaveCount(0);
   });
 
   test("중도 새로고침과 레거시 방문은 자동 재실행하지 않는다", async ({ page }) => {
-    await page.goto("");
-    await expect(page.getByRole("region", { name: "튜토리얼" })).toBeVisible();
+    const guide = await startFirstAiGame(page);
+    await expect(guide).toBeVisible();
     await page.reload();
-    await expect(page.getByRole("region", { name: "튜토리얼" })).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "게임 보드" })).toBeVisible();
+    await expect(guide).toHaveCount(0);
     await page.evaluate(() => {
       localStorage.clear();
       localStorage.setItem("yachtlab.online.name", "기존사용자");
     });
     await page.reload();
-    await expect(page.getByRole("region", { name: "튜토리얼" })).toHaveCount(0);
+    await startFirstAiGame(page);
+    await expect(page.getByRole("region", { name: "게임 보드" })).toBeVisible();
+    await expect(guide).toHaveCount(0);
   });
 });
 

@@ -1,5 +1,60 @@
 import { expect, test } from "@playwright/test";
 
+const HOME_URL = "https://oyueo-mm.github.io/YachtLab/";
+const HOME_TITLE = "온라인 요트다이스(야추 다이스) · 무료 AI·친구 멀티 | Online Yacht";
+
+test("저장 기록이 없는 첫 방문에서 JS 실행 여부와 관계없이 홈페이지의 검색 정보를 제공한다", async ({ browser, baseURL, request }) => {
+  const contexts = await Promise.all([false, true].map((javaScriptEnabled) =>
+    browser.newContext({ baseURL, javaScriptEnabled, viewport: { width: 390, height: 844 } }),
+  ));
+  try {
+    const [raw, rendered] = await Promise.all(contexts.map((context) => context.newPage()));
+    const read = async (page: typeof raw) => ({
+      title: await page.title(),
+      description: await page.locator('meta[name="description"]').getAttribute("content"),
+      intro: await page.locator("main h1 + p").innerText(),
+      links: await page.getByRole("navigation", { name: "도구와 안내" }).getByRole("link").evaluateAll((links) =>
+        links.map((link) => [link.textContent?.trim(), link.getAttribute("href")]),
+      ),
+    });
+    for (const page of [raw, rendered]) {
+      await page.goto("./");
+      if (page === rendered) await expect(page.locator(".lobby")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "온라인 요트다이스", exact: true })).toBeVisible();
+      await expect(page.getByRole("region", { name: "튜토리얼" })).toHaveCount(0);
+      await expect(page).toHaveTitle(HOME_TITLE);
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", HOME_URL);
+      await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute("content", "Online Yacht");
+      await expect(page.locator('meta[property="og:url"]')).toHaveAttribute("content", HOME_URL);
+      await expect(page.locator('meta[name="google-site-verification"]')).toHaveAttribute("content", "wJt-lkmKFMcAXpu9gEUMBhyBrWsPSftS2ig_4ozPeSE");
+      const graph = JSON.parse(await page.locator('script[type="application/ld+json"]').innerText())["@graph"];
+      expect(graph).toEqual(expect.arrayContaining([
+        expect.objectContaining({ "@type": "WebSite", "@id": HOME_URL + "#website", url: HOME_URL, name: "Online Yacht" }),
+        expect.objectContaining({ "@type": "VideoGame", url: HOME_URL, isPartOf: { "@id": HOME_URL + "#website" }, isAccessibleForFree: true }),
+      ]));
+    }
+    const expected = await read(raw);
+    expect(expected.description).toContain("PC와 모바일");
+    expect(expected.description).toContain("야추 다이스");
+    expect(expected.intro).toContain("온라인 멀티플레이");
+    expect(await read(rendered)).toEqual(expected);
+    await rendered.getByRole("button", { name: /오프라인 대전/ }).click();
+    await expect(rendered.getByRole("heading", { name: "오프라인 대전", exact: true })).toBeVisible();
+    await expect(rendered).toHaveTitle(HOME_TITLE);
+    await expect(rendered.locator('meta[name="description"]')).toHaveAttribute("content", expected.description!);
+    await expect(rendered.locator('link[rel="canonical"]')).toHaveAttribute("href", HOME_URL);
+    const icon = raw.locator('link[rel="icon"][sizes="192x192"]');
+    await expect(icon).toHaveAttribute("href", "/YachtLab/icons/app-192.png");
+    const favicon = await request.get("./icons/app-192.png");
+    expect(favicon.ok()).toBe(true);
+    expect(favicon.headers()["content-type"]).toContain("image/png");
+    expect((await favicon.body()).readUInt32BE(16)).toBe(192);
+    expect((await favicon.body()).readUInt32BE(20)).toBe(192);
+  } finally {
+    await Promise.all(contexts.map((context) => context.close()));
+  }
+});
+
 test("홈과 가이드는 자바스크립트 없이 열리고 사이트맵의 canonical 주소와 일치한다", async ({ browser, request, baseURL }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, baseURL, viewport: { width: 360, height: 780 } });
   try {
@@ -28,7 +83,19 @@ test("검색용 페이지는 자바스크립트 없이 열리고 canonical·사�
   const context = await browser.newContext({ javaScriptEnabled: false, baseURL, viewport: { width: 360, height: 780 } });
   try {
     const page = await context.newPage();
-    const sitemap = await (await request.get("./sitemap.xml")).text();
+    const sitemapResponse = await request.get("./sitemap.xml");
+    expect(sitemapResponse.status()).toBe(200);
+    expect(sitemapResponse.headers()["content-type"]).toMatch(/xml/);
+    const sitemap = await sitemapResponse.text();
+    const entries = await page.evaluate((xml) => {
+      const document = new DOMParser().parseFromString(xml, "application/xml");
+      return {
+        namespace: document.documentElement.namespaceURI,
+        urls: [...document.getElementsByTagName("loc")].map((loc) => loc.textContent),
+      };
+    }, sitemap);
+    expect(entries.namespace).toBe("http://www.sitemaps.org/schemas/sitemap/0.9");
+    expect(entries.urls.sort()).toEqual(["", "guide/", ...SEARCH_PAGES].map((path) => HOME_URL + path).sort());
     const titles = new Set<string>();
     for (const path of SEARCH_PAGES) {
       const res = await page.goto("./" + path);

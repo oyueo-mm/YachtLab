@@ -38,7 +38,7 @@ test("설치 가능한 매니페스트와 버전별 캐시는 로컬·기본 AI�
   }, review)).toBe(true);
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByRole("heading", { name: /요트다이스를 플레이/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "온라인 요트다이스" })).toBeVisible();
   await page.goto("#pvp");
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
   await scoreCategory(page, "choice");

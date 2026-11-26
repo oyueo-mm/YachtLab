@@ -387,7 +387,7 @@ test("3D 효과음은 실제 충돌과 착지 뒤 라지 스트레이트 순서�
 test("홈: 독립 프로필 없이 온라인과 오프라인 두 모드를 강조한다", async ({ page }) => {
   await page.goto("");
   await expect(page.locator(".home-dice, [aria-label='주사위 굴려 보기']")).toHaveCount(0);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("요트다이스를 플레이해보세요");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("온라인 요트다이스");
   await expect(page.locator(".lobby").getByRole("button")).toHaveCount(2);
   await expect(page.locator(".lobby").getByText(/프로필|튜토리얼/)).toHaveCount(0);
   const cards = page.locator(".lobby .mode-card");
