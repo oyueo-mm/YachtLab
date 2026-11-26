@@ -51,6 +51,7 @@ export function PhysicalDice({
   onOrder,
   onShiftHold,
   onFailure,
+  onReady,
   colors = null,
   material = "plastic",
   soundEnabled = true,
@@ -74,6 +75,7 @@ export function PhysicalDice({
   onToggle?: (id: number) => void;
   onOrder?: (ids: number[]) => void;
   onFailure: () => void;
+  onReady?: () => void;
 }) {
   const sound = soundEnabled ? playSfx : () => {};
   const root = useRef<HTMLDivElement>(null);
@@ -168,6 +170,7 @@ export function PhysicalDice({
   // Create / lay out the WebGL table.
   useLayoutEffect(() => {
     if (!dims || !root.current) return;
+    const firstLayout = !table.current;
     if (!table.current) {
       try {
         table.current = new mod.DiceTable(root.current.querySelector<HTMLElement>(".dice-table-stage")!, quality, { adaptive });
@@ -198,6 +201,7 @@ export function PhysicalDice({
       tray.current.set(id, fixed);
     }
     table.current.setPoses(poses());
+    if (firstLayout) onReady?.();
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dims, quality]);
@@ -524,7 +528,7 @@ export function PhysicalDice({
   return (
     <div ref={root} className="physical-dice" data-ready={!!dims} data-hold-order={holdOrder.join(",")} onClick={pickGap}>
       <div className="dice-tray-area" style={dims ? { height: dims.trayH * dims.size } : undefined} />
-      <div className="dice-hold-area" style={dims ? { height: HOLD_UNITS * dims.size } : undefined} aria-label="고정한 주사위 자리">
+      <div className="dice-hold-area" style={dims ? { height: HOLD_UNITS * dims.size } : undefined} aria-hidden="true">
         {dims &&
           [0, 1, 2, 3, 4].map((i) => {
             const s = slotAt(i);

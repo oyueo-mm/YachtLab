@@ -1,0 +1,270 @@
+{
+  "ci_artifacts_examined": 32,
+  "ci_artifacts_missing_from_plan": [],
+  "ci_runs_examined": 16,
+  "counts": {
+    "ci_raw_tournament_pairs": 143600,
+    "ci_raw_tournament_shards": 96,
+    "raw_tournament_pairs": 218600,
+    "raw_tournament_shards": 165,
+    "summary_rows": 153,
+    "summary_rows_matched_to_raw": 81,
+    "summary_rows_without_raw": 72,
+    "teacher-v72_position_rows": 2000,
+    "teacher_position_rows": 1160
+  },
+  "findings": {
+    "repeated_summary_rows": [
+      [
+        "31c66e3:training/results/v7/dev-9107/shards.log",
+        [
+          "p-I1RO1",
+          "v4D",
+          9107,
+          1
+        ],
+        2
+      ],
+      [
+        "31c66e3:training/results/v7/dev-9107/shards.log",
+        [
+          "p-I1RO1",
+          "v5-R",
+          9107,
+          1
+        ],
+        2
+      ],
+      [
+        "31c66e3:training/results/v7/dev-9107/shards.log",
+        [
+          "p-I2RO1",
+          "v4D",
+          9107,
+          1
+        ],
+        2
+      ],
+      [
+        "31c66e3:training/results/v7/dev-9107/shards.log",
+        [
+          "p-I2RO1",
+          "v5-R",
+          9107,
+          1
+        ],
+        2
+      ]
+    ]
+  },
+  "raw_shards_missing_commit_by_family": {
+    "9011": 6
+  },
+  "refs": {
+    "31c66e3": "31c66e3aa363b4c98d78be79ff0ba45320ed298f",
+    "3cc01c1": "3cc01c19642140af7ecc9ef2e4de9a433fd3075d",
+    "e78a06f": "e78a06f97bc1932d001e0cae93598667f2d0b268"
+  },
+  "summaries": [
+    {
+      "a": "v5-R",
+      "b": "v2",
+      "family": 9011,
+      "file": "31c66e3:training/results/v6/dev-9011/shards.log",
+      "pairs": 4000,
+      "shards": 2
+    },
+    {
+      "a": "v6-P",
+      "b": "v2",
+      "family": 9011,
+      "file": "31c66e3:training/results/v6/dev-9011/shards.log",
+      "pairs": 4000,
+      "shards": 2
+    },
+    {
+      "a": "v6-P3",
+      "b": "v2",
+      "family": 9011,
+      "file": "31c66e3:training/results/v6/dev-9011/shards.log",
+      "pairs": 4000,
+      "shards": 2
+    },
+    {
+      "a": "v7-I1RO",
+      "b": "v6-P",
+      "family": 9551,
+      "file": "31c66e3:training/results/v7/confirm-v71/shards-9551.jsonl",
+      "pairs": 100000,
+      "shards": 20
+    },
+    {
+      "a": "p-I2RO1",
+      "b": "v4D",
+      "family": 9571,
+      "file": "31c66e3:training/results/v7/confirm-v71/shards-9571-v4D.jsonl",
+      "pairs": 50000,
+      "shards": 20
+    },
+    {
+      "a": "v5-R",
+      "b": "v4D",
+      "family": 9571,
+      "file": "31c66e3:training/results/v7/confirm-v71/shards-9571-v4D.jsonl",
+      "pairs": 50000,
+      "shards": 20
+    },
+    {
+      "a": "p-I2RO1",
+      "b": "v5-R",
+      "family": 9571,
+      "file": "31c66e3:training/results/v7/confirm-v71/shards-9571-v5R.jsonl",
+      "pairs": 100000,
+      "shards": 20
+    },
+    {
+      "a": "v6-P",
+      "b": "v2",
+      "family": 9102,
+      "file": "31c66e3:training/results/v7/dev-9102/shards.log",
+      "pairs": 5000,
+      "shards": 5
+    },
+    {
+      "a": "v6-P",
+      "b": "v5-R",
+      "family": 9102,
+      "file": "31c66e3:training/results/v7/dev-9102/shards.log",
+      "pairs": 5000,
+      "shards": 5
+    },
+    {
+      "a": "v7-I1",
+      "b": "v6-P",
+      "family": 9102,
+      "file": "31c66e3:training/results/v7/dev-9102/shards.log",
+      "pairs": 5000,
+      "shards": 5
+    },
+    {
+      "a": "v7-I1O",
+      "b": "v6-P",
+      "family": 9102,
+      "file": "31c66e3:training/results/v7/dev-9102/shards.log",
+      "pairs": 5000,
+      "shards": 5
+    },
+    {
+      "a": "v7-I1R",
+      "b": "v6-P",
+      "family": 9102,
+      "file": "31c66e3:training/results/v7/dev-9102/shards.log",
+      "pairs": 5000,
+      "shards": 5
+    },
+    {
+      "a": "v7-I1RO",
+      "b": "v2",
+      "family": 9102,
+      "file": "31c66e3:training/results/v7/dev-9102/shards.log",
+      "pairs": 5000,
+      "shards": 5
+    },
+    {
+      "a": "v7-I1RO",
+      "b": "v5-R",
+      "family": 9102,
+      "file": "31c66e3:training/results/v7/dev-9102/shards.log",
+      "pairs": 5000,
+      "shards": 5
+    },
+    {
+      "a": "v7-I1RO",
+      "b": "v6-P",
+      "family": 9102,
+      "file": "31c66e3:training/results/v7/dev-9102/shards.log",
+      "pairs": 5000,
+      "shards": 5
+    },
+    {
+      "a": "v7-I1RO1",
+      "b": "v5-R",
+      "family": 9104,
+      "file": "31c66e3:training/results/v7/dev-9104/shards.log",
+      "pairs": 1000,
+      "shards": 1
+    },
+    {
+      "a": "v7-I2RO",
+      "b": "v6-P",
+      "family": 9104,
+      "file": "31c66e3:training/results/v7/dev-9104/shards.log",
+      "pairs": 1000,
+      "shards": 1
+    },
+    {
+      "a": "v7-I2RO",
+      "b": "v7-I1RO",
+      "family": 9104,
+      "file": "31c66e3:training/results/v7/dev-9104/shards.log",
+      "pairs": 1000,
+      "shards": 1
+    },
+    {
+      "a": "p-I1RO1",
+      "b": "v4D",
+      "family": 9107,
+      "file": "31c66e3:training/results/v7/dev-9107/shards.log",
+      "pairs": 5000,
+      "shards": 5
+    },
+    {
+      "a": "p-I1RO1",
+      "b": "v5-R",
+      "family": 9107,
+      "file": "31c66e3:training/results/v7/dev-9107/shards.log",
+      "pairs": 5000,
+      "shards": 5
+    },
+    {
+      "a": "p-I2RO1",
+      "b": "v4D",
+      "family": 9107,
+      "file": "31c66e3:training/results/v7/dev-9107/shards.log",
+      "pairs": 5000,
+      "shards": 5
+    },
+    {
+      "a": "p-I2RO1",
+      "b": "v5-R",
+      "family": 9107,
+      "file": "31c66e3:training/results/v7/dev-9107/shards.log",
+      "pairs": 5000,
+      "shards": 5
+    }
+  ],
+  "teacher_shared_game_seeds_by_shard": {
+    "0": 33,
+    "1": 27
+  },
+  "teacher_unique_game_seeds": {
+    "teacher": 116,
+    "teacher-v72": 200
+  },
+  "tournament_pairs_by_family": {
+    "9011": 12000,
+    "9012": 9600,
+    "9102": 40000,
+    "9104": 3000,
+    "9107": 20000,
+    "9511": 21000,
+    "9512": 6000,
+    "9531": 19000,
+    "9541": 7000,
+    "9551": 10000,
+    "9552": 20000,
+    "9553": 31000,
+    "9571": 20000
+  },
+  "unique_tournament_seed_addresses": 67800
+}

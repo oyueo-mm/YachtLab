@@ -6,6 +6,7 @@ const shell = new URL("index.html", scope).href;
 const guide = new URL("guide/", scope).href;
 const guideFile = new URL("guide/index.html", scope).href;
 const staticFiles = new Set(ASSETS.map((file) => new URL(file, scope).href));
+const optionalFiles = new Set(OPTIONAL_ASSETS.map((file) => new URL(file, scope).href));
 
 self.addEventListener("install", (event) => {
   // Use one consistent build. A failed install leaves the previous worker/cache in place.
@@ -38,6 +39,14 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(fetch(request).catch(async () =>
       (await caches.match(guideFile, { cacheName })) ?? Response.error(),
     ));
+  } else if (optionalFiles.has(url.href)) {
+    event.respondWith(caches.open(cacheName).catch(() => null).then(async (cache) => {
+      const cached = await cache?.match(url.href).catch(() => undefined);
+      if (cached) return cached;
+      const response = await fetch(request);
+      if (response.ok) await cache?.put(url.href, response.clone()).catch(() => undefined);
+      return response;
+    }));
   } else if (staticFiles.has(url.href)) {
     event.respondWith(caches.match(url.href, { cacheName }).then((cached) => cached ?? fetch(request)));
   }

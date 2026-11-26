@@ -6,8 +6,6 @@ type Fx = { key: number; category: string; label: string; points: number; ids: n
 const tableState = (page: Page) => page.evaluate(() => (window as unknown as { __yachtlabDice?: { table?: () => TableDie[] } }).__yachtlabDice?.table?.() ?? []);
 const fxList = (page: Page) => page.evaluate(() => ((window as unknown as { __yachtlabFx?: Fx[] }).__yachtlabFx ?? []).map((f) => ({ ...f })));
 const soundNames = (page: Page) => page.evaluate(() => (window as unknown as { __yachtlabSound: { log: { name: string }[] } }).__yachtlabSound.log.map((e) => e.name));
-const waitLoaded3d = (page: Page) =>
-  expect.poll(() => page.evaluate(() => performance.getEntriesByType("resource").some((r) => /table-.*\.js|stage-.*\.js|dice3d\/table/.test(r.name)))).toBe(true);
 const settled = async (page: Page) => {
   await expect(page.locator(".dice-animating")).toHaveCount(0, { timeout: 8000 });
   await page.waitForTimeout(350);
@@ -15,41 +13,55 @@ const settled = async (page: Page) => {
 async function openSeeded(page: Page, seed: number, quality: "3d" | "2.5d" = "3d") {
   await fixSeed(page, seed);
   await withMotion(page, quality);
-  await page.goto("#home");
-  if (quality === "3d") await waitLoaded3d(page);
   await page.goto("#play");
+  if (quality === "3d") await expect(page.locator(".physical-dice canvas")).toBeVisible();
   await expect(page.getByRole("button", { name: "주사위 굴리기" })).toBeVisible();
 }
 const roll = async (page: Page) => {
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
   await settled(page);
 };
-/** Watches what is actually drawn for `ms`: which dice are lifted toward the camera, and any face that is not the engine value. */
-const watch = (page: Page, ms: number, window_?: number) =>
-  page.evaluate(async ([duration, only]) => {
-    // Only the effect window counts (from the announcement until `only` ms later), so the AI’s next throw is never mixed in.
-    const w = window as unknown as { __yachtlabDice?: { table?: () => TableDie[] }; __yachtlabFx?: { at: number; ms: number }[] };
+/** Observe actual drawn poses starting before the score click, even when it closes a mobile dialog. */
+async function scoreAndWatch(page: Page, category: string, ms: number) {
+  const capture = await page.evaluateHandle((duration) => {
+    const w = window as unknown as { __yachtlabDice?: { table?: () => TableDie[] }; __yachtlabFx?: { key: number; at: number; ms: number }[] };
+    const previous = w.__yachtlabFx?.at(-1)?.key;
     const lifted = new Set<number>(),
       peak: Record<number, number> = {};
     let mismatches = 0,
       samples = 0,
       label = "";
-    const t0 = performance.now();
-    while (performance.now() - t0 < duration) {
-      const fx = w.__yachtlabFx?.at(-1);
-      if (fx && performance.now() - fx.at > (only ?? fx.ms)) break;
-      label = document.querySelector(".score-fx-label")?.textContent || label;
-      for (const d of w.__yachtlabDice?.table?.() ?? []) {
-        if (d.hidden) continue;
-        samples++;
-        peak[d.id] = Math.max(peak[d.id] ?? 0, d.y ?? 0);
-        if ((d.y ?? 0) > 1.5) lifted.add(d.id);
-        if (d.top !== d.value) mismatches++;
+    const deadline = performance.now() + 10_000;
+    const result = new Promise<{ lifted: number[]; peak: Record<number, number>; mismatches: number; samples: number; label: string }>((resolve) => {
+      function sample(now: number) {
+        const fx = w.__yachtlabFx?.at(-1);
+        if (now >= deadline || (fx && fx.key !== previous && now - fx.at > Math.min(duration, fx.ms))) {
+          resolve({ lifted: [...lifted].sort(), peak, mismatches, samples, label });
+          return;
+        }
+        if (fx && fx.key !== previous) {
+          label = document.querySelector(".score-fx-label")?.textContent || label;
+          for (const d of w.__yachtlabDice?.table?.() ?? []) {
+            if (d.hidden) continue;
+            samples++;
+            peak[d.id] = Math.max(peak[d.id] ?? 0, d.y ?? 0);
+            if ((d.y ?? 0) > 1.5) lifted.add(d.id);
+            if (d.top !== d.value) mismatches++;
+          }
+        }
+        requestAnimationFrame(sample);
       }
-      await new Promise((r) => setTimeout(r, 30));
-    }
-    return { lifted: [...lifted].sort(), peak, mismatches, samples, label };
-  }, [ms, window_ ?? null] as const);
+      requestAnimationFrame(sample);
+    });
+    return { result };
+  }, ms);
+  try {
+    await scoreCategory(page, category);
+    return await capture.evaluate(({ result }) => result);
+  } finally {
+    await capture.dispose();
+  }
+}
 const clickDie = async (page: Page, id: number) => {
   const box = (await page.locator(`.die-hit[data-die-id="${id}"]`).boundingBox())!;
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
@@ -74,8 +86,7 @@ for (const c of cases)
     const dice = await tableState(page);
     const values = dice.map((d) => d.value);
     if (c.faces.length) expect(values).toEqual(c.faces);
-    await scoreCategory(page, c.category);
-    const seen = await watch(page, 950);
+    const seen = await scoreAndWatch(page, c.category, 950);
     const fx = (await fxList(page))[0];
     expect(fx.category).toBe(c.category);
     // What the engine scores is what is announced.
@@ -110,8 +121,7 @@ for (const c of cases)
 test("0점 기록에는 완성 연출이 없다 (라벨·들어올림·효과음 없음)", async ({ page }) => {
   await openSeeded(page, SEEDS.none);
   await roll(page);
-  await scoreCategory(page, "yacht"); // 1·1·2·2·3 → 0 points
-  const seen = await watch(page, 1200, 450); // the 450 ms after scoring, before the AI starts its own throw
+  const seen = await scoreAndWatch(page, "yacht", 450); // before the AI starts its own throw
   const fx = (await fxList(page))[0];
   expect(fx).toMatchObject({ category: "yacht", points: 0, ids: [], grand: false });
   expect(seen.lifted).toEqual([]);
@@ -154,14 +164,12 @@ test("연출 중 재대결은 연출을 정리하고 새 경기에 영향을 주
 test("로컬 사람 대전에서도 같은 연출이 나온다", async ({ page }) => {
   await fixSeed(page, SEEDS.small12341);
   await withMotion(page, "3d");
-  await page.goto("#home");
-  await waitLoaded3d(page);
   await startLocal(page, { count: 2 });
+  await expect(page.locator(".physical-dice canvas")).toBeVisible();
   await roll(page);
   const before = (await tableState(page)).map((d) => d.value);
   expect(before).toEqual([1, 2, 3, 4, 1]);
-  await scoreCategory(page, "small");
-  const seen = await watch(page, 900);
+  const seen = await scoreAndWatch(page, "small", 900);
   expect(seen.lifted).toEqual([0, 1, 2, 3]);
   await expect(page.locator(".score-fx-label")).toContainText("스몰 스트레이트");
   await expect(page.locator(".turn-indicator")).toContainText("플레이어 2의 차례");

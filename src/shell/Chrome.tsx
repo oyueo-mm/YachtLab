@@ -47,6 +47,7 @@ export function SettingsDialog({ open, onClose, inGame = false }: { open: boolea
     if (!open && dialog.open) dialog.close();
   }, [open]);
   const systemReduced = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const canRender3d = !open || webglAvailable();
   const renderer = diceRenderer(settings);
   const qualityLabel: Record<DiceQuality, string> = { auto: "자동", "3d-high": "고화질", "3d": "성능 우선", "2.5d": "간단 (2.5D)" };
   return (
@@ -121,11 +122,11 @@ export function SettingsDialog({ open, onClose, inGame = false }: { open: boolea
           <label className="settings-row">
             <span>
               <strong>주사위 애니메이션 품질</strong>
-              <small>{webglAvailable() ? "3D는 실제 물리로 굴러요" : "이 브라우저는 3D를 지원하지 않아 2.5D로 표시해요"}</small>
+              <small>{canRender3d ? "3D는 실제 물리로 굴러요" : "이 브라우저는 3D를 지원하지 않아 2.5D로 표시해요"}</small>
             </span>
             <select aria-label="주사위 애니메이션 품질" value={settings.diceQuality} onChange={(e) => updateSettings({ diceQuality: e.target.value as DiceQuality })}>
               {(Object.keys(qualityLabel) as DiceQuality[]).map((q) => (
-                <option key={q} value={q} disabled={q.startsWith("3d") && !webglAvailable()}>
+                <option key={q} value={q} disabled={q.startsWith("3d") && !canRender3d}>
                   {qualityLabel[q]}
                 </option>
               ))}

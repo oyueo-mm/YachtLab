@@ -50,6 +50,20 @@ export class Client {
       this.ws.once("error", reject);
     });
   }
+  waitForClose(ms = 3000): Promise<number> {
+    if (this.closed) return Promise.resolve(this.closed.code);
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.ws.off("close", onClose);
+        reject(new Error("timeout waiting for WebSocket close"));
+      }, ms);
+      const onClose = (code: number) => {
+        clearTimeout(timer);
+        resolve(code);
+      };
+      this.ws.once("close", onClose);
+    });
+  }
   next(test: (m: ServerMessage) => boolean, ms = 3000) {
     return new Promise<ServerMessage>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error("timeout waiting for message")), ms);

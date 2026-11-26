@@ -1,5 +1,5 @@
 import type { DiceMaterial } from "./sound-packs";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { nextHoldOrder, shiftHoldOrder } from "./hold-order";
 import type { Game } from "./engine";
 import { Dice } from "./Dice";
@@ -10,6 +10,8 @@ import { useScoreFx, type ScoreFx } from "./score-fx";
 import { beginDiceMotion } from "./dice-motion";
 import { DieIcon } from "./Dice";
 import { StraightFlash, YachtFlash } from "./yacht-moment";
+
+const TABLE_TIMEOUT_MS = 12_000;
 
 type Props = {
   material?: DiceMaterial;
@@ -26,8 +28,9 @@ type Props = {
    * decides it so both players see the same shelf; otherwise tracked here from the `held` flags.
    */
   holdOrder?: readonly number[];
-  /** Dice lab only. */
+  /** Explicit visual mode for the dice lab or a static tutorial placeholder. */
   forceRenderer?: DiceRenderer;
+  onRendererReady?: () => void;
   /** Dice theme (online play: the player whose turn it is; the same on every screen). */
   colors?: { face: string; pip: string; edge: string } | null;
 };
@@ -38,19 +41,41 @@ type Props = {
  *  - otherwise the original DOM row with 2.5D motion (or no motion), same hold/re-roll/score rules.
  * The mode only changes between turns (before the first roll), never in the middle of one.
  */
-export function DiceArea({ forceRenderer, colors = null, material, soundEnabled = true, ...props }: Props) {
+export function DiceArea({ forceRenderer, onRendererReady, colors = null, material, soundEnabled = true, ...props }: Props) {
   const settings = useSettings();
   const renderer = forceRenderer ?? diceRenderer(settings);
   const want3d = !!props.animate && (renderer === "3d" || renderer === "3d-high");
   const [mod, setMod] = useState<DiceTableModule | null>(diceTableModule);
   const [failed, setFailed] = useState(false);
   const [use3d, setUse3d] = useState(want3d && !!mod);
+  const [readyRenderer, setReadyRenderer] = useState<DiceRenderer | null>(null);
+  const firstRoll = props.state.rolls === 0;
+  useLayoutEffect(() => {
+    if (!want3d || failed || readyRenderer === renderer || !firstRoll) return;
+    // The game may be entered directly on a cold connection. Use the same input lock as a throw.
+    const release = beginDiceMotion(TABLE_TIMEOUT_MS + 1000);
+    const timeout = window.setTimeout(() => setFailed(true), TABLE_TIMEOUT_MS);
+    return () => {
+      window.clearTimeout(timeout);
+      release();
+    };
+  }, [want3d, failed, readyRenderer, renderer, firstRoll]);
   useEffect(() => {
-    if (want3d && !mod) void loadDiceTable().then((m) => m && setMod(m));
-  }, [want3d, mod]);
+    if (!want3d || mod || failed) return;
+    let active = true;
+    void loadDiceTable().then((module) => {
+      if (!active) return;
+      if (module) setMod(module);
+      else setFailed(true);
+    });
+    return () => { active = false; };
+  }, [want3d, mod, failed]);
   useEffect(() => {
     if (props.state.rolls === 0 || forceRenderer) setUse3d(want3d && !!mod);
   }, [props.state.rolls, want3d, mod, forceRenderer]);
+  useEffect(() => {
+    if (!want3d || failed) onRendererReady?.();
+  }, [want3d, failed, onRendererReady]);
   const fx = useScoreFx();
   // Selection order of held dice (presentation only; the engine's values and held flags are untouched).
   const auto = useRef<number[]>([]);
@@ -65,10 +90,14 @@ export function DiceArea({ forceRenderer, colors = null, material, soundEnabled 
         rerender();
       };
   const physical = use3d && mod && !failed && (renderer === "3d" || renderer === "3d-high");
+  const tableReady = () => {
+    setReadyRenderer(renderer);
+    onRendererReady?.();
+  };
   if (physical)
     return (
       <>
-        <PhysicalDice key={renderer} colors={colors} material={material} soundEnabled={soundEnabled} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} adaptive={!forceRenderer && settings.diceQuality === "auto"} interactive={!!props.interactive} focusDie={props.focusDie} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onFailure={() => setFailed(true)} />
+        <PhysicalDice key={renderer} colors={colors} material={material} soundEnabled={soundEnabled} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} adaptive={!forceRenderer && settings.diceQuality === "auto"} interactive={!!props.interactive} focusDie={props.focusDie} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onReady={tableReady} onFailure={() => setFailed(true)} />
         <ScoreFxLabel fx={fx} />
         {props.animate && <YachtFlash soundEnabled={soundEnabled} dice={props.state.dice} rolls={props.state.rolls} rollEvent={props.rollEvent ?? 0} />}
         {props.animate && <StraightFlash soundEnabled={soundEnabled} dice={props.state.dice} rolls={props.state.rolls} rollEvent={props.rollEvent ?? 0} />}

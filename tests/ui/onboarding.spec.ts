@@ -4,6 +4,16 @@ import { scoreCategory, withMotion } from "./helpers";
 test.describe("최초 방문", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
+  test("앱 코드가 늦어도 정적 첫 화면의 여백은 페이지 전체를 밀지 않는다", async ({ page }) => {
+    await page.route(/\/(?:assets\/index-[^/]+\.js|src\/main\.tsx)$/, (route) => route.abort());
+    await page.goto("");
+    const shell = page.locator(".initial-shell");
+    await expect(shell.getByRole("heading", { name: "온라인 요트다이스" })).toBeVisible();
+    expect(await page.locator("body").evaluate((body) => body.getBoundingClientRect().top)).toBe(0);
+    const logoTop = await shell.locator("img").evaluate((logo) => logo.getBoundingClientRect().top / innerHeight);
+    expect(logoTop).toBeCloseTo(0.12, 1);
+  });
+
   test("강조된 조작만 허용하고 고정 시나리오를 기록한다", async ({ page }) => {
     await page.goto("");
     const guide = page.getByRole("region", { name: "튜토리얼" });
@@ -41,6 +51,34 @@ test.describe("최초 방문", () => {
     await page.getByRole("button", { name: "한 차례 연습하기" }).click();
     await expect(page.getByRole("region", { name: "한 차례 연습하기" })).toBeVisible();
     await expect(guide).toHaveCount(0);
+  });
+
+  test("첫 표시에서는 WebGL을 만들지 않고 첫 굴림부터 같은 크기의 실제 3D 보드를 사용한다", async ({ page }) => {
+    // The default motion is 3D. A persisted quality setting is a returning-visitor marker.
+    await withMotion(page);
+    await page.addInitScript(() => {
+      const context = HTMLCanvasElement.prototype.getContext;
+      const diagnostics = window as unknown as { webglCalls: number };
+      diagnostics.webglCalls = 0;
+      HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, type: string, options?: unknown) {
+        if (type.startsWith("webgl")) diagnostics.webglCalls++;
+        return Reflect.apply(context, this, [type, options]);
+      } as typeof context;
+    });
+    await page.goto("");
+    const guide = page.getByRole("region", { name: "튜토리얼" });
+    const board = guide.locator(".guided-dice");
+    const roll = guide.getByRole("button", { name: "주사위 굴리기" });
+    await expect(roll).toBeEnabled();
+    await expect(board.locator("canvas")).toHaveCount(0);
+    expect(await page.evaluate(() => (window as unknown as { webglCalls: number }).webglCalls)).toBe(0);
+    const height = (await board.boundingBox())!.height;
+    await roll.click();
+    await expect(board.locator("canvas")).toBeVisible();
+    await expect(board.locator(".die-hit").first()).toBeEnabled();
+    expect((await board.boundingBox())!.height).toBe(height);
+    const result = await page.evaluate(() => (window as unknown as { __yachtlabDice: { last: { mode: string } } }).__yachtlabDice.last.mode);
+    expect(result).toBe("3d");
   });
 
   test("초대 URL을 유지하고 건너뛴 뒤 다시 열지 않는다", async ({ page }) => {
@@ -115,6 +153,9 @@ test("한 차례 연습과 튜토리얼은 3D 테이블의 충돌·착지·킵�
   await page.goto("#practice");
   const guide = page.getByRole("region", { name: "한 차례 연습하기" });
   const tray = guide.locator(".physical-dice");
+  const shelf = tray.locator(".dice-hold-area");
+  await expect(shelf).toHaveAttribute("aria-hidden", "true");
+  await expect(shelf).not.toHaveAttribute("aria-label", /.+/);
   await expect(tray.locator("canvas")).toBeVisible();
   const roll = guide.getByRole("button", { name: "주사위 굴리기" });
   await roll.click();
@@ -137,6 +178,7 @@ test("한 차례 연습과 튜토리얼은 3D 테이블의 충돌·착지·킵�
   }
   await dice.nth(0).click();
   await expect(dice.nth(0)).toHaveAttribute("data-zone", "hold");
+  await expect(tray.getByRole("button", { name: "주사위 1, 6, 고정됨", exact: true })).toHaveAttribute("aria-pressed", "true");
   await dice.nth(1).click();
   await expect(dice.nth(1)).toHaveAttribute("data-zone", "hold");
   await dice.nth(1).click();

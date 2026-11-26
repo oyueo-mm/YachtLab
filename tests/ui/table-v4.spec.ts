@@ -23,7 +23,9 @@ async function table(browser: Browser, baseURL: string, viewport: { width: numbe
   await host.goto(entry + "#online");
   await nick(host, "방장");
   await host.getByRole("button", { name: "방 만들기", exact: true }).click();
-  const code = await host.getByLabel("초대 코드", { exact: true }).innerText();
+  const lobbyCode = host.getByRole("region", { name: "대기실" }).getByLabel("초대 코드", { exact: true });
+  await expect(lobbyCode).toHaveText(/^[A-Z0-9]{6}$/);
+  const code = await lobbyCode.innerText();
   await guest.goto(entry + `&room=${code}#online`);
   await nick(guest, "손님");
   await guest.getByRole("button", { name: "입장하기", exact: true }).click();

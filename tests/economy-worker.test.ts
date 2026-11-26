@@ -152,6 +152,54 @@ describe("경제 통합 시나리오 (wrangler dev + 가짜 로컬 로그인)", 
     expect((await fetch(worker.url + reviewPath, { headers: { origin: ORIGIN } })).status).toBe(401);
   });
 
+  it("결과 화면에서 재접속하고 같은 방에서 재대결해도 두 경기의 기보와 보상을 한 번씩 저장한다", async () => {
+    const a = await login("rematch-alice");
+    const b = await login("rematch-bob");
+    const metrics = () => call(ADMIN, "/api/admin/metrics");
+    const before = (await metrics()).body.usage;
+    const created = await call(a.session, "/api/rooms", { name: "재대결A", maxPlayers: 2 });
+    expect(created.status).toBe(201);
+    const { code, token } = created.body;
+    const joined = await call(b.session, "/api/rooms/" + code + "/join", { name: "재대결B" });
+    expect(joined.status).toBe(201);
+    const ca = new Client(worker.url, code);
+    const cb = new Client(worker.url, code);
+    await ca.hello(token);
+    await cb.hello(joined.body.token);
+    expect((await ca.cmd({ type: "start" })).ok).toBe(true);
+    await playOut([ca, cb]);
+    expect(ca.view?.status).toBe("finished");
+    const first = ca.view!.matchId!;
+    cb.ws.close();
+    await cb.waitForClose();
+
+    const resumed = new Client(worker.url, code);
+    await resumed.hello(joined.body.token);
+    expect(resumed.view).toMatchObject({ status: "finished", matchId: first });
+    const rematch = ca.next((m) => m.t === "view" && m.view.status === "playing" && m.view.matchId !== first, 5000);
+    const requested = ca.next((m) => m.t === "rematch" && m.rematch.requests.length > 0, 5000);
+    resumed.ws.send(JSON.stringify({ t: "rematch", op: "request" }));
+    await requested;
+    ca.ws.send(JSON.stringify({ t: "rematch", op: "start" }));
+    await rematch;
+    const second = ca.view!.matchId!;
+    await playOut([ca, resumed]);
+    expect(ca.view).toMatchObject({ status: "finished", matchId: second });
+
+    for (const { session } of [a, b]) {
+      for (const id of [first, second]) {
+        await expect.poll(async () => (await call(session, `/api/me/records/${id}/reward`)).status).toBe(200);
+        const { status, body } = await call(session, `/api/me/records/${id}/review`);
+        expect(status).toBe(200);
+        expect(body.review.steps).toHaveLength(24);
+      }
+      const { body } = await call(session, "/api/me/economy");
+      const matchRows = body.snapshot.ledger.filter((row: { id: string }) => row.id.startsWith("m:"));
+      expect(matchRows.map((row: { id: string }) => row.id).sort()).toEqual([`m:${first}`, `m:${second}`].sort());
+    }
+    expect((await metrics()).body.usage.roomsToday).toBe(before.roomsToday + 2);
+  }, 30_000);
+
   it("로그인 → 회원 빠른 대전 12라운드 → 서버 기록·코인·퀘스트 → 상점·중복 요청·잔액 부족·장착 검증 → 다음 상대에게 표시 → 서버 AI 대전 → 탈퇴·재가입", async () => {
     const a = await login("alice");
     const b = await login("bob");

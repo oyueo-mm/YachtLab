@@ -118,8 +118,6 @@ test("기존 직접 주소 #play / #pvp 는 저장된 설정으로 바로 게임
 
 type TableDie = { id: number; value: number; held: boolean; x?: number; y?: number; z?: number; top?: number; zone?: string; hidden?: boolean };
 const tableState = (page: Page) => page.evaluate(() => (window as unknown as { __yachtlabDice?: { table?: () => TableDie[] } }).__yachtlabDice?.table?.() ?? []);
-const waitLoaded3d = (page: Page) =>
-  expect.poll(() => page.evaluate(() => performance.getEntriesByType("resource").some((r) => /table-.*\.js|stage-.*\.js|dice3d\/table/.test(r.name)))).toBe(true);
 const settled = async (page: Page) => {
   await expect(page.locator(".dice-animating")).toHaveCount(0, { timeout: 8000 });
   await page.waitForTimeout(350); // hold/release slides are 260 ms
@@ -128,14 +126,39 @@ const clickDie = async (page: Page, id: number) => {
   const box = (await page.locator(`.die-hit[data-die-id="${id}"]`).boundingBox())!;
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 };
-/** Enter a fresh AI game with the 3D table active (the 3D chunk loads when idle). */
+/** Enter a fresh AI game and observe the actual 3D canvas. */
 async function open3d(page: Page, quality: "3d-high" | "3d" = "3d") {
   await withMotion(page, quality);
-  await page.goto("#home");
-  await waitLoaded3d(page);
   await page.goto("#play");
-  await expect(page.locator(".physical-dice")).toBeVisible();
+  await expect(page.locator(".physical-dice canvas")).toBeVisible();
 }
+
+test.describe("콜드 3D 로딩", () => {
+  test.use({ serviceWorkers: "block" });
+  test("게임으로 바로 열어도 첫 굴림은 물리판이 준비된 뒤 실행된다", async ({ page }) => {
+    await withMotion(page, "3d");
+    let resume!: () => void;
+    const held = new Promise<void>((resolve) => { resume = resolve; });
+    await page.route(/\/(?:stage-[^/]+\.js|dice3d\/stage\.ts)$/, async (route) => {
+      await held;
+      await route.continue();
+    });
+    try {
+      await page.goto("#play", { waitUntil: "domcontentloaded" });
+      const roll = page.getByRole("button", { name: "주사위 굴리기" });
+      await expect(roll).toBeDisabled();
+      await expect(page.locator(".physical-dice canvas")).toHaveCount(0);
+      resume();
+      await expect(page.locator(".physical-dice canvas")).toBeVisible();
+      await roll.click();
+      await expect.poll(() => page.evaluate(() => (
+        window as unknown as { __yachtlabDice?: { last?: { mode: string } } }
+      ).__yachtlabDice?.last?.mode)).toBe("3d");
+    } finally {
+      resume();
+    }
+  });
+});
 
 for (const quality of ["3d-high", "3d"] as const)
   test(`3D 주사위(${quality}): 착지한 위치·방향을 유지하고 고정 영역으로 옮겨지며 재굴림·해제·점수가 엔진과 일치한다`, async ({ page }) => {

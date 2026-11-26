@@ -147,7 +147,7 @@ export type RoomDeps = {
    * May one more match start in this room? Returns null when it may, otherwise a message for the
    * players. The Durable Object host counts it toward the daily cap (rooms + rematches).
    */
-  allowMatch?: (weight?: number) => Promise<string | null> | string | null;
+  allowMatch?: (weight: number, matchNo: number) => Promise<string | null> | string | null;
 };
 
 /** A live socket, as seen by the room. `playerId` is set only after a successful `hello`. */
@@ -758,7 +758,7 @@ export class OnlineRoom {
     // creation already used one).
     const extra = Math.ceil(players.length / 2) - 1;
     if (extra > 0) {
-      const block = (await this.deps.allowMatch?.(extra)) ?? null;
+      const block = (await this.deps.allowMatch?.(extra, this.record.matchNo ?? 1)) ?? null;
       if (block) return nack("DAILY_LIMIT", block);
     }
     const ordered = [players.find((p) => p.playerId === playerId)!, ...players.filter((p) => p.playerId !== playerId).sort((a, b) => a.seat - b.seat)];
@@ -1087,13 +1087,13 @@ export class OnlineRoom {
 
   private async startRematch(requests: string[]) {
     const joining = this.state.players.filter((p) => requests.includes(p.playerId));
-    const block = (await this.deps.allowMatch?.(Math.max(1, Math.ceil(joining.length / 2)))) ?? null;
+    const matchNo = (this.record.matchNo ?? 1) + 1;
+    const block = (await this.deps.allowMatch?.(Math.max(1, Math.ceil(joining.length / 2)), matchNo)) ?? null;
     if (block) {
       this.rematchBlocked = block;
       await this.saveRecord({ ...this.record, rematch: null });
       return this.broadcastRematch();
     }
-    const matchNo = (this.record.matchNo ?? 1) + 1;
     // Alternate who starts: seats rotate by one (two players: swap).
     const bySeat = [...joining].sort((a, b) => a.seat - b.seat);
     const order = [...bySeat.slice(1), bySeat[0]];
@@ -1190,6 +1190,14 @@ export class OnlineRoom {
   }
 
   /** Close every socket; the host then drops the room and its stored record. */
+  closeIf(condition: () => boolean): Promise<boolean> {
+    return this.serial(() => {
+      if (!condition()) return false;
+      this.closeRoom();
+      return true;
+    });
+  }
+
   closeRoom() {
     this.closed = true;
     this.deps.schedule(null);

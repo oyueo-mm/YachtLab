@@ -55,7 +55,7 @@ export type HostEvents = {
   /** The room was cleaned up (idle / max age). The shell tells the directory. */
   onDeleted?: (code: string) => void | Promise<void>;
   /** A rematch wants to start: null = allowed (and counted), otherwise the reason it is not. */
-  allowMatch?: (code: string, weight?: number) => Promise<string | null> | string | null;
+  allowMatch?: (code: string, weight: number, matchNo: number) => Promise<string | null> | string | null;
   /** Deliver a server-verified result to an account; true when stored (or already there). */
   deliverRecord?: (userId: string, record: MatchRecord) => Promise<boolean>;
   /** Public spectating list: the room's entry (or null to remove it). Best effort. */
@@ -79,7 +79,7 @@ export const RECORD_RETRY_MS = 60_000;
  *    `emptyFinishedMs` (a finished room: nobody is left to ask for a rematch). An empty waiting room
  *    empties itself through the seat rule above.
  *  - A waiting room that never starts is removed `unusedLobbyMs` after it was created; a finished
- *    room whose players stay on the result screen without doing anything, after `finishedOpenMs`.
+ *    room whose players stay on the result screen without doing anything, after the configured idle time.
  * Who is absent since when is kept in memory and in the remaining sockets' attachments (survives
  * hibernation, costs no storage writes); with no socket left, the last saved activity is used, so a
  * room is cleaned up earlier rather than later after an eviction.
@@ -89,8 +89,6 @@ export const LIFECYCLE = {
   lobbySeatGraceMs: 10 * 60_000,
   emptyPlayingMs: { friend: 15 * 60_000, random: 5 * 60_000, ai: 5 * 60_000 } as Record<string, number>,
   emptyFinishedMs: 3 * 60_000,
-  /** A finished room whose players still look at the result: removed after this long without activity. */
-  finishedOpenMs: 60 * 60_000,
   unusedLobbyMs: 2 * 3600_000,
 };
 /**
@@ -129,12 +127,12 @@ export class RoomHost {
         this.turnDeadline = at;
         this.rearm();
       },
-      allowMatch: (weight?: number) => {
+      allowMatch: (weight: number, matchNo: number) => {
         const room = this.room;
         if (!room) return "방을 찾을 수 없어요.";
         // A rematch needs time to finish before the room's retention limit removes it.
         if (this.now() > room.createdAt + this.config.maxAgeMs - 2 * 3600_000) return "이 방은 곧 정리돼요. 새 방을 만들어 주세요.";
-        return this.events.allowMatch?.(room.code, weight) ?? null;
+        return this.events.allowMatch?.(room.code, weight, matchNo) ?? null;
       },
     };
   }
@@ -282,6 +280,7 @@ export class RoomHost {
   async flushRecords() {
     const room = this.room;
     if (!room || this.delivering || !this.events.deliverRecord) return;
+    if (this.retryAt !== null && this.now() < this.retryAt) return;
     const pending = room.pendingRecords();
     if (!pending.length) return void (this.retryAt = null);
     this.delivering = true;
@@ -382,13 +381,26 @@ export class RoomHost {
   private async remove() {
     const room = this.room;
     if (!room || this.deleted) return;
-    // Last attempt to hand results to accounts before the room's data is deleted.
     await this.flushRecords();
-    this.deleted = true;
+    // Recheck inside the room queue: a rematch can be waiting for its budget or saving its new log.
+    const closed = await room.closeIf(() => {
+      if (this.room !== room || this.deleted) return false;
+      // The room is the durable outbox. Keep it through account-store failures and lost replies.
+      if (this.events.deliverRecord && room.pendingRecords().length) {
+        this.retryAt ??= this.now() + RECORD_RETRY_MS;
+        return false;
+      }
+      if (!room.isClosed && (this.cleanupAt() ?? Infinity) > this.now()) return false;
+      this.deleted = true;
+      return true;
+    });
+    if (!closed) {
+      this.rearm();
+      return;
+    }
     if (this.aiTimer) clearTimeout(this.aiTimer);
     if (room.isPublic) await Promise.resolve(this.events.publish?.(room.code, null)).catch(() => undefined);
     if (room.kind === "random" && !this.endedSent) await Promise.resolve(this.events.matchEnded?.(room.code)).catch(() => undefined);
-    room.closeRoom();
     this.storage.deleteAlarm();
     await this.storage.clear();
     this.room = null;
@@ -455,6 +467,12 @@ export class RoomHost {
 
   /** When the room should be removed if nothing else happens. */
   private cleanupAt(): number | null {
+    const expiry = this.roomExpiry();
+    if (expiry === null || this.retryAt === null || expiry > this.now()) return expiry;
+    return Math.max(expiry, this.retryAt);
+  }
+
+  private roomExpiry(): number | null {
     const room = this.room;
     if (!room) return null;
     const hardStop = room.createdAt + this.config.maxAgeMs;
@@ -467,8 +485,8 @@ export class RoomHost {
       return present.length ? unused : Math.min(unused, lastLeft + this.config.lobbyIdleMs);
     }
     if (status === "finished") {
-      if (!present.length) return Math.min(hardStop, lastLeft + LIFECYCLE.emptyFinishedMs);
-      return Math.min(hardStop, room.touchedAt + LIFECYCLE.finishedOpenMs);
+      const idle = present.length ? room.touchedAt + this.config.resultIdleMs : lastLeft + LIFECYCLE.emptyFinishedMs;
+      return Math.min(hardStop, idle);
     }
     if (!present.length) return Math.min(hardStop, lastLeft + (LIFECYCLE.emptyPlayingMs[room.kind] ?? LIFECYCLE.emptyPlayingMs.friend));
     return hardStop;
