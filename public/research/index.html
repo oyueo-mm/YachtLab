@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YachtLab 요트다이스 AI 연구 | 대국 벤치마크 v2–v7</title>
+  <meta name="description" content="12칸 요트다이스 AI v2–v7 연구. 승리점수율과 시드쌍 신뢰구간, 정확 종반 결정 손실, 계산 비용, 서비스 모델 v4-D의 근거를 공개합니다.">
+  <link rel="canonical" href="https://oyueo-mm.github.io/YachtLab/research/">
+  <link rel="alternate" hreflang="ko" href="https://oyueo-mm.github.io/YachtLab/research/">
+  <link rel="alternate" hreflang="en" href="https://oyueo-mm.github.io/YachtLab/research/en/">
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48">
+  <link rel="stylesheet" href="../site/page.css">
+  <link rel="stylesheet" href="../site/research.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Online Yacht">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:title" content="YachtLab 요트다이스 AI 연구 | 대국 벤치마크 v2–v7">
+  <meta property="og:description" content="12칸 요트다이스 AI v2–v7 연구. 승리점수율과 시드쌍 신뢰구간, 정확 종반 결정 손실, 계산 비용, 서비스 모델 v4-D의 근거를 공개합니다.">
+  <meta property="og:url" content="https://oyueo-mm.github.io/YachtLab/research/">
+  <meta property="og:image" content="https://oyueo-mm.github.io/YachtLab/icons/share.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Online Yacht 워드마크와 주사위 눈이 들어간 돛단배 로고">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Online Yacht","item":"https://oyueo-mm.github.io/YachtLab/"},{"@type":"ListItem","position":2,"name":"AI 연구","item":"https://oyueo-mm.github.io/YachtLab/research/"}]},{"@type":"TechArticle","@id":"https://oyueo-mm.github.io/YachtLab/research/#article","headline":"YachtLab 요트다이스 AI 연구","description":"12칸 요트다이스 AI v2–v7 연구. 승리점수율과 시드쌍 신뢰구간, 정확 종반 결정 손실, 계산 비용, 서비스 모델 v4-D의 근거를 공개합니다.","url":"https://oyueo-mm.github.io/YachtLab/research/","mainEntityOfPage":"https://oyueo-mm.github.io/YachtLab/research/","inLanguage":"ko","author":{"@type":"Organization","name":"YachtLab","url":"https://github.com/oyueo-mm/YachtLab"},"genre":"프로젝트 연구 보고서","isBasedOn":["https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md","https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-PRODUCT-HANDOFF.md","https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/audits/release-hardening-2026-11-26/research-handoff.md"],"citation":["https://www.nintendo.com/au/games/nintendo-switch/51-worldwide-games/","https://research.tue.nl/en/publications/optimal-solitaire-yahtzee-player-amp-proficiency-test/","https://doi.org/10.3233/ICG-2011-34103","https://doi.org/10.1609/aaai.v32i1.11791","https://doi.org/10.1287/mnsc.38.6.884","https://www.jstor.org/stable/4615733","https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/RESULTS.md","https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v5/confirm-9501/FINAL.md","https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V6-APEX-RESEARCH.md","https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm/summary.md"],"workTranslation":{"@id":"https://oyueo-mm.github.io/YachtLab/research/en/#article"}}]}</script>
+</head>
+<body>
+  <header class="site-top"><div class="top">
+    <a class="brand" href="../"><img src="../icons/online-yacht-wordmark.svg" alt="Online Yacht 홈" width="139" height="32"></a>
+    <a class="play" href="../#online">지금 플레이</a>
+  </div>
+  <nav class="site-nav" aria-label="사이트"><a href="../">홈</a><a href="../guide/">규칙</a><a href="../scores/">족보·점수판</a><a href="../probability/">확률 계산기</a><a href="../strategy/">전략</a><a href="../ai/">AI 대전</a><a href="../multiplayer/">친구 대전</a><a href="../faq/">FAQ</a></nav></header>
+  <main>
+<article class="research-article">
+<header class="research-heading">
+<h1>YachtLab 요트다이스 AI 연구</h1>
+<p><a href="./en/" rel="alternate" hreflang="en" lang="en">Read in English</a></p>
+<p class="note">연구 기록 기준일 <time datetime="2026-11-26">2026년 11월 26일</time></p>
+</header>
+<nav class="toc" aria-label="연구 목차">
+  <a href="#abstract">초록</a>
+  <a href="#background">배경</a>
+  <a href="#related-work">관련 연구</a>
+  <a href="#problem-formulation">문제 정의</a>
+  <a href="#methodology">연구 방법</a>
+  <a href="#model-evolution">모델의 발전 과정</a>
+  <a href="#experimental-setup">실험 설계</a>
+  <a href="#benchmark-results">벤치마크 결과</a>
+  <a href="#ablation-study">구성 요소 비교</a>
+  <a href="#computational-cost">계산 비용</a>
+  <a href="#limitations">한계</a>
+  <a href="#reproducibility">재현 방법</a>
+  <a href="#future-work">후속 연구</a>
+  <a href="#references">참고문헌</a>
+</nav>
+<section id="abstract">
+<h2>초록</h2>
+<p class="lead">YachtLab은 12칸 요트다이스에서 상대의 대응을 미리 계산하면 대국 성능이 높아지는지 검증했습니다. v7 모델은 정확한 종반 결정 손실을 줄였고, 전체 대국에서는 사전 등록한 선정 규칙에 따라 v6-P가 연구 기준 최강 모델로 남았습니다. 분포표 하나를 쓰는 I2RO1은 두 시드군에서 v4-D를 앞섰으며, v5-R 대비 우위는 아직 미확정입니다. 서비스의 무료 ‘매우 어려움’은 Win DP v4-D를 사용합니다. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">v7 연구 기록</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-PRODUCT-HANDOFF.md">제품 인수인계</a></p>
+</section>
+<section id="background">
+<h2>배경</h2>
+<p>YachtLab은 공정한 6면체 주사위 5개, 차례당 최대 3회 굴림, 점수 칸 12개를 쓰는 닌텐도식 요트다이스입니다. 상단 합계가 63점 이상이면 35점이 추가됩니다. DP Expert는 단독 플레이의 기대 총점을 최대화하는 기준 정책이며, 시작 시 이론 기대값은 191.760879752165점입니다. 대국에서 좋은 선택은 상대의 점수와 남은 칸에 따라 달라질 수 있습니다. <a href="../guide/">게임 규칙</a> · <a href="../scores/">족보와 점수판</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/dp/README.md">DP 기준선</a></p>
+</section>
+<section id="related-work">
+<h2>관련 연구</h2>
+<p>Verhoeff와 Scheffers는 단독 Yahtzee의 최적 정책을 구현했습니다. Pawlewicz는 참가자 상태를 함께 고려해야 하는 다인 Yahtzee와 그 근사 해법을 연구했습니다. 두 연구는 기대점수와 대국 성능을 구분하는 데 참고가 됩니다. 각 문헌의 점수와 성능 수치는 미국식 Yahtzee 규칙에 따릅니다. Nintendo의 소개에서 요트다이스의 규칙 계열을 확인할 수 있으며, 벤치마크의 세부 규칙은 YachtLab 엔진에 따릅니다. <a href="#ref-verhoeff">Verhoeff·Scheffers (1999)</a> · <a href="#ref-pawlewicz">Pawlewicz (2011)</a> · <a href="#ref-nintendo">Nintendo</a></p>
+</section>
+<section id="problem-formulation">
+<h2>문제 정의</h2>
+<p>판단에 쓰는 정보는 공개된 주사위 눈, 사용한 굴림 횟수, 양쪽 점수판, 그리고 현재 차례입니다. 빈 칸에 점수를 쓰거나 굴림이 남았으면 일부 주사위를 킵하고 나머지를 다시 굴릴 수 있습니다. 내 최종 점수를 <var>S</var>, 상대 점수를 <var>T</var>라 하면 목표는 <strong>P(<var>S</var> &gt; <var>T</var>) + ½ P(<var>S</var> = <var>T</var>)</strong>를 최대화하는 것입니다. 상대 정책을 고정하면 내 예상 점수 <var>s</var>의 가치는 <var>T</var>가 <var>s</var>보다 낮을 확률에 동점 확률의 절반을 더한 값입니다. 점수분포를 쓰면 동점과 패배 위험을 함께 반영할 수 있습니다.</p>
+</section>
+<section id="methodology">
+<h2>연구 방법</h2>
+<ol class="research-flow" role="list"><li><strong>공개 상태</strong>주사위, 남은 굴림, 양쪽 점수판</li><li><strong>합법 행동</strong>킵과 재굴림 또는 점수 기록</li><li><strong>이후 점수분포</strong>고정 정책 PMF 또는 상대 대응 혼합</li><li><strong>정지가치 비교</strong>승리 확률과 동점 확률의 절반</li></ol>
+<p>턴 솔버는 주사위 눈의 중복 조합을 열거하고 재굴림 결과에 정확한 확률을 곱합니다. 각 킵의 기대 가치와 지금 기록할 때의 정지가치를 비교합니다. 미래 점수의 확률질량함수(PMF)는 남은 칸을 나타내는 비트마스크와 상단 누적 점수별로 저장합니다. 이 분포는 지정한 정책과 동률 처리 순서에 대해 정확합니다. 점수판에 반응하는 상대에게 고정 정책 롤아웃을 적용하면 근사가 됩니다.</p>
+<p>종반 평가에서는 각 추정값을 정지가치로 삼아 정확한 턴 솔버로 정책을 구합니다. 그런 다음 상대의 대응까지 포함하는 정확한 expectiminimax 솔버로 이 정책의 가치를 평가합니다. <dfn>결정 손실(regret)</dfn>은 기준 솔버의 최적 턴 가치에서 후보 정책의 턴 가치를 뺀 값이며, 턴당 퍼센트포인트(%p)로 표시합니다. 각 표본 국면의 계산에는 가능한 굴림 결과가 모두 포함됩니다. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V5-APEX-RESEARCH.md">분포와 솔버 방법</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">정확 결정 손실 평가</a></p>
+</section>
+<section id="model-evolution">
+<h2>모델의 발전 과정</h2>
+<p>앞선 학습 실험에서는 자기대국 PPO와 DP 교사, 분포형 강화학습 QR-DQN을 비교했습니다. 12라운드 QR-DQN 파일럿은 행동별 최종 승점 분포의 분위수 16개를 학습합니다. 앞서 정의한 PMF는 고정 정책의 최종 점수분포를 정확히 계산하는 데 쓰입니다. DP 교사를 쓴 PPO의 Win DP v2 상대 평균은 50.069%였습니다(초기화 3개, 각각 미사용 시드 1,200경기, 초기화 간 95% 구간 49.335–50.804%). 이 비교에서 우위는 미확정입니다. <a href="#ref-qr-dqn">Dabney 외 (2018)</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/FULLGAME-OFFPOLICY-RESEARCH.md">전체 경기 강화학습 실험</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/EXTENDED-PSRO-PMF-PPO-RESULTS.md">PPO 다중 시드 결과</a></p>
+<dl>
+<dt><strong>Win DP v2·v3</strong></dt><dd>v2는 상대가 남은 차례에 DP Expert처럼 둔다고 보고, 마지막 2칸까지 경쟁 목적의 Bellman 계산을 확장했습니다. v3는 내 마지막 3칸을 계산하고 상대가 3칸 이상 남았을 때 상대 점수분포를 가우시안으로 근사합니다.</dd>
+<dt><strong>Win DP v4-D</strong></dt><dd>고정된 REINFORCE 잔차 정책 체크포인트와 v3.3 계열 종반 정책을 사용합니다. 벤치마크는 서비스에 등록된 v4-D 구현을 호출하며, 선택형 v3.3 팩과 v3.4 상대 대응 기능은 비활성 상태입니다.</dd>
+<dt><strong>v5-R·v6-P</strong></dt><dd>v5-R은 현재 턴의 승리점수율을 최적화하고 이후 양쪽에 DP Expert 점수분포를 적용합니다. v6-P는 상대를 DP Expert로 예측하면서, 내 미래 플레이에는 위험 선호가 다른 지수효용 정책 7개 중 최선인 하나를 선택합니다.</dd>
+<dt><strong>v7 상대 대응 모델</strong></dt><dd>I1RO는 v5-R 목적함수로 상대의 다음 턴을 풀고, 그 결과들을 섞어 상대의 최종점수 분포를 만든 뒤 내 이후 가치를 구합니다. I2RO1은 DP Expert 분포표 하나를 사용하며, 이 혼합 분포에 대해 내 다음 턴도 정확히 풉니다. I2R1은 상대의 결과마다 내 다음 턴을 따로 풉니다.</dd>
+</dl>
+<p><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/src/ai.ts#L146">서비스 v4-D 구현</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/scripts/research-v5/agents.ts">대국 평가 모델 목록</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V6-APEX-RESEARCH.md">v6 정책군</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-PRODUCT-HANDOFF.md">I2RO1 알고리즘</a></p>
+</section>
+<section id="experimental-setup">
+<h2>실험 설계</h2>
+<p>모든 대진은 1대1 완전 대국입니다. 시드마다 좌석을 바꿔 두 경기를 진행해 각 정책이 한 번씩 선공합니다. 엔진은 좌석별로 별도의 주사위 난수열을 사용하며, 같은 시드의 좌석 교대 경기와 의도적으로 짝지은 비교 대진에는 동일한 난수열을 다시 사용합니다. 정책에는 시드와 난수 생성기 상태를 지운 공개 상태를 전달합니다. 두 경기의 평균 승점을 시드쌍 관측치 하나로 처리합니다. 공통 상대 대비는 같은 시드에서 두 정책의 쌍별 평균 승점 차이로 구합니다. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/scripts/research-v5/bench.ts">대국 실행기</a> · <a href="#ref-glasserman-yao">Glasserman·Yao (1992)</a></p>
+<p>신뢰구간은 시드쌍 단위의 양측 정규 근사입니다. 초기 v2는 95%, 이후 표의 대진은 99%입니다. 사전 등록 우월성 검정에는 단측 p값을 사용하고, 계획에 지정된 가설군에는 Holm 보정을 적용했습니다. 확증 대국은 표본 크기와 종료 규칙을 사전에 고정했습니다. 9001, 9011, 9101, 9102, 9107 등은 개발 또는 후보 선정에 사용한 시드군입니다. 9501/9502, 9511/9512, 9531/9541, 9551–9553, 9571/9581은 이후의 평가 시드군이며, 9553은 주로 기술 비교에 사용했습니다. 9591은 최종 후보 선정에 사용했습니다. <a href="#ref-holm">Holm (1979)</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">v7 사전 등록 계획</a></p>
+</section>
+<section id="benchmark-results">
+<h2>벤치마크 결과</h2>
+<p><strong>승리점수율</strong>은 (승리 수 + 0.5 × 무승부 수) / 경기 수입니다. 승률을 순수 승리 비율로 계산하면 승리 수 / 경기 수입니다. 예를 들어 100,000경기의 50,165승은 순수 승리 비율 50.165%이며, 766무를 반영한 승리점수율은 50.548%입니다. 첫 두 행의 시드는 v2의 기준값이고, 나머지는 시드군 번호입니다. 각 행은 고유 시드쌍 <var>n</var>개와 총 2<var>n</var>경기로 구성됩니다.</p>
+<div class="research-table" role="region" aria-labelledby="research-benchmark-table" tabindex="0">
+<table>
+  <caption id="research-benchmark-table">대진별 승리점수율과 시드쌍 신뢰구간</caption>
+  <thead><tr><th scope="col">대진 (A vs B)</th><th scope="col">시드</th><th scope="col">경기 / 쌍</th><th scope="col">A 승리점수율</th><th scope="col">쌍별 신뢰구간</th><th scope="col">실행</th></tr></thead>
+  <tbody><tr><th scope="row">Win DP v2 vs DP Expert</th><td>1,350,000</td><td>20,000 / 10,000</td><td>50.630%</td><td>50.406–50.854% (95%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/44690511514">44690511514</a></td></tr>
+    <tr><th scope="row">Win DP v2 vs Win DP v1</th><td>1,370,000</td><td>10,000 / 5,000</td><td>50.435%</td><td>50.132–50.738% (95%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/44690511514">44690511514</a></td></tr>
+    <tr><th scope="row">Win DP v3 vs Win DP v2</th><td>9501</td><td>100,000 / 50,000</td><td>50.175%</td><td>50.049–50.302% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45572667620">45572667620</a></td></tr>
+    <tr><th scope="row">v4-D vs Win DP v2</th><td>9501</td><td>40,000 / 20,000</td><td>50.179%</td><td>49.938–50.419% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45572667620">45572667620</a></td></tr>
+    <tr><th scope="row">v5-R vs Win DP v2</th><td>9501</td><td>100,000 / 50,000</td><td>50.626%</td><td>50.372–50.879% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45572667620">45572667620</a></td></tr>
+    <tr><th scope="row">v5-R vs Win DP v3</th><td>9501</td><td>100,000 / 50,000</td><td>50.479%</td><td>50.229–50.729% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45572667620">45572667620</a></td></tr>
+    <tr><th scope="row">v5-R vs DP Expert</th><td>9501</td><td>60,000 / 30,000</td><td>51.223%</td><td>50.891–51.554% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45572667620">45572667620</a></td></tr>
+    <tr><th scope="row">v5-R vs v4-D</th><td>9501</td><td>40,000 / 20,000</td><td>50.591%</td><td>50.193–50.989% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45572667620">45572667620</a></td></tr>
+    <tr><th scope="row">v6-P vs v5-R</th><td>9511</td><td>100,000 / 50,000</td><td>50.131%</td><td>50.005–50.257% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45606191583">45606191583</a></td></tr>
+    <tr><th scope="row">v6-P vs v5-R</th><td>9512</td><td>40,000 / 20,000</td><td>50.209%</td><td>50.010–50.408% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45606203906">45606203906</a></td></tr>
+    <tr><th scope="row">v7-I1RO vs v6-P</th><td>9531</td><td>100,000 / 50,000</td><td>50.091%</td><td>49.994–50.188% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45634704402">45634704402</a></td></tr>
+    <tr><th scope="row">v7-I1RO vs DP Expert</th><td>9531</td><td>40,000 / 20,000</td><td>51.392%</td><td>50.983–51.802% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45634710467">45634710467</a></td></tr>
+    <tr><th scope="row">v7-I1RO vs v5-R</th><td>9531</td><td>40,000 / 20,000</td><td>50.148%</td><td>49.925–50.370% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45634710467">45634710467</a></td></tr>
+    <tr><th scope="row">v7-I1RO vs v6-P</th><td>9541</td><td>100,000 / 50,000</td><td>50.136%</td><td>50.038–50.235% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45634717931">45634717931</a></td></tr>
+    <tr><th scope="row">v7-I1RO vs v6-P</th><td>9551</td><td>200,000 / 100,000</td><td>50.028%</td><td>49.958–50.098% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45668088483">45668088483</a></td></tr>
+    <tr><th scope="row">v7-I1 vs v6-P</th><td>9552</td><td>200,000 / 100,000</td><td>50.020%</td><td>49.943–50.097% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45668095586">45668095586</a></td></tr>
+    <tr><th scope="row">v7-I1R vs v6-P</th><td>9552</td><td>200,000 / 100,000</td><td>50.033%</td><td>49.956–50.111% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45668102728">45668102728</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v4-D</th><td>9571</td><td>100,000 / 50,000</td><td>50.548%</td><td>50.296–50.800% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45677873061">45677873061</a></td></tr>
+    <tr><th scope="row">v5-R vs v4-D</th><td>9571</td><td>100,000 / 50,000</td><td>50.547%</td><td>50.293–50.800% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45677873061">45677873061</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v5-R</th><td>9571</td><td>200,000 / 100,000</td><td>50.064%</td><td>49.969–50.158% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45677867233">45677867233</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v4-D</th><td>9581</td><td>40,000 / 20,000</td><td>50.559%</td><td>50.155–50.962% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45677888312">45677888312</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v5-R</th><td>9581</td><td>200,000 / 100,000</td><td>50.019%</td><td>49.924–50.114% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45677883743">45677883743</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v4-D</th><td>9591</td><td>40,000 / 20,000</td><td>50.905%</td><td>50.503–51.307% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45717552130">45717552130</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v5-R</th><td>9591</td><td>40,000 / 20,000</td><td>49.954%</td><td>49.747–50.160% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45717547846">45717547846</a></td></tr></tbody>
+</table></div>
+<figure class="research-ci">
+  <figcaption><strong>주요 대진의 승리점수율과 99% 시드쌍 신뢰구간</strong><br>점은 추정치, 양끝이 표시된 선은 신뢰구간, 세로 점선은 50% 기준입니다. 모든 행의 가로축 범위는 49.5–51.5%입니다.</figcaption>
+  <ul role="list"><li>
+  <div class="research-ci-value">
+    <strong>v6-P vs v5-R · 9511</strong>
+    <span>50.131% (50.005–50.257%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:25.250%; --high:37.850%"></span>
+    <span class="research-ci-point" style="--estimate:31.550%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>v6-P vs v5-R · 9512</strong>
+    <span>50.209% (50.010–50.408%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:25.500%; --high:45.400%"></span>
+    <span class="research-ci-point" style="--estimate:35.450%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>v7-I1RO vs v6-P · 9531</strong>
+    <span>50.091% (49.994–50.188%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:24.700%; --high:34.400%"></span>
+    <span class="research-ci-point" style="--estimate:29.550%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>v7-I1RO vs v6-P · 9541</strong>
+    <span>50.136% (50.038–50.235%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:26.900%; --high:36.750%"></span>
+    <span class="research-ci-point" style="--estimate:31.800%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>v7-I1RO vs v6-P · 9551</strong>
+    <span>50.028% (49.958–50.098%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:22.900%; --high:29.900%"></span>
+    <span class="research-ci-point" style="--estimate:26.400%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>I2RO1 vs v4-D · 9571</strong>
+    <span>50.548% (50.296–50.800%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:39.800%; --high:65.000%"></span>
+    <span class="research-ci-point" style="--estimate:52.400%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>I2RO1 vs v5-R · 9571</strong>
+    <span>50.064% (49.969–50.158%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:23.450%; --high:32.900%"></span>
+    <span class="research-ci-point" style="--estimate:28.200%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>I2RO1 vs v4-D · 9581</strong>
+    <span>50.559% (50.155–50.962%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:32.750%; --high:73.100%"></span>
+    <span class="research-ci-point" style="--estimate:52.950%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>I2RO1 vs v5-R · 9581</strong>
+    <span>50.019% (49.924–50.114%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:21.200%; --high:30.700%"></span>
+    <span class="research-ci-point" style="--estimate:25.950%"></span>
+  </div>
+</li></ul>
+  <div aria-hidden="true" style="position:relative;height:1.5em;font-size:.85em">
+    <span style="position:absolute;left:0">49.5%</span>
+    <span style="position:absolute;left:25.000%;transform:translateX(-50%)">50%</span>
+    <span style="position:absolute;left:50.000%;transform:translateX(-50%)">50.5%</span>
+    <span style="position:absolute;left:75.000%;transform:translateX(-50%)">51%</span>
+    <span style="position:absolute;right:0">51.5%</span>
+  </div>
+</figure>
+<p>v2가 DP Expert와 치른 확증 대국의 평균 점수는 191.08 대 191.94였습니다. v5-R은 9501에서 v2, v3, DP Expert 상대 주 가설 3개를 모두 통과했습니다. v2전의 평균 점수는 189.13 대 190.82였습니다. v6-P는 9511(Holm 보정, α = 0.01)과 9512에서 v5-R 직접 대결 우위를 보였습니다. 공통 상대 v2와의 9511 대진에서 쌍별 차이는 +0.071%p였습니다(99% 신뢰구간 −0.051~+0.192%p, 50,000쌍). <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/RESULTS.md">실험 결과 목록</a> · <a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45558614547">9501 원 실행</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v5/confirm-9501/FINAL.md">9501 집계</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V6-APEX-RESEARCH.md">v6 확증</a></p>
+<p>v7의 9531 주 확증에서 I1RO는 DP Expert를 상대로 승리점수율 51.392%를 냈습니다(평균 점수 189.65 대 192.17). v6-P 상대 결과는 Holm 기준에 미달했습니다(보정 p = 0.016, 가설군 α = 0.01). 9541 재현은 유의했습니다(단측 p = 0.0002). 더 큰 9551 검정(p = 0.152)과 9552의 두 변형은 기준에 미달했습니다. I1RO는 부분 확증으로 기록됐고, 연구 기준 최강 모델은 v6-P로 유지됐습니다. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm/summary.md">9531·9541 집계</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">v7 최종 해석</a></p>
+<p>I2RO1의 v4-D 상대 우위는 9571(Holm 보정 p ≈ 2.3 × 10<sup>−8</sup>)에서 확증됐고 9581에서 재현됐습니다. v5-R 상대 9571 검정은 기준에 미달했고(p = 0.041, 가설군 α = 0.01), 9581의 구간도 50%를 포함했습니다. 9571의 v5-R 대 v4-D 행은 기술 통계입니다. 9591에서는 I2RO1을 최종 후보로 선정했으며, v5-R 대비 우위는 미확정입니다. 서비스는 무료 ‘매우 어려움’의 v4-D와 선택형 v5-R 시험판을 유지했습니다. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-PRODUCT-HANDOFF.md">제품 인수인계</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/DECISIONS.md#d-v7-6-ai-연구-잠정-종료-매우-어려움-v4-d-유지-2026-11-26-사용자-결정">운영 결정 D-V7-6</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/src/GameDifficulty.tsx">난이도 설정</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/src/product-ai/models.ts">시험판 설정</a> · <a href="../ai/">AI 난이도</a></p>
+<div class="research-table" role="region" aria-labelledby="research-shard-table" tabindex="0">
+<table>
+  <caption id="research-shard-table">보존된 샤드 로그에서 재집계한 승·무·패</caption>
+  <thead><tr><th scope="col">대진 (A vs B)</th><th scope="col">시드군</th><th scope="col">승</th><th scope="col">무</th><th scope="col">패</th><th scope="col">샤드 로그</th></tr></thead>
+  <tbody><tr><th scope="row">v7-I1RO vs v6-P</th><td>9551</td><td>99,284</td><td>1,544</td><td>99,172</td><td><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm-v71/shards-9551.jsonl">JSONL</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v4-D</th><td>9571</td><td>50,165</td><td>766</td><td>49,069</td><td><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm-v71/shards-9571-v4D.jsonl">JSONL</a></td></tr>
+    <tr><th scope="row">v5-R vs v4-D</th><td>9571</td><td>50,162</td><td>769</td><td>49,069</td><td><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm-v71/shards-9571-v4D.jsonl">JSONL</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v5-R</th><td>9571</td><td>99,347</td><td>1,561</td><td>99,092</td><td><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm-v71/shards-9571-v5R.jsonl">JSONL</a></td></tr></tbody>
+</table></div>
+<h3>외부 전략의 12칸 이식 비교</h3>
+<p>별도 외부 전략 비교는 YachtLab 12칸 규칙에서 이식판마다 2,000경기를 좌석을 바꿔 진행했습니다. 기대점수 목적의 대리 정책 RustOptimalEquivalent12는 Win DP v2 상대 49.250%(다중 비교 보정 98.75% 구간 48.313–50.187%), 승리 목적의 대리 정책 BenjiWinObjective12는 50.025%(49.189–50.861%)였습니다. 두 대리 정책의 우위는 미확정입니다. 원본 실행 파일과 13칸 조커 규칙, 원래 목적함수는 별도 평가가 필요합니다. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/_generated/EXTERNAL-CHAMPIONSHIP-LATEST.md">규칙 이식 방식과 원저자 자료</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/src/external-challengers.ts">이식 정책 코드</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/scripts/external-championship.mjs">평가 실행기</a></p>
+</section>
+<section id="ablation-study">
+<h2>구성 요소 비교</h2>
+<p><strong>롤아웃과 종반 탐색 깊이.</strong> 9501에서 v2를 상대로 한 쌍별 대비에서 DP Expert에 양측 3칸 이하의 정확한 상호작용 솔버를 더한 v5-X3는 v5-R보다 0.337%p 낮았습니다(99% 신뢰구간 −0.596~−0.077%p). v5-R에 양측 3칸 이하의 정확한 상호작용 솔버를 더한 v5-B3는 +0.046%p였습니다(−0.051~+0.143%p). 두 대비는 각각 50,000쌍을 사용했습니다. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v5/confirm-9501/FINAL.md">v5 쌍별 구성 비교</a></p>
+<p><strong>상대 대응.</strong> 개발 시드 9101의 300경기에서 뽑은 K=4 국면 2,400개(양쪽 모두 남은 칸 4개 이하)에서 턴당 결정 손실은 v6-P 0.0171%p, 상대가 내 점수에 반응하지 않는 대조군 I1D 0.0151%p, I1RO 0.0089%p, I2RO 0.0035%p였습니다. 이 비교는 해당 종반에서 상대 대응을 모델링한 효과를 뒷받침합니다. 단일 분포표를 쓰는 I2RO1은 v5-R 대비 K=4에서 0.0270%p에서 0.0043%p로, K=5 국면 2,000개에서 0.0258%p에서 0.0062%p로 줄였습니다. 전체 개발 대국에서 I1RO를 상대한 I2R·I2RO의 점추정은 50%를 조금 밑돌아, 연구 트랙의 확증은 보류됐습니다. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/regret-f9101-K4.json">K=4 상대 대응 비교</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/regret-f9101-K4-oblivious.json">I1RO 결정 손실</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/regret-f9101-K4-i2ro.json">I2RO 결정 손실</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/regret-f9101-K4-product.json">단일 분포표 비교</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">개발 대국과 K=5 설계</a></p>
+</section>
+<section id="computational-cost">
+<h2>계산 비용</h2>
+<p>v6-P와 I1RO는 분포표 7개를 사용합니다(Float64 약 2.1 GB, Float32 약 1 GB). 초기 v7 Actions 대국에서 I1RO의 판단 평균은 약 2.0–2.2 ms(v6-P 상대 p99 약 16–18 ms), v6-P는 약 0.19 ms였습니다. 100,000경기 직접 대결의 두 에이전트 합산 러너 CPU 시간은 약 8,200–8,800초였습니다. Float64 서버 프로토타입에서 분포표 7개를 올린 뒤 상주 메모리는 약 2.7 GB였습니다. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V6-APEX-RESEARCH.md">분포표 메모리</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm/summary.md">러너 측정</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/server-bench-local.json">서버 프로토타입 측정</a></p>
+<p>경합 없이 실행한 보존 벤치마크에서 v5-R과 I2RO1은 각각 WASM 선형 메모리 146.25 MiB를 사용했습니다. I2RO1의 데스크톱 Chromium Web Worker 20경기 판단 시간은 평균 4.5 ms, p99 39.2 ms, 최대 49.3 ms였습니다. CPU를 4배 감속한 Pixel 7 에뮬레이션의 메인 스레드에서는 평균 18.9 ms, p99 163.4 ms, 최대 187.8 ms였습니다. v5-R의 평균은 각각 0.14 ms와 0.48 ms였습니다. 콜드 스타트에서 I2RO1 분포표 생성에 각각 약 8.2초와 33초가 들었습니다. 판단 시간은 초기화 이후의 값이며, JS 힙과 프로세스 오버헤드는 선형 메모리와 별도입니다. 이 수치는 에뮬레이션을 실행한 호스트에서 얻었으며, 실제 Android·iOS 기기 측정은 남아 있습니다. <a href="https://github.com/oyueo-mm/YachtLab/tree/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/product-bench">브라우저·Node 원자료</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-PRODUCT-HANDOFF.md">측정 조건</a></p>
+</section>
+<section id="limitations">
+<h2>한계</h2>
+<p>결과의 적용 범위는 명시된 YachtLab 정책, 시드, 엔진, 고정 규칙입니다. 인간이나 외부 AI 전체에 대한 성능, 전 구간 최적성, 다른 규칙에서의 성능은 별도 근거가 필요합니다. 요트다이스 SOTA를 판단하려면 동일한 규칙·목적함수·계산 예산으로 독립된 상대 정책과 비교해야 합니다. 신뢰구간은 추정의 불확실성을 나타내며, 우위 판정은 사전 등록한 단측 검정을 따릅니다. 동등성이나 비열등성을 판단하려면 그 목적에 맞는 사전 설계가 필요하며, v5-R의 Float32 검증이 그 예입니다. 남은 4~5칸 국면은 개발 대국에서 뽑았고, 해당 국면의 결정 손실로 전체 대국 성능을 예측하는 데는 한계가 있습니다. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">v7 해석의 한계</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/RESULTS.md">Float32 비열등성 검증</a></p>
+<p>재현성 감사에서 두 9106 교사 자료에 공통 경기 시드 60개가 확인됐습니다. 두 자료를 함께 분석할 때는 경기 시드 단위로 분할해야 합니다. 9107의 네 대진 로그에서 샤드 1이 두 번 기록됐고, 압축 결과는 대진과 샤드마다 한 파일씩 보존돼 있습니다. 감사는 CI 아티팩트를 표본 조사했고, 공개 요약 일부를 원자료와 대조했습니다. 이전 캐시와 시드 주소 방식의 제약 때문에 중단됐거나 메타데이터가 없는 실행까지 소급 검증하기는 어렵습니다. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/audits/release-hardening-2026-11-26/research-handoff.md">감사 결과와 검증 범위</a></p>
+</section>
+<section id="reproducibility">
+<h2>재현 방법</h2>
+<p>v2는 시드 기준값 1,350,000과 1,370,000을 따로 사용했습니다. v5–v7 실행기는 <code>0x5eed0000 + family × 1,000,003 + shard × 20,011 + i</code>를 해시하며, <code>i</code>는 샤드 내 시드쌍 인덱스입니다. 각 실행에 기록된 모델 커밋과 샤드 계획을 사용합니다. 실행 커밋은 v2 <code>76f206d</code>, v5 <code>96b0025</code>, v6 <code>c8a3bd3</code>, 초기 v7 <code>5561c58</code>, 9551/9552 <code>9c62460</code>, 9571/9581 <code>7cd8f89</code>, 9591 <code>e638a62</code>입니다. 9501은 별도 실행에서 집계했습니다. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/scripts/confirm-v2.mjs">v2 시드 방식</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/scripts/research-v5/bench.ts">v5–v7 실행기</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/.github/workflows/v5-apex-research.yml">워크플로</a> · <a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45558614547">9501 원 실행</a></p>
+<p>보존된 샤드 로그에는 승·무·패와 쌍별 승점의 합 및 제곱합이 있습니다. 같은 대진의 값을 합쳐 쌍별 신뢰구간을 재계산할 수 있습니다. 표의 JSONL 집계는 대진별 고유 샤드 20개를 사용합니다. 예를 들어 저장소 루트에서 다음 명령으로 9551을 집계합니다.</p>
+<pre tabindex="0"><code>python3 scripts/research-v7/shard-lines.py training/results/v7/confirm-v71/shards-9551.jsonl</code></pre>
+<p>대국 샤드를 재현하려면 실행의 모델 커밋을 체크아웃하고 잠금 파일 기준으로 의존성을 설치한 뒤, 원 실행의 대진과 시드를 지정합니다. 아래는 9571 v4-D 대조의 0번 샤드이며 경기별 점수를 압축 파일로 저장합니다.</p>
+<pre tabindex="0"><code>git switch --detach 7cd8f89
+npm ci
+npx tsx scripts/research-v5/bench.ts --a p-I2RO1 --b v4D --family 9571 --shard 0 --pairs 2500 --out out</code></pre>
+<p>9102와 9107의 압축 샤드에는 개별 경기 점수와 시드도 보존돼 있습니다. 대진·샤드별로 파일을 하나씩 집계합니다. 표의 9581과 9591은 보존된 요약 출력을 따릅니다. Actions 아티팩트 보존 기간이 지나도 고정 커밋의 요약과 JSONL 로그를 확인할 수 있습니다. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/scripts/research-v7/shard-lines.py">집계 코드</a> · <a href="https://github.com/oyueo-mm/YachtLab/tree/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/dev-9102">9102 원시 샤드</a> · <a href="https://github.com/oyueo-mm/YachtLab/tree/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/dev-9107">9107 원시 샤드</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/audits/release-hardening-2026-11-26/ci-sample.tsv">감사에서 확인한 Actions 표본</a></p>
+</section>
+<section id="future-work">
+<h2>후속 연구</h2>
+<p>보존된 계획은 기존 종반 교사로 평가하기 어려운 초·중반 결정 품질을 우선합니다. 남은 칸 6개 안팎의 정확 교사 생성, 더 큰 상태의 표본 롤아웃 기반 결정 손실, 엔진 가속과 추가 분산 감소가 후속 과제입니다. 연구용 9561번대와 제품 후속 검증용 9592는 미사용으로 남겨 두었습니다. 연구를 재개할 경우 교사 자료를 경기 시드 단위로 분리하고, 서비스 모델을 다시 검토하기 전에 실기기 지연과 메모리를 확인하는 것이 인수인계 계획에 포함돼 있습니다. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">후속 연구 기록</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-PRODUCT-HANDOFF.md">실기기 검증 계획</a></p>
+</section>
+<section id="references">
+<h2>참고문헌</h2>
+<ul lang="en"><li id="ref-nintendo"><a href="https://www.nintendo.com/au/games/nintendo-switch/51-worldwide-games/">Nintendo. 51 Worldwide Games · Yacht Dice.</a></li><li id="ref-verhoeff"><a href="https://research.tue.nl/en/publications/optimal-solitaire-yahtzee-player-amp-proficiency-test/">T. Verhoeff and E. T. J. Scheffers (1999). Optimal solitaire Yahtzee player &amp; proficiency test.</a></li><li id="ref-pawlewicz"><a href="https://doi.org/10.3233/ICG-2011-34103">J. Pawlewicz (2011). Towards Optimal Play in Multi-Player Yahtzee. ICGA Journal 34(1), 7–21.</a></li><li id="ref-qr-dqn"><a href="https://doi.org/10.1609/aaai.v32i1.11791">W. Dabney et al. (2018). Distributional Reinforcement Learning with Quantile Regression. AAAI.</a></li><li id="ref-glasserman-yao"><a href="https://doi.org/10.1287/mnsc.38.6.884">P. Glasserman and D. D. Yao (1992). Some Guidelines and Guarantees for Common Random Numbers. Management Science 38(6), 884–908.</a></li><li id="ref-holm"><a href="https://www.jstor.org/stable/4615733">S. Holm (1979). A Simple Sequentially Rejective Multiple Test Procedure. Scandinavian Journal of Statistics 6(2), 65–70.</a></li></ul>
+<p>YachtLab 연구 기록</p>
+<ul><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/RESULTS.md">실험 및 성능 기록</a></li><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V5-APEX-RESEARCH.md">v5 사전 등록과 방법</a></li><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v5/confirm-9501/FINAL.md">v5 확증 집계</a></li><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V6-APEX-RESEARCH.md">v6 연구와 확증</a></li><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">v7 사전 등록과 최종 판정</a></li><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm/summary.md">v7 초기 확증 집계</a></li><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-PRODUCT-HANDOFF.md">v7 제품 인수인계</a></li><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/audits/release-hardening-2026-11-26/research-handoff.md">v6·v7 재현성 감사</a></li></ul>
+</section>
+</article>
+  </main>
+  <footer class="site-foot">
+    <p>Online Yacht는 12칸 요트다이스(야추) 규칙을 쓰는 무료 웹 게임입니다. Hasbro의 Yahtzee® 공식 제품이 아니며 제휴 관계가 없습니다.</p>
+    <p><a href="../">무료로 플레이</a> · <a href="../guide/">규칙</a> · <a href="../faq/">자주 묻는 질문</a></p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>YachtLab Yacht Dice AI Research | v2–v7 Benchmarks</title>
+  <meta name="description" content="YachtLab’s v2–v7 research on 12-category Yacht Dice, with paired win-credit benchmarks, exact endgame regret, compute costs, and the v4-D service decision.">
+  <link rel="canonical" href="https://oyueo-mm.github.io/YachtLab/research/en/">
+  <link rel="alternate" hreflang="ko" href="https://oyueo-mm.github.io/YachtLab/research/">
+  <link rel="alternate" hreflang="en" href="https://oyueo-mm.github.io/YachtLab/research/en/">
+  <link rel="icon" href="../../icons/favicon-48.png" type="image/png" sizes="48x48">
+  <link rel="stylesheet" href="../../site/page.css">
+  <link rel="stylesheet" href="../../site/research.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Online Yacht">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:title" content="YachtLab Yacht Dice AI Research | v2–v7 Benchmarks">
+  <meta property="og:description" content="YachtLab’s v2–v7 research on 12-category Yacht Dice, with paired win-credit benchmarks, exact endgame regret, compute costs, and the v4-D service decision.">
+  <meta property="og:url" content="https://oyueo-mm.github.io/YachtLab/research/en/">
+  <meta property="og:image" content="https://oyueo-mm.github.io/YachtLab/icons/share.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Online Yacht wordmark and a sailboat logo with dice pips">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Online Yacht","item":"https://oyueo-mm.github.io/YachtLab/"},{"@type":"ListItem","position":2,"name":"AI Research","item":"https://oyueo-mm.github.io/YachtLab/research/en/"}]},{"@type":"TechArticle","@id":"https://oyueo-mm.github.io/YachtLab/research/en/#article","headline":"YachtLab Yacht Dice AI Research","description":"YachtLab’s v2–v7 research on 12-category Yacht Dice, with paired win-credit benchmarks, exact endgame regret, compute costs, and the v4-D service decision.","url":"https://oyueo-mm.github.io/YachtLab/research/en/","mainEntityOfPage":"https://oyueo-mm.github.io/YachtLab/research/en/","inLanguage":"en","author":{"@type":"Organization","name":"YachtLab","url":"https://github.com/oyueo-mm/YachtLab"},"genre":"Project research report","isBasedOn":["https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md","https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-PRODUCT-HANDOFF.md","https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/audits/release-hardening-2026-11-26/research-handoff.md"],"citation":["https://www.nintendo.com/au/games/nintendo-switch/51-worldwide-games/","https://research.tue.nl/en/publications/optimal-solitaire-yahtzee-player-amp-proficiency-test/","https://doi.org/10.3233/ICG-2011-34103","https://doi.org/10.1609/aaai.v32i1.11791","https://doi.org/10.1287/mnsc.38.6.884","https://www.jstor.org/stable/4615733","https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/RESULTS.md","https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v5/confirm-9501/FINAL.md","https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V6-APEX-RESEARCH.md","https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm/summary.md"],"translationOfWork":{"@id":"https://oyueo-mm.github.io/YachtLab/research/#article"}}]}</script>
+</head>
+<body>
+  <header class="site-top"><div class="top">
+    <a class="brand" href="../../"><img src="../../icons/online-yacht-wordmark.svg" alt="Online Yacht home" width="139" height="32"></a>
+    <a class="play" href="../../#online">Play the game (Korean)</a>
+  </div>
+  <nav class="site-nav" aria-label="Site"><a href="../../">Game home (Korean)</a><a href="../../guide/">Rules (Korean)</a><a href="../../ai/">AI play (Korean)</a><a href="../../research/en/" aria-current="page">Research</a></nav></header>
+  <main>
+<article class="research-article">
+<header class="research-heading">
+<h1>YachtLab Yacht Dice AI Research</h1>
+<p><a href="../" rel="alternate" hreflang="ko" lang="ko">한국어로 읽기</a></p>
+<p class="note">Archive snapshot <time datetime="2026-11-26">November 26, 2026</time></p>
+</header>
+<nav class="toc" aria-label="Research contents">
+  <a href="#abstract">Abstract</a>
+  <a href="#background">Background</a>
+  <a href="#related-work">Related Work</a>
+  <a href="#problem-formulation">Problem Formulation</a>
+  <a href="#methodology">Methodology</a>
+  <a href="#model-evolution">Model Evolution</a>
+  <a href="#experimental-setup">Experimental Setup</a>
+  <a href="#benchmark-results">Benchmark Results</a>
+  <a href="#ablation-study">Ablation Study</a>
+  <a href="#computational-cost">Computational Cost</a>
+  <a href="#limitations">Limitations</a>
+  <a href="#reproducibility">Reproducibility</a>
+  <a href="#future-work">Future Work</a>
+  <a href="#references">References</a>
+</nav>
+<section id="abstract">
+<h2>Abstract</h2>
+<p class="lead">YachtLab tested whether planning for an opponent’s response improves play in 12-category Yacht Dice. The v7 models reduced exact endgame decision loss. In full games, v6-P retained the research lead under the registered selection rule. The single-bank I2RO1 candidate beat v4-D in two seed families, while its advantage over v5-R remains unresolved. The free Very Hard setting uses Win DP v4-D. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">v7 research record</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-PRODUCT-HANDOFF.md">Product handoff</a></p>
+</section>
+<section id="background">
+<h2>Background</h2>
+<p>YachtLab uses Nintendo-style scoring with five fair six-sided dice, up to three rolls per turn, twelve scoring categories, and a 35-point upper-section bonus at 63 or more. The DP Expert baseline maximizes expected solo score and has an initial theoretical value of 191.760879752165 points under these rules. In head-to-head play, the best choice can depend on the opponent’s score and remaining categories. <a href="../../guide/">YachtLab rules (Korean)</a> · <a href="../../scores/">Scorecard (Korean)</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/dp/README.md">DP baseline</a></p>
+</section>
+<section id="related-work">
+<h2>Related Work</h2>
+<p>Verhoeff and Scheffers implemented an optimal solitaire Yahtzee player. Pawlewicz studied multiplayer Yahtzee, including approximations for its much larger joint state space. These works inform the distinction between solo and competitive planning. Their score and performance figures follow Yahtzee scoring conventions. Nintendo’s Yacht Dice listing identifies the ruleset family, and the YachtLab engine defines the benchmark rules. <a href="#ref-verhoeff">Verhoeff and Scheffers (1999)</a> · <a href="#ref-pawlewicz">Pawlewicz (2011)</a> · <a href="#ref-nintendo">Nintendo</a></p>
+</section>
+<section id="problem-formulation">
+<h2>Problem Formulation</h2>
+<p>A decision uses the visible dice, rolls used, both scorecards, and whose turn it is. A player can score an open category or keep dice and reroll the others when a roll remains. For own final score <var>S</var> and opponent score <var>T</var>, the objective is <strong>P(<var>S</var> &gt; <var>T</var>) + ½ P(<var>S</var> = <var>T</var>)</strong>. Under a fixed opponent model, a prospective score <var>s</var> earns the probability that <var>T</var> falls below <var>s</var> plus half the mass at <var>s</var>. Using a score distribution preserves the information needed to weigh a tie and the risk of losing.</p>
+</section>
+<section id="methodology">
+<h2>Methodology</h2>
+<ol class="research-flow" role="list"><li><strong>Public state</strong>Dice, rolls left, and both scorecards</li><li><strong>Legal actions</strong>Keep and reroll or score now</li><li><strong>Future scores</strong>Fixed-policy PMF or a mixture over opponent responses</li><li><strong>Stopping value</strong>Probability of a win plus half the probability of a tie</li></ol>
+<p>The turn solver enumerates dice multisets and weights reroll outcomes by their exact probabilities. It compares the expected continuation for each legal hold with the value of scoring now. Future score probability mass functions (PMFs) are cached by remaining-category mask and upper subtotal. A PMF is exact for its specified policy and tie-breaking order. A fixed-policy rollout approximates play against an opponent whose decisions react to the scorecard.</p>
+<p>For the endgame comparison, each estimator supplies stopping values, and the exact turn solver derives its policy. An interactive expectiminimax solver then evaluates that policy against the same optimal-play reference. <dfn>Decision regret</dfn> is the reference optimal turn value minus the value of the estimator’s turn policy, in percentage points per turn. The calculation integrates over possible rolls at each sampled position. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V5-APEX-RESEARCH.md">PMF and solver methods</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">Exact regret protocol</a></p>
+</section>
+<section id="model-evolution">
+<h2>Model Evolution</h2>
+<p>Earlier learning experiments included PPO with self-play and a DP teacher, as well as distributional QR-DQN. The full-game QR-DQN pilot fits 16 quantiles of future terminal credit per action. That learned return distribution serves a different purpose from the exact final-score PMF of a fixed policy. The three-initialization PPO with a DP teacher averaged 50.069% against Win DP v2 (1,200 held-out games per initialization, 95% interval across initializations 49.335–50.804%). This comparison left superiority unresolved. <a href="#ref-qr-dqn">Dabney et al. (2018)</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/FULLGAME-OFFPOLICY-RESEARCH.md">Full-game RL pilots</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/EXTENDED-PSRO-PMF-PPO-RESULTS.md">Multiseed PPO results</a></p>
+<dl>
+<dt><strong>Win DP v2 and v3</strong></dt><dd>v2 extends the competitive Bellman calculation to the last two categories, assuming DP Expert for the opponent’s remaining play. v3 adds a third category for its own planning and uses a Gaussian opponent-score approximation when the opponent has at least three categories left.</dd>
+<dt><strong>Win DP v4-D</strong></dt><dd>The service configuration uses a frozen REINFORCE residual checkpoint and a v3.3-family late-game policy. The harness calls the service’s registered v4-D configuration. The optional v3.3 pack and v3.4 response feature are disabled in this configuration.</dd>
+<dt><strong>v5-R and v6-P</strong></dt><dd>v5-R optimizes this turn’s win credit, then rolls out DP Expert score distributions for both players. v6-P lets its future play commit to the best of seven exponential-utility policies with different risk preferences, while forecasting a DP Expert opponent.</dd>
+<dt><strong>v7 response models</strong></dt><dd>I1RO solves the opponent’s next turn with the v5-R objective, mixes the outcomes into an opponent final-score PMF, and evaluates its continuation against that mixture. I2RO1 uses one DP Expert bank and also solves its own next turn against the mixture. I2R1 solves that next turn separately for each opponent outcome.</dd>
+</dl>
+<p><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/src/ai.ts#L146">Registered v4-D policy</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/scripts/research-v5/agents.ts">Benchmark model registry</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V6-APEX-RESEARCH.md">v6 policy set</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-PRODUCT-HANDOFF.md">I2RO1 algorithm</a></p>
+</section>
+<section id="experimental-setup">
+<h2>Experimental Setup</h2>
+<p>The benchmarks play complete 1:1 games. Each seed is used twice with seats swapped, so each policy goes first once. The engine uses separate per-seat dice streams, reusing the seeded streams across seat swaps and intentionally matched comparisons. Policies receive the public state with seed and RNG fields cleared. The single observation is the average credit of the two games at a seed. A common-opponent contrast takes the difference of those pair averages on the same seeds. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/scripts/research-v5/bench.ts">Tournament runner</a> · <a href="#ref-glasserman-yao">Glasserman and Yao (1992)</a></p>
+<p>Intervals are two-sided paired normal approximations, 95% for the original v2 run and 99% for the later runs shown here. The project’s registered superiority tests use one-sided p-values, with Holm adjustment where specified for the hypothesis family. Sample size and stopping were fixed for the confirmatory runs. Development families such as 9001, 9011, 9101, 9102, and 9107 were used for design or selection. Families 9501/9502, 9511/9512, 9531/9541, 9551–9553, and 9571/9581 are the later test blocks, with 9553 primarily supporting descriptive comparisons. Family 9591 was reserved for finalist selection. <a href="#ref-holm">Holm (1979)</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">Registered v7 plans</a></p>
+</section>
+<section id="benchmark-results">
+<h2>Benchmark Results</h2>
+<p><strong>Win credit</strong> is (wins + 0.5 × draws) / games. Outright win rate is wins / games. For example, 50,165 outright wins in 100,000 games is 50.165%. The 766 draws raise credit to 50.548%. The first two rows list v2 seed bases. The remaining rows list seed families. Each row has <var>n</var> unique pairs and 2<var>n</var> games.</p>
+<div class="research-table" role="region" aria-labelledby="research-benchmark-table" tabindex="0">
+<table>
+  <caption id="research-benchmark-table">Win credit and paired confidence intervals by matchup</caption>
+  <thead><tr><th scope="col">Matchup (A vs B)</th><th scope="col">Seed</th><th scope="col">Games / pairs</th><th scope="col">A win credit</th><th scope="col">Paired CI</th><th scope="col">Run</th></tr></thead>
+  <tbody><tr><th scope="row">Win DP v2 vs DP Expert</th><td>1,350,000</td><td>20,000 / 10,000</td><td>50.630%</td><td>50.406–50.854% (95%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/44690511514">44690511514</a></td></tr>
+    <tr><th scope="row">Win DP v2 vs Win DP v1</th><td>1,370,000</td><td>10,000 / 5,000</td><td>50.435%</td><td>50.132–50.738% (95%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/44690511514">44690511514</a></td></tr>
+    <tr><th scope="row">Win DP v3 vs Win DP v2</th><td>9501</td><td>100,000 / 50,000</td><td>50.175%</td><td>50.049–50.302% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45572667620">45572667620</a></td></tr>
+    <tr><th scope="row">v4-D vs Win DP v2</th><td>9501</td><td>40,000 / 20,000</td><td>50.179%</td><td>49.938–50.419% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45572667620">45572667620</a></td></tr>
+    <tr><th scope="row">v5-R vs Win DP v2</th><td>9501</td><td>100,000 / 50,000</td><td>50.626%</td><td>50.372–50.879% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45572667620">45572667620</a></td></tr>
+    <tr><th scope="row">v5-R vs Win DP v3</th><td>9501</td><td>100,000 / 50,000</td><td>50.479%</td><td>50.229–50.729% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45572667620">45572667620</a></td></tr>
+    <tr><th scope="row">v5-R vs DP Expert</th><td>9501</td><td>60,000 / 30,000</td><td>51.223%</td><td>50.891–51.554% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45572667620">45572667620</a></td></tr>
+    <tr><th scope="row">v5-R vs v4-D</th><td>9501</td><td>40,000 / 20,000</td><td>50.591%</td><td>50.193–50.989% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45572667620">45572667620</a></td></tr>
+    <tr><th scope="row">v6-P vs v5-R</th><td>9511</td><td>100,000 / 50,000</td><td>50.131%</td><td>50.005–50.257% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45606191583">45606191583</a></td></tr>
+    <tr><th scope="row">v6-P vs v5-R</th><td>9512</td><td>40,000 / 20,000</td><td>50.209%</td><td>50.010–50.408% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45606203906">45606203906</a></td></tr>
+    <tr><th scope="row">v7-I1RO vs v6-P</th><td>9531</td><td>100,000 / 50,000</td><td>50.091%</td><td>49.994–50.188% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45634704402">45634704402</a></td></tr>
+    <tr><th scope="row">v7-I1RO vs DP Expert</th><td>9531</td><td>40,000 / 20,000</td><td>51.392%</td><td>50.983–51.802% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45634710467">45634710467</a></td></tr>
+    <tr><th scope="row">v7-I1RO vs v5-R</th><td>9531</td><td>40,000 / 20,000</td><td>50.148%</td><td>49.925–50.370% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45634710467">45634710467</a></td></tr>
+    <tr><th scope="row">v7-I1RO vs v6-P</th><td>9541</td><td>100,000 / 50,000</td><td>50.136%</td><td>50.038–50.235% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45634717931">45634717931</a></td></tr>
+    <tr><th scope="row">v7-I1RO vs v6-P</th><td>9551</td><td>200,000 / 100,000</td><td>50.028%</td><td>49.958–50.098% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45668088483">45668088483</a></td></tr>
+    <tr><th scope="row">v7-I1 vs v6-P</th><td>9552</td><td>200,000 / 100,000</td><td>50.020%</td><td>49.943–50.097% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45668095586">45668095586</a></td></tr>
+    <tr><th scope="row">v7-I1R vs v6-P</th><td>9552</td><td>200,000 / 100,000</td><td>50.033%</td><td>49.956–50.111% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45668102728">45668102728</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v4-D</th><td>9571</td><td>100,000 / 50,000</td><td>50.548%</td><td>50.296–50.800% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45677873061">45677873061</a></td></tr>
+    <tr><th scope="row">v5-R vs v4-D</th><td>9571</td><td>100,000 / 50,000</td><td>50.547%</td><td>50.293–50.800% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45677873061">45677873061</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v5-R</th><td>9571</td><td>200,000 / 100,000</td><td>50.064%</td><td>49.969–50.158% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45677867233">45677867233</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v4-D</th><td>9581</td><td>40,000 / 20,000</td><td>50.559%</td><td>50.155–50.962% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45677888312">45677888312</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v5-R</th><td>9581</td><td>200,000 / 100,000</td><td>50.019%</td><td>49.924–50.114% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45677883743">45677883743</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v4-D</th><td>9591</td><td>40,000 / 20,000</td><td>50.905%</td><td>50.503–51.307% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45717552130">45717552130</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v5-R</th><td>9591</td><td>40,000 / 20,000</td><td>49.954%</td><td>49.747–50.160% (99%)</td><td><a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45717547846">45717547846</a></td></tr></tbody>
+</table></div>
+<figure class="research-ci">
+  <figcaption><strong>Win credit and 99% paired confidence intervals for selected matchups</strong><br>Dots mark estimates, capped bars show intervals, and the dashed line marks 50%. Every row uses the same 49.5–51.5% scale.</figcaption>
+  <ul role="list"><li>
+  <div class="research-ci-value">
+    <strong>v6-P vs v5-R · 9511</strong>
+    <span>50.131% (50.005–50.257%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:25.250%; --high:37.850%"></span>
+    <span class="research-ci-point" style="--estimate:31.550%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>v6-P vs v5-R · 9512</strong>
+    <span>50.209% (50.010–50.408%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:25.500%; --high:45.400%"></span>
+    <span class="research-ci-point" style="--estimate:35.450%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>v7-I1RO vs v6-P · 9531</strong>
+    <span>50.091% (49.994–50.188%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:24.700%; --high:34.400%"></span>
+    <span class="research-ci-point" style="--estimate:29.550%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>v7-I1RO vs v6-P · 9541</strong>
+    <span>50.136% (50.038–50.235%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:26.900%; --high:36.750%"></span>
+    <span class="research-ci-point" style="--estimate:31.800%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>v7-I1RO vs v6-P · 9551</strong>
+    <span>50.028% (49.958–50.098%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:22.900%; --high:29.900%"></span>
+    <span class="research-ci-point" style="--estimate:26.400%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>I2RO1 vs v4-D · 9571</strong>
+    <span>50.548% (50.296–50.800%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:39.800%; --high:65.000%"></span>
+    <span class="research-ci-point" style="--estimate:52.400%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>I2RO1 vs v5-R · 9571</strong>
+    <span>50.064% (49.969–50.158%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:23.450%; --high:32.900%"></span>
+    <span class="research-ci-point" style="--estimate:28.200%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>I2RO1 vs v4-D · 9581</strong>
+    <span>50.559% (50.155–50.962%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:32.750%; --high:73.100%"></span>
+    <span class="research-ci-point" style="--estimate:52.950%"></span>
+  </div>
+</li>
+<li>
+  <div class="research-ci-value">
+    <strong>I2RO1 vs v5-R · 9581</strong>
+    <span>50.019% (49.924–50.114%)</span>
+  </div>
+  <div aria-hidden="true" class="research-ci-track">
+    <span class="research-ci-range" style="--low:21.200%; --high:30.700%"></span>
+    <span class="research-ci-point" style="--estimate:25.950%"></span>
+  </div>
+</li></ul>
+  <div aria-hidden="true" style="position:relative;height:1.5em;font-size:.85em">
+    <span style="position:absolute;left:0">49.5%</span>
+    <span style="position:absolute;left:25.000%;transform:translateX(-50%)">50%</span>
+    <span style="position:absolute;left:50.000%;transform:translateX(-50%)">50.5%</span>
+    <span style="position:absolute;left:75.000%;transform:translateX(-50%)">51%</span>
+    <span style="position:absolute;right:0">51.5%</span>
+  </div>
+</figure>
+<p>In the v2 confirmation against DP Expert, v2 averaged 191.08 points to 191.94. v5-R passed all three registered 9501 tests against v2, v3, and DP Expert. Against v2 it averaged 189.13 points to 190.82. v6-P beat v5-R directly in 9511 (Holm-adjusted decision at α = 0.01) and 9512, while their common-opponent contrast against v2 was +0.071 percentage points in 9511 (99% CI −0.051 to +0.192, 50,000 pairs). <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/RESULTS.md">Results index</a> · <a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45558614547">9501 tournament shards</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v5/confirm-9501/FINAL.md">9501 aggregate</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V6-APEX-RESEARCH.md">v6 confirmation</a></p>
+<p>In v7’s 9531 primary family, I1RO beat DP Expert (51.392% credit despite mean scores 189.65 to 192.17). Its v6-P comparison missed the Holm-adjusted threshold (adjusted p = 0.016 at family α = 0.01). The 9541 replication was positive (one-sided p = 0.0002). The larger 9551 test missed the threshold (p = 0.152), as did each 9552 variant. I1RO remains partially confirmed, and v6-P retained the research lead. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm/summary.md">9531/9541 summaries</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">Final v7 interpretation</a></p>
+<p>I2RO1 passed the 9571 test against v4-D (Holm-adjusted p ≈ 2.3 × 10<sup>−8</sup>) and replicated in 9581. Its 9571 comparison with v5-R missed the threshold (p = 0.041 at family α = 0.01), and the 9581 interval again included 50%. The v5-R row against v4-D in 9571 is descriptive. Family 9591 selected I2RO1 as the finalist, with superiority over v5-R still unresolved. The service retained v4-D for free Very Hard and kept v5-R as an opt-in trial. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-PRODUCT-HANDOFF.md">Product handoff</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/DECISIONS.md#d-v7-6-ai-연구-잠정-종료-매우-어려움-v4-d-유지-2026-11-26-사용자-결정">Service decision D-V7-6</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/src/GameDifficulty.tsx">Difficulty mapping</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/src/product-ai/models.ts">Trial configuration</a> · <a href="../../ai/">AI levels (Korean)</a></p>
+<div class="research-table" role="region" aria-labelledby="research-shard-table" tabindex="0">
+<table>
+  <caption id="research-shard-table">Win, draw, and loss counts recomputed from shard logs</caption>
+  <thead><tr><th scope="col">Matchup (A vs B)</th><th scope="col">Family</th><th scope="col">Wins</th><th scope="col">Draws</th><th scope="col">Losses</th><th scope="col">Shard logs</th></tr></thead>
+  <tbody><tr><th scope="row">v7-I1RO vs v6-P</th><td>9551</td><td>99,284</td><td>1,544</td><td>99,172</td><td><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm-v71/shards-9551.jsonl">JSONL</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v4-D</th><td>9571</td><td>50,165</td><td>766</td><td>49,069</td><td><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm-v71/shards-9571-v4D.jsonl">JSONL</a></td></tr>
+    <tr><th scope="row">v5-R vs v4-D</th><td>9571</td><td>50,162</td><td>769</td><td>49,069</td><td><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm-v71/shards-9571-v4D.jsonl">JSONL</a></td></tr>
+    <tr><th scope="row">I2RO1 vs v5-R</th><td>9571</td><td>99,347</td><td>1,561</td><td>99,092</td><td><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm-v71/shards-9571-v5R.jsonl">JSONL</a></td></tr></tbody>
+</table></div>
+<h3>External strategy ports</h3>
+<p>The separate external-strategy comparison used 2,000 seat-swapped games per port, all under YachtLab’s 12-category rules. RustOptimalEquivalent12 was a proxy with the same expected-score objective and earned 49.250% against Win DP v2 (multiplicity-adjusted 98.75% CI 48.313–50.187%). BenjiWinObjective12 used a local win-objective proxy and earned 50.025% (49.189–50.861%). The comparisons establish no advantage for either proxy. Original binaries, 13-category joker rules and original evaluation objectives would require a separate benchmark. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/_generated/EXTERNAL-CHAMPIONSHIP-LATEST.md">Rule adaptations and original sources</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/src/external-challengers.ts">Port definitions</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/scripts/external-championship.mjs">Comparison runner</a></p>
+</section>
+<section id="ablation-study">
+<h2>Ablation Study</h2>
+<p><strong>Rollout and solver depth.</strong> In 9501 against v2, v5-X3 (DP Expert with an exact interactive endgame when both players have at most three open categories) trailed v5-R by 0.337 percentage points (paired 99% CI −0.596 to −0.077). Adding the exact three-category interactive endgame to v5-R (v5-B3) yielded +0.046 points (−0.051 to +0.143). Each contrast uses 50,000 seed pairs. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v5/confirm-9501/FINAL.md">v5 paired ablations</a></p>
+<p><strong>Opponent response.</strong> Across 2,400 K=4 positions (both players at most four categories left, sampled from 300 development games in 9101), regret was 0.0171 percentage points per turn for v6-P, 0.0151 for the nonreactive I1D control, 0.0089 for I1RO, and 0.0035 for I2RO. This supports explicit opponent response as a mechanism in the tested endgame. I2RO1 reduced single-bank regret from v5-R’s 0.0270 to 0.0043 at K=4 and from 0.0258 to 0.0062 on the 2,000-position K=5 sample. In full-game development play, I2R and I2RO had slightly negative point estimates against I1RO, so the registered research-track confirmation was deferred. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/regret-f9101-K4.json">K=4 response ablation</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/regret-f9101-K4-oblivious.json">I1RO regret</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/regret-f9101-K4-i2ro.json">I2RO regret</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/regret-f9101-K4-product.json">Single-bank ablation</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">Development matchups and K=5 protocol</a></p>
+</section>
+<section id="computational-cost">
+<h2>Computational Cost</h2>
+<p>v6-P and I1RO both use seven PMF banks (about 2.1 GB for Float64 tables, about 1 GB for Float32 tables). In the early v7 Actions matches, I1RO averaged about 2.0–2.2 ms per decision (p99 approximately 16–18 ms against v6-P), versus about 0.19 ms for v6-P. The 100,000-game head-to-head matches used roughly 8,200–8,800 aggregate runner CPU seconds for both agents. A separate Float64 server prototype used about 2.7 GB resident after loading seven banks. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V6-APEX-RESEARCH.md">Table memory</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm/summary.md">Runner timing</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/server-bench-local.json">Server prototype measurements</a></p>
+<p>In the clean archived browser benchmark, v5-R and I2RO1 each used 146.25 MiB of WASM linear memory. I2RO1 took 4.5 ms mean, 39.2 ms p99, and 49.3 ms maximum per decision in a desktop Chromium Web Worker across 20 games. Pixel 7 emulation at 4× CPU slowdown on the main thread measured 18.9 ms mean, 163.4 ms p99, and 187.8 ms maximum. v5-R measured 0.14 ms and 0.48 ms mean in those two configurations. The I2RO1 bank took about 8.2 s to build on desktop and 33 s under emulation on a cold start. Decision timing excludes setup. Linear memory excludes JS heap and process overhead. The emulated figures describe the benchmark host, and physical Android/iOS measurements remain open. <a href="https://github.com/oyueo-mm/YachtLab/tree/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/product-bench">Browser and Node measurements</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-PRODUCT-HANDOFF.md">Measurement protocol</a></p>
+</section>
+<section id="limitations">
+<h2>Limitations</h2>
+<p>The claims apply to the named YachtLab policies, seeds, engine, and fixed game rules. Results against humans or an external field, whole-game optimality, and performance under other rules require separate evidence. Establishing the state of the art (SOTA) would require independent opponents evaluated with the same rules, objective, and computational budget. The intervals report estimation uncertainty, and the registered one-sided tests determine superiority. Establishing equivalence or noninferiority requires a design for that objective, such as the v5-R Float32 noninferiority check. Endgame positions come from development games, and lower regret over four or five remaining categories has limited predictive value for full-game strength. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">v7 limitations</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/RESULTS.md">Float32 noninferiority protocol</a></p>
+<p>The archive audit found 60 game seeds shared by two 9106 teacher datasets, so a joint analysis needs a game-seed split. The 9107 log repeats shard 1 in four matchups, with one retained compressed result per shard and matchup. The audit examined a sample of CI artifacts and confirmed only part of the public summary against raw materials. Its legacy cache and seed-address findings limit assumptions about unfinished or undocumented runs. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/audits/release-hardening-2026-11-26/research-handoff.md">Audit findings and coverage</a></p>
+</section>
+<section id="reproducibility">
+<h2>Reproducibility</h2>
+<p>For v2, the run uses separate seed bases 1,350,000 and 1,370,000. For v5–v7, the runner hashes <code>0x5eed0000 + family × 1,000,003 + shard × 20,011 + i</code>, where <code>i</code> is the pair index within a shard. Use the model revision and shard plan from the matching run. The run history includes v2 <code>76f206d</code>, v5 <code>96b0025</code>, v6 <code>c8a3bd3</code>, early v7 <code>5561c58</code>, 9551/9552 <code>9c62460</code>, 9571/9581 <code>7cd8f89</code>, and 9591 <code>e638a62</code>. The 9501 aggregation was a separate run. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/scripts/confirm-v2.mjs">v2 seed schedule</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/scripts/research-v5/bench.ts">v5–v7 runner</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/.github/workflows/v5-apex-research.yml">Workflow</a> · <a href="https://github.com/oyueo-mm/YachtLab/actions/runs/45558614547">Original 9501 run</a></p>
+<p>The versioned shard lines contain win/draw/loss counts and the first two moments of pair credit. Pool those moments by matchup to reproduce the paired interval. Each displayed JSONL aggregate has 20 unique shards per matchup. For example, from the repository root:</p>
+<pre tabindex="0"><code>python3 scripts/research-v7/shard-lines.py training/results/v7/confirm-v71/shards-9551.jsonl</code></pre>
+<p>To reproduce a tournament shard, check out the run’s model commit, install the locked dependencies, and use that run’s pairing and seed parameters. The following is shard 0 of the archived 9571 v4-D comparison. It writes the individual game scores to a compressed file.</p>
+<pre tabindex="0"><code>git switch --detach 7cd8f89
+npm ci
+npx tsx scripts/research-v5/bench.ts --a p-I2RO1 --b v4D --family 9571 --shard 0 --pairs 2500 --out out</code></pre>
+<p>The 9102 and 9107 compressed shards also preserve individual scores and seeds. Aggregate one file per shard and matchup. The 9581 and 9591 figures above follow the archived summary outputs. Actions artifacts are subject to retention limits, so the pinned summaries and JSONL logs provide stable entry points. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/scripts/research-v7/shard-lines.py">Aggregation code</a> · <a href="https://github.com/oyueo-mm/YachtLab/tree/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/dev-9102">9102 raw shards</a> · <a href="https://github.com/oyueo-mm/YachtLab/tree/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/dev-9107">9107 raw shards</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/audits/release-hardening-2026-11-26/ci-sample.tsv">Audited Actions sample</a></p>
+</section>
+<section id="future-work">
+<h2>Future Work</h2>
+<p>The archived roadmap prioritizes early- and midgame decision quality, where endgame teachers provide little coverage. It proposes exact teacher generation around six open categories, sampled rollout regret for larger states, and faster simulation with additional variance reduction. The record leaves the 9561-series research and 9592 product seed reservations unused. Any resumption should keep teacher splits at the game-seed level and check physical device latency and memory before revisiting the service model. <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">Archived directions</a> · <a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-PRODUCT-HANDOFF.md">Device validation plan</a></p>
+</section>
+<section id="references">
+<h2>References</h2>
+<ul lang="en"><li id="ref-nintendo"><a href="https://www.nintendo.com/au/games/nintendo-switch/51-worldwide-games/">Nintendo. 51 Worldwide Games · Yacht Dice.</a></li><li id="ref-verhoeff"><a href="https://research.tue.nl/en/publications/optimal-solitaire-yahtzee-player-amp-proficiency-test/">T. Verhoeff and E. T. J. Scheffers (1999). Optimal solitaire Yahtzee player &amp; proficiency test.</a></li><li id="ref-pawlewicz"><a href="https://doi.org/10.3233/ICG-2011-34103">J. Pawlewicz (2011). Towards Optimal Play in Multi-Player Yahtzee. ICGA Journal 34(1), 7–21.</a></li><li id="ref-qr-dqn"><a href="https://doi.org/10.1609/aaai.v32i1.11791">W. Dabney et al. (2018). Distributional Reinforcement Learning with Quantile Regression. AAAI.</a></li><li id="ref-glasserman-yao"><a href="https://doi.org/10.1287/mnsc.38.6.884">P. Glasserman and D. D. Yao (1992). Some Guidelines and Guarantees for Common Random Numbers. Management Science 38(6), 884–908.</a></li><li id="ref-holm"><a href="https://www.jstor.org/stable/4615733">S. Holm (1979). A Simple Sequentially Rejective Multiple Test Procedure. Scandinavian Journal of Statistics 6(2), 65–70.</a></li></ul>
+<p>YachtLab research records</p>
+<ul><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/RESULTS.md">Experiment results index</a></li><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V5-APEX-RESEARCH.md">v5 protocol and methods</a></li><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v5/confirm-9501/FINAL.md">v5 confirmation aggregate</a></li><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V6-APEX-RESEARCH.md">v6 research and confirmation</a></li><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-APEX-RESEARCH.md">v7 protocols and final decisions</a></li><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/training/results/v7/confirm/summary.md">Initial v7 confirmation summaries</a></li><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/context/V7-PRODUCT-HANDOFF.md">v7 product handoff</a></li><li><a href="https://github.com/oyueo-mm/YachtLab/blob/222db725ba298d5fe6a708a8783f22c0571f0d07/docs/audits/release-hardening-2026-11-26/research-handoff.md">v6–v7 reproducibility audit</a></li></ul>
+</section>
+</article>
+  </main>
+  <footer class="site-foot">
+    <p>Online Yacht is a free browser game with 12-category Yacht Dice rules. The project is independent of Hasbro and its Yahtzee® product.</p>
+    <p><a href="../../">Game home</a> · <a href="../../guide/">Rules</a> · <a href="../../faq/">FAQ</a> (Korean)</p>
+  </footer>
+</body>
+</html>

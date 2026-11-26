@@ -1,0 +1,27 @@
+/* Research article and confidence intervals. The table keeps its own scroll area on phones. */
+.research-article { max-width: 48rem; margin-inline: auto; }
+.research-heading { padding-block: 0.8rem 0.9rem; border-bottom: 1px solid var(--line); }
+.research-heading h1 { max-width: 26ch; }
+.research-heading .note { margin-bottom: 0; }
+.research-article > .toc { margin-block: 1rem 1.6rem; }
+.research-article h2 { margin-top: 2.1rem; padding-bottom: 0.25rem; border-bottom: 1px solid var(--line); }
+.research-article dd { margin: 0.3rem 0 1rem; }
+.research-article [tabindex]:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
+.research-table { overflow-x: auto; margin-block: 1rem; }
+.research-table table { font-variant-numeric: tabular-nums; }
+.research-table td { white-space: nowrap; }
+.research-table th:first-child { min-width: 8.5rem; }
+.research-ci { margin: 1.25rem 0; padding: 1rem; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); }
+.research-ci ul { list-style: none; padding: 0; margin-bottom: 0.15rem; font-variant-numeric: tabular-nums; }
+.research-ci li { margin-block: 0.65rem; }
+.research-ci-value { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 1rem; }
+.research-ci-track { position: relative; height: 1.2rem; margin-top: 0.2rem; border-bottom: 1px solid var(--muted); }
+.research-ci-track::before { content: ""; position: absolute; inset-block: 0; left: 25%; border-left: 2px dashed var(--muted); }
+.research-ci-range { position: absolute; top: 50%; left: var(--low); right: calc(100% - var(--high)); height: 0.5rem; border-inline: 2px solid currentColor; transform: translateY(-50%); color: var(--red); }
+.research-ci-range::after { content: ""; position: absolute; inset: calc(50% - 1px) 0 auto; border-top: 2px solid currentColor; }
+.research-ci-point { position: absolute; top: 50%; left: var(--estimate); width: 0.65rem; height: 0.65rem; border: 1px solid currentColor; border-radius: 50%; color: var(--red); background: currentColor; outline: 1px solid #fff; transform: translate(-50%, -50%); }
+.research-ci-scale { display: flex; justify-content: space-between; font-size: 0.875rem; }
+.research-flow { padding: 0; display: grid; gap: 0.6rem; list-style: none; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); }
+.research-flow li { padding: 0.7rem 0.85rem; border: 1px solid var(--line); border-radius: 8px; }
+.research-flow strong { display: block; }
+.research-article pre { overflow-x: auto; padding: 0.8rem; background: var(--soft); border-radius: 8px; }

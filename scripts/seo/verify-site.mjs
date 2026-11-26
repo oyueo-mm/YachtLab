@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { SITE, HOST_ROOT, checkPage, extractMeta, fetchWithRetry, fresh, parseSitemap, subresources } from "./seo-lib.mjs";
+import { SITE, HOST_ROOT, checkPage, contentFingerprint, extractMeta, fetchWithRetry, fresh, parseSitemap, subresources } from "./seo-lib.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 export const CONFIG = JSON.parse(readFileSync(join(ROOT, "scripts/seo/indexnow.json"), "utf8"));
@@ -77,7 +77,11 @@ export async function verifySite({ base = SITE, hostRoot = base === SITE, resour
     }
     for (const p of problems) errors.push(`${loc}: ${p}`);
     for (const r of failedResources) errors.push(`${loc}: resource ${r}`);
-    pages.push({ loc, lastmod, status: res?.status ?? 0, title: meta?.title ?? null, canonical: meta?.canonical ?? null, robots: meta?.robots ?? "", problems: [...problems, ...failedResources] });
+    pages.push({
+      loc, lastmod, fingerprint: meta ? contentFingerprint(body) : null,
+      status: res?.status ?? 0, title: meta?.title ?? null, canonical: meta?.canonical ?? null,
+      robots: meta?.robots ?? "", problems: [...problems, ...failedResources],
+    });
     if (loc === SITE && meta && meta.googleVerification !== CONFIG.googleSiteVerification) errors.push("home: Google Search Console verification meta tag is missing or changed");
   }
 

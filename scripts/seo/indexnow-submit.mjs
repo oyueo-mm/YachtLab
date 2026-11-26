@@ -3,8 +3,8 @@
  * IndexNow notification after a production deploy (D-067).
  *
  * 1. Verifies the live site (verify-site.mjs). Any error blocks the submission.
- * 2. Per endpoint (Bing, Naver) compares the live sitemap (loc + lastmod) with the lastmod that endpoint
- *    last accepted (state.json). No state yet ⇒ every sitemap URL is new (first run: all pages).
+ * 2. Per endpoint (Bing, Naver) compares each live page's lastmod and content fingerprint with the
+ *    last accepted revision (state.json). No state yet ⇒ every sitemap URL is new (first run: all pages).
  *    New and changed URLs are submitted, URLs gone from the sitemap are submitted once as removed.
  * 3. Transient failures (network, 408/429/5xx) are retried with backoff inside the run; an endpoint that
  *    still fails keeps its old state, so the next run (next deploy, daily schedule or manual run) retries it.
@@ -34,7 +34,7 @@ export function applyResult(state, name, pending, current, result, now) {
     entry.lastFailure = { at: now, status: result.status };
     return;
   }
-  const live = new Map(current.map((e) => [e.loc, e.lastmod ?? ""]));
+  const live = new Map(current.map(({ loc, lastmod, fingerprint }) => [loc, { lastmod, fingerprint }]));
   for (const url of [...pending.added, ...pending.changed]) entry.urls[url] = live.get(url);
   for (const url of pending.removed) delete entry.urls[url];
   entry.lastSuccess = { at: now, status: result.status, count: pending.urls.length };
@@ -46,7 +46,7 @@ export async function run({ base = SITE, stateDir, mode = "changed", dryRun = fa
   mkdirSync(stateDir, { recursive: true });
   const stateFile = join(stateDir, "state.json");
   const logFile = join(stateDir, "log.jsonl");
-  const state = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, "utf8")) : { version: 1, endpoints: {} };
+  const state = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, "utf8")) : { endpoints: {} };
   const now = new Date().toISOString();
   const lines = [];
   const record = (entry) => {
@@ -67,7 +67,7 @@ export async function run({ base = SITE, stateDir, mode = "changed", dryRun = fa
   }
   const keyLocation = report.keys[CONFIG.keyLocation] ? CONFIG.keyLocation : CONFIG.fallbackKeyLocation;
   summary.push(`Key location: ${keyLocation}`);
-  const current = report.entries;
+  const current = report.pages;
 
   summary.push("", "| endpoint | new | changed | removed | result | attempts |", "|---|---:|---:|---:|---|---:|");
   let ok = true;
@@ -93,6 +93,7 @@ export async function run({ base = SITE, stateDir, mode = "changed", dryRun = fa
     log(`${name}: ${result.ok ? "accepted" : "FAILED"} ${result.status} (${pending.urls.length} URLs, ${result.attempts} attempts) ${result.response}`);
   }
   if (!dryRun) {
+    state.version = 2;
     state.sitemap = CONFIG.sitemap;
     state.updatedAt = now;
     writeFileSync(stateFile, JSON.stringify(state, null, 2) + "\n");

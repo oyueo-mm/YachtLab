@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 // @ts-expect-error plain ESM module
@@ -34,7 +34,7 @@ describe("content fingerprint and sitemap (D-067)", () => {
     const ledger = JSON.parse(readFileSync(LEDGER_FILE, "utf8"));
     const paths = sitemapSources().map(([p]: [string]) => p);
     expect(Object.keys(ledger)).toEqual(paths);
-    expect(paths).toHaveLength(8);
+    expect(paths).toHaveLength(10);
     for (const [path, source] of sitemapSources() as [string, string][]) {
       expect(existsSync(new URL(`../${source}`, import.meta.url)), source).toBe(true);
       expect(ledger[path].lastmod).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -91,12 +91,21 @@ describe("IndexNow key and change detection", () => {
     expect(JSON.stringify(config)).not.toMatch(/indexing\.googleapis|google\.com\/ping/);
   });
   it("first run submits every URL, later runs only new, changed and removed ones", () => {
-    const current = [{ loc: SITE, lastmod: "2026-11-27" }, { loc: SITE + "faq/", lastmod: "2026-11-26" }, { loc: SITE + "new/", lastmod: "2026-11-27" }];
+    const current = [
+      { loc: SITE, lastmod: "2026-11-27", fingerprint: "home" },
+      { loc: SITE + "faq/", lastmod: "2026-11-26", fingerprint: "faq" },
+      { loc: SITE + "new/", lastmod: "2026-11-27", fingerprint: "new" },
+    ];
     expect(lib.pendingUrls(current, undefined).added).toHaveLength(3);
-    const p = lib.pendingUrls(current, { [SITE]: "2026-11-26", [SITE + "faq/"]: "2026-11-26", [SITE + "old/"]: "2026-11-20" });
+    const submitted = Object.fromEntries(current.map(({ loc, lastmod, fingerprint }) => [loc, { lastmod, fingerprint }]));
+    const p = lib.pendingUrls(current, {
+      [SITE]: { ...submitted[SITE], lastmod: "2026-11-26" },
+      [SITE + "faq/"]: submitted[SITE + "faq/"],
+      [SITE + "old/"]: "2026-11-20",
+    });
     expect(p).toEqual({ added: [SITE + "new/"], changed: [SITE], removed: [SITE + "old/"], urls: [SITE + "new/", SITE, SITE + "old/"] });
-    expect(lib.pendingUrls(current, { [SITE]: "2026-11-27", [SITE + "faq/"]: "2026-11-26", [SITE + "new/"]: "2026-11-27" }).urls).toEqual([]);
-    expect(lib.pendingUrls(current, { [SITE]: "2026-11-27", [SITE + "faq/"]: "2026-11-26", [SITE + "new/"]: "2026-11-27" }, { all: true }).urls).toHaveLength(3);
+    expect(lib.pendingUrls(current, submitted).urls).toEqual([]);
+    expect(lib.pendingUrls(current, submitted, { all: true }).urls).toHaveLength(3);
   });
   it("retries transient failures with backoff and stops on final answers", async () => {
     const statuses = [503, 429, 200];
@@ -118,7 +127,7 @@ describe("IndexNow key and change detection", () => {
 describe("IndexNow run against a simulated site", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  function site(paths: string[], lastmod: Record<string, string>, endpoint: (name: string) => number) {
+  function site(paths: string[], lastmod: Record<string, string>, endpoint: (name: string) => number, bodyByPath: Record<string, string> = {}) {
     const posts: { name: string; body: { urlList: string[]; keyLocation: string; host: string; key: string } }[] = [];
     vi.stubGlobal("fetch", async (input: string, init?: RequestInit) => {
       const url = input.replace(/[?&]seo-check=[^&]*$/, "");
@@ -135,7 +144,7 @@ describe("IndexNow run against a simulated site", () => {
       if (url === config.hostRootChecks[0].url) return new Response(config.hostRootChecks[0].contains, { headers: html });
       if (url === SITE + "site/page.css") return new Response("body{}", { headers: { "content-type": "text/css" } });
       const path = url.slice(SITE.length);
-      if (paths.includes(path)) return new Response(page(path), { headers: html });
+      if (paths.includes(path)) return new Response(page(path, "", bodyByPath[path]), { headers: html });
       return new Response("not found", { status: 404, headers: html });
     });
     return posts;
@@ -160,10 +169,11 @@ describe("IndexNow run against a simulated site", () => {
     expect(posts).toEqual([]);
 
     // faq/ changes, ai/ is deleted, tools/ is new; Naver is briefly unavailable and then down.
-    const day2 = { ...day1, "faq/": "2026-11-27", "tools/": "2026-11-27" };
+    const day2 = { ...day1, "tools/": "2026-11-27" };
+    const revisedContent = { "faq/": "<p>같은 날 보강된 질문과 답변</p>" };
     const next = eight.filter((p) => p !== "ai/").concat("tools/");
     let naverCalls = 0;
-    posts = site(next, day2, (name) => (name === "naver" ? (++naverCalls, 503) : 200));
+    posts = site(next, day2, (name) => (name === "naver" ? (++naverCalls, 503) : 200), revisedContent);
     vi.useFakeTimers({ toFake: ["setTimeout"] });
     const pending = run({ stateDir, log: quiet });
     await vi.runAllTimersAsync();
@@ -174,12 +184,35 @@ describe("IndexNow run against a simulated site", () => {
     expect(posts.find((p) => p.name === "bing")!.body.urlList).toEqual([SITE + "tools/", SITE + "faq/", SITE + "ai/"]);
 
     // Next run: Bing has nothing left, Naver gets the same three URLs again.
-    posts = site(next, day2, () => 202);
+    posts = site(next, day2, () => 202, revisedContent);
     expect((await run({ stateDir, log: quiet })).ok).toBe(true);
     expect(posts.map((p) => [p.name, p.body.urlList])).toEqual([["naver", [SITE + "tools/", SITE + "faq/", SITE + "ai/"]]]);
     const log = readFileSync(join(stateDir, "log.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
     expect(log.map((l) => `${l.endpoint}:${l.result}`)).toEqual(["bing:accepted", "naver:accepted", "bing:nothing", "naver:nothing", "bing:accepted", "naver:failed", "bing:nothing", "naver:accepted"]);
     expect(readFileSync(join(stateDir, "summary.md"), "utf8")).toContain("| bing | 8 | 0 | 0 | ✅ 200 | 1 |");
+  });
+
+  it("migrates date-only state separately for each endpoint after acceptance", async () => {
+    // @ts-expect-error plain ESM module
+    const { run } = await import("../scripts/seo/indexnow-submit.mjs");
+    const stateDir = mkdtempSync(join(tmpdir(), "indexnow-"));
+    const stateFile = join(stateDir, "state.json");
+    const lastmod = "2026-11-26";
+    const urls = { [SITE]: lastmod, [SITE + "faq/"]: lastmod };
+    writeFileSync(stateFile, JSON.stringify({ version: 1, endpoints: { bing: { urls }, naver: { urls } } }));
+
+    let posts = site(["", "faq/"], { "": lastmod, "faq/": lastmod }, (name) => name === "naver" ? 403 : 202);
+    const first = await run({ stateDir, log: () => {} });
+    expect(first.ok).toBe(false);
+    expect(posts.map((p) => p.body.urlList)).toEqual([Object.keys(urls), Object.keys(urls)]);
+    const migrated = JSON.parse(readFileSync(stateFile, "utf8"));
+    expect(migrated.version).toBe(2);
+    expect(migrated.endpoints.bing.urls[SITE]).toEqual({ lastmod, fingerprint: lib.contentFingerprint(page("")) });
+    expect(migrated.endpoints.naver.urls).toEqual(urls);
+
+    posts = site(["", "faq/"], { "": lastmod, "faq/": lastmod }, () => 200);
+    expect((await run({ stateDir, log: () => {} })).ok).toBe(true);
+    expect(posts.map((p) => [p.name, p.body.urlList])).toEqual([["naver", Object.keys(urls)]]);
   });
 
   it("does not submit when the live site fails verification", async () => {
