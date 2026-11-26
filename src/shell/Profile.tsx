@@ -6,9 +6,13 @@ import { guest, importedIds, localRecords, markImported } from "../identity/loca
 import { deleteAccount, importRecords, me, serverRecords, session, setNickname as saveRemoteNickname, signInAvailable, signOut, startSignIn, type Profile as AccountProfile } from "../identity/account-client";
 import { saveName } from "../online/client";
 import { useNickname } from "../identity/display-name";
-import { PlayerTag, ProfileAvatar } from "../play/Looks";
+import { ProfileAvatar } from "../play/Looks";
 import type { Snapshot } from "../identity/economy-client";
 import { ConfirmDialog, type PendingAction } from "../ui/ConfirmDialog";
+import { GUEST_LOOK, itemById } from "../economy/live/catalog";
+import { achievementById } from "../economy/live/config";
+import { SoloRecordsSection } from "../play/SoloRecordsSection";
+import { Achievements, CollectionProgress, EquippedLooks, RecentMatches, StreakFacts, usePinnedAchievements, VersusSummary } from "./ProfileSections";
 
 const date = (t: number) => new Date(t).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
 
@@ -69,6 +73,13 @@ export default function Profile({ server, notice, snapshot, accountSettings = fa
   const stats = useMemo(() => computeStats(records), [records]);
   const firstPlay = signedIn && account ? account.createdAt : Math.min(g.createdAt, ...local.map((r) => r.startedAt));
   const notImported = signedIn ? local.filter((r) => !importedIds().has(r.recordId)) : [];
+  const earned = snapshot?.state.achievements ?? [];
+  const { pins, toggle: togglePin } = usePinnedAchievements(earned);
+  const titleItem = snapshot ? itemById(snapshot.look.title) : null;
+  const titleText = titleItem && titleItem.acquisition !== "default" ? titleItem.look.text ?? titleItem.name : "";
+  const titleCss = titleItem?.look.css ?? "";
+  const nameFxItem = snapshot ? itemById(snapshot.look.nameFx) : null;
+  const nameFx = nameFxItem?.look.css ? `${nameFxItem.look.css} fx-lv${snapshot?.look.nameFxLv ?? 1}` : "";
 
   const saveNick = async () => {
     const v = validateNickname(draft);
@@ -105,8 +116,8 @@ export default function Profile({ server, notice, snapshot, accountSettings = fa
 
   return (
     <section className="profile" aria-labelledby="profile-title">
-      <header className="profile-head">
-        {!snapshot && <span className="profile-avatar" aria-hidden="true"><ProfileAvatar size={48} /></span>}
+      <header className="profile-head profile-hero">
+        <span className="profile-avatar" aria-hidden="true"><ProfileAvatar look={snapshot?.look} me size={64} /></span>
         <div className="profile-id">
           {editing ? (
             <form
@@ -126,7 +137,7 @@ export default function Profile({ server, notice, snapshot, accountSettings = fa
             </form>
           ) : (
             <h1 id="profile-title">
-              <span className="profile-name">{snapshot ? <PlayerTag name={shownName} look={snapshot.look} me /> : shownName}</span>
+              <span className="profile-name">{nameFx ? <span className={"player-name " + nameFx}>{shownName}</span> : shownName}</span>
               <button
                 type="button"
                 className="icon-button"
@@ -140,10 +151,13 @@ export default function Profile({ server, notice, snapshot, accountSettings = fa
               </button>
             </h1>
           )}
+          {titleText && <p className={"profile-title-line player-title" + (titleCss ? " " + titleCss : "")}>{titleText}</p>}
           <p className="profile-meta">
             <span className="profile-nick-note">{signedIn ? "계정 닉네임 · 모든 대전에 쓰여요" : "이 기기 닉네임 · 모든 대전에 쓰여요"}</span>
             {Number.isFinite(firstPlay) && <span>{signedIn ? "가입" : "처음 플레이"} {date(firstPlay)}</span>}
           </p>
+          {pins.length > 0 && <ul className="profile-pins" aria-label="대표 업적">{pins.map((id) => <li key={id}>{achievementById(id)?.label}</li>)}</ul>}
+          <StreakFacts snapshot={snapshot} />
         </div>
       </header>
       {message && (
@@ -152,6 +166,17 @@ export default function Profile({ server, notice, snapshot, accountSettings = fa
         </p>
       )}
 
+
+      <div className="profile-grid">
+        <VersusSummary stats={stats} records={records} server={signedIn && !!remote} />
+        <RecentMatches records={records} />
+        <SoloRecordsSection server={server} />
+        <EquippedLooks look={snapshot?.look ?? GUEST_LOOK} signedIn={signedIn} />
+        <CollectionProgress snapshot={snapshot} />
+        <Achievements earned={earned} pins={pins} toggle={togglePin} />
+      </div>
+
+      <h2 className="profile-section-title">계정 관리</h2>
       {!signedIn && <section id="profile-account-settings" tabIndex={-1} className="profile-account" aria-label="로그인">
         <img className="login-brand" src={`${import.meta.env.BASE_URL}icons/online-yacht-wordmark.svg`} alt="Online Yacht" width="140" height="32" />
         {loginReady && server && inApp ? (
@@ -176,9 +201,6 @@ export default function Profile({ server, notice, snapshot, accountSettings = fa
         )}
         <p className="profile-fine">게스트 기록은 이 브라우저에만 있어요. 브라우저 데이터를 지우면 함께 사라져요.</p>
       </section>}
-
-      {stats.games > 0 && <p className="profile-note">{stats.games}경기 · {stats.wins}승 {stats.losses}패 {stats.draws}무</p>}
-      <a className="text-button" href="#records">내 기록에서 전적과 리뷰 보기</a>
 
       {signedIn && <section id="profile-account-settings" tabIndex={-1} className="profile-account" aria-label="계정">
             <p className="profile-note">

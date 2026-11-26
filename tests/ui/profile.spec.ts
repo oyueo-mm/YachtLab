@@ -8,8 +8,12 @@ import { scoreCategory, startAI } from "./helpers";
  */
 test("빈 프로필은 가짜 수치 없이 안내하고, 로그인은 준비 중으로 표시한다", async ({ page }) => {
   await page.goto("#profile");
-  await expect(page.getByRole("heading", { name: /이름 없음|.+/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: /내 기록/ })).toBeVisible();
+  await expect(page.locator("#profile-title")).toBeVisible();
+  await expect(page.getByRole("link", { name: /전체 기록/ })).toBeVisible();
+  // game profile cards: empty states instead of invented numbers
+  await expect(page.getByRole("region", { name: "대전 전적" })).toContainText("아직 완료한 대전이 없어요");
+  await expect(page.getByRole("region", { name: "1인 플레이 개인 기록" })).toContainText("아직 완료한 1인 플레이가 없어요");
+  await expect(page.getByRole("region", { name: "수집 현황" })).toContainText("로그인");
   await expect(page.getByText("회원 로그인은 준비 중이에요.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Google로 로그인" })).toHaveCount(0);
   await expect(page.getByText(/브라우저 데이터를 지우면 함께 사라져요/)).toBeVisible();
@@ -26,8 +30,11 @@ test("AI 대전 12라운드를 끝내면 기기 전적 요약은 프로필, 상�
   }
   await expect(page.locator(".game-result")).toBeVisible({ timeout: 15000 });
   await page.goto("#profile");
-  await expect(page.getByText(/1경기 ·/)).toBeVisible();
-  await page.getByRole("link", { name: /내 기록/ }).click();
+  const versus = page.getByRole("region", { name: "대전 전적" });
+  await expect(versus.locator(".profile-kpis div").first()).toContainText("1");
+  await expect(page.getByRole("region", { name: "최근 경기" }).locator("li")).toHaveCount(1);
+  await expect(page.getByRole("region", { name: "최근 경기" })).toContainText("기기 기록");
+  await page.getByRole("link", { name: /전체 기록/ }).click();
   await expect(page.locator(".profile-stats")).toContainText("경기");
   await expect(page.locator(".profile-stats div").first()).toContainText("1");
   await expect(page.locator(".profile-recent li")).toHaveCount(1);
