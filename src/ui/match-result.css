@@ -9,9 +9,9 @@
   color: var(--ink);
   box-shadow: 0 12px 48px #25141944;
   overscroll-behavior: contain;
-  /* Tailwind preflight sets dialog margin to 0 (top-left on PC): centre it like the native default. */
-  margin: auto;
 }
+/* Tailwind preflight sets dialog margin to 0 (pinned top-left on PC): centre the modal result. */
+.match-result-dialog:modal { margin: auto; }
 .match-result-dialog::backdrop { background: #21181688; }
 .match-result-dialog .game-result { margin: 0; color: var(--ink); }
 .match-result-dialog h2 { margin: 5px 28px; text-wrap: balance; }

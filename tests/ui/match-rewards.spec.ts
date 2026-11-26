@@ -85,10 +85,16 @@ test("경기 후 홈에서 서버 보상 진행률을 확인하고 닫을 때까
     await expect(earned).toContainText("일일 퀘스트 모두 완료");
     await expect(earned).toContainText("업적 · 첫 승리");
     await expect.poll(async () => Number(await page.locator("body").getAttribute("data-reward-widths"))).toBeGreaterThan(2);
+    // Measure with the pointer away from the cards (hover transitions are not layout).
+    await page.mouse.move(1, 1);
+    await page.waitForTimeout(400);
     const before = await online.boundingBox();
     await earned.getByRole("button", { name: "보상 알림 닫기" }).click();
     await expect(earned).toHaveCount(0);
-    expect(await online.boundingBox()).toEqual(before);
+    // The pointer that clicked "close" now rests over the mode card below the toast; its hover
+    // transition is not a layout shift, so move the pointer away before comparing the layout box.
+    await page.mouse.move(1, 1);
+    await expect.poll(() => online.boundingBox(), { timeout: 3000 }).toEqual(before);
     expect(rewardMethods.length).toBeGreaterThan(0);
     expect(rewardMethods.every((method) => method === "GET")).toBe(true);
   } finally {
