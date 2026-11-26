@@ -176,8 +176,8 @@
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "004cb249c4",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45778352223"
+      "head": "20336fbb0f",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45779175905"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
