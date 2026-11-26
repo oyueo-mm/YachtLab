@@ -8,6 +8,8 @@
 
 > **게임 리뷰**는 [제품 복기의 수치 기준과 데이터 경계](./AI-REVIEW.md)에서 시작한다. 브라우저 Web Worker에서 DP Expert와 작은 v5 종반 범위를 사용한다.
 
+> **1인 플레이·프로필·컬렉션·시너지·한정판·상점 안내·오디오 믹스(2026-11-27)** → [COLLECTIONS-2026-11-27](./COLLECTIONS-2026-11-27.md), [STREAK-REVIEW-2026-11-27](./STREAK-REVIEW-2026-11-27.md), [오디오 믹스](../audio/MIX.md), D-074~D-078. 코드: 1인 플레이 `src/play/SoloGame.tsx`·`src/solo/`(기록·동기화), 오프라인 장착 `src/play/own-look.ts`, 프로필 `src/shell/ProfileSections.tsx`, 컬렉션 `src/economy/live/collections.ts`, 시너지 `src/play/board-synergy.ts`, 2.5D 효과 `src/dice3d/Dice25Fx.tsx`·`src/play/tray-attach.ts`, 안내 `src/ui/Coach.tsx`, 믹스 `src/sound.ts`(버스·`volumeCurve`)·`src/audio/bgm-render.ts`(`normalize`). **워커 배포 전**에는 1인 기록 계정 보관과 신규 11종 판매가 꺼져 있다(의도된 안전 동작).
+>
 > **꾸미기 연출·설정·BGM·단축키·규칙/FAQ 페이지 작업이면** [POLISH-2026-11-26](./POLISH-2026-11-26.md)과 D-068~D-073부터: 효과 데이터 `src/dice3d/dice-fx.ts`·`src/board-fx.ts`·`src/emote-fx.ts`(단계 설명은 `src/fx-texts.ts`와 테스트로 동기화), 렌더러 `src/dice3d/fx-canvas.ts`, 이벤트 `src/fx-bus.ts`, 설정 `src/settings.ts`, 공통 UI `src/ui/kit.tsx`, 단축키 `src/ui/shortcuts.tsx`, BGM `src/audio/`. 음원 라이선스는 [audio/LICENSES](../audio/LICENSES.md).
 >
 > **재화·퀘스트·업적·상점 작업이면 먼저 [실서비스 경제](../economy/LIVE-ECONOMY.md)** — 실제 구현(M3i-W30, 설정 `src/economy/live/config.ts`, 상품 `catalog.ts`, 규칙 `rewards.ts`, 원장 `worker/src/economy.ts`, D-040~D-042). 연구 배경은 [경제 연구](../economy/ECONOMY-RESEARCH.md). 온라인 매칭·관전방·서버 AI는 [MATCHMAKING](../online/MATCHMAKING.md)·[SERVER-AI-MATCH](../online/SERVER-AI-MATCH.md)(D-038·D-039).
@@ -55,7 +57,7 @@
 
 ## 최초 방문과 메뉴 인수인계
 
-[2026-11-26 최초 방문과 내비게이션](./PRODUCT-2026-11-24.md#2026-11-26-최초-방문과-내비게이션)과 D-059를 참고한다. `src/play/Tutorial.tsx`는 대전용 렌더러에 정해진 결과를 전달한다. 일반 메뉴에서는 첫 방문 튜토리얼을 다시 실행할 수 없고 `#practice`에서 별도 연습 차례를 시작할 수 있다. 셸 메뉴와 계정 접근은 `src/shell/Chrome.tsx`에 있다.
+[2026-11-26 최초 방문과 내비게이션](./PRODUCT-2026-11-24.md#2026-11-26-최초-방문과-내비게이션)과 D-059를 참고한다. `src/play/Tutorial.tsx`는 대전용 렌더러에 정해진 결과를 전달한다. 일반 메뉴에서는 첫 방문 튜토리얼을 다시 실행할 수 없고 `#practice`에서 별도 연습 차례를 시작할 수 있다(2026-11-27부터 오프라인 메뉴 버튼 대신 규칙 페이지·FAQ의 "튜토리얼 다시 하기"가 연결). 셸 메뉴와 계정 접근은 `src/shell/Chrome.tsx`에 있다.
 
 
 ## 온라인 요트다이스 브랜드·경제 출시

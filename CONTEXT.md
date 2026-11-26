@@ -15,6 +15,8 @@
 
 > **온라인 요트다이스 제품 개편** → [브랜드, 메뉴, 검색 및 배포 인수인계](docs/context/ONLINE-YACHT-PRODUCT.md).
 >
+> **콘텐츠 확장(2026-11-27): 1인 플레이·개인 기록, 게임 프로필, 테마 컬렉션 10종·신규 11종·시너지, 기간 한정, 상점·뽑기 안내, 오디오 믹스, 모바일** → [COLLECTIONS-2026-11-27](docs/context/COLLECTIONS-2026-11-27.md), [연승 검토](docs/context/STREAK-REVIEW-2026-11-27.md), [오디오 믹스](docs/audio/MIX.md) (D-074~D-078). 워커 수동 배포 전에는 1인 기록 계정 보관·신규 상품 판매가 대기 상태.
+>
 > **게임 완성도·꾸미기 개편(주사위 30·보드 20·이모티콘 41 강화 연출, 설정 시트, 자체 작곡 BGM, 키보드 단축키, 규칙·FAQ 개편)** → [POLISH-2026-11-26](docs/context/POLISH-2026-11-26.md) (D-068~D-073).
 >
 > **검색엔진 등록·수집 자동화(IndexNow Bing·네이버, 콘텐츠 lastmod, 배포 후 검증)** → [SEO-AUTOMATION](docs/context/SEO-AUTOMATION.md) (D-067).
