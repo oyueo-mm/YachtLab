@@ -299,3 +299,8 @@
 - ✅ 무료 "매우 어려움" 최종 모델 I2RO1 선정(D-V7-5): v4-D 대비 확증·재현, v5-R과 대국상 동등. 인수인계: [V7-PRODUCT-HANDOFF](./V7-PRODUCT-HANDOFF.md).
 - ⏭️ Codex: I2RO1 통합(기존 v5-R 시험판 경로에서 판단 함수만 교체), 실기기 Android·iOS 측정 후 기본값 교체 여부 결정.
 - ⏭️ 연구: 9591 S3·S4(I2R1) 결과 기록. 종반 regret 개선이 대국 승률로 이어지지 않는 문제(이득 < 0.05%p/경기) → 중반 의사결정·상대 모델 쪽으로 연구 초점 이동 검토.
+
+### 2026-11-26 AI 연구 잠정 종료 (D-V7-6)
+
+- ⏸️ 매우 어려움 v4-D 유지, v5-R·I2RO1 교체 보류. Codex 통합 작업 없음.
+- ⏸️ v7 연구(제품·연구 최강 트랙) 일시 중단. 재개 지점: [V7-APEX-RESEARCH §11](./V7-APEX-RESEARCH.md), [V7-PRODUCT-HANDOFF](./V7-PRODUCT-HANDOFF.md).
