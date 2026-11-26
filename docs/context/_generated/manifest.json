@@ -71,6 +71,7 @@
     "RESEARCH-50K-FOUR-WAY-LEAGUE.md",
     "RESULTS.md",
     "ROADMAP.md",
+    "SEARCH-INTENT-2026-11-26.md",
     "SELFPLAY-2026-11-20-FINAL.md",
     "SELFPLAY-RESEARCH.md",
     "SEO-AUTOMATION.md",
@@ -126,6 +127,26 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "d6d8414",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #107 from oyueo-mm/codex/yachtlab-search-research-20261126"
+    },
+    {
+      "sha": "9e0e45e",
+      "date": "2026-11-26",
+      "subject": "Record current search markup guidance and performance samples"
+    },
+    {
+      "sha": "87ef6e3",
+      "date": "2026-11-26",
+      "subject": "Align static and hydrated home search content"
+    },
+    {
+      "sha": "56258b4",
+      "date": "2026-11-26",
+      "subject": "Publish bilingual Yacht Dice research and intent-focused guides"
+    },
+    {
       "sha": "a8f70cd",
       "date": "2026-11-26",
       "subject": "Merge pull request #106 from oyueo-mm/codex/yachtlab-stability-20261126"
@@ -154,40 +175,20 @@
       "sha": "93b2e2c",
       "date": "2026-11-26",
       "subject": "Merge remote-tracking branch 'origin/main' into claude/great-sagan-cevdax"
-    },
-    {
-      "sha": "77b6016",
-      "date": "2026-11-26",
-      "subject": "docs: exact unit test count"
-    },
-    {
-      "sha": "3b2ff1e",
-      "date": "2026-11-26",
-      "subject": "test+docs: polish verification, sweep contact sheets, BGM render in idle time, test race fix"
-    },
-    {
-      "sha": "2e4501f",
-      "date": "2026-11-26",
-      "subject": "perf+docs: lazy effect/music chunks, level texts split; polish report, decisions D-068..D-073, audio licences"
-    },
-    {
-      "sha": "c141d34",
-      "date": "2026-11-26",
-      "subject": "feat(seo,ui): visual rules page, categorized FAQ, home links trimmed; tests for polish"
     }
   ],
   "recentWorkflowRuns": [
     {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "a2e53d1ffa",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45839983539"
-    },
-    {
       "name": "SEO IndexNow",
       "status": "success",
-      "head": "222db725ba",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45833196799"
+      "head": "19a5d24c8a",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45842304037"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "9e0e45eece",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45841769924"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
