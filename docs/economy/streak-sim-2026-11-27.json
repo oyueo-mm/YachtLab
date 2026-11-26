@@ -1,0 +1,90 @@
+{
+  "A_none": {
+    "label": "A. 보상 없음(현행: 5·10연승 업적만)",
+    "bottom25": {
+      "extraPerDay": 0,
+      "basePerDay": 113.1,
+      "bestStreak": 6.2
+    },
+    "median": {
+      "extraPerDay": 0,
+      "basePerDay": 115.1,
+      "bestStreak": 7.4
+    },
+    "top10": {
+      "extraPerDay": 0,
+      "basePerDay": 117.6,
+      "bestStreak": 9.4
+    },
+    "shareTop10": 0,
+    "shareBottom50": 0,
+    "extraVsBasePct": 0,
+    "broken3PerWeek": 4.3
+  },
+  "B_ladder": {
+    "label": "B. 연승 단계 보너스 +2/+4/+6(3·4·5연승 이상, 경기당)",
+    "bottom25": {
+      "extraPerDay": 2.58,
+      "basePerDay": 113.1,
+      "bestStreak": 6.2
+    },
+    "median": {
+      "extraPerDay": 4.28,
+      "basePerDay": 115,
+      "bestStreak": 7.5
+    },
+    "top10": {
+      "extraPerDay": 7.46,
+      "basePerDay": 117.5,
+      "bestStreak": 9.3
+    },
+    "shareTop10": 16.8,
+    "shareBottom50": 35.4,
+    "extraVsBasePct": 3.9,
+    "broken3PerWeek": 4.27
+  },
+  "C_milestone": {
+    "label": "C. 이정표 1회 지급 3연승 10·5연승 20·10연승 40 (하루 1회씩)",
+    "bottom25": {
+      "extraPerDay": 5.89,
+      "basePerDay": 113.1,
+      "bestStreak": 6.3
+    },
+    "median": {
+      "extraPerDay": 8.53,
+      "basePerDay": 115,
+      "bestStreak": 7.4
+    },
+    "top10": {
+      "extraPerDay": 12.83,
+      "basePerDay": 117.5,
+      "bestStreak": 9.4
+    },
+    "shareTop10": 14.8,
+    "shareBottom50": 39.1,
+    "extraVsBasePct": 7.6,
+    "broken3PerWeek": 4.28
+  },
+  "D_weekly": {
+    "label": "D. 주간 최고 연승 단계 보상(주 1회, 3→15 · 5→30 · 8→50)",
+    "bottom25": {
+      "extraPerDay": 3.25,
+      "basePerDay": 113.1,
+      "bestStreak": 6.3
+    },
+    "median": {
+      "extraPerDay": 4,
+      "basePerDay": 115.1,
+      "bestStreak": 7.4
+    },
+    "top10": {
+      "extraPerDay": 5.04,
+      "basePerDay": 117.5,
+      "bestStreak": 9.4
+    },
+    "shareTop10": 12.6,
+    "shareBottom50": 43.7,
+    "extraVsBasePct": 3.5,
+    "broken3PerWeek": 4.28
+  }
+}
