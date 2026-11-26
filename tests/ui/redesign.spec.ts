@@ -226,7 +226,8 @@ test("모든 메뉴의 흰 배경과 무채색·레드 팔레트, 차트 구분"
     await page.getByLabel(algorithm, { exact: true }).check();
   await page.getByLabel("조합별 경기 수").fill("1");
   await page.getByRole("button", { name: "토너먼트 시작" }).click();
-  await expect(page.locator(".progress-row")).toContainText("100%");
+  // Six full AI games (MCTS among them) run in the browser: ~5 s alone, longer on a shared CI runner.
+  await expect(page.locator(".progress-row")).toContainText("100%", { timeout: 30_000 });
   const colors = await page
     .locator(".chart-row i")
     .evaluateAll((nodes) =>
