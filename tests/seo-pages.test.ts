@@ -29,7 +29,7 @@ describe("static search pages (D-062)", () => {
     const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
     expect(html).toContain('<meta name="google-site-verification" content="wJt-lkmKFMcAXpu9gEUMBhyBrWsPSftS2ig_4ozPeSE" />');
     expect(html).toContain('<link rel="canonical" href="https://oyueo-mm.github.io/YachtLab/">');
-    expect(html).toContain("<title>온라인 요트다이스(야추) - 무료 플레이 · AI · 친구 대전 | Online Yacht</title>");
+    expect(html).toContain("<title>온라인 요트다이스(야추 다이스) · 무료 AI·친구 멀티 | Online Yacht</title>");
     expect(html).toContain('"@type":"VideoGame"');
     for (const page of PAGES as { path: string }[]) expect(html).toContain(`%BASE_URL%${page.path}"`);
   });

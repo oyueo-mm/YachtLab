@@ -36,6 +36,7 @@ export function Lobby({ navigate }: { navigate: Go }) {
       </div>
       <nav className="lobby-links" aria-label="도구와 안내">
         <a className="lobby-guide" href={`${import.meta.env.BASE_URL}guide/`}> <BookOpen size={17} aria-hidden="true" /> 규칙과 전략</a>
+        <a href={`${import.meta.env.BASE_URL}strategy/`}>초보 전략</a>
         <a href={`${import.meta.env.BASE_URL}probability/`}>확률 계산기</a>
         <a href={`${import.meta.env.BASE_URL}scores/`}>점수판</a>
         <a href={`${import.meta.env.BASE_URL}ai/`}>AI 대전</a>
