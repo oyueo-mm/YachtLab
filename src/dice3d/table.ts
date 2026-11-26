@@ -91,6 +91,9 @@ export type CelebrateOptions = {
   onDone: () => void;
 };
 
+/** Lv.3 landing accent sound of a dice item (null when it has none). */
+export const landSoundOf = (id?: string) => diceFx(id)?.sound ?? null;
+
 /** Emission level of glowing pips (they are masked, so this no longer tints the whole die). */
 const GLOW_BASE = 0.55;
 

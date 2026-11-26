@@ -149,7 +149,7 @@ test("상점: 강화형 상품은 사기 전에 Lv.1~3 차이를 미리 보고, 
   const dialog = page.getByRole("dialog", { name: "황금 상세" });
   await expect(dialog.getByRole("tab")).toHaveCount(3);
   await dialog.getByRole("tab", { name: /^Lv\.3/ }).click();
-  await expect(dialog.getByText("Lv.3 · 충돌과 착지에 금빛 조각 추가")).toBeVisible();
+  await expect(dialog.getByRole("tab", { name: /^Lv\.3/ })).toContainText("황금빛 파동");
   await expect(dialog.getByText("재화가 부족해요. 미리보기는 그대로 볼 수 있어요.")).toBeVisible();
   await page.keyboard.press("Escape");
   await page.getByRole("tab", { name: /^닉네임 효과/ }).click();

@@ -10,8 +10,7 @@ import { MAX_LEVEL, SLOTS, TIER_PRICES, UPGRADE_COINS, type TierId } from "./con
 import { CONTENT_ITEMS, type FxLook } from "./content-items";
 import type { SeasonId } from "./seasons";
 import type { DiceLook as PaintedDice } from "../../dice3d/dice-look";
-import { diceFx } from "../../dice3d/dice-fx";
-import { boardFx } from "../../board-fx";
+import { BOARD_FX_TEXT, DICE_FX_TEXT } from "../../fx-texts";
 import { EMOTE_LEVEL_TEXT } from "../../emote-fx";
 
 export type ItemCategory = "dice" | "board" | "emote" | "chat" | "bubble" | "profile" | "nameFx" | "fx" | "title";
@@ -154,22 +153,22 @@ const items: ItemDef[] = [
  * levels (owned copies start at Lv.1; nothing about price, tier or acquisition changes).
  */
 function withBoardLevels(entry: ItemDef): ItemDef {
-  const profile = boardFx(entry.id);
-  if (!profile) return entry;
+  const text = BOARD_FX_TEXT[entry.id];
+  if (!text) return entry;
   const base = entry.look.css || (entry.id === "board.navy" ? "bd-navy" : entry.id === "board.felt" ? "bd-felt" : "bd-charcoal");
-  return { ...entry, maxLevel: 3, levels: ["기본 보드", profile.lv2, profile.lv3], levelLooks: [{ css: base + " bd-lv2" }, { css: base + " bd-lv3" }] };
+  return { ...entry, maxLevel: 3, levels: ["기본 보드", ...text], levelLooks: [{ css: base + " bd-lv2" }, { css: base + " bd-lv3" }] };
 }
 
 export const ITEMS: readonly ItemDef[] = items.map((entry) => {
   if (entry.category === "board" && entry.tier !== "basic") return withBoardLevels(entry);
   if (entry.category !== "dice" || entry.tier === "basic" || !entry.look.dice) return entry;
-  const profile = diceFx(entry.id);
-  if (!profile) return entry;
+  const text = DICE_FX_TEXT[entry.id];
+  if (!text) return entry;
   const levelLooks = [0, 1].map((index) => ({
     ...entry.levelLooks?.[index],
     dice: { ...entry.look.dice!, ...entry.levelLooks?.[index]?.dice, fx: entry.id, fxLevel: index + 2 },
   }));
-  return { ...entry, maxLevel: 3, levelLooks, levels: ["기본 외형과 소재 소리", profile.lv2, profile.lv3] };
+  return { ...entry, maxLevel: 3, levelLooks, levels: ["기본 외형과 소재 소리", ...text] };
 });
 
 /** The look of an item at a level (Lv.2 / Lv.3 overrides merged over Lv.1; nested dice look merged too). */

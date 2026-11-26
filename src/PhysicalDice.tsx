@@ -6,7 +6,6 @@ import { arrayMove } from "@dnd-kit/sortable";
 import type { Game } from "./engine";
 import { beginDiceMotion, isDiceBusy, takeThrowDirection } from "./dice-motion";
 import { playSfx } from "./sound";
-import { diceFx } from "./dice3d/dice-fx";
 import { emitFx } from "./fx-bus";
 import { getScoreFx, useScoreFx } from "./score-fx";
 import type { DiceTableModule } from "./dice3d-loader";
@@ -381,8 +380,8 @@ export function PhysicalDice({
         }
         pending.forEach((run) => run());
         sound("settle", { material, intensity: 0.35 });
-        const landFx = colors?.fxLevel === 3 && !reducedEffects ? diceFx(colors.fx) : null;
-        if (landFx && fxBudget() > 0) sound("diceFx", { land: landFx.sound, delay: 0.04 });
+        const land = colors?.fxLevel === 3 && !reducedEffects ? mod.landSoundOf(colors.fx) : null;
+        if (land && fxBudget() > 0) sound("diceFx", { land, delay: 0.04 });
         setFlying(new Set());
         refresh();
         done();

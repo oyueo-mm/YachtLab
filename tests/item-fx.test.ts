@@ -4,10 +4,15 @@ import { DICE_FX } from "../src/dice3d/dice-fx";
 import { BOARD_FX } from "../src/board-fx";
 import { EMOTE_FX, EMOTE_LEVEL_TEXT } from "../src/emote-fx";
 import { EMOTE_VOICES } from "../src/sound";
+import { BOARD_FX_TEXT, DICE_FX_TEXT } from "../src/fx-texts";
 
 const of = (c: string) => ITEMS.filter((i) => i.category === c && i.tier !== "basic");
 
 describe("cosmetic upgrade effects (2026-11-26)", () => {
+  it("level texts in the main bundle match the effect profiles", () => {
+    expect(DICE_FX_TEXT).toEqual(Object.fromEntries(Object.entries(DICE_FX).map(([k, v]) => [k, [v.lv2, v.lv3]])));
+    expect(BOARD_FX_TEXT).toEqual(Object.fromEntries(Object.entries(BOARD_FX).map(([k, v]) => [k, [v.lv2, v.lv3]])));
+  });
   it("every non-basic die has its own Lv.2/Lv.3 profile and keeps its body colours", () => {
     const dice = of("dice");
     expect(dice.length).toBe(30);
