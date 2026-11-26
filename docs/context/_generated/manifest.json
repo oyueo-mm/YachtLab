@@ -125,6 +125,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "b8f4782",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #103 from oyueo-mm/claude/great-sagan-cevdax"
+    },
+    {
+      "sha": "1e288e2",
+      "date": "2026-11-26",
+      "subject": "test(ui): explicit 30 s budget for the in-browser tournament; record production rollout"
+    },
+    {
       "sha": "2788297",
       "date": "2026-11-26",
       "subject": "Merge pull request #102 from oyueo-mm/claude/great-sagan-cevdax"
@@ -163,42 +173,26 @@
       "sha": "e627852",
       "date": "2026-11-26",
       "subject": "Merge pull request #101 from oyueo-mm/claude/wizardly-bohr-1usbx5"
-    },
-    {
-      "sha": "c4d854c",
-      "date": "2026-11-26",
-      "subject": "docs(seo): record the first production IndexNow run (D-067)"
-    },
-    {
-      "sha": "0e492f3",
-      "date": "2026-11-26",
-      "subject": "feat(dice): per-item Lv.2/Lv.3 effect profiles for all dice"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "1e288e2583",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45812674316"
+    },
+    {
+      "name": "SEO IndexNow",
+      "status": "success",
+      "head": "8b921dab04",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45812380394"
+    },
     {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
       "head": "93b2e2c5ac",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45809130867"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "93b2e2c5ac",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45809130859"
-    },
-    {
-      "name": "SEO IndexNow",
-      "status": "success",
-      "head": "e17c785908",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45800285656"
-    },
-    {
-      "name": "Deploy YachtLab Online Worker (manual)",
-      "status": "success",
-      "head": "54c13679f0",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45772443229"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

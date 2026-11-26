@@ -114,6 +114,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [b8f4782](https://github.com/oyueo-mm/YachtLab/commit/b8f4782) | 2026-11-26 | Merge pull request #103 from oyueo-mm/claude/great-sagan-cevdax |
+| [1e288e2](https://github.com/oyueo-mm/YachtLab/commit/1e288e2) | 2026-11-26 | test(ui): explicit 30 s budget for the in-browser tournament; record production rollout |
 | [2788297](https://github.com/oyueo-mm/YachtLab/commit/2788297) | 2026-11-26 | Merge pull request #102 from oyueo-mm/claude/great-sagan-cevdax |
 | [93b2e2c](https://github.com/oyueo-mm/YachtLab/commit/93b2e2c) | 2026-11-26 | Merge remote-tracking branch 'origin/main' into claude/great-sagan-cevdax |
 | [77b6016](https://github.com/oyueo-mm/YachtLab/commit/77b6016) | 2026-11-26 | docs: exact unit test count |
@@ -122,8 +124,6 @@
 | [c141d34](https://github.com/oyueo-mm/YachtLab/commit/c141d34) | 2026-11-26 | feat(seo,ui): visual rules page, categorized FAQ, home links trimmed; tests for polish |
 | [5d81351](https://github.com/oyueo-mm/YachtLab/commit/5d81351) | 2026-11-26 | feat(items): unique dice, board and emote upgrade effects |
 | [e627852](https://github.com/oyueo-mm/YachtLab/commit/e627852) | 2026-11-26 | Merge pull request #101 from oyueo-mm/claude/wizardly-bohr-1usbx5 |
-| [c4d854c](https://github.com/oyueo-mm/YachtLab/commit/c4d854c) | 2026-11-26 | docs(seo): record the first production IndexNow run (D-067) |
-| [0e492f3](https://github.com/oyueo-mm/YachtLab/commit/0e492f3) | 2026-11-26 | feat(dice): per-item Lv.2/Lv.3 effect profiles for all dice |
 
 ## 최근 GitHub Actions 상태
 
@@ -131,10 +131,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45812674316) | success | 1e288e2583 |
+| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45812380394) | success | 8b921dab04 |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45809130867) | success | 93b2e2c5ac |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45809130859) | success | 93b2e2c5ac |
-| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45800285656) | success | e17c785908 |
-| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45772443229) | success | 54c13679f0 |
 
 ## 다음 채팅과 작업의 시작점
 
