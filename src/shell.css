@@ -585,6 +585,43 @@
 }
 
 /* ---------- settings dialog ---------- */
+.settings-dialog .ui-sheet-body {
+  padding: 0;
+  overflow: hidden;
+}
+.settings-dialog .ui-sheet-grip {
+  flex-shrink: 0;
+  margin-top: 9px;
+}
+.settings-dialog .ui-sheet-head {
+  position: static;
+  flex: none;
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+}
+.settings-content {
+  min-height: 0;
+  padding: 0 22px 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.settings-content:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: -2px;
+}
+@media (max-width: 640px) {
+  .ui-sheet.settings-dialog {
+    max-height: min(88dvh, calc(100dvh - env(safe-area-inset-top) - 12px));
+  }
+  .settings-content {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+}
+.settings-dialog .settings-row {
+  flex-wrap: wrap;
+  padding-block: 4px;
+}
 .settings-sheet {
   padding: 18px 20px 20px;
 }

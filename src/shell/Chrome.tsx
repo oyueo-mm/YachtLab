@@ -71,78 +71,83 @@ export function SettingsDialog({ open, onClose, inGame = false }: { open: boolea
   };
   return (
     <Sheet open={open} onClose={onClose} title="설정" className="settings-dialog">
-      <section className="settings-group" aria-labelledby="settings-sound">
-        <h3 id="settings-sound">사운드</h3>
-        <Row title="전체 음소거" note="효과음과 배경 음악을 모두 꺼요 (M)">
-          <Switch label="전체 음소거" checked={settings.muted} onChange={(v) => set({ muted: v })} />
-        </Row>
-        <Row title="효과음">
-          <Switch label="효과음" checked={settings.sfx} disabled={settings.muted} onChange={(v) => set({ sfx: v })} />
-        </Row>
-        <Row title="효과음 음량">
-          <Slider label="효과음 음량" value={Math.round(settings.volume * 100)} step={5} format={percent}
-            disabled={settings.muted || !settings.sfx} onChange={(v) => set({ volume: v / 100 })} />
-        </Row>
-        <Row title="배경 음악" note="상황에 맞는 잔잔한 음악 (B)">
-          <Switch label="배경 음악" checked={settings.bgm} disabled={settings.muted} onChange={(v) => set({ bgm: v })} />
-        </Row>
-        <Row title="배경 음악 음량">
-          <Slider label="배경 음악 음량" value={Math.round(settings.bgmVolume * 100)} step={5} format={percent}
-            disabled={settings.muted || !settings.bgm} onChange={(v) => set({ bgmVolume: v / 100 })} />
-        </Row>
-        <button type="button" className="secondary settings-preview" disabled={!sfxAudible(settings)}
-          onClick={() => {
-            unlockAudio();
-            playSfx("throw");
-            playSfx("impact", { delay: 0.16, intensity: 0.9 });
-            playSfx("impact", { delay: 0.3, intensity: 0.45 });
-            playSfx("settle", { delay: 0.42, intensity: 0.4 });
-          }}>
-          효과음 미리 듣기
-        </button>
-      </section>
-      <section className="settings-group" aria-labelledby="settings-screen">
-        <h3 id="settings-screen">화면</h3>
-        <Row title="주사위 애니메이션 품질" note={canRender3d ? undefined : "이 브라우저는 3D를 지원하지 않아 2.5D로 표시해요"}>
-          <Select label="주사위 애니메이션 품질" value={settings.diceQuality} onChange={(v) => updateSettings({ diceQuality: v })}
-            options={(Object.keys(qualityLabel) as DiceQuality[]).map((q) => ({ value: q, label: qualityLabel[q], disabled: q.startsWith("3d") && !canRender3d }))} />
-        </Row>
-        <Row title="효과 품질" note="주사위·보드·이모티콘 입자 수">
-          <Segmented label="효과 품질" value={settings.fxQuality} onChange={(v) => updateSettings({ fxQuality: v })}
-            options={(Object.keys(fxLabel) as FxQuality[]).map((q) => ({ value: q, label: fxLabel[q] }))} />
-        </Row>
-        <Row title="모션 간단히" note="짧고 가벼운 2.5D 연출, 움직이는 배경 정지">
-          <Switch label="모션 간단히" checked={settings.reducedEffects} onChange={(v) => updateSettings({ reducedEffects: v })} />
-        </Row>
-        <Row title="상대 아이템 효과" note="상대가 장착한 애니메이션·효과음">
-          <Switch label="상대 아이템 효과" checked={settings.opponentFx} onChange={(v) => updateSettings({ opponentFx: v })} />
-        </Row>
-        <p className="settings-note" data-renderer={renderer}>
-          {systemReduced
-            ? "기기의 '동작 줄이기'가 켜져 있어 주사위가 움직이지 않고 바로 결과를 보여 줘요."
-            : renderer === "2.5d"
-              ? "2.5D 주사위 연출을 사용 중이에요."
-              : renderer === "3d-high"
-                ? settings.diceQuality === "auto"
-                  ? "3D 물리 주사위를 선명하게 그리고, 기기가 버거워하면 자동으로 가볍게 바꿔요."
-                  : "3D 물리 주사위(고화질)를 사용 중이에요."
-                : "3D 물리 주사위(성능 우선)를 사용 중이에요."}
-        </p>
-      </section>
-      {!coarse && (
-        <section className="settings-group" aria-labelledby="settings-keys">
-          <h3 id="settings-keys">조작</h3>
-          <Row title="키보드 단축키" note="Space 굴리기 · 1~5 고정 · ? 도움말">
-            <Switch label="키보드 단축키" checked={settings.shortcuts} onChange={(v) => updateSettings({ shortcuts: v })} />
+      <div className="settings-content" role="region" aria-label="설정 항목" tabIndex={0} data-select-viewport>
+        <section className="settings-group" aria-labelledby="settings-sound">
+          <h3 id="settings-sound">사운드</h3>
+          <Row title="전체 음소거" note="효과음과 배경 음악을 모두 꺼요 (M)">
+            <Switch label="전체 음소거" checked={settings.muted} onChange={(v) => set({ muted: v })} />
           </Row>
-          <button type="button" className="text-button" onClick={() => { onClose(); openShortcutHelp(); }}>단축키 모두 보기</button>
+          <Row title="효과음">
+            <Switch label="효과음" checked={settings.sfx} disabled={settings.muted} onChange={(v) => set({ sfx: v })} />
+          </Row>
+          <Row title="효과음 음량">
+            <Slider label="효과음 음량" value={Math.round(settings.volume * 100)} step={5} format={percent}
+              disabled={settings.muted || !settings.sfx} onChange={(v) => set({ volume: v / 100 })} />
+          </Row>
+          <Row title="배경 음악" note="상황에 맞는 잔잔한 음악 (B)">
+            <Switch label="배경 음악" checked={settings.bgm} disabled={settings.muted} onChange={(v) => set({ bgm: v })} />
+          </Row>
+          <Row title="배경 음악 음량">
+            <Slider label="배경 음악 음량" value={Math.round(settings.bgmVolume * 100)} step={5} format={percent}
+              disabled={settings.muted || !settings.bgm} onChange={(v) => set({ bgmVolume: v / 100 })} />
+          </Row>
+          <button type="button" className="secondary settings-preview" disabled={!sfxAudible(settings)}
+            onClick={() => {
+              unlockAudio();
+              playSfx("throw");
+              playSfx("impact", { delay: 0.16, intensity: 0.9 });
+              playSfx("impact", { delay: 0.3, intensity: 0.45 });
+              playSfx("settle", { delay: 0.42, intensity: 0.4 });
+            }}>
+            효과음 미리 듣기
+          </button>
         </section>
-      )}
-      {inGame && <div className="settings-group">
-        <p className="settings-note settings-game-note">규칙·난이도·인원은 게임 화면의 ‘설정 변경’에서 바꿀 수 있어요.</p>
-        <FullscreenToggle />
-      </div>}
-      <p className="settings-footnote">변경 사항은 바로 이 브라우저에 저장돼요.</p>
+        <section className="settings-group" aria-labelledby="settings-screen">
+          <h3 id="settings-screen">화면</h3>
+          <Row title="주사위 애니메이션 품질" note={canRender3d ? undefined : "이 브라우저는 3D를 지원하지 않아 2.5D로 표시해요"}>
+            <Select label="주사위 애니메이션 품질" value={settings.diceQuality} onChange={(v) => updateSettings({ diceQuality: v })}
+              options={(Object.keys(qualityLabel) as DiceQuality[]).map((q) => ({ value: q, label: qualityLabel[q], disabled: q.startsWith("3d") && !canRender3d }))} />
+          </Row>
+          <Row title="효과 품질" note="주사위·보드·이모티콘 입자 수">
+            <Segmented label="효과 품질" value={settings.fxQuality} onChange={(v) => updateSettings({ fxQuality: v })}
+              options={(Object.keys(fxLabel) as FxQuality[]).map((q) => ({ value: q, label: fxLabel[q] }))} />
+          </Row>
+          <Row title="모션 간단히" note="짧고 가벼운 2.5D 연출, 움직이는 배경 정지">
+            <Switch label="모션 간단히" checked={settings.reducedEffects} onChange={(v) => updateSettings({ reducedEffects: v })} />
+          </Row>
+          <Row title="상대 아이템 효과" note="상대가 장착한 애니메이션·효과음">
+            <Switch label="상대 아이템 효과" checked={settings.opponentFx} onChange={(v) => updateSettings({ opponentFx: v })} />
+          </Row>
+          <p className="settings-note" data-renderer={renderer}>
+            {systemReduced
+              ? "기기의 '동작 줄이기'가 켜져 있어 주사위가 움직이지 않고 바로 결과를 보여 줘요."
+              : renderer === "2.5d"
+                ? "2.5D 주사위 연출을 사용 중이에요."
+                : renderer === "3d-high"
+                  ? settings.diceQuality === "auto"
+                    ? "3D 물리 주사위를 선명하게 그리고, 기기가 버거워하면 자동으로 가볍게 바꿔요."
+                    : "3D 물리 주사위(고화질)를 사용 중이에요."
+                  : "3D 물리 주사위(성능 우선)를 사용 중이에요."}
+          </p>
+        </section>
+        {!coarse && (
+          <section className="settings-group" aria-labelledby="settings-keys">
+            <h3 id="settings-keys">조작</h3>
+            <Row title="키보드 단축키" note="Space 굴리기 · 1~5 고정 · ? 도움말">
+              <Switch label="키보드 단축키" checked={settings.shortcuts} onChange={(v) => updateSettings({ shortcuts: v })} />
+            </Row>
+          </section>
+        )}
+        <section className="settings-group" aria-labelledby="settings-help">
+          <h3 id="settings-help">도움말</h3>
+          {!coarse && <button type="button" className="text-button" onClick={() => { onClose(); openShortcutHelp(); }}>단축키 모두 보기</button>}
+          {inGame && <>
+            <p className="settings-note settings-game-note">규칙·난이도·인원은 게임 화면의 ‘설정 변경’에서 바꿀 수 있어요.</p>
+            <FullscreenToggle />
+          </>}
+          <p className="settings-footnote">변경 사항은 바로 이 브라우저에 저장돼요.</p>
+        </section>
+      </div>
     </Sheet>
   );
 }
