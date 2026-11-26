@@ -37,7 +37,12 @@ test("저장 기록이 없는 첫 방문에서 JS 실행 여부와 관계없이 
     expect(expected.description).toContain("PC와 모바일");
     expect(expected.description).toContain("야추 다이스");
     expect(expected.intro).toContain("온라인 멀티플레이");
-    expect(await read(rendered)).toEqual(expected);
+    // The rendered home shows only the rules and the FAQ; the static (no-JS) shell keeps every search
+    // page link, and the rules / FAQ pages link to all of them (2026-11-26).
+    const shown = await read(rendered);
+    expect({ ...shown, links: [] }).toEqual({ ...expected, links: [] });
+    expect(shown.links.map(([label]) => label)).toEqual(["규칙", "자주 묻는 질문"]);
+    expect(expected.links.map(([, href]) => href)).toEqual(expect.arrayContaining(["/YachtLab/guide/", "/YachtLab/faq/", "/YachtLab/probability/", "/YachtLab/scores/", "/YachtLab/strategy/", "/YachtLab/ai/", "/YachtLab/multiplayer/"]));
     await rendered.getByRole("button", { name: /오프라인 대전/ }).click();
     await expect(rendered.getByRole("heading", { name: "오프라인 대전", exact: true })).toBeVisible();
     await expect(rendered).toHaveTitle(HOME_TITLE);

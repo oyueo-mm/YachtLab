@@ -18,10 +18,9 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 export { SITE };
 /** url path → { fingerprint, lastmod }: lastmod moves only when the indexed content changes (D-067). */
 export const LEDGER_FILE = join(ROOT, "scripts/seo/lastmod.json");
-/** Source of every sitemap page; the home page is the Vite entry, the guide is hand-written. */
+/** Source of every sitemap page; the home page is the Vite entry, the rest come from this generator. */
 export const sitemapSources = () => [
   ["", "index.html"],
-  ["guide/", "public/guide/index.html"],
   ...PAGES.map((p) => [p.path, `public/${p.path}index.html`]),
 ];
 export const NAV = [
@@ -97,7 +96,7 @@ export function build({ check = false, today = kstDate() } = {}) {
       writeFileSync(file, html);
     }
   }
-  // Sitemap: home, the guide (hand-written) and every generated page, with lastmod from the ledger.
+  // Sitemap: home and every generated page (the guide is generated since 2026-11-26), with lastmod from the ledger.
   const ledger = existsSync(LEDGER_FILE) ? JSON.parse(readFileSync(LEDGER_FILE, "utf8")) : {};
   const next = {};
   for (const [path, source] of sitemapSources()) {

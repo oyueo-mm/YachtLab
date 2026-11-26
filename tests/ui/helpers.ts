@@ -103,3 +103,9 @@ export async function nick(page: import("@playwright/test").Page, name: string) 
     window.dispatchEvent(new Event("yachtlab-nickname"));
   }, name);
 }
+
+/** Choose an option of a custom dropdown (src/ui/kit.tsx Select): open it, click the option. */
+export async function pickOption(scope: Page | import("@playwright/test").Locator, label: string, option: string) {
+  await scope.getByRole("combobox", { name: label, exact: true }).click();
+  await scope.getByRole("option", { name: option, exact: true }).click();
+}
