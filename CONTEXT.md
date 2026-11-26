@@ -15,6 +15,8 @@
 
 > **온라인 요트다이스 제품 개편** → [브랜드, 메뉴, 검색 및 배포 인수인계](docs/context/ONLINE-YACHT-PRODUCT.md).
 >
+> **검색엔진 등록·수집 자동화(IndexNow Bing·네이버, 콘텐츠 lastmod, 배포 후 검증)** → [SEO-AUTOMATION](docs/context/SEO-AUTOMATION.md) (D-067).
+>
 > **제품 개선·성장 기반(2026-11-26: CI 샤드, 게임판 중심 UI, 비회원 상점, SEO 페이지·계산기, 공유, UTM)** → [GROWTH-2026-11-26](docs/context/GROWTH-2026-11-26.md) (D-060~D-065, 완료/미완료 구분).
 
 > **AI 승률 연구(Win DP v5, 정확 PMF·정확 2인 종반)** → [V5-APEX-RESEARCH](docs/context/V5-APEX-RESEARCH.md) (연구 브랜치, 기본 AI 불변, D-V5-1). 확증: v5-R vs Win DP v2 **50.626%**(100k, 99% CI 50.372–50.879), vs v3 50.479%, vs DP Expert 51.223%.

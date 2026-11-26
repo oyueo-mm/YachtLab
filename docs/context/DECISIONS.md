@@ -441,3 +441,10 @@ GitHub Pages의 `/YachtLab/` 스코프와 매니페스트를 사용한다. 서�
 ## D-066. 최초 방문 홈과 해시 경로의 검색 메타데이터 (2026-11-26)
 
 홈은 브라우저 저장 기록이나 JavaScript 실행 여부와 관계없이 온라인 요트다이스 소개를 제공한다. 게임 해시 경로는 하나의 canonical 문서를 공유하며 제목·설명은 정적 HTML에서 관리한다. 새 방문자의 튜토리얼은 첫 오프라인 게임의 시작 버튼에서 한 번 진입한다. 기존 방문 기록과 온라인 초대·관전 링크를 보존한다. [운영 및 검색 검증](./ONLINE-YACHT-PRODUCT.md#검색-운영)
+
+## D-067. 검색엔진 통지는 배포 후 검증을 통과한 변경분만 IndexNow로 (2026-11-26)
+
+1. 운영 배포(`Test and deploy YachtLab`의 `deploy` 잡)가 성공한 뒤 별도 워크플로 `SEO IndexNow`가 운영 사이트를 검증하고(HTTP·canonical·noindex·메타데이터·리소스·키·Google/네이버 인증 파일), 통과할 때만 Bing·네이버 IndexNow에 제출한다. 최초에는 사이트맵 8개 전부, 이후에는 엔드포인트별로 신규·lastmod 변경·삭제 URL만 보낸다. 상태와 로그는 `seo-state` 브랜치에 남긴다.
+2. 사이트맵 `lastmod`는 빌드 시각이 아니라 검색 대상 콘텐츠 지문이 바뀐 날(KST)이다. 지문·날짜는 `scripts/seo/lastmod.json`에 커밋하고 CI가 최신 여부를 검사한다.
+3. Google은 Indexing API를 쓰지 않고 사이트맵·robots.txt로 관리한다. 호스트 루트 저장소(oyueo-mm/oyueo-mm.github.io)에 robots.txt와 IndexNow 키를 두며, 네이버 인증 파일을 보존한다. 이전의 "호스트 루트 robots.txt는 만들 수 없음" 전제(ONLINE-YACHT-PRODUCT 검색 운영)를 대체한다.
+4. Pages 배포는 최근 14일(최소 3세대)의 해시 자산을 보존한다. 근거·조사: [SEO-AUTOMATION](./SEO-AUTOMATION.md).

@@ -154,3 +154,15 @@ test("UTM이 붙은 초대 링크도 방 입장 화면을 열고, 캠페인 값�
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("yachtlab.attribution.v1") ?? "null"));
   expect(stored.first).toMatchObject({ source: "kakao", medium: "invite", campaign: "test" });
 });
+
+test("사이트맵의 모든 주소에 lastmod가 있고 IndexNow 키 파일이 텍스트로 제공된다", async ({ request }) => {
+  const sitemap = await (await request.get("./sitemap.xml")).text();
+  const urls = sitemap.match(/<url>[\s\S]*?<\/url>/g) ?? [];
+  expect(urls).toHaveLength(8);
+  for (const url of urls) expect(url).toMatch(/<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);
+  const key = "b3678a0369af6c2c422e25516dad7aab";
+  const res = await request.get(`./${key}.txt`);
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toContain("text/plain");
+  expect(await res.text()).toBe(key);
+});

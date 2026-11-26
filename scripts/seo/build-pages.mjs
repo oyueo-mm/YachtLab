@@ -12,9 +12,18 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PAGES } from "./pages-content.mjs";
+import { SITE, contentFingerprint, kstDate, renderSitemap } from "./seo-lib.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
-export const SITE = "https://oyueo-mm.github.io/YachtLab/";
+export { SITE };
+/** url path → { fingerprint, lastmod }: lastmod moves only when the indexed content changes (D-067). */
+export const LEDGER_FILE = join(ROOT, "scripts/seo/lastmod.json");
+/** Source of every sitemap page; the home page is the Vite entry, the guide is hand-written. */
+export const sitemapSources = () => [
+  ["", "index.html"],
+  ["guide/", "public/guide/index.html"],
+  ...PAGES.map((p) => [p.path, `public/${p.path}index.html`]),
+];
 export const NAV = [
   ["", "홈"],
   ["guide/", "규칙"],
@@ -75,7 +84,7 @@ ${page.body.trim()}
 `;
 }
 
-export function build({ check = false } = {}) {
+export function build({ check = false, today = kstDate() } = {}) {
   const stale = [];
   for (const page of PAGES) {
     const file = join(ROOT, "public", page.path, "index.html");
@@ -88,9 +97,24 @@ export function build({ check = false } = {}) {
       writeFileSync(file, html);
     }
   }
-  // Sitemap: home, the guide (hand-written) and every generated page.
-  const paths = ["", "guide/", ...PAGES.map((p) => p.path)];
-  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${paths.map((p) => `  <url><loc>${SITE}${p}</loc></url>`).join("\n")}\n</urlset>\n`;
+  // Sitemap: home, the guide (hand-written) and every generated page, with lastmod from the ledger.
+  const ledger = existsSync(LEDGER_FILE) ? JSON.parse(readFileSync(LEDGER_FILE, "utf8")) : {};
+  const next = {};
+  for (const [path, source] of sitemapSources()) {
+    const file = join(ROOT, source);
+    // In check mode compare with what this run would have written (the page may be stale itself).
+    const page = PAGES.find((p) => p.path === path);
+    const html = page ? render(page) : readFileSync(file, "utf8");
+    const fingerprint = contentFingerprint(html);
+    const known = ledger[path];
+    next[path] = known && known.fingerprint === fingerprint ? known : { fingerprint, lastmod: today };
+  }
+  const ledgerText = JSON.stringify(next, null, 2) + "\n";
+  if (!existsSync(LEDGER_FILE) || readFileSync(LEDGER_FILE, "utf8") !== ledgerText) {
+    stale.push("scripts/seo/lastmod.json");
+    if (!check) writeFileSync(LEDGER_FILE, ledgerText);
+  }
+  const sitemap = renderSitemap(Object.entries(next).map(([path, { lastmod }]) => ({ loc: SITE + path, lastmod })));
   const sitemapFile = join(ROOT, "public/sitemap.xml");
   if (readFileSync(sitemapFile, "utf8") !== sitemap) {
     stale.push("sitemap.xml");

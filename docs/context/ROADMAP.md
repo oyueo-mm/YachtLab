@@ -304,3 +304,8 @@
 
 - ⏸️ 매우 어려움 v4-D 유지, v5-R·I2RO1 교체 보류. Codex 통합 작업 없음.
 - ⏸️ v7 연구(제품·연구 최강 트랙) 일시 중단. 재개 지점: [V7-APEX-RESEARCH §11](./V7-APEX-RESEARCH.md), [V7-PRODUCT-HANDOFF](./V7-PRODUCT-HANDOFF.md).
+
+## 2026-11-26: 검색엔진 자동화 (D-067, [SEO-AUTOMATION](./SEO-AUTOMATION.md))
+
+- ✅ IndexNow(Bing·네이버) 배포 후 자동 통지, 최초 8개 일괄·이후 변경분, 재시도·기록·수동 실행, 콘텐츠 기준 lastmod, 사전/사후 검증, 이전 배포 자산 보존, 호스트 루트 robots.txt·키.
+- ⏭ Search Console에서 페이지 리소스 실패가 사라졌는지 URL 검사로 확인, Bing·네이버 콘솔에서 IndexNow 수신 확인, 네이버에 프로젝트 사이트맵 등록(콘솔 작업). 필요하면 Search Console API 사이트맵 재제출(서비스 계정 필요) 검토.
