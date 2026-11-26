@@ -1,0 +1,34 @@
+{
+  "": {
+    "fingerprint": "dd5f4bcac360abcf",
+    "lastmod": "2026-11-26"
+  },
+  "guide/": {
+    "fingerprint": "15001ba341022c19",
+    "lastmod": "2026-11-26"
+  },
+  "faq/": {
+    "fingerprint": "f458c80198818639",
+    "lastmod": "2026-11-26"
+  },
+  "ai/": {
+    "fingerprint": "c207899b99fe7335",
+    "lastmod": "2026-11-26"
+  },
+  "multiplayer/": {
+    "fingerprint": "6446ab224d5c052a",
+    "lastmod": "2026-11-26"
+  },
+  "strategy/": {
+    "fingerprint": "251049d6f8f7d5a6",
+    "lastmod": "2026-11-26"
+  },
+  "scores/": {
+    "fingerprint": "4512eaaf655ec646",
+    "lastmod": "2026-11-26"
+  },
+  "probability/": {
+    "fingerprint": "cabf6e3b2d9d82fb",
+    "lastmod": "2026-11-26"
+  }
+}

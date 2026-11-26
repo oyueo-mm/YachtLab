@@ -77,6 +77,10 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # D-067: generated search pages, sitemap and its content-based lastmod ledger are committed and current.
+      # (The unit job, which also checks this, is skipped for seo-only changes.)
+      - name: Sitemap and lastmod are up to date
+        run: node scripts/seo/build-pages.mjs --check
       # Tests run against a build without a server address, so both states stay covered:
       # the "준비 중" screen, and the online UI through the loopback ?online-server= parameter.
       - run: npm run build
@@ -92,6 +96,18 @@ jobs:
         run: |
           npx vite build --outDir dist-pages --emptyOutDir
           grep -rqF "$VITE_ONLINE_SERVER_URL" dist-pages/assets
+      # D-067: HTTP status, canonical, noindex, metadata and page resources of every sitemap URL, on the
+      # exact files that will be published (IndexNow submits only after the same check passes on the live site).
+      - name: Verify search pages of the Pages build
+        run: |
+          npx vite preview --outDir dist-pages --port 4174 --strictPort > /tmp/seo-preview.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4174/YachtLab/ > /dev/null && break; sleep 1; done
+          node scripts/seo/verify-site.mjs --base http://127.0.0.1:4174/YachtLab/
+      # D-067: keep recent deployments' hashed assets so a crawler (or an open tab) holding older HTML does
+      # not get 404 for its CSS/JS after this deploy. Network problems only warn.
+      - name: Retain previous deployments' assets
+        if: github.event_name != 'pull_request'
+        run: node scripts/seo/retain-assets.mjs dist-pages
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:

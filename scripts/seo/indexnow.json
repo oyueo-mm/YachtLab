@@ -1,0 +1,15 @@
+{
+  "key": "b3678a0369af6c2c422e25516dad7aab",
+  "host": "oyueo-mm.github.io",
+  "keyLocation": "https://oyueo-mm.github.io/b3678a0369af6c2c422e25516dad7aab.txt",
+  "fallbackKeyLocation": "https://oyueo-mm.github.io/YachtLab/b3678a0369af6c2c422e25516dad7aab.txt",
+  "sitemap": "https://oyueo-mm.github.io/YachtLab/sitemap.xml",
+  "endpoints": {
+    "bing": "https://www.bing.com/indexnow",
+    "naver": "https://searchadvisor.naver.com/indexnow"
+  },
+  "hostRootChecks": [
+    { "url": "https://oyueo-mm.github.io/naver72ac84f1e67f72d17c210776019d4296.html", "contains": "naver-site-verification: naver72ac84f1e67f72d17c210776019d4296.html" }
+  ],
+  "googleSiteVerification": "wJt-lkmKFMcAXpu9gEUMBhyBrWsPSftS2ig_4ozPeSE"
+}

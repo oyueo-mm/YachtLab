@@ -4,7 +4,8 @@
  *
  *  - docs: only documentation (docs/**, *.md) or other workflows (research jobs have their own path
  *          filters). Nothing in the built site changes, so no build, browser run or deploy.
- *  - seo:  only static search pages under public/ (HTML, sitemap, robots, page CSS). The site is built
+ *  - seo:  only static search pages under public/ (HTML, sitemap, robots, page CSS) and the sitemap
+ *          lastmod ledger (scripts/seo/lastmod.json). The site is built
  *          and the SEO + PWA browser checks run, then the site deploys (2–5 minutes).
  *  - full: anything else — and whenever the change list cannot be read (fail safe).
  *
@@ -19,7 +20,8 @@ export function classify(files) {
     /^docs\//.test(f) ||
     (/\.md$/i.test(f) && !/^(src|public|worker|server)\//.test(f)) ||
     (/^\.github\/workflows\/.+\.ya?ml$/.test(f) && !/^\.github\/workflows\/deploy\.ya?ml$/.test(f));
-  const seo = (f) => /^public\/(?!pwa-worker|manifest|icons\/)[^]*\.(html|xml|txt|css)$/i.test(f);
+  const seo = (f) =>
+    /^public\/(?!pwa-worker|manifest|icons\/)[^]*\.(html|xml|txt|css)$/i.test(f) || f === "scripts/seo/lastmod.json";
   if (list.every(docs)) return "docs";
   if (list.every((f) => docs(f) || seo(f))) return "seo";
   return "full";

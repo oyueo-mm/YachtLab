@@ -1,0 +1,102 @@
+name: SEO IndexNow
+# D-067: after a successful production deploy, verify the live site and notify Bing and Naver of new,
+# changed and removed sitemap URLs (IndexNow). Google is sitemap-only (no Indexing API).
+# Submission state and the log live on the `seo-state` branch (seo-state/state.json, log.jsonl).
+on:
+  workflow_run:
+    workflows: ["Test and deploy YachtLab"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "changed = only new/changed/removed URLs; all = resubmit every sitemap URL"
+        type: choice
+        options: [changed, all]
+        default: changed
+      dry_run:
+        description: "Verify and show what would be submitted, without submitting or saving state"
+        type: boolean
+        default: false
+      endpoints:
+        description: "Comma-separated endpoints (bing,naver)"
+        type: string
+        default: "bing,naver"
+  schedule:
+    # Daily 10:41 KST: retries endpoints that failed earlier; submits nothing when everything is current.
+    - cron: "41 1 * * *"
+permissions:
+  contents: read
+concurrency:
+  group: seo-indexnow
+  cancel-in-progress: false
+jobs:
+  indexnow:
+    # Only after a run on main that actually deployed (the deploy job is skipped for docs-only changes,
+    # pull requests and the nightly regression run).
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event != 'pull_request' && github.event.workflow_run.event != 'schedule')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write # push the seo-state branch
+      actions: read # read the deploy run's jobs
+    steps:
+      - name: Did the run deploy?
+        id: gate
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          deploy=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs?per_page=100" --jq '[.jobs[] | select(.name == "deploy")][0].conclusion')
+          echo "deploy job: $deploy"
+          if [ "$deploy" = "success" ]; then echo "deployed=true" >> "$GITHUB_OUTPUT"; else echo "deployed=false" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.deployed != 'false'
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.deployed != 'false'
+        with:
+          node-version: 24
+      - name: Check out the submission state
+        if: steps.gate.outputs.deployed != 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch --depth=1 origin seo-state 2>/dev/null; then
+            git worktree add .seo-state FETCH_HEAD
+            git -C .seo-state checkout -B seo-state
+          else
+            echo "no seo-state branch yet: first run submits every sitemap URL"
+            git worktree add --orphan -b seo-state .seo-state
+          fi
+      - name: Verify the live site and submit
+        id: submit
+        if: steps.gate.outputs.deployed != 'false'
+        env:
+          MODE: ${{ inputs.mode || 'changed' }}
+          DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
+          ENDPOINTS: ${{ inputs.endpoints || 'bing,naver' }}
+          # After a deploy, wait until the Pages CDN serves this commit's sitemap (max-age=600).
+          WAIT: ${{ github.event_name == 'workflow_run' && '900' || '0' }}
+        run: node scripts/seo/indexnow-submit.mjs --state .seo-state/seo-state --mode "$MODE" $DRY_RUN --endpoints "$ENDPOINTS" --expect-sitemap public/sitemap.xml --wait "$WAIT"
+      - name: Save state and log
+        # Also after a failed submission: successful endpoints and the failure log must be kept.
+        if: always() && steps.gate.outputs.deployed != 'false' && !inputs.dry_run && hashFiles('.seo-state/seo-state/last-verify.json') != ''
+        run: |
+          cd .seo-state
+          git add -A
+          if git diff --cached --quiet; then echo "state unchanged"; exit 0; fi
+          git commit -q -m "seo: IndexNow ${{ github.event_name }} for ${{ github.event.workflow_run.head_sha || github.sha }}"
+          for i in 1 2 3 4; do git push origin seo-state && exit 0; sleep $((i * 5)); done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.gate.outputs.deployed != 'false'
+        with:
+          name: indexnow-${{ github.run_id }}
+          path: .seo-state/seo-state
+          if-no-files-found: ignore
+          retention-days: 30

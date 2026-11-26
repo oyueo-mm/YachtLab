@@ -22,6 +22,8 @@ describe("CI change classification (D-061)", () => {
   it("uses the fast lane for static search pages", () => {
     expect(classify(["public/guide/index.html", "public/sitemap.xml"])).toBe("seo");
     expect(classify(["public/faq/index.html", "docs/context/ROADMAP.md"])).toBe("seo");
+    expect(classify(["public/faq/index.html", "public/sitemap.xml", "scripts/seo/lastmod.json"])).toBe("seo");
+    expect(classify(["scripts/seo/build-pages.mjs", "public/sitemap.xml"])).toBe("full");
     expect(classify(["public/guide/index.html", "src/engine.ts"])).toBe("full");
   });
 });
