@@ -77,6 +77,7 @@
     "SELFPLAY-RESEARCH.md",
     "SEO-AUTOMATION.md",
     "STABILITY-2026-11-26.md",
+    "STREAK-REVIEW-2026-11-27.md",
     "TECHNIQUES.md",
     "V31-RESEARCH.md",
     "V32-EXACT-FORECAST.md",
@@ -128,6 +129,11 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "9f6a80c",
+      "date": "2026-11-27",
+      "subject": "Merge pull request #111 from oyueo-mm/claude/docs-2026-11"
+    },
+    {
       "sha": "509c687",
       "date": "2026-11-27",
       "subject": "Merge pull request #110 from oyueo-mm/claude/onboarding-2026-11"
@@ -136,6 +142,11 @@
       "sha": "24cd79f",
       "date": "2026-11-27",
       "subject": "Merge pull request #109 from oyueo-mm/claude/collections-2026-11"
+    },
+    {
+      "sha": "2ce7cb3",
+      "date": "2026-11-26",
+      "subject": "docs: streak review with simulation, long-term roadmap, decisions D-074..D-078, handoff"
     },
     {
       "sha": "5fcb642",
@@ -166,30 +177,20 @@
       "sha": "b9b7ab3",
       "date": "2026-11-26",
       "subject": "fix: centre only the modal result dialog; limiter at -3 dBFS; stable audio and reward tests"
-    },
-    {
-      "sha": "f6365bb",
-      "date": "2026-11-26",
-      "subject": "Merge remote-tracking branch 'origin/main' into claude/solo-play-2026-11"
-    },
-    {
-      "sha": "d8f7bd3",
-      "date": "2026-11-26",
-      "subject": "feat(profile): game profile with records, recent matches, solo stats, equipped looks, collection and achievements"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "SEO IndexNow",
       "status": "skipped",
-      "head": "ccde3f202d",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45857981917"
+      "head": "23f71d8e89",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45858761088"
     },
     {
       "name": "Test and deploy YachtLab",
-      "status": "cancelled",
-      "head": "5fcb6426b7",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45857601767"
+      "status": "success",
+      "head": "2ce7cb3c2c",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45857926933"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",

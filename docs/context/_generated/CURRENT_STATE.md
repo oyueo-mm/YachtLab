@@ -103,6 +103,7 @@
 - [SELFPLAY-RESEARCH.md](../SELFPLAY-RESEARCH.md)
 - [SEO-AUTOMATION.md](../SEO-AUTOMATION.md)
 - [STABILITY-2026-11-26.md](../STABILITY-2026-11-26.md)
+- [STREAK-REVIEW-2026-11-27.md](../STREAK-REVIEW-2026-11-27.md)
 - [TECHNIQUES.md](../TECHNIQUES.md)
 - [V31-RESEARCH.md](../V31-RESEARCH.md)
 - [V32-EXACT-FORECAST.md](../V32-EXACT-FORECAST.md)
@@ -117,16 +118,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [9f6a80c](https://github.com/oyueo-mm/YachtLab/commit/9f6a80c) | 2026-11-27 | Merge pull request #111 from oyueo-mm/claude/docs-2026-11 |
 | [509c687](https://github.com/oyueo-mm/YachtLab/commit/509c687) | 2026-11-27 | Merge pull request #110 from oyueo-mm/claude/onboarding-2026-11 |
 | [24cd79f](https://github.com/oyueo-mm/YachtLab/commit/24cd79f) | 2026-11-27 | Merge pull request #109 from oyueo-mm/claude/collections-2026-11 |
+| [2ce7cb3](https://github.com/oyueo-mm/YachtLab/commit/2ce7cb3) | 2026-11-26 | docs: streak review with simulation, long-term roadmap, decisions D-074..D-078, handoff |
 | [5fcb642](https://github.com/oyueo-mm/YachtLab/commit/5fcb642) | 2026-11-27 | Merge pull request #108 from oyueo-mm/claude/profile-2026-11 |
 | [5e504df](https://github.com/oyueo-mm/YachtLab/commit/5e504df) | 2026-11-26 | feat(onboarding,mobile): shop and draw guided tours; mobile spacing, Korean line breaks, touch targets |
 | [dd128b8](https://github.com/oyueo-mm/YachtLab/commit/dd128b8) | 2026-11-27 | Merge pull request #105 from oyueo-mm/claude/solo-play-2026-11 |
 | [3e1b585](https://github.com/oyueo-mm/YachtLab/commit/3e1b585) | 2026-11-26 | feat(collections): theme collections, 11 nature/element items, synergy effects, limited-time UI, 2.5D effects |
 | [6f254dd](https://github.com/oyueo-mm/YachtLab/commit/6f254dd) | 2026-11-26 | Merge branch 'claude/solo-play-2026-11' into claude/profile-2026-11 |
 | [b9b7ab3](https://github.com/oyueo-mm/YachtLab/commit/b9b7ab3) | 2026-11-26 | fix: centre only the modal result dialog; limiter at -3 dBFS; stable audio and reward tests |
-| [f6365bb](https://github.com/oyueo-mm/YachtLab/commit/f6365bb) | 2026-11-26 | Merge remote-tracking branch 'origin/main' into claude/solo-play-2026-11 |
-| [d8f7bd3](https://github.com/oyueo-mm/YachtLab/commit/d8f7bd3) | 2026-11-26 | feat(profile): game profile with records, recent matches, solo stats, equipped looks, collection and achievements |
 
 ## 최근 GitHub Actions 상태
 
@@ -134,8 +135,8 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45857981917) | skipped | ccde3f202d |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45857601767) | cancelled | 5fcb6426b7 |
+| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45858761088) | skipped | 23f71d8e89 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45857926933) | success | 2ce7cb3c2c |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45857583358) | success | 5e504df06e |
 
 ## 다음 채팅과 작업의 시작점
