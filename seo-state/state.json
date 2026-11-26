@@ -1,41 +1,105 @@
 {
-  "version": 1,
+  "version": 2,
   "endpoints": {
     "bing": {
       "urls": {
-        "https://oyueo-mm.github.io/YachtLab/": "2026-11-26",
-        "https://oyueo-mm.github.io/YachtLab/guide/": "2026-11-26",
-        "https://oyueo-mm.github.io/YachtLab/faq/": "2026-11-26",
-        "https://oyueo-mm.github.io/YachtLab/ai/": "2026-11-26",
-        "https://oyueo-mm.github.io/YachtLab/multiplayer/": "2026-11-26",
-        "https://oyueo-mm.github.io/YachtLab/strategy/": "2026-11-26",
-        "https://oyueo-mm.github.io/YachtLab/scores/": "2026-11-26",
-        "https://oyueo-mm.github.io/YachtLab/probability/": "2026-11-26"
+        "https://oyueo-mm.github.io/YachtLab/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "a0f880678ed90eaf"
+        },
+        "https://oyueo-mm.github.io/YachtLab/guide/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "983a39419acce488"
+        },
+        "https://oyueo-mm.github.io/YachtLab/faq/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "5e3447540d71af56"
+        },
+        "https://oyueo-mm.github.io/YachtLab/ai/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "d8097602dd26d76f"
+        },
+        "https://oyueo-mm.github.io/YachtLab/multiplayer/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "c056bb79d06d9e59"
+        },
+        "https://oyueo-mm.github.io/YachtLab/strategy/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "f8ca2cb9ca94aeec"
+        },
+        "https://oyueo-mm.github.io/YachtLab/scores/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "ddb0fef42dd2aa5c"
+        },
+        "https://oyueo-mm.github.io/YachtLab/probability/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "34387fdd31441b40"
+        },
+        "https://oyueo-mm.github.io/YachtLab/research/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "cd4b2f7bc0f1d0e8"
+        },
+        "https://oyueo-mm.github.io/YachtLab/research/en/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "7508d384ee84065d"
+        }
       },
       "lastSuccess": {
-        "at": "2026-11-26T09:38:12.972Z",
-        "status": 202,
-        "count": 8
+        "at": "2026-11-26T15:00:33.501Z",
+        "status": 200,
+        "count": 10
       }
     },
     "naver": {
       "urls": {
-        "https://oyueo-mm.github.io/YachtLab/": "2026-11-26",
-        "https://oyueo-mm.github.io/YachtLab/guide/": "2026-11-26",
-        "https://oyueo-mm.github.io/YachtLab/faq/": "2026-11-26",
-        "https://oyueo-mm.github.io/YachtLab/ai/": "2026-11-26",
-        "https://oyueo-mm.github.io/YachtLab/multiplayer/": "2026-11-26",
-        "https://oyueo-mm.github.io/YachtLab/strategy/": "2026-11-26",
-        "https://oyueo-mm.github.io/YachtLab/scores/": "2026-11-26",
-        "https://oyueo-mm.github.io/YachtLab/probability/": "2026-11-26"
+        "https://oyueo-mm.github.io/YachtLab/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "a0f880678ed90eaf"
+        },
+        "https://oyueo-mm.github.io/YachtLab/guide/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "983a39419acce488"
+        },
+        "https://oyueo-mm.github.io/YachtLab/faq/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "5e3447540d71af56"
+        },
+        "https://oyueo-mm.github.io/YachtLab/ai/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "d8097602dd26d76f"
+        },
+        "https://oyueo-mm.github.io/YachtLab/multiplayer/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "c056bb79d06d9e59"
+        },
+        "https://oyueo-mm.github.io/YachtLab/strategy/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "f8ca2cb9ca94aeec"
+        },
+        "https://oyueo-mm.github.io/YachtLab/scores/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "ddb0fef42dd2aa5c"
+        },
+        "https://oyueo-mm.github.io/YachtLab/probability/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "34387fdd31441b40"
+        },
+        "https://oyueo-mm.github.io/YachtLab/research/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "cd4b2f7bc0f1d0e8"
+        },
+        "https://oyueo-mm.github.io/YachtLab/research/en/": {
+          "lastmod": "2026-11-26",
+          "fingerprint": "7508d384ee84065d"
+        }
       },
       "lastSuccess": {
-        "at": "2026-11-26T09:38:12.972Z",
+        "at": "2026-11-26T15:00:33.501Z",
         "status": 200,
-        "count": 8
+        "count": 10
       }
     }
   },
   "sitemap": "https://oyueo-mm.github.io/YachtLab/sitemap.xml",
-  "updatedAt": "2026-11-26T14:46:16.650Z"
+  "updatedAt": "2026-11-26T15:00:33.501Z"
 }

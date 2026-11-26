@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-26T14:46:21.875Z",
+  "checkedAt": "2026-11-26T15:00:34.170Z",
   "base": "https://oyueo-mm.github.io/YachtLab/",
   "entries": [
     {
@@ -8,6 +8,14 @@
     },
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/guide/",
+      "lastmod": "2026-11-26"
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/research/",
+      "lastmod": "2026-11-26"
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/research/en/",
       "lastmod": "2026-11-26"
     },
     {
@@ -39,8 +47,9 @@
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/",
       "lastmod": "2026-11-26",
+      "fingerprint": "a0f880678ed90eaf",
       "status": 200,
-      "title": "온라인 요트다이스(야추 다이스) · 무료 AI·친구 멀티 | Online Yacht",
+      "title": "온라인 요트다이스(야추 다이스) | 무료 AI·친구 대전 · Online Yacht",
       "canonical": "https://oyueo-mm.github.io/YachtLab/",
       "robots": "",
       "problems": []
@@ -48,17 +57,39 @@
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/guide/",
       "lastmod": "2026-11-26",
+      "fingerprint": "983a39419acce488",
       "status": 200,
-      "title": "요트다이스 규칙과 족보, 확률, 초보 전략 · Online Yacht",
+      "title": "요트다이스 룰·족보 | 12칸 점수 계산과 보너스 · Online Yacht",
       "canonical": "https://oyueo-mm.github.io/YachtLab/guide/",
+      "robots": "",
+      "problems": []
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/research/",
+      "lastmod": "2026-11-26",
+      "fingerprint": "cd4b2f7bc0f1d0e8",
+      "status": 200,
+      "title": "YachtLab 요트다이스 AI 연구 | 대국 벤치마크 v2–v7",
+      "canonical": "https://oyueo-mm.github.io/YachtLab/research/",
+      "robots": "",
+      "problems": []
+    },
+    {
+      "loc": "https://oyueo-mm.github.io/YachtLab/research/en/",
+      "lastmod": "2026-11-26",
+      "fingerprint": "7508d384ee84065d",
+      "status": 200,
+      "title": "YachtLab Yacht Dice AI Research | v2–v7 Benchmarks",
+      "canonical": "https://oyueo-mm.github.io/YachtLab/research/en/",
       "robots": "",
       "problems": []
     },
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/faq/",
       "lastmod": "2026-11-26",
+      "fingerprint": "5e3447540d71af56",
       "status": 200,
-      "title": "요트다이스·야추 자주 묻는 질문 | 야찌와 차이 · Online Yacht",
+      "title": "요트다이스 FAQ | 야추와 Yahtzee 규칙 차이 · Online Yacht",
       "canonical": "https://oyueo-mm.github.io/YachtLab/faq/",
       "robots": "",
       "problems": []
@@ -66,8 +97,9 @@
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/ai/",
       "lastmod": "2026-11-26",
+      "fingerprint": "d8097602dd26d76f",
       "status": 200,
-      "title": "요트다이스 AI 대전 | 야추 인공지능과 무료 대결 · Online Yacht",
+      "title": "요트다이스 AI 대전 | 컴퓨터와 무료 1:1 야추 · Online Yacht",
       "canonical": "https://oyueo-mm.github.io/YachtLab/ai/",
       "robots": "",
       "problems": []
@@ -75,8 +107,9 @@
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/multiplayer/",
       "lastmod": "2026-11-26",
+      "fingerprint": "c056bb79d06d9e59",
       "status": 200,
-      "title": "요트다이스 친구 대전 | 야추 멀티·2인용 무료 온라인 · Online Yacht",
+      "title": "요트다이스 멀티 | 친구 초대·2~20인 온라인 대전 · Online Yacht",
       "canonical": "https://oyueo-mm.github.io/YachtLab/multiplayer/",
       "robots": "",
       "problems": []
@@ -84,8 +117,9 @@
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/strategy/",
       "lastmod": "2026-11-26",
+      "fingerprint": "f8ca2cb9ca94aeec",
       "status": 200,
-      "title": "요트다이스 전략·공략 | 야추 확률로 보는 킵 선택 · Online Yacht",
+      "title": "요트다이스 공략 | 보너스·킵·점수 선택 전략 · Online Yacht",
       "canonical": "https://oyueo-mm.github.io/YachtLab/strategy/",
       "robots": "",
       "problems": []
@@ -93,8 +127,9 @@
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/scores/",
       "lastmod": "2026-11-26",
+      "fingerprint": "ddb0fef42dd2aa5c",
       "status": 200,
-      "title": "요트다이스 족보·점수판 | 야추 점수 계산기 (실제 주사위용) · Online Yacht",
+      "title": "요트다이스 점수판 | 1~8인 야추 점수 계산 · Online Yacht",
       "canonical": "https://oyueo-mm.github.io/YachtLab/scores/",
       "robots": "",
       "problems": []
@@ -102,8 +137,9 @@
     {
       "loc": "https://oyueo-mm.github.io/YachtLab/probability/",
       "lastmod": "2026-11-26",
+      "fingerprint": "34387fdd31441b40",
       "status": 200,
-      "title": "요트다이스 확률 계산기 | 야추 족보 확률·킵 추천 · Online Yacht",
+      "title": "요트다이스 확률 계산기 | 야추 족보별 킵 비교 · Online Yacht",
       "canonical": "https://oyueo-mm.github.io/YachtLab/probability/",
       "robots": "",
       "problems": []
@@ -119,10 +155,11 @@
     "https://oyueo-mm.github.io/YachtLab/manifest.webmanifest": 200,
     "https://oyueo-mm.github.io/YachtLab/icons/apple-touch-icon.png": 200,
     "https://oyueo-mm.github.io/YachtLab/assets/index-LVA0vNTx.css": 200,
-    "https://oyueo-mm.github.io/YachtLab/assets/index-CV9PxpmS.js": 200,
+    "https://oyueo-mm.github.io/YachtLab/assets/index-BF1e23_B.js": 200,
     "https://oyueo-mm.github.io/YachtLab/icons/online-yacht.svg": 200,
     "https://oyueo-mm.github.io/YachtLab/site/page.css": 200,
-    "https://oyueo-mm.github.io/YachtLab/icons/online-yacht-wordmark.svg": 200
+    "https://oyueo-mm.github.io/YachtLab/icons/online-yacht-wordmark.svg": 200,
+    "https://oyueo-mm.github.io/YachtLab/site/research.css": 200
   },
   "errors": [],
   "warnings": []
