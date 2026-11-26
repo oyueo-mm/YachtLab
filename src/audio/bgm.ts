@@ -21,11 +21,18 @@ import { onAudioUnlocked, sharedAudio } from "../sound";
  */
 export type BgmScene = "home" | "lobby" | "game" | "shop" | "review" | "win" | "lose" | "none";
 
+const idle = () =>
+  new Promise<void>((resolve) => {
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+    if (w.requestIdleCallback) w.requestIdleCallback(() => resolve(), { timeout: 1500 });
+    else setTimeout(resolve, 300);
+  });
 const cache = new Map<string, Promise<AudioBuffer>>();
 function track(scene: Exclude<BgmScene, "none">) {
   let p = cache.get(scene);
   if (!p) {
-    p = import("./bgm-render").then((m) => m.render(m.TRACKS[scene]));
+    // Built in idle time so the first throw after the unlocking tap never waits for the music graph.
+    p = idle().then(() => import("./bgm-render")).then((m) => m.render(m.TRACKS[scene]));
     cache.set(scene, p);
     p.catch(() => cache.delete(scene));
   }

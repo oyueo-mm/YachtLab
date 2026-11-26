@@ -70,7 +70,7 @@ test("홈과 가이드는 자바스크립트 없이 열리고 사이트맵의 ca
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://oyueo-mm.github.io/YachtLab/");
     await page.getByRole("link", { name: "규칙과 전략" }).click();
     await expect(page).toHaveURL(/\/YachtLab\/guide\/$/);
-    await expect(page.getByRole("table").first().locator("tbody tr")).toHaveCount(12);
+    await expect(page.locator("#scores .cat")).toHaveCount(12); // 12 categories, each with a dice example
     await expect(page.getByRole("heading", { name: "첫 굴림에서 족보가 나올 확률" })).toBeVisible();
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://oyueo-mm.github.io/YachtLab/guide/");
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360);
