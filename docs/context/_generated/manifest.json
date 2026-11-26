@@ -122,6 +122,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "39089dd",
+      "date": "2026-11-26",
+      "subject": "Merge PR #98: pause AI research, keep v4-D as 'very hard' (D-V7-6); final 9591 results"
+    },
+    {
+      "sha": "b9be8eb",
+      "date": "2026-11-26",
+      "subject": "docs(v7): final 9591 S3/S4 results; pause AI research, keep v4-D as 'very hard', hold v5-R/I2RO1 swap (D-V7-6)"
+    },
+    {
       "sha": "41f3a2f",
       "date": "2026-11-26",
       "subject": "Merge pull request #95 from oyueo-mm/codex/yachtlab-release-hardening-20261126"
@@ -160,24 +170,14 @@
       "sha": "e970c64",
       "date": "2026-11-26",
       "subject": "docs(context): CI timings of the sharded pipeline and live verification of e891c2a"
-    },
-    {
-      "sha": "d721938",
-      "date": "2026-11-26",
-      "subject": "Record final paired performance and offline PWA validation"
-    },
-    {
-      "sha": "b5a7cdc",
-      "date": "2026-11-26",
-      "subject": "Capture score effects from the first drawn frame"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "7ba0f51cd0",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45770423166"
+      "head": "b9be8eb881",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45772524068"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
