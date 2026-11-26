@@ -111,16 +111,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [41f3a2f](https://github.com/oyueo-mm/YachtLab/commit/41f3a2f) | 2026-11-26 | Merge pull request #95 from oyueo-mm/codex/yachtlab-release-hardening-20261126 |
+| [7ba0f51](https://github.com/oyueo-mm/YachtLab/commit/7ba0f51) | 2026-11-26 | Record the final zero-shift first-paint measurements |
 | [ea82c42](https://github.com/oyueo-mm/YachtLab/commit/ea82c42) | 2026-11-26 | Merge PR #97: v7.2 follow-up — final free 'very hard' model I2RO1, 9581/9591 results, v7.1 9552/9553 |
 | [3511ac1](https://github.com/oyueo-mm/YachtLab/commit/3511ac1) | 2026-11-26 | research(v7.2): final free 'very hard' model selection — I2RO1 (9591 + 9581 + 9571 secondary), I3 dev 9108, D-V7-5, handoff finalized |
 | [d2e4a6d](https://github.com/oyueo-mm/YachtLab/commit/d2e4a6d) | 2026-11-26 | Merge remote-tracking branch 'origin/main' into claude/serene-planck-15tbo2 |
 | [f79424d](https://github.com/oyueo-mm/YachtLab/commit/f79424d) | 2026-11-26 | Merge pull request #96 from oyueo-mm/claude/exciting-wozniak-qt7ofe |
+| [a66e842](https://github.com/oyueo-mm/YachtLab/commit/a66e842) | 2026-11-26 | Prevent static first-paint margins from shifting the document |
 | [e970c64](https://github.com/oyueo-mm/YachtLab/commit/e970c64) | 2026-11-26 | docs(context): CI timings of the sharded pipeline and live verification of e891c2a |
-| [e891c2a](https://github.com/oyueo-mm/YachtLab/commit/e891c2a) | 2026-11-26 | Merge PR #94: CI shards, board-centred online table, guest shop, SEO pages & calculator, result sharing |
-| [dfd1ba1](https://github.com/oyueo-mm/YachtLab/commit/dfd1ba1) | 2026-11-26 | docs(context): growth work, decisions D-060..D-065, measured CI timings |
-| [ad5163f](https://github.com/oyueo-mm/YachtLab/commit/ad5163f) | 2026-11-26 | feat(seo): search pages, exact odds calculator, real-dice score pad, home title (D-062) |
-| [9f61b33](https://github.com/oyueo-mm/YachtLab/commit/9f61b33) | 2026-11-26 | feat(shop): guests browse the shop; buying or drawing asks to sign in and restores the view (D-063) |
-| [5954b62](https://github.com/oyueo-mm/YachtLab/commit/5954b62) | 2026-11-26 | feat(table): board-centred 1:1 online table, seat colours, silhouette avatar, no-scroll score sheet, reward toast (D-060) |
+| [d721938](https://github.com/oyueo-mm/YachtLab/commit/d721938) | 2026-11-26 | Record final paired performance and offline PWA validation |
+| [b5a7cdc](https://github.com/oyueo-mm/YachtLab/commit/b5a7cdc) | 2026-11-26 | Capture score effects from the first drawn frame |
 
 ## 최근 GitHub Actions 상태
 
@@ -128,10 +128,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45770247564) | success | 3511ac1d35 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45770423166) | success | 7ba0f51cd0 |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45756594267) | success | dfd1ba174d |
 | [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45726546327) | success | 187b387e51 |
-| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45717409511) | success | 8e00f3172f |
 
 ## 다음 채팅과 작업의 시작점
 

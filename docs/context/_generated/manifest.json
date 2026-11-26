@@ -122,6 +122,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "41f3a2f",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #95 from oyueo-mm/codex/yachtlab-release-hardening-20261126"
+    },
+    {
+      "sha": "7ba0f51",
+      "date": "2026-11-26",
+      "subject": "Record the final zero-shift first-paint measurements"
+    },
+    {
       "sha": "ea82c42",
       "date": "2026-11-26",
       "subject": "Merge PR #97: v7.2 follow-up — final free 'very hard' model I2RO1, 9581/9591 results, v7.1 9552/9553"
@@ -142,42 +152,32 @@
       "subject": "Merge pull request #96 from oyueo-mm/claude/exciting-wozniak-qt7ofe"
     },
     {
+      "sha": "a66e842",
+      "date": "2026-11-26",
+      "subject": "Prevent static first-paint margins from shifting the document"
+    },
+    {
       "sha": "e970c64",
       "date": "2026-11-26",
       "subject": "docs(context): CI timings of the sharded pipeline and live verification of e891c2a"
     },
     {
-      "sha": "e891c2a",
+      "sha": "d721938",
       "date": "2026-11-26",
-      "subject": "Merge PR #94: CI shards, board-centred online table, guest shop, SEO pages & calculator, result sharing"
+      "subject": "Record final paired performance and offline PWA validation"
     },
     {
-      "sha": "dfd1ba1",
+      "sha": "b5a7cdc",
       "date": "2026-11-26",
-      "subject": "docs(context): growth work, decisions D-060..D-065, measured CI timings"
-    },
-    {
-      "sha": "ad5163f",
-      "date": "2026-11-26",
-      "subject": "feat(seo): search pages, exact odds calculator, real-dice score pad, home title (D-062)"
-    },
-    {
-      "sha": "9f61b33",
-      "date": "2026-11-26",
-      "subject": "feat(shop): guests browse the shop; buying or drawing asks to sign in and restores the view (D-063)"
-    },
-    {
-      "sha": "5954b62",
-      "date": "2026-11-26",
-      "subject": "feat(table): board-centred 1:1 online table, seat colours, silhouette avatar, no-scroll score sheet, reward toast (D-060)"
+      "subject": "Capture score effects from the first drawn frame"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "3511ac1d35",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45770247564"
+      "head": "7ba0f51cd0",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45770423166"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
@@ -190,12 +190,6 @@
       "status": "success",
       "head": "187b387e51",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45726546327"
-    },
-    {
-      "name": "Deploy YachtLab Online Worker (manual)",
-      "status": "success",
-      "head": "8e00f3172f",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45717409511"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
