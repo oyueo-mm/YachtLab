@@ -1,5 +1,6 @@
 import { BrandMark } from "../ui/BrandLoading";
 import { MatchResult } from "../ui/MatchResult";
+import { ShareResultButton } from "../ui/ShareResult";
 import ReviewLauncher from "../review/ReviewLauncher";
 import { fromReplay } from "../review/sources";
 import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
@@ -237,7 +238,7 @@ export default function HumanGame({
           </div>
           <div className="score-summary">
             {[0, 1].map((seat) => (
-              <div key={seat} className={state.player === seat ? "selected" : ""} data-seat={seat} data-role={seat === humanSeat ? "human" : "ai"}>
+              <div key={seat} className={(state.player === seat ? "selected " : "") + (seat === humanSeat ? "tone-me" : "tone-opp")} data-seat={seat} data-role={seat === humanSeat ? "human" : "ai"}>
                 <span>{labels[seat]}</span>
                 <strong>
                   <ScoreTotal value={total(state.cards[seat])} />
@@ -301,6 +302,12 @@ export default function HumanGame({
               <MatchResult waiting={!!celebration} title={state.winner === "draw" ? "무승부" : state.winner === humanSeat ? "승리" : "패배"}
                 actions={<>
                   <ReviewLauncher source={() => fromReplay(record.current)} />
+                  <ShareResultButton facts={{
+                    outcome: state.winner === "draw" ? "draw" : state.winner === humanSeat ? "win" : "lose",
+                    me: { name: config.humanName, total: total(state.cards[humanSeat]), yachts: state.cards[humanSeat].yacht === 50 ? 1 : 0 },
+                    opponent: { name: aiName, total: total(state.cards[aiSeat]), yachts: state.cards[aiSeat].yacht === 50 ? 1 : 0 },
+                    kind: "AI 대전 · " + aiName.replace(/^AI · /, ""),
+                  }} />
                   <button className="primary" onClick={restart}>한 번 더 플레이</button>
                   <button className="secondary" onClick={onLeave}>나가기</button>
                 </>}>
@@ -346,7 +353,7 @@ export default function HumanGame({
           )}
           <p className="keyboard-note sr-only">키보드로 순서 변경: 주사위에 초점을 두고 Alt + 좌우 방향키</p>
         </div>
-        <Scoreboard state={state} labels={labels} round={state.round} selectPlayer={humanSeat} select={can ? recordScore : undefined} previewCategory={aiPreviewCategory} />
+        <Scoreboard state={state} labels={labels} tones={humanSeat === 0 ? ["me", "opp"] : ["opp", "me"]} round={state.round} selectPlayer={humanSeat} select={can ? recordScore : undefined} previewCategory={aiPreviewCategory} />
       </div>
       {viewReplay && (
         <ReplayViewer

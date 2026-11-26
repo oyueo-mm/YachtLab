@@ -14,6 +14,7 @@ import {
 } from "./engine";
 import { DieIcon } from "./Dice";
 import { CategoryHelp } from "./CategoryHelp";
+import type { PlayerTone } from "./play/Looks";
 export function BonusProgress({card}:{card:Card}) { const points=upper(card),remaining=Math.max(0,63-points),achieved=bonus(card)>0,finished=categories.slice(0,6).every(c=>card[c]!==undefined); return <div className={"bonus-progress"+(achieved?" achieved":"")}><strong>{achieved?"+35":points+" / 63"}</strong><small>{achieved?"달성!":finished?remaining+"점 부족":remaining+"점 남음"}</small><div className="bonus-track" role="progressbar" aria-label="상단 보너스 진행도" aria-valuemin={0} aria-valuemax={63} aria-valuenow={Math.min(63,points)}><i style={{width:Math.min(100,points/63*100)+"%"}}/></div></div>; }
 export function CategoryIcon({ category }: { category: Category }) {
   const index = categories.indexOf(category);
@@ -53,6 +54,7 @@ export function Scoreboard({
   previewCategory = null,
   selectPlayer = 0,
   round,
+  tones,
 }: {
   state: Game;
   labels?: [string, string];
@@ -64,11 +66,13 @@ export function Scoreboard({
   selectPlayer?: 0 | 1;
   /** Shown in the title (PC: the separate round box above the board is gone). */
   round?: number;
+  /** Seat colours (me red / opponent blue) for the column headers and score cells. */
+  tones?: [PlayerTone, PlayerTone];
 }) {
   // Five of a kind on the table: the current player's open yacht row lights up (nothing is recorded).
   const yachtReady = useYachtReady(state.dice, state.rolls, !state.done && state.cards[state.player]?.yacht === undefined);
   return (
-    <section className="scoreboard panel" aria-label="점수판">
+    <section className={"scoreboard panel" + (tones ? " toned" : "")} aria-label="점수판">
       <div className="score-title">
         <h2>점수판</h2>
         {round !== undefined && (
@@ -85,7 +89,8 @@ export function Scoreboard({
               <th
                 scope="col"
                 key={i}
-                className={state.player === i && !state.done ? "current" : ""}
+                className={(state.player === i && !state.done ? "current" : "") + (tones ? " tone-" + tones[i] : "")}
+                title={label}
                 aria-current={state.player === i && !state.done ? "true" : undefined}
               >
                 <span className="score-col-name">{label}</span>
@@ -112,6 +117,7 @@ export function Scoreboard({
               selectPlayer={selectPlayer}
               yachtReady={yachtReady}
               needsConfirmation={!!onConfirm}
+              tones={tones}
             />
           ))}
           <tr className="total-row">
@@ -119,7 +125,7 @@ export function Scoreboard({
               <Sigma size={17} /> 총점
             </th>
             {state.cards.map((c, i) => (
-              <td key={i}><ScoreTotal value={total(c)} /></td>
+              <td key={i} className={tones ? "tone-" + tones[i] : undefined}><ScoreTotal value={total(c)} /></td>
             ))}
           </tr>
         </tbody>
@@ -143,6 +149,7 @@ function Rows({
   selectPlayer,
   yachtReady = false,
   needsConfirmation,
+  tones,
 }: {
   category: Category;
   index: number;
@@ -153,7 +160,9 @@ function Rows({
   selectPlayer: 0 | 1;
   yachtReady?: boolean;
   needsConfirmation: boolean;
+  tones?: [PlayerTone, PlayerTone];
 }) {
+  const tone = (i: number) => (tones ? " tone-" + tones[i] : "");
   return (
     <>
       {index === 6 && (
@@ -167,7 +176,7 @@ function Rows({
                 <CategoryHelp topic="bonus" />
               </span>
             </th>
-            {state.cards.map((card, i) => (<td key={i} className={state.player===i&&!state.done?"current-score-cell":""}><BonusProgress card={card}/></td>))}
+            {state.cards.map((card, i) => (<td key={i} className={(state.player===i&&!state.done?"current-score-cell":"")+tone(i)}><BonusProgress card={card}/></td>))}
           </tr>
           <tr className="section-row">
             <th colSpan={3}>
@@ -196,7 +205,7 @@ function Rows({
             !state.done &&
             card[c] === undefined;
           return (
-            <td key={i} className={state.player===i&&!state.done?"current-score-cell":""}>
+            <td key={i} className={(state.player===i&&!state.done?"current-score-cell":"")+tone(i)}>
               {can ? (
                 <button
                   className="score-option"

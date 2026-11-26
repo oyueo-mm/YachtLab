@@ -49,5 +49,6 @@ export function fromOnline(view: PlayerView, history: readonly OnlineEvent[], lo
   }
   if (!steps.length) return "분석할 확정 행동이 없어요.";
   return { id: view.matchId, players: [view.players[0].name, view.players[1].name], scores: [view.players[0].total, view.players[1].total],
-    ...(looks ? { looks: [looks[playerIds[0]], looks[playerIds[1]]] } : {}), winners: view.winners.map((winner) => winner === playerIds[0] ? 0 : 1), steps };
+    ...(looks ? { looks: [looks[playerIds[0]], looks[playerIds[1]]] } : {}), winners: view.winners.map((winner) => winner === playerIds[0] ? 0 : 1),
+    me: view.you.playerId === playerIds[0] ? 0 : 1, steps };
 }

@@ -1,17 +1,61 @@
 name: Test and deploy YachtLab
+# D-061 (2026-11-26): the 23–26 minute single job is split into
+#   scope  → what changed (docs | seo | full; unknown ⇒ full)
+#   unit   → Vitest                                    ┐ in parallel
+#   build  → type check + test build + Pages build     ┘
+#   browser→ Playwright in 4 shards (desktop + mobile projects spread over the shards)
+#   deploy → only when every required job passed (never on a failed or skipped check)
+# A nightly run always takes the full path as a regression guard.
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      full:
+        description: "Run the full browser suite whatever changed"
+        type: boolean
+        default: true
+  schedule:
+    # 03:17 KST nightly full regression (UTC 18:17).
+    - cron: "17 18 * * *"
 permissions:
   contents: read
 concurrency:
-  group: pages-${{ github.ref }}
+  # A newer push to the same PR / branch cancels the older run (its result would be stale anyway).
+  group: pages-${{ github.ref }}-${{ github.event_name == 'schedule' && 'nightly' || 'ci' }}
   cancel-in-progress: true
+env:
+  SHARDS: 4
 jobs:
-  validate:
+  scope:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      mode: ${{ steps.classify.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: classify
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          FORCE_FULL: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.full) }}
+        run: |
+          if [ "$FORCE_FULL" = "true" ]; then echo "mode=full" >> "$GITHUB_OUTPUT"; echo "forced full"; exit 0; fi
+          # An unreadable range (new branch, force push, shallow history) yields an empty list ⇒ full.
+          git diff --name-only "$BASE" "$HEAD" > /tmp/changed.txt 2>/dev/null || : > /tmp/changed.txt
+          echo "changed files:"; cat /tmp/changed.txt
+          node scripts/ci/classify-changes.mjs /tmp/changed.txt >> "$GITHUB_OUTPUT"
+          tail -n1 "$GITHUB_OUTPUT"
+
+  unit:
+    needs: scope
+    if: needs.scope.outputs.mode == 'full'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,38 +64,107 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+
+  build:
+    needs: scope
+    if: needs.scope.outputs.mode != 'docs'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
       # Tests run against a build without a server address, so both states stay covered:
       # the "준비 중" screen, and the online UI through the loopback ?online-server= parameter.
       - run: npm run build
-      # Hosted Ubuntu already provides Chromium's required shared libraries.
-      # Avoid downloading unrelated OS fonts on every deployment.
-      - name: Install headless Chromium
-        timeout-minutes: 5
-        run: npx playwright install --only-shell chromium
-      - name: Browser checks
-        run: |
-          npm run preview -- --port 5173 > /tmp/yachtlab-vite.log 2>&1 &
-          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:5173/YachtLab/ > /dev/null && break; sleep 1; done
-          npm run test:ui
       - uses: actions/upload-artifact@v4
-        if: failure()
         with:
-          name: playwright-results
-          path: test-results
+          name: dist-test
+          path: dist
+          retention-days: 2
       # The site published to Pages connects to the deployed online Worker.
       - name: Production build (online server)
         env:
           VITE_ONLINE_SERVER_URL: https://yachtlab-online.hoho96385210.workers.dev
         run: |
-          npm run build
-          grep -rqF "$VITE_ONLINE_SERVER_URL" dist/assets
+          npx vite build --outDir dist-pages --emptyOutDir
+          grep -rqF "$VITE_ONLINE_SERVER_URL" dist-pages/assets
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:
+          path: dist-pages
+
+  browser:
+    needs: [scope, build]
+    if: needs.scope.outputs.mode != 'docs'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-test
           path: dist
+      # Hosted Ubuntu already provides Chromium's required shared libraries.
+      - name: Install headless Chromium
+        timeout-minutes: 5
+        run: npx playwright install --only-shell chromium
+      - name: Browser checks
+        env:
+          MODE: ${{ needs.scope.outputs.mode }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          npm run preview -- --port 5173 > /tmp/yachtlab-vite.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:5173/YachtLab/ > /dev/null && break; sleep 1; done
+          if [ "$MODE" = "seo" ]; then
+            # Static search pages only: SEO and offline-page (PWA) checks, desktop + mobile, on shard 1.
+            if [ "$SHARD" = "1" ]; then npx playwright test tests/ui/seo.spec.ts tests/ui/pwa.spec.ts --workers=2; else echo "seo change: nothing for this shard"; fi
+          else
+            npx playwright test --shard="$SHARD/$SHARDS" --workers=2
+          fi
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results-${{ matrix.shard }}
+          path: test-results
+
+  # One stable check name for branch protection: passes only if every required job passed.
+  ci-result:
+    needs: [scope, unit, build, browser]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - env:
+          MODE: ${{ needs.scope.outputs.mode }}
+          SCOPE: ${{ needs.scope.result }}
+          UNIT: ${{ needs.unit.result }}
+          BUILD: ${{ needs.build.result }}
+          BROWSER: ${{ needs.browser.result }}
+        run: |
+          echo "mode=$MODE scope=$SCOPE unit=$UNIT build=$BUILD browser=$BROWSER"
+          [ "$SCOPE" = "success" ] || exit 1
+          case "$MODE" in
+            docs) exit 0 ;;
+            seo) [ "$BUILD" = "success" ] && [ "$BROWSER" = "success" ] ;;
+            *) [ "$UNIT" = "success" ] && [ "$BUILD" = "success" ] && [ "$BROWSER" = "success" ] ;;
+          esac
+
   deploy:
-    if: github.event_name != 'pull_request'
-    needs: validate
+    needs: [scope, ci-result]
+    if: always() && github.event_name != 'pull_request' && github.event_name != 'schedule' && needs.ci-result.result == 'success' && needs.scope.outputs.mode != 'docs'
     runs-on: ubuntu-latest
     permissions:
       pages: write

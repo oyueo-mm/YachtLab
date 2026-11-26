@@ -17,6 +17,8 @@ export type ReviewMatch = {
   looks?: [PublicLook | undefined, PublicLook | undefined];
   scores: [number, number];
   winners: (0 | 1)[];
+  /** The viewer's seat when known (online: the server's `you`; AI games: the human seat). */
+  me?: 0 | 1;
   device?: true;
   steps: Situation[];
 };

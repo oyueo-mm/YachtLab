@@ -33,7 +33,12 @@ export function Lobby({ navigate }: { navigate: Go }) {
           <ArrowRight className="mode-arrow" size={20} aria-hidden="true" />
         </button>
       </div>
-      <a className="lobby-guide" href={`${import.meta.env.BASE_URL}guide/`}> <BookOpen size={17} aria-hidden="true" /> 규칙과 전략</a>
+      <nav className="lobby-links" aria-label="도구와 안내">
+        <a className="lobby-guide" href={`${import.meta.env.BASE_URL}guide/`}> <BookOpen size={17} aria-hidden="true" /> 규칙과 전략</a>
+        <a href={`${import.meta.env.BASE_URL}probability/`}>확률 계산기</a>
+        <a href={`${import.meta.env.BASE_URL}scores/`}>점수판</a>
+        <a href={`${import.meta.env.BASE_URL}faq/`}>FAQ</a>
+      </nav>
     </section>
   );
 }

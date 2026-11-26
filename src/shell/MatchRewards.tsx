@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Coins, Gem, Trophy, X } from "lucide-react";
 import { QUESTS } from "../economy/live/config";
 import type { MatchReceipt } from "../economy/live/receipt";
@@ -6,6 +6,9 @@ import { AccountError, matchReward, session } from "../identity/account-client";
 import "./match-rewards.css";
 
 export type PendingReward = { matchId: string; account: string };
+
+/** Matches whose coin/gem gain was already shown on the result popup (the home toast then omits it). */
+const walletShown = new Set<string>();
 
 function useMatchReceipt(server: string, matchId: string, owner: string | null, onEmpty?: () => void) {
   const [receipt, setReceipt] = useState<MatchReceipt | null>(null);
@@ -57,6 +60,7 @@ export function MatchRewardSummary({ server, matchId }: { server: string; matchI
   const coins = receipt.after.coins - receipt.before.coins;
   const gems = receipt.after.gems - receipt.before.gems;
   if (!(coins > 0 || gems > 0)) return null;
+  walletShown.add(matchId);
   return <section className="match-reward-wallet" aria-label="이번 경기 보상">
     {coins > 0 && <span><Coins size={16} aria-hidden="true" /> +{coins.toLocaleString()}코인</span>}
     {gems > 0 && <span><Gem size={16} aria-hidden="true" /> +{gems.toLocaleString()}보석</span>}
@@ -66,6 +70,16 @@ export function MatchRewardSummary({ server, matchId }: { server: string; matchI
 export default function MatchRewards({ server, pending, consume }: { server: string; pending: PendingReward; consume: () => void }) {
   const receipt = useMatchReceipt(server, pending.matchId, pending.account, consume);
   const [ratio, setRatio] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const close = useRef(consume);
+  close.current = consume;
+  // A toast over the page (never a section in the home layout). It closes by itself; the reward
+  // itself is already in the server ledger, so closing only hides the notice.
+  useEffect(() => {
+    if (!receipt || paused) return;
+    const timer = window.setTimeout(() => close.current(), 12_000);
+    return () => window.clearTimeout(timer);
+  }, [receipt, paused]);
   useEffect(() => {
     if (!receipt) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -85,13 +99,16 @@ export default function MatchRewards({ server, pending, consume }: { server: str
   const coins = receipt.after.coins - receipt.before.coins;
   const gems = receipt.after.gems - receipt.before.gems;
   const balance = (currency: "coins" | "gems") => Math.round(receipt.before[currency] + (receipt.after[currency] - receipt.before[currency]) * ratio).toLocaleString();
+  const showWallet = (coins > 0 || gems > 0) && !walletShown.has(pending.matchId);
+  const grants = receipt.grants.filter((grant) => grant.kind === "achievement" || grant.kind === "quest-bonus");
+  if (!showWallet && receipt.quests.length === 0 && grants.length === 0) return null;
   return (
-    <section className="match-rewards" aria-label="이번 경기 보상">
+    <section className="match-rewards" aria-live="polite" aria-label="이번 경기 보상" onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
       <header>
         <h2><Trophy size={18} aria-hidden="true" /> 이번 경기 보상</h2>
         <button type="button" className="icon-button" aria-label="보상 알림 닫기" onClick={consume}><X size={18} aria-hidden="true" /></button>
       </header>
-      {(coins > 0 || gems > 0) && (
+      {showWallet && (
         <div className="match-reward-wallet">
           {coins > 0 && <span><Coins size={16} aria-hidden="true" /> +{coins.toLocaleString()}코인</span>}
           {gems > 0 && <span><Gem size={16} aria-hidden="true" /> +{gems.toLocaleString()}보석</span>}
@@ -117,9 +134,9 @@ export default function MatchRewards({ server, pending, consume }: { server: str
           })}
         </ul>
       )}
-      {receipt.grants.some((grant) => grant.kind === "achievement" || grant.kind === "quest-bonus") && (
+      {grants.length > 0 && (
         <ul className="match-reward-grants" aria-label="새 업적 및 퀘스트 묶음 보상">
-          {receipt.grants.filter((grant) => grant.kind === "achievement" || grant.kind === "quest-bonus").map((grant) => (
+          {grants.map((grant) => (
             <li key={grant.label}><Check size={14} aria-hidden="true" /> {grant.label}{grant.coins > 0 && ` · +${grant.coins}코인`}{grant.gems > 0 && ` · +${grant.gems}보석`}</li>
           ))}
         </ul>

@@ -71,16 +71,24 @@ test("경기 후 홈에서 서버 보상 진행률을 확인하고 닫을 때까
     await expect(summary).toContainText("+1보석");
     await result.getByRole("button", { name: "나가기", exact: true }).click();
     const earned = page.getByRole("region", { name: "이번 경기 보상" });
-    await expect(earned).toContainText("+37코인");
-    await expect(earned).toContainText("+1보석");
+    // Regression: the notice is a toast over the page and the home layout keeps its shape.
+    await expect(earned).toBeVisible();
+    expect(await earned.evaluate((node) => getComputedStyle(node).position)).toBe("fixed");
+    const online = page.locator(".mode-online");
+    const title = online.locator("strong");
+    const box = await title.boundingBox();
+    expect(box && box.width > box.height).toBe(true);
+    // The coins were already shown on the result popup; the toast does not repeat them.
+    await expect(earned.locator(".match-reward-wallet")).toHaveCount(0);
     await expect(earned.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "3");
     await expect(earned).toContainText("2 → 3/3");
     await expect(earned).toContainText("일일 퀘스트 모두 완료");
     await expect(earned).toContainText("업적 · 첫 승리");
-    await expect(earned.locator(".match-reward-wallet [aria-hidden=true]").last()).toHaveText("237코인 · 21보석");
     await expect.poll(async () => Number(await page.locator("body").getAttribute("data-reward-widths"))).toBeGreaterThan(2);
+    const before = await online.boundingBox();
     await earned.getByRole("button", { name: "보상 알림 닫기" }).click();
     await expect(earned).toHaveCount(0);
+    expect(await online.boundingBox()).toEqual(before);
     expect(rewardMethods.length).toBeGreaterThan(0);
     expect(rewardMethods.every((method) => method === "GET")).toBe(true);
   } finally {

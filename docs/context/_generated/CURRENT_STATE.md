@@ -81,6 +81,7 @@
 - [FOUNDATION-V4-TOURNAMENT.md](../FOUNDATION-V4-TOURNAMENT.md)
 - [FRONTIER-200K-RESEARCH.md](../FRONTIER-200K-RESEARCH.md)
 - [FULLGAME-OFFPOLICY-RESEARCH.md](../FULLGAME-OFFPOLICY-RESEARCH.md)
+- [GROWTH-2026-11-26.md](../GROWTH-2026-11-26.md)
 - [HANDOFF.md](../HANDOFF.md)
 - [LARGE-SCALE-V32-ROADMAP.md](../LARGE-SCALE-V32-ROADMAP.md)
 - [ONLINE-YACHT-PRODUCT.md](../ONLINE-YACHT-PRODUCT.md)
@@ -110,16 +111,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [e891c2a](https://github.com/oyueo-mm/YachtLab/commit/e891c2a) | 2026-11-26 | Merge PR #94: CI shards, board-centred online table, guest shop, SEO pages & calculator, result sharing |
+| [dfd1ba1](https://github.com/oyueo-mm/YachtLab/commit/dfd1ba1) | 2026-11-26 | docs(context): growth work, decisions D-060..D-065, measured CI timings |
+| [ad5163f](https://github.com/oyueo-mm/YachtLab/commit/ad5163f) | 2026-11-26 | feat(seo): search pages, exact odds calculator, real-dice score pad, home title (D-062) |
+| [9f61b33](https://github.com/oyueo-mm/YachtLab/commit/9f61b33) | 2026-11-26 | feat(shop): guests browse the shop; buying or drawing asks to sign in and restores the view (D-063) |
+| [5954b62](https://github.com/oyueo-mm/YachtLab/commit/5954b62) | 2026-11-26 | feat(table): board-centred 1:1 online table, seat colours, silhouette avatar, no-scroll score sheet, reward toast (D-060) |
+| [7d96dba](https://github.com/oyueo-mm/YachtLab/commit/7d96dba) | 2026-11-26 | ci: classify changes, run Vitest and build in parallel, shard Playwright 4x2, gate deploy (D-061) |
 | [187b387](https://github.com/oyueo-mm/YachtLab/commit/187b387) | 2026-11-26 | Merge PR #93: Win DP v7.1/v7.2 research (9551 result, single-bank I2RO1 confirmed > v4-D, I3, exact solver K=7) |
 | [e7a9933](https://github.com/oyueo-mm/YachtLab/commit/e7a9933) | 2026-11-26 | Add Google Search Console verification meta tag |
 | [0fb8443](https://github.com/oyueo-mm/YachtLab/commit/0fb8443) | 2026-11-26 | Merge pull request #92 from oyueo-mm/codex/online-yacht-economy |
 | [e638a62](https://github.com/oyueo-mm/YachtLab/commit/e638a62) | 2026-11-25 | research(v7.2): pre-register final free 'very hard' selection games (family 9591) + latency eligibility (Pixel 7 x4 emulation) for I2R1/I2R1W6/I2RO1B3/v5-B3 |
-| [38b99af](https://github.com/oyueo-mm/YachtLab/commit/38b99af) | 2026-11-26 | Merge pull request #91 from oyueo-mm/codex/online-yacht-player-ui |
-| [2a6aaa8](https://github.com/oyueo-mm/YachtLab/commit/2a6aaa8) | 2026-11-26 | Merge pull request #90 from oyueo-mm/codex/online-yacht-brand |
-| [4346765](https://github.com/oyueo-mm/YachtLab/commit/4346765) | 2026-11-25 | Merge remote-tracking branch 'origin/claude/yachtlab-v7-research-ngcrhe' into claude/serene-planck-15tbo2 |
-| [6332349](https://github.com/oyueo-mm/YachtLab/commit/6332349) | 2026-11-25 | docs(context): 9571 verdict in RESULTS/DECISIONS |
-| [3648531](https://github.com/oyueo-mm/YachtLab/commit/3648531) | 2026-11-25 | research(v7.2): clean product benchmarks (Node, Chromium worker, Pixel 7 x4 emulation) for I2RO1/v5-R/I2R1; handoff updated with 9571 verdict and recommendation |
-| [1ec5396](https://github.com/oyueo-mm/YachtLab/commit/1ec5396) | 2026-11-25 | research(v7.2): product confirmation 9571 — HA1 accepted (I2RO1 vs v4-D 50.548%), HA2 not accepted (vs v5-R 50.064%, p 0.041); same-seed v5-R vs v4-D 50.547% |
 
 ## 최근 GitHub Actions 상태
 
@@ -127,10 +128,10 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45725099331) | cancelled | e7a99336a2 |
-| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45717549260) | success | e638a623b1 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45756594267) | success | dfd1ba174d |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45756594253) | success | dfd1ba174d |
+| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45726546327) | success | 187b387e51 |
 | [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45717409511) | success | 8e00f3172f |
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45686563250) | success | 8e00f3172f |
 
 ## 다음 채팅과 작업의 시작점
 

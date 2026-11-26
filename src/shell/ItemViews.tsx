@@ -6,7 +6,7 @@ import { CATEGORIES, itemById, lookAt, publicLook, DEFAULT_LOADOUT, type ItemDef
 import { TIERS } from "../economy/live/config";
 import { paintFace } from "../dice3d/face-paint";
 import { DiceArea } from "../DiceArea";
-import { boardTheme, PlayerTag } from "../play/Looks";
+import { boardTheme, DefaultAvatar, PlayerTag } from "../play/Looks";
 import { FxBurst, GLYPH } from "../play/FxBurst";
 import { socialItem } from "../social/catalog";
 import { playEmoteSfx, playSfx, unlockAudio } from "../sound";
@@ -75,7 +75,7 @@ export function ItemThumb({ item, level = 1 }: { item: ItemDef; level?: number }
         <b className="feed-from">친구</b> 안녕하세요!
       </span>
     );
-  else if (item.category === "profile") body = <span className={"player-icon big " + (look.css ?? "")}>{look.text || "🙂"}</span>;
+  else if (item.category === "profile") body = <span className={"player-icon big " + (look.text ? "" : "is-default ") + (look.css ?? "")}>{look.text || <DefaultAvatar />}</span>;
   else if (item.category === "nameFx") body = <span className={`player-name ${look.css ?? ""} fx-lv${level}`}>닉네임</span>;
   else if (item.category === "fx")
     body = (
