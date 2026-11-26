@@ -304,3 +304,8 @@
 
 - ⏸️ 매우 어려움 v4-D 유지, v5-R·I2RO1 교체 보류. Codex 통합 작업 없음.
 - ⏸️ v7 연구(제품·연구 최강 트랙) 일시 중단. 재개 지점: [V7-APEX-RESEARCH §11](./V7-APEX-RESEARCH.md), [V7-PRODUCT-HANDOFF](./V7-PRODUCT-HANDOFF.md).
+
+### 2026-11-26 SEO 운영 검증 (PR #99 이후)
+
+- ✅ 운영 사이트 최초 방문 홈·첫 게임 튜토리얼·JS 켬/끔 메타 일치·사이트맵 8개 URL·Search Console 태그 확인. 코드 변경·재배포 없음. [운영 검증](./ONLINE-YACHT-PRODUCT.md#운영-검증-2026-11-26-pr-99-병합-커밋-20336fb-배포본)
+- ⏭ Search Console 사이트맵 재제출·URL 검사(사용자), `/multiplayer/` PC·모바일 문구와 `/guide/` 구조화 데이터, 운영 Lighthouse 측정.

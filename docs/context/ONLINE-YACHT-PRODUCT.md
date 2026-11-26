@@ -18,6 +18,27 @@
 - 네이버는 사이트 등록 및 소유 확인에서 호스트를 요구할 수 있다. 프로젝트 경로를 거부하거나 호스트 루트 인증만 제공하면 현재 Pages 프로젝트에서 소유 확인을 마칠 수 없다. 계정이 프로젝트 등록을 허용하면 제공된 메타 태그 방식으로 확인하고 사이트맵을 제출한다. [네이버 등록·소유 확인](https://searchadvisor.naver.com/guide/faq-start-register)
 - HTTP 응답과 새 브라우저에서 자바스크립트 실행 전후에 같은 홈 제목·설명·본문·링크가 제공되는지 확인한다. 실제 색인, 검색 노출, 클릭수와 사이트맵 가져오기 상태는 각 도구의 속성 리포트에서 확인한다.
 
+### 운영 검증 (2026-11-26, PR #99 병합 커밋 20336fb 배포본)
+
+운영 `index.html`은 main의 `index.html`(빌드 자산 태그 제외)과 같았다. Playwright 1.x Chromium, 저장 상태 없는 새 컨텍스트, 데스크톱 1366×768·Pixel 7 에뮬레이션.
+
+| 항목 | 결과 |
+|---|---|
+| 최초 방문 홈 | 데스크톱·모바일 모두 홈(H1 "온라인 요트다이스", 온라인/오프라인 대전, 도움말 7개 링크)이 표시되고 튜토리얼 영역 0개, 페이지 오류 0건 |
+| 첫 오프라인 게임 | `#play-setup` → "게임 시작"에서 "첫 차례 튜토리얼"이 열리고 굴림·킵 안내가 동작. 이후 홈 재방문 시 튜토리얼 없음 |
+| JS 켬/끔 | 8개 URL 모두 제목·설명·H1·canonical·Search Console 태그가 동일. 홈의 `#online`·`#offline` 링크는 JS 실행 후 같은 문서의 버튼이 되고, 검색용 정적 페이지 7개 링크는 그대로 남음. 해시 경로(`#offline`)에서도 홈 제목·canonical 유지 |
+| 사이트맵·8개 URL | `sitemap.xml` 200 `application/xml`, 8개 URL 모두 200·자체 canonical·`noindex`/`X-Robots-Tag` 없음. 없는 경로는 404 + `noindex`. 호스트 루트 `/`, `/robots.txt`, `/sitemap.xml`은 404(기존과 같음, robots 차단 없음) |
+| Search Console 태그 | 홈 `google-site-verification` 태그 유지(JS 켬/끔 모두) |
+| 구조화 데이터 | 홈 WebSite+VideoGame, faq FAQPage, scores·probability WebApplication, 하위 페이지 BreadcrumbList 모두 JSON 파싱 성공. `/guide/`에는 구조화 데이터 없음 |
+| 검색어 반영 | 홈 제목·설명에 요트다이스·야추 다이스·PC·모바일·멀티·무료·온라인·친구·AI 모두 포함. 하위 페이지 제목·설명은 각 의도(규칙·FAQ·AI·친구/멀티/2인·전략·점수판·확률)에 요트다이스·야추를 함께 사용. 키워드 복제 페이지는 만들지 않음(D-062) |
+
+남은 SEO 개선 후보(코드 변경 보류, 우선순위 순):
+1. Search Console에서 사이트맵 재제출·홈 URL 검사(색인 요청) — 사용자 계정 작업. 실제 색인·노출 수치는 이 검증에 포함되지 않는다.
+2. `/multiplayer/` 설명에 PC·모바일 동시 플레이 문구 추가, `/guide/`에 BreadcrumbList(또는 Article) 추가 — 작은 정적 변경(seo 범위 CI).
+3. 운영 Lighthouse/PageSpeed 측정과 Core Web Vitals(Search Console) 확인.
+4. Bing 가져오기, 네이버 등록 가능 여부 확인(호스트 루트 제약은 위 항목).
+5. 사이트맵 `lastmod` 추가 여부 검토, `/calculator/`(최적 행동 계산기) 등 새 검색 의도 페이지는 기존 계획 유지.
+
 ## 점수와 첫 굴림 확률
 
 공정한 5개 주사위의 순서 있는 `6^5 = 7,776`개 결과를 `src/engine.ts`의 `score`로 검산했다. 포커 156, 풀 하우스 300, 스몰 스트레이트 1,200, 라지 스트레이트 240, 요트 6이다. 검색용 도움말은 각 족보를 독립적으로 세며 확률이 겹친다는 점을 설명한다.
