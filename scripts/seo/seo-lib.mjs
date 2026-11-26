@@ -68,6 +68,8 @@ export function contentFingerprint(html) {
   const hrefs = [...body.matchAll(/<a\b[^>]*\shref\s*=\s*"([^"]*)"/gi)].map((m) => m[1].replace(/%BASE_URL%/g, "/YachtLab/"));
   const text = squash(body.replace(/<[^>]+>/g, " "));
   const parts = [meta.title, meta.description ?? "", meta.canonical ?? "", meta.robots, meta.jsonld.join("\n"), text, hrefs.join(" ")];
+  const languages = tags(html, "link").filter((link) => attrOf(link, "rel") === "alternate" && attrOf(link, "hreflang"));
+  for (const link of languages) parts.push(attrOf(link, "hreflang"), attrOf(link, "href"));
   return createHash("sha256").update(parts.join("\u0000")).digest("hex").slice(0, 16);
 }
 
@@ -135,16 +137,17 @@ export function checkPage(loc, res, html) {
 export const isValidIndexNowKey = (key) => /^[A-Za-z0-9-]{8,128}$/.test(key);
 
 /**
- * Which URLs one endpoint still has to be told about. `submitted` maps url → lastmod last accepted
- * by that endpoint; `current` is the live sitemap. `all` resubmits every current URL.
+ * Compare verified live pages with the last revision each endpoint accepted.
+ * Older state has date strings, so those URLs are submitted once to establish a fingerprint.
  */
 export function pendingUrls(current, submitted = {}, { all = false } = {}) {
-  const live = new Map(current.map((e) => [e.loc, e.lastmod ?? ""]));
+  const live = new Set(current.map((page) => page.loc));
   const changed = [];
   const added = [];
-  for (const [loc, lastmod] of live) {
-    if (!(loc in submitted)) added.push(loc);
-    else if (all || submitted[loc] !== lastmod) changed.push(loc);
+  for (const { loc, lastmod, fingerprint } of current) {
+    const previous = submitted[loc];
+    if (previous === undefined) added.push(loc);
+    else if (all || typeof previous === "string" || previous.lastmod !== lastmod || previous.fingerprint !== fingerprint) changed.push(loc);
   }
   const removed = Object.keys(submitted).filter((loc) => !live.has(loc));
   return { added, changed, removed, urls: [...added, ...changed, ...removed] };

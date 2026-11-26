@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>요트다이스 확률 계산기 | 야추 족보 확률·킵 추천 · Online Yacht</title>
-  <meta name="description" content="현재 주사위와 킵, 남은 굴림 횟수를 넣으면 요트다이스(야추) 각 족보의 달성 확률과 기대 점수, 최적 킵을 정확히 계산합니다.">
+  <title>요트다이스 확률 계산기 | 야추 족보별 킵 비교 · Online Yacht</title>
+  <meta name="description" content="주사위 5개와 남은 재굴림을 입력해 요트, 풀 하우스, 스트레이트 등 야추 족보를 노릴 때의 정확한 확률과 추천 킵을 비교하세요.">
   <link rel="canonical" href="https://oyueo-mm.github.io/YachtLab/probability/">
   <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48">
   <link rel="stylesheet" href="../site/page.css">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Online Yacht">
   <meta property="og:locale" content="ko_KR">
-  <meta property="og:title" content="요트다이스 확률 계산기 | 야추 족보 확률·킵 추천 · Online Yacht">
-  <meta property="og:description" content="현재 주사위와 킵, 남은 굴림 횟수를 넣으면 요트다이스(야추) 각 족보의 달성 확률과 기대 점수, 최적 킵을 정확히 계산합니다.">
+  <meta property="og:title" content="요트다이스 확률 계산기 | 야추 족보별 킵 비교 · Online Yacht">
+  <meta property="og:description" content="주사위 5개와 남은 재굴림을 입력해 요트, 풀 하우스, 스트레이트 등 야추 족보를 노릴 때의 정확한 확률과 추천 킵을 비교하세요.">
   <meta property="og:url" content="https://oyueo-mm.github.io/YachtLab/probability/">
   <meta property="og:image" content="https://oyueo-mm.github.io/YachtLab/icons/share.jpg">
   <meta property="og:image:width" content="1200">
@@ -30,7 +30,7 @@
   <main>
 <article>
       <h1>요트다이스 족보 확률 계산기</h1>
-      <p class="lead">주사위 눈을 누르면 바뀌고, 아래 체크로 킵을 정합니다. 남은 재굴림 횟수에 따라 각 족보를 노릴 때의 확률을 정확히 계산합니다.</p>
+      <p class="lead">주사위 눈을 눌러 현재 굴림을 맞추고, 체크로 킵을 정하세요. 재굴림 횟수에 따라 지금 킵의 성공 확률과 해당 족보에 유리한 킵을 비교합니다.</p>
       <section class="calc" aria-label="계산기">
         <div class="dice-input" id="dice" role="group" aria-label="현재 주사위"></div>
         <fieldset class="rolls"><legend>남은 재굴림</legend>
@@ -48,6 +48,7 @@
         <noscript><p>계산기는 자바스크립트가 필요합니다. 첫 굴림 확률과 전략 표는 <a href="../strategy/">전략</a> 페이지에 있습니다.</p></noscript>
       </section>
       <h2>계산 방법</h2>
+      <p>예를 들어 2·3·4·5를 킵하고 한 번 더 굴리면, 남은 주사위에 1 또는 6이 나올 때 라지 스트레이트가 됩니다. 확률은 2/6, 약 33.33%입니다. <a href="../strategy/#keep-examples">초보 전략의 킵 사례</a>에서 다른 조합도 비교하세요.</p>
       <ul>
         <li>공정한 주사위 6면, 다섯 개 주사위의 모든 경우(순서 무관 252가지)를 정확히 열거합니다. 시뮬레이션이 아닙니다.</li>
         <li>"최선의 킵"은 남은 모든 재굴림에서 그 족보의 확률이 가장 높아지도록 킵을 고르는 동적 계획법 결과입니다.</li>

@@ -18,6 +18,7 @@
 > **게임 완성도·꾸미기 개편(주사위 30·보드 20·이모티콘 41 강화 연출, 설정 시트, 자체 작곡 BGM, 키보드 단축키, 규칙·FAQ 개편)** → [POLISH-2026-11-26](docs/context/POLISH-2026-11-26.md) (D-068~D-073).
 >
 > **검색엔진 등록·수집 자동화(IndexNow Bing·네이버, 콘텐츠 lastmod, 배포 후 검증)** → [SEO-AUTOMATION](docs/context/SEO-AUTOMATION.md) (D-067).
+> **검색 콘텐츠 및 공개 AI 연구** → [검색어·경쟁 페이지 조사](docs/context/SEARCH-INTENT-2026-11-26.md), [한국어 연구 보고서](https://oyueo-mm.github.io/YachtLab/research/), [English research report](https://oyueo-mm.github.io/YachtLab/research/en/).
 >
 > **제품 개선·성장 기반(2026-11-26: CI 샤드, 게임판 중심 UI, 비회원 상점, SEO 페이지·계산기, 공유, UTM)** → [GROWTH-2026-11-26](docs/context/GROWTH-2026-11-26.md) (D-060~D-065, 완료/미완료 구분).
 

@@ -4,6 +4,8 @@
 
 ## 새로운 ChatGPT/에이전트가 해야 할 일
 
+> **공개 검색·연구 콘텐츠**는 [검색 의도 조사](./SEARCH-INTENT-2026-11-26.md), [SEO 자동화](./SEO-AUTOMATION.md), `scripts/seo/research-content.mjs`에서 시작한다. 공개 한국어·영어 보고서는 동일한 실험 표와 출처를 사용한다.
+
 > **게임 리뷰**는 [제품 복기의 수치 기준과 데이터 경계](./AI-REVIEW.md)에서 시작한다. 브라우저 Web Worker에서 DP Expert와 작은 v5 종반 범위를 사용한다.
 
 > **꾸미기 연출·설정·BGM·단축키·규칙/FAQ 페이지 작업이면** [POLISH-2026-11-26](./POLISH-2026-11-26.md)과 D-068~D-073부터: 효과 데이터 `src/dice3d/dice-fx.ts`·`src/board-fx.ts`·`src/emote-fx.ts`(단계 설명은 `src/fx-texts.ts`와 테스트로 동기화), 렌더러 `src/dice3d/fx-canvas.ts`, 이벤트 `src/fx-bus.ts`, 설정 `src/settings.ts`, 공통 UI `src/ui/kit.tsx`, 단축키 `src/ui/shortcuts.tsx`, BGM `src/audio/`. 음원 라이선스는 [audio/LICENSES](../audio/LICENSES.md).
