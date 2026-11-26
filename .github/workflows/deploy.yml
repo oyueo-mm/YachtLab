@@ -100,7 +100,7 @@ jobs:
       # exact files that will be published (IndexNow submits only after the same check passes on the live site).
       - name: Verify search pages of the Pages build
         run: |
-          npx vite preview --outDir dist-pages --port 4174 --strictPort > /tmp/seo-preview.log 2>&1 &
+          npx vite preview --host 127.0.0.1 --outDir dist-pages --port 4174 --strictPort > /tmp/seo-preview.log 2>&1 &
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4174/YachtLab/ > /dev/null && break; sleep 1; done
           node scripts/seo/verify-site.mjs --base http://127.0.0.1:4174/YachtLab/
       # D-067: keep recent deployments' hashed assets so a crawler (or an open tab) holding older HTML does
