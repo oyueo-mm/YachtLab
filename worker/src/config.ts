@@ -15,6 +15,8 @@ export type OnlineConfig = {
   /** Rooms with no sockets are removed after this idle time. */
   lobbyIdleMs: number;
   finishedIdleMs: number;
+  /** Idle time on a finished result screen while a player remains connected. */
+  resultIdleMs: number;
   playingIdleMs: number;
   /** Every room is removed this long after creation, whatever its state (data retention). */
   maxAgeMs: number;
@@ -23,7 +25,7 @@ export type OnlineConfig = {
 };
 
 export type ConfigVars = Partial<Record<
-  "ALLOWED_ORIGINS" | "TURN_TIMEOUT_MS" | "MAX_ROOMS" | "DAILY_ROOM_LIMIT" | "CREATE_PER_MINUTE" | "JOIN_PER_MINUTE" | "LOBBY_IDLE_MS" | "FINISHED_IDLE_MS" | "PLAYING_IDLE_MS" | "ROOM_MAX_AGE_MS" | "DAILY_AI_LIMIT",
+  "ALLOWED_ORIGINS" | "TURN_TIMEOUT_MS" | "MAX_ROOMS" | "DAILY_ROOM_LIMIT" | "CREATE_PER_MINUTE" | "JOIN_PER_MINUTE" | "LOBBY_IDLE_MS" | "FINISHED_IDLE_MS" | "RESULT_IDLE_MS" | "PLAYING_IDLE_MS" | "ROOM_MAX_AGE_MS" | "DAILY_AI_LIMIT",
   string
 >>;
 
@@ -43,6 +45,7 @@ export function readConfig(env: ConfigVars): OnlineConfig {
     joinPerMinute: num(env.JOIN_PER_MINUTE, 30, 1),
     lobbyIdleMs: num(env.LOBBY_IDLE_MS, 30 * 60_000, 1000),
     finishedIdleMs: num(env.FINISHED_IDLE_MS, 30 * 60_000, 1000),
+    resultIdleMs: num(env.RESULT_IDLE_MS, 10 * 60_000, 1000),
     playingIdleMs: num(env.PLAYING_IDLE_MS, 24 * 3600_000, 1000),
     maxAgeMs: num(env.ROOM_MAX_AGE_MS, 48 * 3600_000, 1000),
     dailyAiLimit: num(env.DAILY_AI_LIMIT, 100, 0),

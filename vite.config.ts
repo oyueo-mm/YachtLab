@@ -32,22 +32,27 @@ const offlineFiles = (): Plugin => ({
   generateBundle: {
     order: "post",
     handler(_options, bundle) {
-      const roots = Object.keys(bundle).filter((file) => /^assets\/(?:(?:index|worker|product-worker|review-worker|ReviewPage|EconomyPages|stage|table)-.*\.(?:js|css)|pmf-.*\.wasm)$/.test(file));
+      const roots = Object.keys(bundle);
       const assets = new Set<string>();
-      const include = (file: string) => {
-        if (assets.has(file)) return;
-        assets.add(file);
+      const optional = new Set<string>();
+      const include = (file: string, group: Set<string>) => {
+        if (group.has(file)) return;
+        group.add(file);
         const chunk = bundle[file];
-        if (chunk?.type === "chunk") for (const dependency of chunk.imports) include(dependency);
+        if (chunk?.type === "chunk") for (const dependency of chunk.imports) include(dependency, group);
       };
-      for (const file of roots) include(file);
+      for (const file of roots) {
+        if (/^assets\/(?:index|worker|stage|table)-.*\.(?:js|css)$/.test(file)) include(file, assets);
+        if (/^assets\/(?:(?:product-worker|review-worker|ReviewPage|EconomyPages)-.*\.(?:js|css)|pmf-.*\.wasm)$/.test(file)) include(file, optional);
+      }
       for (const file of [`ai/${dpManifest.asset}`, "icons/online-yacht.svg", "icons/online-yacht-wordmark.svg",
-        "icons/santa-penguin.svg", "icons/rudolph.svg", "icons/harbor-snowman.svg", "guide/index.html"]) include(file);
+        "icons/santa-penguin.svg", "icons/rudolph.svg", "icons/harbor-snowman.svg", "guide/index.html"]) include(file, assets);
+      for (const file of assets) optional.delete(file);
       const source = readFileSync(new URL("./src/pwa-worker.js", import.meta.url), "utf8");
       this.emitFile({
         type: "asset",
         fileName: "sw.js",
-        source: `const BUILD = ${JSON.stringify(BUILD_ID)};\nconst ASSETS = ${JSON.stringify([...assets])};\n${source}`,
+        source: `const BUILD = ${JSON.stringify(BUILD_ID)};\nconst ASSETS = ${JSON.stringify([...assets])};\nconst OPTIONAL_ASSETS = ${JSON.stringify([...optional])};\n${source}`,
       });
     },
   },

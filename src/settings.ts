@@ -95,11 +95,13 @@ export function webglAvailable(): boolean {
   return webgl;
 }
 export type DiceRenderer = "3d-high" | "3d" | "2.5d" | "none";
-/** Which renderer a roll uses now: reduced motion → none; "motion simple" or low-end → light 2.5D. */
+/** Pick the requested renderer without creating a probe context during page render.
+ * The physical table handles context creation failure; the settings panel can probe on demand.
+ */
 export function diceRenderer(settings: Settings = current): DiceRenderer {
   const level = motionLevel(settings);
   if (level === "none") return "none";
-  if (level === "lite" || settings.diceQuality === "2.5d" || !webglAvailable()) return "2.5d";
+  if (level === "lite" || settings.diceQuality === "2.5d" || webgl === false || (globalThis as { __YACHTLAB_DISABLE_WEBGL__?: boolean }).__YACHTLAB_DISABLE_WEBGL__) return "2.5d";
   // "자동": sharp rendering on every screen (phones included), with adaptive resolution (see renderPolicy).
   if (settings.diceQuality === "auto") return "3d-high";
   return settings.diceQuality;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Check, Dices } from "lucide-react";
 import { DiceArea } from "../DiceArea";
 import MobileQuickScore from "../MobileQuickScore";
@@ -6,7 +6,6 @@ import { createGame, transition, type Game } from "../engine";
 import { playSfx } from "../sound";
 import { useDiceBusy } from "../useDiceBusy";
 import { diceRenderer, useSettings } from "../settings";
-import { diceTableModule, loadDiceTable } from "../dice3d-loader";
 import { TutorialRules } from "./TutorialRules";
 import { finishTutorial } from "./tutorial-progress";
 
@@ -28,14 +27,12 @@ export default function Tutorial({ onExit, returning, practiceOnly = false }: { 
   const instruction = steps[step];
   const settings = useSettings();
   const wants3d = diceRenderer(settings).startsWith("3d");
-  const [tableReady, setTableReady] = useState(() => !!diceTableModule());
-  useEffect(() => {
-    if (!wants3d || tableReady) return;
-    let active = true;
-    void loadDiceTable().then(() => { if (active) setTableReady(true); });
-    return () => { active = false; };
-  }, [wants3d, tableReady]);
-  const preparing = wants3d && !tableReady;
+  const [rendererRequested, setRendererRequested] = useState(practiceOnly);
+  const [rendererReady, setRendererReady] = useState(false);
+  const [queuedRoll, setQueuedRoll] = useState(false);
+  const prepare3d = wants3d && rendererRequested;
+  const preparing = prepare3d && !rendererReady;
+  const rendererDidBecomeReady = useCallback(() => setRendererReady(true), []);
   const busy = useDiceBusy();
   const completed = !instruction;
   const keep = instruction?.kind === "keep" || instruction?.kind === "release" ? instruction.id : undefined;
@@ -45,11 +42,31 @@ export default function Tutorial({ onExit, returning, practiceOnly = false }: { 
     setPractice({ game: next, step: step + 1 });
   }
 
+  const rollDice = useCallback(() => {
+    setPractice((current) => {
+      const next = steps[current.step];
+      if (next?.kind !== "roll") return current;
+      const { game } = current;
+      return {
+        step: current.step + 1,
+        game: { ...game, rolls: game.rolls + 1, dice: game.dice.map((die) => die.held ? die : { ...die, value: next.values[die.id] }) },
+      };
+    });
+  }, []);
+  useEffect(() => {
+    if (!queuedRoll || preparing || busy) return;
+    setQueuedRoll(false);
+    rollDice();
+  }, [queuedRoll, preparing, busy, rollDice]);
+
   function roll() {
-    if (preparing || busy || instruction?.kind !== "roll") return;
-    // The exercise supplies only display outcomes. It never advances the game's RNG.
-    const values = instruction.values;
-    advance({ ...game, rolls: game.rolls + 1, dice: game.dice.map((die) => die.held ? die : { ...die, value: values[die.id] }) });
+    if (preparing || queuedRoll || busy || instruction?.kind !== "roll") return;
+    if (wants3d && !rendererRequested) {
+      setRendererRequested(true);
+      setQueuedRoll(true);
+      return;
+    }
+    rollDice();
   }
 
   function hold(id: number) {
@@ -77,11 +94,13 @@ export default function Tutorial({ onExit, returning, practiceOnly = false }: { 
         <div className="guided-board">
           <section className="game-board throw-tray" aria-label="연습 보드">
             <div className="guided-dice" data-focus-die={keep}>
-              {!preparing && <DiceArea state={game} animate rollEvent={game.rolls} interactive={!busy && keep !== undefined} focusDie={keep} onToggle={hold} />}
+              <DiceArea state={game} animate rollEvent={game.rolls} interactive={!busy && keep !== undefined} focusDie={keep} onToggle={hold}
+                forceRenderer={wants3d && !rendererRequested ? "2.5d" : undefined}
+                onRendererReady={prepare3d ? rendererDidBecomeReady : undefined} />
             </div>
             <p className="guided-instruction" role="status">{preparing ? "주사위를 준비하고 있어요." : instruction.text}</p>
             <div className="roll-area">
-              <button type="button" className={`primary roll-button${instruction.kind === "roll" ? " guided-target" : ""}`} disabled={preparing || busy || instruction.kind !== "roll"} onClick={roll}>
+              <button type="button" className={`primary roll-button${instruction.kind === "roll" ? " guided-target" : ""}`} disabled={preparing || queuedRoll || busy || instruction.kind !== "roll"} onClick={roll}>
                 <Dices size={18} aria-hidden="true" /> {game.rolls === 0 ? "주사위 굴리기" : "다시 굴리기"}
               </button>
             </div>

@@ -6,13 +6,22 @@ export const diceTableModule = () => loaded;
 export function loadDiceTable(): Promise<DiceTableModule | null> {
   loading ??= import("./dice3d/table")
     .then((m) => (loaded = m))
-    .catch(() => null);
+    .catch(() => { loading = null; return null; });
   return loading;
 }
-/** Start loading when the browser is idle (no effect if already loaded). */
+let waitingForIntent = false;
+/** Prewarm on real input; game views can still request the renderer directly. */
 export function preloadDiceTableWhenIdle() {
-  if (loaded || loading) return;
-  const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
-  if (w.requestIdleCallback) w.requestIdleCallback(() => void loadDiceTable(), { timeout: 2500 });
-  else window.setTimeout(() => void loadDiceTable(), 800);
+  if (loaded || loading || waitingForIntent) return;
+  waitingForIntent = true;
+  const controller = new AbortController();
+  const prepare = () => {
+    controller.abort();
+    const load = () => void loadDiceTable();
+    if (window.requestIdleCallback) window.requestIdleCallback(load, { timeout: 500 });
+    else window.setTimeout(load, 0);
+  };
+  const options = { signal: controller.signal, passive: true };
+  window.addEventListener("pointerdown", prepare, options);
+  window.addEventListener("keydown", prepare, options);
 }

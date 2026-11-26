@@ -43,6 +43,33 @@ test.describe("최초 방문", () => {
     await expect(guide).toHaveCount(0);
   });
 
+  test("첫 표시에서는 WebGL을 만들지 않고 첫 굴림부터 같은 크기의 실제 3D 보드를 사용한다", async ({ page }) => {
+    await withMotion(page, "3d");
+    await page.addInitScript(() => {
+      const context = HTMLCanvasElement.prototype.getContext;
+      const diagnostics = window as unknown as { webglCalls: number };
+      diagnostics.webglCalls = 0;
+      HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, type: string, options?: unknown) {
+        if (type.startsWith("webgl")) diagnostics.webglCalls++;
+        return Reflect.apply(context, this, [type, options]);
+      } as typeof context;
+    });
+    await page.goto("");
+    const guide = page.getByRole("region", { name: "튜토리얼" });
+    const board = guide.locator(".guided-dice");
+    const roll = guide.getByRole("button", { name: "주사위 굴리기" });
+    await expect(roll).toBeEnabled();
+    await expect(board.locator("canvas")).toHaveCount(0);
+    expect(await page.evaluate(() => (window as unknown as { webglCalls: number }).webglCalls)).toBe(0);
+    const height = (await board.boundingBox())!.height;
+    await roll.click();
+    await expect(board.locator("canvas")).toBeVisible();
+    await expect(board.locator(".die-hit").first()).toBeEnabled();
+    expect((await board.boundingBox())!.height).toBe(height);
+    const result = await page.evaluate(() => (window as unknown as { __yachtlabDice: { last: { mode: string } } }).__yachtlabDice.last.mode);
+    expect(result).toBe("3d");
+  });
+
   test("초대 URL을 유지하고 건너뛴 뒤 다시 열지 않는다", async ({ page }) => {
     await page.goto("?room=ABCDEF#online");
     await page.getByRole("button", { name: "건너뛰기" }).click();

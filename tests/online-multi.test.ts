@@ -3,7 +3,7 @@ import { seededDiceSource } from "../src/online";
 import { MAX_MISSED_ROUNDS } from "../src/online/protocol";
 import { applyCommand, createOnlineMatch, rebuildFromEvents } from "../src/online/server-engine";
 import type { RoomRecord } from "../src/online/room";
-import { RoomHost, LIFECYCLE, type HostSocket, type HostStorage } from "../worker/src/host";
+import { RoomHost, LIFECYCLE, type HostEvents, type HostSocket, type HostStorage } from "../worker/src/host";
 import { readConfig } from "../worker/src/config";
 import { categories } from "../src/engine";
 
@@ -250,7 +250,7 @@ describe("엔진: 20명", () => {
 
 describe("방 정리 (D-046: 재접속 유예·서버 알람)", () => {
   type Room = Awaited<ReturnType<typeof setup>>;
-  async function setup(seats: number, opts: { start?: boolean; kind?: "friend" | "random" } = {}) {
+  async function setup(seats: number, opts: { start?: boolean; kind?: "friend" | "random"; members?: boolean; deliverRecord?: HostEvents["deliverRecord"] } = {}) {
     const st = { record: null as string | null, alarm: null as number | null, cleared: false };
     const storage: HostStorage = {
       load: () => (st.record ? JSON.parse(st.record) : null),
@@ -263,7 +263,7 @@ describe("방 정리 (D-046: 재접속 유예·서버 알람)", () => {
     const clock = { t: 1_000_000 };
     const open: Sock[] = [];
     const deleted: string[] = [];
-    const make = () => new RoomHost(storage, () => open, readConfig({ TURN_TIMEOUT_MS: "0" }), () => clock.t, seededDiceSource(1), { onDeleted: (c) => void deleted.push(c) });
+    const make = () => new RoomHost(storage, () => open, readConfig({ TURN_TIMEOUT_MS: "0" }), () => clock.t, seededDiceSource(1), { onDeleted: (c) => void deleted.push(c), deliverRecord: opts.deliverRecord });
     let host = make();
     host.init();
     const tokens: string[] = [];
@@ -272,7 +272,8 @@ describe("방 정리 (D-046: 재접속 유예·서버 알람)", () => {
       if (!made.ok) throw Error(made.message);
       tokens.push(...made.seats.map((x) => x.token));
     } else for (let i = 0; i < seats; i++) {
-      const r = i === 0 ? await host.create("ABCDEF", "p" + i, null, null, seats) : await host.join("p" + i, null);
+      const identity = opts.members ? { userId: "u_" + String(i).padStart(22, "0") } : null;
+      const r = i === 0 ? await host.create("ABCDEF", "p" + i, identity, null, seats) : await host.join("p" + i, identity);
       if (!r.ok) throw Error("join");
       tokens.push(r.token);
     }
@@ -393,11 +394,34 @@ describe("방 정리 (D-046: 재접속 유예·서버 알람)", () => {
     expect(r.st.cleared).toBe(true);
   });
 
-  it("끝난 경기: 모두 나가면 3분 뒤, 결과 화면에 남아 있으면 1시간 뒤 정리된다", async () => {
+  it("정산 응답을 받지 못해도 종료한 방의 영속 기록은 알람과 재시작 뒤 재전달된다", async () => {
+    let ack = false;
+    const settlements = new Set<string>();
+    const r = await setup(2, { members: true, deliverRecord: async (userId, record) => {
+      settlements.add(userId + ":" + record.recordId);
+      return ack;
+    } });
+    await r.host.message(r.socks[1], JSON.stringify({ t: "cmd", id: "rs", action: { type: "resign" } }));
+    expect(status(r)).toBe("finished");
+    expect(r.host.room!.pendingRecords()).toHaveLength(2);
+    await r.drop(0);
+    await r.drop(1);
+    await r.tick(LIFECYCLE.emptyFinishedMs + 1000);
+    expect(r.st.cleared).toBe(false);
+    r.evict();
+    expect(r.host.room!.pendingRecords()).toHaveLength(2);
+    ack = true;
+    await r.tick(60_000);
+    expect(r.st.cleared).toBe(true);
+    expect(r.deleted).toEqual(["ABCDEF"]);
+    expect(settlements.size).toBe(2);
+  });
+
+  it("끝난 경기: 모두 나가면 3분 뒤, 결과 화면에 남아 있으면 10분 뒤 정리된다", async () => {
     const r = await setup(2);
     await r.host.message(r.socks[1], JSON.stringify({ t: "cmd", id: "rs", action: { type: "resign" } }));
     expect(status(r)).toBe("finished");
-    await r.tick(LIFECYCLE.finishedOpenMs - 60_000);
+    await r.tick(9 * 60_000);
     expect(r.st.cleared).toBe(false);
     await r.drop(0);
     await r.drop(1);
@@ -405,7 +429,7 @@ describe("방 정리 (D-046: 재접속 유예·서버 알람)", () => {
     expect(r.st.cleared).toBe(true);
     const r2 = await setup(2);
     await r2.host.message(r2.socks[1], JSON.stringify({ t: "cmd", id: "rs", action: { type: "resign" } }));
-    await r2.tick(LIFECYCLE.finishedOpenMs + 1000);
+    await r2.tick(10 * 60_000 + 1000);
     expect(r2.st.cleared).toBe(true);
   });
 });

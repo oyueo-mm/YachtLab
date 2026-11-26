@@ -92,10 +92,10 @@ export class YachtRoom extends DurableObject<Env> {
       onDeleted: async (code) => {
         await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).release(code);
       },
-      // Rematches reuse this room but still count toward the daily cap (one directory row write).
+      // Each rematch reuses this room and reserves the daily budget once.
       deliverRecord: async (userId, record) => env.USERS.get(env.USERS.idFromName(userId)).recordMatch(record),
-      allowMatch: async (_code, weight) => {
-        const verdict = await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).allocateMatch(weight ?? 1);
+      allowMatch: async (code, weight, matchNo) => {
+        const verdict = await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).allocateMatch(code, matchNo, weight);
         return verdict.ok ? null : verdict.message;
       },
       publish: async (code, entry) => {
@@ -189,16 +189,19 @@ type Verdict = { ok: true } | { ok: false; status: number; code: string; message
  * Client keys are SHA-256 hashes of the connecting IP, never the IP itself.
  */
 export class RoomDirectory extends DurableObject<Env> {
+  private storage: DurableObjectStorage;
   private config: OnlineConfig;
   private sql: SqlStorage;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.config = readConfig(env);
+    this.storage = ctx.storage;
     this.sql = ctx.storage.sql;
     ctx.blockConcurrencyWhile(async () => {
       this.sql.exec("CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, created_at INTEGER NOT NULL)");
       this.sql.exec("CREATE TABLE IF NOT EXISTS daily (day INTEGER PRIMARY KEY, rooms INTEGER NOT NULL)");
+      this.sql.exec("CREATE TABLE IF NOT EXISTS match_budget (code TEXT NOT NULL, match_no INTEGER NOT NULL, units INTEGER NOT NULL, PRIMARY KEY(code, match_no))");
       if ((await ctx.storage.getAlarm()) === null) await ctx.storage.setAlarm(Date.now() + 6 * 3600_000);
     });
   }
@@ -278,14 +281,24 @@ export class RoomDirectory extends DurableObject<Env> {
    * One more match in an existing room (rematch). Shares the daily cap with room creation, so the
    * daily budget still bounds this service's share of the free plan; no new room code or object.
    */
-  async allocateMatch(weight = 1): Promise<Verdict> {
-    // A larger match costs more units (about one per two players): its storage writes grow with players.
-    const w = Math.max(1, Math.min(10, Math.floor(weight)));
-    const day = Math.floor(Date.now() / 86_400_000);
-    const today = this.sql.exec<{ rooms: number }>("SELECT rooms FROM daily WHERE day = ?", day).toArray()[0]?.rooms ?? 0;
-    if (today + w > this.config.dailyRoomLimit) return { ok: false, status: 503, code: "DAILY_LIMIT", message: "오늘은 온라인 경기를 더 할 수 없어요. 내일 다시 시도해 주세요." };
-    this.sql.exec("INSERT INTO daily (day, rooms) VALUES (?, ?) ON CONFLICT(day) DO UPDATE SET rooms = rooms + ?", day, w, w);
-    return { ok: true };
+  async allocateMatch(code: string, matchNo: number, weight: number): Promise<Verdict> {
+    const units = Math.max(1, Math.min(10, Math.floor(weight)));
+    return this.storage.transactionSync(() => {
+      if (!this.sql.exec("SELECT 1 FROM rooms WHERE code = ?", code).toArray().length)
+        return { ok: false, status: 404, code: "ROOM_NOT_FOUND", message: "방을 찾을 수 없어요." };
+      const reserved = this.sql.exec<{ units: number }>("SELECT units FROM match_budget WHERE code = ? AND match_no = ?", code, matchNo).toArray()[0]?.units ?? 0;
+      // If a retry includes more seats, reserve only the additional units. A smaller roster
+      // can still start using the units previously reserved for this logical match.
+      const extra = units - reserved;
+      if (extra <= 0) return { ok: true };
+      const day = Math.floor(Date.now() / 86_400_000);
+      const today = this.sql.exec<{ rooms: number }>("SELECT rooms FROM daily WHERE day = ?", day).toArray()[0]?.rooms ?? 0;
+      if (today + extra > this.config.dailyRoomLimit)
+        return { ok: false, status: 503, code: "DAILY_LIMIT", message: "오늘은 온라인 경기를 더 할 수 없어요. 내일 다시 시도해 주세요." };
+      this.sql.exec("INSERT INTO daily (day, rooms) VALUES (?, ?) ON CONFLICT(day) DO UPDATE SET rooms = rooms + ?", day, extra, extra);
+      this.sql.exec("INSERT INTO match_budget (code, match_no, units) VALUES (?, ?, ?) ON CONFLICT(code, match_no) DO UPDATE SET units = excluded.units", code, matchNo, units);
+      return { ok: true };
+    });
   }
 
   /** Generic in-memory rate limit for account routes (no storage writes). */
@@ -294,7 +307,10 @@ export class RoomDirectory extends DurableObject<Env> {
   }
 
   async release(code: string) {
-    this.sql.exec("DELETE FROM rooms WHERE code = ?", code);
+    this.storage.transactionSync(() => {
+      this.sql.exec("DELETE FROM match_budget WHERE code = ?", code);
+      this.sql.exec("DELETE FROM rooms WHERE code = ?", code);
+    });
   }
 
   async count() {
@@ -313,7 +329,10 @@ export class RoomDirectory extends DurableObject<Env> {
   /** Every 6 hours: forget room codes past retention (their rooms delete themselves) and old day counters. */
   async alarm() {
     const now = Date.now();
-    this.sql.exec("DELETE FROM rooms WHERE created_at < ?", now - this.config.maxAgeMs - 3600_000);
+    this.storage.transactionSync(() => {
+      this.sql.exec("DELETE FROM rooms WHERE created_at < ?", now - this.config.maxAgeMs - 3600_000);
+      this.sql.exec("DELETE FROM match_budget WHERE code NOT IN (SELECT code FROM rooms)");
+    });
     this.sql.exec("DELETE FROM daily WHERE day < ?", Math.floor(now / 86_400_000) - 2);
     this.sql.exec("CREATE TABLE IF NOT EXISTS daily_ai (day INTEGER PRIMARY KEY, rooms INTEGER NOT NULL)");
     this.sql.exec("DELETE FROM daily_ai WHERE day < ?", Math.floor(now / 86_400_000) - 2);

@@ -25,6 +25,17 @@ test("설치 가능한 매니페스트와 버전별 캐시는 로컬·기본 AI�
   });
   expect(keys).toEqual(expect.arrayContaining([expect.stringMatching(/\/index\.html$/), expect.stringMatching(/\/assets\/worker-.*\.js$/)]));
   expect(keys.some((url) => /\/api\/|\/auth\/|version\.json|\?/.test(url))).toBe(false);
+  // Optional views are cached after use. The offline core still includes 3D and default AI.
+  expect(keys.some((url) => /\/assets\/stage-.*\.js$/.test(url))).toBe(true);
+  expect(keys.some((url) => /\/assets\/ReviewPage-.*\.js$/.test(url))).toBe(false);
+  const worker = await (await page.request.get("sw.js")).text();
+  const optional = JSON.parse(/^const OPTIONAL_ASSETS = (.*);$/m.exec(worker)![1]) as string[];
+  const review = optional.find((url) => /ReviewPage-.*\.js$/.test(url))!;
+  expect(review).toBeTruthy();
+  expect(await page.evaluate(async (path) => {
+    const url = new URL(path, location.href).href;
+    return (await fetch(url)).ok && !!(await caches.match(url));
+  }, review)).toBe(true);
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByRole("heading", { name: /요트다이스를 플레이/ })).toBeVisible();
