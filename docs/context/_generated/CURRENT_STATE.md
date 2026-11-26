@@ -86,6 +86,7 @@
 - [HANDOFF.md](../HANDOFF.md)
 - [LARGE-SCALE-V32-ROADMAP.md](../LARGE-SCALE-V32-ROADMAP.md)
 - [ONLINE-YACHT-PRODUCT.md](../ONLINE-YACHT-PRODUCT.md)
+- [POLISH-2026-11-26.md](../POLISH-2026-11-26.md)
 - [PRODUCT-2026-11-24.md](../PRODUCT-2026-11-24.md)
 - [PSRO-PPO-PMF-2026-11-20-FINAL.md](../PSRO-PPO-PMF-2026-11-20-FINAL.md)
 - [PSRO-PPO-PMF-RESEARCH.md](../PSRO-PPO-PMF-RESEARCH.md)
@@ -113,16 +114,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [2788297](https://github.com/oyueo-mm/YachtLab/commit/2788297) | 2026-11-26 | Merge pull request #102 from oyueo-mm/claude/great-sagan-cevdax |
+| [93b2e2c](https://github.com/oyueo-mm/YachtLab/commit/93b2e2c) | 2026-11-26 | Merge remote-tracking branch 'origin/main' into claude/great-sagan-cevdax |
+| [77b6016](https://github.com/oyueo-mm/YachtLab/commit/77b6016) | 2026-11-26 | docs: exact unit test count |
+| [3b2ff1e](https://github.com/oyueo-mm/YachtLab/commit/3b2ff1e) | 2026-11-26 | test+docs: polish verification, sweep contact sheets, BGM render in idle time, test race fix |
+| [2e4501f](https://github.com/oyueo-mm/YachtLab/commit/2e4501f) | 2026-11-26 | perf+docs: lazy effect/music chunks, level texts split; polish report, decisions D-068..D-073, audio licences |
+| [c141d34](https://github.com/oyueo-mm/YachtLab/commit/c141d34) | 2026-11-26 | feat(seo,ui): visual rules page, categorized FAQ, home links trimmed; tests for polish |
+| [5d81351](https://github.com/oyueo-mm/YachtLab/commit/5d81351) | 2026-11-26 | feat(items): unique dice, board and emote upgrade effects |
 | [e627852](https://github.com/oyueo-mm/YachtLab/commit/e627852) | 2026-11-26 | Merge pull request #101 from oyueo-mm/claude/wizardly-bohr-1usbx5 |
 | [c4d854c](https://github.com/oyueo-mm/YachtLab/commit/c4d854c) | 2026-11-26 | docs(seo): record the first production IndexNow run (D-067) |
-| [4f2f24f](https://github.com/oyueo-mm/YachtLab/commit/4f2f24f) | 2026-11-26 | Merge pull request #100 from oyueo-mm/claude/wizardly-bohr-1usbx5 |
-| [5530819](https://github.com/oyueo-mm/YachtLab/commit/5530819) | 2026-11-26 | ci(seo): bind the verification preview server to 127.0.0.1 |
-| [737a876](https://github.com/oyueo-mm/YachtLab/commit/737a876) | 2026-11-26 | feat(seo): IndexNow automation, content-based sitemap lastmod, deploy verification (D-067) |
-| [20336fb](https://github.com/oyueo-mm/YachtLab/commit/20336fb) | 2026-11-26 | Merge pull request #99 from oyueo-mm/codex/home-search-rendering-20261126 |
-| [004cb24](https://github.com/oyueo-mm/YachtLab/commit/004cb24) | 2026-11-26 | Keep all search guide links and update the static title assertion |
-| [c6b0b8a](https://github.com/oyueo-mm/YachtLab/commit/c6b0b8a) | 2026-11-26 | Serve a stable search homepage and defer onboarding to first play |
-| [39089dd](https://github.com/oyueo-mm/YachtLab/commit/39089dd) | 2026-11-26 | Merge PR #98: pause AI research, keep v4-D as 'very hard' (D-V7-6); final 9591 results |
-| [b9be8eb](https://github.com/oyueo-mm/YachtLab/commit/b9be8eb) | 2026-11-26 | docs(v7): final 9591 S3/S4 results; pause AI research, keep v4-D as 'very hard', hold v5-R/I2RO1 swap (D-V7-6) |
+| [0e492f3](https://github.com/oyueo-mm/YachtLab/commit/0e492f3) | 2026-11-26 | feat(dice): per-item Lv.2/Lv.3 effect profiles for all dice |
 
 ## 최근 GitHub Actions 상태
 
@@ -130,8 +131,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45799668276) | success | c4d854cb9b |
-| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45793761026) | success | 3b3f7c744e |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45809130867) | success | 93b2e2c5ac |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45809130859) | success | 93b2e2c5ac |
+| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45800285656) | success | e17c785908 |
 | [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45772443229) | success | 54c13679f0 |
 
 ## 다음 채팅과 작업의 시작점

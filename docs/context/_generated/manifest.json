@@ -60,6 +60,7 @@
     "HANDOFF.md",
     "LARGE-SCALE-V32-ROADMAP.md",
     "ONLINE-YACHT-PRODUCT.md",
+    "POLISH-2026-11-26.md",
     "PRODUCT-2026-11-24.md",
     "PSRO-PPO-PMF-2026-11-20-FINAL.md",
     "PSRO-PPO-PMF-RESEARCH.md",
@@ -124,6 +125,41 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "2788297",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #102 from oyueo-mm/claude/great-sagan-cevdax"
+    },
+    {
+      "sha": "93b2e2c",
+      "date": "2026-11-26",
+      "subject": "Merge remote-tracking branch 'origin/main' into claude/great-sagan-cevdax"
+    },
+    {
+      "sha": "77b6016",
+      "date": "2026-11-26",
+      "subject": "docs: exact unit test count"
+    },
+    {
+      "sha": "3b2ff1e",
+      "date": "2026-11-26",
+      "subject": "test+docs: polish verification, sweep contact sheets, BGM render in idle time, test race fix"
+    },
+    {
+      "sha": "2e4501f",
+      "date": "2026-11-26",
+      "subject": "perf+docs: lazy effect/music chunks, level texts split; polish report, decisions D-068..D-073, audio licences"
+    },
+    {
+      "sha": "c141d34",
+      "date": "2026-11-26",
+      "subject": "feat(seo,ui): visual rules page, categorized FAQ, home links trimmed; tests for polish"
+    },
+    {
+      "sha": "5d81351",
+      "date": "2026-11-26",
+      "subject": "feat(items): unique dice, board and emote upgrade effects"
+    },
+    {
       "sha": "e627852",
       "date": "2026-11-26",
       "subject": "Merge pull request #101 from oyueo-mm/claude/wizardly-bohr-1usbx5"
@@ -134,58 +170,29 @@
       "subject": "docs(seo): record the first production IndexNow run (D-067)"
     },
     {
-      "sha": "4f2f24f",
+      "sha": "0e492f3",
       "date": "2026-11-26",
-      "subject": "Merge pull request #100 from oyueo-mm/claude/wizardly-bohr-1usbx5"
-    },
-    {
-      "sha": "5530819",
-      "date": "2026-11-26",
-      "subject": "ci(seo): bind the verification preview server to 127.0.0.1"
-    },
-    {
-      "sha": "737a876",
-      "date": "2026-11-26",
-      "subject": "feat(seo): IndexNow automation, content-based sitemap lastmod, deploy verification (D-067)"
-    },
-    {
-      "sha": "20336fb",
-      "date": "2026-11-26",
-      "subject": "Merge pull request #99 from oyueo-mm/codex/home-search-rendering-20261126"
-    },
-    {
-      "sha": "004cb24",
-      "date": "2026-11-26",
-      "subject": "Keep all search guide links and update the static title assertion"
-    },
-    {
-      "sha": "c6b0b8a",
-      "date": "2026-11-26",
-      "subject": "Serve a stable search homepage and defer onboarding to first play"
-    },
-    {
-      "sha": "39089dd",
-      "date": "2026-11-26",
-      "subject": "Merge PR #98: pause AI research, keep v4-D as 'very hard' (D-V7-6); final 9591 results"
-    },
-    {
-      "sha": "b9be8eb",
-      "date": "2026-11-26",
-      "subject": "docs(v7): final 9591 S3/S4 results; pause AI research, keep v4-D as 'very hard', hold v5-R/I2RO1 swap (D-V7-6)"
+      "subject": "feat(dice): per-item Lv.2/Lv.3 effect profiles for all dice"
     }
   ],
   "recentWorkflowRuns": [
     {
+      "name": "YachtLab gameplay UI targeted smoke",
+      "status": "success",
+      "head": "93b2e2c5ac",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45809130867"
+    },
+    {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "c4d854cb9b",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45799668276"
+      "head": "93b2e2c5ac",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45809130859"
     },
     {
       "name": "SEO IndexNow",
       "status": "success",
-      "head": "3b3f7c744e",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45793761026"
+      "head": "e17c785908",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45800285656"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
