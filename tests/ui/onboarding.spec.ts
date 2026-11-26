@@ -54,8 +54,11 @@ test.describe("최초 방문과 첫 오프라인 게임", () => {
     await expect(page.getByRole("button", { name: "튜토리얼 다시 보기" })).toHaveCount(0);
     await page.goto("#tutorial");
     await expect(guide).toHaveCount(0);
+    // The offline menu no longer has a practice button (2026-11-27); the rules page links to #practice.
     await page.goto("#offline");
-    await page.getByRole("button", { name: "한 차례 연습하기" }).click();
+    await expect(page.getByRole("button", { name: "한 차례 연습하기" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /1인 플레이/ })).toBeVisible();
+    await page.goto("#practice");
     await expect(page.getByRole("region", { name: "한 차례 연습하기" })).toBeVisible();
     await expect(guide).toHaveCount(0);
   });

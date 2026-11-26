@@ -20,6 +20,20 @@ export type Standing = { player: number; points: number; rank: number; finished:
 /** Distinct per-player PRNG streams. Keep the old initialization for v1 replay verification. */
 export function createMultiGame(count: number, seed: number, legacySeedStream = false): MultiGame {
   if (!Number.isSafeInteger(count) || count < 2) throw Error("참가 인원은 2명 이상이어야 합니다.");
+  return createTable(count, seed, legacySeedStream);
+}
+/**
+ * 1인 플레이: the same multi-player engine with one seat (same 12 categories, scoring, dice RNG and
+ * turn flow; the game ends after the 12th recorded category). No separate rules engine.
+ */
+export function createSoloGame(seed: number): MultiGame {
+  return createTable(1, seed, false);
+}
+/** Replays and viewers: a recorded game of 1 (solo) or 2+ players. */
+export function createGameFor(count: number, seed: number, legacySeedStream = false): MultiGame {
+  return count === 1 ? createSoloGame(seed) : createMultiGame(count, seed, legacySeedStream);
+}
+function createTable(count: number, seed: number, legacySeedStream: boolean): MultiGame {
   if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff) throw Error("잘못된 난수 시드입니다.");
   return {
     dice: Array.from({ length: 5 }, (_, id) => ({ id, value: 1, held: false })),

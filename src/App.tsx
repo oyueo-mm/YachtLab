@@ -8,6 +8,9 @@ import MyGames from "./MyGames";
 import Tutorial from "./play/Tutorial";
 import { beginFirstGameTutorial } from "./play/tutorial-progress";
 import HumanGame from "./play/HumanGame";
+import SoloGame from "./play/SoloGame";
+import { setOwnLook } from "./play/own-look";
+import { useNickname } from "./identity/display-name";
 import OnlineEntry from "./play/OnlineEntry";
 import OnlineGame from "./play/OnlineGame";
 import OnlineWatch from "./play/OnlineWatch";
@@ -54,14 +57,14 @@ const localAiConfig = () => {
 /** Background music by screen (a match, the review and the result dialog ask for their own). */
 function sceneOf(page: Route): BgmScene {
   if (routes[page].shell === "lab") return "none";
-  if (page === "play" || page === "pvp") return "game";
+  if (page === "play" || page === "pvp" || page === "solo") return "game";
   if (page === "online" || page === "online-room" || page === "spectate") return "lobby";
   if (page === "shop" || page === "inventory" || page === "draw") return "shop";
   return "home";
 }
 
 export default function App() {
-  const tutorialDestination = useRef<"play" | "pvp" | null>(null);
+  const tutorialDestination = useRef<"play" | "pvp" | "solo" | null>(null);
   const [page, setPage] = useState<Route>(currentRoute),
     [replay, setReplay] = useState<Match | null>(null),
     [settingsOpen, setSettingsOpen] = useState(false);
@@ -75,6 +78,9 @@ export default function App() {
   // Online play needs a configured server; without one the online screen stays "준비 중".
   const [onlineServer] = useState(onlineServerUrl);
   const profile = useProfileEconomy(onlineServer, page === "home");
+  // Offline screens (AI, local, 1인 플레이) show the player's own equipped dice and board too.
+  useEffect(() => setOwnLook(profile.snapshot?.look ?? null), [profile.snapshot]);
+  const nickname = useNickname();
   const [onlineCode, setOnlineCode] = useState<string | null>(roomFromUrl);
   const [quickIntro, setQuickIntro] = useState<string | null>(null);
   const [pendingReward, setPendingReward] = useState<PendingReward | null>(null);
@@ -122,7 +128,7 @@ export default function App() {
   const pendingHistory = useRef<{ idx: number; undo: () => void } | null>(null);
   /** Switch screens without touching the URL (the URL already says where we are). */
   const enter = (p: Route) => {
-    if ((p === "play" || p === "pvp") && pageRef.current !== p) {
+    if ((p === "play" || p === "pvp" || p === "solo") && pageRef.current !== p) {
       // Entering a game screen from elsewhere starts from the latest saved setup.
       if (p === "play") setAiConfig(localAiConfig());
       else setLocal(localConfig());
@@ -145,7 +151,7 @@ export default function App() {
     pushRoute(p);
     enter(p);
   };
-  const startLocalGame = (destination: "play" | "pvp") => {
+  const startLocalGame = (destination: "play" | "pvp" | "solo") => {
     if (!beginFirstGameTutorial()) return go(destination);
     pushRoute(destination);
     tutorialDestination.current = destination;
@@ -219,7 +225,7 @@ export default function App() {
       {shell === "lab" && <LabNav route={page} navigate={navigate} />}
       <main className={`main page-${page}`}>
         {/* Friend invites on any page except during a running game (not to interrupt play). */}
-        {page !== "tutorial" && !(page === "online-room" && inProgress.current) && page !== "play" && page !== "pvp" && (
+        {page !== "tutorial" && !(page === "online-room" && inProgress.current) && page !== "play" && page !== "pvp" && page !== "solo" && (
           <InviteToasts
             server={onlineServer}
             onJoined={(code) => {
@@ -249,7 +255,7 @@ export default function App() {
           else go("home");
         }} />}
         {page === "practice" && <Tutorial practiceOnly onExit={() => go("offline")} />}
-        {page === "offline" && <OfflineSelect navigate={navigate} />}
+        {page === "offline" && <OfflineSelect navigate={navigate} startSolo={() => startLocalGame("solo")} />}
         {(page === "online" || page === "online-room") && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "online" && onlineServer && (
           <>
@@ -312,6 +318,7 @@ export default function App() {
         {page === "pvp-setup" && <LocalSetupScreen onBack={() => navigate("offline")} onStart={() => startLocalGame("pvp")} />}
         {page === "play" && <HumanGame key={gameKey} config={aiConfig} onBranch={branch} onAnalyze={analyze} onChangeSetup={() => go("play-setup")} onLeave={() => go("home")} onProgress={progress} />}
         {page === "pvp" && <LocalGame key={gameKey} players={local.players} order={local.order} onChangeSetup={() => go("pvp-setup")} onLeave={() => go("home")} onProgress={progress} />}
+        {page === "solo" && <SoloGame key={gameKey} name={nickname || getAiSetup().name || "나"} server={onlineServer} onLeave={() => go("offline")} onRecords={() => go("records")} onProgress={progress} />}
         {page === "records" && <MyGames server={onlineServer} onBranch={branch} onAnalyze={analyze} />}
         {shell === "lab" && (
           <Suspense

@@ -226,7 +226,7 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
   return (
     <>
       <section className="review-match" aria-label="최종 결과">
-        {match.players.map((name, seat) => {
+        {(match.solo ? match.players.slice(0, 1) : match.players).map((name, seat) => {
           const assessments = values?.filter(({ index }) => match.steps[index].before.player === seat) ?? [];
           const byScore = accuracy(assessments, "score");
           const byWin = accuracy(assessments, "win");
@@ -237,7 +237,7 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
             {detailed && values && <small>승리 정확도 {byWin === undefined ? "—" : fmt(byWin) + "%"}</small>}
           </div>;
         })}
-        <strong className="review-outcome">{match.winners.length === 2 ? "무승부" : match.winners.length ? `${match.players[match.winners[0]]} 승리` : "경기 종료"}</strong>
+        <strong className="review-outcome">{match.solo ? "1인 플레이" : match.winners.length === 2 ? "무승부" : match.winners.length ? `${match.players[match.winners[0]]} 승리` : "경기 종료"}</strong>
       </section>
       {fallbackNotice && <p role="status">확장 분석을 준비하지 못해 기본 분석으로 계속합니다.</p>}
       {active && <div className="review-loading">
@@ -260,9 +260,9 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
           <p>★는 최선, ✓는 좋은 판단, ?!·?·??는 차이가 커지는 순서예요. !·!!는 정확한 종반에서 승리에 도움이 된 선택에 붙어요.</p>
         </details>
         {values && <>
-          <label>플레이어 <select value={basicSeat} onChange={(event) => setBasicSeat(event.target.value === "0" ? 0 : 1)}>
+          {!match.solo && <label>플레이어 <select value={basicSeat} onChange={(event) => setBasicSeat(event.target.value === "0" ? 0 : 1)}>
             <option value={0}>{match.players[0]}</option><option value={1}>{match.players[1]}</option>
-          </select></label>
+          </select></label>}
           <h2>주요 판단 실수</h2>
           {mistakes.length ? mistakes.map(highlight) : <p>이 플레이어의 분석에서 큰 차이가 난 판단이 없어요.</p>}
           <h2>잘한 선택</h2>
@@ -298,11 +298,11 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
             {result.winLuck !== undefined && <span>승리점수율 굴림 운 {result.winLuck >= 0 ? "+" : ""}{fmt(result.winLuck * 100)}%p</span>}
           </div>}
           <table className="review-scoreboard" aria-label="당시 점수판">
-            <thead><tr><th scope="col">족보</th>{match.players.map((name, seat) => <th scope="col" key={seat} className={"tone-" + tone(seat)}>{name}{seat === match.me ? " (나)" : ""}</th>)}</tr></thead>
+            <thead><tr><th scope="col">족보</th>{(match.solo ? match.players.slice(0, 1) : match.players).map((name, seat) => <th scope="col" key={seat} className={"tone-" + tone(seat)}>{name}{seat === match.me ? " (나)" : ""}</th>)}</tr></thead>
             <tbody>
               {categories.map((category) => <tr key={category}>
                 <th scope="row">{names[category]}</th>
-                {state.cards.map((card, seat) => {
+                {state.cards.slice(0, match.solo ? 1 : 2).map((card, seat) => {
                   const actual = !quiz && seat === participant && step.action.type === "score" && step.action.category === category;
                   const suggested = !quiz && seat === participant && recommendation?.action.type === "score" && recommendation.action.category === category;
                   return <td key={seat} data-actual={actual || undefined} data-suggested={suggested || undefined}>
@@ -312,8 +312,8 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
                   </td>;
                 })}
               </tr>)}
-              <tr><th scope="row">상단 보너스</th>{state.cards.map((card, seat) => <td key={seat}>{upper(card) >= 63 ? "+35점 달성" : `${63 - upper(card)}점 남음`}</td>)}</tr>
-              <tr className="review-total"><th scope="row">총점</th>{state.cards.map((card, seat) => <td key={seat}>{total(card)}점</td>)}</tr>
+              <tr><th scope="row">상단 보너스</th>{state.cards.slice(0, match.solo ? 1 : 2).map((card, seat) => <td key={seat}>{upper(card) >= 63 ? "+35점 달성" : `${63 - upper(card)}점 남음`}</td>)}</tr>
+              <tr className="review-total"><th scope="row">총점</th>{state.cards.slice(0, match.solo ? 1 : 2).map((card, seat) => <td key={seat}>{total(card)}점</td>)}</tr>
             </tbody>
           </table>
           {result && <details className="review-options" open={quiz || undefined}>
@@ -328,12 +328,12 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
         </section>
         <section className="review-summary" aria-label="경기 전체 분석">
           <div className="review-filters">
-            <label>플레이어 <select value={participant} onChange={(event) => {
+            {!match.solo && <label>플레이어 <select value={participant} onChange={(event) => {
               const seat = Number(event.target.value);
               const index = match.steps.findIndex(({ before }) => before.player === seat && before.round === step.before.round);
               const first = match.steps.findIndex(({ before }) => before.player === seat);
               if (first !== -1) move(index === -1 ? first : index);
-            }}><option value={0}>{match.players[0]}</option><option value={1}>{match.players[1]}</option></select></label>
+            }}><option value={0}>{match.players[0]}</option><option value={1}>{match.players[1]}</option></select></label>}
             <label>라운드 <select value={step.before.round} onChange={(event) => {
               const round = Number(event.target.value);
               const index = match.steps.findIndex(({ before }) => before.round === round && before.player === participant);

@@ -1,5 +1,5 @@
 import { categories, type Action } from "./engine";
-import { createMultiGame, transitionMulti, type MultiGame } from "./multi-engine";
+import { createGameFor, createMultiGame, transitionMulti, type MultiGame } from "./multi-engine";
 import { validateReplay, type Player } from "./replay";
 
 export const multiReplayLimit = 4 * 1024 * 1024;
@@ -73,7 +73,7 @@ export function validateMultiReplay(raw: unknown): MultiReplay {
   if (obj.format === "YachtLabReplay" || (obj.format === undefined && Array.isArray(obj.algorithms))) return fromLegacy(obj);
   if (obj.format !== "YachtLabMultiReplay" || (obj.version !== 1 && obj.version !== 2)) throw Error("지원하지 않는 다인전 기보 형식입니다.");
   const meta = asObject(obj.metadata);
-  if (meta.ruleVersion !== `YachtLab-12-multi-v${obj.version}` || !Array.isArray(meta.players) || meta.players.length < 2 || meta.players.length > 50) throw Error("기보 참가자 수 또는 규칙이 올바르지 않습니다.");
+  if (meta.ruleVersion !== `YachtLab-12-multi-v${obj.version}` || !Array.isArray(meta.players) || meta.players.length < 1 || meta.players.length > 50) throw Error("기보 참가자 수 또는 규칙이 올바르지 않습니다.");
   const players: Player[] = meta.players.map((value: unknown) => {
     const p = asObject(value);
     if (p.type !== "human" && p.type !== "ai") throw Error("지원하지 않는 참가자 형식입니다.");
@@ -81,7 +81,7 @@ export function validateMultiReplay(raw: unknown): MultiReplay {
   });
   if (!validSeed(obj.seed) || !Number.isFinite(Date.parse(meta.createdAt))) throw Error("기보 시드 또는 날짜가 올바르지 않습니다.");
   if (!Array.isArray(obj.actions) || obj.actions.length > multiReplayActionLimit) throw Error("기보 행동 수가 올바르지 않습니다.");
-  let state = createMultiGame(players.length, obj.seed, obj.version === 1);
+  let state = createGameFor(players.length, obj.seed, obj.version === 1);
   const actions: Action[] = [];
   for (const rawAction of obj.actions) {
     const action = validAction(rawAction);
@@ -121,7 +121,7 @@ export function downloadMultiReplay(replay: MultiReplay) {
 }
 export function replaySeek(replay: MultiReplay) {
   const checkpoints = new Map<number, MultiGame>();
-  let state = createMultiGame(replay.metadata.players.length, replay.seed, replay.version === 1);
+  let state = createGameFor(replay.metadata.players.length, replay.seed, replay.version === 1);
   checkpoints.set(0, state);
   replay.actions.forEach((action, i) => {
     state = transitionMulti(state, action);
