@@ -4,6 +4,16 @@ import { scoreCategory, withMotion } from "./helpers";
 test.describe("최초 방문", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
+  test("앱 코드가 늦어도 정적 첫 화면의 여백은 페이지 전체를 밀지 않는다", async ({ page }) => {
+    await page.route(/\/(?:assets\/index-[^/]+\.js|src\/main\.tsx)$/, (route) => route.abort());
+    await page.goto("");
+    const shell = page.locator(".initial-shell");
+    await expect(shell.getByRole("heading", { name: "온라인 요트다이스" })).toBeVisible();
+    expect(await page.locator("body").evaluate((body) => body.getBoundingClientRect().top)).toBe(0);
+    const logoTop = await shell.locator("img").evaluate((logo) => logo.getBoundingClientRect().top / innerHeight);
+    expect(logoTop).toBeCloseTo(0.12, 1);
+  });
+
   test("강조된 조작만 허용하고 고정 시나리오를 기록한다", async ({ page }) => {
     await page.goto("");
     const guide = page.getByRole("region", { name: "튜토리얼" });
