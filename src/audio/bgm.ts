@@ -1,5 +1,5 @@
 import { bgmAudible, getSettings, subscribeSettings } from "../settings";
-import { onAudioUnlocked, sharedAudio } from "../sound";
+import { mixInput, onAudioUnlocked, onSfxDuck, sharedAudio, volumeCurve } from "../sound";
 
 /**
  * Background music (2026-11-26). Every track is composed and rendered in this file with the Web Audio
@@ -47,15 +47,33 @@ let generation = 0;
 const FADE = 1.6;
 /** Diagnostics for tests: the scene that is audible (or would be) and how many sources are live. */
 export const bgmState = { scene: "none" as BgmScene, live: 0, requested: "none" as BgmScene };
-if (typeof window !== "undefined") (window as unknown as { __yachtlabBgm?: typeof bgmState }).__yachtlabBgm = bgmState;
+if (typeof window !== "undefined") {
+  (window as unknown as { __yachtlabBgm?: typeof bgmState }).__yachtlabBgm = bgmState;
+  // Offline loudness check for tests (lazy chunk, never loaded by players).
+  (window as unknown as { __yachtlabAudioMeasure?: () => Promise<unknown> }).__yachtlabAudioMeasure = () => import("./measure");
+}
 
+/** Music slider → gain: equal dB per step (20 dB range; tracks are normalized to ≈ −20 dBFS RMS). */
+export const bgmGain = (v: number) => volumeCurve(v, 20);
+let duck: GainNode | null = null;
 function output(audio: AudioContext) {
   if (!bus || bus.context !== audio) {
     bus = audio.createGain();
-    bus.connect(audio.destination);
+    duck = audio.createGain();
+    // Through the shared limiter with the effects (falls back to the speakers before the first effect).
+    bus.connect(duck).connect(mixInput() ?? audio.destination);
   }
-  bus.gain.setTargetAtTime(getSettings().bgmVolume * 0.6, audio.currentTime, 0.08);
+  bus.gain.setTargetAtTime(bgmGain(getSettings().bgmVolume), audio.currentTime, 0.08);
   return bus;
+}
+/** Big moments (yacht, straight, results, Lv.3 emotes) dip the music by ~5 dB, then it comes back. */
+function duckFor(at: number, seconds: number) {
+  if (!duck || !playing) return;
+  const g = duck.gain;
+  const t = Math.max(at, duck.context.currentTime);
+  g.cancelScheduledValues(t);
+  g.setTargetAtTime(0.56, t, 0.04);
+  g.setTargetAtTime(1, t + seconds, 0.35);
 }
 
 function fadeOut(p: Playing, audio: AudioContext, seconds = FADE) {
@@ -147,6 +165,7 @@ export function installBgm() {
   if (installed || typeof window === "undefined") return;
   installed = true;
   onAudioUnlocked(() => void sync());
+  onSfxDuck(duckFor);
   subscribeSettings(() => void sync());
   document.addEventListener("visibilitychange", () => void sync());
   window.addEventListener("pagehide", () => {

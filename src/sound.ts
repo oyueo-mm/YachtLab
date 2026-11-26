@@ -89,6 +89,104 @@ export function setSfxVariant(v: SfxVariant) {
   variant = v;
 }
 
+/**
+ * Mix graph (2026-11-26 audio pass):
+ *
+ *   category buses (dice · ui · moment · item · emote) → sfx bus (effects volume) ─┐
+ *                                                     music (bgm.ts) → bgm bus ─────┼→ mix → limiter → speakers
+ *
+ * Effects and music share one brick-wall-ish limiter at −1.5 dBFS that only touches true peaks (the old
+ * −14 dB / 6:1 compressor squashed every loud effect and made emotes and item accents vanish under the
+ * dice). Category gains are the balance measured by `scripts/audio/measure-levels.mjs`.
+ */
+export type SfxBus = "dice" | "ui" | "moment" | "item" | "emote";
+/** Static balance between effect categories (linear gain; measured, see docs/audio/MIX.md). */
+export const BUS_GAIN: Record<SfxBus, number> = { dice: 1, ui: 1.25, moment: 1.6, item: 2.6, emote: 3.2 };
+const busOf = (name: Sfx): SfxBus => {
+  switch (name) {
+    case "throw":
+    case "impact":
+    case "clack":
+    case "roll":
+    case "settle":
+      return "dice";
+    case "diceFx":
+    case "boardFx":
+      return "item";
+    case "emote":
+    case "emoteLv3":
+      return "emote";
+    case "grand":
+    case "yacht":
+    case "yachtHit":
+    case "straightHit":
+    case "win":
+    case "winShared":
+    case "lose":
+    case "draw":
+    case "fxSparkle":
+    case "fxCoin":
+    case "fxBell":
+    case "fxWhoosh":
+    case "fxFanfare":
+      return "moment";
+    default:
+      return "ui";
+  }
+};
+/**
+ * Slider position (0..1) → linear gain. Loudness is heard in decibels, so equal slider steps should be
+ * equal dB steps: 0 dB at 100 %, −30 dB at 10 %, then a straight fade to silence at 0 %. The old linear
+ * mapping changed almost nothing between 50 % and 100 % (−6 dB) and dropped sharply near zero.
+ * Saved slider values are kept as they are; only their meaning in gain changed.
+ */
+export const SFX_HEADROOM = 2;
+export function volumeCurve(v: number, rangeDb = 30) {
+  if (!(v > 0)) return 0;
+  const x = Math.min(1, v);
+  const db = -rangeDb * (1 - x) / 0.9;
+  const g = Math.pow(10, Math.max(db, -rangeDb) / 20);
+  return x < 0.1 ? g * (x / 0.1) : g;
+}
+const noiseBuffers = new WeakMap<BaseAudioContext, AudioBuffer>();
+function noiseFor(audio: BaseAudioContext) {
+  let buffer = noiseBuffers.get(audio);
+  if (!buffer) {
+    const length = Math.floor(audio.sampleRate * 0.5);
+    buffer = audio.createBuffer(1, length, audio.sampleRate);
+    const data = buffer.getChannelData(0);
+    let seed = 22222;
+    for (let i = 0; i < length; i++) {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      data[i] = (seed / 4294967296) * 2 - 1;
+    }
+    noiseBuffers.set(audio, buffer);
+  }
+  return buffer;
+}
+type Graph = { mix: GainNode; sfx: GainNode; buses: Record<SfxBus, GainNode> };
+function buildGraph(audio: BaseAudioContext): Graph {
+  const limiter = audio.createDynamicsCompressor();
+  limiter.threshold.value = -1.5;
+  limiter.knee.value = 0;
+  limiter.ratio.value = 20;
+  limiter.attack.value = 0.001;
+  limiter.release.value = 0.1;
+  const mix = audio.createGain();
+  mix.connect(limiter).connect(audio.destination);
+  const sfx = audio.createGain();
+  sfx.connect(mix);
+  const buses = {} as Record<SfxBus, GainNode>;
+  for (const key of Object.keys(BUS_GAIN) as SfxBus[]) {
+    const g = audio.createGain();
+    g.gain.value = BUS_GAIN[key];
+    g.connect(sfx);
+    buses[key] = g;
+  }
+  return { mix, sfx, buses };
+}
+let graph: Graph | null = null;
+
 function context(): AudioContext | null {
   if (ctx) return ctx;
   const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -98,25 +196,13 @@ function context(): AudioContext | null {
   } catch {
     return null;
   }
-  master = ctx.createGain();
-  // A gentle compressor keeps bursts of collisions from clipping (no harsh distortion on phones).
-  const limiter = ctx.createDynamicsCompressor();
-  limiter.threshold.value = -14;
-  limiter.knee.value = 12;
-  limiter.ratio.value = 6;
-  limiter.attack.value = 0.003;
-  limiter.release.value = 0.15;
-  master.connect(limiter).connect(ctx.destination);
-  const length = Math.floor(ctx.sampleRate * 0.5);
-  noise = ctx.createBuffer(1, length, ctx.sampleRate);
-  const data = noise.getChannelData(0);
-  let seed = 22222;
-  for (let i = 0; i < length; i++) {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    data[i] = (seed / 4294967296) * 2 - 1;
-  }
+  graph = buildGraph(ctx);
+  master = graph.sfx;
+  noise = noiseFor(ctx);
   return ctx;
 }
+/** Shared output the music connects to (after the effects buses, before the limiter). */
+export const mixInput = (): GainNode | null => graph?.mix ?? null;
 
 /** Must be called from a user gesture handler. */
 export function unlockAudio() {
@@ -148,11 +234,11 @@ export function installAudioUnlock() {
 const ready = () => {
   const settings = getSettings();
   if (!sfxAudible(settings) || !ctx || !master || ctx.state !== "running") return null;
-  master.gain.value = settings.volume * 0.9;
+  master.gain.setTargetAtTime(volumeCurve(settings.volume) * SFX_HEADROOM, ctx.currentTime, 0.02);
   return { audio: ctx, out: master };
 };
 
-function voice(audio: AudioContext, out: AudioNode, pan: number) {
+function voice(audio: BaseAudioContext, out: AudioNode, pan: number) {
   if (!pan || !audio.createStereoPanner) return out;
   const panner = audio.createStereoPanner();
   panner.pan.value = Math.max(-1, Math.min(1, pan));
@@ -160,9 +246,9 @@ function voice(audio: AudioContext, out: AudioNode, pan: number) {
   return panner;
 }
 
-function tone(audio: AudioContext, out: AudioNode, start: number, freq: number, length: number, gain: number, type: OscillatorType = "sine", endFreq?: number) {
+function tone(audio: BaseAudioContext, out: AudioNode, start: number, freq: number, length: number, gain: number, type: OscillatorType = "sine", endFreq?: number) {
   const osc = audio.createOscillator();
-  const env = audio.createGain();
+  const env = silentGain(audio);
   osc.type = type;
   osc.frequency.setValueAtTime(freq, start);
   if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, start + length);
@@ -174,16 +260,15 @@ function tone(audio: AudioContext, out: AudioNode, start: number, freq: number, 
   osc.stop(start + length + 0.02);
 }
 
-function burst(audio: AudioContext, out: AudioNode, start: number, length: number, gain: number, filter: BiquadFilterType, freq: number, endFreq?: number, q = 0.8) {
-  if (!noise) return;
+function burst(audio: BaseAudioContext, out: AudioNode, start: number, length: number, gain: number, filter: BiquadFilterType, freq: number, endFreq?: number, q = 0.8) {
   const src = audio.createBufferSource();
-  src.buffer = noise;
+  src.buffer = audio === ctx && noise ? noise : noiseFor(audio);
   const biquad = audio.createBiquadFilter();
   biquad.type = filter;
   biquad.Q.value = q;
   biquad.frequency.setValueAtTime(freq, start);
   if (endFreq) biquad.frequency.exponentialRampToValueAtTime(endFreq, start + length);
-  const env = audio.createGain();
+  const env = silentGain(audio);
   env.gain.setValueAtTime(0.0001, start);
   env.gain.exponentialRampToValueAtTime(gain, start + Math.min(0.01, length / 3));
   env.gain.exponentialRampToValueAtTime(0.0001, start + length);
@@ -194,14 +279,25 @@ function burst(audio: AudioContext, out: AudioNode, start: number, length: numbe
 
 /* ------------------------------------------------------------------ v2 dice ------------------------------------------------------------------ */
 
+/**
+ * Envelope gain that starts silent. A GainNode starts at 1, and a source that begins between two
+ * render frames lets its very first sample through before the envelope's first event applies: a
+ * full-scale one-sample click (measured: ±1.0 spikes on "yay", "laugh" and every noise burst).
+ */
+function silentGain(audio: BaseAudioContext) {
+  const g = audio.createGain();
+  g.gain.value = 0;
+  return g;
+}
+
 const jitter = (amount: number) => 1 + (Math.random() * 2 - 1) * amount;
 
 /** Damped sine modes: the ring of a small hard object (each mode: frequency Hz, decay s, level). */
-function modes(audio: AudioContext, out: AudioNode, start: number, list: [number, number, number][]) {
+function modes(audio: BaseAudioContext, out: AudioNode, start: number, list: [number, number, number][]) {
   for (const [freq, decay, gain] of list) {
     if (gain < 0.002) continue;
     const osc = audio.createOscillator();
-    const env = audio.createGain();
+    const env = silentGain(audio);
     osc.type = "sine";
     osc.frequency.setValueAtTime(freq, start);
     env.gain.setValueAtTime(0.0001, start);
@@ -214,7 +310,7 @@ function modes(audio: AudioContext, out: AudioNode, start: number, list: [number
 }
 
 /** A plastic die hitting the felt-and-wood tray: click modes + a body thud, both scaled by strength. */
-function dieOnTable(audio: AudioContext, out: AudioNode, t: number, k: number) {
+function dieOnTable(audio: BaseAudioContext, out: AudioNode, t: number, k: number) {
   const p = jitter(0.06);
   const bright = 0.35 + 0.65 * k;
   modes(audio, out, t, [
@@ -227,7 +323,7 @@ function dieOnTable(audio: AudioContext, out: AudioNode, t: number, k: number) {
 }
 
 /** Two dice knocking: higher, drier, no thud. */
-function dieOnDie(audio: AudioContext, out: AudioNode, t: number, k: number) {
+function dieOnDie(audio: BaseAudioContext, out: AudioNode, t: number, k: number) {
   const p = jitter(0.08);
   modes(audio, out, t, [
     [3300 * p, 0.009, 0.2 * k],
@@ -238,7 +334,7 @@ function dieOnDie(audio: AudioContext, out: AudioNode, t: number, k: number) {
 }
 
 /** A die tumbling over its edges: a quick train of tiny ticks (count and level follow the speed). */
-function rolling(audio: AudioContext, out: AudioNode, t: number, k: number) {
+function rolling(audio: BaseAudioContext, out: AudioNode, t: number, k: number) {
   const ticks = 2 + Math.round(3 * k);
   let at = t;
   for (let i = 0; i < ticks; i++) {
@@ -253,7 +349,7 @@ function rolling(audio: AudioContext, out: AudioNode, t: number, k: number) {
 }
 
 /** Coming to rest: two or three ever softer, ever slower ticks. */
-function settling(audio: AudioContext, out: AudioNode, t: number, k: number) {
+function settling(audio: BaseAudioContext, out: AudioNode, t: number, k: number) {
   let at = t,
     gap = 0.035,
     g = 0.12 * k;
@@ -270,7 +366,7 @@ function settling(audio: AudioContext, out: AudioNode, t: number, k: number) {
 }
 
 /** Dice leaving the hand: a short rattle of dice against each other. */
-function shake(audio: AudioContext, out: AudioNode, t: number, k: number) {
+function shake(audio: BaseAudioContext, out: AudioNode, t: number, k: number) {
   for (let i = 0; i < 4; i++) dieOnDie(audio, out, t + i * (0.028 + Math.random() * 0.02), 0.25 * k * jitter(0.3));
   burst(audio, out, t, 0.14, 0.05 * k, "bandpass", 1200, 3000, 0.8);
 }
@@ -287,10 +383,10 @@ function shake(audio: AudioContext, out: AudioNode, t: number, k: number) {
  *  - Rolling is friction noise with sparse edge ticks rather than a train of identical clicks.
  * Whether this is actually better must be judged by listening (it has not been, on real phones).
  */
-function impulse(audio: AudioContext, out: AudioNode, t: number, gain: number, freq: number, q: number, length = 0.003) {
+function impulse(audio: BaseAudioContext, out: AudioNode, t: number, gain: number, freq: number, q: number, length = 0.003) {
   burst(audio, out, t, length, gain, "bandpass", freq, undefined, q);
 }
-function v3Table(audio: AudioContext, out: AudioNode, t: number, k: number) {
+function v3Table(audio: BaseAudioContext, out: AudioNode, t: number, k: number) {
   impulse(audio, out, t, 0.2 * k, 3600 * jitter(0.15), 0.9);
   const base = 1700 * jitter(0.08);
   modes(audio, out, t, [
@@ -301,7 +397,7 @@ function v3Table(audio: AudioContext, out: AudioNode, t: number, k: number) {
   tone(audio, out, t, (380 + 140 * k) * jitter(0.1), 0.025 + 0.02 * k, (0.06 + 0.16 * k) * jitter(0.2), "sine", 260);
   if (k > 0.45) tone(audio, out, t, 140 * jitter(0.1), 0.06, 0.1 * k, "sine", 80);
 }
-function v3Die(audio: AudioContext, out: AudioNode, t: number, k: number) {
+function v3Die(audio: BaseAudioContext, out: AudioNode, t: number, k: number) {
   const flam = 0.003 + Math.random() * 0.004;
   for (const [at, g] of [[t, 1], [t + flam, 0.55]] as const) {
     impulse(audio, out, at, 0.16 * k * g, 5200 * jitter(0.12), 1.3, 0.0025);
@@ -312,12 +408,12 @@ function v3Die(audio: AudioContext, out: AudioNode, t: number, k: number) {
     ]);
   }
 }
-function v3Roll(audio: AudioContext, out: AudioNode, t: number, k: number) {
+function v3Roll(audio: BaseAudioContext, out: AudioNode, t: number, k: number) {
   burst(audio, out, t, 0.09, 0.035 + 0.05 * k, "bandpass", 1500 * jitter(0.2), 2200, 1.1);
   const ticks = 1 + Math.round(2 * k);
   for (let i = 0; i < ticks; i++) impulse(audio, out, t + Math.random() * 0.08, (0.05 + 0.07 * k) * jitter(0.3), 3000 * jitter(0.2), 1.1);
 }
-function v3Settle(audio: AudioContext, out: AudioNode, t: number, k: number) {
+function v3Settle(audio: BaseAudioContext, out: AudioNode, t: number, k: number) {
   let at = t,
     gap = 0.04,
     g = 0.1 * k;
@@ -329,7 +425,7 @@ function v3Settle(audio: AudioContext, out: AudioNode, t: number, k: number) {
     g *= 0.5;
   }
 }
-function v3Shake(audio: AudioContext, out: AudioNode, t: number, k: number) {
+function v3Shake(audio: BaseAudioContext, out: AudioNode, t: number, k: number) {
   for (let i = 0; i < 5; i++) v3Die(audio, out, t + i * (0.022 + Math.random() * 0.018), 0.22 * k * jitter(0.35));
 }
 
@@ -357,9 +453,9 @@ export function createVoiceBudget(maxVoices = MAX_VOICES) {
   };
 }
 const budget = createVoiceBudget();
-const admit = (audio: AudioContext, name: Sfx, start: number, length: number, k: number) => budget(name, audio.currentTime, start, length, k);
+const admit = (audio: BaseAudioContext, name: Sfx, start: number, length: number, k: number) => budget(name, audio.currentTime, start, length, k);
 
-const notes = (audio: AudioContext, out: AudioNode, start: number, freqs: number[], step: number, length: number, gain: number, type: OscillatorType) =>
+const notes = (audio: BaseAudioContext, out: AudioNode, start: number, freqs: number[], step: number, length: number, gain: number, type: OscillatorType) =>
   freqs.forEach((f, i) => tone(audio, out, start + i * step, f, length, gain, type));
 
 /* --------------------------------------------------------------- result sounds --------------------------------------------------------------- */
@@ -395,17 +491,17 @@ export function setResultSoundSet(id: ResultSet) {
   }
 }
 /** A bell-like tone: a sine with a few decaying inharmonic partials. */
-function bell(audio: AudioContext, out: AudioNode, start: number, freq: number, length: number, gain: number) {
+function bell(audio: BaseAudioContext, out: AudioNode, start: number, freq: number, length: number, gain: number) {
   tone(audio, out, start, freq, length, gain, "sine");
   tone(audio, out, start, freq * 2.01, length * 0.6, gain * 0.35, "sine");
   tone(audio, out, start, freq * 3.03, length * 0.35, gain * 0.15, "sine");
 }
 /** A short wooden pluck (triangle with a fast decay and a soft click). */
-function pluck(audio: AudioContext, out: AudioNode, start: number, freq: number, gain: number) {
+function pluck(audio: BaseAudioContext, out: AudioNode, start: number, freq: number, gain: number) {
   tone(audio, out, start, freq, 0.22, gain, "triangle");
   tone(audio, out, start, freq * 4, 0.04, gain * 0.25, "sine");
 }
-function playResult(audio: AudioContext, out: AudioNode, t: number, name: "win" | "winShared" | "lose" | "draw") {
+function playResult(audio: BaseAudioContext, out: AudioNode, t: number, name: "win" | "winShared" | "lose" | "draw") {
   const set = resultSet;
   if (set === "classic") {
     if (name === "win" || name === "winShared") {
@@ -455,7 +551,7 @@ type MaterialEvent = "throw" | "impact" | "clack" | "roll" | "settle";
 const isMaterialEvent = (name: Sfx): name is MaterialEvent =>
   name === "throw" || name === "impact" || name === "clack" || name === "roll" || name === "settle";
 
-function materialVoice(audio: AudioContext, out: AudioNode, t: number, event: MaterialEvent, material: Exclude<DiceMaterial, "plastic">, k: number) {
+function materialVoice(audio: BaseAudioContext, out: AudioNode, t: number, event: MaterialEvent, material: Exclude<DiceMaterial, "plastic">, k: number) {
   const profile = dieSounds[material];
   const movement = event === "throw" || event === "roll";
   const body = event === "impact" || event === "settle";
@@ -472,7 +568,7 @@ function materialVoice(audio: AudioContext, out: AudioNode, t: number, event: Ma
   burst(audio, out, t, movement ? .065 : .021, (material === "lava" ? .12 : .065) * k, "bandpass", profile.texture, undefined, .75);
 }
 
-function emoteVoice(audio: AudioContext, out: AudioNode, t: number, pack: EmoteSound, k: number) {
+function emoteVoice(audio: BaseAudioContext, out: AudioNode, t: number, pack: EmoteSound, k: number) {
   switch (pack) {
     case "clap":
       for (let i = 0; i < 3; i++) burst(audio, out, t + i * .055, .023, .2 * k, "bandpass", 1700 * jitter(.24), 1050);
@@ -516,7 +612,7 @@ function emoteVoice(audio: AudioContext, out: AudioNode, t: number, pack: EmoteS
 }
 
 /** Short themed accents for upgraded dice landings and board reactions (quiet, under the dice sounds). */
-function landVoice(audio: AudioContext, out: AudioNode, t: number, kind: LandSound, k: number) {
+function landVoice(audio: BaseAudioContext, out: AudioNode, t: number, kind: LandSound, k: number) {
   switch (kind) {
     case "fizz":
       burst(audio, out, t, 0.32, 0.07 * k, "highpass", 5200, 8000);
@@ -580,9 +676,9 @@ export function playEmoteSfx(id: string, level = 1) {
   playSfx("emote", { emote: style === "spark" ? "chime" : style === "impact" ? "bolt" : emoteSound(id), intensity: style === "impact" ? .55 : .75 });
 }
 
-type Voice = (audio: AudioContext, out: AudioNode, t: number) => void;
+type Voice = (audio: BaseAudioContext, out: AudioNode, t: number) => void;
 /** "Ha" syllable: a voiced pulse with a vowel-like band (laughs, cheers). */
-function syllable(audio: AudioContext, out: AudioNode, t: number, f: number, len: number, gain: number, vowel = 900) {
+function syllable(audio: BaseAudioContext, out: AudioNode, t: number, f: number, len: number, gain: number, vowel = 900) {
   const o = audio.createOscillator();
   o.type = "sawtooth";
   o.frequency.setValueAtTime(f, t);
@@ -591,7 +687,7 @@ function syllable(audio: AudioContext, out: AudioNode, t: number, f: number, len
   bp.type = "bandpass";
   bp.frequency.value = vowel;
   bp.Q.value = 3;
-  const g = audio.createGain();
+  const g = silentGain(audio);
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(gain, t + 0.015);
   g.gain.exponentialRampToValueAtTime(0.0001, t + len);
@@ -607,7 +703,7 @@ export const EMOTE_VOICES: Record<string, Voice> = {
   clap: (a, o, t) => { for (let i = 0; i < 6; i++) burst(a, o, t + i * 0.11 + Math.random() * 0.02, 0.03, 0.16, "bandpass", 1500 * jitter(0.2), 1000, 1.2); },
   thumb: (a, o, t) => { tone(a, o, t, 520, 0.08, 0.07, "triangle", 780); tone(a, o, t + 0.08, 1040, 0.16, 0.05, "sine"); },
   laugh: (a, o, t) => { [0, 0.13, 0.26, 0.39, 0.52].forEach((d, i) => syllable(a, o, t + d, 320 - i * 12, 0.1, 0.12, 1000)); },
-  wow: (a, o, t) => { const osc = a.createOscillator(); const g = a.createGain(); osc.type = "triangle"; osc.frequency.setValueAtTime(330, t); osc.frequency.exponentialRampToValueAtTime(660, t + 0.18); osc.frequency.exponentialRampToValueAtTime(440, t + 0.4); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.08, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45); osc.connect(g).connect(o); osc.start(t); osc.stop(t + 0.5); },
+  wow: (a, o, t) => { const osc = a.createOscillator(); const g = silentGain(a); osc.type = "triangle"; osc.frequency.setValueAtTime(330, t); osc.frequency.exponentialRampToValueAtTime(660, t + 0.18); osc.frequency.exponentialRampToValueAtTime(440, t + 0.4); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.08, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45); osc.connect(g).connect(o); osc.start(t); osc.stop(t + 0.5); },
   cry: (a, o, t) => { [0, 0.22, 0.44].forEach((d, i) => syllable(a, o, t + d, 520 - i * 40, 0.2, 0.08, 700)); tone(a, o, t + 0.6, 400, 0.35, 0.04, "sine", 300); },
   handshake: (a, o, t) => { burst(a, o, t, 0.05, 0.08, "lowpass", 900); notes(a, o, t + 0.06, [523, 659], 0.1, 0.2, 0.05, "sine"); },
   fire: (a, o, t) => { burst(a, o, t, 0.4, 0.12, "bandpass", 350, 1800, 0.7); for (let i = 0; i < 8; i++) burst(a, o, t + 0.03 + Math.random() * 0.35, 0.012, 0.07, "highpass", 3000 + Math.random() * 3000); },
@@ -645,46 +741,90 @@ export const EMOTE_VOICES: Record<string, Voice> = {
   gift: (a, o, t) => { for (let i = 0; i < 3; i++) burst(a, o, t + i * 0.08, 0.04, 0.06, "bandpass", 900); tone(a, o, t + 0.3, 600, 0.08, 0.07, "sine", 1100); notes(a, o, t + 0.36, [1319, 1568, 2093], 0.05, 0.2, 0.04, "sine"); },
 };
 
+/**
+ * Render one effect offline through the same buses and limiter as the live mix (measurement and tests:
+ * `scripts/audio/measure-levels.mjs`). `volume` is the effects slider position.
+ */
+export async function renderSfx(name: Sfx, options: SfxOptions = {}, volume = 1, seconds = 2.5, sampleRate = 44100): Promise<AudioBuffer> {
+  const off = new OfflineAudioContext(2, Math.ceil(seconds * sampleRate), sampleRate);
+  const g = buildGraph(off);
+  g.sfx.gain.value = volumeCurve(volume) * SFX_HEADROOM;
+  const k = Math.max(0.15, Math.min(1, options.intensity ?? 1));
+  dispatch(off, g.buses[busOf(name)], name, options, 0.01 + (options.delay ?? 0), k, () => true);
+  return off.startRendering();
+}
+
 export function playSfx(name: Sfx, options: SfxOptions = {}) {
   const delay = Math.max(0, options.delay ?? 0);
   const engine = ready();
   soundLog.push({ name, delay, played: !!engine, pack: options.material ?? options.emote, at: typeof performance !== "undefined" ? performance.now() : 0 });
   if (soundLog.length > 200) soundLog.splice(0, soundLog.length - 200);
-  if (!engine) return;
+  if (!engine || !graph) return;
   const { audio } = engine;
   const k = Math.max(0.15, Math.min(1, options.intensity ?? 1));
-  const out = voice(audio, engine.out, options.pan ?? 0);
+  const out = voice(audio, graph.buses[busOf(name)], options.pan ?? 0);
   const t = audio.currentTime + delay + 0.005;
+  if (busOf(name) === "moment" || name === "emoteLv3") duckListeners.forEach((fn) => fn(t, name === "emoteLv3" ? 0.9 : 1.6));
+  dispatch(audio, out, name, options, t, k, (n, start, length, kk) => admit(audio, n, start, length, kk));
+}
+/** Music ducking hook: big moments lower the music for a moment so they read clearly (bgm.ts). */
+const duckListeners = new Set<(at: number, seconds: number) => void>();
+export function onSfxDuck(fn: (at: number, seconds: number) => void) {
+  duckListeners.add(fn);
+  return () => duckListeners.delete(fn);
+}
+
+/**
+ * Per-sound loudness trims in dB, from `scripts/audio/measure-levels.mjs` (active RMS toward one target
+ * per category, peaks kept under −8 dBFS at the default 70 %). Without them the quietest emote sounds
+ * (e.g. 😏, 😤, clap) were 15 dB under the loudest and got lost under the dice.
+ */
+export const LV3_TRIM_DB: Record<string, number> = { smile: 1, clap: 8, thumb: 3, laugh: 8, wow: 1, cry: 6, handshake: 2, fire: 7, dice: -6, sparkles: 3, crown: -1, cool: 5, think: 2, sweat: 8, please: 2, sleepy: 3, yay: 4, fired_up: 8, clover: 2, target: -4, hundred: 1, rocket: 4, whale: 2, bolt: 6, cake: 3, gem: 1, trophy: -1, starlight: 1, angry: 5, rage: -1, question: 6, question2: 4, exclaim: 3, exclaim2: 2, interrobang: 2, smirk: 8, confident: 3, gasp: 7, gift: 2 };
+export const EMOTE_TRIM_DB: Partial<Record<EmoteSound, number>> = { pop: 7, clap: 8, fire: 8, rattle: 10, sigh: 4, wave: 5, bolt: 7, rocket: 3, gem: -2 };
+export const LAND_TRIM_DB: Partial<Record<LandSound, number>> = { zap: 12, fire: 8, spark: 6, crack: 12, cosmic: 3, whoosh: 12, thud: -2, fizz: 3, coin: 2, glass: 2, pop: 2, ice: 1 };
+function trimmed(audio: BaseAudioContext, out: AudioNode, db: number | undefined) {
+  if (!db) return out;
+  const g = audio.createGain();
+  g.gain.value = Math.pow(10, db / 20);
+  g.connect(out);
+  return g;
+}
+
+type Admit = (name: Sfx, start: number, length: number, k: number) => boolean;
+function dispatch(audio: BaseAudioContext, out: AudioNode, name: Sfx, options: SfxOptions, t: number, k: number, admit: Admit) {
   if (name === "diceFx" || name === "boardFx") {
-    if (!admit(audio, name, t, 0.4, k)) return;
-    return landVoice(audio, out, t, options.land ?? "chime", name === "boardFx" ? k * 0.7 : k);
+    if (!admit(name, t, 0.4, k)) return;
+    const land = options.land ?? "chime";
+    return landVoice(audio, trimmed(audio, out, LAND_TRIM_DB[land]), t, land, name === "boardFx" ? k * 0.7 : k);
   }
   if (name === "emoteLv3") {
-    if (!admit(audio, "emote", t, 0.6, k)) return;
-    return EMOTE_VOICES[options.voice ?? ""]?.(audio, out, t);
+    if (!admit("emote", t, 0.6, k)) return;
+    const v = options.voice ?? "";
+    return EMOTE_VOICES[v]?.(audio, trimmed(audio, out, LV3_TRIM_DB[v]), t);
   }
   if (name === "emote") {
-    if (!admit(audio, name, t, .36, k)) return;
-    return emoteVoice(audio, out, t, options.emote ?? "pop", k);
+    if (!admit(name, t, .36, k)) return;
+    const pack = options.emote ?? "pop";
+    return emoteVoice(audio, trimmed(audio, out, EMOTE_TRIM_DB[pack]), t, pack, k);
   }
   if (options.material && options.material !== "plastic" && isMaterialEvent(name)) {
     if ((name === "impact" || name === "clack") && k < .18) return;
-    if (name !== "throw" && !admit(audio, name, t, .3, k)) return;
+    if (name !== "throw" && !admit(name, t, .3, k)) return;
     return materialVoice(audio, out, t, name, options.material, k);
   }
   if (variant === "v3") {
     switch (name) {
       case "impact":
-        if (k < 0.18 || !admit(audio, name, t, 0.08, k)) return;
+        if (k < 0.18 || !admit(name, t, 0.08, k)) return;
         return v3Table(audio, out, t, k);
       case "clack":
-        if (k < 0.18 || !admit(audio, name, t, 0.04, k)) return;
+        if (k < 0.18 || !admit(name, t, 0.04, k)) return;
         return v3Die(audio, out, t, k);
       case "roll":
-        if (!admit(audio, name, t, 0.1, k)) return;
+        if (!admit(name, t, 0.1, k)) return;
         return v3Roll(audio, out, t, k);
       case "settle":
-        if (!admit(audio, name, t, 0.2, k)) return;
+        if (!admit(name, t, 0.2, k)) return;
         return v3Settle(audio, out, t, k);
       case "throw":
         return v3Shake(audio, out, t, k);
@@ -695,16 +835,16 @@ export function playSfx(name: Sfx, options: SfxOptions = {}) {
   if (variant === "v2") {
     switch (name) {
       case "impact":
-        if (k < 0.18 || !admit(audio, name, t, 0.12, k)) return;
+        if (k < 0.18 || !admit(name, t, 0.12, k)) return;
         return dieOnTable(audio, out, t, k);
       case "clack":
-        if (k < 0.18 || !admit(audio, name, t, 0.05, k)) return;
+        if (k < 0.18 || !admit(name, t, 0.05, k)) return;
         return dieOnDie(audio, out, t, k);
       case "roll":
-        if (!admit(audio, name, t, 0.12, k)) return;
+        if (!admit(name, t, 0.12, k)) return;
         return rolling(audio, out, t, k);
       case "settle":
-        if (!admit(audio, name, t, 0.25, k)) return;
+        if (!admit(name, t, 0.25, k)) return;
         return settling(audio, out, t, k);
       case "throw":
         return shake(audio, out, t, k);
@@ -792,8 +932,8 @@ export function playSfx(name: Sfx, options: SfxOptions = {}) {
       tone(audio, out, t + 0.3, 1046.5, 0.45, 0.06, "triangle");
       break;
     case "straightHit": // large straight: five quick rising notes (in step with the dice glow), no chord tail
-      [523.25, 587.33, 659.25, 783.99, 880].forEach((f, i) => tone(audio, out, t + i * STRAIGHT_STEP_S, f, 0.16, 0.085, "triangle"));
-      tone(audio, out, t + 4 * STRAIGHT_STEP_S + 0.05, 1046.5, 0.3, 0.05, "sine");
+      [523.25, 587.33, 659.25, 783.99, 880].forEach((f, i) => tone(audio, out, t + i * STRAIGHT_STEP_S, f, 0.16, 0.12, "triangle"));
+      tone(audio, out, t + 4 * STRAIGHT_STEP_S + 0.05, 1046.5, 0.3, 0.07, "sine");
       break;
     case "yachtHit": // five of a kind: a quick bright sparkle rising over a soft chord
       notes(audio, out, t, [783.99, 987.77, 1174.66, 1567.98, 1975.53], 0.045, 0.18, 0.11, "triangle");
