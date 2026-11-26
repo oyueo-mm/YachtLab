@@ -1,3 +1,4 @@
+import { emitFx } from "./fx-bus";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { bonus, categories, type Card } from "./engine";
 import { setThrowDirection } from "./dice-motion";
@@ -74,7 +75,10 @@ export function useGameSounds(cards: readonly Card[], done: boolean, outcome: "w
         cue ??= { kind: "bonus", key: Date.now() };
       }
     });
-    if (done && !before.done && outcome) playSfx(outcome, { delay: 0.45 });
+    if (done && !before.done && outcome) {
+      playSfx(outcome, { delay: 0.45 });
+      if (outcome === "win" || outcome === "winShared") window.setTimeout(() => emitFx({ type: "win" }), 450);
+    }
     if (cue) setCelebration(cue);
   }, [cards, done, outcome, sync]);
   useEffect(() => {

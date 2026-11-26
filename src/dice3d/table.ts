@@ -1,7 +1,10 @@
-import { DiceTrails } from "./trails";
+import { FxCanvas } from "./fx-canvas";
+import { diceFx, type DiceFxProfile } from "./dice-fx";
+import { emitFx } from "../fx-bus";
+import { fxBudget } from "../settings";
 import * as THREE from "three";
 import { MATERIAL_ORDER, canonicalOrientation, finalValue, prepareThrow, throwKey, qAxisAngle, qDot, qMul, qSlerp, simulateThrow, topFace, type PreparedThrow, type Quat, type SimResult } from "./physics";
-import { CLASSIC_DICE, blobTexture, faceTexture, type DiceColors, type Quality } from "./stage";
+import { CLASSIC_DICE, blobTexture, faceTexture, glowTexture, type DiceColors, type Quality } from "./stage";
 
 /**
  * Persistent 3D dice table: a roll tray and a hold shelf below it, drawn on one canvas.
@@ -88,6 +91,9 @@ export type CelebrateOptions = {
   onDone: () => void;
 };
 
+/** Emission level of glowing pips (they are masked, so this no longer tints the whole die). */
+const GLOW_BASE = 0.55;
+
 export class DiceTable {
   readonly canvas: HTMLCanvasElement;
   private renderer: THREE.WebGLRenderer;
@@ -102,8 +108,11 @@ export class DiceTable {
   private blobGeometry = new THREE.PlaneGeometry(1.5, 1.5);
   private blobMaterials: THREE.MeshBasicMaterial[] = [];
   private queued = 0;
-  private trails: DiceTrails | null = null;
-  private stopTrails: (() => void) | undefined;
+  /** Upgrade effects overlay (Lv.2 / Lv.3), created on first use. */
+  private fx: FxCanvas | null = null;
+  private stopFx: (() => void) | undefined;
+  private profile: DiceFxProfile | null = null;
+  private fxLevel = 1;
   private effectPoint = new THREE.Vector3();
   /** One running animation per die: a new one for the same die replaces the old one. */
   private moves = new Map<number, () => void>();
@@ -169,7 +178,7 @@ export class DiceTable {
     this.width = widthPx / size;
     this.height = heightPx / size;
     this.cssSize = { w: widthPx, h: heightPx };
-    this.trails?.layout(widthPx, heightPx);
+    this.fx?.layout(widthPx, heightPx);
     this.renderer.setSize(widthPx, heightPx, false);
     const distance = this.height / 2 / Math.tan(((this.camera.fov / 2) * Math.PI) / 180);
     this.cameraDistance = distance;
@@ -289,10 +298,15 @@ export class DiceTable {
       m.metalness = surface[1];
       m.transparent = finish === "glass";
       m.opacity = finish === "glass" ? 0.86 : 1;
+      // Glow lights the pips (and a neon rim) through an emission mask; the body keeps its colour.
+      m.emissiveMap?.dispose();
+      m.emissiveMap = next.glow ? glowTexture(v, 128, next) : null;
       m.emissive.set(next.glow ?? "#000000");
-      m.emissiveIntensity = next.glow ? 0.18 : 0;
+      m.emissiveIntensity = next.glow ? GLOW_BASE : 0;
       m.needsUpdate = true;
     });
+    this.profile = diceFx(next.fx);
+    this.fxLevel = this.profile ? (next.fxLevel ?? 1) : 1;
     this.setAnimation(next.glow ? (next.anim ?? null) : null);
     this.requestRender();
   }
@@ -318,8 +332,8 @@ export class DiceTable {
         if (this.disposed || !this.anim) return;
         if (document.visibilityState === "hidden" || !this.visible) return;
         const t = (performance.now() - start) / 1000;
-        const base = 0.18;
-        const level = this.anim === "pulse" ? base + 0.22 * (0.5 + 0.5 * Math.sin(t * 2.4)) : this.anim === "sparkle" ? base + 0.3 * Math.abs(Math.sin(t * 5.1) * Math.sin(t * 1.7)) : base + 0.15 * (0.5 + 0.5 * Math.sin(t * 1.3));
+        const base = GLOW_BASE;
+        const level = this.anim === "pulse" ? base + 0.5 * (0.5 + 0.5 * Math.sin(t * 2.4)) : this.anim === "sparkle" ? base + 0.7 * Math.abs(Math.sin(t * 5.1) * Math.sin(t * 1.7)) : base + 0.35 * (0.5 + 0.5 * Math.sin(t * 1.3));
         this.materials.forEach((m, i) => {
           m.emissiveIntensity = level;
           if (this.anim === "shimmer") m.emissive.offsetHSL(0.004 * (i % 2 ? 1 : -1), 0, 0);
@@ -399,14 +413,53 @@ export class DiceTable {
     this.requestRender();
   }
 
-  private emitTrail(id: number, burst: boolean) {
+  /** Screen position (CSS px inside the canvas) of a die. */
+  private screen(id: number) {
     const mesh = this.meshes.get(id);
-    if (!mesh || !this.colors.trail || !this.trails || document.hidden) return;
+    if (!mesh) return null;
     const point = this.effectPoint.copy(mesh.position).project(this.camera);
-    this.trails.emit(this.colors.trail, {
-      x: (point.x + 1) * this.cssSize.w / 2,
-      y: (1 - point.y) * this.cssSize.h / 2,
-    }, burst);
+    return { x: ((point.x + 1) * this.cssSize.w) / 2, y: ((1 - point.y) * this.cssSize.h) / 2 };
+  }
+  /** Same point in viewport coordinates (for the board's reactions). */
+  private client(id: number) {
+    const p = this.screen(id);
+    if (!p) return null;
+    const r = this.canvas.getBoundingClientRect();
+    return { x: r.left + p.x, y: r.top + p.y };
+  }
+  private ensureFx() {
+    if (!this.profile || this.fxLevel < 2) return null;
+    if (!this.fx) {
+      this.fx = new FxCanvas(this.host);
+      this.fx.layout(this.cssSize.w, this.cssSize.h);
+    }
+    this.fx.budget = fxBudget();
+    return this.fx.budget > 0 ? this.fx : null;
+  }
+  /** Keep drawing the overlay until its particles have faded. */
+  private drainFx() {
+    const fx = this.fx;
+    if (!fx || !fx.busy) return;
+    this.stopFx?.();
+    this.stopFx = this.loop((stamp) => fx.frame(stamp));
+  }
+  private trailAt(id: number, now: number, scale = 1) {
+    const fx = this.fx, profile = this.profile;
+    if (!fx || !profile) return;
+    const p = this.screen(id);
+    if (!p) return;
+    for (const spec of profile.trail) fx.emit(spec, p.x, p.y, scale);
+    if (profile.streak) fx.streak(id, profile.streak, p.x, p.y, now);
+  }
+  private burstAt(id: number, part: "impact" | "land") {
+    const fx = this.fx, profile = this.profile;
+    if (!fx || !profile || this.fxLevel < 3) return;
+    const p = this.screen(id);
+    if (!p) return;
+    const spec = profile[part];
+    for (const b of spec.burst) fx.emit(b, p.x, p.y);
+    spec.ring?.forEach((r) => fx.ring(r, p.x, p.y + 6));
+    spec.lines?.forEach((l) => fx.line(l, p.x, p.y + 6));
   }
 
   /** Play a pre-simulated throw for the dice in `result.tracks`; they stay at their final pose. */
@@ -422,14 +475,13 @@ export class DiceTable {
     this.frameTimes = [];
     const q0 = new THREE.Quaternion(),
       q1 = new THREE.Quaternion();
-    this.stopTrails?.();
-    this.trails?.clear();
-    if (this.colors.trail && !this.trails) {
-      this.trails = new DiceTrails(this.host);
-      this.trails.layout(this.cssSize.w, this.cssSize.h);
-    }
+    this.stopFx?.();
+    this.fx?.clear();
+    const fx = this.ensureFx();
     let lastTrail = started;
     let lastBurst = started;
+    let lastBus = 0;
+    emitFx({ type: "roll" });
     const stop = this.loop((now) => {
       this.frameTimes.push(now - last);
       last = now;
@@ -447,17 +499,22 @@ export class DiceTable {
         q0.slerp(q1, a);
         this.apply(t.id, { x: fr[o] + (fr[p] - fr[o]) * a, y: fr[o + 1] + (fr[p + 1] - fr[o + 1]) * a, z: fr[o + 2] + (fr[p + 2] - fr[o + 2]) * a, quat: [q0.x, q0.y, q0.z, q0.w] });
       }
-      if (this.colors.trail && now - lastTrail >= 38) {
+      if (fx && now - lastTrail >= 38) {
         lastTrail = now;
-        for (const { id } of result.tracks) this.emitTrail(id, false);
+        for (const { id } of result.tracks) this.trailAt(id, now);
       }
       while (next < impacts.length && impacts[next].frame <= f) {
         const hit = impacts[next++];
         const m = this.meshes.get(hit.id);
         opts.onImpact?.({ strength: hit.strength, kind: hit.kind, x: m ? m.position.x / this.width : 0.5 });
-        if (this.colors.landing && hit.strength > 1 && now - lastBurst >= 90) {
+        if (fx && hit.strength > 1.5 && now - lastBurst >= 110) {
           lastBurst = now;
-          this.emitTrail(hit.id, true);
+          this.burstAt(hit.id, "impact");
+        }
+        if (hit.strength > 2 && hit.kind !== "die" && now - lastBus > 120) {
+          lastBus = now;
+          const c = this.client(hit.id);
+          if (c) emitFx({ type: "impact", x: c.x, y: c.y, strength: hit.strength });
         }
       }
       // Rolling rumble: the fastest die that is on the floor right now.
@@ -474,21 +531,22 @@ export class DiceTable {
           opts.onRoll(Math.min(1, level / 9));
         }
       }
-      this.trails?.frame(now);
+      fx?.frame(now);
       opts.onFrame?.();
       if (f >= result.frameCount - 1) {
-        if (this.colors.landing) for (const { id } of result.tracks) this.emitTrail(id, true);
-        if (this.colors.trail && this.trails) {
-          const trails = this.trails;
-          this.stopTrails = this.loop((stamp) => trails.frame(stamp));
+        if (fx) for (const { id } of result.tracks) this.burstAt(id, "land");
+        for (const { id } of result.tracks) {
+          const c = this.client(id);
+          if (c) emitFx({ type: "land", x: c.x, y: c.y, strength: 1 });
         }
+        this.drainFx();
         this.adapt(this.frameTimes);
         opts.onDone();
         return false;
       }
       return true;
     });
-    return () => { stop(); this.stopTrails?.(); this.trails?.clear(); };
+    return () => { stop(); this.stopFx?.(); this.fx?.clear(); };
   }
 
   /**
@@ -500,13 +558,21 @@ export class DiceTable {
     this.cancelMove(id);
     const from = this.pose(id) ?? to;
     const started = performance.now();
+    const fx = this.ensureFx();
+    let lastTrail = 0;
     const stop = this.loop((now) => {
+      if (fx && now - lastTrail > 45) {
+        lastTrail = now;
+        this.trailAt(id, now, 0.5);
+      }
+      fx?.frame(now);
       const t = Math.max(0, Math.min(1, (now - started) / ms)),
         e = smooth(t),
         lift = Math.sin(Math.PI * t) * 0.35;
       this.apply(id, { x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e + lift, z: from.z + (to.z - from.z) * e, quat: qSlerp(from.quat, to.quat, e) });
       if (t >= 1) {
         this.moves.delete(id);
+        if (fx) this.drainFx();
         onDone?.();
         return false;
       }
@@ -600,13 +666,14 @@ export class DiceTable {
     this.blobGeometry.dispose();
     this.materials.forEach((m) => {
       m.map?.dispose();
+      m.emissiveMap?.dispose();
       m.dispose();
     });
     if (this.animTimer) window.clearInterval(this.animTimer);
     this.observer?.disconnect();
     this.blobMaterials.forEach((m) => m.dispose());
     this.blob.dispose();
-    this.trails?.dispose();
+    this.fx?.dispose();
     this.canvas.remove();
   }
 }

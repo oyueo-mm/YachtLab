@@ -1,3 +1,4 @@
+import type { LandSound } from "./dice3d/dice-fx";
 import { socialItem } from "./social/catalog";
 import { dieSounds, emoteSound, type DiceMaterial, type EmoteSound } from "./sound-packs";
 import { bgmAudible, getSettings, sfxAudible } from "./settings";
@@ -39,9 +40,15 @@ export type Sfx =
   | "fxBell"
   | "fxWhoosh"
   | "fxFanfare"
+  /** Lv.3 dice landing accent (theme from the dice effect profile). */
+  | "diceFx"
+  /** Board reaction accents (Lv.3 boards). */
+  | "boardFx"
   /** Another player joined the online room. */
   | "join"
-  | "emote";
+  | "emote"
+  /** Dedicated Lv.3 emote sound (`voice`). */
+  | "emoteLv3";
 
 /** Large straight: the glow moves one die per step; the notes use the same step. */
 export const STRAIGHT_STEP_S = 0.09;
@@ -55,6 +62,8 @@ export type SfxOptions = {
   pan?: number;
   material?: DiceMaterial;
   emote?: EmoteSound;
+  land?: LandSound;
+  voice?: string;
 };
 
 type LogEntry = { name: Sfx; delay: number; played: boolean; at: number; pack?: string };
@@ -329,7 +338,7 @@ function v3Shake(audio: AudioContext, out: AudioNode, t: number, k: number) {
  * at once, and the same kind of sound is not repeated within a few milliseconds (louder hits win).
  */
 export const MAX_VOICES = 10;
-const MIN_GAP: Partial<Record<Sfx, number>> = { emote: 0.3, impact: 0.018, clack: 0.024, roll: 0.06, settle: 0.08 };
+const MIN_GAP: Partial<Record<Sfx, number>> = { emote: 0.3, diceFx: 0.25, boardFx: 0.2, impact: 0.018, clack: 0.024, roll: 0.06, settle: 0.08 };
 /** Pure admission control for collision sounds (times in seconds, on the audio clock). */
 export function createVoiceBudget(maxVoices = MAX_VOICES) {
   let ends: number[] = [];
@@ -506,10 +515,135 @@ function emoteVoice(audio: AudioContext, out: AudioNode, t: number, pack: EmoteS
   }
 }
 
-export function playEmoteSfx(id: string) {
+/** Short themed accents for upgraded dice landings and board reactions (quiet, under the dice sounds). */
+function landVoice(audio: AudioContext, out: AudioNode, t: number, kind: LandSound, k: number) {
+  switch (kind) {
+    case "fizz":
+      burst(audio, out, t, 0.32, 0.07 * k, "highpass", 5200, 8000);
+      for (let i = 0; i < 6; i++) tone(audio, out, t + Math.random() * 0.25, 2400 + Math.random() * 2400, 0.03, 0.02 * k, "sine");
+      break;
+    case "pop":
+      tone(audio, out, t, 520, 0.08, 0.07 * k, "sine", 900);
+      tone(audio, out, t + 0.07, 760, 0.07, 0.05 * k, "sine", 1200);
+      break;
+    case "chime":
+      [1318.5, 1760].forEach((f, i) => bell(audio, out, t + i * 0.06, f, 0.5, 0.035 * k));
+      break;
+    case "bell":
+      [1046.5, 1568].forEach((f, i) => bell(audio, out, t + i * 0.09, f, 0.8, 0.04 * k));
+      break;
+    case "ice":
+      [2637, 3136, 3951].forEach((f, i) => tone(audio, out, t + i * 0.035, f, 0.25, 0.03 * k, "sine"));
+      burst(audio, out, t, 0.12, 0.04 * k, "highpass", 6000);
+      break;
+    case "thud":
+      tone(audio, out, t, 110, 0.18, 0.12 * k, "sine", 55);
+      burst(audio, out, t, 0.1, 0.05 * k, "lowpass", 600, 200);
+      break;
+    case "crack":
+      for (let i = 0; i < 3; i++) burst(audio, out, t + i * 0.025, 0.02, 0.07 * k, "bandpass", 2600 + i * 700, undefined, 2);
+      break;
+    case "spark":
+      for (let i = 0; i < 5; i++) burst(audio, out, t + i * 0.03, 0.015, 0.06 * k, "highpass", 5000 + Math.random() * 3000);
+      break;
+    case "zap":
+      tone(audio, out, t, 1800, 0.09, 0.03 * k, "sawtooth", 300);
+      burst(audio, out, t, 0.08, 0.05 * k, "bandpass", 3600, 1200, 1.4);
+      break;
+    case "fire":
+      burst(audio, out, t, 0.35, 0.08 * k, "bandpass", 500, 1600, 0.7);
+      for (let i = 0; i < 4; i++) burst(audio, out, t + 0.05 + i * 0.06, 0.012, 0.05 * k, "highpass", 3500);
+      break;
+    case "coin":
+      tone(audio, out, t, 1975.5, 0.12, 0.035 * k, "square");
+      tone(audio, out, t + 0.06, 2637, 0.2, 0.03 * k, "square");
+      break;
+    case "whoosh":
+      burst(audio, out, t, 0.3, 0.06 * k, "bandpass", 600, 2600, 0.8);
+      break;
+    case "glass":
+      [2093, 3136].forEach((f, i) => bell(audio, out, t + i * 0.04, f, 0.35, 0.03 * k));
+      break;
+    case "cosmic":
+      tone(audio, out, t, 660, 0.6, 0.035 * k, "sine", 1320);
+      [1568, 2093, 2637].forEach((f, i) => tone(audio, out, t + 0.08 + i * 0.07, f, 0.3, 0.02 * k, "sine"));
+      break;
+  }
+}
+
+export function playEmoteSfx(id: string, level = 1) {
+  if (level >= 3 && EMOTE_VOICES[id.slice("emote.".length)]) {
+    playSfx("emoteLv3", { voice: id.slice("emote.".length) });
+    return;
+  }
   const style = socialItem(id)?.style;
   playSfx("emote", { emote: style === "spark" ? "chime" : style === "impact" ? "bolt" : emoteSound(id), intensity: style === "impact" ? .55 : .75 });
 }
+
+type Voice = (audio: AudioContext, out: AudioNode, t: number) => void;
+/** "Ha" syllable: a voiced pulse with a vowel-like band (laughs, cheers). */
+function syllable(audio: AudioContext, out: AudioNode, t: number, f: number, len: number, gain: number, vowel = 900) {
+  const o = audio.createOscillator();
+  o.type = "sawtooth";
+  o.frequency.setValueAtTime(f, t);
+  o.frequency.exponentialRampToValueAtTime(f * 0.86, t + len);
+  const bp = audio.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.frequency.value = vowel;
+  bp.Q.value = 3;
+  const g = audio.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(gain, t + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+  o.connect(bp).connect(g).connect(out);
+  o.start(t);
+  o.stop(t + len + 0.02);
+  burst(audio, out, t, 0.03, gain * 0.25, "highpass", 3000);
+}
+/** Dedicated Lv.3 emote sounds (one per emote, all synthesized here). */
+export const EMOTE_VOICES: Record<string, Voice> = {
+  smile: (a, o, t) => notes(a, o, t, [784, 988], 0.08, 0.18, 0.06, "sine"),
+  party: (a, o, t) => { burst(a, o, t, 0.05, 0.16, "highpass", 2000); burst(a, o, t + 0.04, 0.25, 0.06, "highpass", 6000, 9000); notes(a, o, t + 0.08, [659, 880, 1175, 1568], 0.05, 0.14, 0.05, "triangle"); },
+  clap: (a, o, t) => { for (let i = 0; i < 6; i++) burst(a, o, t + i * 0.11 + Math.random() * 0.02, 0.03, 0.16, "bandpass", 1500 * jitter(0.2), 1000, 1.2); },
+  thumb: (a, o, t) => { tone(a, o, t, 520, 0.08, 0.07, "triangle", 780); tone(a, o, t + 0.08, 1040, 0.16, 0.05, "sine"); },
+  laugh: (a, o, t) => { [0, 0.13, 0.26, 0.39, 0.52].forEach((d, i) => syllable(a, o, t + d, 320 - i * 12, 0.1, 0.12, 1000)); },
+  wow: (a, o, t) => { const osc = a.createOscillator(); const g = a.createGain(); osc.type = "triangle"; osc.frequency.setValueAtTime(330, t); osc.frequency.exponentialRampToValueAtTime(660, t + 0.18); osc.frequency.exponentialRampToValueAtTime(440, t + 0.4); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.08, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45); osc.connect(g).connect(o); osc.start(t); osc.stop(t + 0.5); },
+  cry: (a, o, t) => { [0, 0.22, 0.44].forEach((d, i) => syllable(a, o, t + d, 520 - i * 40, 0.2, 0.08, 700)); tone(a, o, t + 0.6, 400, 0.35, 0.04, "sine", 300); },
+  handshake: (a, o, t) => { burst(a, o, t, 0.05, 0.08, "lowpass", 900); notes(a, o, t + 0.06, [523, 659], 0.1, 0.2, 0.05, "sine"); },
+  fire: (a, o, t) => { burst(a, o, t, 0.4, 0.12, "bandpass", 350, 1800, 0.7); for (let i = 0; i < 8; i++) burst(a, o, t + 0.03 + Math.random() * 0.35, 0.012, 0.07, "highpass", 3000 + Math.random() * 3000); },
+  dice: (a, o, t) => { for (let i = 0; i < 5; i++) dieOnDie(a, o, t + i * 0.05 * jitter(0.3), 0.5); dieOnTable(a, o, t + 0.3, 0.5); },
+  sparkles: (a, o, t) => { for (let i = 0; i < 7; i++) tone(a, o, t + i * 0.045, 2000 + Math.random() * 2400, 0.14, 0.03, "sine"); },
+  crown: (a, o, t) => { notes(a, o, t, [523, 659, 784], 0.07, 0.2, 0.06, "square"); bell(a, o, t + 0.24, 1568, 0.6, 0.05); },
+  cool: (a, o, t) => { burst(a, o, t, 0.18, 0.05, "bandpass", 1500, 4000); tone(a, o, t + 0.12, 2637, 0.25, 0.04, "sine"); },
+  think: (a, o, t) => { tone(a, o, t, 220, 0.4, 0.06, "sine", 200); tone(a, o, t + 0.05, 330, 0.35, 0.03, "sine", 300); },
+  sweat: (a, o, t) => { syllable(a, o, t, 400, 0.12, 0.07, 1200); syllable(a, o, t + 0.14, 360, 0.18, 0.06, 900); tone(a, o, t + 0.2, 1200, 0.1, 0.03, "sine", 600); },
+  please: (a, o, t) => notes(a, o, t, [659, 587, 659], 0.14, 0.22, 0.05, "sine"),
+  sleepy: (a, o, t) => { burst(a, o, t, 0.5, 0.05, "lowpass", 500, 250); tone(a, o, t + 0.5, 180, 0.4, 0.05, "sine", 150); },
+  yay: (a, o, t) => { syllable(a, o, t, 420, 0.12, 0.1, 1300); syllable(a, o, t + 0.13, 560, 0.24, 0.11, 1500); burst(a, o, t + 0.1, 0.2, 0.05, "highpass", 6000); },
+  fired_up: (a, o, t) => { burst(a, o, t, 0.22, 0.12, "bandpass", 900, 500, 0.9); burst(a, o, t + 0.3, 0.22, 0.1, "bandpass", 900, 500, 0.9); },
+  clover: (a, o, t) => notes(a, o, t, [1047, 1319, 1568, 2093], 0.06, 0.16, 0.04, "sine"),
+  target: (a, o, t) => { burst(a, o, t, 0.12, 0.06, "highpass", 2000, 5000); tone(a, o, t + 0.13, 180, 0.12, 0.14, "sine", 70); burst(a, o, t + 0.13, 0.03, 0.12, "bandpass", 2400); },
+  hundred: (a, o, t) => { tone(a, o, t, 140, 0.12, 0.16, "sine", 60); burst(a, o, t, 0.04, 0.12, "lowpass", 1200); notes(a, o, t + 0.12, [1319, 1760], 0.07, 0.15, 0.05, "triangle"); },
+  rocket: (a, o, t) => { burst(a, o, t, 0.7, 0.12, "bandpass", 250, 2200, 0.8); tone(a, o, t + 0.1, 200, 0.6, 0.05, "sawtooth", 900); },
+  rainbow: (a, o, t) => notes(a, o, t, [523, 587, 659, 784, 880, 1047, 1175], 0.05, 0.2, 0.04, "sine"),
+  whale: (a, o, t) => { tone(a, o, t, 260, 0.6, 0.06, "sine", 180); burst(a, o, t + 0.35, 0.3, 0.08, "lowpass", 1500, 400); },
+  bolt: (a, o, t) => { burst(a, o, t, 0.06, 0.18, "highpass", 3000); burst(a, o, t + 0.05, 0.5, 0.12, "lowpass", 600, 80); },
+  cake: (a, o, t) => { tone(a, o, t, 440, 0.12, 0.08, "sine", 300); tone(a, o, t + 0.12, 523, 0.25, 0.05, "triangle"); },
+  gem: (a, o, t) => { [2093, 2637, 3136].forEach((f, i) => bell(a, o, t + i * 0.05, f, 0.5, 0.035)); },
+  trophy: (a, o, t) => { notes(a, o, t, [392, 523, 659, 784], 0.08, 0.2, 0.06, "square"); [523, 659, 784].forEach((f) => tone(a, o, t + 0.34, f, 0.5, 0.03, "triangle")); },
+  starlight: (a, o, t) => { for (let i = 0; i < 9; i++) bell(a, o, t + i * 0.05, 1568 * Math.pow(2, (i % 5) / 12 * 3), 0.4, 0.025); },
+  angry: (a, o, t) => { syllable(a, o, t, 160, 0.25, 0.1, 500); burst(a, o, t + 0.1, 0.2, 0.05, "highpass", 4000); },
+  rage: (a, o, t) => { syllable(a, o, t, 140, 0.35, 0.13, 450); burst(a, o, t + 0.1, 0.4, 0.08, "highpass", 4000, 8000); tone(a, o, t, 70, 0.4, 0.08, "sawtooth", 60); },
+  question: (a, o, t) => { tone(a, o, t, 440, 0.18, 0.07, "triangle", 660); },
+  question2: (a, o, t) => { tone(a, o, t, 440, 0.15, 0.06, "triangle", 660); tone(a, o, t + 0.18, 520, 0.18, 0.06, "triangle", 820); },
+  exclaim: (a, o, t) => { tone(a, o, t, 880, 0.12, 0.07, "square"); },
+  exclaim2: (a, o, t) => { tone(a, o, t, 880, 0.08, 0.06, "square"); tone(a, o, t + 0.11, 1175, 0.12, 0.06, "square"); },
+  interrobang: (a, o, t) => { tone(a, o, t, 440, 0.14, 0.06, "triangle", 760); tone(a, o, t + 0.16, 1047, 0.12, 0.06, "square"); },
+  smirk: (a, o, t) => { syllable(a, o, t, 260, 0.1, 0.07, 700); syllable(a, o, t + 0.12, 240, 0.14, 0.05, 600); },
+  confident: (a, o, t) => { notes(a, o, t, [392, 494, 587], 0.07, 0.14, 0.05, "triangle"); tone(a, o, t + 0.22, 784, 0.3, 0.04, "sine"); },
+  gasp: (a, o, t) => { burst(a, o, t, 0.16, 0.1, "bandpass", 1800, 2600, 1.2); tone(a, o, t, 600, 0.12, 0.04, "sine", 900); },
+  gift: (a, o, t) => { for (let i = 0; i < 3; i++) burst(a, o, t + i * 0.08, 0.04, 0.06, "bandpass", 900); tone(a, o, t + 0.3, 600, 0.08, 0.07, "sine", 1100); notes(a, o, t + 0.36, [1319, 1568, 2093], 0.05, 0.2, 0.04, "sine"); },
+};
 
 export function playSfx(name: Sfx, options: SfxOptions = {}) {
   const delay = Math.max(0, options.delay ?? 0);
@@ -521,6 +655,14 @@ export function playSfx(name: Sfx, options: SfxOptions = {}) {
   const k = Math.max(0.15, Math.min(1, options.intensity ?? 1));
   const out = voice(audio, engine.out, options.pan ?? 0);
   const t = audio.currentTime + delay + 0.005;
+  if (name === "diceFx" || name === "boardFx") {
+    if (!admit(audio, name, t, 0.4, k)) return;
+    return landVoice(audio, out, t, options.land ?? "chime", name === "boardFx" ? k * 0.7 : k);
+  }
+  if (name === "emoteLv3") {
+    if (!admit(audio, "emote", t, 0.6, k)) return;
+    return EMOTE_VOICES[options.voice ?? ""]?.(audio, out, t);
+  }
   if (name === "emote") {
     if (!admit(audio, name, t, .36, k)) return;
     return emoteVoice(audio, out, t, options.emote ?? "pop", k);

@@ -5,6 +5,7 @@ import { GUEST_LOOK, type PublicLook } from "../economy/live/catalog";
 import { PlayerTag, bubbleCssOf } from "./Looks";
 import { getSettings, useSettings } from "../settings";
 import { playEmoteSfx } from "../sound";
+import { EmoteGlyph } from "./EmoteGlyph";
 
 /**
  * Preset chat and emotes (C, 2026-11-25). Root causes of "sent but nobody saw it" that this fixes:
@@ -51,6 +52,8 @@ export function useTableChat(me: string | null) {
   const heard = useRef(new Map<string, number>());
   const hideRef = useRef(hideOthers);
   hideRef.current = hideOthers;
+  /** Sender's emote level (set by the screen from the server-validated looks) for the Lv.3 sound. */
+  const levelRef = useRef<(from: string, id: string) => number>(() => 1);
   const meRef = useRef(me);
   meRef.current = me;
   const pendingRef = useRef<Sent | null>(null);
@@ -85,7 +88,7 @@ export function useTableChat(me: string | null) {
     if ((item.kind === "emote" || item.style !== "default") && (mine || getSettings().opponentFx)) {
       const messageKey = from + "/" + id;
       for (const [key, time] of heard.current) if (now - time > 1000) heard.current.delete(key);
-      if (!heard.current.has(messageKey)) playEmoteSfx(id);
+      if (!heard.current.has(messageKey)) playEmoteSfx(id, levelRef.current(from, id));
       heard.current.set(messageKey, now);
     }
     const entry = { key, from, id, at: now };
@@ -154,7 +157,7 @@ export function useTableChat(me: string | null) {
       /* private mode */
     }
   };
-  return { feed, history, received, refused, send, reset, clearFeed, pending, feedback, waitUntil, hideOthers, setHideOthers };
+  return { feed, history, received, refused, send, reset, clearFeed, pending, feedback, waitUntil, hideOthers, setHideOthers, levelRef };
 }
 export type TableChat = ReturnType<typeof useTableChat>;
 
@@ -183,7 +186,7 @@ export function TableFeed({ chat, names, looks, me, from, avatars = false }: {
               ? <PlayerTag name={mine ? "나" : (names[e.from] ?? "")} look={look} me={mine} compact />
               : (mine ? "나" : (names[e.from] ?? ""))}</b>
             <span className="feed-text" aria-label={item.kind === "emote" ? item.label : undefined}>
-              {item.text}
+              {item.kind === "emote" ? <EmoteGlyph id={item.id} text={item.text} level={lv} effects={fxOn && !reducedEffects} /> : item.text}
             </span>
           </span>
         );

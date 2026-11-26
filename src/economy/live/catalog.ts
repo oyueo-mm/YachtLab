@@ -10,6 +10,9 @@ import { MAX_LEVEL, SLOTS, TIER_PRICES, UPGRADE_COINS, type TierId } from "./con
 import { CONTENT_ITEMS, type FxLook } from "./content-items";
 import type { SeasonId } from "./seasons";
 import type { DiceLook as PaintedDice } from "../../dice3d/dice-look";
+import { diceFx } from "../../dice3d/dice-fx";
+import { boardFx } from "../../board-fx";
+import { EMOTE_LEVEL_TEXT } from "../../emote-fx";
 
 export type ItemCategory = "dice" | "board" | "emote" | "chat" | "bubble" | "profile" | "nameFx" | "fx" | "title";
 export const CATEGORIES: readonly { id: ItemCategory; label: string }[] = [
@@ -77,7 +80,7 @@ const social: ItemDef[] = SOCIAL_ITEMS.map((s) => ({
   // Emotes bought in the shop can be upgraded (Lv.2 animation, Lv.3 effect + sound); chat lines and
   // default items have no meaningful levels.
   maxLevel: s.kind === "emote" && s.acquisition !== "default" ? 3 : 1,
-  ...(s.kind === "emote" && s.acquisition !== "default" ? { levels: EMOTE_LEVELS } : {}),
+  ...(s.kind === "emote" && s.acquisition !== "default" ? { levels: EMOTE_LEVEL_TEXT[s.id] ? ["기본 이모티콘", ...EMOTE_LEVEL_TEXT[s.id]] : EMOTE_LEVELS } : {}),
   look: { text: s.text },
   ...(s.retired ? { retired: true } : {}),
   ...(s.season ? { season: s.season, family: "크리스마스" } : {}),
@@ -139,44 +142,34 @@ const items: ItemDef[] = [
   ...CONTENT_ITEMS.map((c) => item({ ...c, maxLevel: c.maxLevel ?? 1 } as ItemDef)),
 ];
 
-const DICE_EFFECTS = {
-  lava: "불티",
-  ice: "서리 결정",
-  electric: "전기 아크",
-  stars: "별빛",
-  gold: "금빛 조각",
-  ghost: "안개와 잔상",
-  crystal: "수정 조각",
-  leaves: "나뭇잎",
-  rainbow: "무지개 항적",
-} as const;
-
-function diceTrail(item: ItemDef): keyof typeof DICE_EFFECTS {
-  const dice = item.look.dice;
-  if (item.id.includes("christmas") || dice?.finish === "metal") return "gold";
-  if (item.id.includes("ghost")) return "ghost";
-  switch (dice?.pattern) {
-    case "lava": return "lava";
-    case "ice": return "ice";
-    case "neon": return "electric";
-    case "stars": return "stars";
-    case "aurora":
-    case "holo": return "rainbow";
-    case "wood": return "leaves";
-    default: return dice?.finish === "glass" ? "ghost" : "crystal";
-  }
+/**
+ * Dice upgrades (2026-11-26): every non-basic die has its own Lv.2 (rolling / sliding effect) and Lv.3
+ * (collisions, landing, shockwave, landing sound) profile in src/dice3d/dice-fx.ts. Lv.2/Lv.3 never
+ * repaint the die body: an upgraded die keeps its Lv.1 colours (neon stays black with a coloured rim);
+ * where the item had a glow, only the pips and rim light up.
+ */
+/**
+ * Boards (2026-11-26): every non-basic board has Lv.2 (living surface) and Lv.3 (reactions to rolls,
+ * landings, holds, combinations and wins) from src/board-fx.ts. Boards that were Lv.1-only gain the two
+ * levels (owned copies start at Lv.1; nothing about price, tier or acquisition changes).
+ */
+function withBoardLevels(entry: ItemDef): ItemDef {
+  const profile = boardFx(entry.id);
+  if (!profile) return entry;
+  const base = entry.look.css || (entry.id === "board.navy" ? "bd-navy" : entry.id === "board.felt" ? "bd-felt" : "bd-charcoal");
+  return { ...entry, maxLevel: 3, levels: ["기본 보드", profile.lv2, profile.lv3], levelLooks: [{ css: base + " bd-lv2" }, { css: base + " bd-lv3" }] };
 }
 
 export const ITEMS: readonly ItemDef[] = items.map((entry) => {
+  if (entry.category === "board" && entry.tier !== "basic") return withBoardLevels(entry);
   if (entry.category !== "dice" || entry.tier === "basic" || !entry.look.dice) return entry;
-  const trail = diceTrail(entry);
+  const profile = diceFx(entry.id);
+  if (!profile) return entry;
   const levelLooks = [0, 1].map((index) => ({
     ...entry.levelLooks?.[index],
-    dice: { ...entry.look.dice!, ...entry.levelLooks?.[index]?.dice, trail, landing: index === 1 },
+    dice: { ...entry.look.dice!, ...entry.levelLooks?.[index]?.dice, fx: entry.id, fxLevel: index + 2 },
   }));
-  return { ...entry, maxLevel: 3, levelLooks,
-    levels: ["기본 소재와 소리", `굴림 중 ${DICE_EFFECTS[trail]}`, `충돌과 착지에 ${DICE_EFFECTS[trail]} 추가`],
-  };
+  return { ...entry, maxLevel: 3, levelLooks, levels: ["기본 외형과 소재 소리", profile.lv2, profile.lv3] };
 });
 
 /** The look of an item at a level (Lv.2 / Lv.3 overrides merged over Lv.1; nested dice look merged too). */

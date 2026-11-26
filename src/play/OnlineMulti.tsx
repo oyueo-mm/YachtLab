@@ -2,7 +2,7 @@ import { useSettings } from "../settings";
 import { MatchResult } from "../ui/MatchResult";
 import { FirstTurnGuide } from "./Tutorial";
 import { MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, Crown, Dices, Flag, Play, RotateCcw, Timer, Wifi, WifiOff } from "lucide-react";
 import { categories, type Category } from "../engine";
 import type { MultiGame } from "../multi-engine";
@@ -12,6 +12,7 @@ import type { PlayerView } from "../online/server-engine";
 import type { LobbyState, RematchState } from "../online/wire";
 import { ROUND_LIMITS, TURN_LIMITS } from "../online/wire";
 import type { PublicLook } from "../economy/live/catalog";
+import { BoardFx } from "./BoardFx";
 import { PlayerTag, useBoardTheme, diceLookOf, diceMaterialOf } from "./Looks";
 import { Celebrate } from "../ui/Celebrate";
 import type { Celebration } from "../game-feel";
@@ -213,6 +214,7 @@ export function MultiTable(p: {
   onHome: () => void;
 }) {
   const theme = useBoardTheme(p.looks[p.me]);
+  const boardRef = useRef<HTMLElement | null>(null);
   const { opponentFx } = useSettings();
   const { view } = p;
   const players = view.players;
@@ -248,8 +250,10 @@ export function MultiTable(p: {
         <section
           className={"game-board throw-tray" + (p.canRoll && nearYacht(game.dice, p.rolls, players[meIndex]?.card) ? " yacht-near" : "") + (p.rolls === 0 ? " dice-ready" : "") + theme.className}
           style={theme.style}
+          ref={boardRef}
           aria-label="게임 보드"
         >
+          <BoardFx itemId={p.looks[p.me]?.board} level={p.looks[p.me]?.boardLv ?? 1} host={boardRef} />
           <Celebrate value={p.celebration} />
           <div className="board-top">
             <span className="turn-indicator">

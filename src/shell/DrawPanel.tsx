@@ -1,3 +1,4 @@
+import { Select } from "../ui/kit";
 import { useEffect, useRef, useState } from "react";
 import { Coins } from "lucide-react";
 import { DiceArea } from "../DiceArea";
@@ -125,10 +126,8 @@ export default function DrawPanel({ server, onWallet }: { server: string; onWall
   const canDraw = snapshot && active && status.remaining > 0 && snapshot.wallet.coins >= DRAW_COST;
   return <section className="draw-panel" role="tabpanel" aria-label="뽑기">
     <div className="draw-controls">
-      <label>뽑기 종류 <select value={pool} onChange={(event) => setPool(event.target.value as DrawPool)}>
-        <option value="standard">일반 뽑기</option>
-        {(Object.keys(SEASONS) as SeasonId[]).map((id) => <option key={id} value={id}>{SEASONS[id].name}</option>)}
-      </select></label>
+      <Select label="뽑기 종류" value={pool} onChange={setPool}
+        options={[{ value: "standard" as DrawPool, label: "일반 뽑기" }, ...(Object.keys(SEASONS) as SeasonId[]).map((id) => ({ value: id as DrawPool, label: SEASONS[id].name }))]} />
       {status && <small>오늘 남은 횟수 {status.remaining}/{DRAW_DAILY_LIMIT} · 매일 00:00 초기화</small>}
     </div>
     {season && <p className="econ-note">{format.format(season.start)} ~ {format.format(season.end)} (한국 시간){active ? "" : " · 판매 기간 외"}</p>}

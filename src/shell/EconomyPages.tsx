@@ -1,3 +1,4 @@
+import { Select } from "../ui/kit";
 import ShopRail from "./ShopRail";
 import DrawPanel, { DrawOdds } from "./DrawPanel";
 import { SEASONS, seasonActive } from "../economy/live/seasons";
@@ -196,7 +197,6 @@ function ItemDetail({ item, initialLevel, unlocked, onClose, children }: { item:
         {season && <p className="item-level-note">{season.name} · {saleDate.format(season.start)} ~ {saleDate.format(season.end)} (한국 시간). 시즌 이후에도 소유 상품을 쓸 수 있어요.</p>}
         <ItemStage item={item} level={level} />
         <LevelTabs item={item} level={level} setLevel={setLevel} unlocked={unlocked} />
-        {descriptions && <p className="item-level-note">Lv.{level} · {descriptions[level - 1]}</p>}
         <div className="item-detail-actions">{children(level)}</div>
     </dialog>
   );
@@ -316,20 +316,10 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
         {!member && <p className="econ-note shop-guest-note">둘러보기와 미리보기는 로그인 없이 할 수 있어요. 구매·뽑기·강화·장착은 로그인 후 이용할 수 있어요.</p>}
         <CategoryTabs value={cat} onChange={setCat} counts={counts} all={() => setCat(null)} />
         <div className="econ-filters">
-          <select aria-label="등급" value={tier} onChange={(e) => setTier(e.target.value as TierId | "all")}>
-            <option value="all">전체 등급</option>
-            {TIERS.filter((t) => t.id !== "basic").map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-          <select aria-label="가격" value={price} onChange={(e) => setPrice(e.target.value as PriceFilter)}>
-            <option value="all">모든 가격</option>
-            <option value="coins">코인으로 살 수 있는 것</option>
-            <option value="gems">보석으로 살 수 있는 것</option>
-            {member && <option value="afford">지금 살 수 있는 것</option>}
-          </select>
+          <Select label="등급" value={tier} onChange={setTier}
+            options={[{ value: "all" as TierId | "all", label: "전체 등급" }, ...TIERS.filter((t) => t.id !== "basic").map((t) => ({ value: t.id as TierId | "all", label: t.label }))]} />
+          <Select label="가격" value={price} onChange={setPrice}
+            options={[{ value: "all", label: "모든 가격" }, { value: "coins", label: "코인으로 구매" }, { value: "gems", label: "보석으로 구매" }, ...(member ? [{ value: "afford" as PriceFilter, label: "지금 살 수 있는 것" }] : [])]} />
         </div>
         {busy && <p className="econ-note" role="status"><BrandMark /> 처리 중…</p>}
         {notice && <p className="econ-ok" role="status">{notice}</p>}

@@ -2,6 +2,9 @@ import { announceScore, clearScoreFx } from "../score-fx";
 import { diceMaterial } from "../sound-packs";
 import { useEffect, useRef, useState } from "react";
 import { Dices, Play, Volume2 } from "lucide-react";
+import { BoardFx } from "../play/BoardFx";
+import { EmoteGlyph } from "../play/EmoteGlyph";
+import { emitFx } from "../fx-bus";
 import { CATEGORIES, itemById, lookAt, publicLook, DEFAULT_LOADOUT, type ItemDef, type PublicLook } from "../economy/live/catalog";
 import { TIERS } from "../economy/live/config";
 import { paintFace } from "../dice3d/face-paint";
@@ -67,7 +70,7 @@ export function ItemThumb({ item, level = 1 }: { item: ItemDef; level?: number }
         <DieIcon value={3} />
       </span>
     );
-  } else if (item.category === "emote") body = <span className={`emote-sample emote-lv${level}`}>{look.text}</span>;
+  } else if (item.category === "emote") body = <span className="emote-sample"><EmoteGlyph id={item.id} text={look.text ?? ""} level={inView ? Math.min(level, 2) : 1} /></span>;
   else if (item.category === "chat") body = <span className="feed-msg chat sample">{look.text}</span>;
   else if (item.category === "bubble")
     body = (
@@ -116,23 +119,46 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
   const [rolls, setRolls] = useState(0);
   const [rollEvent, setRollEvent] = useState(0);
   const [replay, setReplay] = useState(0);
-  const [previewSound, setPreviewSound] = useState(false);
+  const boardRef = useRef<HTMLElement | null>(null);
+  // Preview sounds follow the global settings (mute / effects switch / volume); no extra switch.
   const previewGrand = () => {
-    if (previewSound) unlockAudio();
+    unlockAudio();
     const example = [1, 2, 3, 4, 5].map((value, id) => ({ value, id, held: false }));
     setDice(example);
     setRolls(1);
     announceScore(example, "large");
+    emitFx({ type: "straight" });
+  };
+  const previewWin = () => {
+    unlockAudio();
+    emitFx({ type: "win" });
   };
   useEffect(() => {
     if (item.category === "board") return clearScoreFx;
   }, [item]);
   const roll = () => {
-    if (previewSound) unlockAudio();
+    unlockAudio();
     setDice((previous) => randomDice().map((die, index) => previous[index].held ? previous[index] : die));
-    setRolls((r) => Math.min(3, r + 1));
+    setRolls((r) => (r >= 3 ? 1 : r + 1));
     setRollEvent((n) => n + 1);
   };
+  // Switching level replays the throw so Lv.1 / Lv.2 / Lv.3 can be compared directly.
+  const firstLevel = useRef(true);
+  useEffect(() => {
+    if (firstLevel.current) {
+      firstLevel.current = false;
+      return;
+    }
+    if (item.category === "emote") {
+      setReplay((n) => n + 1);
+      playEmoteSfx(item.id, level);
+    }
+    if (item.category === "dice" && motionLevel() === "full") {
+      setDice((d) => d.map((x) => ({ ...x, held: false })));
+      setRolls((r) => (r >= 3 ? 1 : r + 1));
+      setRollEvent((n) => n + 1);
+    }
+  }, [level, item.category]);
   const state = { dice, order: [0, 1, 2, 3, 4], rolls: Math.max(1, rolls) };
   // The real 3D table when the device can draw it (the same renderer and painter as in a match).
   const settings = useSettings();
@@ -141,21 +167,18 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
     const theme = item.category === "board" ? boardTheme(item, level, motionLevel(settings) === "full") : { className: "" };
     return (
       <div className="item-stage">
-        <section className={"game-board throw-tray stage-board" + theme.className} style={theme.style} aria-label="미리보기 보드">
-          <DiceArea state={state} soundEnabled={previewSound} forceRenderer={renderer} colors={item.category === "dice" ? (look.dice ?? null) : null} material={diceMaterial(item.id, look.dice)} interactive animate rollEvent={rollEvent} onToggle={(id) => setDice((previous) => previous.map((die) => die.id === id ? { ...die, held: !die.held } : die))} />
+        <section ref={boardRef} className={"game-board throw-tray stage-board" + theme.className} style={theme.style} aria-label="미리보기 보드">
+          <DiceArea state={state} forceRenderer={renderer} colors={item.category === "dice" ? (look.dice ?? null) : null} material={diceMaterial(item.id, look.dice)} interactive animate rollEvent={rollEvent} onToggle={(id) => setDice((previous) => previous.map((die) => die.id === id ? { ...die, held: !die.held } : die))} />
+          {item.category === "board" && <BoardFx itemId={item.id} level={level} host={boardRef} />}
         </section>
-        <label className="stage-sound-toggle">
-          <input type="checkbox" checked={previewSound} onChange={(event) => {
-            setPreviewSound(event.target.checked);
-            if (event.target.checked) unlockAudio();
-          }} /> 미리보기 효과음
-        </label>
         <div className="stage-actions">
           <button type="button" className="primary stage-action" onClick={roll}>
             <Dices size={17} /> 굴려 보기
           </button>
-          {item.category === "board" && level === 3 &&
-            <button type="button" className="secondary stage-action" onClick={previewGrand}>족보 효과 보기</button>}
+          {item.category === "board" && level === 3 && <>
+            <button type="button" className="secondary stage-action" onClick={previewGrand}>족보 반응</button>
+            <button type="button" className="secondary stage-action" onClick={previewWin}>승리 반응</button>
+          </>}
         </div>
       </div>
     );
@@ -170,24 +193,19 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
           <div className="table-feed">
             <span key={replay} className={"feed-msg " + (s?.kind ?? "chat") + (css ? " " + css : "") + (s?.kind === "emote" ? ` emote-lv${lv}` : "") + (s && s.style !== "default" ? ` social-${s.style}` : "")}>
               <b className="feed-from">친구</b>
-              <span className="feed-text">{s?.text}</span>
+              <span className="feed-text">{s?.kind === "emote" ? <EmoteGlyph id={s.id} text={s.text} level={lv} /> : s?.text}</span>
             </span>
           </div>
           <p className="stage-note">경기 중 메시지가 이렇게 보여요{item.category === "bubble" ? " (말풍선은 내가 보내는 모든 메시지에 적용)" : ""}.</p>
         </div>
         <div className="stage-actions">
-          <button type="button" className="secondary" onClick={() => setReplay((n) => n + 1)}>
+          <button type="button" className="primary stage-action" onClick={() => {
+            unlockAudio();
+            setReplay((n) => n + 1);
+            if (item.category === "emote" || (s && s.style !== "default")) playEmoteSfx(item.id, lv);
+          }}>
             <Play size={15} /> 다시 보기
           </button>
-          {(item.category === "emote" || s && s.style !== "default") && (
-            <button type="button" className="secondary" onClick={() => {
-              unlockAudio();
-              setReplay((n) => n + 1);
-              playEmoteSfx(item.id);
-            }}>
-              <Volume2 size={15} /> 소리 듣기
-            </button>
-          )}
         </div>
       </div>
     );
@@ -196,20 +214,15 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
     return (
       <div className="item-stage">
         <div className="stage-result" role="img" aria-label="승리 연출 미리보기">
-          <FxBurst key={replay} fx={look.fx} level={level} seed={`preview-${item.id}-${replay}`} sound={replay > 0 && previewSound} />
+          <FxBurst key={replay} fx={look.fx} level={level} seed={`preview-${item.id}-${replay}`} sound={replay > 0} />
           <strong>승리했습니다!</strong>
           <small>{level >= 2 ? "요트를 기록할 때도 나와요" : "승리하면 나와요"}{level >= 3 ? " · 전용 효과음" : ""}</small>
         </div>
         <div className="stage-actions">
           <button type="button" className="primary stage-action" onClick={() => {
-            setPreviewSound(false);
+            unlockAudio();
             setReplay((n) => n + 1);
           }}><Play size={15} /> 연출 재생</button>
-          {level >= 3 && look.fx.sound && <button type="button" className="secondary" onClick={() => {
-            unlockAudio();
-            setPreviewSound(true);
-            setReplay((n) => n + 1);
-          }}><Volume2 size={15} /> 소리 듣기</button>}
         </div>
       </div>
     );
@@ -225,15 +238,27 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
   );
 }
 
-/** Level tabs (Lv.1–3) for upgradable items: previewing a level never changes what is equipped. */
+/**
+ * Level comparison for upgradable items: each level with what it adds; choosing one previews it at once
+ * (never changes what is equipped). Locked levels can be previewed too.
+ */
 export function LevelTabs({ item, level, setLevel, unlocked }: { item: ItemDef; level: number; setLevel: (lv: number) => void; unlocked?: number }) {
   if (item.maxLevel <= 1) return null;
+  const lvls = Array.from({ length: item.maxLevel }, (_, i) => i + 1);
   return (
-    <div className="level-tabs" role="tablist" aria-label="단계 미리보기">
-      {Array.from({ length: item.maxLevel }, (_, i) => i + 1).map((lv) => (
-        <button key={lv} type="button" role="tab" aria-selected={level === lv} className={level === lv ? "active" : ""} onClick={() => setLevel(lv)}>
-          Lv.{lv}
-          {unlocked !== undefined && lv > unlocked && <small> 잠김</small>}
+    <div className="level-tabs" role="tablist" aria-label="강화 단계 비교">
+      {lvls.map((lv) => (
+        <button key={lv} type="button" role="tab" aria-selected={level === lv} className={level === lv ? "active" : ""}
+          onClick={() => setLevel(lv)}
+          onKeyDown={(e) => {
+            const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+            if (!step) return;
+            e.preventDefault();
+            e.stopPropagation();
+            setLevel(Math.max(1, Math.min(item.maxLevel, lv + step)));
+          }}>
+          <b>Lv.{lv}{unlocked !== undefined && lv > unlocked && <small> 잠김</small>}</b>
+          {item.levels?.[lv - 1] && <span>{item.levels[lv - 1]}</span>}
         </button>
       ))}
     </div>

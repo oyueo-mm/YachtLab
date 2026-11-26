@@ -35,6 +35,7 @@ import type { LobbyState, RematchState, SeriesSummary, SpectateState } from "../
 import { LobbyPanel, MultiTable } from "./OnlineMulti";
 import { SpectateControl } from "./Social";
 import { SocialDock, TableFeed, useTableChat } from "./SocialDock";
+import { BoardFx } from "./BoardFx";
 import { PlayerTag, useBoardTheme, diceLookOf, diceMaterialOf, toneOf } from "./Looks";
 import { SeatChips } from "./SeatChips";
 import { GUEST_LOOK, itemById, type PublicLook } from "../economy/live/catalog";
@@ -128,6 +129,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const [members, setMembers] = useState<Record<string, string>>({});
   const [looks, setLooks] = useState<Record<string, PublicLook>>({});
   const looksRef = useRef(looks);
+  chat.levelRef.current = (from, id) => looks[from]?.emotes.find((x) => x.id === id)?.lv ?? 1;
   looksRef.current = looks;
   const [yachtFx, setYachtFx] = useState<{ fx: FxLook; level: number; seed: string } | null>(null);
   const [aiSeat, setAiSeat] = useState<string | null>(null);
@@ -343,6 +345,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const players = view?.players ?? [];
   const myLook = (me && looks[me.playerId]) || GUEST_LOOK;
   const theme = useBoardTheme(myLook);
+  const boardRef = useRef<HTMLElement | null>(null);
   const nameMap = Object.fromEntries(players.map((p) => [p.playerId, p.name]));
   const say = (id: string) => conn.current?.say(id) ?? false;
   const feed = <TableFeed chat={chat} names={nameMap} looks={looks} me={me?.playerId ?? null} avatars />;
@@ -659,10 +662,12 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           <section
             className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (canRoll && nearYacht(game.dice, rolls, players[meIndex]?.card) ? " yacht-near" : "") + theme.className}
             style={theme.style}
+            ref={boardRef}
             aria-label="게임 보드"
             {...gesture}
           >
             <Celebrate value={celebration} />
+            <BoardFx itemId={myLook.board} level={myLook.boardLv ?? 1} host={boardRef} />
             {intro && playing && me && opponent && (
               <div className="quick-match-intro" role="status" aria-label="빠른 대전 매칭 완료">
                 <PlayerTag name={players[meIndex].name} look={looks[me.playerId] ?? GUEST_LOOK} me tone="me" />
