@@ -58,6 +58,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("refs", nargs="+", help="archived Git revisions")
     parser.add_argument("--artifact-dir", type=Path, help="optional directory of extracted workflow artifacts")
+    parser.add_argument("--artifact-plan", type=Path, help="TSV with run ID, artifact ID, artifact name, and workflow SHA")
     args = parser.parse_args()
     findings = defaultdict(list)
     counts = Counter()
@@ -68,6 +69,13 @@ def main():
     versions = defaultdict(dict)
     tournaments = defaultdict(set)
     archive_splits = defaultdict(set)
+    summary_counts = Counter()
+    sampled_artifacts = set()
+    artifact_plan = {}
+    if args.artifact_plan:
+        with args.artifact_plan.open() as plan:
+            for run, _, name, sha in csv.reader(plan, delimiter="\t"):
+                artifact_plan[(run, name)] = sha
     logs = []
 
     for source, path, data in archives(args.refs, args.artifact_dir):
@@ -97,11 +105,19 @@ def main():
                 if moments[0] != round(summary[4] * length, 8) or not moments[0] ** 2 / length <= moments[1] <= moments[0]:
                     findings["invalid_moments"].append([source, key])
                 counts["summary_rows"] += 1
+                summary_counts[(source, key)] += 1
                 archive_splits[(source, a, b, family)].add((shard, length))
                 logs.append((source, key, summary, row.get("commit"), moments))
                 continue
             counts["raw_tournament_shards"] += 1
             counts["raw_tournament_pairs"] += length
+            if args.artifact_dir and args.artifact_dir in Path(path).parents:
+                run, artifact = Path(path).relative_to(args.artifact_dir).parts[:2]
+                sampled_artifacts.add((run, artifact))
+                counts["ci_raw_tournament_shards"] += 1
+                counts["ci_raw_tournament_pairs"] += length
+                if artifact != f"v5-tournament-{shard}" or (artifact_plan and artifact_plan.get((run, artifact)) != row.get("commit")):
+                    findings["ci_provenance_mismatches"].append([run, artifact, key, row.get("commit")])
             pairs_by_family[family] += length
             if not row.get("commit"):
                 null_commits_by_family[family] += 1
@@ -143,6 +159,9 @@ def main():
     for key, candidates in versions.items():
         if len(candidates) > 1:
             findings["divergent_raw_versions"].append([key, list(candidates.values())])
+    for (source, key), copies in sorted(summary_counts.items()):
+        if copies > 1:
+            findings["repeated_summary_rows"].append([source, key, copies])
     for source, key, summary, commit, moments in logs:
         if not versions.get(key):
             counts["summary_rows_without_raw"] += 1
@@ -159,6 +178,9 @@ def main():
         "tournament_pairs_by_family": pairs_by_family,
         "raw_shards_missing_commit_by_family": null_commits_by_family,
         "unique_tournament_seed_addresses": len(seed_addresses),
+        "ci_artifacts_examined": len(sampled_artifacts),
+        "ci_runs_examined": len({run for run, _ in sampled_artifacts}),
+        "ci_artifacts_missing_from_plan": sorted(artifact_plan.keys() - sampled_artifacts),
         "summaries": [
             {"file": file, "a": a, "b": b, "family": family, "shards": len(plan), "pairs": sum(n for _, n in plan)}
             for (file, a, b, family), plan in sorted(archive_splits.items())

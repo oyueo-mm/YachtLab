@@ -93,7 +93,7 @@ export default function Tutorial({ onExit, returning, practiceOnly = false }: { 
       ) : (
         <div className="guided-board">
           <section className="game-board throw-tray" aria-label="연습 보드">
-            <div className="guided-dice" data-focus-die={keep}>
+            <div className="guided-dice" data-physical={wants3d || undefined} data-focus-die={keep}>
               <DiceArea state={game} animate rollEvent={game.rolls} interactive={!busy && keep !== undefined} focusDie={keep} onToggle={hold}
                 forceRenderer={wants3d && !rendererRequested ? "2.5d" : undefined}
                 onRendererReady={prepare3d ? rendererDidBecomeReady : undefined} />

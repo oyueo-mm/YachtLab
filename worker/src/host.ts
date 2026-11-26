@@ -382,23 +382,25 @@ export class RoomHost {
     const room = this.room;
     if (!room || this.deleted) return;
     await this.flushRecords();
-    if (this.room !== room || this.deleted) return;
-    // The room is the durable outbox. Keep it through account-store failures and lost replies.
-    if (this.events.deliverRecord && room.pendingRecords().length) {
-      this.retryAt ??= this.now() + RECORD_RETRY_MS;
+    // Recheck inside the room queue: a rematch can be waiting for its budget or saving its new log.
+    const closed = await room.closeIf(() => {
+      if (this.room !== room || this.deleted) return false;
+      // The room is the durable outbox. Keep it through account-store failures and lost replies.
+      if (this.events.deliverRecord && room.pendingRecords().length) {
+        this.retryAt ??= this.now() + RECORD_RETRY_MS;
+        return false;
+      }
+      if (!room.isClosed && (this.cleanupAt() ?? Infinity) > this.now()) return false;
+      this.deleted = true;
+      return true;
+    });
+    if (!closed) {
       this.rearm();
       return;
     }
-    // A legitimate reconnect or rematch can arrive while an account RPC is in flight.
-    if (!room.isClosed && (this.cleanupAt() ?? Infinity) > this.now()) {
-      this.rearm();
-      return;
-    }
-    this.deleted = true;
     if (this.aiTimer) clearTimeout(this.aiTimer);
     if (room.isPublic) await Promise.resolve(this.events.publish?.(room.code, null)).catch(() => undefined);
     if (room.kind === "random" && !this.endedSent) await Promise.resolve(this.events.matchEnded?.(room.code)).catch(() => undefined);
-    room.closeRoom();
     this.storage.deleteAlarm();
     await this.storage.clear();
     this.room = null;

@@ -44,7 +44,8 @@ test.describe("최초 방문", () => {
   });
 
   test("첫 표시에서는 WebGL을 만들지 않고 첫 굴림부터 같은 크기의 실제 3D 보드를 사용한다", async ({ page }) => {
-    await withMotion(page, "3d");
+    // The default motion is 3D. A persisted quality setting is a returning-visitor marker.
+    await withMotion(page);
     await page.addInitScript(() => {
       const context = HTMLCanvasElement.prototype.getContext;
       const diagnostics = window as unknown as { webglCalls: number };

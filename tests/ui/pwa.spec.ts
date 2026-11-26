@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { scoreCategory, startAI } from "./helpers";
+import { scoreCategory, startAI, withMotion } from "./helpers";
 
 async function ready(page: Page) {
   await page.goto("");
@@ -56,6 +56,19 @@ test("최고 난이도 AI는 오프라인에서 점수 표를 불러와 첫 차�
   await page.reload();
   await startAI(page, { algorithm: "Win DP v4-D", first: "AI 먼저" });
   await expect(page.getByRole("button", { name: "주사위 굴리기" })).toBeEnabled({ timeout: 20_000 });
+});
+
+test("설치 후 오프라인 튜토리얼에서 물리 주사위를 굴린다", async ({ page, context }) => {
+  await withMotion(page, "3d");
+  await ready(page);
+  await context.setOffline(true);
+  await page.goto("#practice");
+  const guide = page.getByRole("region", { name: "튜토리얼" });
+  await guide.getByRole("button", { name: "주사위 굴리기" }).click();
+  await expect(guide.getByText("첫 번째 6을 눌러 킵하세요.")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (
+    window as unknown as { __yachtlabDice?: { last?: { mode: string } } }
+  ).__yachtlabDice?.last?.mode)).toBe("3d");
 });
 
 test("모바일 설치 안내 닫기는 새로고침 뒤에도 유지된다", async ({ page }) => {

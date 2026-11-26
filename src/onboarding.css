@@ -311,6 +311,8 @@
 .guided-dice {
   position: relative;
   width: 100%;
+}
+.guided-dice[data-physical] {
   height: clamp(235px, 42dvh, 395px);
   display: grid;
   align-items: center;

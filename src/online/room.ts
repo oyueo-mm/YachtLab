@@ -1190,6 +1190,14 @@ export class OnlineRoom {
   }
 
   /** Close every socket; the host then drops the room and its stored record. */
+  closeIf(condition: () => boolean): Promise<boolean> {
+    return this.serial(() => {
+      if (!condition()) return false;
+      this.closeRoom();
+      return true;
+    });
+  }
+
   closeRoom() {
     this.closed = true;
     this.deps.schedule(null);

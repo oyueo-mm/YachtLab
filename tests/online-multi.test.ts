@@ -250,7 +250,7 @@ describe("엔진: 20명", () => {
 
 describe("방 정리 (D-046: 재접속 유예·서버 알람)", () => {
   type Room = Awaited<ReturnType<typeof setup>>;
-  async function setup(seats: number, opts: { start?: boolean; kind?: "friend" | "random"; members?: boolean; deliverRecord?: HostEvents["deliverRecord"] } = {}) {
+  async function setup(seats: number, opts: { start?: boolean; kind?: "friend" | "random"; members?: boolean; deliverRecord?: HostEvents["deliverRecord"]; allowMatch?: HostEvents["allowMatch"] } = {}) {
     const st = { record: null as string | null, alarm: null as number | null, cleared: false };
     const storage: HostStorage = {
       load: () => (st.record ? JSON.parse(st.record) : null),
@@ -263,7 +263,11 @@ describe("방 정리 (D-046: 재접속 유예·서버 알람)", () => {
     const clock = { t: 1_000_000 };
     const open: Sock[] = [];
     const deleted: string[] = [];
-    const make = () => new RoomHost(storage, () => open, readConfig({ TURN_TIMEOUT_MS: "0" }), () => clock.t, seededDiceSource(1), { onDeleted: (c) => void deleted.push(c), deliverRecord: opts.deliverRecord });
+    const make = () => new RoomHost(storage, () => open, readConfig({ TURN_TIMEOUT_MS: "0" }), () => clock.t, seededDiceSource(1), {
+      onDeleted: (c) => void deleted.push(c),
+      deliverRecord: opts.deliverRecord,
+      allowMatch: opts.allowMatch,
+    });
     let host = make();
     host.init();
     const tokens: string[] = [];
@@ -415,6 +419,27 @@ describe("방 정리 (D-046: 재접속 유예·서버 알람)", () => {
     expect(r.st.cleared).toBe(true);
     expect(r.deleted).toEqual(["ABCDEF"]);
     expect(settlements.size).toBe(2);
+  });
+
+  it("종료 알람과 이미 접수된 재대결이 겹치면 새 경기의 방은 유지된다", async () => {
+    let releaseBudget!: (value: null) => void;
+    const budget = new Promise<null>((resolve) => { releaseBudget = resolve; });
+    let onAllocation!: (value: { code: string; units: number; matchNo: number }) => void;
+    const allocation = new Promise<{ code: string; units: number; matchNo: number }>((resolve) => { onAllocation = resolve; });
+    const r = await setup(2, { allowMatch: (code, units, matchNo) => {
+      onAllocation({ code, units, matchNo });
+      return budget;
+    } });
+    const [a, b] = r.socks;
+    await r.host.message(b, JSON.stringify({ t: "cmd", id: "rs", action: { type: "resign" } }));
+    await r.host.message(b, JSON.stringify({ t: "rematch", op: "request" }));
+    const alarm = r.tick(10 * 60_000 + 1);
+    const rematch = r.host.message(a, JSON.stringify({ t: "rematch", op: "start" }));
+    expect(await allocation).toEqual({ code: "ABCDEF", units: 1, matchNo: 2 });
+    releaseBudget(null);
+    await Promise.all([alarm, rematch]);
+    expect(r.st.cleared).toBe(false);
+    expect(status(r)).toBe("playing");
   });
 
   it("끝난 경기: 모두 나가면 3분 뒤, 결과 화면에 남아 있으면 10분 뒤 정리된다", async () => {
