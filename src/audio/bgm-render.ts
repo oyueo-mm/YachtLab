@@ -15,7 +15,43 @@ type Composition = {
   /** Low-pass ceiling of the whole track (Hz): lower = softer, less distracting. */
   tone: number;
   swing?: number;
+  /** Loudness target after rendering (RMS dBFS, see normalize). Thinking music sits a little lower. */
+  level?: number;
 };
+
+/** Default loudness target of a rendered track (RMS dBFS) and the sample-peak ceiling. */
+export const TARGET_RMS_DB = -20;
+export const PEAK_CEILING_DB = -1;
+
+/**
+ * Loudness normalization (2026-11-26 audio pass). The compositions used to come out at −40…−44 dBFS RMS
+ * (peaks −18…−26), so even 100 % on the music slider was barely audible on a phone. Each rendered loop
+ * is now scaled to `level` (default −20 dBFS RMS) with a hard ceiling on sample peaks so it never clips;
+ * the composition itself is unchanged.
+ */
+export function normalize(buf: AudioBuffer, targetDb = TARGET_RMS_DB, ceilingDb = PEAK_CEILING_DB) {
+  let peak = 0;
+  let sum = 0;
+  let count = 0;
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < d.length; i++) {
+      const x = d[i];
+      const a = x < 0 ? -x : x;
+      if (a > peak) peak = a;
+      sum += x * x;
+    }
+    count += d.length;
+  }
+  if (!peak || !count) return { gain: 1, rmsDb: -Infinity, peakDb: -Infinity };
+  const rms = Math.sqrt(sum / count);
+  const gain = Math.min(Math.pow(10, (targetDb - 20 * Math.log10(rms)) / 20), Math.pow(10, ceilingDb / 20) / peak);
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < d.length; i++) d[i] *= gain;
+  }
+  return { gain, rmsDb: 20 * Math.log10(rms * gain), peakDb: 20 * Math.log10(peak * gain) };
+}
 
 const n = (name: string) => {
   const m = /^([A-G])(#|b)?(-?\d)$/.exec(name)!;
@@ -47,6 +83,7 @@ export const TRACKS: Record<Exclude<BgmScene, "none">, Composition> = {
     chords: [chord("F2", "A2", "C3", "E3"), chord("E2", "G2", "B2", "D3"), chord("D2", "F2", "A2", "C3"), chord("C2", "E2", "G2", "B2"),
       chord("Bb1", "D2", "F2", "A2"), chord("A1", "C2", "E2", "G2"), chord("D2", "F2", "A2", "C3"), chord("G1", "B1", "D2", "F2")],
     mix: { pad: 0.42, bass: 0.3 },
+    level: -22,
     melody: { density: 0.16, octave: 36, voice: "bell" },
   },
   // Shop: light and bouncy, a soft kick and shaker.
@@ -63,6 +100,7 @@ export const TRACKS: Record<Exclude<BgmScene, "none">, Composition> = {
     chords: [chord("A2", "C3", "E3", "B3"), chord("F2", "A2", "C3", "E3"), chord("C3", "E3", "G3", "D4"), chord("G2", "B2", "D3", "A3"),
       chord("D2", "F2", "A2", "C3"), chord("A2", "C3", "E3", "G3"), chord("F2", "A2", "C3", "E3"), chord("E2", "G#2", "B2", "D3")],
     mix: { pad: 0.48, keys: 0.22, bass: 0.35 },
+    level: -21,
     melody: { density: 0.25, octave: 24, voice: "keys" },
   },
   // After a win: bright, festive but short phrases.
@@ -135,6 +173,7 @@ export async function render(c: Composition): Promise<AudioBuffer> {
     return p;
   };
   const env = (g: GainNode, t: number, a: number, peak: number, d: number) => {
+    g.gain.value = 0; // start silent: no one-sample click before the first automation event
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(peak, t + a);
     g.gain.exponentialRampToValueAtTime(0.0001, t + a + d);
@@ -244,6 +283,7 @@ export async function render(c: Composition): Promise<AudioBuffer> {
     dst.set(src.subarray(0, len));
     for (let i = len; i < src.length; i++) dst[i - len] += src[i];
   }
+  normalize(buf, c.level ?? TARGET_RMS_DB);
   return buf;
 }
 

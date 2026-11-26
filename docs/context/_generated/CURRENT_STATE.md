@@ -116,16 +116,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [b8bb5b9](https://github.com/oyueo-mm/YachtLab/commit/b8bb5b9) | 2026-11-27 | Merge pull request #104 from oyueo-mm/claude/audio-mix-2026-11 |
 | [d6d8414](https://github.com/oyueo-mm/YachtLab/commit/d6d8414) | 2026-11-26 | Merge pull request #107 from oyueo-mm/codex/yachtlab-search-research-20261126 |
 | [9e0e45e](https://github.com/oyueo-mm/YachtLab/commit/9e0e45e) | 2026-11-26 | Record current search markup guidance and performance samples |
 | [87ef6e3](https://github.com/oyueo-mm/YachtLab/commit/87ef6e3) | 2026-11-26 | Align static and hydrated home search content |
 | [56258b4](https://github.com/oyueo-mm/YachtLab/commit/56258b4) | 2026-11-26 | Publish bilingual Yacht Dice research and intent-focused guides |
 | [a8f70cd](https://github.com/oyueo-mm/YachtLab/commit/a8f70cd) | 2026-11-26 | Merge pull request #106 from oyueo-mm/codex/yachtlab-stability-20261126 |
 | [a2e53d1](https://github.com/oyueo-mm/YachtLab/commit/a2e53d1) | 2026-11-26 | Fix settings scrolling, invite history and multiplayer shortcuts |
+| [5eeb06d](https://github.com/oyueo-mm/YachtLab/commit/5eeb06d) | 2026-11-26 | feat(audio): loudness-normalized BGM, category mix buses, perceptual volume curve, click fix |
 | [b8f4782](https://github.com/oyueo-mm/YachtLab/commit/b8f4782) | 2026-11-26 | Merge pull request #103 from oyueo-mm/claude/great-sagan-cevdax |
 | [1e288e2](https://github.com/oyueo-mm/YachtLab/commit/1e288e2) | 2026-11-26 | test(ui): explicit 30 s budget for the in-browser tournament; record production rollout |
-| [2788297](https://github.com/oyueo-mm/YachtLab/commit/2788297) | 2026-11-26 | Merge pull request #102 from oyueo-mm/claude/great-sagan-cevdax |
-| [93b2e2c](https://github.com/oyueo-mm/YachtLab/commit/93b2e2c) | 2026-11-26 | Merge remote-tracking branch 'origin/main' into claude/great-sagan-cevdax |
 
 ## 최근 GitHub Actions 상태
 
@@ -133,8 +133,8 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45842304037) | success | 19a5d24c8a |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45841769924) | success | 9e0e45eece |
+| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45844672003) | success | 5d203d3b6e |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45843299705) | success | d6d84148d0 |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45809130867) | success | 93b2e2c5ac |
 
 ## 다음 채팅과 작업의 시작점
