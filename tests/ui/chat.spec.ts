@@ -64,8 +64,14 @@ async function watchFeed(p: Page) {
 async function send(p: Page, label: string, kind: "emote" | "chat", text = label) {
   try {
     await expect(async () => {
-      if (kind === "emote") await p.getByRole("group", { name: "이모티콘 보내기" }).getByRole("button", { name: label, exact: true }).click({ timeout: 2000 });
-      else {
+      const quick = p.getByRole("group", { name: "이모티콘 보내기" }).getByRole("button", { name: label, exact: true });
+      // PC: emotes are one tap on the board; phones open the sheet (two taps).
+      if (kind === "emote" && (await quick.isVisible())) await quick.click({ timeout: 2000 });
+      else if (kind === "emote") {
+        const sheet = p.getByRole("dialog", { name: "채팅·이모티콘" });
+        if (!(await sheet.isVisible())) await p.getByRole("button", { name: "채팅·이모티콘" }).click({ timeout: 2000 });
+        await sheet.getByRole("group", { name: "이모티콘" }).getByRole("button", { name: label, exact: true }).click({ timeout: 2000 });
+      } else {
         const sheet = p.getByRole("dialog", { name: "채팅·이모티콘" });
         if (!(await sheet.isVisible())) await p.getByRole("button", { name: "채팅·이모티콘" }).click({ timeout: 2000 });
         await sheet.getByRole("button", { name: label, exact: true }).click({ timeout: 2000 });
@@ -110,10 +116,17 @@ test("게스트 PC↔휴대폰: 기본 이모티콘 4·채팅 6 전부 양방향
     }
   }
   expect({ board: await phone.locator(".game-board").boundingBox(), roll: await phone.locator(".roll-button").boundingBox() }).toEqual(before);
-  // the feed never covers the dice area or the roll button
-  await expect(phone.locator(".social-seat .anchored-feed")).toHaveCount(2);
-  expect(await phone.locator(".table-chat.near-profile").evaluate((dock) => dock.getBoundingClientRect().bottom))
-    .toBeLessThanOrEqual((await phone.locator(".game-board").boundingBox())!.y + 1);
+  // Bubbles hang under each seat chip on the board; the send button never covers the dice or the roll button.
+  for (const p of [pc, phone]) {
+    await expect(p.locator(".game-board .seat-chip .anchored-feed")).toHaveCount(2);
+    const overlap = await p.evaluate(() => {
+      const r = (q: string) => document.querySelector(q)!.getBoundingClientRect();
+      const hit = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      const dock = r(".board-dock .dock-row");
+      return { roll: hit(dock, r(".roll-button")), dice: hit(dock, r(".game-board .physical-dice, .game-board .dice-row")) };
+    });
+    expect(overlap).toEqual({ roll: false, dice: false });
+  }
 
   // fast taps: the bar says how long to wait and does not send (the server would refuse it)
   await expect(pc.locator(".dock-state")).not.toContainText("초 뒤");

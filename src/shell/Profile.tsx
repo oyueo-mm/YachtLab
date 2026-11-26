@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { LogIn, LogOut, Pencil, ShieldCheck, Trash2, UserRound } from "lucide-react";
-import { graphemes, validateNickname } from "../identity/nickname";
+import { LogIn, LogOut, Pencil, ShieldCheck, Trash2 } from "lucide-react";
+import { validateNickname } from "../identity/nickname";
 import { computeStats, type MatchRecord } from "../identity/records";
 import { guest, importedIds, localRecords, markImported } from "../identity/local";
 import { deleteAccount, importRecords, me, serverRecords, session, setNickname as saveRemoteNickname, signInAvailable, signOut, startSignIn, type Profile as AccountProfile } from "../identity/account-client";
 import { saveName } from "../online/client";
 import { useNickname } from "../identity/display-name";
-import { PlayerTag } from "../play/Looks";
+import { PlayerTag, ProfileAvatar } from "../play/Looks";
 import type { Snapshot } from "../identity/economy-client";
 import { ConfirmDialog, type PendingAction } from "../ui/ConfirmDialog";
 
@@ -106,9 +106,7 @@ export default function Profile({ server, notice, snapshot, accountSettings = fa
   return (
     <section className="profile" aria-labelledby="profile-title">
       <header className="profile-head">
-        {!snapshot && <span className="profile-avatar" aria-hidden="true">
-          {nickname ? graphemes(nickname)[0] : <UserRound size={26} />}
-        </span>}
+        {!snapshot && <span className="profile-avatar" aria-hidden="true"><ProfileAvatar size={48} /></span>}
         <div className="profile-id">
           {editing ? (
             <form

@@ -47,7 +47,9 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
   const [values, setValues] = useState(() => history.get(cacheKey) ?? null);
   const [selected, setSelected] = useState(0);
   const [detailed, setDetailed] = useState(false);
-  const [basicSeat, setBasicSeat] = useState<0 | 1>(() => match.steps[0]?.before.player ?? 0);
+  const [basicSeat, setBasicSeat] = useState<0 | 1>(() => match.me ?? match.steps[0]?.before.player ?? 0);
+  // Seat colours (D-060): me red, opponent blue; without a known seat, seat 0 red / seat 1 blue.
+  const tone = (seat: number) => (match.me === undefined ? (seat === 0 ? "me" : "opp") : seat === match.me ? "me" : "opp");
   const [participant, setParticipant] = useState<0 | 1>(() => match.steps[0]?.before.player ?? 0);
   const [completed, setCompleted] = useState(0);
   const [error, setError] = useState("");
@@ -213,8 +215,8 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
           const assessments = values?.filter(({ index }) => match.steps[index].before.player === seat) ?? [];
           const byScore = accuracy(assessments, "score");
           const byWin = accuracy(assessments, "win");
-          return <div key={seat}>
-            <PlayerTag name={name} look={match.looks?.[seat]} />
+          return <div key={seat} className={"tone-" + tone(seat)} data-tone={tone(seat)}>
+            <PlayerTag name={name} look={match.looks?.[seat]} tone={tone(seat)} me={seat === match.me} />
             <strong>{match.scores[seat]}점</strong>
             {values && <small>판단 정확도 {byScore === undefined ? "—" : fmt(byScore) + "%"}</small>}
             {detailed && values && <small>승리 정확도 {byWin === undefined ? "—" : fmt(byWin) + "%"}</small>}
@@ -281,7 +283,7 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
             {result.winLuck !== undefined && <span>승리점수율 굴림 운 {result.winLuck >= 0 ? "+" : ""}{fmt(result.winLuck * 100)}%p</span>}
           </div>}
           <table className="review-scoreboard" aria-label="당시 점수판">
-            <thead><tr><th scope="col">족보</th>{match.players.map((name, seat) => <th scope="col" key={seat}>{name}</th>)}</tr></thead>
+            <thead><tr><th scope="col">족보</th>{match.players.map((name, seat) => <th scope="col" key={seat} className={"tone-" + tone(seat)}>{name}{seat === match.me ? " (나)" : ""}</th>)}</tr></thead>
             <tbody>
               {categories.map((category) => <tr key={category}>
                 <th scope="row">{names[category]}</th>
