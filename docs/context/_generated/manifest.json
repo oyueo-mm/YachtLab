@@ -56,6 +56,7 @@
     "FOUNDATION-V4-TOURNAMENT.md",
     "FRONTIER-200K-RESEARCH.md",
     "FULLGAME-OFFPOLICY-RESEARCH.md",
+    "GROWTH-2026-11-26.md",
     "HANDOFF.md",
     "LARGE-SCALE-V32-ROADMAP.md",
     "ONLINE-YACHT-PRODUCT.md",
@@ -121,6 +122,36 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "e891c2a",
+      "date": "2026-11-26",
+      "subject": "Merge PR #94: CI shards, board-centred online table, guest shop, SEO pages & calculator, result sharing"
+    },
+    {
+      "sha": "dfd1ba1",
+      "date": "2026-11-26",
+      "subject": "docs(context): growth work, decisions D-060..D-065, measured CI timings"
+    },
+    {
+      "sha": "ad5163f",
+      "date": "2026-11-26",
+      "subject": "feat(seo): search pages, exact odds calculator, real-dice score pad, home title (D-062)"
+    },
+    {
+      "sha": "9f61b33",
+      "date": "2026-11-26",
+      "subject": "feat(shop): guests browse the shop; buying or drawing asks to sign in and restores the view (D-063)"
+    },
+    {
+      "sha": "5954b62",
+      "date": "2026-11-26",
+      "subject": "feat(table): board-centred 1:1 online table, seat colours, silhouette avatar, no-scroll score sheet, reward toast (D-060)"
+    },
+    {
+      "sha": "7d96dba",
+      "date": "2026-11-26",
+      "subject": "ci: classify changes, run Vitest and build in parallel, shard Playwright 4x2, gate deploy (D-061)"
+    },
+    {
       "sha": "187b387",
       "date": "2026-11-26",
       "subject": "Merge PR #93: Win DP v7.1/v7.2 research (9551 result, single-bank I2RO1 confirmed > v4-D, I3, exact solver K=7)"
@@ -139,62 +170,32 @@
       "sha": "e638a62",
       "date": "2026-11-25",
       "subject": "research(v7.2): pre-register final free 'very hard' selection games (family 9591) + latency eligibility (Pixel 7 x4 emulation) for I2R1/I2R1W6/I2RO1B3/v5-B3"
-    },
-    {
-      "sha": "38b99af",
-      "date": "2026-11-26",
-      "subject": "Merge pull request #91 from oyueo-mm/codex/online-yacht-player-ui"
-    },
-    {
-      "sha": "2a6aaa8",
-      "date": "2026-11-26",
-      "subject": "Merge pull request #90 from oyueo-mm/codex/online-yacht-brand"
-    },
-    {
-      "sha": "4346765",
-      "date": "2026-11-25",
-      "subject": "Merge remote-tracking branch 'origin/claude/yachtlab-v7-research-ngcrhe' into claude/serene-planck-15tbo2"
-    },
-    {
-      "sha": "6332349",
-      "date": "2026-11-25",
-      "subject": "docs(context): 9571 verdict in RESULTS/DECISIONS"
-    },
-    {
-      "sha": "3648531",
-      "date": "2026-11-25",
-      "subject": "research(v7.2): clean product benchmarks (Node, Chromium worker, Pixel 7 x4 emulation) for I2RO1/v5-R/I2R1; handoff updated with 9571 verdict and recommendation"
-    },
-    {
-      "sha": "1ec5396",
-      "date": "2026-11-25",
-      "subject": "research(v7.2): product confirmation 9571 — HA1 accepted (I2RO1 vs v4-D 50.548%), HA2 not accepted (vs v5-R 50.064%, p 0.041); same-seed v5-R vs v4-D 50.547%"
     }
   ],
   "recentWorkflowRuns": [
     {
+      "name": "YachtLab gameplay UI targeted smoke",
+      "status": "success",
+      "head": "dfd1ba174d",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45756594267"
+    },
+    {
       "name": "Test and deploy YachtLab",
-      "status": "cancelled",
-      "head": "e7a99336a2",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45725099331"
+      "status": "success",
+      "head": "dfd1ba174d",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45756594253"
     },
     {
       "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
       "status": "success",
-      "head": "e638a623b1",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45717549260"
+      "head": "187b387e51",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45726546327"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
       "status": "success",
       "head": "8e00f3172f",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45717409511"
-    },
-    {
-      "name": "YachtLab gameplay UI targeted smoke",
-      "status": "success",
-      "head": "8e00f3172f",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45686563250"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
