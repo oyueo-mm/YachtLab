@@ -37,7 +37,8 @@ export const routes: Record<Route, { title: string; shell: Shell; tier: "core" |
   "economy-lab": { title: "경제 연구실", shell: "lab", tier: "lab" },
 };
 
-export const homeDescription = "친구나 AI와 무료로 요트다이스를 플레이하세요. 12칸 규칙과 족보, 상단 보너스, 초보 전략을 안내합니다.";
+export const homeDescription = "설치·회원가입 없이 무료로 즐기는 온라인 요트다이스(야추). PC·모바일에서 친구와 링크로 대전하거나 5단계 AI와 겨루고, 족보·확률 계산기·점수판도 쓸 수 있어요.";
+export const homeTitle = "온라인 요트다이스(야추) - 무료 플레이 · AI · 친구 대전 | Online Yacht";
 export const routeDescription: Partial<Record<Route, string>> = {
   online: "빠른 대전에서 상대를 만나거나 초대 링크로 친구와 온라인 요트다이스를 플레이하세요.",
   offline: "요트다이스 AI 대전, 한 기기에서 함께하는 로컬 대전, 반복 가능한 한 차례 연습을 시작하세요.",

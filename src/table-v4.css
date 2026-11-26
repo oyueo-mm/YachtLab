@@ -1,0 +1,720 @@
+/* =====================================================================================================
+   Table v4 (2026-11-26, D-060): seat colours, the default profile picture, the 1:1 online table drawn
+   around the board, and a score sheet without its own scroll bar.
+   Loaded last; every rule is scoped so other screens keep their layout.
+   ===================================================================================================== */
+
+/* ---------- seat colours: me = brand red, 1:1 opponent = blue, more seats get distinct hues ---------- */
+:root {
+  --tone-me: #d93636;
+  --tone-me-soft: #fdecec;
+  --tone-opp: #2f6fde;
+  --tone-opp-soft: #e9f0fd;
+  --tone-p3: #0f9488;
+  --tone-p4: #c77700;
+  --tone-p5: #7c4ddb;
+  --tone-p6: #d0428a;
+  --tone-p7: #4d7c0f;
+  --tone-p8: #64748b;
+}
+.tone-me { --tone: var(--tone-me); --tone-soft: var(--tone-me-soft); }
+.tone-opp { --tone: var(--tone-opp); --tone-soft: var(--tone-opp-soft); }
+.tone-p3 { --tone: var(--tone-p3); --tone-soft: #e3f5f3; }
+.tone-p4 { --tone: var(--tone-p4); --tone-soft: #fbf0dd; }
+.tone-p5 { --tone: var(--tone-p5); --tone-soft: #efe9fb; }
+.tone-p6 { --tone: var(--tone-p6); --tone-soft: #fbe8f2; }
+.tone-p7 { --tone: var(--tone-p7); --tone-soft: #eef5e2; }
+.tone-p8 { --tone: var(--tone-p8); --tone-soft: #eef1f5; }
+
+/* ---------- profile picture: equipped item or the grey person silhouette ---------- */
+.player-icon.is-default {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: 50%;
+  overflow: hidden;
+  line-height: 0;
+}
+.player-icon .default-avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.player-icon.big.is-default {
+  font-size: 34px;
+}
+.profile-avatar .player-icon.is-default {
+  width: 48px;
+  height: 48px;
+}
+.top-profile-button .player-tag.compact .player-name {
+  display: none;
+}
+.top-profile-button .player-icon {
+  font-size: 22px;
+}
+.top-profile-button .player-icon.is-default {
+  width: 30px;
+  height: 30px;
+}
+/* Seat ring: the colour is a second cue next to "나" and the side of the board. */
+.player-icon[class*="tone-"] {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--tone);
+}
+
+/* ---------- score sheet columns in seat colours ---------- */
+.scoreboard.toned thead th[class*="tone-"] .score-col-name {
+  color: var(--tone);
+}
+.scoreboard.toned thead th.current[class*="tone-"] {
+  box-shadow: inset 0 -3px 0 var(--tone);
+}
+.scoreboard.toned thead th.current .turn-badge {
+  background: var(--tone);
+}
+.scoreboard.toned td.tone-opp .score-option {
+  border-color: #b8ccf3;
+  background: var(--tone-opp-soft);
+  color: #1f4fa8;
+}
+.scoreboard.toned td.tone-opp .fixed-score {
+  color: #1f4fa8;
+}
+.scoreboard.toned td.tone-me .fixed-score {
+  color: var(--red-deep);
+}
+.scoreboard.toned .total-row td.tone-opp {
+  color: #9bbdff;
+}
+
+/* =====================================================================================================
+   1:1 online table: seats on the board's top edge, chat on the board, nothing in rows above it
+   ===================================================================================================== */
+.app-shell .table-v4 .game-left > .game-tools {
+  min-height: 0;
+  margin-bottom: 8px;
+  padding-bottom: 0;
+}
+.app-shell .table-v4 .game-board {
+  position: relative;
+  overflow: visible;
+}
+.app-shell .table-v4 .game-board > .score-summary.seat-bar {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.table-v4 .seat-chip {
+  position: relative;
+  display: block;
+  min-width: 0;
+  max-width: 48%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.table-v4 .seat-chip[data-role="opponent"] {
+  margin-left: auto;
+}
+.table-v4 .seat-chip-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-height: 42px;
+  padding: 4px 12px 4px 5px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 7%);
+  color: #f1f1f1;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.table-v4 .seat-chip[data-role="opponent"] .seat-chip-main {
+  flex-direction: row-reverse;
+  padding: 4px 5px 4px 12px;
+}
+.table-v4 .seat-chip-main:hover {
+  background: rgb(255 255 255 / 12%);
+}
+.table-v4 .seat-chip.selected .seat-chip-main {
+  border-color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 22%, transparent);
+  box-shadow: 0 0 0 1px var(--tone), 0 0 16px color-mix(in srgb, var(--tone) 45%, transparent);
+}
+.table-v4 .seat-chip.away .seat-chip-main {
+  opacity: 0.65;
+}
+.table-v4 .seat-chip .player-tag {
+  min-width: 0;
+  gap: 7px;
+}
+.table-v4 .seat-chip[data-role="opponent"] .player-tag {
+  flex-direction: row-reverse;
+}
+.table-v4 .seat-chip .player-icon {
+  font-size: 20px;
+}
+.table-v4 .seat-chip .player-icon.is-default {
+  width: 30px;
+  height: 30px;
+}
+.table-v4 .seat-chip .player-name {
+  max-width: 14ch;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+.table-v4 .seat-chip-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+.table-v4 .seat-chip-meta em {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--tone);
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+.table-v4 .seat-chip-meta .ai-badge {
+  background: #555;
+}
+.table-v4 .seat-turn {
+  color: var(--tone);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  filter: brightness(1.45);
+}
+.table-v4 .seat-chip-main > strong {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  flex: none;
+  margin: 0;
+  color: #fff;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.table-v4 .seat-chip-main > strong small {
+  color: #bbb;
+  font-size: 11px;
+  font-weight: 600;
+}
+/* Chat bubbles: right under the sender's chip, over the board's empty top band (never on the controls). */
+.app-shell .table-v4 .seat-chip .anchored-feed {
+  position: absolute;
+  z-index: 7;
+  top: calc(100% + 6px);
+  right: auto;
+  bottom: auto;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: max-content;
+  max-width: min(320px, 44vw);
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  pointer-events: none;
+}
+.app-shell .table-v4 .seat-chip[data-role="opponent"] .anchored-feed {
+  right: 0;
+  left: auto;
+  align-items: flex-end;
+}
+.table-v4 .anchored-feed .feed-msg {
+  position: relative;
+  max-width: 100%;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--tone, var(--orange)), 0 6px 18px rgb(0 0 0 / 35%);
+}
+.table-v4 .seat-chip .anchored-feed .feed-msg::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 18px;
+  width: 10px;
+  height: 10px;
+  background: inherit;
+  box-shadow: inset 2px 2px 0 0 var(--tone, var(--orange));
+  transform: rotate(45deg);
+}
+.table-v4 .seat-chip[data-role="opponent"] .anchored-feed .feed-msg::before {
+  right: 18px;
+  left: auto;
+}
+.table-v4 .anchored-feed .feed-msg .feed-from {
+  display: none;
+}
+.table-v4 .anchored-feed .feed-msg.emote {
+  height: auto;
+  padding: 2px 10px;
+  background: #fff;
+  animation: emote-pop 0.32s cubic-bezier(0.2, 1.6, 0.4, 1), feed-out 0.4s ease-in 3.8s forwards;
+}
+.table-v4 .anchored-feed .feed-msg.emote .feed-text {
+  font-size: 30px;
+  line-height: 1.2;
+}
+@keyframes emote-pop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.6); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-v4 .anchored-feed .feed-msg.emote {
+    animation: feed-out 0.01s linear 4s forwards !important;
+  }
+}
+/* Seat details popover (avatar click). */
+.table-v4 .seat-popover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  display: grid;
+  gap: 8px;
+  width: 240px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 28%);
+  color: var(--ink);
+}
+.table-v4 .seat-chip[data-role="opponent"] .seat-popover {
+  right: 0;
+  left: auto;
+}
+.table-v4 .seat-popover .player-name {
+  color: var(--ink);
+  font-weight: 750;
+}
+.table-v4 .seat-popover-line {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+/* Connection notices: a slim strip over the board's top band, never a row that moves the board. */
+.table-v4 .board-banner {
+  position: absolute;
+  z-index: 8;
+  top: 58px;
+  left: 50%;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.app-shell .table-v4 .board-banner .online-banner {
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgb(20 20 20 / 88%);
+  color: #ffd7d7;
+  font-size: 13px;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 15%);
+}
+/* Send bar: bottom-left corner of the board (desktop: frequent emotes are one tap). */
+.app-shell .table-v4 .game-board > .board-dock {
+  position: absolute;
+  z-index: 9;
+  left: 12px;
+  bottom: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.table-v4 .board-dock .social-dock {
+  flex-direction: column-reverse;
+  align-items: flex-start;
+}
+.table-v4 .board-dock .dock-row {
+  gap: 4px;
+  overflow: visible;
+}
+.table-v4 .board-dock .dock-emote {
+  width: 38px;
+  height: 38px;
+  border-color: rgb(255 255 255 / 14%);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 9%);
+  font-size: 19px;
+}
+.table-v4 .board-dock .dock-emote:hover:enabled {
+  background: rgb(255 255 255 / 18%);
+}
+.table-v4 .board-dock .dock-chat {
+  height: 38px;
+  margin-left: 2px;
+  padding: 0 12px;
+  border-color: rgb(255 255 255 / 14%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 9%);
+  color: #eee;
+}
+.table-v4 .board-dock .dock-state {
+  max-width: 260px;
+  height: 16px;
+  color: #c8c8c8;
+}
+.table-v4 .board-dock .dock-state.error {
+  color: #ff9c9c;
+}
+.app-shell .table-v4 .board-dock .social-panel.dock-sheet {
+  position: absolute;
+  top: auto;
+  right: auto;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: min(340px, calc(100vw - 32px));
+  max-height: min(62dvh, 460px);
+  overflow-y: auto;
+  color: var(--ink);
+}
+/* Keep the roll area clear of the send bar on narrow boards. */
+.app-shell .table-v4 .game-board {
+  padding-bottom: 58px;
+}
+
+/* ---------- score sheet: all 12 rows, bonus and total visible without its own scroll bar ----------
+   From 700 px tall (1366×768 and up). Shorter landscape screens cannot fit 15 rows at a readable size
+   and keep the previous in-panel scroll (responsive.css). */
+@media (min-width: 761px) and (min-height: 700px) {
+  .shell-game .game-grid > .scoreboard {
+    max-height: none;
+    overflow: visible;
+  }
+  .app-shell .game-grid > .scoreboard .section-row {
+    display: none;
+  }
+  .app-shell .game-grid > .scoreboard .score-title {
+    min-height: 0;
+    padding-block: 8px 6px;
+  }
+  .app-shell .game-grid > .scoreboard .score-title h2 {
+    font-size: 16px;
+  }
+  .app-shell .game-grid > .scoreboard thead th {
+    height: 34px;
+    padding-block: 2px;
+  }
+  .app-shell .game-grid > .scoreboard tbody th,
+  .app-shell .game-grid > .scoreboard tbody td {
+    height: clamp(30px, calc((100dvh - 250px) / 15), 40px);
+    padding-block: 0;
+  }
+  .app-shell .game-grid > .scoreboard .score-option,
+  .app-shell .game-grid > .scoreboard .fixed-score {
+    min-height: 0;
+    height: calc(clamp(30px, calc((100dvh - 250px) / 15), 40px) - 6px);
+  }
+  .app-shell .game-grid > .scoreboard .bonus-row th,
+  .app-shell .game-grid > .scoreboard .bonus-row td {
+    height: 38px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .app-shell .game-grid > .scoreboard .total-row th,
+  .app-shell .game-grid > .scoreboard .total-row td {
+    height: 40px;
+  }
+  .app-shell .game-grid > .scoreboard thead th:not(:first-child) {
+    width: 92px;
+    min-width: 76px;
+  }
+}
+
+/* ---------- phones: seats stay on the board; the send bar folds to one button + 2 emotes ---------- */
+@media (max-width: 760px) {
+  .app-shell .page-online-room .table-v4 .game-left > .score-summary {
+    display: none;
+  }
+  .table-v4 .seat-chip .player-name {
+    max-width: 9ch;
+    font-size: 13px;
+  }
+  .table-v4 .seat-chip-main {
+    gap: 6px;
+    min-height: 38px;
+    padding-right: 10px;
+  }
+  .table-v4 .seat-chip[data-role="opponent"] .seat-chip-main {
+    padding-left: 10px;
+  }
+  .table-v4 .seat-chip-main > strong {
+    font-size: 18px;
+  }
+  .table-v4 .seat-chip .player-icon.is-default {
+    width: 26px;
+    height: 26px;
+  }
+  .app-shell .table-v4 .game-board > .board-dock {
+    left: 8px;
+    bottom: 8px;
+  }
+  .table-v4 .board-dock .dock-emote:nth-child(n + 3) {
+    display: none;
+  }
+  .table-v4 .board-dock .dock-chat span {
+    display: none;
+  }
+  .table-v4 .board-dock .dock-chat {
+    width: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+  .app-shell .table-v4 .board-dock .social-panel.dock-sheet {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    left: 12px;
+    width: auto;
+  }
+  .app-shell .table-v4 .seat-chip .anchored-feed {
+    max-width: 62vw;
+  }
+}
+
+/* ---------- overrides of the older score strip rules (mobile-play-v2.css, online.css) ---------- */
+.app-shell .page-online-room .table-v4 .score-summary.seat-bar > div.seat-chip {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.app-shell .page-online-room .table-v4 .game-board > .score-summary.seat-bar {
+  display: flex;
+  order: 0;
+  width: auto;
+  margin: 0 0 4px;
+}
+.app-shell .table-v4 .seat-chip-main > strong {
+  font-size: 20px;
+  line-height: 1;
+}
+.table-v4 .seat-popover .bonus-chip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 13px;
+}
+@media (max-width: 760px) {
+  .app-shell .table-v4 .seat-chip-main > strong {
+    font-size: 18px;
+  }
+  .table-v4 .seat-chip {
+    max-width: 41%;
+  }
+  .table-v4 .seat-turn {
+    display: none;
+  }
+  /* Phones: one chat button at the top centre between the seats; emotes are in its sheet (2 taps). */
+  .app-shell .table-v4 .game-board > .board-dock {
+    top: 14px;
+    bottom: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .table-v4 .board-dock .dock-row > .dock-emote {
+    display: none;
+  }
+  .table-v4 .board-dock .dock-state {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .app-shell .table-v4 .game-board {
+    padding-bottom: 12px;
+  }
+}
+.app-shell .table-v4 .game-board > .score-summary.seat-bar {
+  align-self: stretch;
+  width: auto;
+}
+.app-shell .table-v4 .seat-chip .player-tag {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+}
+.app-shell .table-v4 .seat-chip[data-role="opponent"] .player-tag {
+  flex-direction: row-reverse;
+}
+.app-shell .table-v4 .seat-chip .player-tag > * {
+  display: inline-flex;
+}
+.app-shell .table-v4 .seat-chip .player-tag > .player-name {
+  display: block;
+}
+.table-v4 .board-dock .dock-state:empty {
+  display: none;
+}
+.table-v4 .board-dock .dock-state {
+  width: max-content;
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .table-v4 .seat-chip {
+    max-width: 40%;
+  }
+  .table-v4 .seat-chip-main > strong small {
+    display: none;
+  }
+  .table-v4 .seat-chip .player-name {
+    max-width: 8ch;
+  }
+  .table-v4 .board-dock .dock-chat {
+    width: 36px;
+    height: 36px;
+  }
+  .table-v4 .board-dock .dock-state {
+    padding: 2px 8px;
+    border-radius: 8px;
+    background: rgb(20 20 20 / 90%);
+  }
+}
+@media (max-width: 760px) {
+  /* No transform here: it would make the fixed bottom sheet position against the dock. */
+  .app-shell .table-v4 .game-board > .board-dock {
+    right: 0;
+    left: 0;
+    width: max-content;
+    margin: 0 auto;
+    transform: none;
+  }
+}
+@media (max-width: 760px) {
+  /* My chip: "나" + ring + left side identify me; the opponent keeps the name. */
+  .table-v4 .seat-chip[data-role="human"] .player-name {
+    display: none !important;
+  }
+}
+
+/* AI / local games: the mobile score strip uses the same seat colours. */
+.app-shell .score-summary > div[class*="tone-"].selected {
+  border-color: var(--tone);
+  box-shadow: inset 0 0 0 1px var(--tone);
+}
+.app-shell .score-summary > div.tone-opp:not(.seat-chip) strong {
+  color: #1f4fa8;
+}
+
+/* Home: help and tool links in one quiet row under the modes. */
+.lobby-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 16px;
+}
+.lobby-links > a:not(.lobby-guide) {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Deferred sign-in prompt (shop, draw). */
+.login-prompt {
+  width: min(420px, calc(100vw - 32px));
+  padding: 20px;
+}
+.login-prompt h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+.login-prompt p {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.login-prompt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.shop-guest-note {
+  margin: 4px 0 10px;
+}
+
+/* Result share sheet. */
+.share-sheet {
+  width: min(560px, calc(100vw - 24px));
+  padding: 16px;
+}
+.share-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.share-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.share-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1200 / 630;
+  margin: 10px 0;
+  border-radius: 10px;
+}
+.share-names {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.share-note {
+  min-height: 1.4em;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Game review: the same seat colours (separate from the green/amber/red judgement marks). */
+.review-match > div[class*="tone-"] {
+  border-top: 3px solid var(--tone);
+}
+.review-match > div[class*="tone-"] strong {
+  color: var(--tone);
+}
+.review-scoreboard thead th[class*="tone-"] {
+  color: var(--tone);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

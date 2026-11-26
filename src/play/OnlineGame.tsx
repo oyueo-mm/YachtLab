@@ -1,6 +1,7 @@
 import { BrandMark } from "../ui/BrandLoading";
 import { MatchRewardSummary } from "../shell/MatchRewards";
 import { MatchResult } from "../ui/MatchResult";
+import { ShareResultButton } from "../ui/ShareResult";
 import ReviewLauncher from "../review/ReviewLauncher";
 import { rememberOnlineReview } from "../review/online-history";
 import { fromOnline } from "../review/sources";
@@ -32,7 +33,8 @@ import type { LobbyState, RematchState, SeriesSummary, SpectateState } from "../
 import { LobbyPanel, MultiTable } from "./OnlineMulti";
 import { SpectateControl } from "./Social";
 import { SocialDock, TableFeed, useTableChat } from "./SocialDock";
-import { PlayerTag, useBoardTheme, diceLookOf, diceMaterialOf } from "./Looks";
+import { PlayerTag, useBoardTheme, diceLookOf, diceMaterialOf, toneOf } from "./Looks";
+import { SeatChips } from "./SeatChips";
 import { GUEST_LOOK, itemById, type PublicLook } from "../economy/live/catalog";
 import type { FxLook } from "../economy/live/content-items";
 import { FxBurst } from "./FxBurst";
@@ -368,7 +370,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   };
   const labels = players.map((p) => p.name) as [string, string];
   /** PC score sheet headers (the top summary is phone-only): who I am, who is the server AI. */
-  const scoreLabels = players.map((p) => p.name + (p.playerId === me?.playerId ? " (나)" : p.playerId === aiSeat ? " · AI" : "")) as [string, string];
+  const scoreLabels = players.map((p) => (p.playerId === me?.playerId ? "나" : p.name + (p.playerId === aiSeat ? " · AI" : ""))) as [string, string];
   const can = myTurn && !sending && !rolling && status === "online";
   const allHeld = keep.length === 5;
   const canRoll = can && rolls < 3 && !(rolls > 0 && allHeld);
@@ -627,7 +629,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
     );
   return (
     <>
-      <div className="game-grid online-game">
+      <div className="game-grid online-game table-v4">
         <div className="game-left">
           <div className="game-tools online-tools">
             <span className="online-code-chip">
@@ -640,32 +642,6 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
               </button>
             )}
           </div>
-          <div className="score-summary">
-            {players.map((p, seatIndex) => (
-              <div key={p.playerId} className={`social-seat${!finished && turnIndex === seatIndex ? " selected" : ""}`} data-seat={seatIndex} data-role={p.playerId === me?.playerId ? "human" : "opponent"}>
-                <span>
-                  <PlayerTag name={p.name} look={looks[p.playerId]} me={p.playerId === me?.playerId} compact />
-                  {p.playerId === me?.playerId ? " (나)" : ""}
-                  {p.playerId === aiSeat && <span className="ai-badge">서버 AI</span>}
-                </span>
-                <strong>
-                  <ScoreTotal value={p.total} />
-                  <small>점</small>
-                </strong>
-                <TableFeed chat={chat} names={nameMap} looks={looks} me={me?.playerId ?? null} from={p.playerId} />
-              </div>
-            ))}
-            <div className="round">
-              <span>라운드</span>
-              <strong>
-                {Math.min(12, turn?.round ?? 12)}
-                <small>/ 12</small>
-              </strong>
-            </div>
-            {me && <BonusChip card={players[meIndex]?.card ?? {}} />}
-          </div>
-          <div className="table-chat near-profile">{dock}</div>
-          {banner}
           <section
             className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (canRoll && nearYacht(game.dice, rolls, players[meIndex]?.card) ? " yacht-near" : "") + theme.className}
             style={theme.style}
@@ -675,12 +651,26 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
             <Celebrate value={celebration} />
             {intro && playing && me && opponent && (
               <div className="quick-match-intro" role="status" aria-label="빠른 대전 매칭 완료">
-                <PlayerTag name={players[meIndex].name} look={looks[me.playerId] ?? GUEST_LOOK} me />
+                <PlayerTag name={players[meIndex].name} look={looks[me.playerId] ?? GUEST_LOOK} me tone="me" />
                 <strong aria-hidden="true">VS</strong>
-                <PlayerTag name={opponent.name} look={looks[opponent.playerId] ?? GUEST_LOOK} />
+                <PlayerTag name={opponent.name} look={looks[opponent.playerId] ?? GUEST_LOOK} tone="opp" />
               </div>
             )}
             {yachtFx && <FxBurst key={yachtFx.seed} fx={yachtFx.fx} level={yachtFx.level} seed={yachtFx.seed} />}
+            {/* Seats, chat bubbles, the send button and connection notices sit on the board's edges (D-060). */}
+            <SeatChips
+              players={players}
+              me={me?.playerId ?? null}
+              turn={turn?.playerId ?? null}
+              finished={finished}
+              looks={looks}
+              online={online}
+              aiSeat={aiSeat}
+              feed={(id) => <TableFeed chat={chat} names={nameMap} looks={looks} me={me?.playerId ?? null} from={id} />}
+              onProfile={(id) => members[id] && setProfileOf(members[id])}
+            />
+            {banner && <div className="board-banner">{banner}</div>}
+            <div className="table-chat board-dock">{dock}</div>
             <div className="board-top">
               <span className="turn-indicator">
                 <i />
@@ -711,6 +701,12 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
                 invitation={!!rematch?.requests.some((id) => id !== me?.playerId)}
                 actions={<>
                   {reviewButton}
+                  {me && opponent && <ShareResultButton facts={{
+                    outcome: outcome ?? "draw",
+                    me: { name: players[meIndex].name, total: players[meIndex].total, yachts: players[meIndex].card.yacht === 50 ? 1 : 0 },
+                    opponent: { name: opponent.name, total: opponent.total, yachts: opponent.card.yacht === 50 ? 1 : 0 },
+                    kind: aiSeat ? "온라인 · 서버 AI 대전" : "온라인 대전",
+                  }} />}
                   <RematchControls rematch={rematch} me={me?.playerId ?? ""} opponentName={opponent?.name ?? "상대"} onOp={(op) => conn.current?.rematch(op)} />
                   <button className="secondary" onClick={leaveFinishedMatch}>나가기</button>
                 </>}>
@@ -739,7 +735,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           )}
           <ErrorMessage message={error} />
         </div>
-        <Scoreboard state={game} labels={scoreLabels} round={game.round} selectPlayer={meIndex} select={can ? record : undefined} />
+        <Scoreboard state={game} labels={scoreLabels} tones={[toneOf(0, meIndex === 0 && !!me, meIndex), toneOf(1, meIndex === 1 && !!me, meIndex)]} round={game.round} selectPlayer={meIndex} select={can ? record : undefined} />
       </div>
       {profileOf && <OpponentProfile server={server} userId={profileOf} onClose={() => setProfileOf(null)} />}
       <ConfirmDialog

@@ -32,7 +32,8 @@ export function fromReplay(replay: Replay): ReviewSource {
   });
   return { id: replay.metadata.id, players: [replay.metadata.players[0].name, replay.metadata.players[1].name],
     scores: [total(replay.finalState.cards[0]), total(replay.finalState.cards[1])],
-    winners: replay.finalState.winner === "draw" || replay.finalState.winner === null ? [0, 1] : [replay.finalState.winner], device: true, steps };
+    winners: replay.finalState.winner === "draw" || replay.finalState.winner === null ? [0, 1] : [replay.finalState.winner], device: true,
+    ...(replay.metadata.players.filter((p) => p.type === "human").length === 1 ? { me: replay.metadata.players[0].type === "human" ? 0 as const : 1 as const } : {}), steps };
 }
 
 export function fromMultiReplay(replay: MultiReplay): ReviewSource {

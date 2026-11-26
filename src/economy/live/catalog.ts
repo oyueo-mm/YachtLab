@@ -102,7 +102,8 @@ const items: ItemDef[] = [
   item({ id: "bubble.mint", category: "bubble", tier: "common", name: "민트", acquisition: "either", look: { css: "bubble-mint" } }),
   item({ id: "bubble.gold", category: "bubble", tier: "epic", name: "골드", acquisition: "either", look: { css: "bubble-gold" } }),
   // profile icons
-  item({ id: "profile.die", category: "profile", tier: "basic", name: "주사위", acquisition: "default", look: { text: "🎲" } }),
+  // The default profile is a neutral person silhouette (rendered by ProfileAvatar), not a die: a die read as a dice skin.
+  item({ id: "profile.die", category: "profile", tier: "basic", name: "기본 프로필", acquisition: "default", look: {} }),
   item({ id: "profile.star", category: "profile", tier: "common", name: "별", acquisition: "either", look: { text: "⭐" } }),
   item({ id: "profile.whale", category: "profile", tier: "rare", name: "고래", acquisition: "gems", look: { text: "🐳" } }),
   item({ id: "profile.crown", category: "profile", tier: "epic", name: "왕관", acquisition: "either", look: { text: "👑" } }),

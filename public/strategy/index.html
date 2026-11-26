@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>요트다이스 전략·공략 | 야추 확률로 보는 킵 선택 · Online Yacht</title>
+  <meta name="description" content="정확한 확률 계산으로 정리한 요트다이스(야추) 전략: 상단 보너스, 요트 도전 시점, 스트레이트·풀 하우스 킵, 흔한 실수.">
+  <link rel="canonical" href="https://oyueo-mm.github.io/YachtLab/strategy/">
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48">
+  <link rel="stylesheet" href="../site/page.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Online Yacht">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:title" content="요트다이스 전략·공략 | 야추 확률로 보는 킵 선택 · Online Yacht">
+  <meta property="og:description" content="정확한 확률 계산으로 정리한 요트다이스(야추) 전략: 상단 보너스, 요트 도전 시점, 스트레이트·풀 하우스 킵, 흔한 실수.">
+  <meta property="og:url" content="https://oyueo-mm.github.io/YachtLab/strategy/">
+  <meta property="og:image" content="https://oyueo-mm.github.io/YachtLab/icons/share.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Online Yacht 워드마크와 주사위 눈이 들어간 돛단배 로고">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Online Yacht","item":"https://oyueo-mm.github.io/YachtLab/"},{"@type":"ListItem","position":2,"name":"전략","item":"https://oyueo-mm.github.io/YachtLab/strategy/"}]}]}</script>
+</head>
+<body>
+  <header class="site-top"><div class="top">
+    <a class="brand" href="../"><img src="../icons/online-yacht-wordmark.svg" alt="Online Yacht 홈" width="139" height="32"></a>
+    <a class="play" href="../#online">지금 플레이</a>
+  </div>
+  <nav class="site-nav" aria-label="사이트"><a href="../">홈</a><a href="../guide/">규칙</a><a href="../scores/">족보·점수판</a><a href="../probability/">확률 계산기</a><a href="../strategy/" aria-current="page">전략</a><a href="../ai/">AI 대전</a><a href="../multiplayer/">친구 대전</a><a href="../faq/">FAQ</a></nav></header>
+  <main>
+<article>
+      <h1>요트다이스 전략과 공략</h1>
+      <p class="lead">아래 숫자는 공정한 주사위를 기준으로 모든 경우를 정확히 계산한 값입니다. 각 칸을 따로 노릴 때의 확률이므로 서로 겹칩니다. 직접 상황을 넣어 보려면 <a href="../probability/">확률 계산기</a>를 쓰세요.</p>
+      <h2>한 차례(세 번 굴림)에 노릴 때 성공 확률</h2>
+      <table>
+        <caption>그 칸만 노리고 최선으로 킵할 때</caption>
+        <thead><tr><th scope="col">목표</th><th scope="col">성공 확률</th><th scope="col">기대 점수</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">스몰 스트레이트</th><td>61.54%</td><td>9.23점</td></tr>
+          <tr><th scope="row">풀 하우스</th><td>36.29%</td><td>6.97점</td></tr>
+          <tr><th scope="row">특정 눈 3개 이상 (상단)</th><td>35.48%</td><td>헥사 12.64점</td></tr>
+          <tr><th scope="row">포커</th><td>29.08%</td><td>5.61점</td></tr>
+          <tr><th scope="row">라지 스트레이트</th><td>26.11%</td><td>7.83점</td></tr>
+          <tr><th scope="row">요트</th><td>4.60%</td><td>2.30점</td></tr>
+        </tbody>
+      </table>
+      <h2>상단 보너스 63점</h2>
+      <p>각 눈을 3개씩 적으면 정확히 63점입니다. 그래서 상단 칸은 "3개 기준보다 몇 점 앞서 있는가"로 생각하면 쉽습니다. 헥사 4개는 +6, 펜타 2개는 −5입니다. 앞서 있는 점수는 뒤에서 낮은 칸을 0점이나 1~2개로 메울 여유가 됩니다.</p>
+      <ul>
+        <li>헥사·펜타·쿼드는 3개 이상일 때 상단에 적는 것을 먼저 검토하세요.</li>
+        <li>에이스·듀스는 점수가 작아 보너스 계산에 영향이 적습니다. 늦은 라운드의 실패 칸으로 쓰기 좋습니다.</li>
+      </ul>
+      <h2>킵 선택 예시</h2>
+      <table>
+        <caption>남은 굴림에 따른 확률</caption>
+        <thead><tr><th scope="col">상황</th><th scope="col">목표</th><th scope="col">재굴림 1번</th><th scope="col">재굴림 2번</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">2·3·4·5 킵</th><td>라지 스트레이트</td><td>33.33%</td><td>55.56%</td></tr>
+          <tr><th scope="row">1·2·3·4 킵</th><td>라지 스트레이트</td><td>16.67%</td><td>30.56%</td></tr>
+          <tr><th scope="row">같은 눈 4개 킵</th><td>요트</td><td>16.67%</td><td>30.56%</td></tr>
+          <tr><th scope="row">같은 눈 3개 킵</th><td>요트</td><td>2.78%</td><td>9.34%</td></tr>
+          <tr><th scope="row">두 쌍(예: 3·3·2·2) 킵</th><td>풀 하우스</td><td>33.33%</td><td>55.56%</td></tr>
+          <tr><th scope="row">3·4·5 킵</th><td>스몰 스트레이트</td><td>55.56%</td><td>80.25%</td></tr>
+        </tbody>
+      </table>
+      <p>양쪽이 열린 2·3·4·5는 1·2·3·4보다 라지 스트레이트 확률이 두 배입니다.</p>
+      <h2>요트 도전은 언제?</h2>
+      <p>세 번 굴림을 모두 요트에 써도 성공 확률은 4.60%입니다. 같은 눈 3개가 나왔고 굴림이 두 번 남았다면 9.34%, 4개라면 30.56%입니다. 초반에 요트 칸을 비워 두면 이후 차례마다 기회가 생기므로, 일찍 0점으로 버리기보다 다른 칸과 비교해 판단하세요.</p>
+      <h2>점수 차이에 따라 전략이 달라집니다</h2>
+      <p>혼자 기대점수를 최대화하는 선택과 상대를 이기는 선택은 다를 수 있습니다. 크게 앞서 있으면 안정적인 칸을, 뒤처져 있으면 요트·라지 스트레이트 같은 큰 점수를 노리는 편이 이길 가능성을 높일 때가 있습니다. <a href="../ai/">AI 대전</a>의 매우 어려움 AI는 이런 승리 중심 판단을 합니다.</p>
+      <h2>흔한 실수</h2>
+      <ul>
+        <li>초이스 칸을 초반 높은 합계가 아닌데 써 버리기 — 초이스는 나중의 안전한 실패 칸입니다.</li>
+        <li>스트레이트를 노리며 같은 눈 두 개를 모두 킵하기 — 중복된 눈은 한 개만 남기세요.</li>
+        <li>상단 보너스를 계산하지 않고 낮은 상단 칸을 일찍 채우기.</li>
+      </ul>
+      <p class="cta"><a class="button" href="../#online">지금 무료로 플레이</a> <a class="button ghost" href="../#offline">AI와 연습하기</a></p>
+    </article>
+  </main>
+  <footer class="site-foot">
+    <p>Online Yacht는 12칸 요트다이스(야추) 규칙을 쓰는 무료 웹 게임입니다. Hasbro의 Yahtzee® 공식 제품이 아니며 제휴 관계가 없습니다.</p>
+    <p><a href="../">무료로 플레이</a> · <a href="../guide/">규칙</a> · <a href="../faq/">자주 묻는 질문</a></p>
+  </footer>
+</body>
+</html>

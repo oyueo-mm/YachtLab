@@ -14,11 +14,15 @@ import "./profile.css";
 import "./items.css";
 import "./items-content.css";
 import "./onboarding.css";
+import "./table-v4.css";
+import { captureAttribution } from "./analytics/attribution";
 
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { updateViaCache: "none" }).catch(() => undefined);
 }
 
+// Campaign links: remember first/latest utm_* on this device and tidy the address bar (D-065).
+captureAttribution();
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <App />
