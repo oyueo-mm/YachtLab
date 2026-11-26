@@ -14,10 +14,11 @@ import OnlineWatch from "./play/OnlineWatch";
 import Profile from "./shell/Profile";
 import MatchRewards, { type PendingReward } from "./shell/MatchRewards";
 import { completeSignIn, session } from "./identity/account-client";
+import { peekResume } from "./shell/login-resume";
 import { syncAccountNickname } from "./identity/display-name";
 import { FriendsPage, InviteToasts, refreshInbox, startInbox } from "./shell/Friends";
 import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl } from "./online/client";
-import { currentRoute, homeDescription, researchToolsEnabled, routeDescription, routes, type Route } from "./routes";
+import { currentRoute, homeDescription, homeTitle, researchToolsEnabled, routeDescription, routes, type Route } from "./routes";
 import { useProfileEconomy } from "./shell/profile-economy";
 import { LabNav, SettingsDialog, TopBar } from "./shell/Chrome";
 import InstallBanner from "./shell/InstallBanner";
@@ -87,6 +88,13 @@ export default function App() {
   useEffect(() => {
     void completeSignIn(onlineServer).then((r) => {
       if (!r) return;
+      // A guest who signed in from the shop goes back to the same shop view (nothing is bought).
+      const resume = r.ok ? peekResume() : null;
+      if (resume) {
+        history.replaceState(history.state, "", location.pathname + location.search + "#" + resume.route);
+        enter(resume.route);
+        return;
+      }
       setProfileNotice(r.message);
       enter("profile");
     });
@@ -178,7 +186,7 @@ export default function App() {
   }, []);
   useEffect(() => {
     window.scrollTo?.(0, 0);
-    document.title = page === "home" ? "온라인 요트다이스 · Online Yacht" : routes[page].title + " · Online Yacht";
+    document.title = page === "home" ? homeTitle : routes[page].title + " · Online Yacht";
     document.querySelector('meta[name="description"]')?.setAttribute("content", routeDescription[page] ??
       (page === "home" ? homeDescription : `Online Yacht의 ${routes[page].title} 화면입니다.`));
   }, [page]);

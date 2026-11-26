@@ -74,10 +74,29 @@ test("상단과 사이드바에서 상품과 활동으로 이동할 수 있다",
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test("로그인 전에는 상점이 로그인을 안내한다(가짜 잔액 없음)", async ({ page }) => {
+test("비회원도 상점을 둘러보고 미리보기하며, 구매를 누를 때만 로그인 팝업이 열린다(가짜 잔액·요청 없음)", async ({ page }) => {
+  const writes: string[] = [];
+  page.on("request", (r) => r.method() !== "GET" && r.method() !== "OPTIONS" && r.url().startsWith(SERVER) && writes.push(r.url()));
+  await page.route(SERVER + "/api/auth/config", (route) => route.fulfill({ json: { google: true }, headers: { "access-control-allow-origin": "*" } }));
   await page.goto(`?online-server=${encodeURIComponent(SERVER)}#shop`);
-  await expect(page.getByText("로그인한 회원의 서버 검증 경기로만")).toBeVisible();
   await expect(page.getByTestId("coins")).toHaveCount(0);
+  await expect(page.getByText("둘러보기와 미리보기는 로그인 없이")).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  const dice = page.getByRole("region", { name: "주사위" });
+  await expect(dice.locator(".item-card").first()).toBeVisible();
+  await page.getByRole("tab", { name: /^주사위/ }).click();
+  const card = page.getByRole("list", { name: "주사위 상품" }).locator(".item-card").filter({ has: page.locator(".item-card-price") }).first();
+  await card.getByRole("button", { name: /자세히/ }).click();
+  const detail = page.locator("dialog.item-detail");
+  await expect(detail).toBeVisible();
+  await detail.getByRole("button", { name: /구매/ }).first().click();
+  const prompt = page.getByRole("dialog", { name: /로그인이 필요해요/ });
+  await expect(prompt).toBeVisible();
+  await expect(prompt.getByRole("button", { name: "Google로 로그인" })).toBeVisible();
+  await prompt.getByRole("button", { name: "계속 둘러보기" }).click();
+  await expect(prompt).toHaveCount(0);
+  await expect(detail).toBeVisible();
+  expect(writes).toEqual([]);
 });
 
 test("상점: 가로 상품 목록·상품군 탭·등급/가격 필터·업적 전용 표시, 상세에서 미리보기 후 확인을 거쳐 구매(요청 ID)", async ({ page }) => {

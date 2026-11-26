@@ -14,6 +14,8 @@ import { useNickname } from "../identity/display-name";
 import { ItemStage, ItemThumb, LevelTabs, categoryLabel, tierLabel } from "./ItemViews";
 import type { Route } from "../routes";
 import "./shop-browse.css";
+import { signInAvailable, startSignIn } from "../identity/account-client";
+import { clearResume, peekResume, saveResume, type ShopResume } from "./login-resume";
 
 /**
  * Phase 5/6 pages: 상점 (shop), 인벤토리 (inventory / equip / upgrade), 퀘스트, 업적. Separate pages,
@@ -63,6 +65,51 @@ function Gate({ server, go, children }: { server: string | null; go: Go; childre
       </div>
     );
   return <>{children}</>;
+}
+
+/**
+ * Shown only when a guest tries something that changes their items (buy, draw, upgrade, equip).
+ * Browsing, previews and odds never ask. `resume` is the view to come back to after signing in.
+ */
+export function LoginPrompt({ server, action, resume, onClose, go }: { server: string | null; action: string; resume: Omit<ShopResume, "at">; onClose: () => void; go: Go }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [available, setAvailable] = useState<boolean | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    dialog.current?.showModal();
+    let alive = true;
+    void signInAvailable(server).then((ok) => alive && setAvailable(ok));
+    return () => {
+      alive = false;
+    };
+  }, [server]);
+  const signIn = async () => {
+    if (!server) return;
+    saveResume(resume);
+    try {
+      await startSignIn(server);
+    } catch (e) {
+      clearResume();
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+  return (
+    <dialog ref={dialog} className="modal login-prompt" aria-labelledby="login-prompt-title" onCancel={(e) => { e.preventDefault(); onClose(); }}>
+      <h2 id="login-prompt-title">{action}하려면 로그인이 필요해요</h2>
+      <p>코인·보석과 아이템은 계정에 저장돼요. 로그인한 뒤 이 화면으로 돌아오고, 최신 가격과 잔액을 확인한 다음 다시 한 번 확인을 눌러야 구매돼요.</p>
+      {error && <p className="error-message" role="alert">{error}</p>}
+      <div className="login-prompt-actions">
+        {available ? (
+          <button type="button" className="primary" onClick={() => void signIn()}>Google로 로그인</button>
+        ) : (
+          <button type="button" className="primary" onClick={() => { onClose(); go("account"); }} disabled={available === null}>
+            {available === null ? "확인 중…" : "로그인 화면으로"}
+          </button>
+        )}
+        <button type="button" className="secondary" onClick={onClose}>계속 둘러보기</button>
+      </div>
+    </dialog>
+  );
 }
 
 const ownedMap = (snap: Snapshot | null) => new Map((snap?.inventory ?? []).map((i) => [i.id, i.level]));
@@ -173,12 +220,25 @@ export function ItemsPage({ server, go, route }: { server: string | null; go: Go
       <button type="button" role="tab" aria-selected={route === "inventory"} onClick={() => route !== "inventory" && go("inventory")}>인벤토리</button>
     </div>
     <ShopPage server={server} go={go} economyState={economyState} active={route === "shop"} />
-    {route === "draw" && <>
-      {(!server || !signedIn()) && <div role="tabpanel" aria-label="뽑기 확률"><DrawOdds pool="standard" /></div>}
-      <Gate server={server} go={go}>{server && <DrawPanel server={server} onWallet={economyState.setSnap} />}</Gate>
-    </>}
+    {route === "draw" && (server && signedIn()
+      ? <DrawPanel server={server} onWallet={economyState.setSnap} />
+      : <GuestDraw server={server} go={go} />)}
     <InventoryPage server={server} go={go} economyState={economyState} active={route === "inventory"} />
   </section>;
+}
+
+/** Guests: the odds are public; drawing asks to sign in (the view comes back afterwards). */
+function GuestDraw({ server, go }: { server: string | null; go: Go }) {
+  const [ask, setAsk] = useState(false);
+  return (
+    <div role="tabpanel" aria-label="뽑기 확률">
+      <DrawOdds pool="standard" />
+      <p className="login-prompt-actions">
+        <button type="button" className="primary" onClick={() => setAsk(true)}>뽑기</button>
+      </p>
+      {ask && <LoginPrompt server={server} action="뽑기" resume={{ route: "draw", cat: null, tier: "all", price: "all", item: null, scrollY: window.scrollY }} go={go} onClose={() => setAsk(false)} />}
+    </div>
+  );
 }
 
 function ShopPage({ server, go, economyState, active }: EconomyProps) {
@@ -189,10 +249,27 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
   const [open, setOpen] = useState<ItemDef | null>(null);
   const [confirm, setConfirm] = useState<{ item: ItemDef; currency: "coins" | "gems"; amount: number } | null>(null);
   const [notice, setNotice] = useState("");
+  const [askLogin, setAskLogin] = useState<string | null>(null);
+  const member = !!server && signedIn();
   const owned = ownedMap(snap);
   const wallet = snap?.wallet ?? { coins: 0, gems: 0 };
-  const forSale = ITEMS.filter((i) => !i.retired && i.acquisition !== "default" &&
-    (!i.season || (snap?.serverTime !== undefined && seasonActive(i.season, snap.serverTime))));
+  // Guests see the catalogue too (seasons by this device's clock until the server's time is known).
+  const now = snap?.serverTime ?? Date.now();
+  const forSale = ITEMS.filter((i) => !i.retired && i.acquisition !== "default" && (!i.season || seasonActive(i.season, now)));
+  // Back from sign-in: the same tab, filters, item and scroll position — never an automatic purchase.
+  useEffect(() => {
+    if (!active || !member || !snap) return;
+    const resume = peekResume();
+    if (!resume || resume.route !== "shop") return;
+    clearResume();
+    setCat((resume.cat as ItemCategory | null) ?? null);
+    setTier(resume.tier as TierId | "all");
+    setPrice(resume.price as PriceFilter);
+    const item = itemById(resume.item);
+    if (item) setOpen(item);
+    requestAnimationFrame(() => window.scrollTo(0, resume.scrollY));
+  }, [active, member, snap]);
+  const resumeState = (item: ItemDef | null) => ({ route: "shop" as const, cat, tier, price, item: item?.id ?? null, scrollY: window.scrollY });
   const counts = Object.fromEntries(CATEGORIES.map((c) => [c.id, forSale.filter((i) => i.category === c.id).length])) as Record<ItemCategory, number>;
   const list = forSale.filter((i) => {
     if ((cat && i.category !== cat) || (tier !== "all" && i.tier !== tier)) return false;
@@ -218,12 +295,12 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
     return (
       <span className="item-card-price">
         {c !== null && (
-          <span className={c > wallet.coins ? "short" : ""}>
+          <span className={member && c > wallet.coins ? "short" : ""}>
             <Coins size={12} /> {fmt(c)}
           </span>
         )}
         {g !== null && (
-          <span className={g > wallet.gems ? "short" : ""}>
+          <span className={member && g > wallet.gems ? "short" : ""}>
             <Gem size={12} /> {fmt(g)}
           </span>
         )}
@@ -236,7 +313,7 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
   if (!active) return null;
   return (
     <section className="shop-page" role="tabpanel" aria-label="상품">
-      <Gate server={server} go={go}>
+        {!member && <p className="econ-note shop-guest-note">둘러보기와 미리보기는 로그인 없이 할 수 있어요. 구매·뽑기·강화·장착은 로그인 후 이용할 수 있어요.</p>}
         <CategoryTabs value={cat} onChange={setCat} counts={counts} all={() => setCat(null)} />
         <div className="econ-filters">
           <select aria-label="등급" value={tier} onChange={(e) => setTier(e.target.value as TierId | "all")}>
@@ -251,7 +328,7 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
             <option value="all">모든 가격</option>
             <option value="coins">코인으로 살 수 있는 것</option>
             <option value="gems">보석으로 살 수 있는 것</option>
-            <option value="afford">지금 살 수 있는 것</option>
+            {member && <option value="afford">지금 살 수 있는 것</option>}
           </select>
         </div>
         {busy && <p className="econ-note" role="status"><BrandMark /> 처리 중…</p>}
@@ -276,6 +353,7 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
           );
         })}
         <h2 className="econ-sub">장착 슬롯 확장</h2>
+        <Gate server={server} go={go}>
         <div className="slot-shop">
           {(["emote", "chat"] as const).map((kind) => {
             const have = snap?.slots[kind] ?? SLOTS[kind].base;
@@ -302,7 +380,8 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
             );
           })}
         </div>
-      </Gate>
+        </Gate>
+      {askLogin && <LoginPrompt server={server} action={askLogin} resume={resumeState(open)} go={go} onClose={() => setAskLogin(null)} />}
       {active && open && (
         <ItemDetail item={open} initialLevel={1} onClose={() => setOpen(null)}>
           {() => {
@@ -319,9 +398,15 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
                 </>
               );
             if (i.acquisition === "achievement") return <span className="shop-owned">업적으로만 얻을 수 있어요</span>;
-            if (!signedIn()) return null;
             const c = priceOf(i, "coins"),
               g = priceOf(i, "gems");
+            if (!member)
+              return (
+                <>
+                  {c !== null && <button type="button" className="primary" onClick={() => setAskLogin("구매")} aria-label={`${i.name} 코인 ${c}으로 구매`}><Coins size={15} /> {fmt(c)} 코인으로 구매</button>}
+                  {g !== null && <button type="button" className="secondary" onClick={() => setAskLogin("구매")} aria-label={`${i.name} 보석 ${g}으로 구매`}><Gem size={15} /> {fmt(g)} 보석으로 구매</button>}
+                </>
+              );
             return (
               <>
                 {c !== null && (
