@@ -115,6 +115,9 @@ test("한 차례 연습과 튜토리얼은 3D 테이블의 충돌·착지·킵�
   await page.goto("#practice");
   const guide = page.getByRole("region", { name: "한 차례 연습하기" });
   const tray = guide.locator(".physical-dice");
+  const shelf = tray.locator(".dice-hold-area");
+  await expect(shelf).toHaveAttribute("aria-hidden", "true");
+  await expect(shelf).not.toHaveAttribute("aria-label", /.+/);
   await expect(tray.locator("canvas")).toBeVisible();
   const roll = guide.getByRole("button", { name: "주사위 굴리기" });
   await roll.click();
@@ -137,6 +140,7 @@ test("한 차례 연습과 튜토리얼은 3D 테이블의 충돌·착지·킵�
   }
   await dice.nth(0).click();
   await expect(dice.nth(0)).toHaveAttribute("data-zone", "hold");
+  await expect(tray.getByRole("button", { name: "주사위 1, 6, 고정됨", exact: true })).toHaveAttribute("aria-pressed", "true");
   await dice.nth(1).click();
   await expect(dice.nth(1)).toHaveAttribute("data-zone", "hold");
   await dice.nth(1).click();
