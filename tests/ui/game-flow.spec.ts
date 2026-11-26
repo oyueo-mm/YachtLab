@@ -325,10 +325,11 @@ test("WebGL을 쓸 수 없으면 2.5D 연출로 대체되고 3D 품질은 선택
   await expect(page.locator(".die-button").first()).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "다시 굴리기" }).click();
   await expect(page.locator(".dice-animating")).toHaveCount(0, { timeout: 2000 });
-  expect(Object.keys((await lastRoll(page))!.targets)).toHaveLength(4);
+  // The record is written when the re-roll starts; under load that can be after the check above.
+  await expect.poll(async () => Object.keys((await lastRoll(page))?.targets ?? {}).length).toBe(4);
   await page.getByRole("button", { name: "설정", exact: true }).click();
-  const quality = page.getByRole("combobox", { name: "주사위 애니메이션 품질" });
-  expect(await quality.locator("option").evaluateAll((o) => (o as HTMLOptionElement[]).filter((x) => x.disabled).map((x) => x.value))).toEqual(["3d-high", "3d"]);
+  await page.getByRole("combobox", { name: "주사위 애니메이션 품질" }).click();
+  expect(await page.getByRole("option").evaluateAll((o) => o.filter((x) => x.getAttribute("aria-disabled") === "true").map((x) => x.textContent?.trim()))).toEqual(["고화질", "성능 우선"]);
   await expect(page.getByRole("dialog", { name: "설정" })).toContainText("3D를 지원하지 않아");
 });
 

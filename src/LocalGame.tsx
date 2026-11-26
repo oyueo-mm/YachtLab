@@ -15,7 +15,8 @@ import { useYachtReady } from "./yacht-moment";
 import { QuickPicks } from "./QuickPicks";
 import MobileQuickScore from "./MobileQuickScore";
 import { saveMultiReplay } from "./multi-replay-storage";
-import { total, names as categoryNames, type Action, type Category } from "./engine";
+import { categories, total, names as categoryNames, type Action, type Category } from "./engine";
+import { useGameShortcuts } from "./ui/shortcuts";
 import { useGameSounds, useThrowGesture } from "./game-feel";
 import { Celebrate } from "./ui/Celebrate";
 import { ConfirmDialog, type PendingAction } from "./ui/ConfirmDialog";
@@ -119,6 +120,13 @@ export default function LocalGame({
   const gesture = useThrowGesture(canAct && state.rolls < 3, () => act({ type: "roll" }));
   const yachtReady = useYachtReady(state.dice, state.rolls, !state.done && state.cards[state.player]?.yacht === undefined);
   const celebration = useGameSounds(state.cards, state.done, state.done ? "win" : null);
+  // LocalGame has no keyboard score preview sheet; Enter records the category chosen with ↑/↓.
+  const keys = useGameShortcuts({
+    active: canAct && !state.done, dice: state.dice, rolls: state.rolls, canRoll: canAct && state.rolls < 3, roll: () => act({ type: "roll" }),
+    toggle: (id) => act({ type: "hold", ids: state.dice.filter((d) => (d.id === id ? !d.held : d.held)).map((d) => d.id) }),
+    setAll: (held) => act({ type: "hold", ids: held ? state.dice.map((d) => d.id) : [] }),
+    open: categories.filter((c) => state.cards[state.player]?.[c] === undefined), record: recordScore,
+  });
   return (
     <div className="multi-local-game">
       <div className="game-tools multi-game-tools">
@@ -177,6 +185,7 @@ export default function LocalGame({
               <FirstTurnGuide rolls={state.rolls} active={showGuide && active} busy={rolling} />
               {!showGuide && !state.done && !rolling && state.rolls === 3 && <p>점수 칸을 선택하세요</p>}
               <QuickPicks values={state.dice.map((d) => d.value)} card={state.cards[state.player]} rolls={state.rolls} canScore={canAct && !state.done} onScore={recordScore} />
+              {keys.label && <p className="kbd-pick" role="status">{keys.label}</p>}
             </div>
             {state.done && (
               <MatchResult waiting={!!celebration} title={state.winners.length === 1 ? names[state.winners[0]] + " 승리!" : count === 2 ? "무승부" : "공동 우승"}

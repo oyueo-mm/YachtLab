@@ -26,6 +26,10 @@ import { Lobby, OfflineSelect, OnlineSoon } from "./shell/Lobby";
 import { AiSetupScreen, LocalSetupScreen } from "./shell/Setup";
 import { ConfirmDialog } from "./ui/ConfirmDialog";
 import { installAudioUnlock } from "./sound";
+import { installBgm, type BgmScene } from "./audio/bgm";
+import { useBgmScene } from "./audio/useBgm";
+import { ToastHost } from "./ui/kit";
+import { installShortcuts, ShortcutHelpHost } from "./ui/shortcuts";
 import { useUpdateAvailable } from "./version";
 import { diceRenderer } from "./settings";
 import { preloadDiceTableWhenIdle } from "./dice3d-loader";
@@ -46,6 +50,15 @@ const localAiConfig = () => {
   const setup = getAiSetup();
   return aiMatchConfig({ ...setup, research: setup.research && researchToolsEnabled() });
 };
+
+/** Background music by screen (a match, the review and the result dialog ask for their own). */
+function sceneOf(page: Route): BgmScene {
+  if (routes[page].shell === "lab") return "none";
+  if (page === "play" || page === "pvp") return "game";
+  if (page === "online" || page === "online-room" || page === "spectate") return "lobby";
+  if (page === "shop" || page === "inventory" || page === "draw") return "shop";
+  return "home";
+}
 
 export default function App() {
   const tutorialDestination = useRef<"play" | "pvp" | null>(null);
@@ -156,6 +169,8 @@ export default function App() {
   };
   useEffect(() => {
     installAudioUnlock();
+    installBgm();
+    installShortcuts();
     if (diceRenderer().startsWith("3d")) preloadDiceTableWhenIdle();
     if (typeof history.state?.idx !== "number") history.replaceState({ idx: historyIndex.current }, "");
     // Back / forward / a hash typed in the address bar. Leaving a game in progress asks first;
@@ -192,6 +207,7 @@ export default function App() {
     window.scrollTo?.(0, 0);
   }, [page]);
   const shell = routes[page].shell;
+  useBgmScene(sceneOf(page));
   // Online screens need the latest page (server protocol); an old cached page asks for a reload.
   const updateAvailable = useUpdateAvailable(page === "online" || page === "online-room" || page === "spectate" ? page : null);
   const progress = (value: boolean) => {
@@ -324,6 +340,8 @@ export default function App() {
           </Suspense>
         )}
       </main>
+      <ShortcutHelpHost />
+      <ToastHost />
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} inGame={shell === "game"} />
       <ConfirmDialog
         open={leaveTo !== null}

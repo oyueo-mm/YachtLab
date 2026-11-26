@@ -4,21 +4,18 @@
  * Each page answers one search intent; 요트다이스·야추 are the same game here, so they share pages
  * instead of duplicate copies.
  */
+import { FAQ_GROUPS, FAQ_ITEMS, GUIDE } from "./rules-content.mjs";
+
 const play = (label = "지금 무료로 플레이") => `<p class="cta"><a class="button" href="../#online">${label}</a> <a class="button ghost" href="../#offline">AI와 연습하기</a></p>`;
 
-const faqItems = [
-  ["요트다이스와 야추는 같은 게임인가요?", "국내에서는 주사위 5개를 최대 세 번 굴려 족보 칸에 점수를 적는 게임을 요트다이스, 요트 다이스, 야추라고 부릅니다. Online Yacht는 12칸 규칙(에이스~헥사, 초이스, 포커, 풀 하우스, 스몰·라지 스트레이트, 요트)과 63점 상단 보너스 35점을 씁니다."],
-  ["야찌(Yahtzee)와 무엇이 다른가요?", "미국식 Yahtzee®는 13칸(3 of a kind 포함)이고 풀 하우스 25점, 스몰 스트레이트 30점, 라지 스트레이트 40점, 추가 요트 보너스와 조커 규칙이 있습니다. Online Yacht의 요트다이스는 12칸이며 풀 하우스는 다섯 눈의 합, 스몰 15점, 라지 30점이고 추가 요트 보너스가 없습니다. Online Yacht는 Hasbro의 Yahtzee 공식 제품이 아닙니다."],
-  ["설치나 회원가입이 필요한가요?", "아니요. 브라우저에서 바로 AI 대전, 한 기기 대전, 친구 초대 대전을 할 수 있습니다. 계정 기록·재화·친구 목록 같은 회원 기능만 로그인이 필요합니다."],
-  ["휴대폰에서도 되나요?", "네. PC·휴대폰·태블릿 브라우저를 지원하고, 홈 화면에 추가하면 앱처럼 열 수 있습니다. 오프라인 AI 대전은 한 번 연 뒤 인터넷 없이도 열립니다."],
-  ["친구와 어떻게 같이 하나요?", "온라인 대전에서 친구 대전을 고르고 방을 만든 뒤 초대 링크나 6자리 코드를 보내면 됩니다. 2명부터 최대 20명까지 한 방에서 플레이할 수 있습니다."],
-  ["AI는 얼마나 강한가요?", "다섯 단계가 있습니다. 매우 어려움은 1:1 승리를 목표로 학습·계산한 AI입니다. 혼자 최고 점수를 노리는 기대점수 최적 AI(DP Expert)의 평균은 정확 계산으로 약 191.8점입니다."],
-  ["요트가 두 번 나오면 어떻게 하나요?", "요트 칸은 한 번만 씁니다. 이미 채웠다면 포커, 초이스, 해당 눈의 상단 칸 등 남은 칸에 적으세요. 추가 요트 보너스는 없습니다."],
-  ["0점을 적어도 되나요?", "네. 조건이 맞지 않는 칸에도 0점으로 기록할 수 있습니다. 남은 칸이 나쁠 때 요트나 에이스 칸을 0점으로 쓰는 것도 흔한 선택입니다."],
-  ["실제 주사위로 할 때 점수를 적을 곳이 있나요?", "있습니다. 족보·점수판 페이지에서 인원을 정하고 점수를 입력하면 상단 보너스와 합계, 승자를 자동으로 계산합니다. 기록은 이 기기에만 저장됩니다."],
-];
+const faqItems = FAQ_ITEMS.map(([q, a]) => [q, a]);
+const faqHtml = FAQ_GROUPS.map(([title, items], i) => `<section class="faq-group" id="faq-${i + 1}">
+        <h2>${title}</h2>
+        ${items.map(([q, a, link]) => `<details class="qa"><summary>${q}</summary><div><p>${a}</p>${link ? `<p><a href="${link[0]}">${link[1]} →</a></p>` : ""}</div></details>`).join("\n        ")}
+      </section>`).join("\n      ");
 
 export const PAGES = [
+  GUIDE,
   {
     path: "faq/",
     crumb: "자주 묻는 질문",
@@ -28,9 +25,10 @@ export const PAGES = [
     body: `
     <article>
       <h1>요트다이스·야추 자주 묻는 질문</h1>
-      <p class="lead">Online Yacht에서 자주 받는 질문을 모았습니다. 규칙 전체는 <a href="../guide/">규칙과 족보</a>에 있습니다.</p>
-      ${faqItems.map(([q, a]) => `<details open><summary>${q}</summary><p>${a}</p></details>`).join("\n      ")}
-      <h2>미국식 Yahtzee와 규칙 비교</h2>
+      <p class="lead">궁금한 항목을 누르면 답이 열립니다. 규칙 전체는 <a href="../guide/">규칙과 족보</a>에 있습니다.</p>
+      <nav class="toc" aria-label="질문 분류">${FAQ_GROUPS.map(([title], i) => `<a href="#faq-${i + 1}">${title}</a>`).join("")}<a href="#compare">Yahtzee 비교</a></nav>
+      ${faqHtml}
+      <h2 id="compare">미국식 Yahtzee와 규칙 비교</h2>
       <table>
         <caption>점수 규칙 비교</caption>
         <thead><tr><th scope="col">항목</th><th scope="col">Online Yacht (요트다이스·야추)</th><th scope="col">미국식 Yahtzee</th></tr></thead>

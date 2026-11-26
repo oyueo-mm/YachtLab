@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { pickOption } from "./helpers";
 import { SEEDS, fixSeed, withMotion } from "./helpers";
 
 const isMobile = (page: Page) => (page.viewportSize()?.width ?? 1440) <= 760;
@@ -125,7 +126,7 @@ test("설정: 음소거·음량·애니메이션 품질·모션 간단히가 브
   await expect(dialog.getByRole("button", { name: /내 기록|연구실/ })).toHaveCount(0);
   await expect(dialog).toContainText("설정 변경");
   await dialog.getByRole("slider", { name: "효과음 음량" }).fill("30");
-  await dialog.getByRole("combobox", { name: "주사위 애니메이션 품질" }).selectOption("2.5d");
+  await pickOption(dialog, "주사위 애니메이션 품질", "간단 (2.5D)");
   await dialog.getByRole("switch", { name: "모션 간단히" }).check();
   await dialog.getByRole("switch", { name: "효과음" }).uncheck();
   await expect(dialog.getByRole("slider", { name: "효과음 음량" })).toBeDisabled();
@@ -134,12 +135,12 @@ test("설정: 음소거·음량·애니메이션 품질·모션 간단히가 브
   await expect(page.getByRole("switch", { name: "효과음", exact: true })).not.toBeChecked();
   await page.getByRole("button", { name: "설정 닫기" }).click();
   await page.reload();
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("yachtlab.settings.v1")!))).toEqual({ muted: true, volume: 0.3, reducedEffects: true, diceQuality: "2.5d", opponentFx: true });
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("yachtlab.settings.v1")!))).toEqual({ muted: false, sfx: false, volume: 0.3, bgm: true, bgmVolume: 0.3, fxQuality: "auto", shortcuts: true, reducedEffects: true, diceQuality: "2.5d", opponentFx: true });
   await page.getByRole("button", { name: "설정", exact: true }).click();
   await expect(page.getByRole("switch", { name: "효과음" })).not.toBeChecked();
   await expect(page.getByRole("slider", { name: "효과음 음량" })).toHaveValue("30");
   await expect(page.getByRole("switch", { name: "모션 간단히" })).toBeChecked();
-  await expect(page.getByRole("combobox", { name: "주사위 애니메이션 품질" })).toHaveValue("2.5d");
+  await expect(page.getByRole("combobox", { name: "주사위 애니메이션 품질" })).toHaveText("간단 (2.5D)");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "설정" })).toHaveCount(0);
   // Broken storage must not break the game.

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { MATERIAL_ORDER, finalValue, simulateThrow, type SimInput, type SimResult } from "./physics";
-import { paintFace, type DiceLook } from "./face-paint";
+import { paintFace, paintGlowMap, type DiceLook } from "./face-paint";
 
 /**
  * three.js renderer for pre-simulated dice throws. Loaded lazily (separate chunk) only when the
@@ -22,6 +22,15 @@ export function faceTexture(value: number, px: number, colors: DiceColors = CLAS
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;
+  return texture;
+}
+
+export function glowTexture(value: number, px: number, colors: DiceColors): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = px;
+  paintGlowMap(canvas.getContext("2d")!, value, px, colors);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
 

@@ -15,7 +15,11 @@ export type DiceLook = {
   /** Emissive colour (glow) — pips / pattern light up. */
   glow?: string;
   anim?: DiceAnim;
+  /** Legacy (before 2026-11-26): generic trail kind. Kept so older saved looks still parse. */
   trail?: DiceTrail;
   landing?: boolean;
+  /** Upgrade effect profile (dice item id, see dice-fx.ts) and the level it is shown at (2 or 3). */
+  fx?: string;
+  fxLevel?: number;
 };
 

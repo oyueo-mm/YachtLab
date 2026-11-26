@@ -34,14 +34,11 @@ export function Lobby({ navigate }: { navigate: Go }) {
           <ArrowRight className="mode-arrow" size={20} aria-hidden="true" />
         </button>
       </div>
+      {/* Users see the two help pages; every search page stays linked from them, the static index.html
+          shell (no JavaScript) and the sitemap. */}
       <nav className="lobby-links" aria-label="도구와 안내">
-        <a className="lobby-guide" href={`${import.meta.env.BASE_URL}guide/`}> <BookOpen size={17} aria-hidden="true" /> 규칙과 전략</a>
-        <a href={`${import.meta.env.BASE_URL}strategy/`}>초보 전략</a>
-        <a href={`${import.meta.env.BASE_URL}probability/`}>확률 계산기</a>
-        <a href={`${import.meta.env.BASE_URL}scores/`}>점수판</a>
-        <a href={`${import.meta.env.BASE_URL}ai/`}>AI 대전</a>
-        <a href={`${import.meta.env.BASE_URL}multiplayer/`}>친구 멀티플레이</a>
-        <a href={`${import.meta.env.BASE_URL}faq/`}>FAQ</a>
+        <a className="lobby-guide" href={`${import.meta.env.BASE_URL}guide/`}> <BookOpen size={17} aria-hidden="true" /> 규칙</a>
+        <a href={`${import.meta.env.BASE_URL}faq/`}>자주 묻는 질문</a>
       </nav>
     </section>
   );

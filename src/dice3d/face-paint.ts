@@ -274,3 +274,26 @@ export function contrast(a: string, b: string) {
   const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
   return (x + 0.05) / (y + 0.05);
 }
+
+/**
+ * Emission mask for Lv.2/Lv.3 glow (2026-11-26): black everywhere except the pips and, for neon dice,
+ * the rim. Used as the material's emissiveMap so a glowing die lights up its pips / rim only — the body
+ * keeps its own colour (before, the whole die was tinted by the glow colour).
+ */
+export function paintGlowMap(g: Ctx, value: number, px: number, look: DiceLook) {
+  const k = px / 100;
+  g.fillStyle = "#000";
+  g.fillRect(0, 0, px, px);
+  g.fillStyle = g.strokeStyle = "#fff";
+  if (look.pattern === "neon") {
+    g.lineWidth = 3 * k;
+    g.beginPath();
+    g.roundRect(9 * k, 9 * k, 82 * k, 82 * k, 14 * k);
+    g.stroke();
+  }
+  for (const [x, y] of PIPS[value]) {
+    g.beginPath();
+    g.arc(x * k, y * k, 7.4 * k, 0, Math.PI * 2);
+    g.fill();
+  }
+}

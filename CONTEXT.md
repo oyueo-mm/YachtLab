@@ -15,6 +15,8 @@
 
 > **온라인 요트다이스 제품 개편** → [브랜드, 메뉴, 검색 및 배포 인수인계](docs/context/ONLINE-YACHT-PRODUCT.md).
 >
+> **게임 완성도·꾸미기 개편(주사위 30·보드 20·이모티콘 41 강화 연출, 설정 시트, 자체 작곡 BGM, 키보드 단축키, 규칙·FAQ 개편)** → [POLISH-2026-11-26](docs/context/POLISH-2026-11-26.md) (D-068~D-073).
+>
 > **검색엔진 등록·수집 자동화(IndexNow Bing·네이버, 콘텐츠 lastmod, 배포 후 검증)** → [SEO-AUTOMATION](docs/context/SEO-AUTOMATION.md) (D-067).
 >
 > **제품 개선·성장 기반(2026-11-26: CI 샤드, 게임판 중심 UI, 비회원 상점, SEO 페이지·계산기, 공유, UTM)** → [GROWTH-2026-11-26](docs/context/GROWTH-2026-11-26.md) (D-060~D-065, 완료/미완료 구분).

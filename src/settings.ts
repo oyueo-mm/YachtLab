@@ -2,10 +2,20 @@ import { useSyncExternalStore } from "react";
 
 /** Player-facing presentation settings, persisted in this browser only. */
 export type Settings = {
-  /** Sound effects are off. */
+  /** Master mute: every sound (effects and music) is off. Older saves used it for effects only. */
   muted: boolean;
-  /** Master sound-effect volume, 0..1. */
+  /** Sound effects on (dice, scores, emotes, item sounds). */
+  sfx: boolean;
+  /** Sound-effect volume, 0..1. */
   volume: number;
+  /** Background music on. */
+  bgm: boolean;
+  /** Background music volume, 0..1. */
+  bgmVolume: number;
+  /** Item / board / emote effect detail: auto (by device), high, low (fewer particles, no ambient motion). */
+  fxQuality: FxQuality;
+  /** PC keyboard shortcuts for play and review. */
+  shortcuts: boolean;
   /** Shorter, lighter dice motion (for low-end devices or personal preference). */
   reducedEffects: boolean;
   /** Dice renderer: auto (3D when WebGL is usable), 3D high/standard, or the original 2.5D CSS motion. */
@@ -13,18 +23,26 @@ export type Settings = {
   /** Show other players' showy item effects (animations, nickname effects) and their item sounds. */
   opponentFx: boolean;
 };
+export type FxQuality = "auto" | "high" | "low";
+export const fxQualities: readonly FxQuality[] = ["auto", "high", "low"];
 export type DiceQuality = "auto" | "3d-high" | "3d" | "2.5d";
 export const diceQualities: readonly DiceQuality[] = ["auto", "3d-high", "3d", "2.5d"];
 
 export const SETTINGS_KEY = "yachtlab.settings.v1";
-export const defaultSettings: Settings = { muted: false, volume: 0.7, reducedEffects: false, diceQuality: "auto", opponentFx: true };
+export const defaultSettings: Settings = { muted: false, sfx: true, volume: 0.7, bgm: true, bgmVolume: 0.3, fxQuality: "auto", shortcuts: true, reducedEffects: false, diceQuality: "auto", opponentFx: true };
 
 function sanitize(raw: unknown): Settings {
   const value = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
-  const volume = typeof value.volume === "number" && Number.isFinite(value.volume) ? Math.min(1, Math.max(0, value.volume)) : defaultSettings.volume;
+  const unit = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : d);
+  const bool = (v: unknown, d: boolean) => (typeof v === "boolean" ? v : d);
   return {
-    muted: typeof value.muted === "boolean" ? value.muted : defaultSettings.muted,
-    volume,
+    muted: bool(value.muted, defaultSettings.muted),
+    sfx: bool(value.sfx, defaultSettings.sfx),
+    volume: unit(value.volume, defaultSettings.volume),
+    bgm: bool(value.bgm, defaultSettings.bgm),
+    bgmVolume: unit(value.bgmVolume, defaultSettings.bgmVolume),
+    fxQuality: fxQualities.includes(value.fxQuality as FxQuality) ? (value.fxQuality as FxQuality) : defaultSettings.fxQuality,
+    shortcuts: bool(value.shortcuts, defaultSettings.shortcuts),
     reducedEffects: typeof value.reducedEffects === "boolean" ? value.reducedEffects : defaultSettings.reducedEffects,
     diceQuality: diceQualities.includes(value.diceQuality as DiceQuality) ? (value.diceQuality as DiceQuality) : defaultSettings.diceQuality,
     opponentFx: typeof value.opponentFx === "boolean" ? value.opponentFx : defaultSettings.opponentFx,
@@ -106,3 +124,23 @@ export function diceRenderer(settings: Settings = current): DiceRenderer {
   if (settings.diceQuality === "auto") return "3d-high";
   return settings.diceQuality;
 }
+
+/** Sound effects audible right now (master mute, effects switch and volume). */
+export const sfxAudible = (s: Settings = current) => !s.muted && s.sfx && s.volume > 0;
+/** Background music audible right now. */
+export const bgmAudible = (s: Settings = current) => !s.muted && s.bgm && s.bgmVolume > 0;
+
+/**
+ * Effect detail for cosmetic particles (dice trails, board reactions, emote particles): 1 = full,
+ * 0.5 = light, 0 = none. Never touches dice motion or results. System "reduce motion" → 0.
+ */
+export function fxBudget(settings: Settings = current): number {
+  const level = motionLevel(settings);
+  if (level === "none") return 0;
+  if (settings.fxQuality === "low") return 0.4;
+  if (settings.fxQuality === "high") return level === "lite" ? 0.6 : 1;
+  const narrow = typeof window !== "undefined" && window.innerWidth < 560;
+  return level === "lite" ? 0.4 : narrow ? 0.7 : 1;
+}
+/** Listen to settings changes outside React (audio engine). */
+export const subscribeSettings = (fn: () => void) => subscribe(fn);

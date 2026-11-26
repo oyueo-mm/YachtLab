@@ -1,0 +1,122 @@
+/* Emote motions (src/emote-fx.ts). Each emote has its own movement (Lv.2+); Lv.1 only pops in once. */
+.emote-glyph {
+  position: relative;
+  display: inline-block;
+  transform-origin: 50% 70%;
+  animation: emote-in 0.28s cubic-bezier(.3, 1.6, .5, 1);
+}
+.emote-glyph .emote-fx-canvas {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 140px;
+  height: 140px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+@keyframes emote-in {
+  from { transform: scale(0.4); opacity: 0; }
+}
+.emote-glyph.lv2,
+.emote-glyph.lv3 {
+  animation-duration: 1.3s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: 2;
+}
+.emote-glyph.lv3 { filter: drop-shadow(0 0 6px rgba(255, 230, 140, 0.45)); }
+
+.emote-glyph[data-anim="tilt"] { animation-name: e-tilt; }
+@keyframes e-tilt { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-12deg); } 60% { transform: rotate(8deg); } }
+.emote-glyph[data-anim="popper"] { animation-name: e-popper; transform-origin: 20% 90%; }
+@keyframes e-popper { 0% { transform: rotate(0); } 20% { transform: rotate(-18deg) scale(.92); } 32% { transform: rotate(14deg) scale(1.18); } 50%, 100% { transform: rotate(0) scale(1); } }
+.emote-glyph[data-anim="clap"] { animation-name: e-clap; animation-duration: .45s !important; animation-iteration-count: 5 !important; }
+@keyframes e-clap { 0%, 100% { transform: scaleX(1); } 45% { transform: scaleX(.72) scaleY(1.06); } }
+.emote-glyph[data-anim="thumb"] { animation-name: e-thumb; }
+@keyframes e-thumb { 0%, 100% { transform: translateY(0) rotate(0); } 35% { transform: translateY(-9px) rotate(-14deg); } 55% { transform: translateY(-4px) rotate(4deg); } }
+.emote-glyph[data-anim="laugh"] { animation-name: e-laugh; animation-duration: .5s !important; animation-iteration-count: 5 !important; }
+@keyframes e-laugh { 0%, 100% { transform: rotate(-9deg) translateY(0); } 50% { transform: rotate(9deg) translateY(-3px); } }
+.emote-glyph[data-anim="gape"] { animation-name: e-gape; }
+@keyframes e-gape { 0%, 100% { transform: scale(1); } 25% { transform: scaleY(1.22) scaleX(.9) translateY(-4px); } 45% { transform: scaleY(1.14) scaleX(.94); } }
+.emote-glyph[data-anim="sob"] { animation-name: e-sob; animation-duration: .32s !important; animation-iteration-count: 7 !important; }
+@keyframes e-sob { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(2px) scaleY(.94); } }
+.emote-glyph[data-anim="handshake"] { animation-name: e-handshake; animation-duration: .36s !important; animation-iteration-count: 5 !important; }
+@keyframes e-handshake { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(4px) rotate(4deg); } }
+.emote-glyph[data-anim="flicker"] { animation-name: e-flicker; animation-duration: .6s !important; animation-iteration-count: 4 !important; transform-origin: 50% 100%; }
+@keyframes e-flicker { 0%, 100% { transform: scaleY(1) skewX(0); } 25% { transform: scaleY(1.12) skewX(-5deg); } 50% { transform: scaleY(.95) skewX(3deg); } 75% { transform: scaleY(1.08) skewX(-2deg); } }
+.emote-glyph[data-anim="tumble"] { animation-name: e-tumble; }
+@keyframes e-tumble { 0% { transform: translate(-14px, -10px) rotate(-200deg); } 40% { transform: translate(0, 0) rotate(0); } 55% { transform: translateY(-6px) rotate(10deg); } 70%, 100% { transform: translateY(0) rotate(0); } }
+.emote-glyph[data-anim="twinkle"] { animation-name: e-twinkle; }
+@keyframes e-twinkle { 0%, 100% { transform: rotate(0); filter: brightness(1); } 30% { transform: rotate(18deg); filter: brightness(1.5); } 60% { transform: rotate(-6deg); filter: brightness(1.1); } }
+.emote-glyph[data-anim="crown"] { animation-name: e-crown; }
+@keyframes e-crown { 0% { transform: translateY(-22px); opacity: 0; } 35% { transform: translateY(0); opacity: 1; } 48% { transform: translateY(-5px) rotate(-6deg); } 60%, 100% { transform: translateY(0) rotate(0); } }
+.emote-glyph[data-anim="cool"] { animation-name: e-cool; }
+@keyframes e-cool { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-10deg) translateX(-2px); } 45% { transform: rotate(4deg) translateY(-2px); } }
+.emote-glyph[data-anim="ponder"] { animation-name: e-ponder; animation-duration: 1.8s !important; }
+@keyframes e-ponder { 0%, 100% { transform: rotate(0); } 35% { transform: rotate(-8deg) translateX(-2px); } 70% { transform: rotate(-4deg); } }
+.emote-glyph[data-anim="nervous"] { animation-name: e-nervous; animation-duration: .7s !important; animation-iteration-count: 3 !important; }
+@keyframes e-nervous { 0%, 100% { transform: translateX(0) rotate(0); } 25% { transform: translateX(-3px) rotate(-5deg); } 75% { transform: translateX(3px) rotate(5deg); } }
+.emote-glyph[data-anim="bow"] { animation-name: e-bow; transform-origin: 50% 100%; }
+@keyframes e-bow { 0%, 100% { transform: rotateX(0) translateY(0); } 40%, 60% { transform: perspective(80px) rotateX(28deg) translateY(3px); } }
+.emote-glyph[data-anim="doze"] { animation-name: e-doze; animation-duration: 2.2s !important; }
+@keyframes e-doze { 0%, 100% { transform: rotate(0) translateY(0); } 50% { transform: rotate(-10deg) translateY(2px); } }
+.emote-glyph[data-anim="hop"] { animation-name: e-hop; }
+@keyframes e-hop { 0%, 100% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-14px) rotate(-180deg); } 55% { transform: translateY(0) rotate(-360deg); } 65% { transform: scaleY(.88); } }
+.emote-glyph[data-anim="huff"] { animation-name: e-huff; animation-duration: .7s !important; animation-iteration-count: 3 !important; }
+@keyframes e-huff { 0%, 100% { transform: scaleX(1); } 30% { transform: scaleX(1.16) scaleY(.94); } 45% { transform: scaleX(.96); } }
+.emote-glyph[data-anim="pinwheel"] { animation-name: e-pinwheel; animation-timing-function: cubic-bezier(.2, .8, .3, 1) !important; }
+@keyframes e-pinwheel { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+.emote-glyph[data-anim="bullseye"] { animation-name: e-bullseye; }
+@keyframes e-bullseye { 0% { transform: scale(.3); } 30% { transform: scale(1.15); } 36% { transform: translateX(-3px); } 42% { transform: translateX(3px); } 48%, 100% { transform: none; } }
+.emote-glyph[data-anim="stamp"] { animation-name: e-stamp; }
+@keyframes e-stamp { 0% { transform: scale(1.9) rotate(-14deg); opacity: 0; } 28% { transform: scale(.92) rotate(-6deg); opacity: 1; } 40%, 100% { transform: scale(1) rotate(-6deg); } }
+.emote-glyph[data-anim="launch"] { animation-name: e-launch; animation-iteration-count: 1 !important; animation-duration: 1.6s !important; }
+@keyframes e-launch { 0%, 30% { transform: translate(0, 0); } 10%, 20% { transform: translate(-1px, 1px); } 15%, 25% { transform: translate(1px, -1px); } 70% { transform: translate(26px, -30px); opacity: 0; } 71% { transform: translate(-20px, 20px); opacity: 0; } 100% { transform: translate(0, 0); opacity: 1; } }
+.emote-glyph[data-anim="arc"] { animation-name: e-arc; }
+@keyframes e-arc { 0% { clip-path: inset(0 100% 0 0); } 45%, 100% { clip-path: inset(0 0 0 0); } }
+.emote-glyph[data-anim="swim"] { animation-name: e-swim; animation-duration: 1.6s !important; }
+@keyframes e-swim { 0%, 100% { transform: translateX(-4px) rotate(4deg); } 50% { transform: translateX(4px) translateY(-3px) rotate(-6deg); } }
+.emote-glyph[data-anim="strike"] { animation-name: e-strike; animation-duration: .9s !important; }
+@keyframes e-strike { 0% { transform: translateY(-12px) skewX(-10deg); opacity: .3; } 12% { transform: none; opacity: 1; filter: brightness(1.8); } 20% { transform: translateX(-2px); filter: brightness(1); } 28% { transform: translateX(2px); } 36%, 100% { transform: none; } }
+.emote-glyph[data-anim="jelly"] { animation-name: e-jelly; transform-origin: 50% 100%; }
+@keyframes e-jelly { 0%, 100% { transform: scale(1, 1); } 20% { transform: scale(1.15, .85); } 40% { transform: scale(.9, 1.1); } 60% { transform: scale(1.05, .95); } }
+.emote-glyph[data-anim="gem"] { animation-name: e-gem; }
+@keyframes e-gem { 0% { transform: perspective(60px) rotateY(0); } 50% { transform: perspective(60px) rotateY(180deg); filter: brightness(1.4); } 100% { transform: perspective(60px) rotateY(360deg); } }
+.emote-glyph[data-anim="raise"] { animation-name: e-raise; }
+@keyframes e-raise { 0%, 100% { transform: translateY(0); } 35%, 65% { transform: translateY(-10px) rotate(-4deg); filter: brightness(1.25); } }
+.emote-glyph[data-anim="starpulse"] { animation-name: e-starpulse; }
+@keyframes e-starpulse { 0%, 100% { transform: rotate(0); filter: drop-shadow(0 0 0 #ffd43b); } 50% { transform: rotate(72deg); filter: drop-shadow(0 0 8px #ffd43b); } }
+.emote-glyph[data-anim="tremble"] { animation-name: e-tremble; animation-duration: .16s !important; animation-iteration-count: 9 !important; }
+@keyframes e-tremble { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(1.5px); } }
+.emote-glyph[data-anim="rage"] { animation-name: e-rage; animation-duration: .12s !important; animation-iteration-count: 12 !important; }
+@keyframes e-rage { 0%, 100% { transform: translate(0, 0) scale(1.06); filter: saturate(1.4); } 25% { transform: translate(-2px, 1px) scale(1.06); } 75% { transform: translate(2px, -1px) scale(1.06); } }
+.emote-glyph[data-anim="query"] { animation-name: e-query; }
+@keyframes e-query { 0%, 100% { transform: rotate(0); } 40% { transform: rotate(-20deg) translateY(-3px); } }
+.emote-glyph[data-anim="query2"] { animation-name: e-query2; animation-duration: .8s !important; animation-iteration-count: 3 !important; }
+@keyframes e-query2 { 0%, 100% { transform: rotate(-12deg); } 50% { transform: rotate(12deg); } }
+.emote-glyph[data-anim="alert"] { animation-name: e-alert; }
+@keyframes e-alert { 0%, 100% { transform: translateY(0); } 20% { transform: translateY(-10px) scaleY(1.1); } 35% { transform: translateY(0) scaleY(.9); } }
+.emote-glyph[data-anim="alert2"] { animation-name: e-alert2; }
+@keyframes e-alert2 { 0%, 100% { transform: translateY(0); } 15% { transform: translateY(-9px); } 28% { transform: translateY(0); } 40% { transform: translateY(-9px); } 52% { transform: translateY(0) scaleY(.9); } }
+.emote-glyph[data-anim="interro"] { animation-name: e-interro; }
+@keyframes e-interro { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-25deg); } 40% { transform: rotate(25deg); } 55% { transform: rotate(-8deg) scale(1.1); } }
+.emote-glyph[data-anim="smirk"] { animation-name: e-smirk; }
+@keyframes e-smirk { 0%, 100% { transform: translateX(0) rotate(0); } 40%, 70% { transform: translateX(4px) rotate(8deg); } }
+.emote-glyph[data-anim="swagger"] { animation-name: e-swagger; }
+@keyframes e-swagger { 0%, 100% { transform: rotate(0) translateY(0); } 30% { transform: rotate(-8deg) translateY(-4px); } 60% { transform: rotate(6deg) translateY(-2px); } }
+.emote-glyph[data-anim="gasp"] { animation-name: e-gasp; }
+@keyframes e-gasp { 0%, 100% { transform: scale(1); } 15% { transform: scale(.8); } 30% { transform: scale(1.2) translateY(-4px); } 45% { transform: scale(1); } }
+.emote-glyph[data-anim="gift"] { animation-name: e-gift; }
+@keyframes e-gift { 0%, 100% { transform: rotate(0) translateY(0); } 10% { transform: rotate(-10deg); } 20% { transform: rotate(10deg); } 30% { transform: rotate(-6deg); } 50% { transform: translateY(-12px) scale(1.1); } 62% { transform: translateY(0); } }
+
+/* Reduced motion: no movement, the emoji stays still (sound follows the sound settings). */
+@media (prefers-reduced-motion: reduce) {
+  .emote-glyph,
+  .emote-glyph.lv2,
+  .emote-glyph.lv3 {
+    animation: none !important;
+  }
+}
+.feed-msg.emote,
+.feed-msg.emote .feed-text {
+  overflow: visible;
+}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { STRAIGHT_STEP_S, playSfx } from "./sound";
+import { emitFx } from "./fx-bus";
 import { useSettings } from "./settings";
 import { DieIcon } from "./Dice";
 import { isDiceBusy } from "./dice-motion";
@@ -34,6 +35,7 @@ export function YachtFlash({ dice, rolls, rollEvent, soundEnabled = true }: { so
     const entry = { key: rollEvent, value: dice[0].value };
     log(entry);
     setActive(entry);
+    emitFx({ type: "yacht" });
     if (soundEnabled) playSfx("yachtHit");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yacht, busy, rollEvent]);
@@ -86,6 +88,7 @@ export function StraightFlash({ dice, rolls, rollEvent, soundEnabled = true }: {
     const entry = { key: rollEvent, values };
     if (typeof window !== "undefined") ((window as unknown as { __yachtlabStraight?: StraightShown[] }).__yachtlabStraight ??= []).push(entry);
     setActive(entry);
+    emitFx({ type: "straight" });
     if (soundEnabled) playSfx("straightHit");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!values, busy, rollEvent]);

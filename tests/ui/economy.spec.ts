@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { DEFAULT_LOADOUT, publicLook } from "../../src/economy/live/catalog";
+import { pickOption } from "./helpers";
 
 /**
  * Shop / inventory / quests / achievements pages. The server is replaced by `page.route` with a small
@@ -114,12 +115,12 @@ test("상점: 가로 상품 목록·상품군 탭·등급/가격 필터·업적 
   await expect(page.getByRole("list", { name: "주사위 상품" })).not.toHaveClass(/shop-rail/);
   await expect(page.locator(".item-card")).toHaveCount(29); // every dice design for sale
   await expect(page.locator('[data-item="dice.royal"] .item-card-price .short').first()).toBeVisible(); // not affordable
-  await page.getByLabel("등급").selectOption("common");
+  await pickOption(page, "등급", "일반");
   await expect(page.locator(".item-card")).toHaveCount(6);
-  await page.getByLabel("가격").selectOption("afford");
+  await pickOption(page, "가격", "지금 살 수 있는 것");
   await expect(page.locator(".item-card")).toHaveCount(6);
-  await page.getByLabel("등급").selectOption("all");
-  await page.getByLabel("가격").selectOption("all");
+  await pickOption(page, "등급", "전체 등급");
+  await pickOption(page, "가격", "모든 가격");
   await page.getByRole("tab", { name: /^칭호/ }).click();
   await expect(page.locator('[data-item="title.300"]')).toContainText("업적 보상");
   await page.getByRole("tab", { name: /^주사위/ }).click();
@@ -147,17 +148,17 @@ test("상점: 강화형 상품은 사기 전에 Lv.1~3 차이를 미리 보고, 
   await page.getByRole("button", { name: "황금 자세히" }).click();
   const dialog = page.getByRole("dialog", { name: "황금 상세" });
   await expect(dialog.getByRole("tab")).toHaveCount(3);
-  await dialog.getByRole("tab", { name: "Lv.3" }).click();
-  await expect(dialog.getByText("Lv.3 · 충돌과 착지에 금빛 조각 추가")).toBeVisible();
+  await dialog.getByRole("tab", { name: /^Lv\.3/ }).click();
+  await expect(dialog.getByRole("tab", { name: /^Lv\.3/ })).toContainText("황금빛 파동");
   await expect(dialog.getByText("재화가 부족해요. 미리보기는 그대로 볼 수 있어요.")).toBeVisible();
   await page.keyboard.press("Escape");
   await page.getByRole("tab", { name: /^닉네임 효과/ }).click();
   await page.getByRole("button", { name: "오로라 자세히" }).click();
   const nf = page.getByRole("dialog", { name: "오로라 상세" });
-  await nf.getByRole("tab", { name: "Lv.2" }).click();
+  await nf.getByRole("tab", { name: /^Lv\.2/ }).click();
   await expect(nf.locator(".profile-card-sample .player-name")).toHaveClass(/namefx-aurora fx-lv2/);
   await nf.getByRole("button", { name: "같은 등급 상품 보기" }).click();
-  await expect(page.getByLabel("등급")).not.toHaveValue("all");
+  await expect(page.getByRole("combobox", { name: "등급" })).not.toHaveText("전체 등급");
   await expect(page.getByRole("list", { name: "닉네임 효과 상품" })).toBeVisible();
 });
 
@@ -296,7 +297,7 @@ test("보드 미리보기는 실제 굴림 면에 소재가 적용되고 킵한 
   const dialog = page.getByRole("dialog", { name: "오로라 상세" });
   const board = dialog.getByRole("region", { name: "미리보기 보드" });
   await expect(board).toHaveClass(/bd-aurora/);
-  await dialog.getByRole("tab", { name: "Lv.3" }).click();
+  await dialog.getByRole("tab", { name: /^Lv\.3/ }).click();
   await expect(board).toHaveClass(/bd-aurora bd-lv3 bd-static/);
   const tray = board.locator(".dice-row");
   await expect(tray).toHaveCSS("background-image", /radial-gradient/);
@@ -307,25 +308,24 @@ test("보드 미리보기는 실제 굴림 면에 소재가 적용되고 킵한 
   const kept = await die.getAttribute("aria-label");
   await dialog.getByRole("button", { name: "굴려 보기" }).click();
   await expect(die).toHaveAttribute("aria-label", kept!);
-  await dialog.getByRole("button", { name: "족보 효과 보기" }).click();
+  await dialog.getByRole("button", { name: "족보 반응" }).click();
   await expect(board.locator(".score-fx-label")).toContainText("라지 스트레이트");
   expect(account.requests).toHaveLength(0);
 });
 
-test("상점 미리보기는 소재별 굴림 소리와 강화 전 이모티콘 효과음을 사용한다", async ({ page }) => {
+test("상점 미리보기는 설정을 따라 소재별 굴림 소리와 강화 전 이모티콘 효과음을 재생한다", async ({ page }) => {
   const account = await open(page, "shop");
   await page.getByRole("tab", { name: /^주사위/ }).click();
   await page.getByRole("button", { name: "황금 자세히" }).click();
-  const previewSound = page.getByRole("checkbox", { name: "미리보기 효과음" });
-  await expect(previewSound).not.toBeChecked();
-  await previewSound.check();
+  // No separate preview switch: preview sounds follow the global sound settings.
+  await expect(page.getByRole("checkbox", { name: "미리보기 효과음" })).toHaveCount(0);
   await page.getByRole("button", { name: "굴려 보기" }).click();
   const sound = () => page.evaluate(() => (window as any).__yachtlabSound.log.map(({ name, pack }: { name: string; pack?: string }) => [name, pack]));
   await expect.poll(sound).toContainEqual(["impact", "gold"]);
   await page.keyboard.press("Escape");
   await page.getByRole("tab", { name: /^이모티콘/ }).click();
   await page.getByRole("button", { name: "번개 자세히" }).click();
-  await page.getByRole("button", { name: "소리 듣기" }).click();
+  await page.getByRole("button", { name: "다시 보기" }).click();
   await expect.poll(sound).toContainEqual(["emote", "bolt"]);
   expect(account.requests).toHaveLength(0);
 });

@@ -45,6 +45,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
   const viewRef = useRef<PlayerView | null>(null);
   const lastDice = useRef<number[]>([1, 2, 3, 4, 5]);
   const chat = useTableChat(null);
+  chat.levelRef.current = (from, id) => looks[from]?.emotes.find((x) => x.id === id)?.lv ?? 1;
   const { opponentFx } = useSettings();
 
   useEffect(() => {

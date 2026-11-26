@@ -10,7 +10,9 @@ import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from ".
 import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Crown, Dices, Flag, LogOut, Play, RotateCcw, Share2, UserRound, Wifi, WifiOff, X } from "lucide-react";
-import { names, type Category, type Game } from "../engine";
+import { categories, names, type Category, type Game } from "../engine";
+import { useGameShortcuts } from "../ui/shortcuts";
+import { useBgmScene } from "../audio/useBgm";
 import { DiceArea } from "../DiceArea";
 import { Scoreboard } from "../Scoreboard";
 import MobileQuickScore from "../MobileQuickScore";
@@ -33,6 +35,7 @@ import type { LobbyState, RematchState, SeriesSummary, SpectateState } from "../
 import { LobbyPanel, MultiTable } from "./OnlineMulti";
 import { SpectateControl } from "./Social";
 import { SocialDock, TableFeed, useTableChat } from "./SocialDock";
+import { BoardFx } from "./BoardFx";
 import { PlayerTag, useBoardTheme, diceLookOf, diceMaterialOf, toneOf } from "./Looks";
 import { SeatChips } from "./SeatChips";
 import { GUEST_LOOK, itemById, type PublicLook } from "../economy/live/catalog";
@@ -126,6 +129,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const [members, setMembers] = useState<Record<string, string>>({});
   const [looks, setLooks] = useState<Record<string, PublicLook>>({});
   const looksRef = useRef(looks);
+  chat.levelRef.current = (from, id) => looks[from]?.emotes.find((x) => x.id === id)?.lv ?? 1;
   looksRef.current = looks;
   const [yachtFx, setYachtFx] = useState<{ fx: FxLook; level: number; seed: string } | null>(null);
   const [aiSeat, setAiSeat] = useState<string | null>(null);
@@ -312,6 +316,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   }, [deadline, anyAway]);
 
   const playing = view?.status === "playing";
+  useBgmScene(playing ? "game" : null, 1);
   useEffect(() => {
     if (!intro || !playing) return;
     const timeout = window.setTimeout(() => setIntro(false), 1900);
@@ -340,6 +345,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const players = view?.players ?? [];
   const myLook = (me && looks[me.playerId]) || GUEST_LOOK;
   const theme = useBoardTheme(myLook);
+  const boardRef = useRef<HTMLElement | null>(null);
   const nameMap = Object.fromEntries(players.map((p) => [p.playerId, p.name]));
   const say = (id: string) => conn.current?.say(id) ?? false;
   const feed = <TableFeed chat={chat} names={nameMap} looks={looks} me={me?.playerId ?? null} avatars />;
@@ -398,6 +404,17 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const winnerFx = winnerFxItem ? ` fx-confetti fx-lv${winnerFxItem.fxLv}` : "";
   const winnerFxLook = winnerFxItem ? itemById(winnerFxItem.fx)?.look.fx : undefined;
   const gesture = useThrowGesture(canRoll, roll);
+  const keys = useGameShortcuts({
+    active: can, dice: game.dice, rolls, canRoll, roll, toggle,
+    setAll: (held) => {
+      if (!can || rolls === 0 || rolls >= 3) return;
+      const next = held ? [...keep, ...game.dice.map((d) => d.id).filter((id) => !keep.includes(id))] : [];
+      setKeep(next);
+      mySelection.current = { keep: next, v: view?.version ?? -1 };
+      conn.current?.hold(next, ++holdSent.current);
+    },
+    open: categories.filter((c) => players[meIndex]?.card[c] === undefined), record,
+  });
   const yachtReady = useYachtReady(game.dice, rolls, myTurn && players[meIndex]?.card.yacht === undefined);
   // Result sound from my side: 1:1 win / loss / draw; larger rooms by rank (sole first = win, shared
   // first = shared win, any other place = the calm "finished" sound).
@@ -645,10 +662,12 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           <section
             className={"game-board throw-tray" + (rolls === 0 ? " dice-ready" : "") + (canRoll && nearYacht(game.dice, rolls, players[meIndex]?.card) ? " yacht-near" : "") + theme.className}
             style={theme.style}
+            ref={boardRef}
             aria-label="게임 보드"
             {...gesture}
           >
             <Celebrate value={celebration} />
+            <BoardFx itemId={myLook.board} level={myLook.boardLv ?? 1} host={boardRef} />
             {intro && playing && me && opponent && (
               <div className="quick-match-intro" role="status" aria-label="빠른 대전 매칭 완료">
                 <PlayerTag name={players[meIndex].name} look={looks[me.playerId] ?? GUEST_LOOK} me tone="me" />
@@ -735,7 +754,8 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           )}
           <ErrorMessage message={error} />
         </div>
-        <Scoreboard state={game} labels={scoreLabels} tones={[toneOf(0, meIndex === 0 && !!me, meIndex), toneOf(1, meIndex === 1 && !!me, meIndex)]} round={game.round} selectPlayer={meIndex} select={can ? record : undefined} />
+        <Scoreboard state={game} labels={scoreLabels} tones={[toneOf(0, meIndex === 0 && !!me, meIndex), toneOf(1, meIndex === 1 && !!me, meIndex)]} round={game.round} selectPlayer={meIndex} select={can ? record : undefined}
+          selected={keys.picked} onConfirm={keys.picked ? () => record(keys.picked!) : undefined} onClear={() => keys.setPicked(null)} />
       </div>
       {profileOf && <OpponentProfile server={server} userId={profileOf} onClose={() => setProfileOf(null)} />}
       <ConfirmDialog

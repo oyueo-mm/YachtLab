@@ -651,12 +651,9 @@
   font-size: 40px;
   line-height: 1;
 }
-.emote-sample.emote-lv2,
-.emote-sample.emote-lv3 {
-  animation: emote-bounce 1.2s ease-in-out infinite;
-}
-.emote-sample.emote-lv3 {
-  filter: drop-shadow(0 0 8px rgba(242, 140, 40, 0.8));
+.emote-sample .emote-glyph.lv2 {
+  animation-iteration-count: infinite;
+  animation-delay: 0.4s;
 }
 .feed-msg.sample {
   max-width: 100%;
@@ -709,20 +706,42 @@
   font-size: 13px;
 }
 .level-tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 6px;
 }
 .level-tabs button {
-  min-height: 36px;
-  padding: 0 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-height: 44px;
+  padding: 8px 10px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #fff;
-  font-weight: 700;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.level-tabs button b {
+  font-size: 13px;
+}
+.level-tabs button span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
 }
 .level-tabs button.active {
   border-color: var(--red);
+  background: #fff6f6;
+}
+.level-tabs button.active b {
   color: var(--red);
+}
+.level-tabs button:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
 }
 .level-tabs small {
   color: var(--muted);
@@ -1128,3 +1147,20 @@ dialog.modal.item-detail::backdrop { background: #251c1c88; }
   dialog.modal.item-detail { margin: auto auto 0; width: min(100%, 640px); }
 }
 .stage-sound-toggle { display: inline-flex; align-items: center; align-self: flex-start; gap: 8px; min-height: 36px; cursor: pointer; }
+
+/* Living boards (src/play/BoardFx.tsx): under the dice canvas, never interactive. */
+.board-fx-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.board-themed .dice-tray-area,
+.board-themed .dice-row {
+  overflow: hidden;
+}
+.board-themed .dice-row > :not(.board-fx-canvas) {
+  position: relative;
+  z-index: 1;
+}

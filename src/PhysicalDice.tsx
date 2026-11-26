@@ -1,11 +1,12 @@
 import type { DiceMaterial } from "./sound-packs";
-import { useSettings } from "./settings";
+import { fxBudget, useSettings } from "./settings";
 import type { DiceLook } from "./dice3d/face-paint";
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { arrayMove } from "@dnd-kit/sortable";
 import type { Game } from "./engine";
 import { beginDiceMotion, isDiceBusy, takeThrowDirection } from "./dice-motion";
 import { playSfx } from "./sound";
+import { emitFx } from "./fx-bus";
 import { getScoreFx, useScoreFx } from "./score-fx";
 import type { DiceTableModule } from "./dice3d-loader";
 import type { PreparedThrow } from "./dice3d/physics";
@@ -119,7 +120,7 @@ export function PhysicalDice({
 
   const { reducedEffects } = useSettings();
   useEffect(() => {
-    table.current?.setColors(colors && reducedEffects ? { ...colors, anim: undefined, trail: undefined, landing: undefined } : colors);
+    table.current?.setColors(colors && reducedEffects ? { ...colors, anim: undefined, trail: undefined, landing: undefined, fx: undefined, fxLevel: undefined } : colors);
   }, [JSON.stringify(colors), reducedEffects, dims]);
 
   useEffect(
@@ -379,6 +380,8 @@ export function PhysicalDice({
         }
         pending.forEach((run) => run());
         sound("settle", { material, intensity: 0.35 });
+        const land = colors?.fxLevel === 3 && !reducedEffects ? mod.landSoundOf(colors.fx) : null;
+        if (land && fxBudget() > 0) sound("diceFx", { land, delay: 0.04 });
         setFlying(new Set());
         refresh();
         done();
@@ -426,6 +429,7 @@ export function PhysicalDice({
         const to = holdPose(d.id, from?.quat);
         cancels.push(t.moveTo(d.id, to, MOVE_MS));
         sound("hold");
+        emitFx({ type: "hold" });
       } else {
         const back = parked.current.get(d.id);
         const spot = freeSpot(back?.x ?? dims.W / 2, back?.z ?? dims.trayH / 2, d.id);
@@ -433,6 +437,7 @@ export function PhysicalDice({
         tray.current.set(d.id, to);
         cancels.push(t.moveTo(d.id, to, MOVE_MS));
         sound("release");
+        emitFx({ type: "release" });
       }
     }
     prevHeld.current = new Map(state.dice.map((d) => [d.id, d.held]));
@@ -551,6 +556,7 @@ export function PhysicalDice({
               type="button"
               className={`die-button die-hit ${d.held ? "held" : ""} ${moving ? "dice-animating" : ""}`}
               data-die-id={id}
+              data-key={id + 1}
               data-zone={d.held ? "hold" : "tray"}
               style={t ? { left: t.cx - dims.size / 2, top: t.cy - dims.size / 2, width: dims.size, height: dims.size } : { display: "none" }}
               disabled={!interactive || busy || !state.rolls || (focusDie !== undefined && id !== focusDie)}
