@@ -113,6 +113,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [e627852](https://github.com/oyueo-mm/YachtLab/commit/e627852) | 2026-11-26 | Merge pull request #101 from oyueo-mm/claude/wizardly-bohr-1usbx5 |
+| [c4d854c](https://github.com/oyueo-mm/YachtLab/commit/c4d854c) | 2026-11-26 | docs(seo): record the first production IndexNow run (D-067) |
 | [4f2f24f](https://github.com/oyueo-mm/YachtLab/commit/4f2f24f) | 2026-11-26 | Merge pull request #100 from oyueo-mm/claude/wizardly-bohr-1usbx5 |
 | [5530819](https://github.com/oyueo-mm/YachtLab/commit/5530819) | 2026-11-26 | ci(seo): bind the verification preview server to 127.0.0.1 |
 | [737a876](https://github.com/oyueo-mm/YachtLab/commit/737a876) | 2026-11-26 | feat(seo): IndexNow automation, content-based sitemap lastmod, deploy verification (D-067) |
@@ -121,8 +123,6 @@
 | [c6b0b8a](https://github.com/oyueo-mm/YachtLab/commit/c6b0b8a) | 2026-11-26 | Serve a stable search homepage and defer onboarding to first play |
 | [39089dd](https://github.com/oyueo-mm/YachtLab/commit/39089dd) | 2026-11-26 | Merge PR #98: pause AI research, keep v4-D as 'very hard' (D-V7-6); final 9591 results |
 | [b9be8eb](https://github.com/oyueo-mm/YachtLab/commit/b9be8eb) | 2026-11-26 | docs(v7): final 9591 S3/S4 results; pause AI research, keep v4-D as 'very hard', hold v5-R/I2RO1 swap (D-V7-6) |
-| [41f3a2f](https://github.com/oyueo-mm/YachtLab/commit/41f3a2f) | 2026-11-26 | Merge pull request #95 from oyueo-mm/codex/yachtlab-release-hardening-20261126 |
-| [7ba0f51](https://github.com/oyueo-mm/YachtLab/commit/7ba0f51) | 2026-11-26 | Record the final zero-shift first-paint measurements |
 
 ## 최근 GitHub Actions 상태
 
@@ -130,7 +130,8 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45791566905) | success | 5530819f77 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45799668276) | success | c4d854cb9b |
+| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45793761026) | success | 3b3f7c744e |
 | [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45772443229) | success | 54c13679f0 |
 
 ## 다음 채팅과 작업의 시작점
