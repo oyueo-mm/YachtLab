@@ -10,6 +10,8 @@
 
 ## 📚 맥락 · 연구 · 실험 (새 채팅은 여기부터)
 
+공개 연구 보고서는 12칸 요트다이스 AI의 기대점수 DP, 분포·상대 대응 모델과 v2–v7 대국 결과를 정리합니다. 표에 시드, 대국 수, 신뢰구간, 원본 데이터와 실행 방법을 연결했습니다. [한국어 연구 보고서](https://oyueo-mm.github.io/YachtLab/research/) · [English research report](https://oyueo-mm.github.io/YachtLab/research/en/)
+
 **[자기 대국 연구](docs/context/SELFPLAY-RESEARCH.md) · [자기 대국 실험 결과](docs/context/_generated/SELFPLAY-LATEST.md)**
 
 **[맥락 허브](docs/context/README.md) · [자동 현재 상태](docs/context/_generated/CURRENT_STATE.md) · [전체 AI 기법 도감](docs/context/TECHNIQUES.md) · [실험 결과](docs/context/RESULTS.md) · [연구 로드맵](docs/context/ROADMAP.md) · [새 채팅 인수인계](docs/context/HANDOFF.md)**

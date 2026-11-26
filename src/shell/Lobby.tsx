@@ -8,7 +8,7 @@ export function Lobby({ navigate }: { navigate: Go }) {
     <section className="lobby lobby-v3" aria-labelledby="lobby-title">
       <header className="lobby-hero">
         <h1 id="lobby-title">온라인 요트다이스</h1>
-        <p>야추 다이스로도 불리는 요트다이스를 PC와 모바일에서 무료로 즐기세요. 친구와 온라인 멀티플레이를 하거나 혼자 AI에 도전할 수 있어요.</p>
+        <p>야추 다이스로도 불리는 12칸 요트다이스를 PC와 모바일에서 무료로 즐기세요. 친구를 링크로 초대해 온라인 멀티플레이를 하거나, 다섯 난이도의 AI와 1:1로 대전할 수 있어요.</p>
       </header>
       <div className="lobby-modes">
         <button type="button" className="mode-card mode-online mode-primary mode-main" onClick={() => navigate("online")}>
@@ -34,8 +34,7 @@ export function Lobby({ navigate }: { navigate: Go }) {
           <ArrowRight className="mode-arrow" size={20} aria-hidden="true" />
         </button>
       </div>
-      {/* Users see the two help pages; every search page stays linked from them, the static index.html
-          shell (no JavaScript) and the sitemap. */}
+      {/* The static entry and hydrated lobby link to the same help pages. */}
       <nav className="lobby-links" aria-label="도구와 안내">
         <a className="lobby-guide" href={`${import.meta.env.BASE_URL}guide/`}> <BookOpen size={17} aria-hidden="true" /> 규칙</a>
         <a href={`${import.meta.env.BASE_URL}faq/`}>자주 묻는 질문</a>

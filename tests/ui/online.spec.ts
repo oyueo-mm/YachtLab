@@ -643,3 +643,51 @@ test("서버 주소가 없는 빌드는 온라인 서버에 연결되지 않았�
     page.getByRole("heading", { name: "온라인 서버에 연결되어 있지 않아요" }),
   ).toBeVisible();
 });
+
+test("초대 주소는 링크와 방에서만 유지되고, 새로고침·뒤로·앞으로도 저장된 좌석을 복구한다", async ({ browser }, info) => {
+  test.skip(info.project.name !== "desktop", "데스크톱과 휴대폰 컨텍스트를 직접 생성");
+  active = backends.node!;
+  const host = await device(browser, "desktop");
+  await openFriend(host);
+  await nick(host, "초대방장");
+  await host.getByRole("button", { name: "방 만들기" }).click();
+  await expect(host.getByRole("heading", { name: "대기실" })).toBeVisible();
+  const code = (await host.getByLabel("초대 코드").textContent())!.trim();
+  const guest = await device(browser, "phone");
+  await guest.goto(entry(code).replace("#online", "&utm_source=test"));
+  await expect(guest.getByText("초대방장 님의 방에 초대받았어요")).toBeVisible();
+  expect(new URL(guest.url()).searchParams.get("room")).toBe(code);
+  expect(new URL(guest.url()).searchParams.has("utm_source")).toBe(false);
+  await guest.getByRole("button", { name: "프로필 메뉴" }).click();
+  await guest.getByRole("button", { name: "내 프로필" }).click();
+  await expect(guest).toHaveURL(/#profile$/);
+  expect(new URL(guest.url()).searchParams.has("room")).toBe(false);
+  await guest.reload();
+  await expect(guest.locator(".page-profile")).toBeVisible();
+  await guest.goBack();
+  await expect(guest.getByText("초대방장 님의 방에 초대받았어요")).toBeVisible();
+
+  await nick(guest, "초대손님");
+  await guest.getByRole("button", { name: "입장하기" }).tap();
+  await expect(guest).toHaveURL(/#online-room$/);
+  await expect(guest.getByRole("heading", { name: "대기실" })).toBeVisible();
+  expect(new URL(guest.url()).searchParams.get("room")).toBe(code);
+  await guest.reload();
+  await expect(guest.getByRole("heading", { name: "대기실" })).toBeVisible();
+
+  await guest.getByRole("button", { name: "홈으로" }).tap();
+  await expect(guest).toHaveURL(/#home$/);
+  expect(new URL(guest.url()).searchParams.has("room")).toBe(false);
+  await guest.goBack();
+  await expect(guest.getByRole("heading", { name: "대기실" })).toBeVisible();
+  await guest.goForward();
+  await expect(guest.locator(".page-home")).toBeVisible();
+  await guest.goBack();
+  await expect(guest.getByRole("heading", { name: "대기실" })).toBeVisible();
+  await guest.getByRole("button", { name: "방 나가기" }).tap();
+  await expect(guest).toHaveURL(/#online$/);
+  expect(new URL(guest.url()).searchParams.has("room")).toBe(false);
+  await guest.goBack();
+  await expect(guest.getByRole("button", { name: "방 만들기" })).toBeVisible();
+  await expect(guest.getByRole("heading", { name: "대기실" })).toBeHidden();
+});

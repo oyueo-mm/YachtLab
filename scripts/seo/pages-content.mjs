@@ -5,6 +5,7 @@
  * instead of duplicate copies.
  */
 import { FAQ_GROUPS, FAQ_ITEMS, GUIDE } from "./rules-content.mjs";
+import { researchPages } from "./research-content.mjs";
 
 const play = (label = "지금 무료로 플레이") => `<p class="cta"><a class="button" href="../#online">${label}</a> <a class="button ghost" href="../#offline">AI와 연습하기</a></p>`;
 
@@ -16,16 +17,17 @@ const faqHtml = FAQ_GROUPS.map(([title, items], i) => `<section class="faq-group
 
 export const PAGES = [
   GUIDE,
+  ...researchPages,
   {
     path: "faq/",
     crumb: "자주 묻는 질문",
-    title: "요트다이스·야추 자주 묻는 질문 | 야찌와 차이 · Online Yacht",
-    description: "요트다이스와 야추, 야찌(Yahtzee)의 차이, 무료 플레이·휴대폰·친구 대전·AI 난이도·점수 규칙에 대한 질문과 답.",
+    title: "요트다이스 FAQ | 야추와 Yahtzee 규칙 차이 · Online Yacht",
+    description: "요트다이스 12칸과 미국식 Yahtzee 13칸의 점수 차이를 비교하고, 휴대폰 플레이, 친구 초대, 재접속과 AI 난이도를 확인하세요.",
     jsonld: [{ "@type": "FAQPage", mainEntity: faqItems.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }],
     body: `
     <article>
       <h1>요트다이스·야추 자주 묻는 질문</h1>
-      <p class="lead">궁금한 항목을 누르면 답이 열립니다. 규칙 전체는 <a href="../guide/">규칙과 족보</a>에 있습니다.</p>
+      <p class="lead">야추를 처음 시작할 때 필요한 플레이 방법과, 친구 초대·재접속·점수 계산에 자주 나오는 질문을 모았습니다. 처음 한 판을 배운다면 <a href="../guide/">12칸 요트다이스 규칙</a>부터 보세요.</p>
       <nav class="toc" aria-label="질문 분류">${FAQ_GROUPS.map(([title], i) => `<a href="#faq-${i + 1}">${title}</a>`).join("")}<a href="#compare">Yahtzee 비교</a></nav>
       ${faqHtml}
       <h2 id="compare">미국식 Yahtzee와 규칙 비교</h2>
@@ -41,19 +43,20 @@ export const PAGES = [
           <tr><th scope="row">요트 / Yahtzee</th><td>50점, 추가 보너스 없음</td><td>50점, 추가 시 보너스 100점·조커</td></tr>
         </tbody>
       </table>
+      <p>미국식 채점의 추가 요트와 조커 조건은 <a href="https://www.hasbro.com/common/instruct/yahtzee.pdf">Hasbro 공식 규칙</a>에 있습니다.</p>
       ${play()}
     </article>`,
   },
   {
     path: "ai/",
     crumb: "AI 대전",
-    title: "요트다이스 AI 대전 | 야추 인공지능과 무료 대결 · Online Yacht",
-    description: "매우 쉬움부터 매우 어려움까지 다섯 단계 요트다이스(야추) AI와 무료로 대결하세요. 각 난이도의 특징과 AI가 고르는 방식을 설명합니다.",
+    title: "요트다이스 AI 대전 | 컴퓨터와 무료 1:1 야추 · Online Yacht",
+    description: "PC와 휴대폰에서 요트다이스 인공지능과 1:1로 대결하세요. 설치 없이 다섯 단계 난이도를 고르고, 게임 리뷰로 주사위 킵과 점수 선택을 돌아봅니다.",
     body: `
     <article>
-      <h1>요트다이스 AI 대전</h1>
-      <p class="lead">혼자서도 바로 시작할 수 있습니다. 다섯 단계 AI 중 하나를 골라 1:1로 대결하고, 경기가 끝나면 게임 리뷰에서 내 선택과 AI 추천을 비교해 보세요.</p>
-      ${play("AI와 대결하기").replace("../#online", "../#offline")}
+      <h1>요트다이스 AI와 1:1 대전</h1>
+      <p class="lead">혼자 시작할 때는 다섯 단계 중 하나를 골라 컴퓨터와 대결하세요. 주사위 굴림부터 배우려면 한 차례를 연습하고, 경기를 끝낸 뒤에는 게임 리뷰에서 내 선택과 AI 추천을 비교할 수 있습니다.</p>
+      <p class="cta"><a class="button" href="../#play-setup">AI 대전 설정 열기</a> <a class="button ghost" href="../#practice">한 차례 연습하기</a></p>
       <h2>난이도별 상대</h2>
       <table>
         <caption>Online Yacht AI 난이도</caption>
@@ -63,7 +66,7 @@ export const PAGES = [
           <tr><th scope="row">쉬움</th><td>강화학습(PPO)</td><td>대국 경험으로 학습한 정책입니다.</td></tr>
           <tr><th scope="row">보통</th><td>탐욕 정책</td><td>지금 적을 수 있는 높은 점수를 우선합니다.</td></tr>
           <tr><th scope="row">어려움</th><td>기대값 탐색</td><td>다시 굴렸을 때 나올 수 있는 결과의 확률을 계산합니다.</td></tr>
-          <tr><th scope="row">매우 어려움</th><td>승률 중심 AI</td><td>상대 점수까지 고려해 1:1 승리를 목표로 선택합니다.</td></tr>
+          <tr><th scope="row">매우 어려움</th><td>Win DP v4-D</td><td>상대 점수까지 고려해 1:1 승리를 목표로 선택합니다.</td></tr>
         </tbody>
       </table>
       <h2>기대점수 최대화와 승리 최대화는 다릅니다</h2>
@@ -72,7 +75,7 @@ export const PAGES = [
         <li>기대점수 최적 AI(DP Expert)는 모든 상태를 정확히 계산하며 평균 최종 점수는 약 <strong>191.8점</strong>입니다.</li>
         <li>승률 중심 AI 계열(Win DP v2)은 이 기대점수 AI와 2만 경기를 겨뤄 50.63%의 승리점수율(무승부 0.5, 근사 95% 신뢰구간 50.41~50.85%)을 기록했습니다. 주사위 운이 큰 게임이라 강한 AI끼리의 차이는 작습니다.</li>
       </ul>
-      <p>측정 방법과 신뢰구간은 공개 저장소의 <a href="https://github.com/oyueo-mm/YachtLab/blob/main/docs/context/RESULTS.md">실험 결과</a>에 있습니다.</p>
+      <p>서비스의 매우 어려움은 v4-D를 사용합니다. v5·v6·v7 실험 모델과 서비스 적용 현황, 대국 수치 및 신뢰구간은 <a href="../research/">요트다이스 인공지능 연구</a>에서 볼 수 있습니다.</p>
       <h2>AI에게 배우기</h2>
       <p>경기가 끝나면 <strong>게임 리뷰</strong>에서 큰 실수와 좋은 선택, AI가 추천한 킵과 점수 칸을 볼 수 있습니다. 혼자 계산해 보고 싶다면 <a href="../probability/">족보 확률 계산기</a>를 써 보세요.</p>
     </article>`,
@@ -80,12 +83,12 @@ export const PAGES = [
   {
     path: "multiplayer/",
     crumb: "친구 대전",
-    title: "요트다이스 친구 대전 | 야추 멀티·2인용 무료 온라인 · Online Yacht",
-    description: "설치 없이 링크 하나로 친구와 요트다이스(야추)를 하세요. 2인 대전부터 최대 20명 방, 빠른 대전과 관전, 재대결까지 지원합니다.",
+    title: "요트다이스 멀티 | 친구 초대·2~20인 온라인 대전 · Online Yacht",
+    description: "PC와 모바일에서 링크나 코드로 친구를 초대해 무료 요트다이스를 즐기세요. 2~20인 방, 순차·동시 진행, 1:1 빠른 대전과 관전을 지원합니다.",
     body: `
     <article>
-      <h1>요트다이스 친구 대전</h1>
-      <p class="lead">방을 만들고 링크를 보내면 친구가 브라우저에서 바로 들어옵니다. 앱 설치나 회원가입은 필요하지 않습니다.</p>
+      <h1>친구와 요트다이스 온라인 멀티플레이</h1>
+      <p class="lead">한 사람은 PC, 다른 사람은 휴대폰을 써도 같은 방에서 플레이할 수 있습니다. 방을 만들고 초대 링크를 보내면 친구가 설치나 회원가입 없이 브라우저에서 들어옵니다.</p>
       ${play("친구 대전 방 만들기")}
       <h2>시작하는 방법</h2>
       <ol>
@@ -94,6 +97,7 @@ export const PAGES = [
         <li>초대 링크를 카카오톡·디스코드 등으로 보내거나 6자리 코드를 알려 줍니다.</li>
         <li>모두 준비되면 방장이 게임을 시작합니다.</li>
       </ol>
+      <p>순차 진행은 한 사람씩 플레이합니다. 동시 진행은 각자 주사위를 굴리고 점수를 적은 뒤, 모두 기록을 마치면 다음 라운드로 넘어갑니다.</p>
       <h2>지원하는 대전</h2>
       <ul>
         <li><strong>빠른 대전</strong>: 접속한 다른 플레이어와 1:1로 자동 매칭합니다.</li>
@@ -103,7 +107,8 @@ export const PAGES = [
         <li><strong>한 기기 대전</strong>: 오프라인 대전에서 휴대폰 하나를 돌려 가며 플레이합니다.</li>
       </ul>
       <h2>공정한 진행</h2>
-      <p>온라인 경기의 주사위와 점수는 서버가 결정하고 확인합니다. 연결이 잠시 끊겨도 같은 자리로 돌아올 수 있으며, 오래 돌아오지 않으면 기권으로 처리됩니다. 채팅은 정해진 문장과 이모티콘만 보낼 수 있습니다.</p>
+      <p>온라인 경기의 주사위와 점수는 서버가 확인합니다. 연결이 잠시 끊기면 같은 브라우저에서 다시 접속해 자리를 복구할 수 있으며, 유예 시간 안에 돌아오지 않으면 기권 처리됩니다. 채팅은 정해진 문장과 이모티콘을 보낼 수 있습니다.</p>
+      <p>처음 플레이한다면 <a href="../guide/">12칸 규칙과 족보</a>를, 상대 없이 연습하고 싶다면 <a href="../ai/">AI 대전</a>을 보세요.</p>
       <h2>실제 주사위로 할 때</h2>
       <p>모여서 실제 주사위로 할 때는 <a href="../scores/">족보·점수판</a>으로 점수를 기록하세요. 합계와 보너스를 자동으로 계산합니다.</p>
     </article>`,
@@ -111,8 +116,8 @@ export const PAGES = [
   {
     path: "strategy/",
     crumb: "전략",
-    title: "요트다이스 전략·공략 | 야추 확률로 보는 킵 선택 · Online Yacht",
-    description: "정확한 확률 계산으로 정리한 요트다이스(야추) 전략: 상단 보너스, 요트 도전 시점, 스트레이트·풀 하우스 킵, 흔한 실수.",
+    title: "요트다이스 공략 | 보너스·킵·점수 선택 전략 · Online Yacht",
+    description: "야추에서 상단 보너스 63점을 관리하고, 스트레이트·풀 하우스·요트를 언제 노릴지 사례로 배웁니다. 재굴림별 정확한 확률표도 제공합니다.",
     body: `
     <article>
       <h1>요트다이스 전략과 공략</h1>
@@ -136,7 +141,7 @@ export const PAGES = [
         <li>헥사·펜타·쿼드는 3개 이상일 때 상단에 적는 것을 먼저 검토하세요.</li>
         <li>에이스·듀스는 점수가 작아 보너스 계산에 영향이 적습니다. 늦은 라운드의 실패 칸으로 쓰기 좋습니다.</li>
       </ul>
-      <h2>킵 선택 예시</h2>
+      <h2 id="keep-examples">킵 선택 예시</h2>
       <table>
         <caption>남은 굴림에 따른 확률</caption>
         <thead><tr><th scope="col">상황</th><th scope="col">목표</th><th scope="col">재굴림 1번</th><th scope="col">재굴림 2번</th></tr></thead>
@@ -150,6 +155,7 @@ export const PAGES = [
         </tbody>
       </table>
       <p>양쪽이 열린 2·3·4·5는 1·2·3·4보다 라지 스트레이트 확률이 두 배입니다.</p>
+      <p>예를 들어 2·3·4·5·5가 나왔다면 라지 스트레이트를 노릴 때 5 하나를 풀어 1 또는 6을 기다립니다. 이미 라지 칸을 썼다면, 스몰을 지금 적거나 남은 상단 칸을 노릴 여지가 있는지 먼저 확인하세요.</p>
       <h2>요트 도전은 언제?</h2>
       <p>세 번 굴림을 모두 요트에 써도 성공 확률은 4.60%입니다. 같은 눈 3개가 나왔고 굴림이 두 번 남았다면 9.34%, 4개라면 30.56%입니다. 초반에 요트 칸을 비워 두면 이후 차례마다 기회가 생기므로, 일찍 0점으로 버리기보다 다른 칸과 비교해 판단하세요.</p>
       <h2>점수 차이에 따라 전략이 달라집니다</h2>
@@ -166,13 +172,13 @@ export const PAGES = [
   {
     path: "scores/",
     crumb: "족보·점수판",
-    title: "요트다이스 족보·점수판 | 야추 점수 계산기 (실제 주사위용) · Online Yacht",
-    description: "요트다이스(야추) 12개 족보와 점수 계산법, 실제 주사위로 할 때 쓰는 무료 다인용 점수판. 상단 보너스와 합계, 승자를 자동 계산합니다.",
-    jsonld: [{ "@type": "WebApplication", name: "요트다이스 점수판", url: "https://oyueo-mm.github.io/YachtLab/scores/", applicationCategory: "GameApplication", operatingSystem: "Any", isAccessibleForFree: true, offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" } }],
+    title: "요트다이스 점수판 | 1~8인 야추 점수 계산 · Online Yacht",
+    description: "실제 주사위로 야추를 할 때 12칸 점수표를 온라인으로 채우세요. 최대 8명의 상단 보너스, 총점과 공동 1위를 자동으로 계산합니다.",
+    jsonld: [{ "@type": "WebApplication", name: "요트다이스 점수판", url: "https://oyueo-mm.github.io/YachtLab/scores/", applicationCategory: "UtilitiesApplication", operatingSystem: "Any", isAccessibleForFree: true, offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" } }],
     body: `
     <article>
-      <h1>요트다이스 족보와 점수판</h1>
-      <p class="lead">실제 주사위로 할 때 아래 점수판에 적으세요. 상단 보너스와 합계, 승자를 자동으로 계산하고 이 기기에 저장합니다. 회원가입은 필요 없습니다.</p>
+      <h1>실제 주사위용 요트다이스 점수판</h1>
+      <p class="lead">1~8명 인원을 고르고, 차례마다 주사위 결과를 빈 족보 한 칸에 적으세요. 상단 보너스, 합계와 승자를 자동 계산하며 입력은 같은 브라우저에 저장됩니다.</p>
       <section class="scorepad" id="scorepad" aria-label="점수판">
         <div class="pad-tools">
           <label>인원 <select id="pad-count" aria-label="인원">${[1, 2, 3, 4, 5, 6, 7, 8].map((n) => `<option${n === 2 ? " selected" : ""}>${n}</option>`).join("")}</select></label>
@@ -196,7 +202,7 @@ export const PAGES = [
           <tr><th scope="row">요트</th><td>5개 모두 같으면 50점</td><td>3·3·3·3·3 → 50</td></tr>
         </tbody>
       </table>
-      <p>에이스~헥사 합계가 63점 이상이면 35점을 더합니다. 자세한 진행은 <a href="../guide/">규칙</a>을 보세요.</p>
+      <p>에이스~헥사 합계가 63점 이상이면 35점을 더합니다. 빈 칸은 아직 진행 중인 차례이므로, 족보를 포기한 차례는 0으로 적으세요. <a href="../guide/">규칙과 12개 족보 예시</a>도 확인할 수 있습니다.</p>
       ${play("온라인으로 플레이")}
     </article>
     <script>
@@ -279,13 +285,13 @@ export const PAGES = [
   {
     path: "probability/",
     crumb: "확률 계산기",
-    title: "요트다이스 확률 계산기 | 야추 족보 확률·킵 추천 · Online Yacht",
-    description: "현재 주사위와 킵, 남은 굴림 횟수를 넣으면 요트다이스(야추) 각 족보의 달성 확률과 기대 점수, 최적 킵을 정확히 계산합니다.",
+    title: "요트다이스 확률 계산기 | 야추 족보별 킵 비교 · Online Yacht",
+    description: "주사위 5개와 남은 재굴림을 입력해 요트, 풀 하우스, 스트레이트 등 야추 족보를 노릴 때의 정확한 확률과 추천 킵을 비교하세요.",
     jsonld: [{ "@type": "WebApplication", name: "요트다이스 확률 계산기", url: "https://oyueo-mm.github.io/YachtLab/probability/", applicationCategory: "UtilitiesApplication", operatingSystem: "Any", isAccessibleForFree: true, offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" } }],
     body: `
     <article>
       <h1>요트다이스 족보 확률 계산기</h1>
-      <p class="lead">주사위 눈을 누르면 바뀌고, 아래 체크로 킵을 정합니다. 남은 재굴림 횟수에 따라 각 족보를 노릴 때의 확률을 정확히 계산합니다.</p>
+      <p class="lead">주사위 눈을 눌러 현재 굴림을 맞추고, 체크로 킵을 정하세요. 재굴림 횟수에 따라 지금 킵의 성공 확률과 해당 족보에 유리한 킵을 비교합니다.</p>
       <section class="calc" aria-label="계산기">
         <div class="dice-input" id="dice" role="group" aria-label="현재 주사위"></div>
         <fieldset class="rolls"><legend>남은 재굴림</legend>
@@ -303,6 +309,7 @@ export const PAGES = [
         <noscript><p>계산기는 자바스크립트가 필요합니다. 첫 굴림 확률과 전략 표는 <a href="../strategy/">전략</a> 페이지에 있습니다.</p></noscript>
       </section>
       <h2>계산 방법</h2>
+      <p>예를 들어 2·3·4·5를 킵하고 한 번 더 굴리면, 남은 주사위에 1 또는 6이 나올 때 라지 스트레이트가 됩니다. 확률은 2/6, 약 33.33%입니다. <a href="../strategy/#keep-examples">초보 전략의 킵 사례</a>에서 다른 조합도 비교하세요.</p>
       <ul>
         <li>공정한 주사위 6면, 다섯 개 주사위의 모든 경우(순서 무관 252가지)를 정확히 열거합니다. 시뮬레이션이 아닙니다.</li>
         <li>"최선의 킵"은 남은 모든 재굴림에서 그 족보의 확률이 가장 높아지도록 킵을 고르는 동적 계획법 결과입니다.</li>

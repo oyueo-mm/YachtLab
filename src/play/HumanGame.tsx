@@ -31,7 +31,7 @@ import { BonusChip, QuickPicks } from "../QuickPicks";
 import { announceScore, clearScoreFx } from "../score-fx";
 import { useGameShortcuts } from "../ui/shortcuts";
 import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./Tutorial";
-import { useOwnLook } from "./own-look";
+import { equippedBoard, useOwnLook } from "./own-look";
 import { BoardFx } from "./BoardFx";
 import { diceLookOf, diceMaterialOf, useBoardTheme } from "./Looks";
 
@@ -102,7 +102,7 @@ export default function HumanGame({
   const rolling = useDiceBusy();
   // The player's own equipped dice and board (presentation only; the AI rolls the default dice).
   const look = useOwnLook();
-  const theme = useBoardTheme(look);
+  const theme = useBoardTheme(equippedBoard(look));
   const boardRef = useRef<HTMLElement | null>(null);
   const commit = (action: Parameters<typeof transition>[1], decision?: Decision) => {
     const before = stateRef.current;

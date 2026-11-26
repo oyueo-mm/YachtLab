@@ -26,7 +26,7 @@ import { RULES_ID } from "../identity/records";
 import { newSoloRecordId, saveSoloRecord, soloRecords } from "../solo/storage";
 import { previousBest, soloStats, type SoloRecord } from "../solo/records";
 import { syncSoloRecords } from "../solo/sync";
-import { useOwnLook } from "./own-look";
+import { equippedBoard, useOwnLook } from "./own-look";
 import { BoardFx } from "./BoardFx";
 import { diceLookOf, diceMaterialOf, useBoardTheme } from "./Looks";
 import { SoloStatsPanel } from "./SoloStats";
@@ -74,7 +74,7 @@ export default function SoloGame({ name, server, onLeave, onProgress, onRecords 
   const stats = useMemo(() => soloStats(records), [records]);
   const best = stats.best;
   const look = useOwnLook();
-  const theme = useBoardTheme(look);
+  const theme = useBoardTheme(equippedBoard(look));
   const boardRef = useRef<HTMLElement | null>(null);
 
   const card = state.cards[0];

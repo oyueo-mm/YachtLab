@@ -53,3 +53,9 @@ const subscribe = (fn: () => void) => {
   };
 };
 export const useOwnLook = () => useSyncExternalStore(subscribe, ownLook, () => GUEST_LOOK);
+
+/**
+ * Board look for offline screens: only a board the player actually equipped changes the table; the
+ * default board keeps each screen's original matte table exactly as before.
+ */
+export const equippedBoard = (look: PublicLook) => (look.board === GUEST_LOOK.board ? null : look);

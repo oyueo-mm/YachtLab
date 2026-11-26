@@ -210,6 +210,8 @@ export function MultiTable(p: {
   onToggle: (id: number) => void;
   onRoll: () => void;
   onScore: (c: Category) => void;
+  selectedScore: Category | null;
+  onSelectScore: (c: Category | null) => void;
   onRematch: (op: "request" | "cancel" | "start") => void;
   onHome: () => void;
 }) {
@@ -223,7 +225,6 @@ export function MultiTable(p: {
   const turnIndex = simultaneous ? meIndex : Math.max(0, players.findIndex((x) => x.playerId === view.turn?.playerId));
   const dicePlayer = simultaneous ? p.me : view.turn?.playerId ?? "";
   const finished = view.status === "finished";
-  const [selected, setSelected] = useState<Category | null>(null);
   const [all, setAll] = useState(false);
   const game: MultiGame = { dice: p.dice, order: [0, 1, 2, 3, 4], cards: players.map((x) => x.card), player: turnIndex, round: view.round || 12, rolls: p.rolls, done: finished, winners: [], seed: 0, rng: [], actions: view.version };
   const labels = players.map((x) => x.name);
@@ -316,13 +317,13 @@ export function MultiTable(p: {
           state={game}
           labels={labels}
           focused={players.length > 8 && !all}
-          select={p.can ? (c) => setSelected(c) : undefined}
-          selected={selected}
+          select={p.can ? p.onSelectScore : undefined}
+          selected={p.can ? p.selectedScore : null}
           onConfirm={() => {
-            if (selected) p.onScore(selected);
-            setSelected(null);
+            if (p.selectedScore) p.onScore(p.selectedScore);
+            p.onSelectScore(null);
           }}
-          onClear={() => setSelected(null)}
+          onClear={() => p.onSelectScore(null)}
         />
       </div>
     </div>

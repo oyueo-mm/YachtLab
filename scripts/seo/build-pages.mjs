@@ -39,44 +39,50 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 export function render(page) {
   const url = SITE + page.path;
   const up = "../".repeat(page.path.split("/").filter(Boolean).length);
+  const lang = page.lang ?? "ko";
+  const english = lang === "en";
+  const research = page.path.startsWith("research/");
+  const alternate = research ? [["ko", "research/"], ["en", "research/en/"]] : [];
+  const navItems = english ? [["", "Game home (Korean)"], ["guide/", "Rules (Korean)"], ["ai/", "AI play (Korean)"], ["research/en/", "Research"]] : NAV;
   const crumbs = { "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "Online Yacht", item: SITE }, { "@type": "ListItem", position: 2, name: page.crumb, item: url }] };
   const graph = [crumbs, ...(page.jsonld ?? [])];
-  const nav = NAV.map(([path, label]) => `<a href="${up}${path}"${path === page.path ? ' aria-current="page"' : ""}>${label}</a>`).join("");
+  const nav = navItems.map(([path, label]) => `<a href="${up}${path}"${path === page.path ? ' aria-current="page"' : ""}>${label}</a>`).join("");
   return `<!doctype html>
-<html lang="ko">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${esc(page.title)}</title>
   <meta name="description" content="${esc(page.description)}">
-  <link rel="canonical" href="${url}">
+  <link rel="canonical" href="${url}">${alternate.map(([code, path]) => `\n  <link rel="alternate" hreflang="${code}" href="${SITE}${path}">`).join("")}
   <link rel="icon" href="${up}icons/favicon-48.png" type="image/png" sizes="48x48">
-  <link rel="stylesheet" href="${up}site/page.css">
+  <link rel="stylesheet" href="${up}site/page.css">${research ? `\n  <link rel="stylesheet" href="${up}site/research.css">` : ""}
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Online Yacht">
-  <meta property="og:locale" content="ko_KR">
+  <meta property="og:locale" content="${english ? "en_US" : "ko_KR"}">
   <meta property="og:title" content="${esc(page.ogTitle ?? page.title)}">
   <meta property="og:description" content="${esc(page.description)}">
   <meta property="og:url" content="${url}">
   <meta property="og:image" content="${SITE}icons/share.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Online Yacht 워드마크와 주사위 눈이 들어간 돛단배 로고">
+  <meta property="og:image:alt" content="${english ? "Online Yacht wordmark and a sailboat logo with dice pips" : "Online Yacht 워드마크와 주사위 눈이 들어간 돛단배 로고"}">
   <meta name="twitter:card" content="summary_large_image">
   <script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@graph": graph })}</script>
 </head>
 <body>
   <header class="site-top"><div class="top">
-    <a class="brand" href="${up}"><img src="${up}icons/online-yacht-wordmark.svg" alt="Online Yacht 홈" width="139" height="32"></a>
-    <a class="play" href="${up}#online">지금 플레이</a>
+    <a class="brand" href="${up}"><img src="${up}icons/online-yacht-wordmark.svg" alt="${english ? "Online Yacht home" : "Online Yacht 홈"}" width="139" height="32"></a>
+    <a class="play" href="${up}#online">${english ? "Play the game (Korean)" : "지금 플레이"}</a>
   </div>
-  <nav class="site-nav" aria-label="사이트">${nav}</nav></header>
+  <nav class="site-nav" aria-label="${english ? "Site" : "사이트"}">${nav}</nav></header>
   <main>
 ${page.body.trim()}
   </main>
   <footer class="site-foot">
-    <p>Online Yacht는 12칸 요트다이스(야추) 규칙을 쓰는 무료 웹 게임입니다. Hasbro의 Yahtzee® 공식 제품이 아니며 제휴 관계가 없습니다.</p>
-    <p><a href="${up}">무료로 플레이</a> · <a href="${up}guide/">규칙</a> · <a href="${up}faq/">자주 묻는 질문</a></p>
+    ${english ? `<p>Online Yacht is a free browser game with 12-category Yacht Dice rules. The project is independent of Hasbro and its Yahtzee® product.</p>
+    <p><a href="${up}">Game home</a> · <a href="${up}guide/">Rules</a> · <a href="${up}faq/">FAQ</a> (Korean)</p>` : `<p>Online Yacht는 12칸 요트다이스(야추) 규칙을 쓰는 무료 웹 게임입니다. Hasbro의 Yahtzee® 공식 제품이 아니며 제휴 관계가 없습니다.</p>
+    <p><a href="${up}">무료로 플레이</a> · <a href="${up}guide/">규칙</a> · <a href="${up}faq/">자주 묻는 질문</a></p>`}
   </footer>
 </body>
 </html>

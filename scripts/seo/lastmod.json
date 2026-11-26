@@ -1,34 +1,42 @@
 {
   "": {
-    "fingerprint": "dd5f4bcac360abcf",
+    "fingerprint": "a0f880678ed90eaf",
     "lastmod": "2026-11-26"
   },
   "guide/": {
-    "fingerprint": "a5976893a1fc822e",
+    "fingerprint": "2d52cb7ff7c14fb8",
+    "lastmod": "2026-11-27"
+  },
+  "research/": {
+    "fingerprint": "cd4b2f7bc0f1d0e8",
+    "lastmod": "2026-11-26"
+  },
+  "research/en/": {
+    "fingerprint": "7508d384ee84065d",
     "lastmod": "2026-11-26"
   },
   "faq/": {
-    "fingerprint": "9e33dc614f0b08d2",
-    "lastmod": "2026-11-26"
+    "fingerprint": "23f17c4e91d75ed1",
+    "lastmod": "2026-11-27"
   },
   "ai/": {
-    "fingerprint": "c207899b99fe7335",
+    "fingerprint": "d8097602dd26d76f",
     "lastmod": "2026-11-26"
   },
   "multiplayer/": {
-    "fingerprint": "6446ab224d5c052a",
+    "fingerprint": "c056bb79d06d9e59",
     "lastmod": "2026-11-26"
   },
   "strategy/": {
-    "fingerprint": "251049d6f8f7d5a6",
+    "fingerprint": "f8ca2cb9ca94aeec",
     "lastmod": "2026-11-26"
   },
   "scores/": {
-    "fingerprint": "4512eaaf655ec646",
+    "fingerprint": "ddb0fef42dd2aa5c",
     "lastmod": "2026-11-26"
   },
   "probability/": {
-    "fingerprint": "cabf6e3b2d9d82fb",
+    "fingerprint": "34387fdd31441b40",
     "lastmod": "2026-11-26"
   }
 }

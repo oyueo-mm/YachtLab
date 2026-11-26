@@ -10,7 +10,7 @@ import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from ".
 import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Crown, Dices, Flag, LogOut, Play, RotateCcw, Share2, UserRound, Wifi, WifiOff, X } from "lucide-react";
-import { categories, names, type Category, type Game } from "../engine";
+import { names, type Category, type Game } from "../engine";
 import { useGameShortcuts } from "../ui/shortcuts";
 import { useBgmScene } from "../audio/useBgm";
 import { DiceArea } from "../DiceArea";
@@ -28,7 +28,7 @@ import { useYachtReady } from "../yacht-moment";
 import { BonusChip, QuickPicks } from "../QuickPicks";
 import { playSfx } from "../sound";
 import { useSettings } from "../settings";
-import { OnlineConnection, forgetSeat, inviteLink, savedSeat, setRoomInUrl, watchLink, type ConnectionStatus } from "../online/client";
+import { OnlineConnection, forgetSeat, inviteLink, savedSeat, watchLink, type ConnectionStatus } from "../online/client";
 import type { OnlineAction } from "../online/protocol";
 import type { PlayerView } from "../online/server-engine";
 import type { LobbyState, RematchState, SeriesSummary, SpectateState } from "../online/wire";
@@ -353,7 +353,8 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const opponent = players.find((p) => p.playerId !== me?.playerId) ?? null;
   /* ------------------------------------------------- derived game table (hooks stay above early returns) ------------------------------------------------- */
   const turn = view?.turn ?? null;
-  const myTurn = !!me && turn?.playerId === me.playerId && view?.status === "playing";
+  const legal = view?.legal;
+  const myTurn = !!me && playing && !!legal;
   const meIndex = Math.max(0, players.findIndex((p) => p.playerId === me?.playerId)) as 0 | 1;
   const turnIndex = Math.max(0, players.findIndex((p) => p.playerId === turn?.playerId)) as 0 | 1;
   const rolls = turn?.rolls ?? 0;
@@ -379,21 +380,21 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const scoreLabels = players.map((p) => (p.playerId === me?.playerId ? "나" : p.name + (p.playerId === aiSeat ? " · AI" : ""))) as [string, string];
   const can = myTurn && !sending && !rolling && status === "online";
   const allHeld = keep.length === 5;
-  const canRoll = can && rolls < 3 && !(rolls > 0 && allHeld);
+  const canRoll = can && !!legal?.canRoll && !(rolls > 0 && allHeld);
   const roll = () => {
     if (!canRoll) return;
     // Kept dice in selection order; the server keeps that order for both screens (the engine sorts its copy).
     void send({ type: "roll", keep: rolls > 0 ? keep : [] });
   };
   const toggle = (id: number) => {
-    if (!can || rolls === 0 || rolls >= 3) return;
+    if (!can || !legal?.canKeep) return;
     const next = toggleHoldOrder(keep, id);
     setKeep(next);
     mySelection.current = { keep: next, v: view?.version ?? -1 };
     conn.current?.hold(next, ++holdSent.current);
   };
   const record = (category: Category) => {
-    if (!can || rolls === 0 || players[meIndex]?.card[category] !== undefined) return;
+    if (!can || !legal?.scores.some((option) => option.category === category)) return;
     void send({ type: "score", category });
     setMobileScoreOpen(false);
   };
@@ -407,13 +408,13 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const keys = useGameShortcuts({
     active: can, dice: game.dice, rolls, canRoll, roll, toggle,
     setAll: (held) => {
-      if (!can || rolls === 0 || rolls >= 3) return;
+      if (!can || !legal?.canKeep) return;
       const next = held ? [...keep, ...game.dice.map((d) => d.id).filter((id) => !keep.includes(id))] : [];
       setKeep(next);
       mySelection.current = { keep: next, v: view?.version ?? -1 };
       conn.current?.hold(next, ++holdSent.current);
     },
-    open: categories.filter((c) => players[meIndex]?.card[c] === undefined), record,
+    open: legal?.scores.map(({ category }) => category) ?? [], record,
   });
   const yachtReady = useYachtReady(game.dice, rolls, myTurn && players[meIndex]?.card.yacht === undefined);
   // Result sound from my side: 1:1 win / loss / draw; larger rooms by rank (sole first = win, shared
@@ -627,6 +628,8 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           onToggle={toggle}
           onRoll={roll}
           onScore={record}
+          selectedScore={keys.picked}
+          onSelectScore={keys.setPicked}
           onRematch={(op) => conn.current?.rematch(op)}
           onHome={leaveFinishedMatch}
         />

@@ -186,7 +186,6 @@ export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server:
   const enter = (seat: Seat, as = trimmed, quick = false) => {
     saveName(as);
     saveSeat({ ...seat, name: as, at: Date.now() });
-    setRoomInUrl(seat.code);
     onEnter(seat.code, quick);
   };
   if (inviteCode && !savedSeat(inviteCode))
@@ -230,7 +229,7 @@ export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server:
             <BrandMark /> 서버 정보를 불러오는 중…
           </p>
         ) : shown === "quick" ? (
-          <QuickPanel server={server} name={trimmed} serverAi={!!features.serverAi} onMatched={enter} onAi={onAi} onReturn={(code) => (setRoomInUrl(code), onEnter(code))} />
+          <QuickPanel server={server} name={trimmed} serverAi={!!features.serverAi} onMatched={enter} onAi={onAi} onReturn={onEnter} />
         ) : shown === "watch" ? (
           <WatchRooms server={server} />
         ) : (
@@ -360,10 +359,7 @@ function FriendPanel({ server, name, enter, onEnter, createSettings, defaultTurn
               key={seat.code}
               type="button"
               className="online-resume-item"
-              onClick={() => {
-                setRoomInUrl(seat.code);
-                onEnter(seat.code);
-              }}
+              onClick={() => onEnter(seat.code)}
             >
               <span>
                 <strong>{seat.code}</strong> · {seat.name}

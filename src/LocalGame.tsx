@@ -23,7 +23,7 @@ import { ConfirmDialog, type PendingAction } from "./ui/ConfirmDialog";
 import { orderPlayers, type LocalOrder } from "./setup";
 import { useDiceBusy } from "./useDiceBusy";
 import { announceScore, clearScoreFx } from "./score-fx";
-import { useOwnLook } from "./play/own-look";
+import { equippedBoard, useOwnLook } from "./play/own-look";
 import { BoardFx } from "./play/BoardFx";
 import { diceLookOf, diceMaterialOf, useBoardTheme } from "./play/Looks";
 
@@ -66,7 +66,7 @@ export default function LocalGame({
   const rolling = useDiceBusy();
   // One device, one owner: this device's equipped dice and board for every seat (presentation only).
   const look = useOwnLook();
-  const theme = useBoardTheme(look);
+  const theme = useBoardTheme(equippedBoard(look));
   const boardRef = useRef<HTMLElement | null>(null);
 
   const active = !state.done && !viewReplay;

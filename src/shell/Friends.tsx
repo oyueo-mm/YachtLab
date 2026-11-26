@@ -2,7 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Ban, Check, Copy, LoaderCircle, Mail, Search, UserMinus, UserPlus, UserRound, X } from "lucide-react";
 import { session } from "../identity/account-client";
 import { acceptInvite, declineInvite, friendAction, friendProfile, friends, inbox, inviteFriends, searchFriends, type FriendData, type FriendProfile, type RoomInvite, type SearchResult } from "../identity/friends-client";
-import { saveSeat, savedName, setRoomInUrl } from "../online/client";
+import { saveSeat, savedName } from "../online/client";
 import { ConfirmDialog, type PendingAction } from "../ui/ConfirmDialog";
 import type { Route } from "../routes";
 
@@ -72,7 +72,6 @@ export function InviteToasts({ server, onJoined }: { server: string | null; onJo
     try {
       const seat = await acceptInvite(server, inv.id);
       saveSeat({ code: seat.code, playerId: seat.playerId, token: seat.token, name: savedName(), at: Date.now() });
-      setRoomInUrl(seat.code);
       dropInvite(inv.id);
       onJoined(seat.code);
     } catch (e) {

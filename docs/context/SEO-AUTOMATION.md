@@ -9,7 +9,7 @@
 3. **배포** — 기존 구조 그대로. 추가로 `retain-assets.mjs`가 최근 배포의 해시 자산을 새 빌드에 보존한다(아래 리소스 조사).
 4. **배포 후(`seo-indexnow.yml`)** — `Test and deploy YachtLab`가 main에서 성공하고 그 실행의 `deploy` 잡이 성공했을 때 실행된다. CDN이 이 커밋의 사이트맵을 내줄 때까지 최대 15분 기다린 뒤, 운영 사이트를 같은 기준으로 검증하고(추가로 Google 인증 메타, 루트의 네이버 인증 파일, 루트 robots.txt) 통과하면 IndexNow로 제출한다.
    - **엔드포인트**: Bing `https://www.bing.com/indexnow`, 네이버 `https://searchadvisor.naver.com/indexnow`. 각각 따로 상태를 둔다.
-   - **변경 판정**: 엔드포인트별로 마지막으로 수락된 `url → lastmod`와 운영 사이트맵을 비교한다. 상태가 없으면(최초) 8개 전부, 이후에는 신규·lastmod 변경·사이트맵에서 빠진(삭제) URL만 보낸다.
+   - **변경 판정**: 엔드포인트별로 마지막으로 수락된 `url → { lastmod, fingerprint }`와 운영 사이트의 검증 결과를 비교한다. 같은 KST 날짜에 본문이 바뀌어도 지문 차이로 감지한다. 상태가 없으면 8개 전부, 이후에는 신규·변경·삭제 URL만 보낸다. 날짜만 기록된 기존 상태는 지문 기준선을 확보하기 위해 엔드포인트별로 한 번 재제출한다. 수락된 URL부터 상태를 갱신한다.
    - **재시도**: 네트워크 오류·408·425·429·5xx는 실행 안에서 5회(5→10→20→40 s, `Retry-After` 우선) 재시도. 그래도 실패한 엔드포인트는 상태를 올리지 않아 다음 배포·매일 10:41 KST 예약 실행·수동 실행 때 다시 보낸다. 400/403/422 같은 확정 오류는 즉시 실패로 기록한다.
    - **기록**: `seo-state` 브랜치의 `seo-state/state.json`(엔드포인트별 제출 상태), `log.jsonl`(모든 시도: 시각·커밋·실행 URL·응답 코드·시도 횟수·URL 목록), `last-verify.json`(마지막 검증 보고서). 실행 요약은 Actions Job Summary와 30일 보존 아티팩트에도 남는다.
    - **수동 실행**: Actions → SEO IndexNow → Run workflow. `mode=changed|all`, `dry_run`, `endpoints=bing,naver`.
@@ -23,6 +23,10 @@
 ## Google
 
 일반 페이지에는 Indexing API(채용 공고·라이브 방송 전용)를 쓰지 않는다. 사이트맵 ping 엔드포인트도 2023년에 폐기됐다. Google은 Search Console에 등록된 `sitemap.xml`과 robots.txt의 `Sitemap:` 줄, 그리고 콘텐츠 기준 `lastmod`로 관리한다. 사이트맵 재제출 API(Search Console API)는 서비스 계정을 속성에 추가해야 해 이번 범위에서 제외했다.
+
+## 공개 검색 콘텐츠
+
+기존 8개 페이지에 한국어·영어 연구 문서 2개를 추가했다. 배포 검사와 IndexNow가 사이트맵의 10개 URL을 읽는다. 각 연구 판본은 자체 canonical, 양방향 `hreflang`, 해당 언어의 TechArticle 데이터와 본문 언어 전환 링크를 갖는다. [검색 의도와 경쟁 표본](./SEARCH-INTENT-2026-11-26.md) · [한국어 연구](https://oyueo-mm.github.io/YachtLab/research/) · [English research](https://oyueo-mm.github.io/YachtLab/research/en/)
 
 ## 페이지 리소스 3개 로딩 실패 조사
 

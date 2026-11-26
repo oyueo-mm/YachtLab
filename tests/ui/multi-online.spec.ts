@@ -179,3 +179,75 @@ test("3인 동시 진행 관전: 모두 허용하면 관전 링크가 생기고,
   await expect(w.locator(".multi-scoreboard h2")).toHaveText("관둘 점수판");
   await expect(w.getByRole("button", { name: "관둘 점수판 보기" })).toHaveAttribute("aria-pressed", "true");
 });
+
+for (const simultaneous of [false, true]) {
+  test(`3인 ${simultaneous ? "동시" : "순차"} 진행에서 키보드는 내 주사위와 명시적으로 고른 족보만 조작한다`, async ({ browser }, info) => {
+    test.skip(info.project.name === "mobile", "데스크톱 세 기기로 확인");
+    test.setTimeout(90_000);
+    const host = await device(browser, false);
+    await host.goto(entry());
+    await host.getByRole("tab", { name: "친구 대전" }).click();
+    await nick(host, "키보드방장");
+    await host.getByLabel("최대 인원").selectOption("3");
+    await host.getByRole("button", { name: "방 만들기" }).click();
+    await expect(host.getByRole("heading", { name: "대기실" })).toBeVisible();
+    const code = (await host.getByLabel("초대 코드").textContent())!.trim();
+    if (simultaneous) {
+      await host.getByText("동시 진행", { exact: true }).click();
+      await expect(host.locator(".segmented-choice label.on")).toHaveText("동시 진행");
+    }
+    const guests: Page[] = [];
+    for (const name of ["키보드둘", "키보드셋"]) {
+      const guest = await device(browser, false);
+      await guest.goto(entry(code));
+      await nick(guest, name);
+      await guest.getByRole("button", { name: "입장하기" }).click();
+      await guest.getByRole("button", { name: "준비 완료" }).click();
+      guests.push(guest);
+    }
+    await host.getByRole("button", { name: /게임 시작/ }).click();
+    const pages = [host, ...guests];
+    for (const page of pages) await expect(page.locator(".board-top b")).toHaveText("0");
+    let player = guests[1];
+    if (!simultaneous) {
+      for (const page of pages) if (await page.locator(".roll-button").isEnabled()) player = page;
+      const other = pages.find((page) => page !== player)!;
+      await other.keyboard.press("Space");
+      await expect(other.locator(".board-top b")).toHaveText("0");
+    }
+    await player.getByRole("button", { name: "채팅·이모티콘" }).click();
+    await player.keyboard.press("1");
+    await expect(player.locator(".board-top b")).toHaveText("0");
+    await player.keyboard.press("Escape");
+    await expect(player.getByRole("dialog", { name: "채팅·이모티콘" })).toBeHidden();
+    await player.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+    await player.keyboard.press("Control+Space");
+    await expect(player.locator(".board-top b")).toHaveText("0");
+    await player.keyboard.press("Space");
+    await expect(player.locator(".board-top b")).toHaveText("1");
+
+    const kept = player.locator('[data-die-id][aria-pressed="true"], [data-die-id] [aria-pressed="true"]');
+    await player.keyboard.press("1");
+    await expect(kept).toHaveCount(1);
+    await player.keyboard.press("a");
+    await expect(kept).toHaveCount(5);
+    await expect(player.locator(".roll-button")).toBeDisabled();
+    await player.keyboard.press("d");
+    await expect(kept).toHaveCount(0);
+
+    const score = player.getByRole("group", { name: "점수 기록 확인" });
+    await player.keyboard.press("Enter");
+    await expect(score).toBeHidden();
+    await player.keyboard.press("ArrowDown");
+    await expect(score).toContainText("에이스");
+    await player.keyboard.press("Escape");
+    await expect(score).toBeHidden();
+    await player.keyboard.press("ArrowDown");
+    await player.keyboard.press("ArrowDown");
+    await expect(score).toContainText("듀스");
+    await player.keyboard.press("Enter");
+    await expect(player.locator('.multi-scoreboard [data-category="deuces"] .fixed-score')).toHaveCount(1);
+    await expect(score).toBeHidden();
+    await expect(player.locator(".board-top b")).toHaveText("0");
+  });
+}

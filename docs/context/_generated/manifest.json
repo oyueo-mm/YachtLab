@@ -71,9 +71,11 @@
     "RESEARCH-50K-FOUR-WAY-LEAGUE.md",
     "RESULTS.md",
     "ROADMAP.md",
+    "SEARCH-INTENT-2026-11-26.md",
     "SELFPLAY-2026-11-20-FINAL.md",
     "SELFPLAY-RESEARCH.md",
     "SEO-AUTOMATION.md",
+    "STABILITY-2026-11-26.md",
     "TECHNIQUES.md",
     "V31-RESEARCH.md",
     "V32-EXACT-FORECAST.md",
@@ -125,6 +127,46 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "d6d8414",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #107 from oyueo-mm/codex/yachtlab-search-research-20261126"
+    },
+    {
+      "sha": "9e0e45e",
+      "date": "2026-11-26",
+      "subject": "Record current search markup guidance and performance samples"
+    },
+    {
+      "sha": "87ef6e3",
+      "date": "2026-11-26",
+      "subject": "Align static and hydrated home search content"
+    },
+    {
+      "sha": "56258b4",
+      "date": "2026-11-26",
+      "subject": "Publish bilingual Yacht Dice research and intent-focused guides"
+    },
+    {
+      "sha": "a8f70cd",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #106 from oyueo-mm/codex/yachtlab-stability-20261126"
+    },
+    {
+      "sha": "a2e53d1",
+      "date": "2026-11-26",
+      "subject": "Fix settings scrolling, invite history and multiplayer shortcuts"
+    },
+    {
+      "sha": "b8f4782",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #103 from oyueo-mm/claude/great-sagan-cevdax"
+    },
+    {
+      "sha": "1e288e2",
+      "date": "2026-11-26",
+      "subject": "test(ui): explicit 30 s budget for the in-browser tournament; record production rollout"
+    },
+    {
       "sha": "2788297",
       "date": "2026-11-26",
       "subject": "Merge pull request #102 from oyueo-mm/claude/great-sagan-cevdax"
@@ -133,72 +175,26 @@
       "sha": "93b2e2c",
       "date": "2026-11-26",
       "subject": "Merge remote-tracking branch 'origin/main' into claude/great-sagan-cevdax"
-    },
-    {
-      "sha": "77b6016",
-      "date": "2026-11-26",
-      "subject": "docs: exact unit test count"
-    },
-    {
-      "sha": "3b2ff1e",
-      "date": "2026-11-26",
-      "subject": "test+docs: polish verification, sweep contact sheets, BGM render in idle time, test race fix"
-    },
-    {
-      "sha": "2e4501f",
-      "date": "2026-11-26",
-      "subject": "perf+docs: lazy effect/music chunks, level texts split; polish report, decisions D-068..D-073, audio licences"
-    },
-    {
-      "sha": "c141d34",
-      "date": "2026-11-26",
-      "subject": "feat(seo,ui): visual rules page, categorized FAQ, home links trimmed; tests for polish"
-    },
-    {
-      "sha": "5d81351",
-      "date": "2026-11-26",
-      "subject": "feat(items): unique dice, board and emote upgrade effects"
-    },
-    {
-      "sha": "e627852",
-      "date": "2026-11-26",
-      "subject": "Merge pull request #101 from oyueo-mm/claude/wizardly-bohr-1usbx5"
-    },
-    {
-      "sha": "c4d854c",
-      "date": "2026-11-26",
-      "subject": "docs(seo): record the first production IndexNow run (D-067)"
-    },
-    {
-      "sha": "0e492f3",
-      "date": "2026-11-26",
-      "subject": "feat(dice): per-item Lv.2/Lv.3 effect profiles for all dice"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "SEO IndexNow",
+      "status": "success",
+      "head": "19a5d24c8a",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45842304037"
+    },
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "9e0e45eece",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45841769924"
+    },
     {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
       "head": "93b2e2c5ac",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45809130867"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "93b2e2c5ac",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45809130859"
-    },
-    {
-      "name": "SEO IndexNow",
-      "status": "success",
-      "head": "e17c785908",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45800285656"
-    },
-    {
-      "name": "Deploy YachtLab Online Worker (manual)",
-      "status": "success",
-      "head": "54c13679f0",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45772443229"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

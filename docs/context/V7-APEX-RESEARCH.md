@@ -1,5 +1,7 @@
 # Win DP v7 연구 — 상대 반응을 넣은 정지가치 (연구 브랜치 전용)
 
+공개 보고서에서 규칙, 확증·재현 지표, 원자료와 계산 비용을 함께 확인할 수 있습니다. [한국어](https://oyueo-mm.github.io/YachtLab/research/) · [English](https://oyueo-mm.github.io/YachtLab/research/en/)
+
 - 규칙: 12칸 Nintendo-style Yacht Dice, 상단 63점 +35. 승리점수율 = 승 + 0.5·무.
 - 제품 영향: **없음.** `src/ai.ts`, 기본 AI, 난이도, UI, 서버, 배포 설정은 바꾸지 않는다. 새 코드는 `src/research-v7/`, `scripts/research-v7/`, 연구 하네스 `scripts/research-v5/agents.ts`의 에이전트 등록뿐이다.
 - 시작점: main `f0e6a0c`(PR #79 병합 `53e9620` 이후 문서 갱신 커밋) + 이전 claude.ai 세션의 패치 `yachtlab-v7-wip.patch`.

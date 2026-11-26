@@ -26,6 +26,7 @@ export function Select<T extends string>({ value, options, onChange, label, clas
   const list = useRef<HTMLUListElement>(null);
   const current = options.find((o) => o.value === value) ?? options[0];
   const [up, setUp] = useState(false);
+  const [maxListHeight, setMaxListHeight] = useState<number>();
   useEffect(() => {
     if (!open) return;
     const outside = (e: PointerEvent) => {
@@ -35,11 +36,36 @@ export function Select<T extends string>({ value, options, onChange, label, clas
     return () => document.removeEventListener("pointerdown", outside, true);
   }, [open]);
   useLayoutEffect(() => {
-    if (!open || !trigger.current) return;
-    const r = trigger.current.getBoundingClientRect();
-    setUp(window.innerHeight - r.bottom < 260 && r.top > window.innerHeight - r.bottom);
-    list.current?.querySelector<HTMLElement>("[aria-selected=true]")?.scrollIntoView?.({ block: "nearest" });
+    const anchor = trigger.current;
+    if (!open || !anchor) return;
+    const scroller = anchor.closest("[data-select-viewport]");
+    const place = () => {
+      const r = anchor.getBoundingClientRect();
+      const bounds = scroller?.getBoundingClientRect();
+      const below = (bounds?.bottom ?? window.innerHeight) - r.bottom;
+      const above = r.top - (bounds?.top ?? 0);
+      const opensUp = below < 260 && above > below;
+      setUp(opensUp);
+      setMaxListHeight(bounds ? Math.max(0, Math.min(280, (opensUp ? above : below) - 8)) : undefined);
+    };
+    place();
+    scroller?.addEventListener("scroll", place, { passive: true });
+    window.addEventListener("resize", place);
+    return () => {
+      scroller?.removeEventListener("scroll", place);
+      window.removeEventListener("resize", place);
+    };
   }, [open]);
+  useLayoutEffect(() => {
+    if (!open) return;
+    const menu = list.current;
+    const option = menu?.children.item(active) as HTMLElement | null | undefined;
+    if (!menu || !option) return;
+    if (option.offsetTop < menu.scrollTop) menu.scrollTop = option.offsetTop;
+    else if (option.offsetTop + option.offsetHeight > menu.scrollTop + menu.clientHeight) {
+      menu.scrollTop = option.offsetTop + option.offsetHeight - menu.clientHeight;
+    }
+  }, [open, active, maxListHeight]);
   const move = (from: number, step: number) => {
     let i = from;
     for (let n = 0; n < options.length; n++) {
@@ -100,7 +126,7 @@ export function Select<T extends string>({ value, options, onChange, label, clas
         <ChevronDown size={16} aria-hidden="true" />
       </button>
       {open && (
-        <ul ref={list} id={id} role="listbox" aria-label={label} className={"ui-select-list" + (up ? " up" : "")}>
+        <ul ref={list} id={id} role="listbox" aria-label={label} className={"ui-select-list" + (up ? " up" : "")} style={{ maxHeight: maxListHeight }}>
           {options.map((o, i) => (
             <li key={o.value} id={`${id}-${i}`} role="option" aria-selected={o.value === value} aria-disabled={o.disabled || undefined}
               className={(i === active ? "active" : "") + (o.disabled ? " disabled" : "")}

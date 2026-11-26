@@ -64,9 +64,9 @@ const catCard = ([id, values, hits, rule, why]) => {
 export const GUIDE = {
   path: "guide/",
   crumb: "규칙과 족보",
-  title: "요트다이스 규칙과 족보, 확률, 초보 전략 · Online Yacht",
+  title: "요트다이스 룰·족보 | 12칸 점수 계산과 보너스 · Online Yacht",
   ogTitle: "요트다이스 규칙과 족보 · Online Yacht",
-  description: "온라인 요트다이스의 12개 족보, 점수 계산과 63점 상단 보너스, 첫 굴림 확률, 친구·AI 대전 방법을 알아보세요.",
+  description: "주사위 굴림과 킵부터 야추의 12개 족보, 63점 상단 보너스와 총점까지 예시로 익히세요. 미국식 Yahtzee와 다른 점도 설명합니다.",
   jsonld: [{ "@type": "HowTo", name: "요트다이스 한 차례 진행", step: [
     { "@type": "HowToStep", text: "주사위 5개를 굴립니다." },
     { "@type": "HowToStep", text: "남길 주사위를 눌러 킵하고, 나머지를 최대 두 번 더 굴립니다." },
@@ -75,7 +75,8 @@ export const GUIDE = {
   body: `
     <article class="rules">
       <h1>요트다이스 규칙과 족보</h1>
-      <p class="lead">주사위 5개를 최대 세 번 굴려 12칸의 점수판을 채우는 게임입니다. 12라운드가 끝났을 때 총점이 높은 사람이 이깁니다.</p>
+      <p class="lead">요트다이스는 주사위 5개를 한 차례에 최대 세 번 굴려 12칸을 채우는 게임입니다. 차례마다 빈 족보를 하나 쓰고, 12라운드가 끝났을 때 총점이 높은 사람이 이깁니다.</p>
+      <p>여기서는 닌텐도식 12칸 규칙을 사용합니다. 미국식 Yahtzee는 13칸이며 스트레이트 점수와 추가 요트 처리도 다릅니다. <a href="../faq/#compare">규칙 비교표</a>를 확인하세요.</p>
       <nav class="toc" aria-label="이 페이지에서">
         <a href="#turn">진행 순서</a><a href="#keep">굴림과 킵</a><a href="#scores">12개 족보</a><a href="#bonus">상단 보너스</a><a href="#total">점수 계산</a><a href="#odds">확률</a><a href="#strategy">초보 전략</a><a href="#play">대전 시작</a><a href="#faq">질문</a>
       </nav>
@@ -162,6 +163,7 @@ export const GUIDE = {
         <h2>AI 대전과 친구 대전</h2>
         <p><a href="../#offline">오프라인</a>에서 혼자 최고 점수에 도전하는 <strong>1인 플레이</strong>, 다섯 단계 <a href="../ai/">AI</a>와의 대결, 한 기기에서 함께 하는 대전을 고를 수 있습니다. 굴림부터 기록까지 다시 익히려면 <a href="../#practice">튜토리얼 다시 하기</a>로 언제든 다시 연습하세요.</p>
         <p><a href="../#online">온라인 대전</a>에서 빠른 대전을 시작하거나 <a href="../multiplayer/">친구 대전</a> 방을 열어 초대 링크나 코드를 공유하세요.</p>
+        <p>같은 12칸 규칙에서 AI가 기대 점수와 승리 확률을 계산하는 방법은 <a href="../research/">요트다이스 AI 연구</a>에 정리했습니다.</p>
         <p class="cta"><a class="button" href="../#online">지금 무료로 플레이</a> <a class="button ghost" href="../#offline">AI와 연습하기</a></p>
       </section>
       <section id="faq">
