@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>요트다이스 확률 계산기 | 야추 족보 확률·킵 추천 · Online Yacht</title>
+  <meta name="description" content="현재 주사위와 킵, 남은 굴림 횟수를 넣으면 요트다이스(야추) 각 족보의 달성 확률과 기대 점수, 최적 킵을 정확히 계산합니다.">
+  <link rel="canonical" href="https://oyueo-mm.github.io/YachtLab/probability/">
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48">
+  <link rel="stylesheet" href="../site/page.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Online Yacht">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:title" content="요트다이스 확률 계산기 | 야추 족보 확률·킵 추천 · Online Yacht">
+  <meta property="og:description" content="현재 주사위와 킵, 남은 굴림 횟수를 넣으면 요트다이스(야추) 각 족보의 달성 확률과 기대 점수, 최적 킵을 정확히 계산합니다.">
+  <meta property="og:url" content="https://oyueo-mm.github.io/YachtLab/probability/">
+  <meta property="og:image" content="https://oyueo-mm.github.io/YachtLab/icons/share.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Online Yacht 워드마크와 주사위 눈이 들어간 돛단배 로고">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Online Yacht","item":"https://oyueo-mm.github.io/YachtLab/"},{"@type":"ListItem","position":2,"name":"확률 계산기","item":"https://oyueo-mm.github.io/YachtLab/probability/"}]},{"@type":"WebApplication","name":"요트다이스 확률 계산기","url":"https://oyueo-mm.github.io/YachtLab/probability/","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"}}]}</script>
+</head>
+<body>
+  <header class="site-top"><div class="top">
+    <a class="brand" href="../"><img src="../icons/online-yacht-wordmark.svg" alt="Online Yacht 홈" width="139" height="32"></a>
+    <a class="play" href="../#online">지금 플레이</a>
+  </div>
+  <nav class="site-nav" aria-label="사이트"><a href="../">홈</a><a href="../guide/">규칙</a><a href="../scores/">족보·점수판</a><a href="../probability/" aria-current="page">확률 계산기</a><a href="../strategy/">전략</a><a href="../ai/">AI 대전</a><a href="../multiplayer/">친구 대전</a><a href="../faq/">FAQ</a></nav></header>
+  <main>
+<article>
+      <h1>요트다이스 족보 확률 계산기</h1>
+      <p class="lead">주사위 눈을 누르면 바뀌고, 아래 체크로 킵을 정합니다. 남은 재굴림 횟수에 따라 각 족보를 노릴 때의 확률을 정확히 계산합니다.</p>
+      <section class="calc" aria-label="계산기">
+        <div class="dice-input" id="dice" role="group" aria-label="현재 주사위"></div>
+        <fieldset class="rolls"><legend>남은 재굴림</legend>
+          <label><input type="radio" name="rolls" value="2" checked> 2번 (첫 굴림 직후)</label>
+          <label><input type="radio" name="rolls" value="1"> 1번</label>
+          <label><input type="radio" name="rolls" value="0"> 0번 (지금 기록)</label>
+        </fieldset>
+        <div class="calc-actions"><button type="button" class="button ghost" id="random">무작위 굴림</button></div>
+        <table id="odds" class="odds">
+          <caption>족보별 결과</caption>
+          <thead><tr><th scope="col">족보</th><th scope="col">지금 점수</th><th scope="col">표시한 킵으로</th><th scope="col">최선의 킵으로</th><th scope="col">추천 킵</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p class="note" id="calc-note">표의 확률은 그 족보 하나만 노릴 때입니다. 상단(에이스~헥사)은 해당 눈 3개 이상(보너스 기준), 초이스는 24점 이상을 성공으로 셉니다.</p>
+        <noscript><p>계산기는 자바스크립트가 필요합니다. 첫 굴림 확률과 전략 표는 <a href="../strategy/">전략</a> 페이지에 있습니다.</p></noscript>
+      </section>
+      <h2>계산 방법</h2>
+      <ul>
+        <li>공정한 주사위 6면, 다섯 개 주사위의 모든 경우(순서 무관 252가지)를 정확히 열거합니다. 시뮬레이션이 아닙니다.</li>
+        <li>"최선의 킵"은 남은 모든 재굴림에서 그 족보의 확률이 가장 높아지도록 킵을 고르는 동적 계획법 결과입니다.</li>
+        <li>"표시한 킵으로"는 지금 체크한 주사위를 남기고 한 번 굴린 뒤, 남은 굴림은 최선으로 이어 갈 때의 값입니다.</li>
+        <li>점수와 족보 판정은 게임 엔진과 같은 규칙으로 7,776가지 굴림 전체를 대조해 검증했습니다.</li>
+      </ul>
+      <p>이 계산기는 족보 하나만 봅니다. 남은 칸과 상대 점수까지 고려한 판단은 게임의 <a href="../ai/">AI</a>와 게임 리뷰에서 확인할 수 있습니다.</p>
+      <p class="cta"><a class="button" href="../#online">지금 무료로 플레이</a> <a class="button ghost" href="../#offline">AI와 연습하기</a></p>
+    </article>
+    <script type="module">
+      import { CATEGORIES, NAMES, score, hit, afterKeep, bestKeep } from "../tools/yacht-odds.js";
+      const box = document.getElementById("dice"), body = document.querySelector("#odds tbody");
+      let dice = [2, 3, 4, 5, 5], kept = [true, true, true, true, false];
+      const pips = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+      const pct = (v) => (100 * v).toFixed(v > 0 && v < 0.001 ? 3 : 1) + "%";
+      function draw() {
+        box.replaceChildren(...dice.map((v, i) => {
+          const wrap = document.createElement("div"); wrap.className = "die" + (kept[i] ? " kept" : "");
+          const b = document.createElement("button"); b.type = "button"; b.textContent = pips[v]; b.setAttribute("aria-label", (i + 1) + "번 주사위 " + v + ", 눌러서 바꾸기");
+          b.addEventListener("click", () => { dice[i] = (dice[i] % 6) + 1; draw(); });
+          const l = document.createElement("label"); const c = document.createElement("input"); c.type = "checkbox"; c.checked = kept[i];
+          c.addEventListener("change", () => { kept[i] = c.checked; draw(); });
+          l.append(c, " 킵");
+          wrap.append(b, l); return wrap;
+        }));
+        compute();
+      }
+      function compute() {
+        const rolls = Number(document.querySelector('input[name="rolls"]:checked').value);
+        const keepDice = dice.filter((_, i) => kept[i]);
+        body.replaceChildren(...CATEGORIES.map((c) => {
+          const tr = document.createElement("tr");
+          const th = document.createElement("th"); th.scope = "row"; th.textContent = NAMES[c];
+          const now = document.createElement("td"); now.textContent = score(dice, c) + "점" + (hit(dice, c) ? " ✓" : "");
+          const mine = document.createElement("td"), best = document.createElement("td"), rec = document.createElement("td");
+          if (rolls === 0 || keepDice.length === 5) mine.textContent = hit(dice, c) ? "100%" : "0%";
+          else mine.textContent = pct(afterKeep(keepDice, rolls, "hit", c)) + " · " + afterKeep(keepDice, rolls, "score", c).toFixed(1) + "점";
+          const b = bestKeep(dice, rolls, "hit", c);
+          best.textContent = pct(b.value) + " · " + (rolls ? bestKeep(dice, rolls, "score", c).value.toFixed(1) : String(score(dice, c))) + "점";
+          rec.textContent = rolls === 0 ? "—" : b.kept.length === 5 ? "그대로" : b.kept.length ? b.kept.join("·") : "모두 다시";
+          tr.append(th, now, mine, best, rec); return tr;
+        }));
+      }
+      document.querySelectorAll('input[name="rolls"]').forEach((r) => r.addEventListener("change", compute));
+      document.getElementById("random").addEventListener("click", () => { dice = dice.map(() => 1 + Math.floor(Math.random() * 6)); kept = [false, false, false, false, false]; draw(); });
+      draw();
+    </script>
+  </main>
+  <footer class="site-foot">
+    <p>Online Yacht는 12칸 요트다이스(야추) 규칙을 쓰는 무료 웹 게임입니다. Hasbro의 Yahtzee® 공식 제품이 아니며 제휴 관계가 없습니다.</p>
+    <p><a href="../">무료로 플레이</a> · <a href="../guide/">규칙</a> · <a href="../faq/">자주 묻는 질문</a></p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>요트다이스 족보·점수판 | 야추 점수 계산기 (실제 주사위용) · Online Yacht</title>
+  <meta name="description" content="요트다이스(야추) 12개 족보와 점수 계산법, 실제 주사위로 할 때 쓰는 무료 다인용 점수판. 상단 보너스와 합계, 승자를 자동 계산합니다.">
+  <link rel="canonical" href="https://oyueo-mm.github.io/YachtLab/scores/">
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48">
+  <link rel="stylesheet" href="../site/page.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Online Yacht">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:title" content="요트다이스 족보·점수판 | 야추 점수 계산기 (실제 주사위용) · Online Yacht">
+  <meta property="og:description" content="요트다이스(야추) 12개 족보와 점수 계산법, 실제 주사위로 할 때 쓰는 무료 다인용 점수판. 상단 보너스와 합계, 승자를 자동 계산합니다.">
+  <meta property="og:url" content="https://oyueo-mm.github.io/YachtLab/scores/">
+  <meta property="og:image" content="https://oyueo-mm.github.io/YachtLab/icons/share.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Online Yacht 워드마크와 주사위 눈이 들어간 돛단배 로고">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Online Yacht","item":"https://oyueo-mm.github.io/YachtLab/"},{"@type":"ListItem","position":2,"name":"족보·점수판","item":"https://oyueo-mm.github.io/YachtLab/scores/"}]},{"@type":"WebApplication","name":"요트다이스 점수판","url":"https://oyueo-mm.github.io/YachtLab/scores/","applicationCategory":"GameApplication","operatingSystem":"Any","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"}}]}</script>
+</head>
+<body>
+  <header class="site-top"><div class="top">
+    <a class="brand" href="../"><img src="../icons/online-yacht-wordmark.svg" alt="Online Yacht 홈" width="139" height="32"></a>
+    <a class="play" href="../#online">지금 플레이</a>
+  </div>
+  <nav class="site-nav" aria-label="사이트"><a href="../">홈</a><a href="../guide/">규칙</a><a href="../scores/" aria-current="page">족보·점수판</a><a href="../probability/">확률 계산기</a><a href="../strategy/">전략</a><a href="../ai/">AI 대전</a><a href="../multiplayer/">친구 대전</a><a href="../faq/">FAQ</a></nav></header>
+  <main>
+<article>
+      <h1>요트다이스 족보와 점수판</h1>
+      <p class="lead">실제 주사위로 할 때 아래 점수판에 적으세요. 상단 보너스와 합계, 승자를 자동으로 계산하고 이 기기에 저장합니다. 회원가입은 필요 없습니다.</p>
+      <section class="scorepad" id="scorepad" aria-label="점수판">
+        <div class="pad-tools">
+          <label>인원 <select id="pad-count" aria-label="인원"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label>
+          <button type="button" id="pad-reset" class="button ghost">새 게임</button>
+        </div>
+        <div class="pad-scroll"><table id="pad" class="pad"><caption class="sr-only">플레이어별 점수 입력</caption></table></div>
+        <p id="pad-winner" class="pad-winner" role="status"></p>
+        <noscript><p>점수판은 자바스크립트가 필요합니다. 족보 표는 아래에서 볼 수 있습니다.</p></noscript>
+      </section>
+      <h2>12개 족보</h2>
+      <table>
+        <caption>점수 계산</caption>
+        <thead><tr><th scope="col">족보</th><th scope="col">점수</th><th scope="col">예</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">에이스~헥사</th><td>해당 눈의 합</td><td>6·6·6·2·1 → 헥사 18</td></tr>
+          <tr><th scope="row">초이스</th><td>다섯 눈의 합</td><td>6·5·5·4·3 → 23</td></tr>
+          <tr><th scope="row">포커</th><td>같은 눈 4개 이상이면 다섯 눈의 합</td><td>5·5·5·5·2 → 22</td></tr>
+          <tr><th scope="row">풀 하우스</th><td>3개+2개면 다섯 눈의 합</td><td>4·4·4·2·2 → 16</td></tr>
+          <tr><th scope="row">스몰 스트레이트</th><td>연속 4개 이상이면 15점</td><td>1·2·3·4·6 → 15</td></tr>
+          <tr><th scope="row">라지 스트레이트</th><td>연속 5개면 30점</td><td>2·3·4·5·6 → 30</td></tr>
+          <tr><th scope="row">요트</th><td>5개 모두 같으면 50점</td><td>3·3·3·3·3 → 50</td></tr>
+        </tbody>
+      </table>
+      <p>에이스~헥사 합계가 63점 이상이면 35점을 더합니다. 자세한 진행은 <a href="../guide/">규칙</a>을 보세요.</p>
+      <p class="cta"><a class="button" href="../#online">온라인으로 플레이</a> <a class="button ghost" href="../#offline">AI와 연습하기</a></p>
+    </article>
+    <script>
+    (() => {
+      const KEY = "yachtlab.scorepad.v1";
+      const rows = [["aces","에이스 (1)"],["deuces","듀스 (2)"],["threes","트리플 (3)"],["fours","쿼드 (4)"],["fives","펜타 (5)"],["sixes","헥사 (6)"],["choice","초이스"],["four","포커"],["full","풀 하우스"],["small","스몰 스트레이트"],["large","라지 스트레이트"],["yacht","요트"]];
+      const max = { aces: 5, deuces: 10, threes: 15, fours: 20, fives: 25, sixes: 30, choice: 30, four: 30, full: 30, small: 15, large: 30, yacht: 50 };
+      const fixed = { small: [0, 15], large: [0, 30], yacht: [0, 50] };
+      let state;
+      try { state = JSON.parse(localStorage.getItem(KEY) || "null"); } catch { state = null; }
+      if (!state || !Array.isArray(state.players)) state = { players: [{ name: "플레이어 1", s: {} }, { name: "플레이어 2", s: {} }] };
+      const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+      const table = document.getElementById("pad"), count = document.getElementById("pad-count"), winner = document.getElementById("pad-winner");
+      const upper = (p) => rows.slice(0, 6).reduce((t, [k]) => t + (Number(p.s[k]) || 0), 0);
+      const total = (p) => rows.reduce((t, [k]) => t + (Number(p.s[k]) || 0), 0) + (upper(p) >= 63 ? 35 : 0);
+      const cell = (tag, text, cls) => { const n = document.createElement(tag); if (text !== undefined) n.textContent = text; if (cls) n.className = cls; return n; };
+      function render() {
+        count.value = String(state.players.length);
+        [...table.querySelectorAll("thead,tbody,tfoot")].forEach((n) => n.remove());
+        const head = table.createTHead().insertRow();
+        head.appendChild(cell("th", "족보"));
+        state.players.forEach((p, i) => {
+          const th = cell("th"); th.scope = "col";
+          const input = cell("input"); input.value = p.name; input.setAttribute("aria-label", (i + 1) + "번 플레이어 이름"); input.maxLength = 12;
+          input.addEventListener("input", () => { p.name = input.value; save(); summary(); });
+          th.appendChild(input); head.appendChild(th);
+        });
+        const body = table.createTBody();
+        rows.forEach(([k, label], r) => {
+          if (r === 6) {
+            const bonus = body.insertRow(); bonus.className = "pad-bonus";
+            const th = cell("th", "상단 보너스 (+35)"); th.scope = "row"; bonus.appendChild(th);
+            state.players.forEach((p, i) => { const td = cell("td"); td.dataset.bonus = String(i); bonus.appendChild(td); });
+          }
+          const tr = body.insertRow();
+          const th = cell("th", label); th.scope = "row"; tr.appendChild(th);
+          state.players.forEach((p, i) => {
+            const td = cell("td"), input = cell("input");
+            input.type = "number"; input.inputMode = "numeric"; input.min = "0"; input.max = String(max[k]);
+            if (fixed[k]) input.step = String(fixed[k][1]);
+            input.value = p.s[k] ?? ""; input.setAttribute("aria-label", (p.name || (i + 1) + "번") + " " + label);
+            input.addEventListener("input", () => {
+              const v = input.value === "" ? undefined : Math.max(0, Math.min(max[k], Math.round(Number(input.value))));
+              if (v === undefined || Number.isNaN(v)) delete p.s[k]; else p.s[k] = v;
+              save(); summary();
+            });
+            td.appendChild(input); tr.appendChild(td);
+          });
+        });
+        const foot = table.createTFoot().insertRow(); foot.className = "pad-total";
+        const th = cell("th", "합계"); th.scope = "row"; foot.appendChild(th);
+        state.players.forEach((p, i) => { const td = cell("td"); td.dataset.total = String(i); foot.appendChild(td); });
+        summary();
+      }
+      function summary() {
+        state.players.forEach((p, i) => {
+          const u = upper(p);
+          table.querySelector('[data-bonus="' + i + '"]').textContent = u >= 63 ? "+35 (" + u + ")" : u + " / 63";
+          table.querySelector('[data-total="' + i + '"]').textContent = String(total(p));
+        });
+        const done = state.players.every((p) => rows.every(([k]) => p.s[k] !== undefined));
+        if (!done || state.players.length < 2) { winner.textContent = done ? "합계 " + total(state.players[0]) + "점" : ""; return; }
+        const best = Math.max(...state.players.map(total));
+        const top = state.players.filter((p) => total(p) === best).map((p) => p.name || "이름 없음");
+        winner.textContent = (top.length > 1 ? "공동 1위: " : "승자: ") + top.join(", ") + " (" + best + "점)";
+      }
+      count.addEventListener("change", () => {
+        const n = Number(count.value);
+        while (state.players.length < n) state.players.push({ name: "플레이어 " + (state.players.length + 1), s: {} });
+        state.players.length = n; save(); render();
+      });
+      document.getElementById("pad-reset").addEventListener("click", () => {
+        if (!confirm("모든 점수를 지우고 새 게임을 시작할까요?")) return;
+        state.players.forEach((p) => (p.s = {})); save(); render();
+      });
+      render();
+    })();
+    </script>
+  </main>
+  <footer class="site-foot">
+    <p>Online Yacht는 12칸 요트다이스(야추) 규칙을 쓰는 무료 웹 게임입니다. Hasbro의 Yahtzee® 공식 제품이 아니며 제휴 관계가 없습니다.</p>
+    <p><a href="../">무료로 플레이</a> · <a href="../guide/">규칙</a> · <a href="../faq/">자주 묻는 질문</a></p>
+  </footer>
+</body>
+</html>

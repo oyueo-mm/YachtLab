@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>요트다이스 AI 대전 | 야추 인공지능과 무료 대결 · Online Yacht</title>
+  <meta name="description" content="매우 쉬움부터 매우 어려움까지 다섯 단계 요트다이스(야추) AI와 무료로 대결하세요. 각 난이도의 특징과 AI가 고르는 방식을 설명합니다.">
+  <link rel="canonical" href="https://oyueo-mm.github.io/YachtLab/ai/">
+  <link rel="icon" href="../icons/favicon-48.png" type="image/png" sizes="48x48">
+  <link rel="stylesheet" href="../site/page.css">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Online Yacht">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:title" content="요트다이스 AI 대전 | 야추 인공지능과 무료 대결 · Online Yacht">
+  <meta property="og:description" content="매우 쉬움부터 매우 어려움까지 다섯 단계 요트다이스(야추) AI와 무료로 대결하세요. 각 난이도의 특징과 AI가 고르는 방식을 설명합니다.">
+  <meta property="og:url" content="https://oyueo-mm.github.io/YachtLab/ai/">
+  <meta property="og:image" content="https://oyueo-mm.github.io/YachtLab/icons/share.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Online Yacht 워드마크와 주사위 눈이 들어간 돛단배 로고">
+  <meta name="twitter:card" content="summary_large_image">
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Online Yacht","item":"https://oyueo-mm.github.io/YachtLab/"},{"@type":"ListItem","position":2,"name":"AI 대전","item":"https://oyueo-mm.github.io/YachtLab/ai/"}]}]}</script>
+</head>
+<body>
+  <header class="site-top"><div class="top">
+    <a class="brand" href="../"><img src="../icons/online-yacht-wordmark.svg" alt="Online Yacht 홈" width="139" height="32"></a>
+    <a class="play" href="../#online">지금 플레이</a>
+  </div>
+  <nav class="site-nav" aria-label="사이트"><a href="../">홈</a><a href="../guide/">규칙</a><a href="../scores/">족보·점수판</a><a href="../probability/">확률 계산기</a><a href="../strategy/">전략</a><a href="../ai/" aria-current="page">AI 대전</a><a href="../multiplayer/">친구 대전</a><a href="../faq/">FAQ</a></nav></header>
+  <main>
+<article>
+      <h1>요트다이스 AI 대전</h1>
+      <p class="lead">혼자서도 바로 시작할 수 있습니다. 다섯 단계 AI 중 하나를 골라 1:1로 대결하고, 경기가 끝나면 게임 리뷰에서 내 선택과 AI 추천을 비교해 보세요.</p>
+      <p class="cta"><a class="button" href="../#offline">AI와 대결하기</a> <a class="button ghost" href="../#offline">AI와 연습하기</a></p>
+      <h2>난이도별 상대</h2>
+      <table>
+        <caption>Online Yacht AI 난이도</caption>
+        <thead><tr><th scope="col">난이도</th><th scope="col">AI</th><th scope="col">특징</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">매우 쉬움</th><td>무작위</td><td>규칙만 지키며 무작위로 고릅니다. 처음 배울 때 좋습니다.</td></tr>
+          <tr><th scope="row">쉬움</th><td>강화학습(PPO)</td><td>대국 경험으로 학습한 정책입니다.</td></tr>
+          <tr><th scope="row">보통</th><td>탐욕 정책</td><td>지금 적을 수 있는 높은 점수를 우선합니다.</td></tr>
+          <tr><th scope="row">어려움</th><td>기대값 탐색</td><td>다시 굴렸을 때 나올 수 있는 결과의 확률을 계산합니다.</td></tr>
+          <tr><th scope="row">매우 어려움</th><td>승률 중심 AI</td><td>상대 점수까지 고려해 1:1 승리를 목표로 선택합니다.</td></tr>
+        </tbody>
+      </table>
+      <h2>기대점수 최대화와 승리 최대화는 다릅니다</h2>
+      <p>혼자 최고 점수를 노리는 AI와 상대를 이기려는 AI는 같은 상황에서 다른 선택을 할 수 있습니다. 앞서 있을 때는 안정적인 칸을, 뒤처져 있을 때는 요트처럼 큰 점수를 노리는 편이 승리에 더 유리할 수 있습니다.</p>
+      <ul>
+        <li>기대점수 최적 AI(DP Expert)는 모든 상태를 정확히 계산하며 평균 최종 점수는 약 <strong>191.8점</strong>입니다.</li>
+        <li>승률 중심 AI 계열(Win DP v2)은 이 기대점수 AI와 2만 경기를 겨뤄 50.63%의 승리점수율(무승부 0.5, 근사 95% 신뢰구간 50.41~50.85%)을 기록했습니다. 주사위 운이 큰 게임이라 강한 AI끼리의 차이는 작습니다.</li>
+      </ul>
+      <p>측정 방법과 신뢰구간은 공개 저장소의 <a href="https://github.com/oyueo-mm/YachtLab/blob/main/docs/context/RESULTS.md">실험 결과</a>에 있습니다.</p>
+      <h2>AI에게 배우기</h2>
+      <p>경기가 끝나면 <strong>게임 리뷰</strong>에서 큰 실수와 좋은 선택, AI가 추천한 킵과 점수 칸을 볼 수 있습니다. 혼자 계산해 보고 싶다면 <a href="../probability/">족보 확률 계산기</a>를 써 보세요.</p>
+    </article>
+  </main>
+  <footer class="site-foot">
+    <p>Online Yacht는 12칸 요트다이스(야추) 규칙을 쓰는 무료 웹 게임입니다. Hasbro의 Yahtzee® 공식 제품이 아니며 제휴 관계가 없습니다.</p>
+    <p><a href="../">무료로 플레이</a> · <a href="../guide/">규칙</a> · <a href="../faq/">자주 묻는 질문</a></p>
+  </footer>
+</body>
+</html>
