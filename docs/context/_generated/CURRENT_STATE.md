@@ -111,6 +111,9 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [20336fb](https://github.com/oyueo-mm/YachtLab/commit/20336fb) | 2026-11-26 | Merge pull request #99 from oyueo-mm/codex/home-search-rendering-20261126 |
+| [004cb24](https://github.com/oyueo-mm/YachtLab/commit/004cb24) | 2026-11-26 | Keep all search guide links and update the static title assertion |
+| [c6b0b8a](https://github.com/oyueo-mm/YachtLab/commit/c6b0b8a) | 2026-11-26 | Serve a stable search homepage and defer onboarding to first play |
 | [39089dd](https://github.com/oyueo-mm/YachtLab/commit/39089dd) | 2026-11-26 | Merge PR #98: pause AI research, keep v4-D as 'very hard' (D-V7-6); final 9591 results |
 | [b9be8eb](https://github.com/oyueo-mm/YachtLab/commit/b9be8eb) | 2026-11-26 | docs(v7): final 9591 S3/S4 results; pause AI research, keep v4-D as 'very hard', hold v5-R/I2RO1 swap (D-V7-6) |
 | [41f3a2f](https://github.com/oyueo-mm/YachtLab/commit/41f3a2f) | 2026-11-26 | Merge pull request #95 from oyueo-mm/codex/yachtlab-release-hardening-20261126 |
@@ -118,9 +121,6 @@
 | [ea82c42](https://github.com/oyueo-mm/YachtLab/commit/ea82c42) | 2026-11-26 | Merge PR #97: v7.2 follow-up — final free 'very hard' model I2RO1, 9581/9591 results, v7.1 9552/9553 |
 | [3511ac1](https://github.com/oyueo-mm/YachtLab/commit/3511ac1) | 2026-11-26 | research(v7.2): final free 'very hard' model selection — I2RO1 (9591 + 9581 + 9571 secondary), I3 dev 9108, D-V7-5, handoff finalized |
 | [d2e4a6d](https://github.com/oyueo-mm/YachtLab/commit/d2e4a6d) | 2026-11-26 | Merge remote-tracking branch 'origin/main' into claude/serene-planck-15tbo2 |
-| [f79424d](https://github.com/oyueo-mm/YachtLab/commit/f79424d) | 2026-11-26 | Merge pull request #96 from oyueo-mm/claude/exciting-wozniak-qt7ofe |
-| [a66e842](https://github.com/oyueo-mm/YachtLab/commit/a66e842) | 2026-11-26 | Prevent static first-paint margins from shifting the document |
-| [e970c64](https://github.com/oyueo-mm/YachtLab/commit/e970c64) | 2026-11-26 | docs(context): CI timings of the sharded pipeline and live verification of e891c2a |
 
 ## 최근 GitHub Actions 상태
 
@@ -128,9 +128,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45772524068) | success | b9be8eb881 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45778352223) | success | 004cb249c4 |
+| [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45772443229) | success | 54c13679f0 |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45756594267) | success | dfd1ba174d |
-| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45726546327) | success | 187b387e51 |
 
 ## 다음 채팅과 작업의 시작점
 

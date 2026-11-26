@@ -122,6 +122,21 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "20336fb",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #99 from oyueo-mm/codex/home-search-rendering-20261126"
+    },
+    {
+      "sha": "004cb24",
+      "date": "2026-11-26",
+      "subject": "Keep all search guide links and update the static title assertion"
+    },
+    {
+      "sha": "c6b0b8a",
+      "date": "2026-11-26",
+      "subject": "Serve a stable search homepage and defer onboarding to first play"
+    },
+    {
       "sha": "39089dd",
       "date": "2026-11-26",
       "subject": "Merge PR #98: pause AI research, keep v4-D as 'very hard' (D-V7-6); final 9591 results"
@@ -155,41 +170,26 @@
       "sha": "d2e4a6d",
       "date": "2026-11-26",
       "subject": "Merge remote-tracking branch 'origin/main' into claude/serene-planck-15tbo2"
-    },
-    {
-      "sha": "f79424d",
-      "date": "2026-11-26",
-      "subject": "Merge pull request #96 from oyueo-mm/claude/exciting-wozniak-qt7ofe"
-    },
-    {
-      "sha": "a66e842",
-      "date": "2026-11-26",
-      "subject": "Prevent static first-paint margins from shifting the document"
-    },
-    {
-      "sha": "e970c64",
-      "date": "2026-11-26",
-      "subject": "docs(context): CI timings of the sharded pipeline and live verification of e891c2a"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "b9be8eb881",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45772524068"
+      "head": "004cb249c4",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45778352223"
+    },
+    {
+      "name": "Deploy YachtLab Online Worker (manual)",
+      "status": "success",
+      "head": "54c13679f0",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45772443229"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
       "head": "dfd1ba174d",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45756594267"
-    },
-    {
-      "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",
-      "status": "success",
-      "head": "187b387e51",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45726546327"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
