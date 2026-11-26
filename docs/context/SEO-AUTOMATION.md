@@ -47,3 +47,12 @@
 
 - Bing Webmaster Tools → IndexNow 메뉴, 네이버 서치어드바이저 → 요청/수집 현황에서 실제 반영 확인(외부 콘솔, 로그인 필요).
 - 네이버 사이트 등록이 호스트 루트(`https://oyueo-mm.github.io`)로 되어 있으면 사이트맵 제출란에 `https://oyueo-mm.github.io/YachtLab/sitemap.xml`을 한 번 등록한다(콘솔 작업).
+
+## 최초 운영 실행 결과 (2026-11-26)
+
+- 배포: `Test and deploy YachtLab` [run 45792606192](https://github.com/oyueo-mm/YachtLab/actions/runs/45792606192) (PR #100 병합 `4f2f24f`) 성공.
+- 자동 제출: `SEO IndexNow` [run 45793761026](https://github.com/oyueo-mm/YachtLab/actions/runs/45793761026)(workflow_run). 운영 검증 오류·경고 0, 리소스 9개 200, 루트·프로젝트 키 모두 확인, keyLocation은 호스트 루트.
+  - Bing: **202 Accepted**, 8개 URL, 1회 시도. 네이버: **200 OK**, 8개 URL, 1회 시도.
+  - `seo-state` 브랜치 생성(`state.json`, `log.jsonl`, `last-verify.json`), 아티팩트 `indexnow-45793761026`.
+- 배포 후 운영 검증(`verify-site.mjs`) 8/8 통과. 직전 배포의 엔트리 `assets/index-AMUgWoz-.js`가 새 배포 뒤에도 200으로 보존되고 `asset-history.json`에 2세대가 기록됐다.
+- Bing 202는 "수신, 키 검증 대기"를 뜻한다. 실제 크롤링·색인 반영은 Bing Webmaster Tools·네이버 서치어드바이저에서 확인한다.
