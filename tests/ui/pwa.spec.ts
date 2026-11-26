@@ -63,7 +63,7 @@ test("설치 후 오프라인 튜토리얼에서 물리 주사위를 굴린다",
   await ready(page);
   await context.setOffline(true);
   await page.goto("#practice");
-  const guide = page.getByRole("region", { name: "튜토리얼" });
+  const guide = page.getByRole("region", { name: "한 차례 연습하기" });
   await guide.getByRole("button", { name: "주사위 굴리기" }).click();
   await expect(guide.getByText("첫 번째 6을 눌러 킵하세요.")).toBeVisible();
   await expect.poll(() => page.evaluate(() => (
