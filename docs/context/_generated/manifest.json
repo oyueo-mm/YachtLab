@@ -122,6 +122,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "f79424d",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #96 from oyueo-mm/claude/exciting-wozniak-qt7ofe"
+    },
+    {
+      "sha": "e970c64",
+      "date": "2026-11-26",
+      "subject": "docs(context): CI timings of the sharded pipeline and live verification of e891c2a"
+    },
+    {
       "sha": "e891c2a",
       "date": "2026-11-26",
       "subject": "Merge PR #94: CI shards, board-centred online table, guest shop, SEO pages & calculator, result sharing"
@@ -160,30 +170,20 @@
       "sha": "e7a9933",
       "date": "2026-11-26",
       "subject": "Add Google Search Console verification meta tag"
-    },
-    {
-      "sha": "0fb8443",
-      "date": "2026-11-26",
-      "subject": "Merge pull request #92 from oyueo-mm/codex/online-yacht-economy"
-    },
-    {
-      "sha": "e638a62",
-      "date": "2026-11-25",
-      "subject": "research(v7.2): pre-register final free 'very hard' selection games (family 9591) + latency eligibility (Pixel 7 x4 emulation) for I2R1/I2R1W6/I2RO1B3/v5-B3"
     }
   ],
   "recentWorkflowRuns": [
+    {
+      "name": "Test and deploy YachtLab",
+      "status": "success",
+      "head": "e970c64bbb",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45770047225"
+    },
     {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
       "head": "dfd1ba174d",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45756594267"
-    },
-    {
-      "name": "Test and deploy YachtLab",
-      "status": "success",
-      "head": "dfd1ba174d",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45756594253"
     },
     {
       "name": "YachtLab Win DP v5 research (exact PMF + interactive endgame)",

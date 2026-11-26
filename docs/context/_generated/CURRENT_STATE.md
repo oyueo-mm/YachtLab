@@ -111,6 +111,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [f79424d](https://github.com/oyueo-mm/YachtLab/commit/f79424d) | 2026-11-26 | Merge pull request #96 from oyueo-mm/claude/exciting-wozniak-qt7ofe |
+| [e970c64](https://github.com/oyueo-mm/YachtLab/commit/e970c64) | 2026-11-26 | docs(context): CI timings of the sharded pipeline and live verification of e891c2a |
 | [e891c2a](https://github.com/oyueo-mm/YachtLab/commit/e891c2a) | 2026-11-26 | Merge PR #94: CI shards, board-centred online table, guest shop, SEO pages & calculator, result sharing |
 | [dfd1ba1](https://github.com/oyueo-mm/YachtLab/commit/dfd1ba1) | 2026-11-26 | docs(context): growth work, decisions D-060..D-065, measured CI timings |
 | [ad5163f](https://github.com/oyueo-mm/YachtLab/commit/ad5163f) | 2026-11-26 | feat(seo): search pages, exact odds calculator, real-dice score pad, home title (D-062) |
@@ -119,8 +121,6 @@
 | [7d96dba](https://github.com/oyueo-mm/YachtLab/commit/7d96dba) | 2026-11-26 | ci: classify changes, run Vitest and build in parallel, shard Playwright 4x2, gate deploy (D-061) |
 | [187b387](https://github.com/oyueo-mm/YachtLab/commit/187b387) | 2026-11-26 | Merge PR #93: Win DP v7.1/v7.2 research (9551 result, single-bank I2RO1 confirmed > v4-D, I3, exact solver K=7) |
 | [e7a9933](https://github.com/oyueo-mm/YachtLab/commit/e7a9933) | 2026-11-26 | Add Google Search Console verification meta tag |
-| [0fb8443](https://github.com/oyueo-mm/YachtLab/commit/0fb8443) | 2026-11-26 | Merge pull request #92 from oyueo-mm/codex/online-yacht-economy |
-| [e638a62](https://github.com/oyueo-mm/YachtLab/commit/e638a62) | 2026-11-25 | research(v7.2): pre-register final free 'very hard' selection games (family 9591) + latency eligibility (Pixel 7 x4 emulation) for I2R1/I2R1W6/I2RO1B3/v5-B3 |
 
 ## 최근 GitHub Actions 상태
 
@@ -128,8 +128,8 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45770047225) | success | e970c64bbb |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45756594267) | success | dfd1ba174d |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45756594253) | success | dfd1ba174d |
 | [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/45726546327) | success | 187b387e51 |
 | [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45717409511) | success | 8e00f3172f |
 
