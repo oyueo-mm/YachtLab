@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const HOME_URL = "https://oyueo-mm.github.io/YachtLab/";
-const HOME_TITLE = "온라인 요트다이스(야추 다이스) · 무료 AI·친구 멀티 | Online Yacht";
+const HOME_TITLE = "온라인 요트다이스(야추 다이스) | 무료 AI·친구 대전 · Online Yacht";
 
 test("저장 기록이 없는 첫 방문에서 JS 실행 여부와 관계없이 홈페이지의 검색 정보를 제공한다", async ({ browser, baseURL, request }) => {
   const contexts = await Promise.all([false, true].map((javaScriptEnabled) =>
@@ -37,12 +37,9 @@ test("저장 기록이 없는 첫 방문에서 JS 실행 여부와 관계없이 
     expect(expected.description).toContain("PC와 모바일");
     expect(expected.description).toContain("야추 다이스");
     expect(expected.intro).toContain("온라인 멀티플레이");
-    // The rendered home shows only the rules and the FAQ; the static (no-JS) shell keeps every search
-    // page link, and the rules / FAQ pages link to all of them (2026-11-26).
     const shown = await read(rendered);
-    expect({ ...shown, links: [] }).toEqual({ ...expected, links: [] });
-    expect(shown.links.map(([label]) => label)).toEqual(["규칙", "자주 묻는 질문"]);
-    expect(expected.links.map(([, href]) => href)).toEqual(expect.arrayContaining(["/YachtLab/guide/", "/YachtLab/faq/", "/YachtLab/probability/", "/YachtLab/scores/", "/YachtLab/strategy/", "/YachtLab/ai/", "/YachtLab/multiplayer/"]));
+    expect(shown).toEqual(expected);
+    expect(shown.links).toEqual([["규칙", "/YachtLab/guide/"], ["자주 묻는 질문", "/YachtLab/faq/"]]);
     await rendered.getByRole("button", { name: /오프라인 대전/ }).click();
     await expect(rendered.getByRole("heading", { name: "오프라인 대전", exact: true })).toBeVisible();
     await expect(rendered).toHaveTitle(HOME_TITLE);
@@ -68,7 +65,7 @@ test("홈과 가이드는 자바스크립트 없이 열리고 사이트맵의 ca
     expect(home?.status()).toBe(200);
     await expect(page.getByRole("heading", { name: "온라인 요트다이스" })).toBeVisible();
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://oyueo-mm.github.io/YachtLab/");
-    await page.getByRole("link", { name: "규칙과 전략" }).click();
+    await page.getByRole("link", { name: "규칙", exact: true }).click();
     await expect(page).toHaveURL(/\/YachtLab\/guide\/$/);
     await expect(page.locator("#scores .cat")).toHaveCount(12); // 12 categories, each with a dice example
     await expect(page.getByRole("heading", { name: "첫 굴림에서 족보가 나올 확률" })).toBeVisible();
