@@ -1,5 +1,5 @@
 import type { DiceMaterial } from "./sound-packs";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { nextHoldOrder, shiftHoldOrder } from "./hold-order";
 import type { Game } from "./engine";
 import { Dice } from "./Dice";
@@ -10,6 +10,8 @@ import { useScoreFx, type ScoreFx } from "./score-fx";
 import { beginDiceMotion } from "./dice-motion";
 import { DieIcon } from "./Dice";
 import { StraightFlash, YachtFlash } from "./yacht-moment";
+
+const TABLE_TIMEOUT_MS = 12_000;
 
 type Props = {
   material?: DiceMaterial;
@@ -46,6 +48,18 @@ export function DiceArea({ forceRenderer, onRendererReady, colors = null, materi
   const [mod, setMod] = useState<DiceTableModule | null>(diceTableModule);
   const [failed, setFailed] = useState(false);
   const [use3d, setUse3d] = useState(want3d && !!mod);
+  const [readyRenderer, setReadyRenderer] = useState<DiceRenderer | null>(null);
+  const firstRoll = props.state.rolls === 0;
+  useLayoutEffect(() => {
+    if (!want3d || failed || readyRenderer === renderer || !firstRoll) return;
+    // The game may be entered directly on a cold connection. Use the same input lock as a throw.
+    const release = beginDiceMotion(TABLE_TIMEOUT_MS + 1000);
+    const timeout = window.setTimeout(() => setFailed(true), TABLE_TIMEOUT_MS);
+    return () => {
+      window.clearTimeout(timeout);
+      release();
+    };
+  }, [want3d, failed, readyRenderer, renderer, firstRoll]);
   useEffect(() => {
     if (!want3d || mod || failed) return;
     let active = true;
@@ -76,10 +90,14 @@ export function DiceArea({ forceRenderer, onRendererReady, colors = null, materi
         rerender();
       };
   const physical = use3d && mod && !failed && (renderer === "3d" || renderer === "3d-high");
+  const tableReady = () => {
+    setReadyRenderer(renderer);
+    onRendererReady?.();
+  };
   if (physical)
     return (
       <>
-        <PhysicalDice key={renderer} colors={colors} material={material} soundEnabled={soundEnabled} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} adaptive={!forceRenderer && settings.diceQuality === "auto"} interactive={!!props.interactive} focusDie={props.focusDie} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onReady={onRendererReady} onFailure={() => setFailed(true)} />
+        <PhysicalDice key={renderer} colors={colors} material={material} soundEnabled={soundEnabled} module={mod} quality={renderer} state={props.state} holdOrder={holdOrder} adaptive={!forceRenderer && settings.diceQuality === "auto"} interactive={!!props.interactive} focusDie={props.focusDie} rollEvent={props.rollEvent ?? 0} onToggle={props.onToggle} onOrder={props.onOrder} onShiftHold={onShiftHold} onReady={tableReady} onFailure={() => setFailed(true)} />
         <ScoreFxLabel fx={fx} />
         {props.animate && <YachtFlash soundEnabled={soundEnabled} dice={props.state.dice} rolls={props.state.rolls} rollEvent={props.rollEvent ?? 0} />}
         {props.animate && <StraightFlash soundEnabled={soundEnabled} dice={props.state.dice} rolls={props.state.rolls} rollEvent={props.rollEvent ?? 0} />}

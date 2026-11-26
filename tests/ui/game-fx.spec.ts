@@ -6,8 +6,6 @@ type Fx = { key: number; category: string; label: string; points: number; ids: n
 const tableState = (page: Page) => page.evaluate(() => (window as unknown as { __yachtlabDice?: { table?: () => TableDie[] } }).__yachtlabDice?.table?.() ?? []);
 const fxList = (page: Page) => page.evaluate(() => ((window as unknown as { __yachtlabFx?: Fx[] }).__yachtlabFx ?? []).map((f) => ({ ...f })));
 const soundNames = (page: Page) => page.evaluate(() => (window as unknown as { __yachtlabSound: { log: { name: string }[] } }).__yachtlabSound.log.map((e) => e.name));
-const waitLoaded3d = (page: Page) =>
-  expect.poll(() => page.evaluate(() => performance.getEntriesByType("resource").some((r) => /table-.*\.js|stage-.*\.js|dice3d\/table/.test(r.name)))).toBe(true);
 const settled = async (page: Page) => {
   await expect(page.locator(".dice-animating")).toHaveCount(0, { timeout: 8000 });
   await page.waitForTimeout(350);
@@ -15,9 +13,8 @@ const settled = async (page: Page) => {
 async function openSeeded(page: Page, seed: number, quality: "3d" | "2.5d" = "3d") {
   await fixSeed(page, seed);
   await withMotion(page, quality);
-  await page.goto("#home");
-  if (quality === "3d") await waitLoaded3d(page);
   await page.goto("#play");
+  if (quality === "3d") await expect(page.locator(".physical-dice canvas")).toBeVisible();
   await expect(page.getByRole("button", { name: "주사위 굴리기" })).toBeVisible();
 }
 const roll = async (page: Page) => {
@@ -154,9 +151,8 @@ test("연출 중 재대결은 연출을 정리하고 새 경기에 영향을 주
 test("로컬 사람 대전에서도 같은 연출이 나온다", async ({ page }) => {
   await fixSeed(page, SEEDS.small12341);
   await withMotion(page, "3d");
-  await page.goto("#home");
-  await waitLoaded3d(page);
   await startLocal(page, { count: 2 });
+  await expect(page.locator(".physical-dice canvas")).toBeVisible();
   await roll(page);
   const before = (await tableState(page)).map((d) => d.value);
   expect(before).toEqual([1, 2, 3, 4, 1]);
