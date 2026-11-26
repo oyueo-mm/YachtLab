@@ -122,6 +122,21 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "ea82c42",
+      "date": "2026-11-26",
+      "subject": "Merge PR #97: v7.2 follow-up — final free 'very hard' model I2RO1, 9581/9591 results, v7.1 9552/9553"
+    },
+    {
+      "sha": "3511ac1",
+      "date": "2026-11-26",
+      "subject": "research(v7.2): final free 'very hard' model selection — I2RO1 (9591 + 9581 + 9571 secondary), I3 dev 9108, D-V7-5, handoff finalized"
+    },
+    {
+      "sha": "d2e4a6d",
+      "date": "2026-11-26",
+      "subject": "Merge remote-tracking branch 'origin/main' into claude/serene-planck-15tbo2"
+    },
+    {
       "sha": "f79424d",
       "date": "2026-11-26",
       "subject": "Merge pull request #96 from oyueo-mm/claude/exciting-wozniak-qt7ofe"
@@ -155,29 +170,14 @@
       "sha": "5954b62",
       "date": "2026-11-26",
       "subject": "feat(table): board-centred 1:1 online table, seat colours, silhouette avatar, no-scroll score sheet, reward toast (D-060)"
-    },
-    {
-      "sha": "7d96dba",
-      "date": "2026-11-26",
-      "subject": "ci: classify changes, run Vitest and build in parallel, shard Playwright 4x2, gate deploy (D-061)"
-    },
-    {
-      "sha": "187b387",
-      "date": "2026-11-26",
-      "subject": "Merge PR #93: Win DP v7.1/v7.2 research (9551 result, single-bank I2RO1 confirmed > v4-D, I3, exact solver K=7)"
-    },
-    {
-      "sha": "e7a9933",
-      "date": "2026-11-26",
-      "subject": "Add Google Search Console verification meta tag"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "e970c64bbb",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45770047225"
+      "head": "3511ac1d35",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45770247564"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
