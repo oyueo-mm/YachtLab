@@ -4,7 +4,9 @@ import DrawPanel, { DrawOdds } from "./DrawPanel";
 import { SEASONS, seasonActive, seasonUpcoming, remainingText } from "../economy/live/seasons";
 import { COLLECTIONS, collectionProgress, collectionsOf, synergyOf } from "../economy/live/collections";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Check, Coins, Gem, RefreshCw, Sparkles, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CircleHelp, Coins, Gem, RefreshCw, Sparkles, X } from "lucide-react";
+import { Coach, useCoach, type CoachStep } from "../ui/Coach";
+import { DRAW_COST, DRAW_DAILY_LIMIT, DUPLICATE_COINS } from "../economy/live/draw";
 import { ACHIEVEMENTS, ECONOMY, QUESTS, SLOTS, TIERS, nextDayStart, nextWeekStart, type TierId } from "../economy/live/config";
 import { CATEGORIES, DEFAULT_LOADOUT, ITEMS, SINGLE_SLOTS, itemById, priceOf, publicLook, sellableOn, slotPrice, upgradeCost, type ItemCategory, type ItemDef, type Loadout } from "../economy/live/catalog";
 import { EconomyError, buy, buySlot, economy, rerollQuest, saveLoadout, signedIn, upgrade, type Snapshot } from "../identity/economy-client";
@@ -212,11 +214,36 @@ type PriceFilter = "all" | "coins" | "gems" | "afford";
 type EconomyState = ReturnType<typeof useEconomy>;
 type EconomyProps = { server: string | null; go: Go; economyState: EconomyState; active: boolean };
 
+/** Shop tour: currency, preview, upgrade levels, collections, buying and equipping. Looks only. */
+const SHOP_STEPS = (member: boolean): CoachStep[] => [
+  { target: member ? ".top-wallet" : ".shop-guest-note", title: "코인과 보석", body: "코인은 경기·퀘스트·업적으로, 보석은 업적과 주간 보상 등으로 모아요. 현금 결제는 없어요." + (member ? "" : " 둘러보기와 미리보기는 로그인 없이 할 수 있어요.") },
+  { target: ".shop-page .item-card", title: "상품 미리보기", body: "카드를 누르면 실제 게임과 같은 화면으로 굴려 보고 들어 볼 수 있어요. 미리보기는 아무것도 사지 않아요." },
+  { target: ".shop-page .item-card .lv-chip", title: "강화 단계 비교", body: "Lv.1→Lv.2→Lv.3으로 연출이 커져요. 상세 화면의 단계 탭으로 미리 비교하고, 강화는 원할 때만 코인으로 해요." },
+  { target: ".econ-filters", title: "테마 컬렉션", body: "같은 테마의 주사위와 보드판을 함께 장착하면 시너지 연출이 켜져요. 테마별로 모아 볼 수 있어요." },
+  { target: '.items-hub [role="tab"]:nth-child(3)', title: "구매 뒤 장착", body: "구매는 확인을 한 번 더 눌러야 진행돼요. 산 상품은 인벤토리에서 장착하고, 강화한 상품은 보여 줄 단계를 고를 수 있어요." },
+];
+/** Draw tour: cost, odds, duplicates, result. It explains; it never encourages repeated draws. */
+const DRAW_STEPS = (member: boolean): CoachStep[] => [
+  { target: member ? ".draw-controls" : ".draw-odds", title: "비용과 횟수", body: `한 번에 ${DRAW_COST}코인, 하루 ${DRAW_DAILY_LIMIT}회까지예요(매일 00:00 초기화). 뽑기 전에 확인 창이 한 번 더 나와요.` },
+  { target: ".draw-odds", title: "족보로 정해지는 등급과 확률", body: "주사위 5개를 한 번 굴린 족보가 등급을 정해요. 7,776가지 조합 전체에서 계산한 족보별·등급별·상품별 확률을 여기서 모두 볼 수 있어요." },
+  { target: member ? ".draw-panel .econ-note" : ".draw-odds", title: "중복 상품", body: `이미 가진 상품이 나오면 ${DUPLICATE_COINS}코인으로 돌려받아요. 같은 상품을 두 개 가질 수는 없어요.` },
+  { target: member ? ".draw-panel .stage-board" : ".draw-odds", title: "결과 확인", body: "주사위가 멈추면 받은 상품과 족보가 표시되고 최근 뽑기 기록에 남아요. 서버가 결과를 정하고, 화면 연출은 결과를 보여 줄 뿐이에요." },
+];
+
 export function ItemsPage({ server, go, route }: { server: string | null; go: Go; route: "shop" | "inventory" | "draw" }) {
   const economyState = useEconomy(server);
   const motion = motionLevel(useSettings());
+  const member = !!server && signedIn();
+  const shopTour = useCoach("shop", route === "shop");
+  const drawTour = useCoach("draw", route === "draw");
+  const tour = route === "draw" ? drawTour : shopTour;
   return <section className="econ-page items-hub" data-preview-motion={motion === "full" ? "full" : "static"} aria-labelledby="items-title">
-    <h1 id="items-title">상점과 인벤토리</h1>
+    <div className="items-head">
+      <h1 id="items-title">상점과 인벤토리</h1>
+      {route !== "inventory" && <button type="button" className="text-button items-help" onClick={tour.start}><CircleHelp size={16} /> {route === "draw" ? "뽑기 사용법" : "상점 사용법"}</button>}
+    </div>
+    <Coach label="상점" steps={SHOP_STEPS(member)} open={route === "shop" && shopTour.open} onClose={shopTour.close} />
+    <Coach label="뽑기" steps={DRAW_STEPS(member)} open={route === "draw" && drawTour.open} onClose={drawTour.close} />
     <div className="item-tabs" role="tablist" aria-label="상품 관리">
       <button type="button" role="tab" aria-selected={route === "shop"} onClick={() => route !== "shop" && go("shop")}>상품</button>
       <button type="button" role="tab" aria-selected={route === "draw"} onClick={() => route !== "draw" && go("draw")}>뽑기</button>

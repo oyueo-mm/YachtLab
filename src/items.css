@@ -416,7 +416,14 @@
 }
 .econ-filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+}
+.econ-filters > * { min-width: 0; flex: 1 1 140px; max-width: 240px; }
+@media (max-width: 560px) {
+  /* three filters on a phone: grade and price share a row, the theme filter takes the next */
+  .econ-filters > * { max-width: none; flex: 1 1 calc(50% - 4px); }
+  .econ-filters > :nth-child(3) { flex-basis: 100%; }
 }
 .econ-filters select {
   min-height: 40px;

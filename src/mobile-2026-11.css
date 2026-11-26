@@ -1,0 +1,28 @@
+/* 2026-11-27 mobile pass (loaded last). Codex owns the Galaxy S21 top cut-off; this file only tightens
+   spacing, line breaking and touch targets, and leaves desktop layouts unchanged. */
+
+/* Korean text breaks between words, not inside them (long tokens still wrap). */
+html:lang(ko) body { word-break: keep-all; overflow-wrap: break-word; }
+
+/* Help links under the home modes: full 44 px touch targets. */
+.lobby-links > a { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 6px; }
+
+/* 1인 플레이 summary labels stay on one line on 320 px phones. */
+.solo-summary > div > span { white-space: nowrap; }
+@media (max-width: 380px) {
+  .solo-summary .solo-best span { font-size: 0; }
+  .solo-summary .solo-best span::after { content: "최고 기록"; font-size: 12px; }
+}
+
+@media (max-width: 560px) {
+  /* Home: start near the top instead of floating in the middle of a tall phone. */
+  .page-home.main { align-items: flex-start; min-height: 0; padding-top: 20px; }
+  .page-home .lobby.lobby-v3 { margin-top: 4px; }
+  .lobby.lobby-v3 { gap: 20px; }
+  .lobby-hero p { font-size: 15px; line-height: 1.55; }
+  .lobby-v3 .mode-main { min-height: 0; padding: 20px 18px; }
+  .lobby-v3 .mode-main .mode-text strong { font-size: 23px; }
+  .lobby-v3 .mode-sub { padding: 14px 16px; }
+  /* Offline menu cards: a little tighter so all three fit above the fold on 360×640. */
+  .mode-select .mode-card { padding: 14px 16px; }
+}

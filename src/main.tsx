@@ -15,6 +15,7 @@ import "./items.css";
 import "./items-content.css";
 import "./onboarding.css";
 import "./table-v4.css";
+import "./mobile-2026-11.css";
 import { captureAttribution } from "./analytics/attribution";
 import { registerVisit } from "./play/tutorial-progress";
 
