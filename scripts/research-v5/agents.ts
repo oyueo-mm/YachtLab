@@ -49,6 +49,11 @@ const v7 = (kind: V7Kind, extra: Partial<V7Config> = {}) => (s: Game) => {
   const banks = v6Banks.get("all")!;
   return winDPv7Decision(s, { ...cfgBase!, endgame: "none", v7: { banks, dp: banks[DEFAULT_LAMBDAS.indexOf(0)] }, kind, ...extra } as V7Config);
 };
+// v7.2 product-track agents: ONLY the DP Expert bank is loaded (same memory as v5-R).
+const v7single = (kind: V7Kind, extra: Partial<V7Config> = {}) => (s: Game) => {
+  const dpb = v6Banks.get("dp")![0];
+  return winDPv7Decision(s, { ...cfgBase!, endgame: "none", v7: { banks: [dpb], dp: dpb }, kind, ...extra } as V7Config);
+};
 const v6Filters = new Map<number, RiskOpponentFilter>();
 function v6Bayes(s: Game, discount: number) {
   let f = v6Filters.get(discount);
@@ -121,5 +126,21 @@ export const AGENTS: Record<string, { v5: boolean; bayes?: boolean; v6?: string[
   "v7-N": { v5: true, v6: ["all"], describe: "v7-N: value of the 7x7 policy matrix game (mixed Nash) at each outcome", act: v7("N") },
   "v7-I1O": { v5: true, v6: ["all"], describe: "v7-I1O: reactive opponent turn (policy-set objective) -> opponent final-score mixture PMF; my open-loop policy-set best response to it", act: v7("I1O") },
   "v7-I1RO": { v5: true, v6: ["all"], describe: "v7-I1RO: as v7-I1O but the opponent's turn uses the v5-R objective", act: v7("I1RO") },
+  "v7-I2": { v5: true, v6: ["all"], describe: "v7-I2: reactive opponent turn (policy-set objective), then my exact next turn with P stop values (two-ply reaction)", act: v7("I2") },
+  "v7-I2R": { v5: true, v6: ["all"], describe: "v7-I2R: as v7-I2 but the opponent's turn uses the v5-R objective", act: v7("I2R") },
+  "v7-I1RO1": { v5: true, v6: ["all"], describe: "v7-I1RO1: I1RO with the DP Expert bank only (lightweight derivative; product-track candidate)", act: v7("I1RO1") },
+  "v7-I2RW4": { v5: true, v6: ["all"], describe: "v7-I2RW4: I2R when my remaining <= 4, else I1RO", act: v7("I2R", { window: 4, fallback: "I1RO" }) },
+  "v7-I2RW6": { v5: true, v6: ["all"], describe: "v7-I2RW6: I2R when my remaining <= 6, else I1RO", act: v7("I2R", { window: 6, fallback: "I1RO" }) },
+  "v7-I2RW8": { v5: true, v6: ["all"], describe: "v7-I2RW8: I2R when my remaining <= 8, else I1RO", act: v7("I2R", { window: 8, fallback: "I1RO" }) },
+  "v7-I2RO": { v5: true, v6: ["all"], describe: "v7-I2RO: reactive opponent turn (v5-R objective) -> opponent mixture PMF; my next turn solved exactly with P stop values against it", act: v7("I2RO") },
+  // v7.2 product track (single DP bank; see docs/context/V7-APEX-RESEARCH.md §9)
+  "p-I1RO1": { v5: true, v6: ["dp"], describe: "product track: v7-I1RO1 loading only the DP Expert bank (decisions identical to v7-I1RO1)", act: v7single("I1RO1") },
+  "p-I2RO1": { v5: true, v6: ["dp"], describe: "product track: I2RO with the DP Expert bank only (reactive opp turn -> mixture; my next turn exact, open loop)", act: v7single("I2RO1") },
+  "p-I2R1": { v5: true, v6: ["dp"], describe: "product track: I2R with the DP Expert bank only (closed loop: my next turn solved per opponent outcome; = I2 with one bank)", act: v7single("I2R1") },
+  "p-I2R1W6": { v5: true, v6: ["dp"], describe: "product track: I2R1 when my remaining <= 6, else I2RO1", act: v7single("I2R1", { window: 6, fallback: "I2RO1" }) },
+  "p-I2RO1B3": { v5: true, v6: ["dp"], describe: "product track: I2RO1 + exact interactive minimax when both <= 3", act: v7single("I2RO1", { endgame: "minimax", minimaxWindow: 3 }) },
+  "p-I2R1B3": { v5: true, v6: ["dp"], describe: "product track: I2R1 + exact interactive minimax when both <= 3", act: v7single("I2R1", { endgame: "minimax", minimaxWindow: 3 }) },
+  "v7-I3RpW4": { v5: true, v6: ["all"], describe: "v7.2 research: I3Rp (three-ply reaction, mass cut 0.8) when my remaining <= 4, else I2RO", act: v7("I3Rp", { window: 4, fallback: "I2RO" }) },
+  "v7-I3RpW5": { v5: true, v6: ["all"], describe: "v7.2 research: I3Rp when my remaining <= 5, else I2RO", act: v7("I3Rp", { window: 5, fallback: "I2RO" }) },
   "v7-I1B3": { v5: true, v6: ["all"], describe: "v7-I1 + exact interactive minimax when both <= 3", act: v7("I1", { endgame: "minimax", minimaxWindow: 3 }) },
 };

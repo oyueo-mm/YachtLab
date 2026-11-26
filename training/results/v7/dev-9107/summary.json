@@ -1,0 +1,265 @@
+{
+ "z": 2.5758,
+ "rows": [
+  {
+   "a": "p-I1RO1",
+   "b": "v4D",
+   "family": 9107,
+   "shards": 5,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.5039,
+   "ci": [
+    0.4958472100971278,
+    0.5119527899028723
+   ],
+   "se": 0.003126325763984871,
+   "wins": 4994,
+   "ties": 90,
+   "losses": 4916,
+   "winRate": 0.4994,
+   "tieRate": 0.009,
+   "lossRate": 0.4916,
+   "meanScoreA": 188.9177,
+   "meanScoreB": 190.9911,
+   "meanDiff": -2.0733999999999924,
+   "elo": 2.710052527833279,
+   "eloCi": [
+    -2.8857203390185506,
+    8.307231821565434
+   ],
+   "varianceReductionFactor": 2.5349066588641698,
+   "latencyA": {
+    "decisions": 343115,
+    "meanMs": 3.293717291966246,
+    "p50": 0.030902954325135904,
+    "p95": 16.982436524617444,
+    "p99": 30.902954325135905,
+    "maxMs": 1305.5345789999992,
+    "diffFromDPRate": 0.06079011410168603,
+    "stages": {
+     "v7-I1RO1": 343115
+    }
+   },
+   "latencyB": {
+    "decisions": 349114,
+    "meanMs": 0.6264811669655326,
+    "p50": 0.04466835921509631,
+    "p95": 0.13489628825916536,
+    "p99": 14.791083881682072,
+    "maxMs": 780.0092410000507,
+    "diffFromDPRate": 0.03312098626809581,
+    "stages": {
+     "-": 349114
+    }
+   },
+   "cpuSeconds": 1407.826935461,
+   "describe": {
+    "p-I1RO1": "product track: v7-I1RO1 loading only the DP Expert bank (decisions identical to v7-I1RO1)",
+    "v4D": "Win DP v4-D as registered in src/ai.ts (no v3.3 pack; opponent label only for DP Expert / Win DP v2)"
+   }
+  },
+  {
+   "a": "p-I2RO1",
+   "b": "v4D",
+   "family": 9107,
+   "shards": 5,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.5025,
+   "ci": [
+    0.49449399171346337,
+    0.5105060082865365
+   ],
+   "se": 0.0031081637885459128,
+   "wins": 4984,
+   "ties": 82,
+   "losses": 4934,
+   "winRate": 0.4984,
+   "tieRate": 0.0082,
+   "lossRate": 0.4934,
+   "meanScoreA": 188.9148,
+   "meanScoreB": 190.9947,
+   "meanDiff": -2.0798999999999808,
+   "elo": 1.7371924043128577,
+   "eloCi": [
+    -3.8261210884168513,
+    7.301396941645982
+   ],
+   "varianceReductionFactor": 2.566780930713111,
+   "latencyA": {
+    "decisions": 343111,
+    "meanMs": 5.715834872941952,
+    "p50": 0.03235936569296283,
+    "p95": 32.359365692962825,
+    "p99": 53.70317963702527,
+    "maxMs": 1274.8450220000086,
+    "diffFromDPRate": 0.05985235098845563,
+    "stages": {
+     "v7-I2RO1": 343111
+    }
+   },
+   "latencyB": {
+    "decisions": 349114,
+    "meanMs": 0.6096154684831205,
+    "p50": 0.04466835921509631,
+    "p95": 0.13489628825916536,
+    "p99": 14.791083881682072,
+    "maxMs": 374.2627349999966,
+    "diffFromDPRate": 0.03325561277977967,
+    "stages": {
+     "-": 349114
+    }
+   },
+   "cpuSeconds": 2236.7488910829998,
+   "describe": {
+    "p-I2RO1": "product track: I2RO with the DP Expert bank only (reactive opp turn -> mixture; my next turn exact, open loop)",
+    "v4D": "Win DP v4-D as registered in src/ai.ts (no v3.3 pack; opponent label only for DP Expert / Win DP v2)"
+   }
+  },
+  {
+   "a": "p-I1RO1",
+   "b": "v5-R",
+   "family": 9107,
+   "shards": 5,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.49905,
+   "ci": [
+    0.4958716005427365,
+    0.5022283994572635
+   ],
+   "se": 0.0012339465242889567,
+   "wins": 4950,
+   "ties": 81,
+   "losses": 4969,
+   "winRate": 0.495,
+   "tieRate": 0.0081,
+   "lossRate": 0.4969,
+   "meanScoreA": 188.9087,
+   "meanScoreB": 188.8791,
+   "meanDiff": 0.02960000000001628,
+   "elo": -0.6601284068482298,
+   "eloCi": [
+    -2.868770959156569,
+    1.5484607928676053
+   ],
+   "varianceReductionFactor": 16.28759912819168,
+   "latencyA": {
+    "decisions": 343155,
+    "meanMs": 3.287584092780229,
+    "p50": 0.030902954325135904,
+    "p95": 17.78279410038923,
+    "p99": 30.902954325135905,
+    "maxMs": 552.2541980000001,
+    "diffFromDPRate": 0.06145036499541024,
+    "stages": {
+     "v7-I1RO1": 343155
+    }
+   },
+   "latencyB": {
+    "decisions": 343159,
+    "meanMs": 0.12126787969132291,
+    "p50": 0.06165950018614822,
+    "p95": 0.1548816618912481,
+    "p99": 1.5488166189124812,
+    "maxMs": 269.1964949999965,
+    "diffFromDPRate": 0.06101836175067534,
+    "stages": {
+     "rollout": 343159
+    }
+   },
+   "cpuSeconds": 1231.026561486,
+   "describe": {
+    "p-I1RO1": "product track: v7-I1RO1 loading only the DP Expert bank (decisions identical to v7-I1RO1)",
+    "v5-R": "v5 rollout everywhere (no special endgame)"
+   }
+  },
+  {
+   "a": "p-I2RO1",
+   "b": "v5-R",
+   "family": 9107,
+   "shards": 5,
+   "pairs": 5000,
+   "games": 10000,
+   "winCredit": 0.49865,
+   "ci": [
+    0.4944587491086881,
+    0.5028412508913118
+   ],
+   "se": 0.001627164722149185,
+   "wins": 4949,
+   "ties": 75,
+   "losses": 4976,
+   "winRate": 0.4949,
+   "tieRate": 0.0075,
+   "lossRate": 0.4976,
+   "meanScoreA": 189.0697,
+   "meanScoreB": 188.9326,
+   "meanDiff": 0.13710000000000377,
+   "elo": -0.9380783604458711,
+   "eloCi": [
+    -3.850613147536222,
+    1.9743245851196258
+   ],
+   "varianceReductionFactor": 9.372333327885544,
+   "latencyA": {
+    "decisions": 343128,
+    "meanMs": 5.5179360286569805,
+    "p50": 0.03235936569296283,
+    "p95": 30.902954325135905,
+    "p99": 53.70317963702527,
+    "maxMs": 1177.1045199999353,
+    "diffFromDPRate": 0.06052260380965704,
+    "stages": {
+     "v7-I2RO1": 343128
+    }
+   },
+   "latencyB": {
+    "decisions": 343158,
+    "meanMs": 0.11866863553232714,
+    "p50": 0.06165950018614822,
+    "p95": 0.1548816618912481,
+    "p99": 0.8128305161640992,
+    "maxMs": 308.1849930000026,
+    "diffFromDPRate": 0.061347833942382225,
+    "stages": {
+     "rollout": 343158
+    }
+   },
+   "cpuSeconds": 1992.685820012,
+   "describe": {
+    "p-I2RO1": "product track: I2RO with the DP Expert bank only (reactive opp turn -> mixture; my next turn exact, open loop)",
+    "v5-R": "v5 rollout everywhere (no special endgame)"
+   }
+  }
+ ],
+ "contrasts": [
+  {
+   "candidate": "p-I2RO1",
+   "baseline": "p-I1RO1",
+   "opponent": "v4D",
+   "family": 9107,
+   "pairs": 5000,
+   "delta": -0.0014,
+   "ci": [
+    -0.0048557676133773355,
+    0.002055767613377335
+   ],
+   "changedPairs": 198
+  },
+  {
+   "candidate": "p-I2RO1",
+   "baseline": "p-I1RO1",
+   "opponent": "v5-R",
+   "family": 9107,
+   "pairs": 5000,
+   "delta": -0.0004,
+   "ci": [
+    -0.0041152145541240946,
+    0.003315214554124094
+   ],
+   "changedPairs": 218
+  }
+ ]
+}

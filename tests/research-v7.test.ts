@@ -135,3 +135,78 @@ describe("v7 stop-value estimators", () => {
     }
   });
 });
+
+describe("v7 two-ply reaction (I2) and single-bank derivative", () => {
+  it("I1RO1 equals I1RO computed with the DP bank alone", () => {
+    for (const s of states().slice(0, 6)) {
+      const a = fill("I1RO1", B, s), b = fill("I1RO", B1, s);
+      each(sides(s).me.mask, (c, p) => expect(a[c * 64 + p]).toBe(b[c * 64 + p]));
+    }
+  });
+  it("I2 / I2R return win credits in [0, 1] (2/1 states)", () => {
+    for (let i = 0; i < 6; i++) {
+      const s = state(4000 + i, card([categories[i], categories[(i + 3) % 12]], (j) => 10 + ((j * 7 + i) % 13)), card([categories[(i + 5) % 12]], (j) => 11 + ((j * 5 + i) % 13)), (i % 2) as 0 | 1);
+      for (const kind of ["I2", "I2R"] as V7Kind[]) {
+        const v = fill(kind, B, s);
+        each(sides(s).me.mask, (c, p) => { expect(v[c * 64 + p]).toBeGreaterThanOrEqual(0); expect(v[c * 64 + p]).toBeLessThanOrEqual(1); });
+      }
+    }
+  });
+  it("I2R with one category left on both sides after my turn is close to the exact interactive value (2/1 states)", () => {
+    // me 2 open, opp 1 open: after my score -> opp's last turn, then my last turn (exact with P stop values).
+    // Only the opponent's objective (vs my DP future, not my actual reaction) is approximate.
+    let err = 0, n = 0;
+    for (let i = 0; i < 6; i++) {
+      const s = state(5000 + i, card([categories[i], categories[(i + 4) % 12]], (j) => 12 + ((j * 3 + i) % 11)), card([categories[(i + 7) % 12]], (j) => 12 + ((j * 5 + i) % 11)), (i % 2) as 0 | 1);
+      const { me, op } = sides(s), D = me.x - op.x, v = fill("I2R", B, s);
+      each(me.mask, (c, p) => {
+        const g = bonusGain(c, p, me.u), next = me.mask ^ (1 << c);
+        const exact = 1 - endgameValue(op.mask, op.u, next, nextUpper(c, p, me.u), -(D + g));
+        err += Math.abs(v[c * 64 + p] - exact); n++;
+      });
+    }
+    expect(err / n).toBeLessThan(0.02);
+  });
+  it("single-bank product kinds: I2R1 = I2R(DP only) = I2(DP only); I2RO1 = I2RO(DP only); I2R1 != I2RO1 in general", () => {
+    let differ = 0;
+    for (const s of states().slice(0, 4)) {
+      const a = fill("I2R1", B, s), b = fill("I2R", B1, s), c2 = fill("I2", B1, s), d = fill("I2RO1", B, s), e = fill("I2RO", B1, s);
+      each(sides(s).me.mask, (c, p) => {
+        const k = c * 64 + p;
+        expect(a[k]).toBe(b[k]); expect(c2[k]).toBeCloseTo(b[k], 12); expect(d[k]).toBe(e[k]);
+        expect(d[k]).toBeGreaterThanOrEqual(0); expect(d[k]).toBeLessThanOrEqual(1);
+        if (Math.abs(a[k] - d[k]) > 1e-9) differ++;
+      });
+    }
+    expect(differ).toBeGreaterThan(0);
+  });
+  it("I3R / I3Rp: credits in [0,1]; I3R = I2R when the opponent has its last category (2/1); I3Rp with mass cut 0 = I2R", async () => {
+    const { V7_TUNING } = await import("../src/research-v7/interactive");
+    for (let i = 0; i < 4; i++) {
+      const s = state(5000 + i, card([categories[i], categories[(i + 4) % 12]], (j) => 12 + ((j * 3 + i) % 11)), card([categories[(i + 7) % 12]], (j) => 12 + ((j * 5 + i) % 11)), (i % 2) as 0 | 1);
+      const a = fill("I3R", B, s), b = fill("I2R", B, s);
+      each(sides(s).me.mask, (c, p) => { expect(a[c * 64 + p]).toBeCloseTo(b[c * 64 + p], 12); });
+    }
+    const old = V7_TUNING.i3MassCut;
+    V7_TUNING.i3MassCut = 0;
+    for (const s of states().slice(0, 2)) {
+      const a = fill("I3Rp", B, s), b = fill("I2R", B, s);
+      each(sides(s).me.mask, (c, p) => expect(a[c * 64 + p]).toBeCloseTo(b[c * 64 + p], 12));
+    }
+    V7_TUNING.i3MassCut = old;
+    for (const s of states().slice(0, 2)) {
+      const a = fill("I3R", B, s);
+      each(sides(s).me.mask, (c, p) => { expect(a[c * 64 + p]).toBeGreaterThanOrEqual(0); expect(a[c * 64 + p]).toBeLessThanOrEqual(1); });
+    }
+  }, 120_000);
+  it("productV7Decision (I2RO1, single bank of a v5 config) equals winDPv7Decision with banks=[dp]", async () => {
+    const { productV7Decision } = await import("../src/research-v7/product");
+    for (const s of states().slice(0, 6)) {
+      clearV7Cache();
+      const a = productV7Decision(s, v5);
+      clearV7Cache();
+      const b = winDPv7Decision(s, { ...v5, v7: B1, kind: "I2RO1" });
+      expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+    }
+  }, 120_000);
+});
