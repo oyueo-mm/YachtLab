@@ -59,6 +59,7 @@
 - [qr-followup.yml](../../../.github/workflows/qr-followup.yml)
 - [qr-four-pillars.yml](../../../.github/workflows/qr-four-pillars.yml)
 - [research-50k-league.yml](../../../.github/workflows/research-50k-league.yml)
+- [seo-indexnow.yml](../../../.github/workflows/seo-indexnow.yml)
 - [sota-attack-lab.yml](../../../.github/workflows/sota-attack-lab.yml)
 - [sota-independent-confirm.yml](../../../.github/workflows/sota-independent-confirm.yml)
 - [tabular-zoo.yml](../../../.github/workflows/tabular-zoo.yml)
@@ -97,6 +98,7 @@
 - [ROADMAP.md](../ROADMAP.md)
 - [SELFPLAY-2026-11-20-FINAL.md](../SELFPLAY-2026-11-20-FINAL.md)
 - [SELFPLAY-RESEARCH.md](../SELFPLAY-RESEARCH.md)
+- [SEO-AUTOMATION.md](../SEO-AUTOMATION.md)
 - [TECHNIQUES.md](../TECHNIQUES.md)
 - [V31-RESEARCH.md](../V31-RESEARCH.md)
 - [V32-EXACT-FORECAST.md](../V32-EXACT-FORECAST.md)
@@ -111,6 +113,9 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [4f2f24f](https://github.com/oyueo-mm/YachtLab/commit/4f2f24f) | 2026-11-26 | Merge pull request #100 from oyueo-mm/claude/wizardly-bohr-1usbx5 |
+| [5530819](https://github.com/oyueo-mm/YachtLab/commit/5530819) | 2026-11-26 | ci(seo): bind the verification preview server to 127.0.0.1 |
+| [737a876](https://github.com/oyueo-mm/YachtLab/commit/737a876) | 2026-11-26 | feat(seo): IndexNow automation, content-based sitemap lastmod, deploy verification (D-067) |
 | [20336fb](https://github.com/oyueo-mm/YachtLab/commit/20336fb) | 2026-11-26 | Merge pull request #99 from oyueo-mm/codex/home-search-rendering-20261126 |
 | [004cb24](https://github.com/oyueo-mm/YachtLab/commit/004cb24) | 2026-11-26 | Keep all search guide links and update the static title assertion |
 | [c6b0b8a](https://github.com/oyueo-mm/YachtLab/commit/c6b0b8a) | 2026-11-26 | Serve a stable search homepage and defer onboarding to first play |
@@ -118,9 +123,6 @@
 | [b9be8eb](https://github.com/oyueo-mm/YachtLab/commit/b9be8eb) | 2026-11-26 | docs(v7): final 9591 S3/S4 results; pause AI research, keep v4-D as 'very hard', hold v5-R/I2RO1 swap (D-V7-6) |
 | [41f3a2f](https://github.com/oyueo-mm/YachtLab/commit/41f3a2f) | 2026-11-26 | Merge pull request #95 from oyueo-mm/codex/yachtlab-release-hardening-20261126 |
 | [7ba0f51](https://github.com/oyueo-mm/YachtLab/commit/7ba0f51) | 2026-11-26 | Record the final zero-shift first-paint measurements |
-| [ea82c42](https://github.com/oyueo-mm/YachtLab/commit/ea82c42) | 2026-11-26 | Merge PR #97: v7.2 follow-up — final free 'very hard' model I2RO1, 9581/9591 results, v7.1 9552/9553 |
-| [3511ac1](https://github.com/oyueo-mm/YachtLab/commit/3511ac1) | 2026-11-26 | research(v7.2): final free 'very hard' model selection — I2RO1 (9591 + 9581 + 9571 secondary), I3 dev 9108, D-V7-5, handoff finalized |
-| [d2e4a6d](https://github.com/oyueo-mm/YachtLab/commit/d2e4a6d) | 2026-11-26 | Merge remote-tracking branch 'origin/main' into claude/serene-planck-15tbo2 |
 
 ## 최근 GitHub Actions 상태
 
@@ -128,9 +130,8 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45779175905) | success | 20336fbb0f |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45791566905) | success | 5530819f77 |
 | [Deploy YachtLab Online Worker (manual)](https://github.com/oyueo-mm/YachtLab/actions/runs/45772443229) | success | 54c13679f0 |
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45756594267) | success | dfd1ba174d |
 
 ## 다음 채팅과 작업의 시작점
 

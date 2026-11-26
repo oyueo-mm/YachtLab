@@ -72,6 +72,7 @@
     "ROADMAP.md",
     "SELFPLAY-2026-11-20-FINAL.md",
     "SELFPLAY-RESEARCH.md",
+    "SEO-AUTOMATION.md",
     "TECHNIQUES.md",
     "V31-RESEARCH.md",
     "V32-EXACT-FORECAST.md",
@@ -111,6 +112,7 @@
     "qr-followup.yml",
     "qr-four-pillars.yml",
     "research-50k-league.yml",
+    "seo-indexnow.yml",
     "sota-attack-lab.yml",
     "sota-independent-confirm.yml",
     "tabular-zoo.yml",
@@ -121,6 +123,21 @@
     "yahtzeerl-transfer.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "4f2f24f",
+      "date": "2026-11-26",
+      "subject": "Merge pull request #100 from oyueo-mm/claude/wizardly-bohr-1usbx5"
+    },
+    {
+      "sha": "5530819",
+      "date": "2026-11-26",
+      "subject": "ci(seo): bind the verification preview server to 127.0.0.1"
+    },
+    {
+      "sha": "737a876",
+      "date": "2026-11-26",
+      "subject": "feat(seo): IndexNow automation, content-based sitemap lastmod, deploy verification (D-067)"
+    },
     {
       "sha": "20336fb",
       "date": "2026-11-26",
@@ -155,41 +172,20 @@
       "sha": "7ba0f51",
       "date": "2026-11-26",
       "subject": "Record the final zero-shift first-paint measurements"
-    },
-    {
-      "sha": "ea82c42",
-      "date": "2026-11-26",
-      "subject": "Merge PR #97: v7.2 follow-up — final free 'very hard' model I2RO1, 9581/9591 results, v7.1 9552/9553"
-    },
-    {
-      "sha": "3511ac1",
-      "date": "2026-11-26",
-      "subject": "research(v7.2): final free 'very hard' model selection — I2RO1 (9591 + 9581 + 9571 secondary), I3 dev 9108, D-V7-5, handoff finalized"
-    },
-    {
-      "sha": "d2e4a6d",
-      "date": "2026-11-26",
-      "subject": "Merge remote-tracking branch 'origin/main' into claude/serene-planck-15tbo2"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "20336fbb0f",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45779175905"
+      "head": "5530819f77",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45791566905"
     },
     {
       "name": "Deploy YachtLab Online Worker (manual)",
       "status": "success",
       "head": "54c13679f0",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45772443229"
-    },
-    {
-      "name": "YachtLab gameplay UI targeted smoke",
-      "status": "success",
-      "head": "dfd1ba174d",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45756594267"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
