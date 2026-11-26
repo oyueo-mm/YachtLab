@@ -10,7 +10,9 @@ import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from ".
 import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Crown, Dices, Flag, LogOut, Play, RotateCcw, Share2, UserRound, Wifi, WifiOff, X } from "lucide-react";
-import { names, type Category, type Game } from "../engine";
+import { categories, names, type Category, type Game } from "../engine";
+import { useGameShortcuts } from "../ui/shortcuts";
+import { useBgmScene } from "../audio/useBgm";
 import { DiceArea } from "../DiceArea";
 import { Scoreboard } from "../Scoreboard";
 import MobileQuickScore from "../MobileQuickScore";
@@ -312,6 +314,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   }, [deadline, anyAway]);
 
   const playing = view?.status === "playing";
+  useBgmScene(playing ? "game" : null, 1);
   useEffect(() => {
     if (!intro || !playing) return;
     const timeout = window.setTimeout(() => setIntro(false), 1900);
@@ -398,6 +401,17 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const winnerFx = winnerFxItem ? ` fx-confetti fx-lv${winnerFxItem.fxLv}` : "";
   const winnerFxLook = winnerFxItem ? itemById(winnerFxItem.fx)?.look.fx : undefined;
   const gesture = useThrowGesture(canRoll, roll);
+  const keys = useGameShortcuts({
+    active: can, dice: game.dice, rolls, canRoll, roll, toggle,
+    setAll: (held) => {
+      if (!can || rolls === 0 || rolls >= 3) return;
+      const next = held ? [...keep, ...game.dice.map((d) => d.id).filter((id) => !keep.includes(id))] : [];
+      setKeep(next);
+      mySelection.current = { keep: next, v: view?.version ?? -1 };
+      conn.current?.hold(next, ++holdSent.current);
+    },
+    open: categories.filter((c) => players[meIndex]?.card[c] === undefined), record,
+  });
   const yachtReady = useYachtReady(game.dice, rolls, myTurn && players[meIndex]?.card.yacht === undefined);
   // Result sound from my side: 1:1 win / loss / draw; larger rooms by rank (sole first = win, shared
   // first = shared win, any other place = the calm "finished" sound).
@@ -735,7 +749,8 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           )}
           <ErrorMessage message={error} />
         </div>
-        <Scoreboard state={game} labels={scoreLabels} tones={[toneOf(0, meIndex === 0 && !!me, meIndex), toneOf(1, meIndex === 1 && !!me, meIndex)]} round={game.round} selectPlayer={meIndex} select={can ? record : undefined} />
+        <Scoreboard state={game} labels={scoreLabels} tones={[toneOf(0, meIndex === 0 && !!me, meIndex), toneOf(1, meIndex === 1 && !!me, meIndex)]} round={game.round} selectPlayer={meIndex} select={can ? record : undefined}
+          selected={keys.picked} onConfirm={keys.picked ? () => record(keys.picked!) : undefined} onClear={() => keys.setPicked(null)} />
       </div>
       {profileOf && <OpponentProfile server={server} userId={profileOf} onClose={() => setProfileOf(null)} />}
       <ConfirmDialog

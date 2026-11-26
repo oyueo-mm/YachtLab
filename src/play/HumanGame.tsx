@@ -6,7 +6,7 @@ import { fromReplay } from "../review/sources";
 import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useEffect, useRef, useState } from "react";
 import { Dices, RotateCcw, ChevronRight, History, SlidersHorizontal } from "lucide-react";
-import { createGame, transition, total, names, type Category } from "../engine";
+import { categories, createGame, transition, total, names, type Category } from "../engine";
 import { type Algorithm, type Decision } from "../ai";
 import { runJob, createDecisionSession } from "../client";
 import { DiceArea } from "../DiceArea";
@@ -29,6 +29,7 @@ import { useDiceBusy } from "../useDiceBusy";
 import { useYachtReady } from "../yacht-moment";
 import { BonusChip, QuickPicks } from "../QuickPicks";
 import { announceScore, clearScoreFx } from "../score-fx";
+import { useGameShortcuts } from "../ui/shortcuts";
 import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./Tutorial";
 
 /**
@@ -204,6 +205,12 @@ export default function HumanGame({
     setMobileScoreOpen(false);
   };
   const mine = state.player === humanSeat;
+  const keys = useGameShortcuts({
+    active: can, dice: state.dice, rolls: state.rolls, canRoll: can && state.rolls < 3, roll: () => act({ type: "roll" }),
+    toggle: (id) => act({ type: "hold", ids: state.dice.filter((d) => (d.id === id ? !d.held : d.held)).map((d) => d.id) }),
+    setAll: (held) => act({ type: "hold", ids: held ? state.dice.map((d) => d.id) : [] }),
+    open: categories.filter((c) => state.cards[humanSeat][c] === undefined), record: recordScore,
+  });
   return (
     <>
       <div className="game-grid">
@@ -353,7 +360,8 @@ export default function HumanGame({
           )}
           <p className="keyboard-note sr-only">키보드로 순서 변경: 주사위에 초점을 두고 Alt + 좌우 방향키</p>
         </div>
-        <Scoreboard state={state} labels={labels} tones={humanSeat === 0 ? ["me", "opp"] : ["opp", "me"]} round={state.round} selectPlayer={humanSeat} select={can ? recordScore : undefined} previewCategory={aiPreviewCategory} />
+        <Scoreboard state={state} labels={labels} tones={humanSeat === 0 ? ["me", "opp"] : ["opp", "me"]} round={state.round} selectPlayer={humanSeat} select={can ? recordScore : undefined} previewCategory={aiPreviewCategory}
+          selected={keys.picked} onConfirm={keys.picked ? () => recordScore(keys.picked!) : undefined} onClear={() => keys.setPicked(null)} />
       </div>
       {viewReplay && (
         <ReplayViewer

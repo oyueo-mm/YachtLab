@@ -2,16 +2,19 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Trophy, X } from "lucide-react";
 import { useScoreFx } from "../score-fx";
 import { motionLevel } from "../settings";
+import { useBgmScene } from "../audio/useBgm";
 import "./match-result.css";
 
 /** Presentation only. The game still owns settlement and rematch. Mount only for a finished match. */
-export function MatchResult({ title, children, actions, className = "", waiting, invitation = false }: {
+export function MatchResult({ title, children, actions, className = "", waiting, invitation = false, mood }: {
   title: string;
   children: ReactNode;
   actions: ReactNode;
   className?: string;
   waiting?: boolean;
   invitation?: boolean;
+  /** Result music; by default a title with "승리" or "1위" is a win, anything else the calm track. */
+  mood?: "win" | "lose";
 }) {
   const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -19,6 +22,7 @@ export function MatchResult({ title, children, actions, className = "", waiting,
   const [opened, setOpened] = useState(false);
   const [shown, setShown] = useState(false);
   const fx = useScoreFx();
+  useBgmScene(shown ? (mood ?? (/승리|1위|우승/.test(title) ? "win" : "lose")) : null, 3);
 
   useEffect(() => {
     if (shown) return;

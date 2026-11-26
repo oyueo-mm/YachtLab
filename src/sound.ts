@@ -1,6 +1,6 @@
 import { socialItem } from "./social/catalog";
 import { dieSounds, emoteSound, type DiceMaterial, type EmoteSound } from "./sound-packs";
-import { getSettings } from "./settings";
+import { bgmAudible, getSettings, sfxAudible } from "./settings";
 
 /**
  * Sound effects synthesized at runtime with the Web Audio API.
@@ -112,10 +112,19 @@ function context(): AudioContext | null {
 /** Must be called from a user gesture handler. */
 export function unlockAudio() {
   const settings = getSettings();
-  if (settings.muted || settings.volume <= 0) return;
+  if (!sfxAudible(settings) && !bgmAudible(settings)) return;
   const audio = context();
-  if (audio && audio.state === "suspended") void audio.resume().catch(() => undefined);
+  if (audio && audio.state === "suspended") void audio.resume().then(() => unlockListeners.forEach((fn) => fn())).catch(() => undefined);
+  else if (audio) unlockListeners.forEach((fn) => fn());
 }
+const unlockListeners = new Set<() => void>();
+/** Called after a user gesture made audio available (background music starts from here). */
+export function onAudioUnlocked(fn: () => void) {
+  unlockListeners.add(fn);
+  return () => unlockListeners.delete(fn);
+}
+/** The shared AudioContext once a gesture has created it (music and effects use one context). */
+export const sharedAudio = (): AudioContext | null => (ctx && ctx.state === "running" ? ctx : null);
 
 let installed = false;
 /** Unlock on the first real interaction; safe to call many times. */
@@ -129,7 +138,7 @@ export function installAudioUnlock() {
 
 const ready = () => {
   const settings = getSettings();
-  if (settings.muted || settings.volume <= 0 || !ctx || !master || ctx.state !== "running") return null;
+  if (!sfxAudible(settings) || !ctx || !master || ctx.state !== "running") return null;
   master.gain.value = settings.volume * 0.9;
   return { audio: ctx, out: master };
 };

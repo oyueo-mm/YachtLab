@@ -216,6 +216,7 @@ function SortableDie({
         className={`die-button ${held ? "held" : ""} ${rolled ? "rolled" : ""} ${animating || hidden ? "dice-animating" : ""} ${hidden ? "die-in-3d" : ""}`}
         onClick={toggle}
         disabled={disabled}
+        data-key={id + 1}
         aria-label={`주사위 ${id + 1}, ${value}, ${held ? "고정됨" : "고정 안 됨"}`}
         aria-pressed={held}
         title={sortable ? "클릭: 고정 · 드래그 또는 Alt + 좌우 방향키: 순서 변경" : "클릭: 고정/해제"}

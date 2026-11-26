@@ -551,6 +551,7 @@ export function PhysicalDice({
               type="button"
               className={`die-button die-hit ${d.held ? "held" : ""} ${moving ? "dice-animating" : ""}`}
               data-die-id={id}
+              data-key={id + 1}
               data-zone={d.held ? "hold" : "tray"}
               style={t ? { left: t.cx - dims.size / 2, top: t.cy - dims.size / 2, width: dims.size, height: dims.size } : { display: "none" }}
               disabled={!interactive || busy || !state.rolls || (focusDie !== undefined && id !== focusDie)}

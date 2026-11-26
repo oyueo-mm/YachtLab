@@ -2,6 +2,8 @@ import { researchToolsEnabled } from "./routes";
 import ReviewLauncher from "./review/ReviewLauncher";
 import { fromReplay } from "./review/sources";
 import { useEffect, useRef, useState } from "react";
+import { useReviewShortcuts } from "./ui/shortcuts";
+import { useBgmScene } from "./audio/useBgm";
 import {
   Play,
   Pause,
@@ -93,6 +95,14 @@ export default function ReplayViewer({
     setPlaying(false);
     setIndex(Math.max(0, Math.min(view.frames.length - 1, n)));
   };
+  useBgmScene("review", 2);
+  useReviewShortcuts({
+    prev: () => step(index - 1), next: () => step(index + 1), first: () => step(0), last: () => step(view.frames.length - 1),
+    toggle: () => {
+      if (!playing && index >= view.frames.length - 1) setIndex(0);
+      setPlaying(!playing);
+    },
+  });
   const refresh = async () => {
     try {
       setLibrary(await listReplays());

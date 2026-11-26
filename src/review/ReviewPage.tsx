@@ -1,5 +1,7 @@
 import { PlayerTag } from "../play/Looks";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useReviewShortcuts } from "../ui/shortcuts";
+import { useBgmScene } from "../audio/useBgm";
 import { ArrowLeft, ChevronLeft, ChevronRight, Pause, Play, SkipBack, SkipForward } from "lucide-react";
 import { DieIcon } from "../Dice";
 import { accuracy, grade, grades, winLoss } from "./quality";
@@ -18,6 +20,7 @@ const asGame = (position: Position): Game => ({ ...createGame(0), ...position })
 
 export default function ReviewPage({ source, close }: { source: ReviewSource; close: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  useBgmScene("review", 2);
   useEffect(() => {
     const previous = document.activeElement;
     const surface = dialog.current;
@@ -145,6 +148,18 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
     return () => window.clearTimeout(timer);
   }, [match, playing, selected]);
 
+  const lastStep = Math.max(0, match.steps.length - 1);
+  useReviewShortcuts({
+    prev: () => { setPlaying(false); if (match.steps.length) select(Math.max(0, selected - 1)); },
+    next: () => { setPlaying(false); if (match.steps.length) select(Math.min(lastStep, selected + 1)); },
+    first: () => { setPlaying(false); if (match.steps.length) select(0); },
+    last: () => { setPlaying(false); if (match.steps.length) select(lastStep); },
+    toggle: () => {
+      if (match.steps.length < 2) return;
+      if (!playing && selected === lastStep) select(0);
+      setPlaying(!playing);
+    },
+  }, !quiz);
   if (!match.steps.length) return <p>분석할 확정 행동이 없어요.</p>;
   const step = match.steps[selected];
   const state = asGame(step.before);
