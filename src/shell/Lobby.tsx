@@ -7,7 +7,8 @@ export function Lobby({ navigate }: { navigate: Go }) {
   return (
     <section className="lobby lobby-v3" aria-labelledby="lobby-title">
       <header className="lobby-hero">
-        <h1 id="lobby-title">요트다이스를 플레이해보세요</h1>
+        <h1 id="lobby-title">온라인 요트다이스</h1>
+        <p>야추 다이스로도 불리는 요트다이스를 PC와 모바일에서 무료로 즐기세요. 친구와 온라인 멀티플레이를 하거나 혼자 AI에 도전할 수 있어요.</p>
       </header>
       <div className="lobby-modes">
         <button type="button" className="mode-card mode-online mode-primary mode-main" onClick={() => navigate("online")}>
@@ -37,6 +38,8 @@ export function Lobby({ navigate }: { navigate: Go }) {
         <a className="lobby-guide" href={`${import.meta.env.BASE_URL}guide/`}> <BookOpen size={17} aria-hidden="true" /> 규칙과 전략</a>
         <a href={`${import.meta.env.BASE_URL}probability/`}>확률 계산기</a>
         <a href={`${import.meta.env.BASE_URL}scores/`}>점수판</a>
+        <a href={`${import.meta.env.BASE_URL}ai/`}>AI 대전</a>
+        <a href={`${import.meta.env.BASE_URL}multiplayer/`}>친구 멀티플레이</a>
         <a href={`${import.meta.env.BASE_URL}faq/`}>FAQ</a>
       </nav>
     </section>

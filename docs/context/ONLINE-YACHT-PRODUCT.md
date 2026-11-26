@@ -10,12 +10,13 @@
 
 ## 검색 운영
 
-- 공개 문서는 홈과 [규칙과 전략](https://oyueo-mm.github.io/YachtLab/guide/)이다. 두 페이지의 정적 HTML, 절대 canonical, 공유 메타, 내부 링크와 [사이트맵](https://oyueo-mm.github.io/YachtLab/sitemap.xml)을 제공한다. 게임의 해시 경로는 기존 북마크·방 초대·관전 링크에 사용하며 페이지별 브라우저 제목을 설정한다.
+- 홈과 [규칙과 전략](https://oyueo-mm.github.io/YachtLab/guide/) 등 검색용 문서는 정적 HTML, 절대 canonical, 공유 메타 및 내부 링크를 제공한다. 홈은 빈 브라우저에서도 바로 렌더링된다. 같은 문서를 사용하는 게임의 해시 경로 전환은 홈의 제목과 설명을 수정하지 않는다. 홈 제목·설명과 첫 화면에 요트다이스, 야추 다이스, PC·모바일, 친구 멀티플레이와 AI를 반영한다. [사이트맵](https://oyueo-mm.github.io/YachtLab/sitemap.xml)
 - GitHub Pages 프로젝트는 `/YachtLab/`만 배포한다. 검색 로봇 정책의 위치는 호스트 루트의 `/robots.txt`이고 확인 시 404였다. 프로젝트 경로에는 효력이 없는 robots.txt를 만들지 않는다. 존재하지 않는 경로의 404 HTML에는 noindex를 넣었다. [robots.txt 위치](https://developers.google.com/crawling/docs/robots-txt/create-robots-txt)
-- Google Search Console은 `https://oyueo-mm.github.io/YachtLab/` URL 접두사 속성으로 추가한다. HTML 태그 인증을 선택해 제공된 메타 태그를 홈 HTML에 넣고 배포한 다음 소유 확인을 누른다. 사이트맵을 제출하고 URL 검사에서 홈과 도움말을 각각 확인한다. [소유 확인](https://support.google.com/webmasters/answer/9008080)
+- Google Search Console의 속성은 `https://oyueo-mm.github.io/YachtLab/` URL 접두사다. 홈의 기존 HTML 인증 태그를 보존한다. 사이트맵 제출은 속성의 접두사 뒤에 `sitemap.xml`을 사용한다. 2026-11-26 진단에서 프로젝트 사이트맵은 HTTPS 200과 `application/xml`을 반환했고, 일반 브라우저·Googlebot·Googlebot-Image 사용자 에이전트 요청의 XML이 일치했다. 등록된 8개 URL 모두 HTTPS 200과 자체 canonical을 반환했다. 호스트 루트의 `/sitemap.xml`은 404이며 프로젝트 사이트맵 URL과 구분한다. Search Console의 특정 가져오기 실패 시각과 내부 오류는 공개 HTTP 응답에서 확인할 수 없다. [사이트맵 보고서](https://support.google.com/webmasters/answer/7451001) · [소유 확인](https://support.google.com/webmasters/answer/9008080)
+- 홈의 `WebSite` 이름과 공유 사이트 이름은 Online Yacht이며 같은 canonical을 사용한다. 파비콘은 기존 48×48과 브랜드 192×192 PNG를 노출한다. Google 검색의 별도 사이트 이름·파비콘은 도메인이나 서브도메인 루트에 적용된다. 현재 `/YachtLab/`은 하위 경로이고 호스트 루트는 GitHub Pages 404를 반환해, 프로젝트 메타데이터만으로 별도 사이트 이름·파비콘 표시를 지정할 수 없다. 공개 SERP 제목과 설명은 Google이 다시 크롤링한 뒤 생성한다. [사이트 이름](https://developers.google.com/search/docs/appearance/site-names) · [파비콘](https://developers.google.com/search/docs/appearance/favicon-in-search)
 - Bing Webmaster Tools는 확인된 Google 속성을 가져오는 절차를 사용할 수 있다. 가져온 사이트맵을 확인한다. [Bing 가져오기](https://www.bing.com/webmasters/help/add-and-verify-site-12184f8b)
 - 네이버는 사이트 등록 및 소유 확인에서 호스트를 요구할 수 있다. 프로젝트 경로를 거부하거나 호스트 루트 인증만 제공하면 현재 Pages 프로젝트에서 소유 확인을 마칠 수 없다. 계정이 프로젝트 등록을 허용하면 제공된 메타 태그 방식으로 확인하고 사이트맵을 제출한다. [네이버 등록·소유 확인](https://searchadvisor.naver.com/guide/faq-start-register)
-- HTTP 응답과 자바스크립트 없이 읽히는 콘텐츠가 제공되는지 확인한다. 실제 색인, 검색 노출, 클릭수는 각 도구의 속성 리포트에서 확인한다. 소유 확인 토큰과 콘솔 정보는 이 저장소에 제공되지 않았다.
+- HTTP 응답과 새 브라우저에서 자바스크립트 실행 전후에 같은 홈 제목·설명·본문·링크가 제공되는지 확인한다. 실제 색인, 검색 노출, 클릭수와 사이트맵 가져오기 상태는 각 도구의 속성 리포트에서 확인한다.
 
 ## 점수와 첫 굴림 확률
 

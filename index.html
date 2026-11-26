@@ -5,14 +5,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#ffffff">
-  <title>온라인 요트다이스(야추) - 무료 플레이 · AI · 친구 대전 | Online Yacht</title>
-  <meta name="description" content="설치·회원가입 없이 무료로 즐기는 온라인 요트다이스(야추). PC·모바일에서 친구와 링크로 대전하거나 5단계 AI와 겨루고, 족보·확률 계산기·점수판도 쓸 수 있어요.">
+  <title>온라인 요트다이스(야추 다이스) · 무료 AI·친구 멀티 | Online Yacht</title>
+  <meta name="description" content="PC와 모바일에서 무료로 즐기는 온라인 요트다이스(야추 다이스). 설치나 가입 없이 친구를 초대해 멀티플레이하거나 5단계 AI와 대전하세요. 족보, 점수판, 확률 계산기도 제공합니다.">
   <link rel="canonical" href="https://oyueo-mm.github.io/YachtLab/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Online Yacht">
   <meta property="og:locale" content="ko_KR">
-  <meta property="og:title" content="온라인 요트다이스(야추) · Online Yacht">
-  <meta property="og:description" content="설치 없이 친구·AI와 무료로 즐기는 온라인 요트다이스(야추).">
+  <meta property="og:title" content="온라인 요트다이스(야추 다이스) · Online Yacht">
+  <meta property="og:description" content="PC와 모바일에서 무료로 즐기는 요트다이스. 친구와 온라인 멀티플레이를 하거나 AI에 도전하세요.">
   <meta property="og:url" content="https://oyueo-mm.github.io/YachtLab/">
   <meta property="og:image" content="https://oyueo-mm.github.io/YachtLab/icons/share.jpg">
   <meta property="og:image:width" content="1200">
@@ -20,14 +20,15 @@
   <meta property="og:image:alt" content="Online Yacht 워드마크와 주사위 눈이 들어간 돛단배 로고">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="%BASE_URL%icons/favicon-48.png" type="image/png" sizes="48x48">
+  <link rel="icon" href="%BASE_URL%icons/app-192.png" type="image/png" sizes="192x192">
   <link rel="manifest" href="%BASE_URL%manifest.webmanifest">
   <link rel="apple-touch-icon" href="%BASE_URL%icons/apple-touch-icon.png">
   <script type="application/ld+json">
   {
     "@context":"https://schema.org",
     "@graph":[
-      {"@type":"WebSite","url":"https://oyueo-mm.github.io/YachtLab/","name":"Online Yacht","alternateName":"온라인 요트다이스","inLanguage":"ko"},
-      {"@type":"VideoGame","url":"https://oyueo-mm.github.io/YachtLab/","name":"온라인 요트다이스","alternateName":"Online Yacht","gamePlatform":"Web browser","applicationCategory":"GameApplication","operatingSystem":"Any","inLanguage":"ko","isAccessibleForFree":true,"image":"https://oyueo-mm.github.io/YachtLab/icons/share.jpg"}
+      {"@type":"WebSite","@id":"https://oyueo-mm.github.io/YachtLab/#website","url":"https://oyueo-mm.github.io/YachtLab/","name":"Online Yacht","alternateName":"온라인 요트다이스","inLanguage":"ko"},
+      {"@type":"VideoGame","@id":"https://oyueo-mm.github.io/YachtLab/#game","url":"https://oyueo-mm.github.io/YachtLab/","name":"온라인 요트다이스","alternateName":"Online Yacht","isPartOf":{"@id":"https://oyueo-mm.github.io/YachtLab/#website"},"gamePlatform":"Web browser","applicationCategory":"GameApplication","operatingSystem":"Any","inLanguage":"ko","isAccessibleForFree":true,"image":"https://oyueo-mm.github.io/YachtLab/icons/share.jpg"}
     ]
   }
   </script>
@@ -45,21 +46,20 @@
 <body>
   <div id="root">
     <main class="initial-shell">
-      <img src="%BASE_URL%icons/online-yacht.svg" alt="" width="64" height="64">
+      <img src="%BASE_URL%icons/online-yacht.svg" alt="Online Yacht" width="64" height="64">
       <h1>온라인 요트다이스</h1>
-      <p>주사위 5개로 친구나 AI와 무료로 플레이하세요.</p>
-      <nav aria-label="게임과 도움말">
-        <a href="#online">친구와 온라인 대전</a>
-        <a href="#offline">오프라인 AI 대전</a>
-        <a href="%BASE_URL%guide/">규칙과 전략</a>
+      <p>야추 다이스로도 불리는 요트다이스를 PC와 모바일에서 무료로 즐기세요. 친구와 온라인 멀티플레이를 하거나 혼자 AI에 도전할 수 있어요.</p>
+      <nav aria-label="게임 모드">
+        <a href="#online">온라인 대전</a>
+        <a href="#offline">오프라인 대전</a>
       </nav>
       <nav aria-label="도구와 안내">
-        <a href="%BASE_URL%scores/">족보·점수판</a>
+        <a href="%BASE_URL%guide/">규칙과 전략</a>
         <a href="%BASE_URL%probability/">확률 계산기</a>
-        <a href="%BASE_URL%strategy/">전략</a>
+        <a href="%BASE_URL%scores/">점수판</a>
         <a href="%BASE_URL%ai/">AI 대전</a>
-        <a href="%BASE_URL%multiplayer/">친구 대전</a>
-        <a href="%BASE_URL%faq/">자주 묻는 질문</a>
+        <a href="%BASE_URL%multiplayer/">친구 멀티플레이</a>
+        <a href="%BASE_URL%faq/">FAQ</a>
       </nav>
       <noscript><p>게임을 시작하려면 자바스크립트를 켜 주세요. 도움말은 지금도 읽을 수 있어요.</p></noscript>
     </main>
