@@ -418,8 +418,17 @@ export class FriendIndexStore {
     this.sql.exec("CREATE INDEX IF NOT EXISTS names_key ON names (name_key)");
   }
   /** The account's code (a new random one the first time) and its current nickname. */
-  register(userId: string, nickname: string, avoid: string[] = [], make: () => string = () => newFriendCode()): string {
+  /**
+   * `avoid`: retired codes of the account's deleted generations (never handed back). `keep`: the code the
+   * account itself already holds — if the index lost the entry it is restored, not replaced, so an index
+   * loss never silently changes a live account's generation.
+   */
+  register(userId: string, nickname: string, avoid: string[] = [], keep: string | null = null, make: () => string = () => newFriendCode()): string {
     let code: string | undefined = this.sql.exec<{ code: string }>("SELECT code FROM codes WHERE user_id = ?", userId).toArray()[0]?.code;
+    if (!code && keep && FRIEND_CODE.test(keep) && !avoid.includes(keep) && !this.sql.exec("SELECT 1 FROM codes WHERE code = ?", keep).toArray().length) {
+      this.sql.exec("INSERT INTO codes (code, user_id) VALUES (?, ?)", keep, userId);
+      code = keep;
+    }
     // A re-joined account must never get back the code of its deleted generation (e.g. when the
     // deletion's index cleanup has not landed yet): replace it.
     if (code && avoid.includes(code)) {

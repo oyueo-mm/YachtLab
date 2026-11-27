@@ -351,19 +351,106 @@ describe("여러 Durable Object에 걸친 실패·재시도 (SEC-03)", () => {
     expect(q.owner()).toBeNull(); // the deleted id is not kept once the queue is empty
   });
 
-  it("영구 실패는 상한 횟수 후 포기(운영 지표로 집계)", async () => {
+  it("16회 모두 실패하면 보류(parked)로 남고, 운영자가 새 재시도 epoch를 배포하면 다시 16회 시도한다; 30일 기록 종료 때 폐기", async () => {
     const q = new CleanupQueue(sql());
     q.init();
-    q.enqueue("u_gone", ["u_peer"], "YL00000000", 0);
+    q.enqueue("u_gone", ["u_peer", "u_ok"], "YL00000000", 0);
     let t = 0;
     let gaveUp = 0;
-    for (let i = 0; i < CLEANUP_MAX_ATTEMPTS + 2; i++) {
-      const r = await runCleanup(q, async () => Promise.reject(Error("x")), () => t);
+    let down = true;
+    const send = async (job: CleanupJob) => {
+      if (down && job.target === "u_peer") throw Error("unreachable");
+    };
+    for (let i = 0; i < CLEANUP_MAX_ATTEMPTS + 3; i++) {
+      const r = await runCleanup(q, send, () => t);
       gaveUp += r.gaveUp;
       t = (q.nextAt() ?? t) + 1;
     }
     expect(gaveUp).toBe(1);
+    expect(q.parked()).toBe(1);
+    expect(q.pending()).toBe(1);
+    expect(q.nextAt()).toBeNull(); // no active retry: only the weekly epoch check
+    expect(q.owner()).toBe("u_gone"); // still needed to name the deleted account in the call
+    // no epoch / the same epoch: nothing happens
+    expect(q.requeue("", t)).toBe(0);
+    down = false;
+    expect(q.requeue("2026-12-01", t)).toBe(1);
+    expect(q.requeue("2026-12-01", t)).toBe(0);
+    expect(await runCleanup(q, send, () => t)).toMatchObject({ done: 1, remaining: 0 });
+    expect(q.owner()).toBeNull();
+    // a job parked again and never fixed is dropped at the end of the deletion record
+    q.enqueue("u_gone", ["u_peer"], "YL00000001", t);
+    down = true;
+    for (let i = 0; i < CLEANUP_MAX_ATTEMPTS; i++) {
+      await runCleanup(q, send, () => t);
+      t = (q.nextAt() ?? t) + 1;
+    }
+    expect(q.parked()).toBe(1);
+    expect(q.expireParked()).toBe(1);
     expect(q.pending()).toBe(0);
+    expect(q.owner()).toBeNull();
+  });
+
+  it("재가입과 이전 계정의 정리 재시도가 모든 RPC 순서로 겹쳐도 새 관계·새 코드는 보존되고 옛 세대만 정리된다", async () => {
+    // retry (old generation) interleaved at every step of: re-join → request → accept
+    const scenario = async (k: number, retryInside: boolean) => {
+      const w = world();
+      w.add("u_a", "에이");
+      w.add("u_b", "비");
+      w.add("u_c", "씨");
+      const [a, b] = [await w.codeOf("u_a"), await w.codeOf("u_b")];
+      await w.codeOf("u_c");
+      await w.call("u_b", "POST", "/api/me/friends/request", { code: a }); // old-generation residue at b
+      await w.call("u_a", "POST", "/api/me/friends/request", { code: await w.codeOf("u_c") });
+      w.failing.add("u_b").add("u_c").add(INDEX_TARGET);
+      await w.deleteAccount("u_a");
+      w.failing.clear();
+      w.clock.t += 3600_000;
+      let n = 0;
+      let fired = false;
+      const flow = async () => {
+        w.rejoin("u_a");
+        const a2 = await w.codeOf("u_a");
+        await w.call("u_a", "POST", "/api/me/friends/request", { code: b });
+        await w.call("u_b", "POST", "/api/me/friends/accept", { code: a2 });
+        return a2;
+      };
+      let a2 = "";
+      if (retryInside) {
+        // the alarm retry runs in the middle of the re-joined account's flow
+        w.setHook(async () => {
+          if (!fired && n++ === k) {
+            fired = true;
+            await w.retry("u_a");
+          }
+        });
+        a2 = await flow();
+        w.setHook(null);
+        if (!fired) await w.retry("u_a");
+      } else {
+        // the re-joined account's flow runs in the middle of the alarm retry
+        w.setHook(async (_id, op) => {
+          if (!fired && op === "forget" && n++ === k) {
+            fired = true;
+            w.setHook(null);
+            a2 = await flow();
+          }
+        });
+        await w.retry("u_a");
+        w.setHook(null);
+        if (!fired) a2 = await flow();
+      }
+      expect(a2).not.toBe(a);
+      expect(w.lists("u_b").friends.map((f) => f.code)).toEqual([a2]);
+      expect(w.lists("u_a").friends.map((f) => f.code)).toEqual([b]);
+      expect(w.lists("u_b").incoming).toEqual([]);
+      expect(w.lists("u_c").incoming).toEqual([]); // old a's request to c is gone
+      expect(w.index.lookup(a)).toBeNull();
+      expect(w.index.lookup(a2)?.userId).toBe("u_a");
+      expect(w.accounts.get("u_a")!.queue.pending()).toBe(0);
+      return n;
+    };
+    for (const inside of [true, false]) for (let k = 0; k < 40; k++) await scenario(k, inside);
   });
 
   it("재가입 뒤 늦게 도착한 재시도는 새 계정의 관계·코드를 지우지 않는다(세대 한정)", async () => {
@@ -504,6 +591,57 @@ describe("기존 정상 계정 보호 · 구버전 잔존 데이터 정리(운�
     expect(w.metrics).toEqual({ "friends.residue.cleaned": 1 });
     await w.call("u_bob", "GET", "/api/me/friends");
     expect(w.metrics).toEqual({ "friends.residue.cleaned": 1 });
+  });
+});
+
+describe("전역 친구 색인 누락·손상 시 정상 계정 보호", () => {
+  it("색인이 통째로 비어도(on 모드) 살아 있는 계정의 친구·요청·차단은 지워지지 않고 '색인 불일치'로만 집계된다", async () => {
+    const w = world("on");
+    for (const [id, n] of [["u_a", "에이"], ["u_b", "비"], ["u_c", "씨"], ["u_d", "디"]] as const) w.add(id, n);
+    const [a, b, c, d] = [await w.codeOf("u_a"), await w.codeOf("u_b"), await w.codeOf("u_c"), await w.codeOf("u_d")];
+    await w.call("u_a", "POST", "/api/me/friends/request", { code: b });
+    await w.call("u_b", "POST", "/api/me/friends/accept", { code: a });
+    await w.call("u_c", "POST", "/api/me/friends/request", { code: b });
+    await w.call("u_b", "POST", "/api/me/friends/block", { code: d });
+    const before = JSON.stringify(w.lists("u_b"));
+    // index loss: every code row gone
+    (w.index as unknown as { sql: FriendSql }).sql.exec("DELETE FROM codes");
+    w.clock.t += 86_400_000;
+    await w.call("u_b", "GET", "/api/me/friends");
+    expect(JSON.stringify(w.lists("u_b"))).toBe(before);
+    expect(w.metrics).toEqual({ "friends.residue.indexMismatch": 3 });
+    void c;
+  });
+
+  it("색인 손상(코드가 다른 계정을 가리킴)도 확인 단계에서 걸러진다; 진짜 탈퇴 세대만 정리", async () => {
+    const w = world("on");
+    for (const [id, n] of [["u_a", "에이"], ["u_b", "비"], ["u_gone", "떠난이"]] as const) w.add(id, n);
+    const [a, b] = [await w.codeOf("u_a"), await w.codeOf("u_b")];
+    await w.call("u_a", "POST", "/api/me/friends/request", { code: b });
+    await w.call("u_b", "POST", "/api/me/friends/accept", { code: a });
+    await w.call("u_gone", "POST", "/api/me/friends/request", { code: b });
+    await w.legacyDelete("u_gone");
+    (w.index as unknown as { sql: FriendSql }).sql.exec("UPDATE codes SET user_id = 'u_x' WHERE code = ?", a);
+    w.clock.t += 86_400_000;
+    await w.call("u_b", "GET", "/api/me/friends");
+    expect(w.lists("u_b").friends.map((f) => f.code)).toEqual([a]);
+    expect(w.lists("u_b").incoming).toEqual([]);
+    expect(w.metrics).toEqual({ "friends.residue.indexMismatch": 1, "friends.residue.cleaned": 1 });
+  });
+
+  it("색인 항목이 사라진 계정이 닉네임을 바꾸면 같은 코드로 복구된다(새 코드로 세대가 바뀌지 않음)", () => {
+    const index = new FriendIndexStore(sql());
+    index.init();
+    const code = index.register("u_a", "에이");
+    index.remove("u_a");
+    expect(index.register("u_a", "에이2", [], code)).toBe(code);
+    expect(index.lookup(code)?.userId).toBe("u_a");
+    // never a retired code, never someone else's code
+    index.remove("u_a");
+    expect(index.register("u_a", "에이", [code], code)).not.toBe(code);
+    const other = index.register("u_b", "비");
+    index.remove("u_a");
+    expect(index.register("u_a", "에이", [], other)).not.toBe(other);
   });
 });
 

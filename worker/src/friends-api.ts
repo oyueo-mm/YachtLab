@@ -26,7 +26,7 @@ export interface FriendUser {
 }
 export interface FriendIndexApi {
   /** `avoid`: retired codes of the account's deleted generations, never handed back. */
-  register(userId: string, nickname: string, avoid?: string[]): Promise<string>;
+  register(userId: string, nickname: string, avoid?: string[], keep?: string | null): Promise<string>;
   lookup(code: string): Promise<Peer | null>;
   search(nickname: string): Promise<Peer[]>;
   live?(pairs: { userId: string; code: string }[]): Promise<boolean[]>;
@@ -210,10 +210,17 @@ export async function handleFriendRoute(request: Request, url: URL, me: { userId
   return fail(404, "NOT_FOUND", "없는 주소입니다.");
 }
 
+/** At most this many candidates are confirmed (one call each) per check. */
+export const RESIDUE_CONFIRM_MAX = 50;
 /**
  * Residue of accounts deleted before the C4.2 cleanup (see ResidueMode): when the owner opens the friend
- * list, at most once a day, one call to the global index checks which (id, code) rows still name a live
- * account. Off by default; "dry-run" only counts. Never throws (the list is shown either way).
+ * list, at most once a day. Two steps, so that a lost or damaged global index can never delete a live
+ * account's rows:
+ *  1. pre-filter: one call to the global index — which (id, code) rows no longer name a live code;
+ *  2. confirm: each candidate's OWN account object (the authority on its generation) is asked for its
+ *     current code; only a missing account or a different code (deleted / re-joined) is residue.
+ *     A candidate whose account still holds that code is an index fault: counted, never touched.
+ * Off by default; "dry-run" only counts. Never throws (the list is shown either way).
  */
 async function residueCheck(userId: string, d: FriendDeps) {
   const mode = d.residue ?? "off";
@@ -223,7 +230,12 @@ async function residueCheck(userId: string, d: FriendDeps) {
     const pairs = await user.fr<{ userId: string; code: string }[]>("residuePairs", d.now());
     if (!pairs.length) return;
     const live = await d.index.live(pairs);
-    const stale = pairs.filter((_, i) => live[i] === false);
+    const candidates = pairs.filter((_, i) => live[i] === false).slice(0, RESIDUE_CONFIRM_MAX);
+    if (!candidates.length) return;
+    const current = await Promise.all(candidates.map((p) => d.user(p.userId).fr<string | null>("code").then((c) => c, () => undefined)));
+    const stale = candidates.filter((p, i) => current[i] !== undefined && current[i] !== p.code);
+    const indexFault = candidates.filter((p, i) => current[i] === p.code).length;
+    if (indexFault) await d.metric?.("friends.residue.indexMismatch", indexFault);
     if (!stale.length) return;
     await d.metric?.(`friends.residue.${mode === "on" ? "cleaned" : "found"}`, stale.length);
     if (mode === "on") await user.fr("forgetMany", stale);

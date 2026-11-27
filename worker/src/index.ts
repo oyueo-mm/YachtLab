@@ -15,7 +15,7 @@ const bucket = (c: number) => (c < 100 ? "0-99" : c < 500 ? "100-499" : c < 2000
 import { validateNickname } from "../../src/identity/nickname";
 import { ABSENT_ACCOUNT, FriendIndexStore, FriendStore, Presence, type FriendSql } from "./friends";
 import { handleFriendRoute, sendInvites, type FriendDeps, type FriendUser, type ResidueMode } from "./friends-api";
-import { CleanupQueue, INDEX_TARGET, runCleanup, type CleanupJob } from "./account-cleanup";
+import { CLEANUP_PARKED_CHECK_MS, CleanupQueue, INDEX_TARGET, runCleanup, type CleanupJob } from "./account-cleanup";
 import { sameText } from "./oidc";
 import { authConfig, handleAccountRoute, sessionUser, type AccountBackends, type GuestApi, type UserApi } from "./accounts-api";
 import type { MatchRecord } from "../../src/identity/records";
@@ -54,6 +54,11 @@ export interface Env extends ConfigVars {
    * "dry-run" (count only) or "on". Operator decision (docs/audits/c4-2026-11-28/C4-2-ACCOUNT-SECURITY.md).
    */
   FRIEND_RESIDUE_CLEANUP?: string;
+  /**
+   * C4.2: deploy a NEW value (e.g. a date) to have every parked deletion cleanup (16 failed attempts)
+   * retried; each parked account checks weekly. No admin endpoint involved.
+   */
+  ACCOUNT_CLEANUP_RETRY_EPOCH?: string;
   /** Operations metrics endpoint (`GET /api/admin/metrics`), off unless this secret (≥ 32 chars) is set. */
   ADMIN_TOKEN?: string;
   /** Sign-in (all four must be set, as Worker secrets / vars, or sign-in stays off). */
@@ -514,7 +519,9 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     const r = this.store.setNickname(nickname, Date.now());
     // Keep the friend search index in step (only for accounts that already have a friend code).
     const p = this.store.profile();
-    if (r.ok && p && this.friends.code()) await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).register(p.userId, r.nickname).catch(() => undefined);
+    // `keep`: if the index lost this account's entry, it is restored with the SAME code (never a new one).
+    const code = this.friends.code();
+    if (r.ok && p && code) await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).register(p.userId, r.nickname, [], code).catch(() => undefined);
     return r;
   }
   async soloRecords(limit: number) {
@@ -579,18 +586,28 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       else await (this.env.USERS.get(this.env.USERS.idFromName(job.target)) as unknown as FriendUser).fr("forget", userId, job.code);
     };
     const run = await runCleanup(this.cleanup, send, Date.now);
-    const hub = this.hub();
-    await Promise.all([
-      run.failed ? hub.count("account.cleanup.retry", run.failed) : null,
-      run.gaveUp ? hub.count("account.cleanup.gaveUp", run.gaveUp) : null,
-    ]).catch(() => undefined);
+    if (run.failed || run.gaveUp) await this.cleanupReport({ retry: run.failed, gaveUp: run.gaveUp, remaining: run.remaining });
     return run;
+  }
+  /**
+   * Cleanup counters (no ids): Hub metrics for `/api/admin/metrics`, and the same numbers as an
+   * application log line, readable in Workers Logs / `wrangler tail` even without ADMIN_TOKEN.
+   */
+  private async cleanupReport(c: Record<string, number>) {
+    console.warn("ACCOUNT_CLEANUP", JSON.stringify(c));
+    const hub = this.hub();
+    await Promise.all(Object.entries(c).filter(([k, n]) => n > 0 && k !== "remaining").map(([k, n]) => hub.count("account.cleanup." + k, n))).catch(() => undefined);
   }
   /** One alarm per object: next session expiry, next cleanup retry, end of the re-join cooldown. */
   private async scheduleAlarm() {
     const until = this.rejoinBlockedUntil();
     const expiry = this.store.exists() ? this.store.nextSessionExpiry() : null;
-    const times = [expiry === null ? null : expiry + 60_000, this.cleanup.nextAt(), until === null ? null : until + 60_000].filter((t): t is number => t !== null);
+    // parked cleanup: look for an operator retry request weekly, until the deletion record ends
+    const parkedCheck = this.cleanup.parked() ? Date.now() + CLEANUP_PARKED_CHECK_MS : null;
+    // a deletion record already past its end waits for the active retries (handled in the same alarm run
+    // as the last one), so it never schedules on its own — otherwise the alarm would fire every second
+    const end = until === null ? null : until + 60_000 > Date.now() || this.cleanup.nextAt() === null ? until + 60_000 : null;
+    const times = [expiry === null ? null : expiry + 60_000, this.cleanup.nextAt(), parkedCheck, end].filter((t): t is number => t !== null);
     if (!times.length) return;
     const want = Math.max(Math.min(...times), Date.now() + 1000);
     const current = await this.ctx.storage.getAlarm();
@@ -651,11 +668,16 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     const now = Date.now();
     // Expired sessions / login codes go even if the account never signs in again (SEC-04).
     if (this.store.exists()) this.store.pruneSessions(now);
-    // Deletion cleanup retries (SEC-03).
+    // Deletion cleanup retries (SEC-03); parked jobs restart when the operator deploys a new retry epoch.
+    const requeued = this.cleanup.requeue(this.env.ACCOUNT_CLEANUP_RETRY_EPOCH ?? "", now);
+    if (requeued) await this.cleanupReport({ requeued });
     if (this.cleanup.pending()) await this.runCleanup();
-    // Forget the deletion timestamp once the re-join cooldown is over (and the cleanup has finished).
+    // Forget the deletion timestamp once the re-join cooldown is over (and the cleanup has finished;
+    // jobs still parked then are dropped — the peer-side residue check is the remaining path).
     const until = this.rejoinBlockedUntil();
-    if (until !== null && now >= until && !this.cleanup.pending()) {
+    if (until !== null && now >= until && this.cleanup.parked() === this.cleanup.pending()) {
+      const expired = this.cleanup.expireParked();
+      if (expired) await this.cleanupReport({ expired });
       if (!this.store.exists()) {
         await this.ctx.storage.deleteAll();
         return;
@@ -676,8 +698,8 @@ export class FriendIndex extends DurableObject<Env> {
     this.core = new FriendIndexStore(ctx.storage.sql as unknown as FriendSql);
     ctx.blockConcurrencyWhile(async () => this.core.init());
   }
-  async register(userId: string, nickname: string, avoid?: string[]) {
-    return this.core.register(userId, nickname, avoid ?? []);
+  async register(userId: string, nickname: string, avoid?: string[], keep?: string | null) {
+    return this.core.register(userId, nickname, avoid ?? [], keep ?? null);
   }
   async removeCode(userId: string, code: string | null) {
     this.core.removeCode(userId, code);
@@ -991,7 +1013,10 @@ export default {
           limited: (key, perMinute) => Promise.resolve(isolateLimited(key, perMinute)),
           now: Date.now,
           residue: (["dry-run", "on"].includes(env.FRIEND_RESIDUE_CLEANUP ?? "") ? env.FRIEND_RESIDUE_CLEANUP : "off") as ResidueMode,
-          metric: (key, n) => hub().count(key, n).catch(() => undefined),
+          metric: (key, n) => {
+            console.log("FRIEND_RESIDUE", JSON.stringify({ [key]: n })); // counts only, no ids
+            return hub().count(key, n).catch(() => undefined);
+          },
         };
         const readJson = async () => {
           const text = await request.text();
