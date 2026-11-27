@@ -473,9 +473,9 @@ class Player {
     const week = this.opts.audited ? economyWeek(at) : Math.floor((day + 3) / 7);
     if (this.couponWeek.week !== week) this.couponWeek = { week, n: 0 };
     const last = this.lastSpend;
-    if (this.opts.audited && this.p.booster.kind !== "coupon" && this.freeDrawsLeft === 0 && last?.coins === this.wallet.coins &&
+    if (this.p.booster.kind !== "coupon" && this.freeDrawsLeft === 0 && last?.coins === this.wallet.coins &&
       last.gems === this.wallet.gems && last.draws === this.drawsToday.n && last.drawRoll === sessionDrawRoll) return;
-    const spendBefore = this.opts.audited ? { ...this.wallet, draws: this.drawsToday.n, owned: this.owned.size } : null;
+    const spendBefore = { ...this.wallet, draws: this.drawsToday.n, owned: this.owned.size };
     while (this.freeDrawsLeft > 0) {
       if (this.opts.audited && this.drawsToday.n >= this.p.draw.dailyLimit) break;
       if (this.opts.audited) this.drawsToday.n++;
@@ -536,7 +536,7 @@ class Player {
       const g = this.gemWish.find(unowned);
       if (!g || !this.buy(g, "gems")) break;
     }
-    this.lastSpend = spendBefore && spendBefore.coins === this.wallet.coins && spendBefore.gems === this.wallet.gems &&
+    this.lastSpend = spendBefore.coins === this.wallet.coins && spendBefore.gems === this.wallet.gems &&
       spendBefore.draws === this.drawsToday.n && spendBefore.owned === this.owned.size
       ? { coins: this.wallet.coins, gems: this.wallet.gems, draws: this.drawsToday.n, drawRoll: sessionDrawRoll } : null;
   }

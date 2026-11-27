@@ -11,7 +11,7 @@
  * deterministic quest picks are identical.
  */
 import { categories, type Card } from "../../engine";
-import { ACHIEVEMENTS, ECONOMY, economyWeek, questById } from "../live/config";
+import { ACHIEVEMENTS, ECONOMY, QUESTS, economyWeek, type AchievementDef } from "../live/config";
 import { rollover, unlockAchievements, type EconState, type Grant, type QuestSlot, type RewardInput } from "../live/rewards";
 import type { V2Params } from "./params";
 
@@ -33,6 +33,9 @@ export type V2Outcome = {
 };
 
 const filled = (card: Card) => categories.filter((c) => card[c] !== undefined).length;
+const questById = new Map(QUESTS.map((quest) => [quest.id, quest]));
+const stillLocked = new WeakMap<string[], AchievementDef[]>();
+const noGrants: readonly Grant[] = [];
 const hiddenIds = new Set(ACHIEVEMENTS.filter((a) => a.hidden).map((a) => a.id));
 
 function questGain(metric: string, m: { win: boolean; card: Card; newDay: boolean }): number {
@@ -43,14 +46,14 @@ function questGain(metric: string, m: { win: boolean; card: Card; newDay: boolea
 }
 
 export function applyMatchV2(prev: EconState, prevExt: V2Ext, input: RewardInput, account: { userId: string; createdAt: number }, p: V2Params, boost: BoostCtx = null, events: Readonly<typeof ECONOMY.events> = ECONOMY.events): V2Outcome {
-  let state = rollover(prev, account.userId, input.endedAt);
+  const state = { ...rollover(prev, account.userId, input.endedAt) };
   let ext = prevExt;
   const grants: V2Grant[] = [];
   const completed = input.endReason === "completed";
   const ownForfeit = !completed && input.outcome === "loss";
   const oppForfeit = !completed && input.outcome === "win";
   const countable = completed || (oppForfeit && filled(input.card) >= p.forfeitCompletionMinCategories);
-  if (input.kind === "random" && (ownForfeit || !countable)) state = { ...state, streak: 0 };
+  if (input.kind === "random" && (ownForfeit || !countable)) state.streak = 0;
   if (p.streakWeekly && input.kind === "random" && (ownForfeit || !countable)) ext = { ...ext, streakCur: 0 };
   if (!countable) return { state, ext, grants, countable: false, rewarded: false, position: null, reason: ownForfeit ? "own-forfeit" : "too-short", boostCoins: 0 };
 
@@ -64,7 +67,9 @@ export function applyMatchV2(prev: EconState, prevExt: V2Ext, input: RewardInput
   let position: number | null = null;
   if (rewarded) {
     position = state.rewarded + 1;
-    state = { ...state, rewarded: position, friend: state.friend + (input.kind === "friend" ? 1 : 0), opp: opp ? { ...state.opp, [opp]: (state.opp[opp] ?? 0) + 1 } : state.opp };
+    state.rewarded = position;
+    if (input.kind === "friend") state.friend++;
+    if (opp) state.opp = { ...state.opp, [opp]: (state.opp[opp] ?? 0) + 1 };
     const mode = p.match[input.kind];
     let coins = 0;
     if (position <= p.daily.fullMatches) {
@@ -91,18 +96,20 @@ export function applyMatchV2(prev: EconState, prevExt: V2Ext, input: RewardInput
       const matches = cur.matches + 1;
       const paidNow = !cur.paid && matches >= ev.minMatches;
       if (paidNow) grants.push({ key: `e:${ev.id}`, kind: "event", ...ev.reward, label: ev.label });
-      state = { ...state, events: { ...state.events, [ev.id]: { matches, paid: cur.paid || paidNow } } };
+      state.events = { ...state.events, [ev.id]: { matches, paid: cur.paid || paidNow } };
     }
   }
 
   const newDay = state.lastPlayDay !== state.day;
   const weekDays = newDay && !state.weekDays.includes(state.day) ? [...state.weekDays, state.day] : state.weekDays;
-  state = { ...state, lastPlayDay: state.day, weekDays };
+  state.lastPlayDay = state.day;
+  state.weekDays = weekDays;
   const progress = (slots: QuestSlot[], period: "daily" | "weekly", periodKey: number) =>
-    slots.map((slot, i) => {
+    slots.every((slot) => slot.done) ? slots : slots.map((slot, i) => {
       if (slot.done) return slot;
-      const def = questById(slot.id)!;
+      const def = questById.get(slot.id)!;
       const pr = Math.min(def.count, slot.progress + questGain(def.metric, { win, card: input.card, newDay }));
+      if (pr === slot.progress && pr < def.count) return slot;
       const done = pr >= def.count;
       if (done) {
         const c = period === "daily" ? p.quests.dailyCoins[i] : p.quests.weeklyCoins[i];
@@ -111,15 +118,16 @@ export function applyMatchV2(prev: EconState, prevExt: V2Ext, input: RewardInput
       }
       return { ...slot, progress: pr, done };
     });
-  state = { ...state, daily: progress(state.daily, "daily", state.day), weekly: progress(state.weekly, "weekly", state.week) };
+  state.daily = progress(state.daily, "daily", state.day);
+  state.weekly = progress(state.weekly, "weekly", state.week);
   let dailyQuestCompleted = false;
   if (!state.dailyAll && state.daily.every((q) => q.done)) {
-    state = { ...state, dailyAll: true };
+    state.dailyAll = true;
     dailyQuestCompleted = true;
     grants.push({ key: `qb:daily:${state.day}`, kind: "quest-bonus", ...p.quests.dailyAllBonus, label: "일일 퀘스트 모두 완료" });
   }
   if (!state.weeklyAll && state.weekly.every((q) => q.done)) {
-    state = { ...state, weeklyAll: true };
+    state.weeklyAll = true;
     grants.push({ key: `qb:weekly:${state.week}`, kind: "quest-bonus", ...p.quests.weeklyAllBonus, label: "주간 퀘스트 모두 완료" });
   }
 
@@ -151,9 +159,11 @@ export function applyMatchV2(prev: EconState, prevExt: V2Ext, input: RewardInput
     let pc = 0;
     for (let x = mask; x; x &= x - 1) pc++;
     c.yachtFaces = pc;
-    state = { ...state, achMatches: state.achMatches + 1 };
+    state.achMatches++;
   }
-  state = { ...state, counters: c, yachtFaceMask: mask, streak };
+  state.counters = c;
+  state.yachtFaceMask = mask;
+  state.streak = streak;
 
   /* research hook: weekly best-streak tiers (random queue only, each tier paid once per week).
      The weekly streak starts at 0 every Monday; wins by an opponent's forfeit keep it without adding
@@ -174,10 +184,20 @@ export function applyMatchV2(prev: EconState, prevExt: V2Ext, input: RewardInput
   }
 
   const unlocked = unlockV2Achievements(state, p);
-  return { state: unlocked.state, ext, grants: [...grants, ...unlocked.grants], countable: true, rewarded: rewarded && position !== null && position <= p.daily.reducedUntil, position, reason, boostCoins };
+  grants.push(...unlocked.grants);
+  return { state: unlocked.state, ext, grants, countable: true, rewarded: rewarded && position !== null && position <= p.daily.reducedUntil, position, reason, boostCoins };
 }
 
 export function unlockV2Achievements(state: EconState, p: V2Params) {
+  // Shared live code constructs the authoritative grant. In the common case no threshold
+  // is crossed. Cache the still-locked definitions by the immutable earned-id list.
+  let remaining = stillLocked.get(state.achievements);
+  if (!remaining) {
+    const have = new Set(state.achievements);
+    remaining = ACHIEVEMENTS.filter((achievement) => !have.has(achievement.id));
+    stillLocked.set(state.achievements, remaining);
+  }
+  if (!remaining.some((a) => (state.counters[a.key] ?? 0) >= a.count)) return { state, grants: noGrants };
   const unlocked = unlockAchievements(state);
   return { state: unlocked.state, grants: unlocked.grants.map((g) =>
     p.achievementMult === 1 || hiddenIds.has(g.key.slice(2)) ? g : { ...g, coins: Math.round(g.coins * p.achievementMult), gems: Math.round(g.gems * p.achievementMult) },
