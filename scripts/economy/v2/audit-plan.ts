@@ -65,6 +65,8 @@ export function auditJobs(quick: boolean): Job[] {
     { name: "rev2", p: persona(60), age: 60 },
     { name: "chat-38", p: persona(60, { interest: "social", spend: "collector" }), age: 60, audit: { proposedChat: true } },
     { name: "chat-control", p: persona(60, { interest: "social", spend: "collector" }), age: 60 },
+    { name: "chat-38-new", p: persona(60, { interest: "social", spend: "collector" }), age: 0, audit: { proposedChat: true } },
+    { name: "chat-control-new", p: persona(60, { interest: "social", spend: "collector" }), age: 0 },
   ];
   for (const [i, v] of variations.entries()) {
     const ids = ["BASE", "C1-PRICE", i < 9 ? "C1-LOOP" : "C1-QUEST"];

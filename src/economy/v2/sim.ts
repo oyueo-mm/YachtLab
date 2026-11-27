@@ -274,7 +274,8 @@ class Player {
     this.p = p;
     const audited = this.opts.audited;
     const catalogOptions = { audited, revision: (this.opts.includeRev2 ? 2 : 1) as 1 | 2,
-      proposedChat: this.opts.proposedChat && (!rollWish || this.opts.warmupDays === 0) };
+      proposedChat: this.opts.proposedChat && (!rollWish || this.opts.warmupDays === 0),
+      grandfatherLegacyFreeChat: this.opts.warmupDays > 0 };
     const all = pricedCatalog(p, audited ? catalogOptions : {});
     this.cat = all.filter((i) => !i.season && (this.opts.includeRev2 || i.rev <= 1) && i.tier !== "basic" && i.tier !== "special");
     this.byId = new Map((audited ? all : this.cat).map((i) => [i.id, i]));

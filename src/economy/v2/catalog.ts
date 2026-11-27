@@ -9,7 +9,7 @@
  */
 import { ITEMS, priceOf, upgradeCost, type ItemDef } from "../live/catalog";
 import { SOCIAL_ITEMS } from "../../social/catalog";
-import { PROPOSED_CHAT, PROPOSED_DEFAULTS } from "./chat-proposal";
+import { LEGACY_FREE_CHAT, PROPOSED_CHAT, PROPOSED_DEFAULTS } from "./chat-proposal";
 import { COLLECTIONS } from "../live/collections";
 import { TIER_PRICES, UPGRADE_COINS, type TierId } from "../live/config";
 import { HANDS, drawHand, type DrawTier } from "../live/draw";
@@ -84,7 +84,7 @@ function tierPercent(item: ItemDef) {
   return item.category === "chat" ? 55 : 75;
 }
 const scaled = (amount: number, percent: number, unit: number) => Math.max(unit, Math.floor(amount * percent / (100 * unit)) * unit);
-type CatalogOptions = { revision?: 1 | 2; proposedChat?: boolean; audited?: boolean };
+type CatalogOptions = { revision?: 1 | 2; proposedChat?: boolean; grandfatherLegacyFreeChat?: boolean; audited?: boolean };
 function retieredUpgrade(item: ItemDef, tier: PricedTier, audited: boolean): PricedItem["up"] {
   const a = upgradeCost(item, 1);
   const b = upgradeCost(item, 2);
@@ -142,7 +142,10 @@ export function pricedCatalog(p: V2Params, options: CatalogOptions = {}): Priced
       id, category: "chat", liveTier: prev?.liveTier ?? tier, tier, coins, gems,
       up: null, drawable: true, rev: 2, maxLevel: 1,
     };
-    if (prev) Object.assign(prev, price);
+    if (prev) {
+      if (id === LEGACY_FREE_CHAT && !options.grandfatherLegacyFreeChat) delete prev.defaultOwned;
+      Object.assign(prev, price);
+    }
     else items.push(price);
   }
   for (const { id } of PROPOSED_DEFAULTS) if (!byId.has(id)) {

@@ -13,7 +13,7 @@ import { applyMatchV2, newExt, type V2Ext } from "../src/economy/v2/engine";
 import { baselineParams, scaleMatch } from "../src/economy/v2/params";
 import { CONFIRMED_TIER_MAP, DRAW_TIER_P, PROPOSED_BOARD_MAP, drawPools, pricedCatalog } from "../src/economy/v2/catalog";
 import { BOOSTERS, MAIN_PERSONAS, POLICIES, SINGLE, cand } from "../src/economy/v2/candidates";
-import { simulateUser } from "../src/economy/v2/sim";
+import { simulateUser, type LegacyWarmups } from "../src/economy/v2/sim";
 import { mulberry32 } from "../src/economy/rng";
 
 const DAY = 86_400_000;
@@ -311,7 +311,10 @@ describe("C1 독립 감사 경계", () => {
     const sale = chat.filter((i) => i.category === "chat" && !i.season && i.coins !== null);
     expect(sale).toHaveLength(38);
     expect(sale.filter((i) => i.drawable && i.maxLevel === 1 && i.up === null)).toHaveLength(38);
-    expect(index(chat).get("chat.great")).toMatchObject({ defaultOwned: true, tier: "rare" });
+    expect(index(chat).get("chat.great")).toMatchObject({ tier: "rare", coins: 550 });
+    expect(index(chat).get("chat.great")!.defaultOwned).toBeUndefined();
+    const grandfathered = pricedCatalog(p, { revision: 2, proposedChat: true, audited: true, grandfatherLegacyFreeChat: true });
+    expect(index(grandfathered).get("chat.great")!.defaultOwned).toBe(true);
     expect(index(chat).get("chat.congrats")).toMatchObject({ id: "chat.congrats", coins: 165 });
     expect(index(chat).get("chat.learn")).toMatchObject({ coins: null, drawable: false });
   });
@@ -335,4 +338,15 @@ describe("C1 독립 감사 경계", () => {
     expect(capped.bySource.achievement).toBeGreaterThan(0); // only acquisition achievements are reachable with no eligible matches
     expect(normal.audit!.purchaseTimes).toEqual([...normal.audit!.purchaseTimes].sort((a, b) => a - b));
   });
+});
+
+
+it("기존 사용자 워밍업 캐시 재사용 후에도 후보별 원시 결과가 독립 실행과 완전히 일치한다", () => {
+  const p = MAIN_PERSONAS[3];
+  const warmupParams = baselineParams();
+  const opts = { days: 30, warmupDays: 60, warmupParams, snapshots: [1, 7, 30], includeRev2: true, t0: T0 };
+  const cache: LegacyWarmups = [];
+  for (const candidate of [warmupParams, ...POLICIES, SINGLE.find((x) => x.id === "TIER1")!]) {
+    expect(simulateUser(p, candidate, 771651, 7, opts, cache)).toEqual(simulateUser(p, candidate, 771651, 7, opts));
+  }
 });
