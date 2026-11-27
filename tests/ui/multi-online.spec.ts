@@ -156,7 +156,7 @@ test("3인 동시 진행 관전: 모두 허용하면 관전 링크가 생기고,
   // friend rooms keep consent-based spectating: every player switches it on
   for (const p of players) {
     await p.getByRole("button", { name: "관전 설정" }).click();
-    await p.getByRole("switch").check();
+    await p.getByLabel("관전 범위").selectOption("invite");
     await p.keyboard.press("Escape");
     await p.locator("body").click({ position: { x: 5, y: 5 } });
   }

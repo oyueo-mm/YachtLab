@@ -462,9 +462,6 @@ export class OnlineRoom {
       const entry: SeriesEntry = { matchId: next.matchId, finishedAt: finished.at, winners: [...finished.winners], points: Object.fromEntries(finished.standings.map((s) => [s.playerId, s.points])) };
       this.record = { ...this.record, series: [...(this.record.series ?? []), entry].slice(-ROOM_LIMITS.maxMatches), rematch: null, outbox: [...(this.record.outbox ?? []), ...this.accountRecords(next)] };
     }
-    if (finished && this.kind === "friend" && this.record.spectate) {
-      this.record = { ...this.record, spectate: { allow: {}, key: null } };
-    }
     try {
       await this.persist();
     } catch (error) {
@@ -476,13 +473,7 @@ export class OnlineRoom {
     this.armTimer();
     this.broadcast();
     // A finished match changes the room's running score (and opens rematch): tell every screen.
-    if (finished) {
-      this.broadcastRematch();
-      if (this.kind === "friend") {
-        this.enforceSpectate();
-        this.broadcastSpectate();
-      }
-    }
+    if (finished) this.broadcastRematch();
     // Someone new took a seat (who has not agreed to spectators): stop watching now.
     if (events.some((e) => e.type === "playerJoined" || e.type === "playerLeft")) {
       this.enforceSpectate();
@@ -817,7 +808,7 @@ export class OnlineRoom {
   /** Spectating is on only while every seated player allows it and a key exists. */
   private spectateActive(): boolean {
     const sp = this.record.spectate;
-    if (!sp?.key || !this.state.players.length || this.closed || (this.kind === "friend" && this.state.status === "finished")) return false;
+    if (!sp?.key || !this.state.players.length || this.closed) return false;
     return this.state.players.every((p) => sp.allow[p.playerId] === true);
   }
 
@@ -862,7 +853,6 @@ export class OnlineRoom {
   private spectateAt = new Map<string, number>();
   /** A player turns spectating on or off. Off by anyone revokes the link (a new key next time). */
   private async setSpectate(conn: RoomConnection, playerId: string, allow: boolean, visibility?: "private" | "invite" | "public") {
-    if (this.kind === "friend" && this.state.status === "finished") return conn.send({ t: "error", code: "SPECTATE", message: "이 경기는 관전이 종료됐어요." });
     const wantsPublic = visibility === "public";
     allow = visibility === undefined ? allow : visibility !== "private";
     if (this.record.ai) return conn.send({ t: "error", code: "SPECTATE", message: "AI 대전은 관전할 수 없어요." });

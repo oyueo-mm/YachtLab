@@ -280,10 +280,10 @@ for (const kind of ["node", "workers"] as const) {
         test.setTimeout(120_000);
         const { a, b } = await createAndJoin(browser);
         await a.getByRole("button", { name: "관전 설정" }).click();
-        await a.getByRole("switch").check();
+        await a.getByLabel("관전 범위").selectOption("invite");
         await expect(a.getByText("상대도 관전을 허용하면 관전 링크가 만들어져요.")).toBeVisible();
         await b.getByRole("button", { name: "관전 설정" }).click();
-        await b.getByRole("switch").check();
+        await b.getByLabel("관전 범위").selectOption("invite");
         const link = await a.getByLabel("관전 링크").inputValue();
         expect(link).toContain("watch=");
         expect(link).not.toContain("room=");
@@ -308,7 +308,7 @@ for (const kind of ["node", "workers"] as const) {
         await expect(a.getByRole("button", { name: "관전 설정" })).toContainText("관전 1");
         // b withdraws consent: the spectator is disconnected and the old link stops working
         await b.getByRole("button", { name: "관전 설정" }).click();
-        await b.getByRole("switch").uncheck();
+        await b.getByLabel("관전 범위").selectOption("private");
         await expect(w.getByText(/관전이 종료되었어요/)).toBeVisible();
         await w.goto(link);
         await expect(w.getByText(/관전이 종료되었어요/)).toBeVisible();
@@ -320,7 +320,7 @@ for (const kind of ["node", "workers"] as const) {
         const { a, b } = await createAndJoin(browser);
         for (const p of [a, b]) {
           await p.getByRole("button", { name: "관전 설정" }).click();
-          await p.getByRole("switch").check();
+          await p.getByLabel("관전 범위").selectOption("invite");
         }
         const link = await b.getByLabel("관전 링크").inputValue();
         for (const p of [a, b]) await p.keyboard.press("Escape");
