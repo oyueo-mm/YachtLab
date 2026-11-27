@@ -16,7 +16,7 @@ const categories = extractQuoted(source[1], /export const categories = \[([\s\S]
 const pkg = JSON.parse(source[2]);
 const workflows = await list(".github/workflows", ".yml");
 const docFiles = await list("docs/context", ".md");
-const recent = git(["log", "-n", "70", "--pretty=format:%h%x09%as%x09%s"]).split("\n").filter(Boolean).filter((line) => !line.toLowerCase().includes("chore(context):")).slice(0, 10).map((line) => { const [sha, date, ...subject] = line.split("\t"); return { sha, date, subject: subject.join(" ") }; });
+const recent = git(["log", "-n", "70", "--pretty=format:%h%x09%as%x09%s"]).split("\n").filter(Boolean).filter((line) => !/chore\(context\):|automation\/context-sync/i.test(line)).slice(0, 10).map((line) => { const [sha, date, ...subject] = line.split("\t"); return { sha, date, subject: subject.join(" ") }; });
 
 const repo = process.env.GITHUB_REPOSITORY ?? "oyueo-mm/YachtLab";
 let runs = [], runStatus = "이 환경에서 자동 실행 상태 조회 생략";

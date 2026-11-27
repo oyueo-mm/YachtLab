@@ -450,6 +450,16 @@ GitHub Pages의 `/YachtLab/` 스코프와 매니페스트를 사용한다. 서�
 3. Google은 Indexing API를 쓰지 않고 사이트맵·robots.txt로 관리한다. 호스트 루트 저장소(oyueo-mm/oyueo-mm.github.io)에 robots.txt와 IndexNow 키를 두며, 네이버 인증 파일을 보존한다. 이전의 "호스트 루트 robots.txt는 만들 수 없음" 전제(ONLINE-YACHT-PRODUCT 검색 운영)를 대체한다.
 4. Pages 배포는 최근 14일(최소 3세대)의 해시 자산을 보존한다. 근거·조사: [SEO-AUTOMATION](./SEO-AUTOMATION.md).
 
+## D-CI1-1. 생성 문서는 자동화 브랜치의 단일 PR로만 main에 들어간다 (2026-11-27, CI-1)
+
+(번호 중복이 이미 많아 열린 PR과 겹치지 않도록 `D-CI1-n` 형식을 쓴다.)
+
+1. Context sync는 main에 push하지 않는다. `automation/context-sync` 브랜치를 현재 main 위에서 매번 다시 만들고(`--force-with-lease`), 열린 PR 하나를 만들거나 갱신한다. 허용 경로는 `docs/context/_generated/`뿐이며 그 밖의 변경은 커밋 전에 실패한다.
+2. `GITHUB_TOKEN` PR은 `pull_request` 워크플로를 시작하지 못하므로 `deploy.yml`을 `workflow_dispatch`로 그 브랜치에서 시작해 실제 `ci-result`를 PR head 커밋에 붙인다. `[skip ci]`·상태 위조·PAT는 쓰지 않는다. GitHub App은 필요해질 때 별도 승인으로 검토한다.
+3. 병합된 스냅샷이 다시 스냅샷을 만들지 않도록 push `paths-ignore`와 "최근 커밋" 목록의 자동 병합 제목 제외를 함께 쓴다. push 실행은 구조 항목이 바뀔 때만 새 PR을 만들고, 커밋 SHA·Actions 상태만 바뀌면 매일/수동 실행에서 갱신한다.
+4. Wiki는 별도 워크플로가 **병합된 main**을 미러하며, 실패는 숨기지 않는다(전에는 `continue-on-error`로 감춰진 채 매번 실패 중이었다).
+5. 보호 규칙(PR 필수·`ci-result` 필수·최신 base·강제 푸시/삭제 금지·우회 없음)은 호환되도록 준비만 했고 적용하지 않았다. 독립 리뷰어 승인과 merge queue는 요구하지 않는다. 연구 워크플로 26개의 직접 push는 후속(CI-1.1)에서 같은 구조로 옮긴다. 절차서: [CI-1](../operations/CI-1-CONTEXT-SYNC-PROTECTION.md).
+
 ## D-068. 설정은 공통 Sheet(PC 가운데 모달, 휴대폰 아래 시트)와 소리 2계층 (2026-11-26)
 
 1. 설정·단축키 안내 등 모달은 `src/ui/kit.tsx` `Sheet`를 쓴다. `<dialog>` 중앙 정렬은 CSS 리셋 때문에 사라지므로 `margin: auto`를 명시한다.
