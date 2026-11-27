@@ -1,6 +1,6 @@
 # A2 꾸미기·채팅 연출 개선 (2026-11-27)
 
-> 브랜치 `claude/a2-cosmetics-chat`(main `0939a27` 기준). 결정: [DECISIONS](./DECISIONS.md) D-084~D-086. C5 요청 목록: [A2-C5-CATALOG-PROPOSAL](./A2-C5-CATALOG-PROPOSAL-2026-11-27.md).
+> 브랜치 `claude/a2-cosmetics-chat`(main `0939a27` 기준). 결정: [DECISIONS](./DECISIONS.md) D-085~D-087. C5 요청 목록: [A2-C5-CATALOG-PROPOSAL](./A2-C5-CATALOG-PROPOSAL-2026-11-27.md).
 > **변경하지 않은 것:** `src/economy/live/{catalog,content-items,config,draw}.ts`, `src/social/catalog.ts`, Cloudflare Worker, 가격·강화비·뽑기 확률·C1-PRICE, 등급, 영구 ID, 소유권·강화·장착·무료 권한. main 병합·운영 배포는 승인 전까지 보류.
 
 ## 1. 구조 (새 디자인 시스템 없이 기존 클래스 위에 얹음)

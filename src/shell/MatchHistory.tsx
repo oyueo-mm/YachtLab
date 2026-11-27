@@ -3,6 +3,7 @@ import { AccountError, matchReview, serverRecords, session } from "../identity/a
 import { localRecords } from "../identity/local";
 import { computeStats, type MatchRecord, type RecordMode } from "../identity/records";
 import ReviewLauncher from "../review/ReviewLauncher";
+import { offlineAIReview } from "../review/offline-history";
 import { recentOnlineReview } from "../review/online-history";
 import { names } from "../engine";
 
@@ -49,6 +50,7 @@ export default function MatchHistory({ server }: { server: string | null }) {
   }, [owner, server]);
   const signedIn = !!owner;
   const records = remote && remote.owner === owner ? remote.records : local;
+  const recoveryRecords = useMemo(() => [...new Map([...records, ...local].map((record) => [record.recordId, record])).values()], [records, local]);
   const filtered = useMemo(() => mode === "all" ? records : records.filter((r) => r.mode === mode), [mode, records]);
   const stats = useMemo(() => computeStats(filtered), [filtered]);
   return <section className="records-overview" aria-labelledby="records-overview-title">
@@ -172,6 +174,7 @@ export default function MatchHistory({ server }: { server: string | null }) {
                   </span>
                   <span className="profile-recent-score">
                     {r.score} : {r.opponent.score}
+                    {r.mode === "ai" && r.endReason === "completed" && <ReviewLauncher source={() => offlineAIReview(r, recoveryRecords)} />}
                     {r.mode === "online" && (!r.field || r.field.players === 2) && <ReviewLauncher source={async () => {
                       const recent = recentOnlineReview(r.recordId);
                       if (typeof recent !== "string" || !server || !signedIn || r.verification !== "server-verified") return recent;

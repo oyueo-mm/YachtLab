@@ -1,5 +1,6 @@
-import type { Assessment, ReviewMatch } from "./model";
-import { reviewModel } from "./model";
+import type { ReviewMatch, ReviewResults } from "./model";
+import { reviewAlgorithmVersion, reviewModel } from "./model";
+import { decisionLoss } from "./quality";
 
 type Summary = {
   key: string;
@@ -36,15 +37,19 @@ async function read<T>(store: "analysis" | "summary", operation: (s: IDBObjectSt
 
 export async function reviewKey(match: ReviewMatch, serialized: string, version: string = reviewModel.version) {
   const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(serialized)));
-  return [version, match.id, ...hash].join(":");
+  return JSON.stringify([reviewAlgorithmVersion, version, match.id, Array.from(hash, (byte) => byte.toString(16).padStart(2, "0")).join("")]);
 }
-export const cachedReview = (key: string) => read<Assessment[] | undefined>("analysis", (store) => store.get(key));
+export const cachedReview = (key: string) => read<ReviewResults | undefined>("analysis", (store) => store.get(key));
 export const reviewSummaries = () => read<Summary[]>("summary", (store) => store.getAll());
 
-export async function saveAnalysis(key: string, match: ReviewMatch, values: Assessment[], version: string = reviewModel.version) {
+export async function saveAnalysis(key: string, match: ReviewMatch, values: ReviewResults, version: string = reviewModel.version) {
   const averages = ([0, 1] as const).map((seat) => {
-    const rows = values.filter((item) => match.steps[item.index].before.player === seat);
-    return rows.length ? rows.reduce((sum, row) => sum + row.loss, 0) / rows.length : null;
+    const losses = values.values.flatMap((item) => {
+      const step = match.steps[item.index];
+      const loss = decisionLoss(item, match.solo ? "score" : "win");
+      return step.before.player === seat && !step.automatic && loss !== undefined ? [loss] : [];
+    });
+    return losses.length ? losses.reduce((sum, loss) => sum + loss, 0) / losses.length : null;
   }) as Summary["meanLoss"];
   const db = await open();
   try {
@@ -53,7 +58,7 @@ export async function saveAnalysis(key: string, match: ReviewMatch, values: Asse
       const analysis = tx.objectStore("analysis");
       const summary = tx.objectStore("summary");
       analysis.put(values, key);
-      summary.put({ key, at: Date.now(), meanLoss: averages, players: match.players, model: version } satisfies Summary);
+      summary.put({ key, at: Date.now(), meanLoss: averages, players: match.players, model: version + ":" + reviewAlgorithmVersion } satisfies Summary);
       const rows = summary.getAll() as IDBRequest<Summary[]>;
       rows.onsuccess = () => {
         for (const item of rows.result.sort((a, b) => b.at - a.at).slice(16)) {

@@ -48,6 +48,7 @@
     "A1-DICE-BOARD-2026-11-27.md",
     "AI-REVIEW.md",
     "AUTOMATION.md",
+    "C2-GAME-REVIEW.md",
     "COLLECTIONS-2026-11-27.md",
     "DECISIONS.md",
     "EXPERIMENT-ZOO-2026-11-20.md",
@@ -130,6 +131,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "ef725f6",
+      "date": "2026-11-27",
+      "subject": "Merge pull request #116 from oyueo-mm/feat/c2-game-review"
+    },
+    {
+      "sha": "9685063",
+      "date": "2026-11-27",
+      "subject": "Improve game review evaluation and replay linkage"
+    },
+    {
       "sha": "013a0a3",
       "date": "2026-11-27",
       "subject": "Merge pull request #115 from oyueo-mm/claude/tender-mendel-q0vocx"
@@ -168,30 +179,20 @@
       "sha": "e017a73",
       "date": "2026-11-27",
       "subject": "A1.1: adaptive effect quality from measured throw frames"
-    },
-    {
-      "sha": "a3083fb",
-      "date": "2026-11-27",
-      "subject": "A1.1: no layout read in fxBudget, one transform per particle, banded synergy paths"
-    },
-    {
-      "sha": "d80a257",
-      "date": "2026-11-27",
-      "subject": "A1.1: no forced layouts during throws, cached motion queries, cheaper meadow"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "ec9c2318fc",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46000345101"
+      "head": "96850635e3",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46005087533"
     },
     {
       "name": "SEO IndexNow",
       "status": "success",
-      "head": "6e734fc510",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45999576447"
+      "head": "0939a27010",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46000891567"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",

@@ -74,6 +74,7 @@
 - [A1-DICE-BOARD-2026-11-27.md](../A1-DICE-BOARD-2026-11-27.md)
 - [AI-REVIEW.md](../AI-REVIEW.md)
 - [AUTOMATION.md](../AUTOMATION.md)
+- [C2-GAME-REVIEW.md](../C2-GAME-REVIEW.md)
 - [COLLECTIONS-2026-11-27.md](../COLLECTIONS-2026-11-27.md)
 - [DECISIONS.md](../DECISIONS.md)
 - [EXPERIMENT-ZOO-2026-11-20.md](../EXPERIMENT-ZOO-2026-11-20.md)
@@ -119,6 +120,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [ef725f6](https://github.com/oyueo-mm/YachtLab/commit/ef725f6) | 2026-11-27 | Merge pull request #116 from oyueo-mm/feat/c2-game-review |
+| [9685063](https://github.com/oyueo-mm/YachtLab/commit/9685063) | 2026-11-27 | Improve game review evaluation and replay linkage |
 | [013a0a3](https://github.com/oyueo-mm/YachtLab/commit/013a0a3) | 2026-11-27 | Merge pull request #115 from oyueo-mm/claude/tender-mendel-q0vocx |
 | [ec9c231](https://github.com/oyueo-mm/YachtLab/commit/ec9c231) | 2026-11-27 | docs: A1 merge, Pages deploy and live-site verification record (Worker not deployed) |
 | [ff1cf4b](https://github.com/oyueo-mm/YachtLab/commit/ff1cf4b) | 2026-11-27 | Merge pull request #114 from oyueo-mm/claude/tender-mendel-q0vocx |
@@ -127,8 +130,6 @@
 | [e2f4c06](https://github.com/oyueo-mm/YachtLab/commit/e2f4c06) | 2026-11-27 | A1.1: three-version perf comparison (main / A1 08c507b / A1.1) and context docs (D-083) |
 | [466f2e6](https://github.com/oyueo-mm/YachtLab/commit/466f2e6) | 2026-11-27 | A1.1: A1 (08c507b) desktop re-measurement, 3-version table script |
 | [e017a73](https://github.com/oyueo-mm/YachtLab/commit/e017a73) | 2026-11-27 | A1.1: adaptive effect quality from measured throw frames |
-| [a3083fb](https://github.com/oyueo-mm/YachtLab/commit/a3083fb) | 2026-11-27 | A1.1: no layout read in fxBudget, one transform per particle, banded synergy paths |
-| [d80a257](https://github.com/oyueo-mm/YachtLab/commit/d80a257) | 2026-11-27 | A1.1: no forced layouts during throws, cached motion queries, cheaper meadow |
 
 ## 최근 GitHub Actions 상태
 
@@ -136,8 +137,8 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/46000345101) | success | ec9c2318fc |
-| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45999576447) | success | 6e734fc510 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/46005087533) | success | 96850635e3 |
+| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/46000891567) | success | 0939a27010 |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45997138823) | success | 4e797e6ec2 |
 
 ## 다음 채팅과 작업의 시작점
