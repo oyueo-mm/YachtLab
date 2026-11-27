@@ -36,7 +36,7 @@ import { LobbyPanel, MultiTable } from "./OnlineMulti";
 import { SpectateControl } from "./Social";
 import { SocialDock, TableFeed, useTableChat } from "./SocialDock";
 import { BoardFx, SynergyFx } from "./BoardFx";
-import { PlayerTag, useBoardTheme, diceLookOf, diceMaterialOf, toneOf } from "./Looks";
+import { PlayerTag, useStageLook, stagePlayer, diceLookOf, diceMaterialOf, toneOf } from "./Looks";
 import { SeatChips } from "./SeatChips";
 import { GUEST_LOOK, itemById, type PublicLook } from "../economy/live/catalog";
 import type { FxLook } from "../economy/live/content-items";
@@ -344,7 +344,10 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const me = view?.you ?? null;
   const players = view?.players ?? [];
   const myLook = (me && looks[me.playerId]) || GUEST_LOOK;
-  const theme = useBoardTheme(myLook);
+  // The table follows the player on turn on every screen (board surface, board fx, dice skin).
+  const stageId = stagePlayer(view?.turn?.playerId, me?.playerId);
+  const stage = useStageLook(stageId ? looks[stageId] : undefined, stageId === me?.playerId, myLook);
+  const theme = stage.theme;
   const boardRef = useRef<HTMLElement | null>(null);
   const nameMap = Object.fromEntries(players.map((p) => [p.playerId, p.name]));
   const say = (id: string) => conn.current?.say(id) ?? false;
@@ -670,8 +673,8 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
             {...gesture}
           >
             <Celebrate value={celebration} />
-            <BoardFx itemId={myLook.board} level={myLook.boardLv ?? 1} host={boardRef} />
-            <SynergyFx dice={turnIndex === meIndex ? myLook.dice : undefined} board={myLook.board} level={Math.min(myLook.diceLv ?? 1, myLook.boardLv ?? 1)} host={boardRef} />
+            <BoardFx itemId={stage.look?.board} level={stage.look?.boardLv ?? 1} host={boardRef} />
+            <SynergyFx dice={stage.look?.dice} board={stage.look?.board} level={Math.min(stage.look?.diceLv ?? 1, stage.look?.boardLv ?? 1)} host={boardRef} />
             {intro && playing && me && opponent && (
               <div className="quick-match-intro" role="status" aria-label="빠른 대전 매칭 완료">
                 <PlayerTag name={players[meIndex].name} look={looks[me.playerId] ?? GUEST_LOOK} me tone="me" />

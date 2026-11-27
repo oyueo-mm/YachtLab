@@ -13,7 +13,7 @@ import type { LobbyState, RematchState } from "../online/wire";
 import { ROUND_LIMITS, TURN_LIMITS } from "../online/wire";
 import type { PublicLook } from "../economy/live/catalog";
 import { BoardFx } from "./BoardFx";
-import { PlayerTag, useBoardTheme, diceLookOf, diceMaterialOf } from "./Looks";
+import { PlayerTag, useStageLook, stagePlayer, diceLookOf, diceMaterialOf } from "./Looks";
 import { Celebrate } from "../ui/Celebrate";
 import type { Celebration } from "../game-feel";
 import { QuickPicks } from "../QuickPicks";
@@ -215,8 +215,6 @@ export function MultiTable(p: {
   onRematch: (op: "request" | "cancel" | "start") => void;
   onHome: () => void;
 }) {
-  const theme = useBoardTheme(p.looks[p.me]);
-  const boardRef = useRef<HTMLElement | null>(null);
   const { opponentFx } = useSettings();
   const { view } = p;
   const players = view.players;
@@ -224,6 +222,12 @@ export function MultiTable(p: {
   const simultaneous = view.mode === "simultaneous";
   const turnIndex = simultaneous ? meIndex : Math.max(0, players.findIndex((x) => x.playerId === view.turn?.playerId));
   const dicePlayer = simultaneous ? p.me : view.turn?.playerId ?? "";
+  // Sequential: the table (board, dice skin, fx) follows the player on turn on every screen.
+  // Simultaneous: everyone plays their own board, so each screen shows its own look.
+  const stageId = stagePlayer(view.turn?.playerId, p.me, simultaneous);
+  const stage = useStageLook(stageId ? p.looks[stageId] : undefined, stageId === p.me, p.looks[p.me]);
+  const theme = stage.theme;
+  const boardRef = useRef<HTMLElement | null>(null);
   const finished = view.status === "finished";
   const [all, setAll] = useState(false);
   const game: MultiGame = { dice: p.dice, order: [0, 1, 2, 3, 4], cards: players.map((x) => x.card), player: turnIndex, round: view.round || 12, rolls: p.rolls, done: finished, winners: [], seed: 0, rng: [], actions: view.version };
@@ -254,7 +258,7 @@ export function MultiTable(p: {
           ref={boardRef}
           aria-label="게임 보드"
         >
-          <BoardFx itemId={p.looks[p.me]?.board} level={p.looks[p.me]?.boardLv ?? 1} host={boardRef} />
+          <BoardFx itemId={stage.look?.board} level={stage.look?.boardLv ?? 1} host={boardRef} />
           <Celebrate value={p.celebration} />
           <div className="board-top">
             <span className="turn-indicator">
@@ -265,7 +269,7 @@ export function MultiTable(p: {
               굴림 <b>{p.rolls}</b> / 3{timer && <span className="turn-timer"> · 남은 시간 {timer}</span>}
             </span>
           </div>
-          <DiceArea state={game} colors={diceLookOf(p.looks[dicePlayer], dicePlayer === p.me || opponentFx)} material={diceMaterialOf(p.looks[dicePlayer])} interactive={p.can && p.rolls > 0 && p.rolls < 3} animate rollEvent={p.rollEvent} onToggle={p.onToggle} holdOrder={p.rolls > 0 ? p.keep : []} />
+          <DiceArea state={game} colors={diceLookOf(stage.look, stage.showFx)} material={diceMaterialOf(stage.look)} interactive={p.can && p.rolls > 0 && p.rolls < 3} animate rollEvent={p.rollEvent} onToggle={p.onToggle} holdOrder={p.rolls > 0 ? p.keep : []} />
           <div className="roll-area">
             <button className={"primary roll-button" + (myTurn ? "" : " waiting")} disabled={!p.canRoll} onClick={p.onRoll}>
               <Dices size={20} />

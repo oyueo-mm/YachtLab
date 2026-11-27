@@ -65,28 +65,37 @@ test("온라인 대전: 채팅 문구가 의미별 움직임·말풍선 레이�
     expect(o).toBe(false);
   }
 
-  // heavy combination on the live seat DOM: frame Lv.3 + neon name Lv.3 + a Lv.3 bubble on every feed message
-  for (const p of [pc, phone]) {
+  // Heavy combination on the live seat DOM (guests own nothing; the items themselves are checked with
+  // real member accounts in a2-members.spec.ts). Same-run comparison: the SAME page and the same kind of
+  // roll without, then with, the cosmetics — an absolute frame budget would only measure the CI machine.
+  const pages = [pc, phone];
+  let rollerIdx = -1;
+  await expect.poll(async () => { for (const [i, p] of pages.entries()) if (await p.locator(".roll-button").isEnabled().catch(() => false)) { rollerIdx = i; return true; } return false; }, { timeout: 15_000 }).toBe(true);
+  const roller = pages[rollerIdx];
+  await roller.locator(".roll-button").click(); // warm-up throw (shaders, chunks): not judged
+  await roller.waitForTimeout(2500);
+  const measure = async () => {
+    for (const p of pages) await p.evaluate(() => { const w = window as unknown as { __f: number[]; __stop?: boolean }; w.__f = []; w.__stop = false; let last = performance.now(); const loop = (t: number) => { w.__f.push(t - last); last = t; if (!w.__stop) requestAnimationFrame(loop); }; requestAnimationFrame(loop); });
+    await roller.locator(".roll-button").click();
+    await roller.waitForTimeout(3500);
+    return Promise.all(pages.map((p) => p.evaluate(() => { const w = window as unknown as { __f: number[]; __stop: boolean }; w.__stop = true; const f = w.__f.slice(5).sort((a, b) => a - b); return { n: f.length, avg: f.reduce((a, b) => a + b, 0) / f.length, p95: f[Math.floor(f.length * 0.95)], slow: f.filter((x) => x > 33.5).length }; })));
+  };
+  const base = await measure();
+  for (const p of pages) {
     await p.evaluate(() => {
       document.querySelectorAll(".seat-chip .player-icon").forEach((n) => n.classList.add("pf-ring-holo", "pf-lv3"));
       document.querySelectorAll(".seat-chip .player-name").forEach((n) => n.classList.add("namefx-neon", "fx-lv3"));
       document.querySelectorAll(".anchored-feed .feed-msg").forEach((n) => n.classList.add("bubble-holo", "bubble-lv3"));
     });
-    await expect(p.locator('.seat-chip .player-icon.pf-ring-holo').first()).toBeVisible();
+    await expect(p.locator(".seat-chip .player-icon.pf-ring-holo").first()).toBeVisible();
   }
-  const measure = async (p: Page) => {
-    await p.evaluate(() => { const w = window as unknown as { __f: number[] }; w.__f = []; let last = performance.now(); const loop = (t: number) => { w.__f.push(t - last); last = t; requestAnimationFrame(loop); }; requestAnimationFrame(loop); });
-    // roll while the cosmetics run (whoever's turn it is rolls; the other just renders)
-    const roll = p.locator(".roll-button");
-    if (await roll.isEnabled().catch(() => false)) await roll.click();
-    await p.waitForTimeout(3500);
-    return p.evaluate(() => { const f = (window as unknown as { __f: number[] }).__f.slice(5).sort((a, b) => a - b); return { n: f.length, avg: f.reduce((a, b) => a + b, 0) / f.length, p95: f[Math.floor(f.length * 0.95)], p99: f[Math.floor(f.length * 0.99)], slow: f.filter((x) => x > 33.5).length }; });
-  };
-  const stats = { pc: await measure(pc), phone: await measure(phone) };
-  console.log("A2-ONLINE-PERF", JSON.stringify(stats));
-  expect(stats.pc.avg).toBeLessThan(25);
-  expect(stats.phone.avg).toBeLessThan(25);
+  const heavy = await measure();
+  console.log("A2-ONLINE-PERF", JSON.stringify({ base, heavy }));
+  // Not worse than the same screen without cosmetics by more than 30 % (+3 ms) on average.
+  for (const i of [0, 1]) {
+    expect(heavy[i].avg, `screen ${i} average frame`).toBeLessThanOrEqual(base[i].avg * 1.3 + 3);
+    expect(heavy[i].slow, `screen ${i} slow frames`).toBeLessThanOrEqual(base[i].slow + Math.ceil(heavy[i].n * 0.1));
+  }
   await pc.screenshot({ path: "docs/ui/a2-2026-11/after/online-desktop-heavy.png" });
   await phone.screenshot({ path: "docs/ui/a2-2026-11/after/online-phone-heavy.png" });
-  void hit;
 });

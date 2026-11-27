@@ -1,6 +1,6 @@
 import { diceMaterial } from "../sound-packs";
 import { itemById, lookAt, type ItemDef, type PublicLook } from "../economy/live/catalog";
-import type { CSSProperties } from "react";
+import { useRef, type CSSProperties } from "react";
 import { motionLevel, useSettings } from "../settings";
 
 /**
@@ -87,3 +87,25 @@ export function useBoardTheme(look?: PublicLook | null) {
 export function bubbleCssOf(look?: PublicLook | null) {
   return lookAt(itemById(look?.bubble), look?.bubbleLv ?? 1).css ?? "";
 }
+
+/**
+ * The look the TABLE shows (board surface, board fx level, dice skin and level). Sequential play: the
+ * look of the player whose turn it is, the same on every screen (players and spectators). Simultaneous
+ * play: each player's own look (there is no single turn). `mine` follows "상대 아이템 효과": another
+ * player's showy levels are drawn at Lv.1 when it is off, but the surface and skin are still theirs.
+ * Presentation only; everything comes from the server-validated looks.
+ */
+export function useStageLook(look: PublicLook | null | undefined, mine: boolean, fallback?: PublicLook | null) {
+  const { opponentFx } = useSettings();
+  // Between two turns the server view has no player on turn for a moment: keep the previous table
+  // instead of flashing the default (or my own) one.
+  const last = useRef<PublicLook | null>(null);
+  if (look) last.current = look;
+  const base = look ?? last.current ?? fallback ?? undefined;
+  const showFx = mine || opponentFx;
+  const effective = base ? (showFx ? base : { ...base, boardLv: 1, diceLv: 1 }) : undefined;
+  const theme = useBoardTheme(effective);
+  return { look: effective, theme, showFx };
+}
+/** Whose look the table follows: the player on turn (sequential), or me (simultaneous). "" between turns. */
+export const stagePlayer = (turnPlayerId: string | null | undefined, me: string | null | undefined, simultaneous = false) => (simultaneous ? me : turnPlayerId) ?? "";
