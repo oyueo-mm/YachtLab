@@ -2,6 +2,7 @@ import type { SynergyKind } from "../economy/live/collections";
 import { FxCanvas } from "../dice3d/fx-canvas";
 import { onFx, type FxEvent } from "../fx-bus";
 import { playSfx } from "../sound";
+import { rectCache } from "./rect-cache";
 import type { LandSound } from "../dice3d/dice-fx";
 import { glowSprite, rng } from "./board-scene";
 
@@ -47,6 +48,7 @@ export class SynergyLayer {
   private io: IntersectionObserver | null = null;
   private r = rng(5);
   private onVis = () => this.wake();
+  private rect: ReturnType<typeof rectCache>;
 
   constructor(private tray: HTMLElement, private kind: SynergyKind, private power: number, budget: number, private sound: () => boolean) {
     this.canvas = document.createElement("canvas");
@@ -55,6 +57,7 @@ export class SynergyLayer {
     this.canvas.dataset.synergy = kind;
     this.g = this.canvas.getContext("2d");
     tray.prepend(this.canvas);
+    this.rect = rectCache(tray);
     this.fx = new FxCanvas(null);
     this.fx.budget = budget;
     this.layout();
@@ -72,6 +75,7 @@ export class SynergyLayer {
   }
 
   private layout() {
+    this.rect?.reset();
     const r = this.tray.getBoundingClientRect();
     this.w = Math.max(1, r.width);
     this.h = Math.max(1, r.height);
@@ -84,7 +88,7 @@ export class SynergyLayer {
   }
 
   private local(e: FxEvent) {
-    const r = this.tray.getBoundingClientRect();
+    const r = this.rect.get();
     if (e.x === undefined || e.y === undefined) return null;
     const x = e.x - r.left, y = e.y - r.top;
     return x >= -10 && y >= -10 && x <= this.w + 10 && y <= this.h + 10 ? { x, y } : null;
@@ -518,6 +522,7 @@ export class SynergyLayer {
     this.off();
     document.removeEventListener("visibilitychange", this.onVis);
     this.ro.disconnect();
+    this.rect.dispose();
     this.io?.disconnect();
     this.fx.dispose();
     this.canvas.remove();

@@ -4,6 +4,7 @@ import { boardFx, type BoardFxProfile, type BoardReaction } from "../board-fx";
 import { onFx, type FxEvent } from "../fx-bus";
 import { fxBudget, useSettings } from "../settings";
 import { playSfx } from "../sound";
+import { rectCache } from "./rect-cache";
 import { attachToTray } from "./tray-attach";
 import { createScene, strengthOf, type Scene } from "./board-scene";
 
@@ -57,6 +58,7 @@ export class BoardLayer {
   private h = 1;
   private ratio = 1;
   private onVis = () => this.wake();
+  private rect: ReturnType<typeof rectCache>;
 
   constructor(private tray: HTMLElement, itemId: string, private p: BoardFxProfile, private level: number, private budget: number, private soundOn: () => boolean) {
     this.canvas = document.createElement("canvas");
@@ -65,6 +67,7 @@ export class BoardLayer {
     this.canvas.setAttribute("aria-hidden", "true");
     this.g = this.canvas.getContext("2d");
     tray.prepend(this.canvas);
+    this.rect = rectCache(tray);
     this.fx = new FxCanvas(null);
     this.fx.budget = budget;
     this.scene = createScene(itemId, budget);
@@ -85,6 +88,7 @@ export class BoardLayer {
   }
 
   private layout() {
+    this.rect?.reset();
     const r = this.tray.getBoundingClientRect();
     this.w = Math.max(1, r.width);
     this.h = Math.max(1, r.height);
@@ -98,7 +102,7 @@ export class BoardLayer {
   }
 
   private local(e: FxEvent) {
-    const r = this.tray.getBoundingClientRect();
+    const r = this.rect.get();
     if (e.x === undefined || e.y === undefined) return { x: this.w / 2, y: this.h / 2 };
     return { x: e.x - r.left, y: e.y - r.top };
   }
@@ -199,6 +203,7 @@ export class BoardLayer {
     document.removeEventListener("visibilitychange", this.onVis);
     this.io?.disconnect();
     this.ro?.disconnect();
+    this.rect.dispose();
     this.fx.dispose();
     this.canvas.remove();
     stats.layers--;

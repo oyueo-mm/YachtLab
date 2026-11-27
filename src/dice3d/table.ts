@@ -446,11 +446,19 @@ export class DiceTable {
     const point = this.effectPoint.copy(mesh.position).project(this.camera);
     return { x: ((point.x + 1) * this.cssSize.w) / 2, y: ((1 - point.y) * this.cssSize.h) / 2 };
   }
+  private clientRect: DOMRect | null = null;
+  private clientRectAt = 0;
   /** Same point in viewport coordinates (for the board's reactions). */
   private client(id: number) {
     const p = this.screen(id);
     if (!p) return null;
-    const r = this.canvas.getBoundingClientRect();
+    // one layout read per animation frame at most (several dice ask in the same frame)
+    const now = performance.now();
+    if (!this.clientRect || now - this.clientRectAt > 16) {
+      this.clientRect = this.canvas.getBoundingClientRect();
+      this.clientRectAt = now;
+    }
+    const r = this.clientRect;
     return { x: r.left + p.x, y: r.top + p.y };
   }
   private ensureFx() {
