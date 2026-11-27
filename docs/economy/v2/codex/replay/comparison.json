@@ -9,7 +9,11 @@
   },
   "E1": {
     "expected": 384,
-    "status": "pending"
+    "replayed": 384,
+    "capFieldsChecked": 4608,
+    "capFieldsChanged": 1828,
+    "otherChanged": 0,
+    "firstDifferences": []
   },
   "E2": {
     "expected": 80,
@@ -21,11 +25,19 @@
   },
   "E3": {
     "expected": 240,
-    "status": "pending"
+    "replayed": 240,
+    "capFieldsChecked": 2880,
+    "capFieldsChanged": 1232,
+    "otherChanged": 0,
+    "firstDifferences": []
   },
   "E4": {
     "expected": 304,
-    "status": "pending"
+    "replayed": 304,
+    "capFieldsChecked": 3648,
+    "capFieldsChanged": 1375,
+    "otherChanged": 0,
+    "firstDifferences": []
   },
   "E5": {
     "expected": 18,
@@ -50,5 +62,19 @@
     "capFieldsChanged": 76,
     "otherChanged": 0,
     "firstDifferences": []
+  },
+  "population": {
+    "otherChanged": 0,
+    "firstDifferences": []
+  },
+  "rawE1": {
+    "original": {
+      "sha256Sorted": "a7626135485c02c079dcaa6876a4bd96535da318328fe9f736eaf54d97d2effe",
+      "rows": 76800
+    },
+    "replayed": {
+      "sha256Sorted": "a7626135485c02c079dcaa6876a4bd96535da318328fe9f736eaf54d97d2effe",
+      "rows": 76800
+    }
   }
 }

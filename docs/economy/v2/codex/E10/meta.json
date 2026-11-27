@@ -1,7 +1,7 @@
 {
  "generatedBy": "scripts/economy/v2/run.ts",
  "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
- "codeHash": "05dd49d27daf1e276bbcc90955bc0331e1daab271add6784d09e7358081e89e2",
+ "codeHash": "ccbe58b1deb609f4b4dde6d4ef64a97e23f262860b5261b90cb9bf63a3a5d1f4",
  "settingsHash": "4e61ccfe9ebb2ec90a3be94bbebd60d616c9d43f524665953aefe19942db2a45",
  "seed": 630736503,
  "seeds": [

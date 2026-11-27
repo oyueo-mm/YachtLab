@@ -3,9 +3,9 @@
 
 
  Test Files  1 passed (1)
-      Tests  23 passed (23)
-   Start at  15:01:52
-   Duration  2.52s (tests 67%, transform 22%, import 10%, worker 2%)
+      Tests  24 passed (24)
+   Start at  15:11:45
+   Duration  3.50s (tests 60%, transform 30%, import 10%)
 
 npm notice
 npm notice New major version of npm available! 11.19.1 -> 12.2.3

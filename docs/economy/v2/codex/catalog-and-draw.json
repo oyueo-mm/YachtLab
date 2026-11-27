@@ -24289,10 +24289,10 @@
   "C1-PRICE": {
    "sums": {
     "paidItems": 212,
-    "coinCatalog": 703195,
-    "gemCatalog": 46064,
+    "coinCatalog": 703205,
+    "gemCatalog": 46079,
     "upgrades": 983790,
-    "drawListValue": 1070.0656966934246
+    "drawListValue": 1070.1460722078277
    },
    "byTier": {
     "common": {
@@ -24750,7 +24750,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       375,
       750
@@ -24910,7 +24910,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       375,
       750
@@ -24926,7 +24926,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       375,
       750
@@ -24942,7 +24942,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       375,
       750
@@ -24958,7 +24958,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       375,
       750
@@ -24974,7 +24974,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       375,
       750
@@ -25508,7 +25508,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       375,
       750
@@ -25540,7 +25540,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       375,
       750
@@ -25620,7 +25620,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       375,
       750
@@ -25703,7 +25703,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": null,
-     "gems": 62,
+     "gems": 63,
      "up": null,
      "drawable": false,
      "maxLevel": 1,
@@ -26796,7 +26796,7 @@
      "category": "bubble",
      "liveTier": "rare",
      "tier": "rare",
-     "coins": 485,
+     "coins": 490,
      "gems": 58,
      "up": null,
      "drawable": true,
@@ -26809,7 +26809,7 @@
      "category": "bubble",
      "liveTier": "rare",
      "tier": "rare",
-     "coins": 485,
+     "coins": 490,
      "gems": 58,
      "up": null,
      "drawable": true,
@@ -27020,7 +27020,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": null,
      "drawable": true,
      "maxLevel": 1,
@@ -27033,7 +27033,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": null,
      "drawable": true,
      "maxLevel": 1,
@@ -27046,7 +27046,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": null,
-     "gems": 62,
+     "gems": 63,
      "up": null,
      "drawable": false,
      "maxLevel": 1,
@@ -27059,7 +27059,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": null,
      "drawable": true,
      "maxLevel": 1,
@@ -27072,7 +27072,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": null,
      "drawable": true,
      "maxLevel": 1,
@@ -27763,31 +27763,31 @@
       {
        "n": 1,
        "newly": 1.0000000000000444,
-       "displayedCoins": 1070.0656966934303,
+       "displayedCoins": 1070.1460722078334,
        "expectedNetCost": 250.0000000000011
       },
       {
        "n": 5,
        "newly": 4.934575390886736,
-       "displayedCoins": 5309.873664596905,
+       "displayedCoins": 5310.269133661647,
        "expectedNetCost": 1248.3643847721685
       },
       {
        "n": 10,
        "newly": 9.70904886603291,
-       "displayedCoins": 10520.197594182046,
+       "displayedCoins": 10520.97289273341,
        "expectedNetCost": 2492.726221650823
       },
       {
        "n": 30,
        "newly": 27.315272844194553,
-       "displayedCoins": 30416.484189829545,
+       "displayedCoins": 30418.634419355858,
        "expectedNetCost": 7432.881821104864
       },
       {
        "n": 150,
        "newly": 96.53019583436796,
-       "displayedCoins": 124580.2365491107,
+       "displayedCoins": 124587.25607886168,
        "expectedNetCost": 36163.2548958592
       }
      ]
@@ -27801,31 +27801,31 @@
       {
        "n": 1,
        "newly": 1.0000000000000444,
-       "displayedCoins": 1070.0656966934303,
+       "displayedCoins": 1070.1460722078334,
        "expectedNetCost": 250.0000000000011
       },
       {
        "n": 5,
        "newly": 4.934575390886736,
-       "displayedCoins": 5309.873664596905,
+       "displayedCoins": 5310.269133661647,
        "expectedNetCost": 1248.3643847721685
       },
       {
        "n": 10,
        "newly": 9.70904886603291,
-       "displayedCoins": 10520.197594182046,
+       "displayedCoins": 10520.97289273341,
        "expectedNetCost": 2492.726221650823
       },
       {
        "n": 30,
        "newly": 27.315272844194553,
-       "displayedCoins": 30416.484189829545,
+       "displayedCoins": 30418.634419355858,
        "expectedNetCost": 7432.881821104864
       },
       {
        "n": 150,
        "newly": 96.53019583436796,
-       "displayedCoins": 124580.2365491107,
+       "displayedCoins": 124587.25607886168,
        "expectedNetCost": 36163.2548958592
       }
      ]
@@ -27839,31 +27839,31 @@
       {
        "n": 1,
        "newly": 0.669157461555148,
-       "displayedCoins": 1034.9752700094336,
+       "displayedCoins": 1035.0556455238368,
        "expectedNetCost": 241.7289365388787
       },
       {
        "n": 5,
        "newly": 3.3034880188142366,
-       "displayedCoins": 5136.874291197301,
+       "displayedCoins": 5137.269760262042,
        "expectedNetCost": 1207.5872004703558
       },
       {
        "n": 10,
        "newly": 6.503479356256715,
-       "displayedCoins": 10180.202615326003,
+       "displayedCoins": 10180.977913877368,
        "expectedNetCost": 2412.586983906418
       },
       {
        "n": 30,
        "newly": 18.339547069987407,
-       "displayedCoins": 29464.484339097147,
+       "displayedCoins": 29466.63456862346,
        "expectedNetCost": 7208.4886767496855
       },
       {
        "n": 150,
        "newly": 65.81990142038181,
-       "displayedCoins": 121322.98510966987,
+       "displayedCoins": 121330.00463942085,
        "expectedNetCost": 35395.497535509545
       }
      ]
@@ -27877,31 +27877,31 @@
       {
        "n": 1,
        "newly": 0.7549142484611396,
-       "displayedCoins": 819.0937329480656,
+       "displayedCoins": 819.1741084624689,
        "expectedNetCost": 243.8728562115285
       },
       {
        "n": 5,
        "newly": 3.7252921238685803,
-       "displayedCoins": 4064.6123771888033,
+       "displayedCoins": 4065.007846253545,
        "expectedNetCost": 1218.1323030967146
       },
       {
        "n": 10,
        "newly": 7.329989566396343,
-       "displayedCoins": 8053.293055677242,
+       "displayedCoins": 8054.068354228607,
        "expectedNetCost": 2433.2497391599086
       },
       {
        "n": 30,
        "newly": 20.62511266602817,
-       "displayedCoins": 23287.15447232139,
+       "displayedCoins": 23289.30470184771,
        "expectedNetCost": 7265.6278166507045
       },
       {
        "n": 150,
        "newly": 72.94903024938937,
-       "displayedCoins": 95449.52269920892,
+       "displayedCoins": 95456.5422289599,
        "expectedNetCost": 35573.72575623474
       }
      ]
@@ -27953,31 +27953,31 @@
       {
        "n": 1,
        "newly": 0.5044483851948338,
-       "displayedCoins": 530.179868589132,
+       "displayedCoins": 530.2602441035352,
        "expectedNetCost": 237.61120962987084
       },
       {
        "n": 5,
        "newly": 2.4892663866076696,
-       "displayedCoins": 2630.257750117082,
+       "displayedCoins": 2630.6532191818233,
        "expectedNetCost": 1187.2316596651917
       },
       {
        "n": 10,
        "newly": 4.897836819334817,
-       "displayedCoins": 5209.743270956671,
+       "displayedCoins": 5210.518569508036,
        "expectedNetCost": 2372.4459204833706
       },
       {
        "n": 30,
        "newly": 13.780248732047955,
-       "displayedCoins": 15046.398452591822,
+       "displayedCoins": 15048.548682118138,
        "expectedNetCost": 7094.506218301199
       },
       {
        "n": 150,
        "newly": 48.713493213301575,
-       "displayedCoins": 61305.294358172294,
+       "displayedCoins": 61312.31388792329,
        "expectedNetCost": 34967.83733033254
       }
      ]
@@ -28215,10 +28215,10 @@
   "C1-LOOP": {
    "sums": {
     "paidItems": 212,
-    "coinCatalog": 703195,
-    "gemCatalog": 46064,
+    "coinCatalog": 703205,
+    "gemCatalog": 46079,
     "upgrades": 977305,
-    "drawListValue": 1070.0656966934246
+    "drawListValue": 1070.1460722078277
    },
    "byTier": {
     "common": {
@@ -28676,7 +28676,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       280,
       675
@@ -28836,7 +28836,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       280,
       675
@@ -28852,7 +28852,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       280,
       675
@@ -28868,7 +28868,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       280,
       675
@@ -28884,7 +28884,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       280,
       675
@@ -28900,7 +28900,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       280,
       675
@@ -29434,7 +29434,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       280,
       675
@@ -29466,7 +29466,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       280,
       675
@@ -29546,7 +29546,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": [
       280,
       675
@@ -29629,7 +29629,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": null,
-     "gems": 62,
+     "gems": 63,
      "up": null,
      "drawable": false,
      "maxLevel": 1,
@@ -30722,7 +30722,7 @@
      "category": "bubble",
      "liveTier": "rare",
      "tier": "rare",
-     "coins": 485,
+     "coins": 490,
      "gems": 58,
      "up": null,
      "drawable": true,
@@ -30735,7 +30735,7 @@
      "category": "bubble",
      "liveTier": "rare",
      "tier": "rare",
-     "coins": 485,
+     "coins": 490,
      "gems": 58,
      "up": null,
      "drawable": true,
@@ -30946,7 +30946,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": null,
      "drawable": true,
      "maxLevel": 1,
@@ -30959,7 +30959,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": null,
      "drawable": true,
      "maxLevel": 1,
@@ -30972,7 +30972,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": null,
-     "gems": 62,
+     "gems": 63,
      "up": null,
      "drawable": false,
      "maxLevel": 1,
@@ -30985,7 +30985,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": null,
      "drawable": true,
      "maxLevel": 1,
@@ -30998,7 +30998,7 @@
      "liveTier": "rare",
      "tier": "rare",
      "coins": 525,
-     "gems": 62,
+     "gems": 63,
      "up": null,
      "drawable": true,
      "maxLevel": 1,
@@ -31689,31 +31689,31 @@
       {
        "n": 1,
        "newly": 1.0000000000000444,
-       "displayedCoins": 1070.0656966934303,
+       "displayedCoins": 1070.1460722078334,
        "expectedNetCost": 250.0000000000011
       },
       {
        "n": 5,
        "newly": 4.934575390886736,
-       "displayedCoins": 5309.873664596905,
+       "displayedCoins": 5310.269133661647,
        "expectedNetCost": 1248.3643847721685
       },
       {
        "n": 10,
        "newly": 9.70904886603291,
-       "displayedCoins": 10520.197594182046,
+       "displayedCoins": 10520.97289273341,
        "expectedNetCost": 2492.726221650823
       },
       {
        "n": 30,
        "newly": 27.315272844194553,
-       "displayedCoins": 30416.484189829545,
+       "displayedCoins": 30418.634419355858,
        "expectedNetCost": 7432.881821104864
       },
       {
        "n": 150,
        "newly": 96.53019583436796,
-       "displayedCoins": 124580.2365491107,
+       "displayedCoins": 124587.25607886168,
        "expectedNetCost": 36163.2548958592
       }
      ]
@@ -31727,31 +31727,31 @@
       {
        "n": 1,
        "newly": 1.0000000000000444,
-       "displayedCoins": 1070.0656966934303,
+       "displayedCoins": 1070.1460722078334,
        "expectedNetCost": 250.0000000000011
       },
       {
        "n": 5,
        "newly": 4.934575390886736,
-       "displayedCoins": 5309.873664596905,
+       "displayedCoins": 5310.269133661647,
        "expectedNetCost": 1248.3643847721685
       },
       {
        "n": 10,
        "newly": 9.70904886603291,
-       "displayedCoins": 10520.197594182046,
+       "displayedCoins": 10520.97289273341,
        "expectedNetCost": 2492.726221650823
       },
       {
        "n": 30,
        "newly": 27.315272844194553,
-       "displayedCoins": 30416.484189829545,
+       "displayedCoins": 30418.634419355858,
        "expectedNetCost": 7432.881821104864
       },
       {
        "n": 150,
        "newly": 96.53019583436796,
-       "displayedCoins": 124580.2365491107,
+       "displayedCoins": 124587.25607886168,
        "expectedNetCost": 36163.2548958592
       }
      ]
@@ -31765,31 +31765,31 @@
       {
        "n": 1,
        "newly": 0.669157461555148,
-       "displayedCoins": 1034.9752700094336,
+       "displayedCoins": 1035.0556455238368,
        "expectedNetCost": 241.7289365388787
       },
       {
        "n": 5,
        "newly": 3.3034880188142366,
-       "displayedCoins": 5136.874291197301,
+       "displayedCoins": 5137.269760262042,
        "expectedNetCost": 1207.5872004703558
       },
       {
        "n": 10,
        "newly": 6.503479356256715,
-       "displayedCoins": 10180.202615326003,
+       "displayedCoins": 10180.977913877368,
        "expectedNetCost": 2412.586983906418
       },
       {
        "n": 30,
        "newly": 18.339547069987407,
-       "displayedCoins": 29464.484339097147,
+       "displayedCoins": 29466.63456862346,
        "expectedNetCost": 7208.4886767496855
       },
       {
        "n": 150,
        "newly": 65.81990142038181,
-       "displayedCoins": 121322.98510966987,
+       "displayedCoins": 121330.00463942085,
        "expectedNetCost": 35395.497535509545
       }
      ]
@@ -31803,31 +31803,31 @@
       {
        "n": 1,
        "newly": 0.7549142484611396,
-       "displayedCoins": 819.0937329480656,
+       "displayedCoins": 819.1741084624689,
        "expectedNetCost": 243.8728562115285
       },
       {
        "n": 5,
        "newly": 3.7252921238685803,
-       "displayedCoins": 4064.6123771888033,
+       "displayedCoins": 4065.007846253545,
        "expectedNetCost": 1218.1323030967146
       },
       {
        "n": 10,
        "newly": 7.329989566396343,
-       "displayedCoins": 8053.293055677242,
+       "displayedCoins": 8054.068354228607,
        "expectedNetCost": 2433.2497391599086
       },
       {
        "n": 30,
        "newly": 20.62511266602817,
-       "displayedCoins": 23287.15447232139,
+       "displayedCoins": 23289.30470184771,
        "expectedNetCost": 7265.6278166507045
       },
       {
        "n": 150,
        "newly": 72.94903024938937,
-       "displayedCoins": 95449.52269920892,
+       "displayedCoins": 95456.5422289599,
        "expectedNetCost": 35573.72575623474
       }
      ]
@@ -31879,31 +31879,31 @@
       {
        "n": 1,
        "newly": 0.5044483851948338,
-       "displayedCoins": 530.179868589132,
+       "displayedCoins": 530.2602441035352,
        "expectedNetCost": 237.61120962987084
       },
       {
        "n": 5,
        "newly": 2.4892663866076696,
-       "displayedCoins": 2630.257750117082,
+       "displayedCoins": 2630.6532191818233,
        "expectedNetCost": 1187.2316596651917
       },
       {
        "n": 10,
        "newly": 4.897836819334817,
-       "displayedCoins": 5209.743270956671,
+       "displayedCoins": 5210.518569508036,
        "expectedNetCost": 2372.4459204833706
       },
       {
        "n": 30,
        "newly": 13.780248732047955,
-       "displayedCoins": 15046.398452591822,
+       "displayedCoins": 15048.548682118138,
        "expectedNetCost": 7094.506218301199
       },
       {
        "n": 150,
        "newly": 48.713493213301575,
-       "displayedCoins": 61305.294358172294,
+       "displayedCoins": 61312.31388792329,
        "expectedNetCost": 34967.83733033254
       }
      ]

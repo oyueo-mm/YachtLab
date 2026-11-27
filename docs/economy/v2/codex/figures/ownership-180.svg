@@ -295,7 +295,7 @@ z
    <g id="line2d_27">
     <path d="M 66.495625 218.578802
 L 79.588362 189.958428
-L 129.777189 162.205339
+L 129.777189 162.349887
 L 260.704564 120.431158
 L 457.095625 76.633314
 " clip-path="url(#pb221ca28c3)" style="fill: none; stroke-dasharray: 4.44,1.92; stroke-dashoffset: 0; stroke: #7055a4; stroke-opacity: 0.8; stroke-width: 1.2"/>
@@ -315,7 +315,7 @@ z
     <g clip-path="url(#pb221ca28c3)">
      <use xlink:href="#md2993e7f57" x="66.495625" y="218.578802" style="fill: #7055a4; fill-opacity: 0.8; stroke: #7055a4; stroke-opacity: 0.8"/>
      <use xlink:href="#md2993e7f57" x="79.588362" y="189.958428" style="fill: #7055a4; fill-opacity: 0.8; stroke: #7055a4; stroke-opacity: 0.8"/>
-     <use xlink:href="#md2993e7f57" x="129.777189" y="162.205339" style="fill: #7055a4; fill-opacity: 0.8; stroke: #7055a4; stroke-opacity: 0.8"/>
+     <use xlink:href="#md2993e7f57" x="129.777189" y="162.349887" style="fill: #7055a4; fill-opacity: 0.8; stroke: #7055a4; stroke-opacity: 0.8"/>
      <use xlink:href="#md2993e7f57" x="260.704564" y="120.431158" style="fill: #7055a4; fill-opacity: 0.8; stroke: #7055a4; stroke-opacity: 0.8"/>
      <use xlink:href="#md2993e7f57" x="457.095625" y="76.633314" style="fill: #7055a4; fill-opacity: 0.8; stroke: #7055a4; stroke-opacity: 0.8"/>
     </g>
@@ -324,7 +324,7 @@ z
     <path d="M 66.495625 218.578802
 L 79.588362 190.247523
 L 129.777189 162.349887
-L 260.704564 120.286611
+L 260.704564 120.431158
 L 457.095625 76.777862
 " clip-path="url(#pb221ca28c3)" style="fill: none; stroke: #a0491a; stroke-width: 2.2; stroke-linecap: square"/>
     <defs>
@@ -344,7 +344,7 @@ z
      <use xlink:href="#m3496d9f4ff" x="66.495625" y="218.578802" style="fill: #a0491a; stroke: #a0491a"/>
      <use xlink:href="#m3496d9f4ff" x="79.588362" y="190.247523" style="fill: #a0491a; stroke: #a0491a"/>
      <use xlink:href="#m3496d9f4ff" x="129.777189" y="162.349887" style="fill: #a0491a; stroke: #a0491a"/>
-     <use xlink:href="#m3496d9f4ff" x="260.704564" y="120.286611" style="fill: #a0491a; stroke: #a0491a"/>
+     <use xlink:href="#m3496d9f4ff" x="260.704564" y="120.431158" style="fill: #a0491a; stroke: #a0491a"/>
      <use xlink:href="#m3496d9f4ff" x="457.095625" y="76.777862" style="fill: #a0491a; stroke: #a0491a"/>
     </g>
    </g>

@@ -3,6 +3,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { survivalTimes } from "./survival";
+import { AUDIT_CANDIDATES, POLICIES } from "../../../src/economy/v2/candidates";
+import { baselineParams } from "../../../src/economy/v2/params";
 import { FINALISTS, HOLDOUT } from "./audit-plan";
 
 type Sample = {
@@ -43,17 +45,27 @@ const cohorts = Object.fromEntries(names.map((p) => {
     }];
   }))];
 }));
+const basePolicy = baselineParams();
+const config = new Map([basePolicy, ...POLICIES, ...AUDIT_CANDIDATES].map((p) => [p.id, p]));
+const levers = ["match", "daily", "newUser", "quests", "achievementMult", "priceMult", "draw", "streakWeekly", "collectionReward", "starter", "booster", "tierMap"] as const;
+function changedGroups(id: string) {
+  const c = config.get(id)!;
+  const count = levers.filter((key) => JSON.stringify(c[key]) !== JSON.stringify(basePolicy[key])).length;
+  return count + Number(JSON.stringify(c.upgradeMult) !== JSON.stringify(basePolicy.upgradeMult) || !!c.secondUpgradeMult);
+}
 const objectives = Object.fromEntries(FINALISTS.map((c) => [c, {
   new7: cohorts.new30[c].metrics.any7.mean,
   old30: cohorts.existing60[c].metrics.buy30.mean,
   desired30: cohorts.existing60[c].metrics.desired30.mean,
   light30: cohorts.light15[c].metrics.buy30.mean,
   issue90: mean(names.map((name) => cohorts[name][c].metrics.coin.mean)),
+  existingDirectMedian: cohorts.existing60[c].firstDirect.median ?? Number.MAX_VALUE,
+  changedGroups: changedGroups(c),
   newOwned90: cohorts.new30[c].metrics.owned.mean,
   newLv3: cohorts.new30[c].metrics.lv3.mean,
   lateOldGap: cohorts.existing60[c].metrics.lateGap30.mean,
 }]));
-const directions = { new7: 1, old30: 1, desired30: 1, light30: 1, issue90: -1, newOwned90: -1, newLv3: 1, lateOldGap: -1 } as const;
+const directions = { new7: 1, old30: 1, desired30: 1, light30: 1, issue90: -1, newOwned90: -1, newLv3: 1, lateOldGap: -1, existingDirectMedian: -1, changedGroups: -1 } as const;
 type Axis = keyof typeof directions;
 function frontier(axes: Axis[]) {
   const val = (id: string, k: Axis) => objectives[id][k] * directions[k];
@@ -67,6 +79,8 @@ const output = {
     main: frontier([...axes]),
     addLv3AndRetention: frontier([...axes, "newLv3", "lateOldGap"]),
     addContentBurn: frontier([...axes, "newOwned90"]),
+    addLatencyAndChangedGroups: frontier([...axes, "existingDirectMedian", "changedGroups"]),
+    addChangedGroups: frontier([...axes, "changedGroups"]),
     existingDesiredVersusIssue: frontier(["desired30", "issue90"]),
     lightAccessVersusIssue: frontier(["light30", "issue90"]),
   },

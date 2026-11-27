@@ -1,10 +1,16 @@
 {
  "generatedBy": "scripts/economy/v2/run.ts",
  "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
- "codeHash": "3550cf4ba97ea26bc82466fc2295f5bba2c563465dcca23f09383aa0682d1c32",
+ "codeHash": "ccbe58b1deb609f4b4dde6d4ef64a97e23f262860b5261b90cb9bf63a3a5d1f4",
  "settingsHash": "bbb50957d074270db59b8b6d15a0b75a8f46df9dfe80fc6eb32b39ad323bb049",
- "seed": 20261127,
- "seedNote": "E0–E7 development runs; E7 uses seed+1",
+ "seed": null,
+ "seeds": [
+  328671901,
+  907063423,
+  1453908001,
+  2680638929
+ ],
+ "seedNote": "H1 uses the four pre-registered holdout seeds; see the per-cell settings",
  "rev": 2,
  "t0": "2026-11-29T15:00:00.000Z",
  "horizons": [
