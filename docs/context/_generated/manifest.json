@@ -181,22 +181,22 @@
   ],
   "recentWorkflowRuns": [
     {
-      "name": "SEO IndexNow",
-      "status": "skipped",
-      "head": "23f71d8e89",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45858761088"
-    },
-    {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "2ce7cb3c2c",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45857926933"
+      "head": "466f2e6600",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45961354601"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
-      "head": "5e504df06e",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45857583358"
+      "head": "466f2e6600",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45961354599"
+    },
+    {
+      "name": "SEO IndexNow",
+      "status": "skipped",
+      "head": "d8a24a8b72",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45924972701"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

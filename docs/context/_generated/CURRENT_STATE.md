@@ -135,9 +135,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45858761088) | skipped | 23f71d8e89 |
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45857926933) | success | 2ce7cb3c2c |
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45857583358) | success | 5e504df06e |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45961354601) | success | 466f2e6600 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45961354599) | success | 466f2e6600 |
+| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45924972701) | skipped | d8a24a8b72 |
 
 ## 다음 채팅과 작업의 시작점
 
