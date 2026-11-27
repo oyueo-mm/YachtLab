@@ -8,21 +8,31 @@
 | --- | --- |
 | 기존 C0 검증 | #112에 기록된 격리 Worker 교체·롤백, 계정·재화 데이터 보존 결과를 사용한다. 구 Worker에서는 1인 기록이 기기에 남고 신규 상품 11종은 판매 준비 중으로 표시된다. [C0 PR #112](https://github.com/oyueo-mm/YachtLab/pull/112) |
 | 보드 강화 | #119는 구 Worker에서 기존 보드 11종의 새 단계가 `MAX_LEVEL`로 거절되는 경우를 재현했다. Hotfix는 Pages에서 지원 판을 확인한다. Rev.2 격리 검증에서 강화·단일 차감·원장·재시도·실패 시 원복을 확인했다. [Hotfix PR #119](https://github.com/oyueo-mm/YachtLab/pull/119) · [검증 기록](./HOTFIX-ITEM-UPGRADE-2026-11-27.md) |
-| 마지막 성공 Worker Actions | 소스 `54c13679f04e11c13efd2d0e7d3a7b412d86167b`, 당시 버전 `900728c2-c252-4dc7-be9f-0b698826eca7`. 현재 트래픽을 받는 Cloudflare 버전과 사용 가능한 롤백 대상은 **미확인**이다. [Actions 실행](https://github.com/oyueo-mm/YachtLab/actions/runs/45772443229) |
+| 마지막 성공 Worker Actions | 소스 `54c13679f04e11c13efd2d0e7d3a7b412d86167b`, 당시 버전 `900728c2-c252-4dc7-be9f-0b698826eca7`. 운영자가 2026-11-28 KST에 Cloudflare에서 확인한 인증 GET의 실행 UUID와 일치한다. 현재 트래픽 비율·배포 ID 및 롤백 가능 여부는 Deployments에서 확인해야 한다. [Actions 실행](https://github.com/oyueo-mm/YachtLab/actions/runs/45772443229) |
 | 운영 공개 GET | Pages `version.json`은 `db2e17a-mwz88q0x`. Worker `/healthz`는 `ok: true`, `/api/features`는 `signIn: true`, `economy: true`, `/api/auth/config`는 `google: true`. 공개 응답에는 현재 Worker UUID나 인증된 카탈로그 판이 없다. `db2e17a`와 검토 기준 main의 차이는 자동 생성 문서 2개다. [Pages 빌드 ID](https://oyueo-mm.github.io/YachtLab/version.json) |
 | GitHub 통제 | 공개 저장소다. 읽기 조회에서 Environment는 `github-pages`만 확인됐고 `main`의 보호 표시와 활성 브랜치 규칙은 없었다. 저장소 시크릿 목록은 권한 부족으로 확인하지 못했다. [Environments](https://github.com/oyueo-mm/YachtLab/settings/environments) · [브랜치 규칙](https://github.com/oyueo-mm/YachtLab/rules) |
-| 감사 범위 | SEC-01/B-03은 노출 가능성 조사와 수집 최소화, SEC-07/B-13은 Worker 배포 통제, SEC-16/B-32는 워크플로 변경 시 전체 CI다. Cloudflare 운영 대시보드와 실제 토큰 노출은 확인 대기다. [C4 감사 PR #121](https://github.com/oyueo-mm/YachtLab/pull/121) |
+| 감사 범위 | SEC-01/B-03은 IP·위치 메타데이터 수집 **확인**, 인증 토큰 원문 노출 **미확인**으로 갱신한다. SEC-07/B-13은 Worker 배포 통제, SEC-16/B-32는 워크플로 변경 시 전체 CI다. [C4 감사 PR #121](https://github.com/oyueo-mm/YachtLab/pull/121) |
 
 ## Workers Logs — SEC-01 / B-03
 
 | 항목 | Cloudflare 공식 문서 및 적용 |
 | --- | --- |
 | 자동 이벤트 | 호출마다 요청·응답 관련 메타데이터가 담긴 `cf-worker-event`가 생성된다. Fetch 메시지는 메서드와 URL을 포함한다. 커스텀 콘솔 로그, 오류 및 처리되지 않은 예외도 수집 대상이다. Workers Logs, 실시간 로그, Logpush, Tail Workers, OTLP 내보내기를 각각 확인한다. [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/) · [실시간 로그](https://developers.cloudflare.com/workers/observability/logs/real-time-logs/) |
-| 인증 헤더 및 IP | Workers Logs 문서에서 `Authorization`, `Cookie`, `Set-Cookie` 및 IP 전달 헤더의 필드별 수집·마스킹 보장을 확인할 수 없었다. `CF-Connecting-IP`는 Cloudflare가 제공하는 요청 헤더다. 애플리케이션이 속도 제한에 IP 해시를 사용해도 Cloudflare의 요청 메타데이터에는 별도 기준이 적용된다. 인증 헤더, IP 메타데이터와 IP 관련 헤더는 운영자 확인 대상이다. [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/) · [Cloudflare HTTP 헤더](https://developers.cloudflare.com/fundamentals/reference/http-headers/) |
+| 인증 헤더 및 IP | 아래 운영 관측을 참조한다. Workers Logs 문서에서 `Authorization`, `Cookie`, `Set-Cookie` 및 IP 전달 헤더의 필드별 수집·마스킹 보장을 확인할 수 없었다. `CF-Connecting-IP`는 Cloudflare가 제공하는 요청 헤더다. 애플리케이션이 속도 제한에 IP 해시를 사용해도 Cloudflare의 요청 메타데이터에는 별도 기준이 적용된다. 다른 경로, 버전 및 내보내기에는 별도의 확인이 필요하다. [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/) · [Cloudflare HTTP 헤더](https://developers.cloudflare.com/fundamentals/reference/http-headers/) |
 | URL과 쿼리 | Fetch 호출 로그는 URL을 쓸 수 있다. 이 서비스의 OAuth 콜백 쿼리에 코드·상태가 있으며 OAuth 응답의 리디렉션 헤더와 쿠키도 민감하다. Wrangler의 `observability.redact_query_string`은 로그·트레이스의 요청 URL 쿼리 제거 설정이다. 수동 콘솔 출력이나 별도 내보내기에서의 헤더·경로·응답 마스킹은 따로 확인한다. [Wrangler 설정](https://developers.cloudflare.com/workers/wrangler/configuration/) · [Cloudflare Workers API](https://developers.cloudflare.com/api/resources/workers/) |
-| 보존·비용 | Workers Free는 하루 200,000개 이벤트, 3일 보존이다. Workers Paid는 기본 월 20,000,000개, 7일 보존이다. 내보낸 사본은 대상 저장소의 별도 보존·권한 정책을 따른다. [Workers Logs 한도 및 요금](https://developers.cloudflare.com/workers/observability/logs/workers-logs/#limits) · [Workers Trace Events 데이터셋](https://developers.cloudflare.com/logs/logpush/logpush-job/datasets/account/workers_trace_events/) |
+| 보존·비용 | 2026-11-28 확인 기준 Workers Free는 하루 200,000개 이벤트·3일 보존, Paid는 기본 월 20,000,000개·7일 보존이다. Cloudflare는 2026-12-01부터 Free의 Observability 공용 수집 한도를 하루 0.5 GB, 보존을 7일로 전환한다고 공지했다. 배포일에 Billing 및 로그 보존 표시를 재확인한다. 내보낸 사본은 대상 저장소의 별도 보존·권한 정책을 따른다. [Workers Logs 한도 및 요금](https://developers.cloudflare.com/workers/observability/logs/workers-logs/#limits) · [12월 Observability 요금](https://developers.cloudflare.com/observability/pricing/) · [Workers Trace Events 데이터셋](https://developers.cloudflare.com/logs/logpush/logpush-job/datasets/account/workers_trace_events/) |
 
-[Wrangler 변경안](../../worker/wrangler.toml)은 호출 로그와 트레이스를 끄고 쿼리 마스킹을 켠다. 애플리케이션 진단에는 고정 OIDC 오류 코드와 `ONLINE_WORKER_UNEXPECTED`만 기록한다. 최상위 오류 처리기는 임의 예외 메시지를 로그에 넘기지 않는다. 플랫폼 자동 오류·예외 및 별도 내보내기가 제공하는 메타데이터는 적용 후 점검한다.
+[Wrangler 변경안](../../worker/wrangler.toml)은 호출 로그와 트레이스를 끄고 쿼리 마스킹을 켠다. 애플리케이션 진단에는 고정 OIDC 오류 코드와 `ONLINE_WORKER_UNEXPECTED`만 기록한다. 집계 기반 Workers 지표 및 기존 운영 집계 경로를 유지한다. 최상위 오류 처리기는 임의 예외 메시지를 로그에 넘기지 않는다. 플랫폼 자동 오류·예외 및 별도 내보내기가 제공하는 메타데이터는 적용 후 점검한다.
+
+### 운영 관측 — SEC-01 갱신
+
+2026-11-28 KST 운영자가 확인한 인증 GET 표본에서는 `Authorization`이 마스킹됐다. `CF-Connecting-IP`와 `X-Real-IP`는 원문 수집이 확인됐다. IP 기반 도시·지역·위도·경도·우편번호·통신사, `User-Agent`, 요청 URL도 수집됐다. 이 관측 기록에는 필드 이름과 판정만 남긴다. 다른 경로의 인증 데이터나 OAuth 쿼리 원문 수집은 미확인이다.
+
+실행 버전 UUID는 `900728c2-c252-4dc7-be9f-0b698826eca7`로 `54c1367`의 기존 Actions 기록과 일치한다. 대상 계정의 **Workers Free** 플랜을 확인했다. 사용자 전체 세션 강제 만료와 운영 Worker 배포는 보류 상태다.
+
+### OAuth 콜백의 쿼리 위험
+
+`/auth/google/callback`은 쿼리의 `code`·`state`를 읽는다. Cloudflare가 기록하는 요청 URL에 쿼리가 포함될 경우 이 값들이 호출 로그에 들어갈 수 있다. 확인된 요청의 `Authorization` 마스킹으로는 OAuth URL이나 응답 헤더의 마스킹 여부를 판단할 수 없다. 호출 로그 중단과 쿼리 제거를 함께 적용하고, 이후에는 격리된 합성 표식이나 운영 집계 필드로 확인한다. 실제 OAuth 코드를 사용한 로그 검증은 피한다. [Worker OAuth 경로](../../worker/src/accounts-api.ts) · [Cloudflare Workers API](https://developers.cloudflare.com/api/resources/workers/)
 
 ### 운영자 점검
 
@@ -49,13 +59,13 @@
 
 ### 승인 전
 
-- [ ] **활성 버전과 롤백 권한.** Cloudflare **Workers & Pages → yachtlab-online → Deployments**에서 계정·서비스, 실제 트래픽 비율, 활성 버전 UUID와 배포 ID, 시각을 적는다. 한 버전이 100%인지 확인한다. 그대로 재배포 가능한 직전 버전을 선택하고 권한을 확인한다. 과거 Actions 버전은 대시보드 관측과 맞을 때만 사용한다. Cloudflare가 허용하는 보존 범위·최근 100개 버전 및 DO 수명주기 변경 제한을 확인한다. 실제 데이터가 변경된 뒤에는 코드 롤백과 데이터 복구가 별개다. [Versions & deployments](https://developers.cloudflare.com/workers/versions-and-deployments/) · [Rollbacks](https://developers.cloudflare.com/workers/versions-and-deployments/rollbacks/)
+- [ ] **활성 버전과 롤백 권한.** Cloudflare **Workers & Pages → yachtlab-online → Deployments**에서 계정·서비스, 실제 트래픽 비율, 활성 버전 UUID와 배포 ID, 시각을 적는다. 인증 GET에서 관측한 실행 버전과 대조한다. 한 버전이 100%인지 확인한다. 그대로 재배포 가능한 직전 버전을 선택하고 권한을 확인한다. 과거 Actions 버전은 대시보드 관측과 맞을 때만 사용한다. Cloudflare가 허용하는 보존 범위·최근 100개 버전 및 DO 수명주기 변경 제한을 확인한다. 실제 데이터가 변경된 뒤에는 코드 롤백과 데이터 복구가 별개다. [Versions & deployments](https://developers.cloudflare.com/workers/versions-and-deployments/) · [Rollbacks](https://developers.cloudflare.com/workers/versions-and-deployments/rollbacks/)
 - [ ] **기존 Durable Objects.** `ROOMS/YachtRoom`, `DIRECTORY/RoomDirectory`, `USERS/UserStore`, `GUESTS/GuestLink`, `HUB/MatchHub`, `FRIENDS/FriendIndex`의 이름·클래스·SQLite 네임스페이스 연결과 적용된 마지막 migration `v4`를 확인한다. 대조 기준인 `54c1367`부터 main까지 migration과 바인딩은 동일하다. C4.1은 이 정의를 그대로 쓴다. 누락·이름 변경·새 네임스페이스 또는 미적용 migration이 발견되면 승인 전에 원인을 확인한다. [Worker 설정](../../worker/wrangler.toml)
 - [ ] **변수·시크릿.** 선언된 변수의 의미와 운영 일치 여부를 확인한다. CORS, OAuth 반환 주소, 경제/뽑기, 방/AI 한도, `SERVER_AI` 등 대시보드 전용 설정을 대조한다. `--keep-vars`는 대시보드 전용 일반 변수를 보존하며 Wrangler에 명시된 값에 우선권이 있다. `--strict`는 Wrangler가 감지한 일부 원격 설정 충돌에서 배포를 중단한다. `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AUTH_SECRET` 및 설정돼 있다면 `ADMIN_TOKEN`은 이름과 존재만 확인한다. 시크릿 값 조회·재입력·삭제 없이 기존 바인딩을 사용한다. [Wrangler deploy 옵션](https://developers.cloudflare.com/workers/wrangler/commands/workers/#deploy)
 - [ ] **기존 데이터.** `54c1367` 대비 계정 DB 추가는 멱등 `CREATE TABLE IF NOT EXISTS solo_records`다. 기존 계정·세션·전적·지갑·원장·인벤토리 저장 구조와 DO 연결 변경은 발견되지 않았다. C0 격리 교체·롤백과 #119의 강화 검증을 재사용한다. 운영 네임스페이스 및 실제 사용자 데이터는 이 작업에서 검증하지 않았으므로 승인된 테스트 계정으로 배포 전의 읽기 기준을 확보한다. 기록에는 일치 여부와 계수만 남긴다.
 - [ ] **Pages와 기능 계약.** 실제 `version.json`의 빌드를 소스 SHA에 연결한다. 현재 빌드는 #119 및 #117을 포함한다. 최신 Pages와 직전 배포 번들/PWA 탭에서 로그인, 방 생성·재접속, 전적, 기존 카탈로그·장착을 확인한다. 이전 Pages의 카탈로그 필터는 모르는 ID와 새 단계 표현을 제한할 수 있고 보유 데이터는 서버에 남는다. Hotfix 포함 Pages는 `catalogRev` 누락을 Rev.1로 처리하고 미지원 강화·판매를 막는다. 새 Worker에서는 인증된 경제 스냅샷 `catalogRev: 2`, 기존 보드 Lv.2/Lv.3·신규 11종 지원, `GET/POST /api/me/solo` 호환을 테스트 계정에서 확인한다. 캐시된 구 Pages에서 기능이 표시되지 않으면 새로고침 후 확인한다. 공개 기능 플래그는 인증 경로 검증을 대신할 수 없다.
 - [ ] **온라인 방.** 한산한 작업 시간을 예약하고 Cloudflare 지표 및 운영자가 접근하는 집계(진행/대기/관전·접속 수)로 영향 범위를 본다. `liveRooms`는 등록된 방 수로 진행 중인 경기 수와 다를 수 있다. 활성 경기는 가능하면 완료될 때까지 기다린다. 기존 WebSocket을 닫거나 방·DO를 삭제하지 않고, 진행 중 HTTP/RPC와 소켓이 재연결될 수 있다고 간주한다. Cloudflare의 기본 DO 코드 업데이트 유예는 최대 5분이며 최선 노력 방식이다. 배포·롤백 뒤 기존 테스트 방 재접속, 좌석·턴·점수판, 한 번만 기록되는 정산을 확인한다. [Durable Object 수명주기](https://developers.cloudflare.com/durable-objects/concepts/durable-object-lifecycle/)
-- [ ] **Free 플랜.** 배포 직전에 Billing/Subscriptions에서 해당 계정의 Workers Free, 유료 결제 비활성 및 Workers·SQLite DO·로그 여유를 확인한다. 계정의 기존 Worker와 SQLite DO만 사용한다. 플랜 업그레이드 또는 D1/R2/KV/Queues/새 네임스페이스/유료 로그 대상 생성이 요구되면 보류한다. 플랜 증거 확인 후에만 `free_plan_confirmed`를 선택한다. [Workers 한도](https://developers.cloudflare.com/workers/platform/limits/) · [DO 요금과 Free 한도](https://developers.cloudflare.com/durable-objects/platform/pricing/)
+- [ ] **Free 플랜.** 운영자가 Workers Free를 확인했다. 배포 직전에 Billing/Subscriptions에서 같은 계정의 플랜, 유료 결제 비활성 및 Workers·SQLite DO·로그 여유를 재확인한다. 계정의 기존 Worker와 SQLite DO만 사용한다. 플랜 업그레이드 또는 D1/R2/KV/Queues/새 네임스페이스/유료 로그 대상 생성이 요구되면 보류한다. 플랜 증거 확인 후에만 `free_plan_confirmed`를 선택한다. [Workers 한도](https://developers.cloudflare.com/workers/platform/limits/) · [DO 요금과 Free 한도](https://developers.cloudflare.com/durable-objects/platform/pricing/)
 - [ ] **명시적 승인.** 운영 변경 승인자와 시각, 최종 main SHA, Pages 빌드, 직전 Worker UUID, 롤백 담당자와 중단 조건을 적는다. GitHub 통제 전환이 끝난 뒤 지정 시간에 수동 실행한다.
 
 ### 승인된 배포 직후
@@ -69,3 +79,9 @@
 2. 로그인 불능, 대량 5xx·재접속 실패, 기존 계정·원장 읽기 오류, 중복 차감·부정합이 나타나면 후속 배포를 중지한다. 직전 버전이 새 데이터와 공존 가능한지 확인한 후, 승인된 운영자가 Cloudflare Deployments의 Rollback 또는 `npx wrangler rollback <확인한-UUID> --config worker/wrangler.toml`을 사용한다. 새 배포 ID·트래픽·복귀한 버전 기록과 기본 기능 확인을 반복한다.
 3. Rev.2에서 이미 판매·강화가 발생했다면 이전 코드에서도 행과 원장은 남지만, 구버전이 새 상품이나 단계를 숨기거나 구버전 장착 재저장에서 해당 장착이 대체될 수 있다. 구 Worker 기간에 1인 계정 API도 중단된다. 이 경우 쓰기 영향 및 복구 호환성을 먼저 확인하고 승인된 수정 버전으로 복구하는 경로도 검토한다. SQLite 데이터 되감기, 네임스페이스 재생성, 거래 취소 또는 전체 세션 초기화는 별도의 사고 복구 판단과 승인 대상이다.
 4. 과거 버전 롤백은 호출 로그 설정을 되돌릴 수 있다. 로그 수집·외부 전송 상태를 즉시 확인하고 실제 노출 우려가 있으면 사고 담당자에게 넘긴다. [Cloudflare 롤백 제한](https://developers.cloudflare.com/workers/versions-and-deployments/rollbacks/)
+
+## 저장소 검증
+
+- Node 24 빌드, 변경된 두 워크플로의 actionlint 검사, Wrangler 4.166.0 로컬 dry-run이 통과했다. dry-run은 기존 DO 바인딩 6개를 인식했다.
+- 모의 릴리스 검증 8개가 통과했다. 정상 릴리스 식별자 기록, 버전 불일치·트래픽 분할·Pages 불일치·main 갱신 시 쓰기 전 중단, 배포 메시지 불일치·헬스 오류·Wrangler 실패 감지를 확인했다.
+- 관련 Playwright 브라우저 검증은 41개 통과, 기존 조건부 7개 건너뜀이었다. 상점과 강화 호환 처리, 1인 플레이, 격리 Worker의 회원 장착과 온라인 방 동작을 확인했다.
