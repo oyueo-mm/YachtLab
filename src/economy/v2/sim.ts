@@ -59,6 +59,10 @@ export type Persona = {
   aiClosesAt?: number;
 };
 
+export type ResearchTransaction = {
+  kind: "buy" | "upgrade" | "draw"; itemId: string; currency: "coins" | "gems"; amount: number; day: number; level?: number;
+};
+
 export type SimOptions = {
   days: number;
   /** Days of baseline play before day 0 (0 = brand-new account created at day 0). */
@@ -77,6 +81,7 @@ export type SimOptions = {
   /** Synthetic pre-existing paid ownership. */
   initialItems?: Readonly<Record<string, number>>;
   suppressWelcome?: boolean;
+  recordTransaction?: (transaction: ResearchTransaction) => void;
 };
 
 export type Snapshot = {
@@ -280,7 +285,7 @@ class Player {
       this.refById = new Map(pricedCatalog(base, { ...catalogOptions, proposedChat: this.opts.proposedChat }).map((i) => [i.id, i]));
       for (const i of pricedCatalog(base, { ...catalogOptions, proposedChat: false })) if (i.category === "chat") this.refById.set(i.id, i);
     }
-    if (audited && (!rollWish || this.opts.warmupDays === 0)) this.setWishes();
+    if (audited) this.setWishes();
     else if (rollWish) {
       // The historical run used the live-tier probabilities and one shared RNG.
       const want = this.persona.spend === "collector" ? { common: 1, rare: 1, epic: 1, legendary: 1, mythic: 1 } : this.persona.want;
@@ -407,6 +412,7 @@ class Player {
       PRICED_TIERS.indexOf(item.tier as PricedTier) <= PRICED_TIERS.indexOf(st.maxTier);
     if ((this.opts.audited ? !starterUsed : this.firstBuyDone) && b.kind === "coupon" && price < full) this.couponWeek.n++;
     this.wallet[cur] -= price;
+    this.opts.recordTransaction?.({ kind: "buy", currency: cur, amount: price, itemId: item.id, day: this.day });
     if (this.measuring) cur === "coins" ? (this.spent.item += price) : (this.spent.gemsItem += price);
     this.firstBuyDone = true;
     this.addItem(item, true);
@@ -418,6 +424,7 @@ class Player {
     const cost = item.up[lv - 1];
     if (cost == null || this.wallet.coins - (this.persona.reserveCoins ?? 0) < cost) return false;
     this.wallet.coins -= cost;
+    this.opts.recordTransaction?.({ kind: "upgrade", currency: "coins", amount: cost, itemId: item.id, day: this.day, level: lv });
     if (this.measuring) this.spent.upgrade += cost;
     this.owned.set(item.id, lv + 1);
     if (this.opts.audited && lv === 1 && this.measuring && this.firstLevel2Day === null) this.firstLevel2Day = this.day;
@@ -440,6 +447,7 @@ class Player {
     const pool = this.pools[tier];
     if (!pool.length) throw new Error(`Empty standard draw tier: ${tier}`);
     const item = pool[Math.floor(this.drawR() * pool.length)];
+    this.opts.recordTransaction?.({ kind: "draw", currency: "coins", amount: free ? 0 : this.p.draw.cost, itemId: item.id, day: this.day });
     if (this.measuring) this.drawsTotal++;
     if (this.owned.has(item.id) || this.giftIds.has(item.id)) {
       if (this.measuring) this.duplicates++;
@@ -464,6 +472,7 @@ class Player {
     const last = this.lastSpend;
     if (this.opts.audited && this.p.booster.kind !== "coupon" && this.freeDrawsLeft === 0 && last?.coins === this.wallet.coins &&
       last.gems === this.wallet.gems && last.draws === this.drawsToday.n && last.drawRoll === sessionDrawRoll) return;
+    const spendBefore = this.opts.audited ? { ...this.wallet, draws: this.drawsToday.n, owned: this.owned.size } : null;
     while (this.freeDrawsLeft > 0) {
       if (this.opts.audited && this.drawsToday.n >= this.p.draw.dailyLimit) break;
       if (this.opts.audited) this.drawsToday.n++;
@@ -519,14 +528,14 @@ class Player {
         } else if (!next || !this.buy(next, "coins")) break;
       }
     }
-    const coinsAfterCoinPurchases = this.wallet.coins;
-    const gemBalanceBefore = this.wallet.gems;
     // gems: cheapest wanted gem-purchasable item
     for (;;) {
       const g = this.gemWish.find(unowned);
       if (!g || !this.buy(g, "gems")) break;
     }
-    this.lastSpend = gemBalanceBefore === this.wallet.gems ? { coins: coinsAfterCoinPurchases, gems: this.wallet.gems, draws: this.drawsToday.n, drawRoll: sessionDrawRoll } : null;
+    this.lastSpend = spendBefore && spendBefore.coins === this.wallet.coins && spendBefore.gems === this.wallet.gems &&
+      spendBefore.draws === this.drawsToday.n && spendBefore.owned === this.owned.size
+      ? { coins: this.wallet.coins, gems: this.wallet.gems, draws: this.drawsToday.n, drawRoll: sessionDrawRoll } : null;
   }
 
   /* ------------------------------------------------------------- play ------------------------------------------------------------- */
