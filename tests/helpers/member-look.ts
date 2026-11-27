@@ -76,3 +76,17 @@ export async function seedMember(worker: LocalWorker, session: string, name: str
   if (saved.status !== 200) throw new Error("loadout: " + JSON.stringify(saved.body));
   return (await apiCall(worker, session, "/api/me/economy")).body.snapshot.look as Msg;
 }
+
+/** One full server-verified quick match between two signed-in members (protocol level, no browser). */
+export async function playMatchBetween(worker: LocalWorker, sessionA: string, sessionB: string) {
+  const n = ++seq;
+  const [a, b] = await Promise.all([queue(worker, sessionA, "가", n), queue(worker, sessionB, "나", n + 5000)]);
+  const ca = new Client(worker.url, a.code);
+  const cb = new Client(worker.url, b.code);
+  await ca.hello(a.token);
+  await cb.hello(b.token);
+  await playOut([ca, cb]);
+  await new Promise((r) => setTimeout(r, 400));
+  ca.ws.terminate();
+  cb.ws.terminate();
+}
