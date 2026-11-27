@@ -28,12 +28,12 @@ test("close and reopen keep the result; Esc closes", async ({ page }) => {
   const dialog = await open(page, "close");
   await dialog.getByRole("button", { name: "결과 닫기" }).click();
   await expect(dialog).toBeHidden();
-  await page.getByRole("button", { name: "경기 결과 보기" }).click();
+  await page.getByRole("button", { name: "경기 결과", exact: true }).click();
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("접전 승리")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole("button", { name: "경기 결과 보기" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "경기 결과", exact: true })).toBeFocused();
 });
 
 test("pending, delayed and failed rewards never show amounts", async ({ page }) => {

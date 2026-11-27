@@ -218,3 +218,41 @@ describe("A3 panel markup", () => {
     expect(html).not.toMatch(/\+\d+코인/);
   });
 });
+
+describe("A3 hotfix candidate H-A3-1: account refresh after a match", () => {
+  it("refreshes once after the server receipt exists; never on delay or failure", async () => {
+    const { refreshAfterMatch, resetRefreshed } = await import("../src/match-result/account-refresh");
+    resetRefreshed();
+    const calls: string[] = [];
+    const wait = async () => undefined;
+    const deps = (receipt: () => Promise<unknown>) => ({ readReceipt: receipt, refreshAccount: async () => void calls.push("economy"), announce: () => void calls.push("records"), wait });
+    const ok = () => Promise.resolve({ before: { coins: 0, gems: 0 }, after: { coins: 15, gems: 0 }, quests: [], grants: [] });
+    expect(await refreshAfterMatch("m1", deps(ok))).toBe("settled");
+    expect(await refreshAfterMatch("m1", deps(ok))).toBe("skipped");
+    expect(calls).toEqual(["economy", "records"]);
+    const notYet = () => Promise.reject(new AccountError("NOT_FOUND", "x", 404));
+    expect(await refreshAfterMatch("m2", deps(notYet))).toBe("delayed");
+    expect(await refreshAfterMatch("m3", deps(() => Promise.reject(new Error("net"))))).toBe("failed");
+    expect(calls).toEqual(["economy", "records"]);
+    // a delayed match can be retried later
+    expect(await refreshAfterMatch("m2", deps(ok))).toBe("settled");
+  });
+});
+
+describe("A3 local (observer) view and named zero notices", () => {
+  it("judges drama and highlights from the sole winner when nobody is 'you'", () => {
+    const input = scenario("grand");
+    const s = summarize({ ...input, seats: input.seats.map((x) => ({ ...x, you: false })) });
+    expect(s.outcome).toMatchObject({ kind: "observer", title: "주사위장인 승리", tone: "win" });
+    expect(s.drama).toBe("grand-comeback");
+    expect(s.highlights.every((h) => h.who === "주사위장인")).toBe(true);
+    expect(s.highlights.map((h) => h.id)).not.toContain("personal-best"); // 기기 기록은 관찰자 화면에 붙이지 않음
+  });
+  it("a shared first place in local play has no drama", () => {
+    const input = scenario("draw");
+    expect(summarize({ ...input, seats: input.seats.map((x) => ({ ...x, you: false })) }).drama).toBeNull();
+  });
+  it("names the player on a shared device", () => {
+    expect(zeroScoreNotice("large", { large: 0 }, "k", "가람").title).toBe("가람 · 라지 스트레이트 0점 기록");
+  });
+});

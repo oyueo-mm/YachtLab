@@ -1,12 +1,14 @@
 /**
- * A3 경기 종료 화면 (독립 컴포넌트). 기존 src/ui/MatchResult.tsx와 게임 화면은 아직 바꾸지 않는다 —
- * A2.1·C3 병합 뒤 각 게임 화면에서 이 컴포넌트로 옮긴다(docs/context/A3-MATCH-RESULT-2026-11-27.md §통합).
- * 표시 전용: 정산·재대결·친구 요청은 호출한 쪽이 처리하고, 여기서는 결과를 받아 보여 주기만 한다.
+ * A3 경기 종료 화면. 표시 전용: 정산·재대결·친구 요청은 호출한 쪽이 처리하고, 여기서는 결과를 받아 보여 주기만 한다.
+ * 연결: 1인(SoloGame)·사람 vs AI(HumanGame)·로컬 다인전(LocalGame). 온라인 화면은 C3 병합 후
+ * (docs/context/A3-MATCH-RESULT-2026-11-27.md §8).
  */
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Award, Check, Clock, Coins, Flame, Gem, Home, Medal, RotateCcw, Search, Share2, Sparkles, TrendingUp, Trophy, UserPlus, X, Zap } from "lucide-react";
 import { QUESTS } from "../economy/live/config";
 import { motionLevel, type MotionLevel } from "../settings";
+import { useScoreFx } from "../score-fx";
+import { useBgmScene } from "../audio/useBgm";
 import { rewardView, summarize, type Highlight, type QuestLookup, type ResultInput, type ResultSummary } from "./model";
 import { playResultSounds, resultSoundPlan } from "./result-sfx";
 import "./match-result-a3.css";
@@ -17,9 +19,15 @@ export type ResultActions = {
   rematchSlot?: ReactNode;
   rematchLabel?: string;
   onReview?: () => void;
+  /** 기존 리뷰 실행기(ReviewLauncher)처럼 자체 상태가 있는 버튼. onReview 대신. */
+  reviewSlot?: ReactNode;
   /** 상대가 회원이고 아직 친구가 아닐 때만 넘긴다. sent=true면 "요청 보냄"으로 표시. */
   addFriend?: { name: string; onClick: () => void; sent?: boolean };
   onShare?: () => void;
+  /** 기존 공유 버튼(ShareResultButton). onShare 대신. */
+  shareSlot?: ReactNode;
+  /** 모드 고유 버튼(예: 1인 "내 기록"). */
+  extra?: ReactNode;
   onHome?: () => void;
   homeLabel?: string;
 };
@@ -36,8 +44,16 @@ export type MatchResultPanelProps = {
   /** 미리보기용 강제 모션 단계. 생략하면 설정·시스템 값. */
   motion?: MotionLevel;
   questLookup?: QuestLookup;
-  /** 장착한 승리 특수 효과 등 추가 연출 슬롯(우선 표시). */
+  /**
+   * 장착한 승리 특수 효과(FxBurst). 있으면 기본 축하 조각을 그리지 않고, effectSound면 강조음도 내지 않는다
+   * (아이템 효과 우선, 소리 중복 방지).
+   */
   effect?: ReactNode;
+  effectSound?: boolean;
+  /** 화면이 잠시 가려진 상태(C3 백그라운드 매칭의 ActivityVisible). false면 창을 닫아 두고 다시 보이면 연다. */
+  visible?: boolean;
+  /** 결과 아래의 모드 고유 정보(예: 1인 플레이 횟수·평균). */
+  children?: ReactNode;
   className?: string;
 };
 
@@ -77,7 +93,7 @@ function useCountUp(target: number, enabled: boolean, ms = 900) {
   return value;
 }
 
-export function MatchResultPanel({ input, actions, avatars = {}, waiting = false, sound = "accent", motion, questLookup = questFromConfig, effect, className = "" }: MatchResultPanelProps) {
+export function MatchResultPanel({ input, actions, avatars = {}, waiting = false, sound = "accent", motion, questLookup = questFromConfig, effect, effectSound = false, visible = true, children, className = "" }: MatchResultPanelProps) {
   const id = useId();
   const summary = useMemo(() => summarize(input), [input]);
   const rewards = useMemo(() => rewardView(input.rewards, questLookup), [input.rewards, questLookup]);
@@ -87,64 +103,76 @@ export function MatchResultPanel({ input, actions, avatars = {}, waiting = false
   const [shown, setShown] = useState(false);
   const level = motion ?? motionLevel();
   const played = useRef(false);
+  const fx = useScoreFx();
+  const tone = summary.outcome.tone;
+  // 결과 음악은 기존 MatchResult와 같은 장면(승리/그 외), 같은 우선순위.
+  useBgmScene(shown ? (tone === "win" ? "win" : "lose") : null, 3);
 
+  // 요트·라지 같은 큰 점수 연출이 끝난 뒤에 연다(기존 MatchResult와 같은 규칙).
   useEffect(() => {
     if (shown || waiting) return;
-    setOpened(true);
-    setShown(true);
-  }, [shown, waiting]);
+    const remaining = level !== "none" && fx?.grand ? fx.at + fx.ms - performance.now() : 0;
+    const timer = window.setTimeout(() => {
+      setOpened(true);
+      setShown(true);
+    }, Math.max(0, remaining));
+    return () => window.clearTimeout(timer);
+  }, [fx, shown, waiting, level]);
 
   // 처음 열릴 때 한 번만 소리를 낸다(다시 열기에는 소리 없음).
   useEffect(() => {
-    if (!shown || played.current || sound === "off") return;
+    if (!shown || !visible || played.current || sound === "off") return;
     played.current = true;
+    if (effect && effectSound && sound === "accent") return;
     playResultSounds(resultSoundPlan(summary.outcome.kind, summary.drama, { includeBase: sound === "full", rank: summary.outcome.rank, shared: summary.outcome.sharedRank }));
-  }, [shown, sound, summary]);
+  }, [shown, visible, sound, summary, effect, effectSound]);
 
   useEffect(() => {
     const surface = dialog.current;
     if (!surface) return;
-    if (opened && !surface.open) {
+    const want = opened && visible;
+    if (want && !surface.open) {
       if (typeof surface.showModal === "function") surface.showModal();
       else surface.setAttribute("open", "");
     }
-    if (!opened && surface.open) {
+    if (!want && surface.open) {
       surface.close();
-      trigger.current?.focus();
+      if (visible) trigger.current?.focus();
     }
-  }, [opened]);
+  }, [opened, visible]);
 
-  const tone = summary.outcome.tone;
   return <>
     {shown && <button ref={trigger} type="button" className="secondary a3-result-reopen" onClick={() => setOpened(true)}>
-      <Trophy size={16} aria-hidden="true" /> 경기 결과 보기
+      <Trophy size={16} aria-hidden="true" /> 경기 결과
     </button>}
-    <dialog ref={dialog} className={`a3-result-dialog ${className}`} aria-labelledby={id} data-tone={tone} data-drama={summary.drama ?? "none"} data-motion={level}
+    <dialog ref={dialog} className={`a3-result-dialog ${className}`} aria-labelledby={id} data-tone={tone} data-drama={summary.drama ?? "none"} data-motion={level} data-effect={effect ? "item" : "default"}
       onCancel={(event) => { event.preventDefault(); setOpened(false); }}>
       <section className="a3-result">
         <button type="button" className="icon-button a3-result-close" aria-label="결과 닫기" onClick={() => setOpened(false)}><X size={20} aria-hidden="true" /></button>
-        {opened && level !== "none" && tone === "win" && <Burst grand={summary.drama === "grand-comeback" || summary.drama === "comeback"} lite={level === "lite"} />}
-        {effect}
+        {opened && effect}
+        {opened && !effect && level !== "none" && tone === "win" && <Burst grand={summary.drama === "grand-comeback" || summary.drama === "comeback"} lite={level === "lite"} />}
         <ResultHeader id={id} summary={summary} />
         <Standings summary={summary} avatars={avatars} animate={opened && level !== "none"} solo={input.seats.length === 1} />
         <Meta summary={summary} />
         {summary.highlights.length > 0 && (
           <ul className="a3-highlights" aria-label="경기 하이라이트">
             {summary.highlights.map((h) => (
-              <li key={h.id} data-kind={h.id}>{HIGHLIGHT_ICON[h.id]}<b>{h.label}</b>{h.detail && <small>{h.detail}</small>}</li>
+              <li key={h.id} data-kind={h.id}>{HIGHLIGHT_ICON[h.id]}{h.who && <span className="a3-who">{h.who}</span>}<b>{h.label}</b>{h.detail && <small>{h.detail}</small>}</li>
             ))}
           </ul>
         )}
+        {children}
         <Rewards view={rewards} />
         <div className="a3-actions">
           {actions.rematchSlot ?? (actions.onRematch && <button type="button" className="primary" onClick={actions.onRematch}><RotateCcw size={16} aria-hidden="true" /> {actions.rematchLabel ?? "재대결"}</button>)}
-          {actions.onReview && <button type="button" className="secondary" onClick={actions.onReview}><Search size={16} aria-hidden="true" /> 게임 리뷰</button>}
+          {actions.reviewSlot ?? (actions.onReview && <button type="button" className="secondary" onClick={actions.onReview}><Search size={16} aria-hidden="true" /> 게임 리뷰</button>)}
           {actions.addFriend && (
             <button type="button" className="secondary" disabled={actions.addFriend.sent} onClick={actions.addFriend.onClick} aria-label={actions.addFriend.sent ? `${actions.addFriend.name} 님에게 친구 요청 보냄` : `${actions.addFriend.name} 님 친구 추가`}>
               {actions.addFriend.sent ? <Check size={16} aria-hidden="true" /> : <UserPlus size={16} aria-hidden="true" />} {actions.addFriend.sent ? "요청 보냄" : "친구 추가"}
             </button>
           )}
-          {actions.onShare && <button type="button" className="secondary" onClick={actions.onShare}><Share2 size={16} aria-hidden="true" /> 공유</button>}
+          {actions.shareSlot ?? (actions.onShare && <button type="button" className="secondary" onClick={actions.onShare}><Share2 size={16} aria-hidden="true" /> 공유</button>)}
+          {actions.extra}
           {actions.onHome && <button type="button" className="secondary" onClick={actions.onHome}><Home size={16} aria-hidden="true" /> {actions.homeLabel ?? "홈으로"}</button>}
         </div>
       </section>

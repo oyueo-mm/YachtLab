@@ -49,8 +49,8 @@ test("4인전: 48턴 완주, 공동 우승 가능 및 완성된 기보", async (
     await page.getByRole("button", { name: "주사위 굴리기" }).click();
     await scoreCategory(page);
   }
-  await expect(page.locator(".game-result")).toContainText(/승리|공동 우승/);
-  await expect(page.locator(".match-result-dialog .game-result-actions button")).toHaveCount(2);
+  await expect(page.locator(".a3-result")).toContainText(/승리|공동 1위/);
+  await expect(page.locator(".a3-result-dialog .a3-actions button")).toHaveCount(2);
   await page.getByRole("button", { name: "결과 닫기" }).click();
   const mobileSheet = page.getByRole("button", { name: "점수판 열기" });
   if (await mobileSheet.isVisible()) {

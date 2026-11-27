@@ -1,10 +1,16 @@
 import { BrandMark } from "../ui/BrandLoading";
 import { BonusMoments } from "../bonus-moment";
-import { MatchResult } from "../ui/MatchResult";
+import { MatchResultPanel } from "../match-result/MatchResultPanel";
+import { ZeroScoreToast } from "../match-result/ZeroScoreToast";
+import { useZeroScoreNotice } from "../match-result/useZeroScore";
+import { winEffect } from "../match-result/win-effect";
+import { deviceBestBefore } from "../match-result/device-best";
+import { fromOfflineFrames } from "../match-result/adapters";
+import type { ResultInput } from "../match-result/model";
 import { ShareResultButton } from "../ui/ShareResult";
 import ReviewLauncher from "../review/ReviewLauncher";
 import { fromReplay } from "../review/sources";
-import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
+import { nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useEffect, useRef, useState } from "react";
 import { Dices, RotateCcw, ChevronRight, History, SlidersHorizontal } from "lucide-react";
 import { categories, createGame, transition, total, names, type Category } from "../engine";
@@ -97,7 +103,7 @@ export default function HumanGame({
     [caption, setCaption] = useState(""),
     [gameFeedback, setGameFeedback] = useState("");
   const [showGuide, setShowGuide] = useState(() => !hasRecordedFirstScore());
-  const [milestones, setMilestones] = useState({ best: false, comeback: false });
+  const [resultInput, setResultInput] = useState<ResultInput | null>(null);
   const [rollEvent, setRollEvent] = useState(0);
   const [aiPreviewCategory, setAiPreviewCategory] = useState<Category | null>(null);
   const rolling = useDiceBusy();
@@ -117,10 +123,11 @@ export default function HumanGame({
       // This device's record (profile/stats). Trust level: client-reported, never server-verified.
       const mine = total(next.cards[humanSeat]),
         theirs = total(next.cards[aiSeat]);
-      setMilestones({
-        best: beatDeviceScore("ai", mine),
-        comeback: next.winner === humanSeat && updated.frames.some((frame) => behindAfterNine(frame.state.cards, humanSeat)),
-      });
+      // A3 결과 화면: 실제 기보 프레임의 카드 변화(채점 순서)와 이 기기의 이전 최고점(이번 경기 저장 전).
+      const ids = ["s0", "s1"];
+      setResultInput(fromOfflineFrames([{ state: updated.initialState }, ...updated.frames], ids.map((id, i) => ({ id, name: labels[i], you: i === humanSeat, kind: i === aiSeat ? ("ai" as const) : ("human" as const) })),
+        next.winner === "draw" ? ids : next.winner === null ? [] : [ids[next.winner]],
+        { mode: "ai", startedAt: startedAt.current, endedAt: Date.now(), personal: { bestBefore: deviceBestBefore("ai"), source: "device" } }));
       saveLocalRecord({
         recordId: updated.metadata.id,
         mode: "ai",
@@ -195,7 +202,7 @@ export default function HumanGame({
     setAiTurn((n) => n + 1); // re-arm the AI even when it is seat 0 and moves first
     setCaption("");
     setGameFeedback("");
-    setMilestones({ best: false, comeback: false });
+    setResultInput(null);
     setMobileScoreOpen(false);
     setAiPreviewCategory(null);
   };
@@ -205,6 +212,7 @@ export default function HumanGame({
   const yachtReady = useYachtReady(state.dice, state.rolls, state.player === humanSeat && !state.done && state.cards[humanSeat].yacht === undefined);
   const outcome = state.done ? (state.winner === "draw" ? "draw" : state.winner === humanSeat ? "win" : "lose") : null;
   const celebration = useGameSounds(state.cards, state.done, outcome);
+  const [zeroNotice, clearZero] = useZeroScoreNotice(state.cards, (seat) => (seat === humanSeat ? {} : null), record.current.metadata.id);
   const recordScore = (category: Category) => {
     if (!can || state.rolls === 0 || state.cards[humanSeat][category] !== undefined) return;
     act({ type: "score", category });
@@ -272,6 +280,7 @@ export default function HumanGame({
           </div>
           <section className={"game-board throw-tray" + (state.rolls === 0 ? " dice-ready" : "") + (can && nearYacht(state.dice, state.rolls, state.cards[humanSeat]) ? " yacht-near" : "") + theme.className} style={theme.style} ref={boardRef} aria-label="게임 보드" {...gesture}>
             <Celebrate value={celebration} />
+            <ZeroScoreToast notice={zeroNotice} onDone={clearZero} />
             <BonusMoments scope={String(state.seed ?? 0)} players={state.cards.map((c, i) => ({ id: "s" + i, name: labels[i], card: c, mine: i === humanSeat, look: i === humanSeat ? look : null }))} />
             <BoardFx itemId={look.board} level={look.boardLv ?? 1} host={boardRef} />
             <SynergyFx dice={state.player === humanSeat ? look.dice : undefined} board={look.board} level={Math.min(look.diceLv ?? 1, look.boardLv ?? 1)} host={boardRef} />
@@ -318,22 +327,22 @@ export default function HumanGame({
               <BrandMark /> {modelStatus} <button type="button" className="secondary" onClick={() => skipTrial.current?.()}>준비 취소</button>
             </p>}
             {busy && !modelStatus && <Thinking />}
-            {state.done && (
-              <MatchResult waiting={!!celebration} title={state.winner === "draw" ? "무승부" : state.winner === humanSeat ? "승리" : "패배"}
-                actions={<>
-                  <ReviewLauncher source={() => fromReplay(record.current)} />
-                  <ShareResultButton facts={{
+            {state.done && resultInput && (
+              <MatchResultPanel key={record.current.metadata.id} waiting={!!celebration} input={resultInput}
+                {...(state.winner === humanSeat ? winEffect(look, record.current.metadata.id) : null)}
+                actions={{
+                  onRematch: restart,
+                  rematchLabel: "한 번 더 플레이",
+                  reviewSlot: <ReviewLauncher source={() => fromReplay(record.current)} />,
+                  shareSlot: <ShareResultButton facts={{
                     outcome: state.winner === "draw" ? "draw" : state.winner === humanSeat ? "win" : "lose",
                     me: { name: config.humanName, total: total(state.cards[humanSeat]), yachts: state.cards[humanSeat].yacht === 50 ? 1 : 0 },
                     opponent: { name: aiName, total: total(state.cards[aiSeat]), yachts: state.cards[aiSeat].yacht === 50 ? 1 : 0 },
                     kind: "AI 대전 · " + aiName.replace(/^AI · /, ""),
-                  }} />
-                  <button className="primary" onClick={restart}>한 번 더 플레이</button>
-                  <button className="secondary" onClick={onLeave}>나가기</button>
-                </>}>
-                <p>{total(state.cards[humanSeat])} : {total(state.cards[aiSeat])}</p>
-                <MatchMilestones {...milestones} />
-              </MatchResult>
+                  }} />,
+                  onHome: onLeave,
+                  homeLabel: "나가기",
+                }} />
             )}
           </section>
           <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : state.rolls} canScore={can} yacht={yachtReady} />

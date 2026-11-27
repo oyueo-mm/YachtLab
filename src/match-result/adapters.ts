@@ -4,6 +4,8 @@
  */
 import { categories, type Card } from "../engine";
 import type { OnlineEvent } from "../online/protocol";
+import type { MultiReplay } from "../multi-replay";
+import { createGameFor, transitionMulti } from "../multi-engine";
 import type { ResultInput, ResultSeat, ScoreStep } from "./model";
 
 type OnlinePlayerLike = { playerId: string; name: string; card: Card; total: number };
@@ -65,4 +67,18 @@ export function fromOfflineFrames(frames: readonly { state: { cards: readonly Ca
     winners,
     steps: stepsFromCards(frames.map((f) => f.state.cards), seats.map((s) => s.id)),
   };
+}
+
+/**
+ * N인·1인 기보(MultiReplay): 기록된 행동을 같은 엔진으로 다시 적용해 채점 직후 카드만 모은다.
+ * 결과 표시용으로 이미 끝난 경기의 공개된 기록만 재현하며, 미래 주사위를 예측하는 데 쓰지 않는다.
+ */
+export function cardsHistoryFromMulti(replay: MultiReplay): Card[][] {
+  let state = createGameFor(replay.metadata.players.length, replay.seed, replay.version === 1);
+  const history: Card[][] = [state.cards.map((c) => ({ ...c }))];
+  for (const action of replay.actions) {
+    state = transitionMulti(state, action);
+    if (action.type === "score") history.push(state.cards.map((c) => ({ ...c })));
+  }
+  return history;
 }

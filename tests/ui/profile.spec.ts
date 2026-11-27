@@ -28,7 +28,7 @@ test("AI 대전 12라운드를 끝내면 기기 전적 요약은 프로필, 상�
     await page.getByRole("button", { name: "주사위 굴리기" }).click();
     await scoreCategory(page);
   }
-  await expect(page.locator(".game-result")).toBeVisible({ timeout: 15000 });
+  await expect(page.locator(".a3-result")).toBeVisible({ timeout: 15000 });
   await page.goto("#profile");
   const versus = page.getByRole("region", { name: "대전 전적" });
   await expect(versus.locator(".profile-kpis div").first()).toContainText("1");

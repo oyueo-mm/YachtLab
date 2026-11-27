@@ -1,7 +1,7 @@
 # A3 — 경기 종료 화면·0점 기록 연출·재대결 전적 조사 (2026-11-27)
 
-> 상태: **독립 컴포넌트·개발용 미리보기·테스트 완료, 게임 화면 미연결.** 브랜치 `claude/a3-match-result`. 운영 배포·병합 없음(승인 대기).
-> 기준 main: `0462030`. 요구사항 출처: 사용자 지시(2026-11-27 A3) 및 `handoff/next-development-20261127`의 NEXT-DEVELOPMENT §2.D.
+> 상태 (2단계, 2026-11-27): **1인·사람 vs AI·로컬 다인전에 실제 연결 완료.** 온라인 1:1·다인전·관전은 C3 병합 후. 재대결 전적 문제는 격리 Worker로 **재현 완료**, 수정 훅 작성·브라우저 검증, 공용 파일 연결은 C3와 조율 대기. 브랜치 `claude/a3-match-result`([PR #120](https://github.com/oyueo-mm/YachtLab/pull/120)). 운영 배포·병합 없음(승인 대기).
+> 기준 main: 1단계 `0462030` → 2단계 `31dbc50`(A2.1 #117, Hotfix #119 포함). 요구사항 출처: 사용자 지시(2026-11-27 A3) 및 `handoff/next-development-20261127`의 NEXT-DEVELOPMENT §2.D.
 
 ## 1. 사용자 피드백과 설계 방향
 
@@ -85,6 +85,25 @@
 
 **추정 원인**: 사용자가 본 "승리 전적"이 상단·프로필의 계정 집계(3·4)라면, 클라이언트가 경기 종료 후 계정 상태를 다시 조회하지 않는 것이 원인이다. 실제 Worker로 재현하지 않았으므로 어느 화면을 본 것인지는 **미확인**이다.
 
+**실제 재현 (2단계, `tests/ui/a3-rematch-records.spec.ts`)** — 로컬 Worker(`wrangler dev --local`, `ECONOMY=on`), 가짜 로그인 회원 2명, 같은 친구 방에서 재대결로 2경기 연속.
+
+| 시점 | 서버(API) | 방 안 화면 |
+| --- | --- | --- |
+| 1경기 종료 | 계정 기록 ≤ 22 ms 안에 존재, receipt +15~30코인, 지갑 215 | 결과 창 `+15코인` 정상 · **상단 재화 200(경기 전 값)** |
+| 2경기 종료 | 기록 2개, 지갑 230~245 | 결과 창 정상 · 이 방 전적 정상 · **상단 재화 여전히 200** |
+| 앱 안에서 홈으로 | — | 상단 재화 서버 값으로 갱신 · 홈 보상 알림은 **마지막 경기 1건 이하**(1경기의 주간 퀘스트 진행 `w.days4`는 어디에도 표시 안 됨) |
+| 프로필로 이동 | — | 서버 기록 2경기 표시(새로 마운트되어 정상) |
+
+- **결론: 서버 저장 지연이 아니라 클라이언트 갱신 누락.** 서버는 종료 직후(수십 ms) 기록·receipt·원장을 모두 반영한다. 방 안의 재화·퀘스트·연승 표시(`useProfileEconomy`)는 홈 진입 때만 다시 읽고, GET `economy()`는 `yachtlab-economy` 이벤트를 보내지 않는다(POST만).
+- 결과 창은 receipt를 읽어 이번 경기 보상을 정확히 보여 주고, receipt 전에는 금액을 만들지 않는다(정상).
+- 사용자가 말한 "승리 전적"이 프로필 화면이라면 이동 시 새로 읽으므로 정상이다. 방 안에서 계속 보이는 계정 값은 상단 재화·사이드바 퀘스트뿐이다. 다른 기기·탭에 열어 둔 프로필(마운트 유지)은 갱신되지 않는다(H-A3-2).
+
+**수정안 (작성·검증 완료, 공용 파일 연결은 대기)**
+
+- H-A3-1 `src/match-result/account-refresh.ts` `useAccountRefreshAfterMatch(server, matchId, finished)`: receipt가 확정된 뒤(404 재시도, 지연·실패면 아무것도 바꾸지 않음) `economy()`를 다시 읽고, 기존 `yachtlab-economy` 이벤트 형식으로 알린다 → **App.tsx·profile-economy.ts 변경 없이** 상단 바·사이드바 갱신. 같은 matchId는 한 번만, 계정이 바뀌면 알리지 않음. 연결은 `OnlineGame`·`OnlineMulti`에 한 줄. 임시로 `OnlineGame`에 연결해 `A3_HOTFIX=1`로 같은 재현을 돌린 결과 방 안 상단 재화가 **215 → 230으로 서버와 일치**(커밋하지 않음, C3가 OnlineGame을 수정 중).
+- H-A3-2 `Profile.tsx`·`MatchHistory.tsx`: 로그인 상태에서도 `yachtlab-records` 수신 시 `serverRecords` 재조회(위 훅이 이 이벤트를 보냄).
+- H-A3-3 `App.tsx`: `pendingReward`를 matchId 목록으로 바꾸고 홈 알림에서 여러 경기의 퀘스트·업적을 합쳐 표시(결과 창에서 이미 본 코인은 제외하는 현재 규칙 유지).
+
 **Hotfix 후보 (공용 파일 — 이 PR에서 수정하지 않음, C3·Hotfix 담당과 순서 조율)**
 
 - H-A3-1 `profile-economy.ts`: 경기 종료 이벤트(예: `yachtlab-match-finished` 또는 `onFinished`)에서 `economy(server)`를 다시 조회. 결과 receipt 확정 후 1회.
@@ -93,18 +112,45 @@
 - 회귀 테스트: 같은 방에서 2경기 연속 종료 → 홈으로 나가지 않고 상단 재화·프로필 전적이 2경기를 반영하는 Playwright(온라인 테스트 Worker).
 - C3가 도입하는 `ActivityVisible`(화면을 숨긴 채 유지)과 결합하면 3·4의 "마운트 시에만 조회" 문제가 더 자주 드러날 수 있으므로 C3 병합 후 함께 검증한다.
 
-## 8. 통합 계획 (A2.1·C3·Hotfix 병합 후)
+## 8. 통합
+
+**완료 (2단계, C3와 충돌 없음 — `origin/codex/c3-background-matchmaking` 시험 병합으로 확인)**
+
+| 모드 | 파일 | 결과 입력 | 0점 팝업 | 승리 효과 |
+| --- | --- | --- | --- | --- |
+| 1인 | `src/play/SoloGame.tsx` | 저장된 1인 기록 + 이전 최고(기기) | 내 기록 | 최고 기록 갱신·첫 기록 때 장착 효과 |
+| 사람 vs AI | `src/play/HumanGame.tsx` | 실제 기보 프레임(`fromOfflineFrames`), 기기 최고점 | 사람 좌석만 | 사람이 이겼을 때 장착 효과 |
+| 로컬 다인전 | `src/LocalGame.tsx` | MultiReplay 행동을 다시 적용한 카드 기록(`cardsHistoryFromMulti`) | 모든 좌석, 이름 표시 | 단독 승자일 때 기기 장착 효과 |
+
+- 로컬은 "나" 좌석이 없으므로 **단독 승자 기준**으로 역전·하이라이트를 판정하고 이름을 붙인다. 기기 최고 기록·연승은 붙이지 않는다.
+- 장착 승리 효과(`FxBurst`)가 있으면 결과 창의 기본 축하 조각을 그리지 않는다. Lv.3 아이템(자체 효과음)이면 결과 강조음도 내지 않는다(`data-effect="item"`).
+- 상단 보너스·요트·라지 연출(A2.1 `BonusMoments`, `game-feel`, score-fx)은 그대로다. 결과 창은 큰 점수 연출이 끝난 뒤 열리고(기존 규칙), 승패 기본음은 `game-feel`이 한 번만 낸다.
+- 0점 팝업은 `useZeroScoreNotice`가 `useGameSounds`와 같은 규칙으로 카드 변화를 본다(새 경기·동기화 키 변화 무시). 소리는 기존 `scoreZero` 하나.
+- 기존 `MatchMilestones`(오프라인 두 화면)는 결과 창 하이라이트로 대체. `src/ui/MatchResult.tsx`는 온라인 화면이 계속 사용한다(C3 수정 중이므로 그대로).
+- `MatchResultPanel`은 `visible` prop을 받는다. C3의 `ActivityVisible`이 병합되면 게임 화면에서 그 값을 넘겨 백그라운드 매칭 중 결과 창을 닫아 둔다.
+
+**C3 병합 후 남은 작업**
 
 1. 각 게임 화면의 `<MatchResult>`를 `<MatchResultPanel>`로 교체: 온라인은 `fromOnline(view, reviewEvents, me, { rewards: useRewardState(server, matchId, true), streak, personal })`, AI 대전은 `fromOfflineFrames(record.frames, …)`.
 2. 재대결은 기존 `RematchControls`를 `actions.rematchSlot`으로 그대로 넣는다(서버 흐름 불변). 친구 추가는 상대가 회원이고 아직 친구가 아닐 때만 `addFriend` 전달.
 3. 장착 승리 특수 효과(`FxBurst`)는 `effect` 슬롯으로 우선 표시. BGM 장면(`useBgmScene`)은 기존 `MatchResult` 동작을 옮긴다.
 4. `MatchRewardSummary`/홈 알림 중복 제거는 H-A3-3과 함께 결정.
-5. 0점 팝업 연결(§6).
+5. 온라인 0점 팝업: `useZeroScoreNotice(cards, me만, view.version 동기화)`로 재접속·새로고침 따라잡기를 무시.
+6. H-A3-1 훅 한 줄, H-A3-2·3은 C3 담당과 순서를 정해 별도 Hotfix PR.
 
 ## 9. 검증 결과
 
-- `npx tsc -b` 통과. 단위 테스트 `tests/match-result-a3.test.ts` **36/36 통과**.
-- 미리보기 Playwright(`npx playwright test -c playwright.preview.config.ts`) **18/18 통과** (desktop 1280×900, Pixel 7, 320×640): 화면 폭 넘침 없음, 닫기·다시 열기·Esc·포커스 복귀, 보상 대기·지연·실패 시 금액 미표시, 동작 줄이기에서 애니메이션 0개, 다인전 4행, 0점 팝업 자동 사라짐.
-- 전체 `npm test`, `npm run build` 결과는 PR 본문에 기록.
+1단계(독립 컴포넌트): `tsc -b` 통과, 단위 36/36, 미리보기 Playwright 18/18(desktop·Pixel 7·320px), 전체 `npm test` 557/557, `npm run build` 통과.
 
-**미검증**: 실제 게임 화면 통합, 실기기·iOS Safari, 실제 소리 음량 체감(헤드리스는 오디오 출력 없음), 역전 기준값이 실제 경기 분포에서 얼마나 자주 발생하는지(서버 기록 집계 필요), 재대결 버그의 실제 재현.
+2단계(실제 게임 통합, 로컬 실행):
+- 단위 `tests/match-result-a3.test.ts` **40/40**: 관찰자 판정, 이름 붙은 0점 알림, H-A3-1 훅(확정 후 1회, 지연·실패 시 갱신 안 함, 재시도)이 추가됐다.
+- 실제 UI `tests/ui/a3-match-result.spec.ts`:
+  - 로컬 2인 고정 시드 1의 실제 경기로 **대역전승**(8라운드 50점 차), **접전 승리**(4점 차), **마지막 차례 역전**을 확인했다. 기준은 §4다.
+  - 0점 팝업이 실제로 뜬다: 첫 차례 "가람 · 라지 스트레이트 0점 기록"이 polite로 읽히고 비난 문구가 없다.
+  - 닫기·다시 열기·Esc가 동작하고, 재대결 뒤 결과 창과 팝업이 남지 않는다. 모바일 폭에서 가로 넘침이 없다.
+  - 사람 vs AI: 승패 기본음은 정확히 1회이고 다시 열어도 소리가 없다. 게임 리뷰 진입, 재대결, 새로고침 뒤에도 결과 창과 팝업이 다시 뜨지 않는다.
+  - 1인: 장착 승리 효과가 기본 조각보다 우선한다.
+- 재현 `tests/ui/a3-rematch-records.spec.ts`(로컬 Worker, desktop): 통과(현재 동작 고정). `A3_HOTFIX=1` + 임시 연결로 수정안 통과.
+- 기존 스펙(app·multi·pvp·solo·profile)은 새 결과 창 선택자로 갱신했다.
+
+**미검증**: 온라인 화면 통합(C3 대기), 실기기·iOS Safari, 실제 소리 크기 체감, 역전 기준값의 실제 경기 분포, 운영 Worker에서의 재현(로컬 Worker로만 확인).

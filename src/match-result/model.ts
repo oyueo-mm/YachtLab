@@ -96,6 +96,8 @@ export type Highlight = {
   id: "yacht" | "large" | "bonus" | "personal-best" | "first-record" | "streak" | "grand-comeback" | "comeback" | "final-turn" | "close";
   label: string;
   detail?: string;
+  /** 관찰자 화면(로컬 다인전)에서 하이라이트의 주인공 이름. */
+  who?: string;
 };
 
 export type StandingRow = { seat: ResultSeat; total: number; rank: number; you: boolean; winner: boolean };
@@ -222,7 +224,7 @@ export function outcomeOf(input: ResultInput, standings: readonly StandingRow[])
   }
   if (!me) {
     const top = standings.filter((s) => s.winner);
-    return { kind: "observer", title: top.length === 1 ? `${top[0].seat.name} 승리` : top.length === input.seats.length && input.seats.length === 2 ? "무승부" : "공동 1위", tone: "neutral" };
+    return { kind: "observer", title: top.length === 1 ? `${top[0].seat.name} 승리` : top.length === input.seats.length && input.seats.length === 2 ? "무승부" : "공동 1위", tone: top.length === 1 ? "win" : "neutral" };
   }
   const forfeiter = input.seats.find((s) => s.forfeited);
   if (input.seats.length === 2) {
@@ -276,8 +278,20 @@ const DRAMA_TEXT: Record<Exclude<Drama, null>, string> = {
   close: "접전 승리",
 };
 
+/**
+ * 연출의 주인공: 이 화면의 "나". 1인은 그 좌석, 관찰자 화면(로컬 다인전)은 단독 승자(기권 없는 경기).
+ */
+export function subjectOf(input: ResultInput): ResultSeat | null {
+  const me = input.seats.find((s) => s.you);
+  if (me) return me;
+  if (input.seats.length === 1) return input.seats[0];
+  if (input.winners.length === 1 && !input.seats.some((s) => s.forfeited)) return input.seats.find((s) => s.id === input.winners[0]) ?? null;
+  return null;
+}
+
 export function highlightsOf(input: ResultInput, timeline: Timeline, drama: Drama, facts: ComebackFacts | null): Highlight[] {
-  const me = input.seats.find((s) => s.you) ?? (input.seats.length === 1 ? input.seats[0] : null);
+  const me = subjectOf(input);
+  const observer = !!me && !me.you && input.seats.length > 1;
   const out: Highlight[] = [];
   if (drama) {
     const detail =
@@ -287,29 +301,30 @@ export function highlightsOf(input: ResultInput, timeline: Timeline, drama: Dram
           const point = comebackPoint(facts);
           return point ? `${point.round}라운드 ${point.deficit}점 차를 뒤집었어요` : undefined;
         })();
-    out.push({ id: drama, label: DRAMA_TEXT[drama], detail });
+    out.push({ id: drama, label: DRAMA_TEXT[drama], detail, ...(observer ? { who: me!.name } : {}) });
   }
   if (!me) return out;
+  const push = (h: Highlight) => out.push(observer ? { ...h, who: me.name } : h);
   const at = (category: Category) => {
     const r = roundOf(input.steps, timeline, me.id, category);
     return r ? `${r}번째 기록` : undefined;
   };
-  if (me.card.yacht === 50) out.push({ id: "yacht", label: "요트", detail: at("yacht") });
-  if (me.card.large === 30) out.push({ id: "large", label: "라지 스트레이트", detail: at("large") });
-  if (bonus(me.card) > 0) out.push({ id: "bonus", label: "상단 보너스 +35", detail: `상단 ${upper(me.card)}점` });
+  if (me.card.yacht === 50) push({ id: "yacht", label: "요트", detail: at("yacht") });
+  if (me.card.large === 30) push({ id: "large", label: "라지 스트레이트", detail: at("large") });
+  if (bonus(me.card) > 0) push({ id: "bonus", label: "상단 보너스 +35", detail: `상단 ${upper(me.card)}점` });
   const personal = input.personal;
-  if (personal && input.seats.length > 1) {
+  if (personal && input.seats.length > 1 && !observer) {
     const score = seatTotal(me);
     const where = personal.source === "account" ? "계정" : "이 기기";
     if (personal.bestBefore !== null && score > personal.bestBefore) out.push({ id: "personal-best", label: "개인 최고 기록", detail: `${where} 기준 · 이전 ${personal.bestBefore}점` });
     if (personal.bestBefore === null) out.push({ id: "first-record", label: "첫 기록", detail: `${where} 기준` });
   }
-  if (input.streak && input.streak.current >= 2 && input.winners.length === 1 && input.winners[0] === me.id)
+  if (!observer && input.streak && input.streak.current >= 2 && input.winners.length === 1 && input.winners[0] === me.id)
     out.push({ id: "streak", label: `${input.streak.current}연승`, detail: input.streak.best > input.streak.current ? `최고 ${input.streak.best}연승` : "최고 연승 기록" });
   return out;
 }
 function marginOf(input: ResultInput) {
-  const me = input.seats.find((s) => s.you);
+  const me = subjectOf(input);
   if (!me) return 0;
   return seatTotal(me) - Math.max(...input.seats.filter((s) => s.id !== me.id).map(seatTotal));
 }
@@ -317,10 +332,10 @@ function marginOf(input: ResultInput) {
 export function summarize(input: ResultInput): ResultSummary {
   const standings = standingsOf(input.seats, input.winners);
   const outcome = outcomeOf(input, standings);
-  const me = input.seats.find((s) => s.you);
+  const me = subjectOf(input);
   const timeline = input.seats.length > 1 ? buildTimeline(input.seats, input.steps) : ({ status: "missing" } as Timeline);
   // 기권승은 경기 내용으로 이긴 것이 아니므로 역전·접전 연출을 붙이지 않는다.
-  const soleWin = !!me && (outcome.kind === "win" || (outcome.kind === "rank" && outcome.rank === 1 && !outcome.sharedRank));
+  const soleWin = !!me && (outcome.kind === "win" || (outcome.kind === "rank" && outcome.rank === 1 && !outcome.sharedRank) || (outcome.kind === "observer" && input.winners.length === 1 && !input.seats.some((s) => s.forfeited)));
   const facts = me && input.seats.length > 1 ? comebackFacts(timeline, input.seats, me.id) : null;
   const drama = dramaOf(facts, soleWin, me && soleWin ? marginOf(input) : null);
   const durationMs = input.startedAt && input.endedAt ? input.endedAt - input.startedAt : null;

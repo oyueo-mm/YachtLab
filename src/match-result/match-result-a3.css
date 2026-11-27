@@ -52,6 +52,7 @@
 .a3-meta { margin: 0; display: inline-flex; justify-content: center; align-items: center; gap: 4px; color: var(--muted, #6b6b6b); font-size: 13px; }
 .a3-highlights { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
 .a3-highlights li { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; background: var(--soft, #f7f7f7); font-size: 13px; }
+.a3-who { font-weight: 700; color: var(--muted, #6b6b6b); }
 .a3-highlights li small { color: var(--muted, #6b6b6b); }
 .a3-highlights li[data-kind="yacht"], .a3-highlights li[data-kind="grand-comeback"], .a3-highlights li[data-kind="comeback"], .a3-highlights li[data-kind="final-turn"] { background: var(--a3-win-soft); color: #7a4a00; }
 
@@ -111,3 +112,6 @@
 @media (prefers-reduced-motion: reduce) {
   .a3-burst, .a3-result-dialog .a3-result-head h2, .a3-drama-ribbon, .a3-zero-toast { animation: none !important; }
 }
+.a3-extra { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; color: var(--muted, #6b6b6b); font-size: 13px; }
+/* 장착 승리 효과(FxBurst)는 결과 카드 위에서 떨어진다. */
+.a3-result > .fx-burst { position: absolute; inset: 0; pointer-events: none; z-index: 2; }

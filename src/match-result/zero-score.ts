@@ -20,12 +20,12 @@ export function maxUpper(card: Card) {
   return upper(card) + UPPER.filter((c) => card[c] === undefined).reduce((s, c) => s + 5 * FACE[c]!, 0);
 }
 
-export function zeroScoreNotice(category: Category, after: Card, key = `${category}-${Object.keys(after).length}`): ZeroScoreNotice {
+export function zeroScoreNotice(category: Category, after: Card, key = `${category}-${Object.keys(after).length}`, who?: string): ZeroScoreNotice {
   const left = categories.filter((c) => after[c] === undefined).length;
   let detail: string | null = left ? `남은 칸 ${left}개` : null;
   if (UPPER.includes(category)) {
     const now = upper(after);
     if (now < 63 && maxUpper(after) >= 63) detail = `상단 보너스까지 ${63 - now}점`;
   }
-  return { key, category, title: `${names[category]} 0점 기록`, detail };
+  return { key, category, title: `${who ? who + " · " : ""}${names[category]} 0점 기록`, detail };
 }
