@@ -6,6 +6,7 @@ import { COLLECTIONS, collectionProgress, collectionsOf, synergyOf } from "../ec
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Check, CircleHelp, Coins, Gem, RefreshCw, Sparkles, X } from "lucide-react";
 import { Coach, useCoach, type CoachStep } from "../ui/Coach";
+import { INVENTORY_STEPS, QUEST_STEPS, ACHIEVEMENT_STEPS } from "../ui/feature-guides";
 import { DRAW_COST, DRAW_DAILY_LIMIT, DUPLICATE_COINS } from "../economy/live/draw";
 import { ACHIEVEMENTS, ECONOMY, QUESTS, SLOTS, TIERS, nextDayStart, nextWeekStart, type TierId } from "../economy/live/config";
 import { CATEGORIES, DEFAULT_LOADOUT, ITEMS, SINGLE_SLOTS, itemById, priceOf, publicLook, sellableOn, slotPrice, upgradeCost, upgradeSupportedOn, type ItemCategory, type ItemDef, type Loadout } from "../economy/live/catalog";
@@ -239,14 +240,16 @@ export function ItemsPage({ server, go, route }: { server: string | null; go: Go
   const member = !!server && signedIn();
   const shopTour = useCoach("shop", route === "shop");
   const drawTour = useCoach("draw", route === "draw");
-  const tour = route === "draw" ? drawTour : shopTour;
+  const inventoryTour = useCoach("inventory", route === "inventory" && member);
+  const tour = route === "draw" ? drawTour : route === "inventory" ? inventoryTour : shopTour;
   return <section className="econ-page items-hub" data-preview-motion={motion === "full" ? "full" : "static"} aria-labelledby="items-title">
     <div className="items-head">
       <h1 id="items-title">상점과 인벤토리</h1>
-      {route !== "inventory" && <button type="button" className="text-button items-help" onClick={tour.start}><CircleHelp size={16} /> {route === "draw" ? "뽑기 사용법" : "상점 사용법"}</button>}
+      {(route !== "inventory" || member) && <button type="button" className="text-button items-help" onClick={tour.start}><CircleHelp size={16} /> {route === "draw" ? "뽑기 사용법" : route === "inventory" ? "인벤토리 사용법" : "상점 사용법"}</button>}
     </div>
     <Coach label="상점" steps={SHOP_STEPS(member)} open={route === "shop" && shopTour.open} onClose={shopTour.close} />
     <Coach label="뽑기" steps={DRAW_STEPS(member)} open={route === "draw" && drawTour.open} onClose={drawTour.close} />
+    <Coach label="인벤토리" steps={INVENTORY_STEPS} open={route === "inventory" && inventoryTour.open} onClose={inventoryTour.close} />
     <div className="item-tabs" role="tablist" aria-label="상품 관리">
       <button type="button" role="tab" aria-selected={route === "shop"} onClick={() => route !== "shop" && go("shop")}>상품</button>
       <button type="button" role="tab" aria-selected={route === "draw"} onClick={() => route !== "draw" && go("draw")}>뽑기</button>
@@ -700,6 +703,8 @@ export function QuestsPage({ server, go, achievements }: { server: string | null
   const [period, setPeriod] = useState<"daily" | "weekly">("daily");
   const [replace, setReplace] = useState<{ period: "daily" | "weekly"; expected: number } | null>(null);
   const { snap, error, busy, act } = useEconomy(server);
+  const guideId = achievements ? "achievements" : "quests";
+  const tour = useCoach(guideId, !!snap);
   const row = (q: { id: string; progress: number; done: boolean }, i: number, period: "daily" | "weekly") => {
     const def = QUESTS.find((d) => d.id === q.id);
     if (!def) return null;
@@ -733,7 +738,9 @@ export function QuestsPage({ server, go, achievements }: { server: string | null
     <section className="econ-page" aria-labelledby="quest-title">
       <div className="econ-head">
         <h1 id="quest-title">퀘스트</h1>
+        {!!snap && <button type="button" className="text-button items-help" onClick={tour.start}><CircleHelp size={16} /> {achievements ? "업적 사용법" : "퀘스트 사용법"}</button>}
       </div>
+      <Coach label={achievements ? "업적" : "퀘스트"} steps={achievements ? ACHIEVEMENT_STEPS : QUEST_STEPS} open={!!snap && tour.open} onClose={tour.close} />
       <div className="item-tabs" role="tablist" aria-label="퀘스트 종류">
         <button type="button" role="tab" aria-selected={!achievements && period === "daily"} onClick={() => { setPeriod("daily"); if (achievements) go("quests"); }}>일일</button>
         <button type="button" role="tab" aria-selected={!achievements && period === "weekly"} onClick={() => { setPeriod("weekly"); if (achievements) go("quests"); }}>주간</button>

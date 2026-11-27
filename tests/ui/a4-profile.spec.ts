@@ -39,16 +39,18 @@ for (const s of SIZES) {
     test.skip(info.project.name === "mobile", "sizes are explicit");
     await page.setViewportSize({ width: s.w, height: s.h });
     await open(page);
-    const equipped = page.getByRole("region", { name: "장착 중인 꾸미기" });
-    await expect(equipped.getByRole("img", { name: /강화 2단계 \/ 최대 3단계/ }).first()).toBeVisible(); // 노을 주사위 Lv.2
-    await expect(equipped.getByRole("img", { name: /강화 3단계 \/ 최대 3단계/ })).toBeVisible(); // 행성 프레임 Lv.3
-    const own = page.getByRole("region", { name: "수집 현황" });
-    await expect(own.getByLabel("보유 요약")).toContainText("10개 보유");
-    await expect(own.getByLabel("보유 요약")).toContainText("개 강화");
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-    // match rows: score line and opponent stay inside their card
-    const clipped = await page.locator(".profile-matches li").evaluateAll((els) => els.filter((e) => e.getBoundingClientRect().right > innerWidth + 1).length);
-    expect(clipped).toBe(0);
+    if (!process.env.A4_SHOTS_ONLY) {
+      const equipped = page.getByRole("region", { name: "장착 중인 꾸미기" });
+      await expect(equipped.getByRole("img", { name: /강화 2단계 \/ 최대 3단계/ }).first()).toBeVisible(); // 노을 주사위 Lv.2
+      await expect(equipped.getByRole("img", { name: /강화 3단계 \/ 최대 3단계/ })).toBeVisible(); // 행성 프레임 Lv.3
+      const own = page.getByRole("region", { name: "수집 현황" });
+      await expect(own.getByLabel("보유 요약")).toContainText("10개 보유");
+      await expect(own.getByLabel("보유 요약")).toContainText("개 강화");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      // match rows: score line and opponent stay inside their card
+      const clipped = await page.locator(".profile-matches li").evaluateAll((els) => els.filter((e) => e.getBoundingClientRect().right > innerWidth + 1).length);
+      expect(clipped).toBe(0);
+    }
     if (process.env.A4_SHOTS) await page.screenshot({ path: `docs/ui/a4-mobile/${process.env.A4_SHOTS}-profile-${s.n}.png`, fullPage: true });
   });
 }
@@ -68,3 +70,41 @@ test("대표 업적은 슬롯 3개에 고르고 해제할 수 있으며 새로�
   await page.reload();
   await expect(page.getByRole("region", { name: "업적" }).getByRole("list", { name: "대표 업적 슬롯" }).locator("li.filled")).toHaveCount(2);
 });
+
+/** Feature guides (인벤토리·퀘스트·업적): first visit opens, skip is remembered, replay works, nothing is spent or rewarded. */
+async function memberPage(page: Page, hash: string) {
+  const snap = { config: "M3i-W30@1", wallet: { coins: 1200, gems: 40 }, inventory, slots: { emote: 4, chat: 6 }, loadout, look: publicLook(loadout, owned), state: { day: 1, week: 1, rerolls: 0, rewarded: 0, streak: 0, dailyAll: false, weeklyAll: false, daily: [{ id: "d.play3", progress: 1, done: false }], weekly: [{ id: "w.play15", progress: 2, done: false }], counters: { match: 3 }, achievements: ["a.match.10"] }, ledger: [] };
+  const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type,authorization" };
+  const requests: string[] = [];
+  await page.route(SERVER + "/**", (route) => {
+    const u = new URL(route.request().url());
+    if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+    if (route.request().method() !== "GET") requests.push(u.pathname);
+    if (u.pathname === "/api/me/economy") return route.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ snapshot: snap }) });
+    return route.fulfill({ status: 404, contentType: "application/json", headers: cors, body: JSON.stringify({ error: { code: "NOT_FOUND", message: "-" } }) });
+  });
+  await page.addInitScript((s) => { localStorage.setItem("yachtlab.session.v1", s); localStorage.setItem("yachtlab.settings.v1", JSON.stringify({ muted: true })); }, SESSION);
+  await page.goto(`?online-server=${encodeURIComponent(SERVER)}#${hash}`);
+  return requests;
+}
+for (const [hash, label, firstTitle] of [["inventory", "인벤토리", "지금 장착한 모습"], ["quests", "퀘스트", "일일·주간·업적"], ["achievements", "업적", "업적 목록"]] as const) {
+  test(`${label} 가이드: 처음 방문에 열리고, 건너뛰면 다시 열리지 않으며, 사용법 버튼으로 다시 본다(재화·보상 변화 없음)`, async ({ page }, info) => {
+    test.skip(info.project.name === "mobile", "desktop run");
+    if (process.env.A4_SHOTS) await page.setViewportSize({ width: 360, height: 800 });
+    const writes = await memberPage(page, hash);
+    const card = page.getByRole("dialog", { name: new RegExp(`${label} 안내 1/`) });
+    await expect(card).toBeVisible({ timeout: 10_000 });
+    await expect(card).toContainText(firstTitle);
+    if (process.env.A4_SHOTS) await page.screenshot({ path: `docs/ui/a4-mobile/${process.env.A4_SHOTS}-guide-${hash}-${page.viewportSize()!.width}.png` });
+    await card.getByRole("button", { name: "다음 안내" }).or(card.getByRole("button", { name: /다음/ })).click();
+    await expect(page.getByRole("dialog", { name: new RegExp(`${label} 안내 2/`) })).toBeVisible();
+    await page.keyboard.press("Escape"); // skip
+    await expect(page.locator(".coach")).toHaveCount(0);
+    await page.reload();
+    await page.waitForTimeout(1200);
+    await expect(page.locator(".coach")).toHaveCount(0); // remembered
+    await page.getByRole("button", { name: new RegExp(`${label} 사용법`) }).click(); // replay
+    await expect(page.getByRole("dialog", { name: new RegExp(`${label} 안내 1/`) })).toBeVisible();
+    expect(writes).toEqual([]); // the guide never sends anything (no purchase, upgrade, claim or reward)
+  });
+}

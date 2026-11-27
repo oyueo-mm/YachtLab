@@ -51,6 +51,7 @@ test("경기 중 상대 프로필에서 친구 요청: 한 번만 보내지고, 
   await expect(add).toBeVisible();
   await add.dblclick(); // a double tap must still send exactly one request
   await expect(dialogA.getByText("친구 요청을 보냈어요")).toBeVisible();
+  if (process.env.A4_SHOTS) await dialogA.screenshot({ path: `docs/ui/a4-mobile/${process.env.A4_SHOTS}-friend-pending.png` });
   await expect(dialogA.getByRole("button", { name: /친구 추가/ })).toHaveCount(0);
   const inbox = await apiCall(worker, sessions[1], "/api/me/friends");
   expect(inbox.body.incoming).toHaveLength(1);
@@ -69,6 +70,7 @@ test("경기 중 상대 프로필에서 친구 요청: 한 번만 보내지고, 
   await a.waitForTimeout(8500); // the shared relation cache is short-lived
   const again = await openOpponentProfile(a);
   await expect(again.getByText("이미 친구예요")).toBeVisible();
+  if (process.env.A4_SHOTS) await again.screenshot({ path: `docs/ui/a4-mobile/${process.env.A4_SHOTS}-friend-already.png` });
   await expect(again.getByRole("button", { name: /친구 추가/ })).toHaveCount(0);
 
   // blocked: A removes B, then blocks B → the profile says so and offers no button
@@ -81,6 +83,7 @@ test("경기 중 상대 프로필에서 친구 요청: 한 번만 보내지고, 
   await a.waitForTimeout(8500);
   const blocked = await openOpponentProfile(a);
   await expect(blocked.getByText("차단한 사용자예요")).toBeVisible();
+  if (process.env.A4_SHOTS) await blocked.screenshot({ path: `docs/ui/a4-mobile/${process.env.A4_SHOTS}-friend-blocked.png` });
   await expect(blocked.getByRole("button", { name: /친구 추가/ })).toHaveCount(0);
 });
 
@@ -105,5 +108,6 @@ test("친구 화면의 최근 대전 상대에서도 같은 버튼으로 친구�
   await expect(list.locator("li")).toHaveCount(1, { timeout: 15_000 });
   await list.getByRole("button", { name: /친구 추가/ }).click();
   await expect(list.getByText("친구 요청을 보냈어요")).toBeVisible();
+  if (process.env.A4_SHOTS) await a.screenshot({ path: `docs/ui/a4-mobile/${process.env.A4_SHOTS}-friends-recent-opponents.png` });
   await expect(a.getByRole("list", { name: "보낸 친구 요청" }).locator("li")).toHaveCount(1, { timeout: 15_000 });
 });
