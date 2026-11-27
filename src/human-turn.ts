@@ -176,10 +176,6 @@ export function useHumanTurn({
         if (valid()) setBusy(false);
       }
     })();
-    return () => {
-      controller.abort();
-      job.current?.cancel();
-      job.current = null;
-    };
+    return () => controller.abort();
   }, [trigger, retry, algorithm, paused, aiSeat]);
 }

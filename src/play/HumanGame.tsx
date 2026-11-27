@@ -85,6 +85,11 @@ export default function HumanGame({
     },
     [],
   );
+  useEffect(() => {
+    if (!suspended) return;
+    job.current?.cancel();
+    job.current = null;
+  }, [suspended]);
   const [viewReplay, setViewReplay] = useState<Replay | null>(null);
   const [mobileScoreOpen, setMobileScoreOpen] = useState(false);
   const [pending, setPending] = useState<PendingAction>(null);
