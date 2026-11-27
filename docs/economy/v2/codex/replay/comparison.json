@@ -13,7 +13,11 @@
   },
   "E2": {
     "expected": 80,
-    "status": "pending"
+    "replayed": 80,
+    "capFieldsChecked": 960,
+    "capFieldsChanged": 558,
+    "otherChanged": 0,
+    "firstDifferences": []
   },
   "E3": {
     "expected": 240,
@@ -33,6 +37,10 @@
   },
   "E7": {
     "expected": 16,
-    "status": "pending"
+    "replayed": 16,
+    "capFieldsChecked": 192,
+    "capFieldsChanged": 76,
+    "otherChanged": 0,
+    "firstDifferences": []
   }
 }

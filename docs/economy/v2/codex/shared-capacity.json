@@ -1,0 +1,780 @@
+{
+ "days": 7,
+ "seed": "878593101 + player count",
+ "limits": {
+  "aiPerUTCDate": 100,
+  "totalPerUTCDate": 300,
+  "live": 50,
+  "accountPerKstDate": 30
+ },
+ "rows": [
+  {
+   "users": 12,
+   "otherPerDay": 50,
+   "accountOnly": {
+    "groups": {
+     "early": {
+      "attempts": 115,
+      "admitted": 115,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "late": {
+      "attempts": 306,
+      "admitted": 306,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "long": {
+      "attempts": 280,
+      "admitted": 210,
+      "account": 70,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "other": {
+      "attempts": 350,
+      "admitted": 350,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     }
+    },
+    "aisPerUTCDate": {
+     "20786": 46,
+     "20787": 80,
+     "20788": 97,
+     "20789": 92,
+     "20790": 91,
+     "20791": 91,
+     "20792": 91,
+     "20793": 43
+    },
+    "roomsPerUTCDate": {
+     "20786": 64,
+     "20787": 124,
+     "20788": 155,
+     "20789": 140,
+     "20790": 139,
+     "20791": 142,
+     "20792": 142,
+     "20793": 75
+    },
+    "guaranteedWinsUpper": {
+     "BASE": 4839,
+     "V2-CONS": 7294,
+     "V2-BAL": 9538,
+     "V2-EXP": 12623
+    }
+   },
+   "shared": {
+    "groups": {
+     "early": {
+      "attempts": 115,
+      "admitted": 115,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "late": {
+      "attempts": 306,
+      "admitted": 306,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "long": {
+      "attempts": 280,
+      "admitted": 210,
+      "account": 70,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "other": {
+      "attempts": 350,
+      "admitted": 350,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     }
+    },
+    "aisPerUTCDate": {
+     "20786": 46,
+     "20787": 80,
+     "20788": 97,
+     "20789": 92,
+     "20790": 91,
+     "20791": 91,
+     "20792": 91,
+     "20793": 43
+    },
+    "roomsPerUTCDate": {
+     "20786": 64,
+     "20787": 124,
+     "20788": 155,
+     "20789": 140,
+     "20790": 139,
+     "20791": 142,
+     "20792": 142,
+     "20793": 75
+    },
+    "guaranteedWinsUpper": {
+     "BASE": 4839,
+     "V2-CONS": 7294,
+     "V2-BAL": 9538,
+     "V2-EXP": 12623
+    }
+   }
+  },
+  {
+   "users": 12,
+   "otherPerDay": 250,
+   "accountOnly": {
+    "groups": {
+     "early": {
+      "attempts": 107,
+      "admitted": 107,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "late": {
+      "attempts": 292,
+      "admitted": 292,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "long": {
+      "attempts": 280,
+      "admitted": 210,
+      "account": 70,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "other": {
+      "attempts": 1750,
+      "admitted": 1750,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     }
+    },
+    "aisPerUTCDate": {
+     "20786": 46,
+     "20787": 84,
+     "20788": 87,
+     "20789": 85,
+     "20790": 85,
+     "20791": 86,
+     "20792": 92,
+     "20793": 44
+    },
+    "roomsPerUTCDate": {
+     "20786": 150,
+     "20787": 319,
+     "20788": 338,
+     "20789": 333,
+     "20790": 335,
+     "20791": 339,
+     "20792": 347,
+     "20793": 198
+    },
+    "guaranteedWinsUpper": {
+     "BASE": 4641,
+     "V2-CONS": 6986,
+     "V2-BAL": 9142,
+     "V2-EXP": 12117
+    }
+   },
+   "shared": {
+    "groups": {
+     "early": {
+      "attempts": 107,
+      "admitted": 37,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 70,
+      "concurrent": 0
+     },
+     "late": {
+      "attempts": 292,
+      "admitted": 292,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "long": {
+      "attempts": 280,
+      "admitted": 200,
+      "account": 70,
+      "aiGlobal": 0,
+      "allGlobal": 10,
+      "concurrent": 0
+     },
+     "other": {
+      "attempts": 1750,
+      "admitted": 1619,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 131,
+      "concurrent": 0
+     }
+    },
+    "aisPerUTCDate": {
+     "20786": 46,
+     "20787": 79,
+     "20788": 70,
+     "20789": 72,
+     "20790": 72,
+     "20791": 72,
+     "20792": 74,
+     "20793": 44
+    },
+    "roomsPerUTCDate": {
+     "20786": 150,
+     "20787": 300,
+     "20788": 300,
+     "20789": 300,
+     "20790": 300,
+     "20791": 300,
+     "20792": 300,
+     "20793": 198
+    },
+    "guaranteedWinsUpper": {
+     "BASE": 3981,
+     "V2-CONS": 5976,
+     "V2-BAL": 7832,
+     "V2-EXP": 10457
+    }
+   }
+  },
+  {
+   "users": 40,
+   "otherPerDay": 50,
+   "accountOnly": {
+    "groups": {
+     "early": {
+      "attempts": 352,
+      "admitted": 352,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "late": {
+      "attempts": 944,
+      "admitted": 944,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "long": {
+      "attempts": 1120,
+      "admitted": 840,
+      "account": 280,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "other": {
+      "attempts": 350,
+      "admitted": 350,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     }
+    },
+    "aisPerUTCDate": {
+     "20786": 180,
+     "20787": 296,
+     "20788": 296,
+     "20789": 314,
+     "20790": 295,
+     "20791": 303,
+     "20792": 308,
+     "20793": 144
+    },
+    "roomsPerUTCDate": {
+     "20786": 199,
+     "20787": 347,
+     "20788": 349,
+     "20789": 363,
+     "20790": 337,
+     "20791": 355,
+     "20792": 358,
+     "20793": 178
+    },
+    "guaranteedWinsUpper": {
+     "BASE": 15864,
+     "V2-CONS": 23744,
+     "V2-BAL": 31168,
+     "V2-EXP": 41568
+    }
+   },
+   "shared": {
+    "groups": {
+     "early": {
+      "attempts": 352,
+      "admitted": 0,
+      "account": 0,
+      "aiGlobal": 352,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "late": {
+      "attempts": 944,
+      "admitted": 700,
+      "account": 0,
+      "aiGlobal": 244,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "long": {
+      "attempts": 1120,
+      "admitted": 100,
+      "account": 280,
+      "aiGlobal": 740,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "other": {
+      "attempts": 350,
+      "admitted": 350,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     }
+    },
+    "aisPerUTCDate": {
+     "20786": 100,
+     "20787": 100,
+     "20788": 100,
+     "20789": 100,
+     "20790": 100,
+     "20791": 100,
+     "20792": 100,
+     "20793": 100
+    },
+    "roomsPerUTCDate": {
+     "20786": 119,
+     "20787": 151,
+     "20788": 153,
+     "20789": 149,
+     "20790": 142,
+     "20791": 152,
+     "20792": 150,
+     "20793": 134
+    },
+    "guaranteedWinsUpper": {
+     "BASE": 6840,
+     "V2-CONS": 10540,
+     "V2-BAL": 13620,
+     "V2-EXP": 17680
+    }
+   }
+  },
+  {
+   "users": 40,
+   "otherPerDay": 250,
+   "accountOnly": {
+    "groups": {
+     "early": {
+      "attempts": 365,
+      "admitted": 365,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "late": {
+      "attempts": 899,
+      "admitted": 899,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "long": {
+      "attempts": 1120,
+      "admitted": 840,
+      "account": 280,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "other": {
+      "attempts": 1750,
+      "admitted": 1750,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     }
+    },
+    "aisPerUTCDate": {
+     "20786": 180,
+     "20787": 300,
+     "20788": 298,
+     "20789": 304,
+     "20790": 293,
+     "20791": 298,
+     "20792": 301,
+     "20793": 130
+    },
+    "roomsPerUTCDate": {
+     "20786": 279,
+     "20787": 539,
+     "20788": 560,
+     "20789": 542,
+     "20790": 535,
+     "20791": 566,
+     "20792": 537,
+     "20793": 296
+    },
+    "guaranteedWinsUpper": {
+     "BASE": 15576,
+     "V2-CONS": 23296,
+     "V2-BAL": 30592,
+     "V2-EXP": 40832
+    }
+   },
+   "shared": {
+    "groups": {
+     "early": {
+      "attempts": 365,
+      "admitted": 0,
+      "account": 0,
+      "aiGlobal": 60,
+      "allGlobal": 305,
+      "concurrent": 0
+     },
+     "late": {
+      "attempts": 899,
+      "admitted": 700,
+      "account": 0,
+      "aiGlobal": 199,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "long": {
+      "attempts": 1120,
+      "admitted": 100,
+      "account": 280,
+      "aiGlobal": 457,
+      "allGlobal": 283,
+      "concurrent": 0
+     },
+     "other": {
+      "attempts": 1750,
+      "admitted": 1465,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 285,
+      "concurrent": 0
+     }
+    },
+    "aisPerUTCDate": {
+     "20786": 100,
+     "20787": 100,
+     "20788": 100,
+     "20789": 100,
+     "20790": 100,
+     "20791": 100,
+     "20792": 100,
+     "20793": 100
+    },
+    "roomsPerUTCDate": {
+     "20786": 199,
+     "20787": 300,
+     "20788": 300,
+     "20789": 300,
+     "20790": 300,
+     "20791": 300,
+     "20792": 300,
+     "20793": 266
+    },
+    "guaranteedWinsUpper": {
+     "BASE": 6840,
+     "V2-CONS": 10540,
+     "V2-BAL": 13620,
+     "V2-EXP": 17680
+    }
+   }
+  },
+  {
+   "users": 120,
+   "otherPerDay": 50,
+   "accountOnly": {
+    "groups": {
+     "early": {
+      "attempts": 1040,
+      "admitted": 1040,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "late": {
+      "attempts": 2775,
+      "admitted": 2775,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "long": {
+      "attempts": 2800,
+      "admitted": 2100,
+      "account": 700,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "other": {
+      "attempts": 350,
+      "admitted": 350,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     }
+    },
+    "aisPerUTCDate": {
+     "20786": 452,
+     "20787": 842,
+     "20788": 849,
+     "20789": 846,
+     "20790": 846,
+     "20791": 858,
+     "20792": 823,
+     "20793": 399
+    },
+    "roomsPerUTCDate": {
+     "20786": 466,
+     "20787": 896,
+     "20788": 901,
+     "20789": 895,
+     "20790": 893,
+     "20791": 915,
+     "20792": 871,
+     "20793": 428
+    },
+    "guaranteedWinsUpper": {
+     "BASE": 44835,
+     "V2-CONS": 67410,
+     "V2-BAL": 88270,
+     "V2-EXP": 117145
+    }
+   },
+   "shared": {
+    "groups": {
+     "early": {
+      "attempts": 1040,
+      "admitted": 0,
+      "account": 0,
+      "aiGlobal": 1040,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "late": {
+      "attempts": 2775,
+      "admitted": 700,
+      "account": 0,
+      "aiGlobal": 2075,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "long": {
+      "attempts": 2800,
+      "admitted": 100,
+      "account": 700,
+      "aiGlobal": 2000,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "other": {
+      "attempts": 350,
+      "admitted": 350,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     }
+    },
+    "aisPerUTCDate": {
+     "20786": 100,
+     "20787": 100,
+     "20788": 100,
+     "20789": 100,
+     "20790": 100,
+     "20791": 100,
+     "20792": 100,
+     "20793": 100
+    },
+    "roomsPerUTCDate": {
+     "20786": 114,
+     "20787": 154,
+     "20788": 152,
+     "20789": 149,
+     "20790": 147,
+     "20791": 157,
+     "20792": 148,
+     "20793": 129
+    },
+    "guaranteedWinsUpper": {
+     "BASE": 7170,
+     "V2-CONS": 11145,
+     "V2-BAL": 14335,
+     "V2-EXP": 18400
+    }
+   }
+  },
+  {
+   "users": 120,
+   "otherPerDay": 250,
+   "accountOnly": {
+    "groups": {
+     "early": {
+      "attempts": 1042,
+      "admitted": 1042,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "late": {
+      "attempts": 2767,
+      "admitted": 2767,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "long": {
+      "attempts": 2800,
+      "admitted": 2100,
+      "account": 700,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     },
+     "other": {
+      "attempts": 1750,
+      "admitted": 1750,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 0,
+      "concurrent": 0
+     }
+    },
+    "aisPerUTCDate": {
+     "20786": 452,
+     "20787": 839,
+     "20788": 855,
+     "20789": 844,
+     "20790": 842,
+     "20791": 856,
+     "20792": 838,
+     "20793": 383
+    },
+    "roomsPerUTCDate": {
+     "20786": 545,
+     "20787": 1099,
+     "20788": 1104,
+     "20789": 1107,
+     "20790": 1064,
+     "20791": 1119,
+     "20792": 1086,
+     "20793": 535
+    },
+    "guaranteedWinsUpper": {
+     "BASE": 44781,
+     "V2-CONS": 67326,
+     "V2-BAL": 88162,
+     "V2-EXP": 117007
+    }
+   },
+   "shared": {
+    "groups": {
+     "early": {
+      "attempts": 1042,
+      "admitted": 0,
+      "account": 0,
+      "aiGlobal": 152,
+      "allGlobal": 890,
+      "concurrent": 0
+     },
+     "late": {
+      "attempts": 2767,
+      "admitted": 700,
+      "account": 0,
+      "aiGlobal": 2066,
+      "allGlobal": 0,
+      "concurrent": 1
+     },
+     "long": {
+      "attempts": 2800,
+      "admitted": 100,
+      "account": 700,
+      "aiGlobal": 1300,
+      "allGlobal": 700,
+      "concurrent": 0
+     },
+     "other": {
+      "attempts": 1750,
+      "admitted": 1445,
+      "account": 0,
+      "aiGlobal": 0,
+      "allGlobal": 305,
+      "concurrent": 0
+     }
+    },
+    "aisPerUTCDate": {
+     "20786": 100,
+     "20787": 100,
+     "20788": 100,
+     "20789": 100,
+     "20790": 100,
+     "20791": 100,
+     "20792": 100,
+     "20793": 100
+    },
+    "roomsPerUTCDate": {
+     "20786": 193,
+     "20787": 300,
+     "20788": 300,
+     "20789": 300,
+     "20790": 300,
+     "20791": 300,
+     "20792": 300,
+     "20793": 252
+    },
+    "guaranteedWinsUpper": {
+     "BASE": 7170,
+     "V2-CONS": 11145,
+     "V2-BAL": 14335,
+     "V2-EXP": 18400
+    }
+   }
+  }
+ ]
+}

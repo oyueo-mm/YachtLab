@@ -1,14 +1,16 @@
 /**
  * Economy v2 report tables + figures — `npx tsx scripts/economy/v2/report.ts`.
- * Reads docs/economy/v2/results/*.json (from run.ts / analytics.ts) and writes
+ * Reads the verified E0–E7 replay (optional path argument) and writes
  * docs/economy/v2/RESULTS-V2-GENERATED.md and docs/economy/v2/figures/*.svg. No simulation here.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { BOOSTERS, POLICIES, SENSITIVITY, SINGLE } from "../../../src/economy/v2/candidates";
 
 const DIR = fileURLToPath(new URL("../../../docs/economy/v2/", import.meta.url));
-const load = (f: string) => JSON.parse(readFileSync(DIR + "results/" + f, "utf8"));
+const replay = resolve(process.argv[2] ?? DIR + "codex/replay/");
+const load = (f: string) => JSON.parse(readFileSync(resolve(replay, f), "utf8"));
 type Med = { median: number | null; lo: number | null; hi: number | null; reached: number };
 type St = { mean: number; se: number; p10: number; p50: number; p90: number };
 type Cell = Record<string, any>;
@@ -16,7 +18,6 @@ const E: Record<string, Record<string, Cell>> = {};
 for (const e of ["E0", "E1", "E2", "E3", "E4", "E5", "E6", "E7"]) E[e] = load(`${e}.json`).cells;
 const meta = load("meta.json");
 const pop = load("population.json").populations;
-const an = load("analytics.json");
 
 const md = (m: Med | undefined, unit = "") => (!m ? "–" : m.median === null ? `미도달(${Math.round(m.reached * 100)}%)` : `${fmt(m.median)}${unit}`);
 const mdci = (m: Med) => (m.median === null ? md(m) : `${fmt(m.median)} [${m.lo ?? "–"}–${m.hi ?? "∞"}]`);
@@ -33,9 +34,9 @@ const table = (head: string[], rows: (string | number)[][]) => {
 };
 
 out(
-  "# 경제 v2 연구 — 자동 생성 결과표",
+  "# 경제 v2 연구 — 역사적 E0~E7 독립 재실행",
   "",
-  `> \`scripts/economy/v2/run.ts\` + \`analytics.ts\` → \`report.ts\`. 시드 ${meta.seed}(개발 시드, 홀드아웃 아님), 시작 ${meta.t0}, 작업 ${meta.jobs}개, 시뮬레이션 사용자 ${meta.players.toLocaleString("en-US")}명, ${meta.threads}스레드 ${meta.seconds}초 (${meta.cpu}, Node ${meta.node}).`,
+  `> E0~E7 개발 실험 정의의 재실행. 시드 ${meta.seeds?.join(", ") ?? "20261127, 20261128"}, 시작 ${meta.t0}, 작업 ${meta.jobs}개, 시뮬레이션 사용자 ${meta.players.toLocaleString("en-US")}명, Node ${meta.node}. 자료 [독립 재실행](codex/replay) 및 [최종 경제 연구](../ECONOMY-V2-RESEARCH.md).`,
   "> 모든 사용자 행동 수치는 **가정**(실측 아님). 값은 셀별 사용자 표본의 중앙값(대괄호: 이항 순서통계량 95% 구간) 또는 평균 ±1.96·SE. 기존 사용자 = 현행 경제로 60일 플레이 후 전환.",
   "",
 );
@@ -166,17 +167,8 @@ for (const [k, c] of Object.entries(E.E7)) {
 }
 table(["셀", "첫/다음 상품(분)", "90일 획득(평균±95%)", "90일 보유(중앙)"], stab);
 
-/* analytics */
-out("## A. 등급 재분류의 가격·강화·뽑기 영향 (정확 계산)", "");
-table(["상태", "상품", "등급", "코인", "보석", "Lv.3까지 강화 합", "뽑기 개별 확률(현행→확정→제안)"], an.changed.map((c: any) => {
-  const p = an.itemProbChange.find((x: any) => x.id === c.id);
-  return [c.status, `${c.name} (\`${c.id}\`)`, `${c.from}→${c.to}`, `${fmt(c.coins[0])}→${fmt(c.coins[1])}`, `${c.gems[0]}→${c.gems[1]}`, `${fmt(c.fullUpgrade[0] ?? 0)}→${fmt(c.fullUpgrade[1] ?? 0)}`, `${p.live}→${p.confirmed}→${p.proposed}`];
-}));
-table(["카탈로그", "일반 n/코인", "고급", "영웅", "전설", "신화", "코인 상품 전체", "강화 전체", "합계"], Object.entries(an.catalogTotals).map(([k, v]: [string, any]) => [k, ...["common", "rare", "epic", "legendary", "mythic"].map((t) => `${v.byTier[t].n} / ${fmt(v.byTier[t].coins)}`), fmt(v.coins), fmt(v.upgrades), fmt(v.all)]));
-table(["뽑기 풀", "일반 품목·개별 확률", "고급", "영웅", "전설", "신화", "1회 기대 정가(코인)", "정가/비용"], Object.entries(an.draws).map(([k, v]: [string, any]) => [k, ...["common", "rare", "epic", "legendary", "mythic"].map((t) => `${v.per[t].items} · ${v.per[t].pItem}`), fmt(v.expectedListValuePerDraw), v.valuePerCoin]));
-out(`채팅: 현행 판매 ${an.chatTotals.liveLines}줄 합계 ${fmt(an.chatTotals.liveCoins)}코인 → 제안 38줄(9/8/9/7/5, 현행 채팅 가격 비율 55% 적용 시) ${fmt(an.chatTotals.proposedCoins)}코인.`, "");
-table(["후보", "무작위 대전만 하루 최대", "서버 AI만", "친구만", "신규 7일 추가", "주간 퀘스트 합"], Object.entries(an.maxima).map(([k, v]: [string, any]) => [k, v.random, v.ai, v.friend, v.newUserBoost, v.weeklyQuests]));
-
+out("## 카탈로그 및 독립 정책 평가", "",
+  "[Rev.1·Rev.2 가격·강화·뽑기 확률](codex/catalog-and-draw.json) · [상한](codex/capacity.json) · [홀드아웃](codex/H1/summary.json).", "");
 writeFileSync(DIR + "RESULTS-V2-GENERATED.md", L.join("\n"));
 
 /* ------------------------------------------------------------------ figures ------------------------------------------------------------------ */
@@ -186,36 +178,6 @@ const css = `<style>
 @media (prefers-color-scheme:dark){.viz{--s:#191919;--t1:#efefef;--t2:#9c9c9c;--g:#333333;--a:#338ced;--b:#e76624;--n:#666666}}
 .bg{fill:var(--s)}.t1{fill:var(--t1)}.t2{fill:var(--t2)}.grid{stroke:var(--g)}.dot{fill:var(--n)}.front{fill:var(--a)}.pol{fill:var(--b)}.fl{stroke:var(--a);fill:none;stroke-width:2}
 </style>`;
-// Pareto: x = existing 60-min minutes to next item (log), y = catalog value owned by existing 480-min at 90 days
-type P = { id: string; label: string; x: number; y: number; pol: boolean };
-const pts: P[] = ALL.map((c) => {
-  const f = cell("E1", c.id, "t60", "existing").firstObtainMin as Med;
-  return { id: c.id, label: c.label, x: f.median ?? 5000, y: cell("E1", c.id, "t480", "existing").h[90].ownedValue.p50, pol: c.group === "정책안" };
-});
-const front = pts.filter((p) => !pts.some((q) => q.x <= p.x && q.y <= p.y && (q.x < p.x || q.y < p.y))).sort((a, b) => a.x - b.x);
-const W = 760, H = 460, ml = 70, mr = 20, mt = 40, mb = 50;
-const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
-const x0 = Math.log10(Math.max(1, Math.min(...xs) * 0.8)), x1 = Math.log10(Math.max(...xs) * 1.2);
-const y0 = Math.min(...ys) * 0.95, y1 = Math.max(...ys) * 1.03;
-const X = (v: number) => ml + ((Math.log10(Math.max(1, v)) - x0) / (x1 - x0)) * (W - ml - mr);
-const Y = (v: number) => H - mb - ((v - y0) / (y1 - y0)) * (H - mt - mb);
-const ticksX = [5, 10, 20, 50, 100, 200, 500, 1000].filter((t) => Math.log10(t) >= x0 && Math.log10(t) <= x1);
-const ticksY = Array.from({ length: 5 }, (_, i) => y0 + ((y1 - y0) * i) / 4);
-const svg = [
-  `<svg xmlns="http://www.w3.org/2000/svg" class="viz" viewBox="0 0 ${W} ${H}" role="img" aria-label="경제 v2 후보: 기존 사용자의 다음 상품까지 시간 대 장기 보유 가치">${css}`,
-  `<rect class="bg" width="${W}" height="${H}"/>`,
-  `<text class="t1" x="${ml}" y="20" font-weight="600">후보별 만족(왼쪽일수록 빠름) × 장기 가치(아래일수록 희소성 유지) — 파란 점선 = Pareto frontier</text>`,
-  ...ticksX.map((t) => `<line class="grid" x1="${X(t)}" x2="${X(t)}" y1="${mt}" y2="${H - mb}"/><text class="t2" x="${X(t)}" y="${H - mb + 16}" text-anchor="middle">${t}</text>`),
-  ...ticksY.map((t) => `<line class="grid" x1="${ml}" x2="${W - mr}" y1="${Y(t)}" y2="${Y(t)}"/><text class="t2" x="${ml - 6}" y="${Y(t) + 4}" text-anchor="end">${Math.round(t / 1000)}k</text>`),
-  `<text class="t2" x="${(W + ml) / 2}" y="${H - 12}" text-anchor="middle">기존 사용자(하루 60분)가 다음 상품을 얻기까지 플레이 분 (로그)</text>`,
-  `<text class="t2" transform="translate(16 ${(H + mt - mb) / 2}) rotate(-90)" text-anchor="middle">하루 8시간 기존 사용자 90일 보유 가치(코인)</text>`,
-  `<polyline class="fl" stroke-dasharray="5 4" points="${front.map((p) => `${X(p.x)},${Y(p.y)}`).join(" ")}"/>`,
-  ...pts.map((p) => `<circle class="${p.pol ? "pol" : front.includes(p) ? "front" : "dot"}" cx="${X(p.x)}" cy="${Y(p.y)}" r="${p.pol ? 6 : 4.5}" stroke="var(--s)" stroke-width="2"><title>${p.id} ${p.label}: ${fmt(p.x)}분, ${fmt(p.y)}코인</title></circle>`),
-  ...pts.filter((p) => p.pol || front.includes(p) || p.id === "BASE").map((p) => `<text class="t1" x="${X(p.x) + 8}" y="${Y(p.y) - 6}">${p.id}</text>`),
-  `</svg>`,
-].join("\n");
-writeFileSync(DIR + "figures/pareto.svg", svg);
-
 // Coin sources: horizontal stacked bars for BASE existing 30 days by play time (two-tone: match vs other faucets in neutral steps)
 const SRC = [["match", "경기", "var(--a)"], ["quest", "퀘스트", "var(--b)"], ["achievement", "업적", "#00b894"], ["other", "기타", "var(--n)"]] as const;
 const bars = [15, 30, 60, 120, 240, 480].map((m) => {

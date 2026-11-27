@@ -1,0 +1,164 @@
+{
+ "perUserSources": {
+  "default": {
+   "count": 200,
+   "perUser": {
+    "match": 144.125,
+    "quests:daily": 79.275,
+    "draw-duplicate": 8.75,
+    "quests:weekly": 45.5,
+    "a:l.finalyacht": 5.25,
+    "a:s.streak10": 2.45,
+    "a:x.300": 0,
+    "a:x.310": 0
+   }
+  },
+  "lowTraffic": {
+   "count": 200,
+   "perUser": {
+    "match": 111.98,
+    "quests:daily": 79.15,
+    "draw-duplicate": 7.125,
+    "a:a.win.500": 42,
+    "quests:weekly": 47.9,
+    "a:a.yacht.200": 40.25,
+    "a:s.270": 1.05
+   }
+  }
+ },
+ "matchedBoosterTraffic": {
+  "seed": 492035442,
+  "minutes": 30,
+  "age": 0,
+  "comparison": {
+   "none": {
+    "normal": {
+     "n": 100,
+     "extraCoins": 0,
+     "minuteUtilization": null,
+     "sessionUtilization": 0,
+     "queueMinutes": 56.91310365810084
+    },
+    "low": {
+     "n": 100,
+     "extraCoins": 0,
+     "minuteUtilization": null,
+     "sessionUtilization": 0,
+     "queueMinutes": 243.5013290039772
+    }
+   },
+   "time10x2": {
+    "normal": {
+     "n": 100,
+     "extraCoins": 430.71,
+     "minuteUtilization": 0.7959389999209259,
+     "sessionUtilization": 0.9703333333333334,
+     "queueMinutes": 56.91310365810084
+    },
+    "low": {
+     "n": 100,
+     "extraCoins": 198.63,
+     "minuteUtilization": 0.3913132417258029,
+     "sessionUtilization": 0.6106666666666667,
+     "queueMinutes": 243.5013290039772
+    }
+   },
+   "time30x2": {
+    "normal": {
+     "n": 100,
+     "extraCoins": 1025.3,
+     "minuteUtilization": 0.8160971697497557,
+     "sessionUtilization": 1,
+     "queueMinutes": 56.91310365810084
+    },
+    "low": {
+     "n": 100,
+     "extraCoins": 470.3,
+     "minuteUtilization": 0.3974698764678278,
+     "sessionUtilization": 0.884,
+     "queueMinutes": 243.5013290039772
+    }
+   },
+   "time60x2": {
+    "normal": {
+     "n": 100,
+     "extraCoins": 1307.53,
+     "minuteUtilization": 0.5973377379426632,
+     "sessionUtilization": 1,
+     "queueMinutes": 56.91310365810084
+    },
+    "low": {
+     "n": 100,
+     "extraCoins": 657.8,
+     "minuteUtilization": 0.3171078397533276,
+     "sessionUtilization": 0.9593333333333334,
+     "queueMinutes": 243.5013290039772
+    }
+   },
+   "match3x2": {
+    "normal": {
+     "n": 100,
+     "extraCoins": 906.42,
+     "minuteUtilization": null,
+     "sessionUtilization": 1,
+     "queueMinutes": 56.91310365810084
+    },
+    "low": {
+     "n": 100,
+     "extraCoins": 606.44,
+     "minuteUtilization": null,
+     "sessionUtilization": 0.9593333333333334,
+     "queueMinutes": 243.5013290039772
+    }
+   },
+   "auto3x2": {
+    "normal": {
+     "n": 100,
+     "extraCoins": 906.42,
+     "minuteUtilization": null,
+     "sessionUtilization": 1,
+     "queueMinutes": 56.91310365810084
+    },
+    "low": {
+     "n": 100,
+     "extraCoins": 606.44,
+     "minuteUtilization": null,
+     "sessionUtilization": 0.9593333333333334,
+     "queueMinutes": 243.5013290039772
+    }
+   },
+   "extra60": {
+    "normal": {
+     "n": 100,
+     "extraCoins": 1303.43,
+     "minuteUtilization": null,
+     "sessionUtilization": 1,
+     "queueMinutes": 56.91310365810084
+    },
+    "low": {
+     "n": 100,
+     "extraCoins": 657.8,
+     "minuteUtilization": null,
+     "sessionUtilization": 0.9593333333333334,
+     "queueMinutes": 243.5013290039772
+    }
+   },
+   "event": {
+    "normal": {
+     "n": 100,
+     "extraCoins": 340.45,
+     "minuteUtilization": null,
+     "sessionUtilization": 0.30966666666666665,
+     "queueMinutes": 56.91310365810084
+    },
+    "low": {
+     "n": 100,
+     "extraCoins": 177.09,
+     "minuteUtilization": null,
+     "sessionUtilization": 0.287,
+     "queueMinutes": 243.5013290039772
+    }
+   }
+  }
+ }
+}

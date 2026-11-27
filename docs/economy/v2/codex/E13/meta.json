@@ -1,0 +1,21 @@
+{
+ "generatedBy": "scripts/economy/v2/run.ts",
+ "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
+ "codeHash": "3550cf4ba97ea26bc82466fc2295f5bba2c563465dcca23f09383aa0682d1c32",
+ "settingsHash": "a29f5d279812ef58042527f111e8c4f532b43e98122a0799a3b8cc4390aceebb",
+ "seed": 20261127,
+ "seedNote": "E0–E7 development runs; E7 uses seed+1",
+ "rev": 2,
+ "t0": "2026-11-29T15:00:00.000Z",
+ "horizons": [
+  1,
+  7,
+  30,
+  90
+ ],
+ "warmupDays": 60,
+ "jobs": 10,
+ "players": 540,
+ "node": "v24.22.3",
+ "quick": false
+}
