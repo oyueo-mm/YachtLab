@@ -5,7 +5,7 @@
     "paidItems": 201,
     "coinCatalog": 661520,
     "gemCatalog": 44496,
-    "upgrades": 870120,
+    "upgrades": 864720,
     "drawListValue": 1237.465833151558
    },
    "byTier": {
@@ -135,12 +135,9 @@
      "tier": "rare",
      "coins": 900,
      "gems": 108,
-     "up": [
-      450,
-      900
-     ],
+     "up": null,
      "drawable": true,
-     "maxLevel": 3,
+     "maxLevel": 1,
      "rev": 1,
      "probability": 0.008037551440329605
     },
@@ -151,12 +148,9 @@
      "tier": "epic",
      "coins": 2700,
      "gems": null,
-     "up": [
-      1350,
-      2700
-     ],
+     "up": null,
      "drawable": true,
-     "maxLevel": 3,
+     "maxLevel": 1,
      "rev": 1,
      "probability": 0.00352254428341388
     },
@@ -15701,7 +15695,6 @@
      "gems": 66,
      "up": null,
      "drawable": true,
-     "defaultOwned": true,
      "maxLevel": 1,
      "rev": 2,
      "probability": 0.008387010198604805
@@ -20096,7 +20089,6 @@
      "gems": 66,
      "up": null,
      "drawable": true,
-     "defaultOwned": true,
      "maxLevel": 1,
      "rev": 2,
      "probability": 0.008573388203018244
@@ -32364,9 +32356,5 @@
    "text": "잘 부탁해요!",
    "id": "chat.good_luck"
   }
- ],
- "hours": [
-  5,
-  10
  ]
 }

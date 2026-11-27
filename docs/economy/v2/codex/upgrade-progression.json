@@ -1,0 +1,202 @@
+{
+ "seed": 873204727,
+ "duration": 90,
+ "n": 80,
+ "cells": {
+  "new-favorite": {
+   "BASE": {
+    "lv2": {
+     "median": 17,
+     "lo": 16,
+     "hi": 18,
+     "reached": 1
+    },
+    "lv3": {
+     "median": 21,
+     "lo": 19,
+     "hi": 22,
+     "reached": 1
+    },
+    "subsequentBuy": {
+     "median": 1,
+     "lo": 1,
+     "hi": 1,
+     "reached": 1
+    },
+    "level3Sample": 80
+   },
+   "C1-PRICE": {
+    "lv2": {
+     "median": 6,
+     "lo": 6,
+     "hi": 7,
+     "reached": 1
+    },
+    "lv3": {
+     "median": 11,
+     "lo": 10,
+     "hi": 12,
+     "reached": 1
+    },
+    "subsequentBuy": {
+     "median": 2,
+     "lo": 2,
+     "hi": 2,
+     "reached": 1
+    },
+    "level3Sample": 80
+   },
+   "C1-LOOP": {
+    "lv2": {
+     "median": 6,
+     "lo": 6,
+     "hi": 6,
+     "reached": 1
+    },
+    "lv3": {
+     "median": 10,
+     "lo": 9,
+     "hi": 11,
+     "reached": 1
+    },
+    "subsequentBuy": {
+     "median": 2,
+     "lo": 2,
+     "hi": 3,
+     "reached": 1
+    },
+    "level3Sample": 80
+   }
+  },
+  "new-upgrader": {
+   "BASE": {
+    "lv2": {
+     "median": 0,
+     "lo": 0,
+     "hi": 1,
+     "reached": 1
+    },
+    "lv3": {
+     "median": 2,
+     "lo": 2,
+     "hi": 2,
+     "reached": 1
+    },
+    "subsequentBuy": {
+     "median": 1,
+     "lo": 0,
+     "hi": 1,
+     "reached": 1
+    },
+    "level3Sample": 80
+   },
+   "C1-PRICE": {
+    "lv2": {
+     "median": 0,
+     "lo": 0,
+     "hi": 0,
+     "reached": 1
+    },
+    "lv3": {
+     "median": 2,
+     "lo": 2,
+     "hi": 2,
+     "reached": 1
+    },
+    "subsequentBuy": {
+     "median": 0,
+     "lo": 0,
+     "hi": 0,
+     "reached": 1
+    },
+    "level3Sample": 80
+   },
+   "C1-LOOP": {
+    "lv2": {
+     "median": 0,
+     "lo": 0,
+     "hi": 0,
+     "reached": 1
+    },
+    "lv3": {
+     "median": 1,
+     "lo": 1,
+     "hi": 1,
+     "reached": 1
+    },
+    "subsequentBuy": {
+     "median": 0,
+     "lo": 0,
+     "hi": 0,
+     "reached": 1
+    },
+    "level3Sample": 80
+   }
+  },
+  "existing-upgrader": {
+   "BASE": {
+    "lv2": {
+     "median": 9,
+     "lo": 7,
+     "hi": 12,
+     "reached": 1
+    },
+    "lv3": {
+     "median": 9,
+     "lo": 5,
+     "hi": 11,
+     "reached": 1
+    },
+    "subsequentBuy": {
+     "median": 11,
+     "lo": 6,
+     "hi": 13,
+     "reached": 1
+    },
+    "level3Sample": 80
+   },
+   "C1-PRICE": {
+    "lv2": {
+     "median": 5,
+     "lo": 3,
+     "hi": 8,
+     "reached": 1
+    },
+    "lv3": {
+     "median": 8,
+     "lo": 5,
+     "hi": 10,
+     "reached": 1
+    },
+    "subsequentBuy": {
+     "median": 12,
+     "lo": 10,
+     "hi": 13,
+     "reached": 1
+    },
+    "level3Sample": 80
+   },
+   "C1-LOOP": {
+    "lv2": {
+     "median": 4,
+     "lo": 3,
+     "hi": 8,
+     "reached": 1
+    },
+    "lv3": {
+     "median": 7,
+     "lo": 4,
+     "hi": 9,
+     "reached": 1
+    },
+    "subsequentBuy": {
+     "median": 12,
+     "lo": 11,
+     "hi": 12,
+     "reached": 1
+    },
+    "level3Sample": 80
+   }
+  }
+ }
+}

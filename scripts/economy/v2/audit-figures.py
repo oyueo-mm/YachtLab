@@ -84,3 +84,33 @@ if (root / "E9/E9.json").exists():
     ax.set_xlabel("Average coins on the four-hour budget day (Rev.2)")
     ax.legend(frameon=False)
     save(fig, "four-hour-sources.svg")
+
+e8 = list(load("E8/E8.json")["cells"].values())
+c_levels, r_levels = [50, 60, 70, 80], [55, 70, 85]
+e8_time = {x["candidate"]: x["h"]["30"]["audit"]["firstDirect"]["median"]
+           for x in e8 if x["scenario"] == "existing60"}
+grid = [[e8_time[f"C1-A{c}-{r}"] for r in r_levels] for c in c_levels]
+fig, ax = plt.subplots(figsize=(5.0, 4.0))
+image = ax.imshow(grid, cmap="Blues", vmin=0)
+for i, row in enumerate(grid):
+    for j, value in enumerate(row):
+        ax.text(j, i, f"{value:.0f}", ha="center", va="center", color="white" if value > image.norm.vmax * 0.63 else "#0c4d54")
+ax.set(xlabel="Rare price (% of baseline)", ylabel="Common price (% of baseline)",
+       xticks=range(len(r_levels)), xticklabels=r_levels, yticks=range(len(c_levels)), yticklabels=c_levels)
+fig.colorbar(image, ax=ax, label="Existing players: first direct purchase (min)")
+save(fig, "price-grid.svg")
+
+if (root / "E13/E13.json").exists():
+    cells = [c for c in load("E13/E13.json")["cells"].values() if c["scenario"] == "new180"]
+    fig, ax = plt.subplots(figsize=(7.7, 4.15))
+    colors = {"BASE": "#0d646e", "C1-PRICE": "#a0491a", "C1-LOOP": "#7055a4", "C1-LONG": "#6f7750", "V2-EXP": "#657490"}
+    for cell in cells:
+        p = cell["candidate"]
+        horizon = [1, 7, 30, 90, 180]
+        ax.plot(horizon, [cell["h"][str(h)]["owned"]["mean"] for h in horizon], marker="o", color=colors[p], label=p,
+                alpha=0.8 if p != "C1-PRICE" else 1, linewidth=2.2 if p == "C1-PRICE" else 1.2,
+                linestyle="-" if p in ("BASE", "C1-PRICE", "V2-EXP") else "--")
+    ax.set(xlabel="Days", ylabel="Mean items owned (new 60-minute cohort)", xticks=[1, 30, 90, 180])
+    ax.legend(frameon=False)
+    ax.grid(alpha=0.2)
+    save(fig, "ownership-180.svg")

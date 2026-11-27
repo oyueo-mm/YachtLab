@@ -1,10 +1,13 @@
 {
  "generatedBy": "scripts/economy/v2/run.ts",
  "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
- "codeHash": "3550cf4ba97ea26bc82466fc2295f5bba2c563465dcca23f09383aa0682d1c32",
+ "codeHash": "05dd49d27daf1e276bbcc90955bc0331e1daab271add6784d09e7358081e89e2",
  "settingsHash": "0cd918f229245a0da5ae1bcad181c3c63fb1b7d4545b23c3765d71334fc241c1",
- "seed": 20261127,
- "seedNote": "E0–E7 development runs; E7 uses seed+1",
+ "seed": 630736503,
+ "seeds": [
+  630736503
+ ],
+ "seedNote": "Development experiments; see the per-cell settings",
  "rev": 2,
  "t0": "2026-11-29T15:00:00.000Z",
  "horizons": [

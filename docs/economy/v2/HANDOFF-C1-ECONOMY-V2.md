@@ -1,4 +1,6 @@
-# C1 경제 v2 연구 — Codex 인수인계 (2026-11-27)
+# C1 경제 v2 연구 — Claude 이관 기록 (2026-11-27)
+
+최신 C1 정책 평가와 C5 계약은 [독립 연구 보고서](../ECONOMY-V2-RESEARCH.md) 및 [C5 인수인계](HANDOFF-C5-ECONOMY-V2.md)에 있다. 이 문서의 실행·결함 기록은 Claude 연구 커밋 기준이다.
 
 > 브랜치 `claude/festive-cori-ilmlfk`(기준 main `d8a24a8`). **main 병합·운영 배포·경제 정책 변경을 하지 않았다.** `src/economy/live/*`, `worker/src/*`, 가격표·보상·뽑기 확률은 그대로다. 실제 부스터 기능은 없다.
 > 보고서 초안: [ECONOMY-V2-RESEARCH.md](../ECONOMY-V2-RESEARCH.md) · 자동 생성 표: [RESULTS-V2-GENERATED.md](./RESULTS-V2-GENERATED.md).

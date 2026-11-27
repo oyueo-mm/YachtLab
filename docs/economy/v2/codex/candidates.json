@@ -191,6 +191,1505 @@
   },
   "tierMap": "live"
  },
+ "BASE+auto3x2": {
+  "id": "BASE+auto3x2",
+  "label": "현행 M3i-W30@2 + 자동 적용 하루 첫 3경기 ×2",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "auto",
+   "matches": 3,
+   "mult": 2,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "BASE+coupon": {
+  "id": "BASE+coupon",
+  "label": "현행 M3i-W30@2 + 대체: 무료 뽑기 1/일 + 주 1회 30% 할인",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "coupon",
+   "freeDrawsPerDay": 1,
+   "discountPct": 30,
+   "discountPerWeek": 1
+  },
+  "tierMap": "live"
+ },
+ "BASE+event": {
+  "id": "BASE+event",
+  "label": "현행 M3i-W30@2 + 서버 이벤트 금~일 20–22시 ×2",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "event",
+   "startHour": 20,
+   "endHour": 22,
+   "weekdays": [
+    5,
+    6,
+    0
+   ],
+   "mult": 2,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "BASE+extra60": {
+  "id": "BASE+extra60",
+  "label": "현행 M3i-W30@2 + 추가 획득량제 +60코인(×2)",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "extra",
+   "extraCoins": 60,
+   "mult": 2,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "BASE+match3x2": {
+  "id": "BASE+match3x2",
+  "label": "현행 M3i-W30@2 + 경기 횟수제 3경기 ×2",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "matches",
+   "matches": 3,
+   "mult": 2,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "BASE+match5x15": {
+  "id": "BASE+match5x15",
+  "label": "현행 M3i-W30@2 + 경기 횟수제 5경기 ×1.5",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "matches",
+   "matches": 5,
+   "mult": 1.5,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "BASE+none": {
+  "id": "BASE+none",
+  "label": "현행 M3i-W30@2 + 미도입",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "none"
+  },
+  "tierMap": "live"
+ },
+ "BASE+time10x1.5": {
+  "id": "BASE+time10x1.5",
+  "label": "현행 M3i-W30@2 + 시간제 10분 ×1.5",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "time",
+   "minutes": 10,
+   "mult": 1.5,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "BASE+time10x2": {
+  "id": "BASE+time10x2",
+  "label": "현행 M3i-W30@2 + 시간제 10분 ×2",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "time",
+   "minutes": 10,
+   "mult": 2,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "BASE+time15x1.5": {
+  "id": "BASE+time15x1.5",
+  "label": "현행 M3i-W30@2 + 시간제 15분 ×1.5",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "time",
+   "minutes": 15,
+   "mult": 1.5,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "BASE+time15x2": {
+  "id": "BASE+time15x2",
+  "label": "현행 M3i-W30@2 + 시간제 15분 ×2",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "time",
+   "minutes": 15,
+   "mult": 2,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "BASE+time30x1.5": {
+  "id": "BASE+time30x1.5",
+  "label": "현행 M3i-W30@2 + 시간제 30분 ×1.5",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "time",
+   "minutes": 30,
+   "mult": 1.5,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "BASE+time30x2": {
+  "id": "BASE+time30x2",
+  "label": "현행 M3i-W30@2 + 시간제 30분 ×2",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "time",
+   "minutes": 30,
+   "mult": 2,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "BASE+time60x1.5": {
+  "id": "BASE+time60x1.5",
+  "label": "현행 M3i-W30@2 + 시간제 60분 ×1.5",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "time",
+   "minutes": 60,
+   "mult": 1.5,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "BASE+time60x2": {
+  "id": "BASE+time60x2",
+  "label": "현행 M3i-W30@2 + 시간제 60분 ×2",
+  "group": "기준선",
+  "match": {
+   "random": {
+    "complete": 10,
+    "win": 3,
+    "draw": 2
+   },
+   "friend": {
+    "complete": 10,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 7,
+    "win": 2,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 3,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    15,
+    20,
+    30
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 15,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    70,
+    100,
+    130
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 70,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 1,
+   "rare": 1,
+   "epic": 1,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 25,
+   "dailyLimit": 5
+  },
+  "streakWeekly": null,
+  "collectionReward": null,
+  "starter": null,
+  "booster": {
+   "kind": "time",
+   "minutes": 60,
+   "mult": 2,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
  "C1-A50-55": {
   "id": "C1-A50-55",
   "label": "일반·고급 가격만",
@@ -6565,6 +8064,1775 @@
   },
   "booster": {
    "kind": "none"
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+auto3x2": {
+  "id": "V2-BAL+auto3x2",
+  "label": "균형형 + 자동 적용 하루 첫 3경기 ×2",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "auto",
+   "matches": 3,
+   "mult": 2,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+coupon": {
+  "id": "V2-BAL+coupon",
+  "label": "균형형 + 대체: 무료 뽑기 1/일 + 주 1회 30% 할인",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "coupon",
+   "freeDrawsPerDay": 1,
+   "discountPct": 30,
+   "discountPerWeek": 1
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+event": {
+  "id": "V2-BAL+event",
+  "label": "균형형 + 서버 이벤트 금~일 20–22시 ×2",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "event",
+   "startHour": 20,
+   "endHour": 22,
+   "weekdays": [
+    5,
+    6,
+    0
+   ],
+   "mult": 2,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+extra60": {
+  "id": "V2-BAL+extra60",
+  "label": "균형형 + 추가 획득량제 +60코인(×2)",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "extra",
+   "extraCoins": 60,
+   "mult": 2,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+match3x2": {
+  "id": "V2-BAL+match3x2",
+  "label": "균형형 + 경기 횟수제 3경기 ×2",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "matches",
+   "matches": 3,
+   "mult": 2,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+match5x15": {
+  "id": "V2-BAL+match5x15",
+  "label": "균형형 + 경기 횟수제 5경기 ×1.5",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "matches",
+   "matches": 5,
+   "mult": 1.5,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+none": {
+  "id": "V2-BAL+none",
+  "label": "균형형 + 미도입",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "none"
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+time10x1.5": {
+  "id": "V2-BAL+time10x1.5",
+  "label": "균형형 + 시간제 10분 ×1.5",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "time",
+   "minutes": 10,
+   "mult": 1.5,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+time10x2": {
+  "id": "V2-BAL+time10x2",
+  "label": "균형형 + 시간제 10분 ×2",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "time",
+   "minutes": 10,
+   "mult": 2,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+time15x1.5": {
+  "id": "V2-BAL+time15x1.5",
+  "label": "균형형 + 시간제 15분 ×1.5",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "time",
+   "minutes": 15,
+   "mult": 1.5,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+time15x2": {
+  "id": "V2-BAL+time15x2",
+  "label": "균형형 + 시간제 15분 ×2",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "time",
+   "minutes": 15,
+   "mult": 2,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+time30x1.5": {
+  "id": "V2-BAL+time30x1.5",
+  "label": "균형형 + 시간제 30분 ×1.5",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "time",
+   "minutes": 30,
+   "mult": 1.5,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+time30x2": {
+  "id": "V2-BAL+time30x2",
+  "label": "균형형 + 시간제 30분 ×2",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "time",
+   "minutes": 30,
+   "mult": 2,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+time60x1.5": {
+  "id": "V2-BAL+time60x1.5",
+  "label": "균형형 + 시간제 60분 ×1.5",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "time",
+   "minutes": 60,
+   "mult": 1.5,
+   "perDay": 1,
+   "dailyExtraCap": 150
+  },
+  "tierMap": "live"
+ },
+ "V2-BAL+time60x2": {
+  "id": "V2-BAL+time60x2",
+  "label": "균형형 + 시간제 60분 ×2",
+  "group": "정책안",
+  "match": {
+   "random": {
+    "complete": 20,
+    "win": 6,
+    "draw": 4
+   },
+   "friend": {
+    "complete": 20,
+    "win": 0,
+    "draw": 0
+   },
+   "ai": {
+    "complete": 14,
+    "win": 4,
+    "draw": 0
+   }
+  },
+  "daily": {
+   "fullMatches": 10,
+   "reducedUntil": 30,
+   "reducedCoins": 5,
+   "friendRewarded": 10,
+   "sameOpponentRewarded": 3,
+   "achievementMatches": 40,
+   "aiStarts": 30
+  },
+  "forfeitCompletionMinCategories": 6,
+  "newUser": {
+   "coins": 200,
+   "gems": 20,
+   "boostDays": 7,
+   "boostPerMatch": 5
+  },
+  "quests": {
+   "dailyCoins": [
+    23,
+    30,
+    45
+   ],
+   "dailyGems": [
+    0,
+    0,
+    0
+   ],
+   "dailyAllBonus": {
+    "coins": 23,
+    "gems": 1
+   },
+   "weeklyCoins": [
+    88,
+    125,
+    163
+   ],
+   "weeklyGems": [
+    2,
+    3,
+    5
+   ],
+   "weeklyAllBonus": {
+    "coins": 88,
+    "gems": 5
+   },
+   "dailyRerolls": 1
+  },
+  "achievementMult": 1,
+  "priceMult": {
+   "common": 0.6,
+   "rare": 0.7,
+   "epic": 0.85,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "upgradeMult": {
+   "common": 0.6,
+   "rare": 0.6,
+   "epic": 0.8,
+   "legendary": 1,
+   "mythic": 1
+  },
+  "draw": {
+   "cost": 250,
+   "duplicateCoins": 50,
+   "dailyLimit": 5
+  },
+  "streakWeekly": {
+   "thresholds": [
+    3,
+    5,
+    8
+   ],
+   "coins": [
+    15,
+    30,
+    50
+   ]
+  },
+  "collectionReward": {
+   "coins": 300,
+   "gems": 10
+  },
+  "starter": {
+   "firstPurchaseDiscountPct": 50,
+   "maxTier": "rare",
+   "freeDraws": 3
+  },
+  "booster": {
+   "kind": "time",
+   "minutes": 60,
+   "mult": 2,
+   "perDay": 1,
+   "dailyExtraCap": 150
   },
   "tierMap": "live"
  },
