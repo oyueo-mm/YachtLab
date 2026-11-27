@@ -13,9 +13,10 @@ export const GLYPH: Partial<Record<FxLook["shape"], string>> = { heart: "♥", s
  *  win    falls over the result card (each shape moves in its own way: petals sway, coins flip, ...)
  *  yacht  bursts outward from one point above the dice row
  *  large  lights up along the dice row from the 1st die to the 5th (a sweep, like the faces lighting up)
+ *  bonus  a fountain from the "BONUS!" label (upper-section bonus), the same shapes as the item
  */
-export type FxKind = "win" | "yacht" | "large";
-const COUNT: Record<FxKind, number> = { win: 26, yacht: 20, large: 15 };
+export type FxKind = "win" | "yacht" | "large" | "bonus";
+const COUNT: Record<FxKind, number> = { win: 26, yacht: 20, large: 15, bonus: 18 };
 
 /**
  * A special-effect burst of a `fx` item: DOM particles (≤26, ~1.8 s, pointer-events none — it never

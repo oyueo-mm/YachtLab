@@ -113,3 +113,50 @@ test("채팅 선택창: 등급별로 묶여 있고, 보내면 의미에 맞는 �
   await expect(msg).toHaveClass(/chat-t-legendary/);
   await expect(stage.locator(".dock-state")).not.toContainText("보내지 못했어요");
 });
+
+test("상단 보너스: 63점 도달 때 BONUS! +35점이 한 번만 나오고, 진행률이 강조되며, 다시 렌더링해도 반복하지 않고 입력을 막지 않는다", async ({ page }) => {
+  await withMotion(page);
+  await open(page);
+  const sec = page.locator('[aria-label="상단 보너스"]');
+  const stage = page.getByTestId("bonus-stage");
+  await expect(stage.locator(".bonus-pop")).toHaveCount(0); // nothing on open
+  await expect(stage.locator(".bonus-progress")).not.toHaveClass(/achieved/);
+  await sec.getByRole("button", { name: /63점/ }).click();
+  const pop = stage.locator(".bonus-pop");
+  await expect(pop).toBeVisible();
+  await expect(pop).toContainText("BONUS!");
+  await expect(pop).toContainText("+35점");
+  await expect(stage.locator(".bonus-progress")).toHaveClass(/achieved/);
+  await expect(stage.locator(".bonus-progress")).toHaveClass(/just/);
+  await expect(stage.locator(".fx-burst.fx-kind-bonus")).toHaveCount(1); // the shared effect renderer, default look (no item)
+  expect(await stage.locator(".bonus-moment").evaluate((n) => getComputedStyle(n).pointerEvents)).toBe("none");
+  // clicking the same state again must not replay it
+  const shown = await page.evaluate(() => (window as unknown as { __yachtlabBonus?: unknown[] }).__yachtlabBonus?.length ?? 0);
+  await sec.getByRole("button", { name: /63점/ }).click();
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => (window as unknown as { __yachtlabBonus?: unknown[] }).__yachtlabBonus?.length ?? 0)).toBe(shown);
+  await expect(pop).toHaveCount(0, { timeout: 4000 }); // it frees itself
+  // a new game re-arms it
+  await sec.getByRole("button", { name: "새 경기" }).click();
+  await sec.getByRole("button", { name: "상단 45점으로 되돌리기" }).click();
+  await sec.getByRole("button", { name: /63점/ }).click();
+  await expect(stage.locator(".bonus-pop")).toBeVisible();
+  // an equipped special effect (Lv.2+) gives the burst its shape
+  await sec.getByRole("button", { name: "새 경기" }).click();
+  await sec.getByRole("button", { name: "상단 45점으로 되돌리기" }).click();
+  await sec.locator("select").selectOption("fx.coins");
+  await sec.getByRole("button", { name: /63점/ }).click();
+  await expect(stage.locator(".fx-burst.fx-kind-bonus.fx-shape-coin")).toHaveCount(1);
+});
+
+test("상단 보너스: 동작 줄이기에서는 입자 없이 정지한 BONUS! 표시만 나온다", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("yachtlab.settings.v1", JSON.stringify({ muted: true, reducedEffects: true })));
+  await page.goto("?lab=1#cosmetics-lab");
+  await expect(page.locator(".cosm-lab")).toBeVisible();
+  const sec = page.locator('[aria-label="상단 보너스"]');
+  await sec.getByRole("button", { name: /63점/ }).click();
+  const moment = page.getByTestId("bonus-stage").locator(".bonus-moment");
+  await expect(moment).toHaveClass(/static/);
+  await expect(moment.locator(".bonus-pop b")).toHaveText("+35점");
+  await expect(moment.locator(".fx-burst")).toHaveCount(0);
+});

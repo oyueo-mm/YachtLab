@@ -32,6 +32,8 @@ export type Sfx =
   | "yachtHit"
   /** A large straight just came up: five rising notes, in step with the dice lighting up (softer and shorter than the yacht). */
   | "straightHit"
+  /** Upper-section bonus (+35): a coin clink and a rising three-note chime. */
+  | "bonusHit"
   /** Multi-player: first place shared with others. */
   | "winShared"
   /** Lv.3 special-effect items (presentation only). */
@@ -162,6 +164,7 @@ const busOf = (name: Sfx): SfxBus => {
     case "yacht":
     case "yachtHit":
     case "straightHit":
+    case "bonusHit":
     case "win":
     case "winShared":
     case "lose":
@@ -1031,6 +1034,13 @@ function dispatch(audio: BaseAudioContext, rawOut: AudioNode, name: Sfx, options
     case "straightHit": // large straight: five quick rising notes (in step with the dice glow), no chord tail
       [523.25, 587.33, 659.25, 783.99, 880].forEach((f, i) => tone(audio, out, t + i * STRAIGHT_STEP_S, f, 0.16, 0.12, "triangle"));
       tone(audio, out, t + 4 * STRAIGHT_STEP_S + 0.05, 1046.5, 0.3, 0.07, "sine");
+      break;
+    case "bonusHit": // upper bonus: a bright coin clink, then a rising major triad with a soft ring (distinct from the yacht sparkle and the straight run)
+      burst(audio, out, t, 0.03, 0.05, "highpass", 5200);
+      tone(audio, out, t, 1318.51, 0.1, 0.1, "triangle");
+      tone(audio, out, t + 0.07, 1760, 0.2, 0.09, "triangle");
+      notes(audio, out, t + 0.16, [659.25, 830.61, 987.77], 0.08, 0.22, 0.09, "sine");
+      tone(audio, out, t + 0.4, 1318.51, 0.45, 0.05, "sine");
       break;
     case "yachtHit": // five of a kind: a quick bright sparkle rising over a soft chord
       notes(audio, out, t, [783.99, 987.77, 1174.66, 1567.98, 1975.53], 0.045, 0.18, 0.11, "triangle");

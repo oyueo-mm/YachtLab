@@ -1,4 +1,5 @@
 import { useSettings } from "../settings";
+import { BonusMoments } from "../bonus-moment";
 import { BrandMark } from "../ui/BrandLoading";
 import { useEffect, useRef, useState } from "react";
 import { Eye, Home, Trophy, WifiOff } from "lucide-react";
@@ -186,6 +187,8 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
           )}
           <section className={"game-board throw-tray watch-board" + stage.theme.className} style={stage.theme.style} ref={boardRef} aria-label="게임 보드">
             {stage.look && <BoardFx itemId={stage.look.board} level={stage.look.boardLv ?? 1} host={boardRef} />}
+          <BonusMoments scope={view.matchId} players={players.map((x) => ({ id: x.playerId, name: x.name, card: x.card, mine: false, look: looks[x.playerId] }))} />
+            <BonusMoments scope={view.matchId} players={players.map((x) => ({ id: x.playerId, name: x.name, card: x.card, mine: false, look: looks[x.playerId] }))} />
             <div className="board-top">
               <span className="turn-indicator">
                 <i />

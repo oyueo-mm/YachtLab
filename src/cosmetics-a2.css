@@ -480,3 +480,7 @@
 :root[data-tab-hidden] .player-name[class*="namefx-"]::after,
 :root[data-tab-hidden] .player-title,
 :root[data-tab-hidden] .feed-msg[class*="bubble-"]::after { animation-play-state: paused !important; }
+
+.bonus-lab-sheet { width: 220px; border-radius: 10px; background: #fff; color: var(--ink); }
+.bonus-lab-sheet table { width: 100%; }
+.bonus-lab-sheet th, .bonus-lab-sheet td { padding: 8px 12px; text-align: left; font-size: 13px; }

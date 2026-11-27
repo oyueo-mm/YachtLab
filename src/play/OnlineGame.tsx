@@ -1,4 +1,5 @@
 import { BrandMark } from "../ui/BrandLoading";
+import { BonusMoments } from "../bonus-moment";
 import { MatchRewardSummary } from "../shell/MatchRewards";
 import { MatchResult } from "../ui/MatchResult";
 import { ShareResultButton } from "../ui/ShareResult";
@@ -673,6 +674,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
             {...gesture}
           >
             <Celebrate value={celebration} />
+            <BonusMoments scope={view.matchId} players={players.map((x) => ({ id: x.playerId, name: x.name, card: x.card, mine: x.playerId === me?.playerId, look: looks[x.playerId] }))} />
             <BoardFx itemId={stage.look?.board} level={stage.look?.boardLv ?? 1} host={boardRef} />
             <SynergyFx dice={stage.look?.dice} board={stage.look?.board} level={Math.min(stage.look?.diceLv ?? 1, stage.look?.boardLv ?? 1)} host={boardRef} />
             {intro && playing && me && opponent && (

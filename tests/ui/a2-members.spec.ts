@@ -203,3 +203,60 @@ test("동시 4인(회원 3 + 게스트 1): 각자 자기 보드판·주사위 �
   await expect(pages[1].locator(".roll-button")).toBeVisible({ timeout: 15_000 });
   await own(1);
 });
+
+/** The score sheet of a real 2/3/4-player room: every player column visible, no scroll, 12 rows + bonus + total in one screen. */
+for (const players of [2, 3, 4]) {
+  test(`${players}인 온라인 점수판: 참가자 열이 잘리지 않고 스크롤 없이 12족보·보너스·총점이 한 화면에 보인다 (1366×768 / 1280×720)`, async ({ browser }, info) => {
+    test.skip(info.project.name === "mobile", "desktop layout");
+    test.setTimeout(150_000);
+    const keys = ["a", "b", "c", null].slice(0, players);
+    const host = await device(browser, "a", { width: 1280, height: 720 });
+    await host.goto(entry());
+    await host.getByRole("tab", { name: "친구 대전" }).click();
+    if (players > 2) await host.getByLabel("최대 인원").selectOption(String(players));
+    await host.getByRole("button", { name: "방 만들기" }).click();
+    await expect(host.getByRole("heading", { name: "대기실" })).toBeVisible();
+    const code = (await host.getByLabel("초대 코드").textContent())!.trim();
+    const pages = [host];
+    for (const key of keys.slice(1)) {
+      const g = await device(browser, key, { width: 1366, height: 768 });
+      await g.goto(entry(code));
+      if (!key) await g.evaluate(() => { localStorage.setItem("yachtlab.online.name", "아주아주긴닉네임을가진게스트플레이어"); window.dispatchEvent(new Event("yachtlab-nickname")); });
+      await g.getByRole("button", { name: "입장하기" }).click();
+      if (players > 2) await g.getByRole("button", { name: "준비 완료" }).click();
+      pages.push(g);
+    }
+    await host.getByRole("button", { name: /게임 시작/ }).click();
+    for (const p of pages) await expect(p.locator(".scoreboard")).toBeVisible({ timeout: 15_000 });
+    for (const p of pages) {
+      const m = await p.evaluate(() => {
+        const sb = document.querySelector(".scoreboard") as HTMLElement;
+        const r = sb.getBoundingClientRect();
+        const heads = [...sb.querySelectorAll("thead th")].map((th) => th.getBoundingClientRect());
+        const scroller = sb.querySelector(".multi-score-scroll") as HTMLElement | null;
+        const rows = sb.querySelectorAll("tr[data-category]").length;
+        const total = sb.querySelector(".total-row")!.getBoundingClientRect();
+        const names = [...sb.querySelectorAll("thead th .col-name")].map((n) => ({ text: n.textContent, clipped: (n as HTMLElement).scrollWidth > (n as HTMLElement).clientWidth, title: n.parentElement?.getAttribute("title") }));
+        return {
+          vw: innerWidth, vh: innerHeight, left: r.left, right: r.right, top: r.top + scrollY, totalBottom: total.bottom + scrollY,
+          headsInside: heads.every((h) => h.left >= r.left - 1 && h.right <= r.right + 1 && h.width > 30),
+          xScroll: scroller ? scroller.scrollWidth - scroller.clientWidth : 0, yScroll: scroller ? scroller.scrollHeight - scroller.clientHeight : 0,
+          docX: document.documentElement.scrollWidth - innerWidth, docY: document.documentElement.scrollHeight - innerHeight,
+          rows, columns: heads.length - 1, names,
+        };
+      });
+      expect(m.columns).toBe(players);
+      expect(m.rows).toBe(12);
+      expect(m.headsInside).toBe(true);
+      expect(m.right).toBeLessThanOrEqual(m.vw);
+      expect(m.xScroll).toBeLessThanOrEqual(1);
+      expect(m.yScroll).toBeLessThanOrEqual(1);
+      expect(m.docX).toBeLessThanOrEqual(1);
+      expect(m.top).toBeLessThan(100); // the sheet starts at the content top
+      expect(m.totalBottom).toBeLessThanOrEqual(m.vh); // page coordinates: the total row is on screen without scrolling
+      for (const n of m.names) expect(n.title).toBe(n.text); // full name stays readable (tooltip) when ellipsized
+    }
+    if (players === 4) await pages[0].screenshot({ path: "docs/ui/a2-2026-11/after/online-4p-scoreboard-1280x720.png" });
+    if (players === 4) await pages[3].screenshot({ path: "docs/ui/a2-2026-11/after/online-4p-scoreboard-1366x768.png" });
+  });
+}

@@ -9,6 +9,9 @@ import { groupByTier, SocialDock, TableFeed, TIER_NAME, useTableChat } from "../
 import { GUEST_LOOK } from "../economy/live/catalog";
 import { chatMoodOf } from "../chat/chat-mood";
 import { playEmoteSfx, unlockAudio } from "../sound";
+import { BonusMoments } from "../bonus-moment";
+import { BonusProgress } from "../Scoreboard";
+import type { Card } from "../engine";
 
 /**
  * 꾸미기 미리보기 (A2, test environment). Everything here uses the SAME components as the game
@@ -63,6 +66,11 @@ export default function CosmeticsLab() {
     chats: [...FIXTURE_CHATS.slice(0, 6), ...FIXTURE_CHATS.filter((l) => ["대박!", "정말요?", "저런…", "요트 한 번만!", "멋지네요!", "아쉽네요"].includes(l.text))].map((l) => l.id),
     emotes: ["emote.smile", "emote.party", "emote.clap", "emote.thumbs_up"].map((id) => ({ id, lv: 1 })),
   }), [bubbleId, bubbleLv]);
+  const [bonusGame, setBonusGame] = useState(1);
+  const [bonusCard, setBonusCard] = useState<Card>({ aces: 3, deuces: 6, threes: 9, fours: 12, fives: 15 } as Card);
+  const [bonusFx, setBonusFx] = useState("");
+  const [bonusFxLv, setBonusFxLv] = useState(2);
+  const bonusLook = useMemo(() => ({ ...GUEST_LOOK, fx: bonusFx || "fx.none", fxLv: bonusFxLv }), [bonusFx, bonusFxLv]);
   const bubble = ITEMS.find((i) => i.id === bubbleId);
   const bubbleCss = bubble ? lookAt(bubble, bubbleLv).css ?? "" : "";
   const emote = SOCIAL_ITEMS.find((i) => i.id === emoteId)!;
@@ -144,6 +152,23 @@ export default function CosmeticsLab() {
         <div className="stage" data-testid="tag-stage">
           <div className="profile-card-sample"><PlayerTag name="요트왕" look={worn} me /></div>
           <div className="seat-dark" aria-label="게임 좌석 표시"><PlayerTag name="요트왕" look={worn} me tone="me" compact /></div>
+        </div>
+      </section>
+
+      <section aria-label="상단 보너스">
+        <h2>상단 보너스 <small>(63점 도달 시 한 번 · 아이템 없이도 재생)</small></h2>
+        <div className="row chips">
+          <button type="button" onClick={() => setBonusCard({ aces: 3, deuces: 6, threes: 9, fours: 12, fives: 15 } as Card)}>상단 45점으로 되돌리기</button>
+          <button type="button" onClick={() => setBonusCard({ aces: 3, deuces: 6, threes: 9, fours: 12, fives: 15, sixes: 18 } as Card)}>헥사 18점 기록 → 63점</button>
+          <button type="button" onClick={() => { setBonusGame((n) => n + 1); setBonusCard({} as Card); }}>새 경기</button>
+        </div>
+        <div className="row">
+          <Picker items={fxs} value={bonusFx} onChange={setBonusFx} label="장착한 특수 효과(Lv.2 이상에서 연동)" />
+          <div className="row chips" role="group" aria-label="특수 효과 단계">{LEVELS.map((l) => <button key={l} type="button" aria-pressed={bonusFxLv === l} onClick={() => setBonusFxLv(l)}>Lv.{l}</button>)}</div>
+        </div>
+        <div className="stage tall" data-testid="bonus-stage">
+          <BonusMoments scope={"lab-bonus-" + bonusGame} players={[{ id: "me", name: "나", card: bonusCard, mine: true, look: bonusLook }]} />
+          <div className="bonus-lab-sheet"><table><tbody><tr className="bonus-row"><th>상단 보너스</th><td><BonusProgress card={bonusCard} /></td></tr></tbody></table></div>
         </div>
       </section>
 

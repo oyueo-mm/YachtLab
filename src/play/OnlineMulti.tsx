@@ -1,4 +1,5 @@
 import { useSettings } from "../settings";
+import { BonusMoments } from "../bonus-moment";
 import { MatchResult } from "../ui/MatchResult";
 import { FirstTurnGuide } from "./Tutorial";
 import { MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
@@ -6,6 +7,7 @@ import { useRef, useState } from "react";
 import { Check, Crown, Dices, Flag, Play, RotateCcw, Timer, Wifi, WifiOff } from "lucide-react";
 import { categories, type Category } from "../engine";
 import type { MultiGame } from "../multi-engine";
+import "./multi-compact.css";
 import { MultiScoreboard } from "../MultiScoreboard";
 import { DiceArea } from "../DiceArea";
 import type { PlayerView } from "../online/server-engine";
@@ -239,7 +241,7 @@ export function MultiTable(p: {
   const timer = p.remaining !== null && view.status === "playing" ? `${Math.floor(Math.max(0, p.remaining) / 60000)}:${String(Math.ceil(Math.max(0, p.remaining) / 1000) % 60).padStart(2, "0")}` : null;
   const mine = rematchMine(p.rematch, p.me);
   return (
-    <div className="game-grid online-game online-multi">
+    <div className="game-grid online-game online-multi" style={{ "--np": players.length } as React.CSSProperties}>
       <div className="game-left">
         <div className="game-tools online-tools">
           <span className="online-code-chip">
@@ -260,6 +262,7 @@ export function MultiTable(p: {
         >
           <BoardFx itemId={stage.look?.board} level={stage.look?.boardLv ?? 1} host={boardRef} />
           <Celebrate value={p.celebration} />
+          <BonusMoments scope={view.matchId} players={players.map((x) => ({ id: x.playerId, name: x.name, card: x.card, mine: x.playerId === p.me, look: p.looks[x.playerId] }))} />
           <div className="board-top">
             <span className="turn-indicator">
               <i />
@@ -320,6 +323,7 @@ export function MultiTable(p: {
         <MultiScoreboard
           state={game}
           labels={labels}
+          compact
           focused={players.length > 8 && !all}
           select={p.can ? p.onSelectScore : undefined}
           selected={p.can ? p.selectedScore : null}

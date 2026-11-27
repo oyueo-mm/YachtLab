@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { BonusMoments } from "../bonus-moment";
 import { Dices, History, RotateCcw, Trophy } from "lucide-react";
 import { MatchResult } from "../ui/MatchResult";
 import ReviewLauncher from "../review/ReviewLauncher";
@@ -184,6 +185,7 @@ export default function SoloGame({ name, server, onLeave, onProgress, onRecords 
             {...gesture}
           >
             <Celebrate value={celebration} />
+            <BonusMoments scope={String(state.seed)} players={[{ id: "me", name, card, mine: true, look }]} />
             <BoardFx itemId={look.board} level={look.boardLv ?? 1} host={boardRef} />
             <SynergyFx dice={look.dice} board={look.board} level={Math.min(look.diceLv ?? 1, look.boardLv ?? 1)} host={boardRef} />
             <div className="board-top">
