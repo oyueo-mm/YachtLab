@@ -323,6 +323,13 @@ describe("C1 독립 감사 경계", () => {
     expect(index(chat).get("chat.learn")).toMatchObject({ coins: null, drawable: false });
   });
 
+  it("교정된 견적은 부동소수점 오차로 90보석의 70%를 62보석으로 내리지 않는다", () => {
+    const base = baselineParams();
+    const p = { ...base, priceMult: { ...base.priceMult, rare: 0.7 } };
+    expect(pricedCatalog(p, { audited: true }).find((item) => item.id === "emote.dice")!.gems).toBe(63);
+    expect(pricedCatalog(p).find((item) => item.id === "emote.dice")!.gems).toBe(62);
+  });
+
   it("30일 초과 코인/보석 보존, 보유 업적 및 서로 다른 시각의 전역 AI 제한과 계정 제한을 검증한다", () => {
     const p = baselineParams();
     const template = MAIN_PERSONAS.find((x) => x.minutesPerDay === 240)!;

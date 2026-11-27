@@ -53,6 +53,13 @@ export type PricedItem = {
 };
 
 const roundDown = (amount: number, unit: number) => Math.max(unit, Math.floor(amount / unit) * unit);
+/** Study multipliers are declared as decimals; audited quotes apply basis points before flooring. */
+function policyPrice(amount: number, factor: number, unit: number, audited: boolean) {
+  if (factor === 1) return amount;
+  return audited
+    ? Math.max(unit, Math.floor(amount * Math.round(factor * 10_000) / (unit * 10_000)) * unit)
+    : roundDown(amount * factor, unit);
+}
 
 export function tierOf(item: ItemDef, map: V2Params["tierMap"]): TierId {
   if (map === "live") return item.tier;
@@ -118,9 +125,9 @@ export function pricedCatalog(p: V2Params, options: CatalogOptions = {}): Priced
     const up = priced ? retieredUpgrade(item, tier, audited) : null;
     const price: PricedItem = {
       id: item.id, category: item.category, liveTier: item.tier, tier,
-      coins: c === null ? null : pm === 1 ? c : roundDown(c * pm, 5),
-      gems: g === null ? null : pm === 1 ? g : roundDown(g * pm, 1),
-      up: up === null ? null : [um === 1 ? up[0] : roundDown(up[0] * um, 5), up[1] === null || um2 === 1 ? up[1] : roundDown(up[1] * um2, 5)],
+      coins: c === null ? null : policyPrice(c, pm, 5, audited),
+      gems: g === null ? null : policyPrice(g, pm, 1, audited),
+      up: up === null ? null : [policyPrice(up[0], um, 5, audited), up[1] === null ? null : policyPrice(up[1], um2, 5, audited)],
       drawable: priced && !item.drawExcluded && (item.acquisition === "either" || item.acquisition === "coins"),
       ...(item.season ? { season: item.season } : {}),
       ...(item.acquisition === "default" ? { defaultOwned: true } : {}),
@@ -136,8 +143,8 @@ export function pricedCatalog(p: V2Params, options: CatalogOptions = {}): Priced
   }
   for (const { id, tier } of PROPOSED_CHAT) {
     const prev = byId.get(id);
-    const coins = roundDown(scaled(TIER_PRICES[tier].coins, 55, 5) * p.priceMult[tier], 5);
-    const gems = roundDown(scaled(TIER_PRICES[tier].gems, 55, 1) * p.priceMult[tier], 1);
+    const coins = policyPrice(scaled(TIER_PRICES[tier].coins, 55, 5), p.priceMult[tier], 5, audited);
+    const gems = policyPrice(scaled(TIER_PRICES[tier].gems, 55, 1), p.priceMult[tier], 1, audited);
     const price: PricedItem = {
       id, category: "chat", liveTier: prev?.liveTier ?? tier, tier, coins, gems,
       up: null, drawable: true, rev: 2, maxLevel: 1,
