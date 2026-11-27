@@ -1,0 +1,100 @@
+{
+ "base": "https://oyueo-mm.github.io/YachtLab/",
+ "version": {
+  "build": "ff1cf4b-mwyygkm7"
+ },
+ "at": "2026-11-27T12:33:55.929Z",
+ "env": "headless Chromium + SwiftShader (functional check, not a real device)",
+ "results": [
+  {
+   "name": "배포 빌드 확인 (version.json)",
+   "ok": "pass",
+   "detail": "{\"build\":\"ff1cf4b-mwyygkm7\"}"
+  },
+  {
+   "name": "주사위 굴림 (3D, 최종 눈 = 엔진 값)",
+   "ok": "pass",
+   "detail": "mode 3d finals {\"0\":3,\"1\":5,\"2\":6,\"3\":2,\"4\":4}"
+  },
+  {
+   "name": "주사위 hover 테두리 없음",
+   "ok": "pass",
+   "detail": "rgba(0, 0, 0, 0) → rgba(0, 0, 0, 0)"
+  },
+  {
+   "name": "고정·해제 (고정 주사위는 굴리지 않음)",
+   "ok": "pass",
+   "detail": "held true, rerolled 1,2,3,4, released false"
+  },
+  {
+   "name": "다음 던지기 물리 사전 계산 (Web Worker)",
+   "ok": "pass",
+   "detail": "prep: hit, hit"
+  },
+  {
+   "name": "페이지 오류 없음 (1인 플레이)",
+   "ok": "pass",
+   "detail": ""
+  },
+  {
+   "name": "AI 대전 주사위 연출 (AI 차례도 3D 물리)",
+   "ok": "pass",
+   "detail": "AI throws 3, modes 3d"
+  },
+  {
+   "name": "페이지 오류 없음 (AI 대전)",
+   "ok": "pass",
+   "detail": ""
+  },
+  {
+   "name": "보드판 Lv.1 (폭풍 번개)",
+   "ok": "pass",
+   "detail": "surface stone, canvases 0, frames +0"
+  },
+  {
+   "name": "보드판 Lv.2 (폭풍 번개)",
+   "ok": "pass",
+   "detail": "surface stone, canvases 1, frames +31"
+  },
+  {
+   "name": "보드판 Lv.3 (폭풍 번개)",
+   "ok": "pass",
+   "detail": "surface stone, canvases 1, frames +30, events roll/impact/land"
+  },
+  {
+   "name": "컬렉션 시너지 (용암: 이동 경로 그리기)",
+   "ok": "pass",
+   "detail": "data-synergy lava, inked 0.0057"
+  },
+  {
+   "name": "상점 미리보기 (Lv.1 없음 → Lv.2 → Lv.3 자동 굴림)",
+   "ok": "pass",
+   "detail": "Lv1 canvases 0, Lv2 2, Lv3 3, auto throws 1"
+  },
+  {
+   "name": "적응형 그래픽 품질 (데스크톱 단계 0 유지, 단계 2는 장식 캔버스만 낮춤)",
+   "ok": "pass",
+   "detail": "measured tier 0, board canvas px/CSS px 1.00 → tier2 0.80, dice still 3d"
+  },
+  {
+   "name": "모바일 레이아웃 (Pixel 7: 가로 넘침 없음, 굴리기 버튼 화면 안, 탭 고정, 점수판)",
+   "ok": "pass",
+   "detail": "overflowX 0, button in view true, tap hold true, sheet true"
+  },
+  {
+   "name": "Worker 응답 (/healthz, /api/auth/config)",
+   "ok": "pass",
+   "detail": "healthz 200 {\"ok\":true}, auth 200 {\"google\":true}"
+  },
+  {
+   "name": "온라인 대전 진입 화면 (빠른 대전 버튼, 친구 대전 방 만들기·참가 폼, 오류 없음; 방 생성·대전은 하지 않음)",
+   "ok": "pass",
+   "detail": "quick true, create true, join true, errors 0"
+  },
+  {
+   "name": "실제 온라인 대전 진행 (2인 접속·매칭)",
+   "ok": "unverified",
+   "detail": "운영 데이터에 방·전적을 만들지 않기 위해 실행하지 않음 — 미확인"
+  }
+ ]
+}
