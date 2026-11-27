@@ -12,6 +12,7 @@ import { PlayerTag } from "../play/Looks";
 import type { useProfileEconomy } from "./profile-economy";
 import "./navigation.css";
 import { useInbox } from "./Friends";
+import { LegalNav } from "../legal/LegalNav";
 
 export function FullscreenToggle() {
   const supported = typeof document !== "undefined" && !!document.fullscreenEnabled && !!document.documentElement.requestFullscreen;
@@ -146,6 +147,7 @@ export function SettingsDialog({ open, onClose, inGame = false }: { open: boolea
             <FullscreenToggle />
           </>}
           <p className="settings-footnote">변경 사항은 바로 이 브라우저에 저장돼요.</p>
+          <LegalNav className="settings-legal" onNavigate={onClose} />
         </section>
       </div>
     </Sheet>

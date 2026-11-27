@@ -5,7 +5,9 @@
  * The tier is a structural boundary only (lab screens live in src/lab and load lazily) so they
  * could become an optional plan later. No payment, subscription or access control exists.
  */
-export type Route = "home" | "tutorial" | "practice" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "solo" | "records" | "profile" | "account" | "shop" | "draw" | "inventory" | "quests" | "achievements" | "friends" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab" | "economy-lab" | "cosmetics-lab";
+import { LEGAL_VISIBLE, POLICY_ROUTES } from "./legal/release";
+
+export type Route = "home" | "tutorial" | "practice" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "solo" | "records" | "profile" | "account" | "shop" | "draw" | "inventory" | "quests" | "achievements" | "friends" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab" | "economy-lab" | "cosmetics-lab" | "privacy" | "terms" | "policy" | "contact" | "licenses";
 export type Shell = "lobby" | "game" | "lab" | "page";
 
 export const routes: Record<Route, { title: string; shell: Shell; tier: "core" | "lab" }> = {
@@ -30,6 +32,11 @@ export const routes: Record<Route, { title: string; shell: Shell; tier: "core" |
   quests: { title: "퀘스트", shell: "page", tier: "core" },
   achievements: { title: "업적", shell: "page", tier: "core" },
   friends: { title: "친구", shell: "page", tier: "core" },
+  privacy: { title: "개인정보 처리방침", shell: "page", tier: "core" },
+  terms: { title: "이용약관", shell: "page", tier: "core" },
+  policy: { title: "운영 정책", shell: "page", tier: "core" },
+  contact: { title: "문의·개인정보 권리 행사", shell: "page", tier: "core" },
+  licenses: { title: "오픈소스 라이선스", shell: "page", tier: "core" },
   lab: { title: "연구실", shell: "lab", tier: "lab" },
   watch: { title: "AI 대전 관전", shell: "lab", tier: "lab" },
   tournament: { title: "AI 토너먼트", shell: "lab", tier: "lab" },
@@ -44,6 +51,8 @@ export const labTools = ["watch", "tournament", "analysis", "dice-lab", "economy
 export const isRoute = (value: string): value is Route => Object.prototype.hasOwnProperty.call(routes, value);
 export const currentRoute = (): Route => {
   const id = location.hash.slice(1);
+  // Draft policy pages do not exist in a production build until the operator releases them.
+  if ((POLICY_ROUTES as readonly string[]).includes(id) && !LEGAL_VISIBLE) return "home";
   if (id !== "tutorial" && isRoute(id)) return id;
   // A watch link whose #spectate was dropped still opens the spectator screen.
   if (new URLSearchParams(location.search).get("watch")) return "spectate";

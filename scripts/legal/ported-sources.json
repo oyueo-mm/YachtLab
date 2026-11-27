@@ -1,0 +1,20 @@
+[
+ {
+  "name": "z7workbench/minigames (Yacht Dice AI)",
+  "license": "MIT",
+  "homepage": "https://github.com/z7workbench/minigames",
+  "commit": "42b744ec0a0251220ba599413a8aaf69595bffba",
+  "use": "AI 대전 상대 Z7 Hard·Medium의 판단 로직을 Dart에서 TypeScript로 이식(src/discovered-external.ts)",
+  "changes": "12칸 YachtLab 점수 규칙에 맞게 카테고리·점수 계산을 바꾸고, UI 지연을 없애고, 무작위 표본을 공개 상태 기반 결정적 표본으로 바꿨습니다.",
+  "licenseFile": "z7workbench-minigames.LICENSE"
+ },
+ {
+  "name": "jdh8/yahtzee-engine (heuristic)",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/jdh8/yahtzee-engine",
+  "commit": "f606c6188590b3fe68964d42665fb45e4cef2f28",
+  "use": "AI 대전 상대 RustHeuristic12의 판단 로직을 Rust에서 TypeScript로 이식(src/external-challengers.ts)",
+  "changes": "13칸 규칙의 쓰리 오브 어 카인드 칸을 없애고 YachtLab 12칸 점수와 3회 굴림 엔진으로 바꿨습니다. 원본의 기준 점수(par)는 다시 맞추지 않았습니다.",
+  "licenseFile": "jdh8-yahtzee-engine.LICENSE"
+ }
+]

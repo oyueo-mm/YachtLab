@@ -36,12 +36,17 @@ import { installShortcuts, ShortcutHelpHost } from "./ui/shortcuts";
 import { useUpdateAvailable } from "./version";
 import { diceRenderer } from "./settings";
 import { preloadDiceTableWhenIdle } from "./dice3d-loader";
+import { LEGAL_VISIBLE, POLICY_ROUTES, type PolicyRoute } from "./legal/release";
 import { aiMatchConfig, finalizeNames, getAiSetup, getLocalSetup, type AiMatchConfig, type LocalOrder } from "./setup";
 
 // Research tools are a separate, lazily loaded chunk (see routes.ts "lab" tier).
 const LabScreen = lazy(() => import("./lab/LabScreen"));
 const ItemsPage = lazy(() => import("./shell/EconomyPages").then((module) => ({ default: module.ItemsPage })));
 const QuestsPage = lazy(() => import("./shell/EconomyPages").then((module) => ({ default: module.QuestsPage })));
+const LicensesPage = lazy(() => import("./legal/LicensesPage"));
+// Draft policy texts: a production build without LEGAL_RELEASED does not contain this chunk at all.
+const LegalPage = LEGAL_VISIBLE ? lazy(() => import("./legal/LegalPage")) : null;
+const isPolicy = (page: Route): page is PolicyRoute => (POLICY_ROUTES as readonly string[]).includes(page);
 
 type LocalConfig = { players: string[]; order: LocalOrder };
 const localConfig = (): LocalConfig => {
@@ -329,6 +334,12 @@ export default function App() {
           </Suspense>
         )}
         {page === "friends" && <FriendsPage server={onlineServer} go={navigate} />}
+        {(page === "licenses" || (LegalPage && isPolicy(page))) && (
+          <Suspense fallback={<p className="econ-note" role="status"><BrandMark /> 불러오는 중…</p>}>
+            {page === "licenses" && <LicensesPage />}
+            {LegalPage && isPolicy(page) && <LegalPage route={page} />}
+          </Suspense>
+        )}
         {page === "spectate" && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "spectate" && onlineServer && (watchTarget ? <OnlineWatch key={watchTarget.code + watchTarget.key} server={onlineServer} code={watchTarget.code} watchKey={watchTarget.key} onLeave={() => navigate("home")} /> : (
           <p className="online-connecting" role="alert">

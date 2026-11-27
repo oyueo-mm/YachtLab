@@ -1,0 +1,169 @@
+/* Policy pages and the open-source notice (C4.3): plain reading layout on the existing page shell. */
+.legal-page {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  color: var(--ink);
+}
+.legal-page .page-heading {
+  margin-bottom: 18px;
+}
+.legal-draft {
+  margin: 0 0 18px;
+  padding: 10px 12px;
+  border: 1px solid #f2c94c;
+  border-radius: 10px;
+  background: #fff8e1;
+  color: #5c4500;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.legal-body {
+  font-size: 15px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.legal-body h2 {
+  margin: 28px 0 8px;
+  font-size: 18px;
+}
+.legal-body h3 {
+  margin: 20px 0 6px;
+  font-size: 16px;
+}
+.legal-body p,
+.legal-body ul,
+.legal-body ol {
+  margin: 0 0 10px;
+}
+.legal-body ul,
+.legal-body ol {
+  padding-left: 1.3em;
+}
+.legal-body ul {
+  list-style: disc;
+}
+.legal-body ol {
+  list-style: decimal;
+}
+.legal-body li + li {
+  margin-top: 4px;
+}
+.legal-body a,
+.legal-nav a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.legal-table-wrap {
+  margin: 8px 0 14px;
+  overflow-x: auto;
+}
+.legal-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.legal-body th,
+.legal-body td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.legal-body th {
+  background: var(--soft);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.legal-pending {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: #ffe8a3;
+  color: #5c4500;
+  font-size: 0.92em;
+}
+.license-item {
+  border-bottom: 1px solid var(--line);
+}
+.license-item summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  min-height: 44px;
+  padding: 10px 0;
+  cursor: pointer;
+}
+.license-item summary span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.license-item .license-kind {
+  margin-left: auto;
+}
+.license-item pre {
+  max-height: 320px;
+  margin: 0 0 12px;
+  padding: 12px;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--soft);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.legal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 32px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.legal-nav a,
+.lobby-legal a,
+.settings-legal a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  color: var(--muted);
+}
+.legal-nav a[aria-current="page"] {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+/* Home: a quiet line under the help links. */
+.lobby-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 12px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+.lobby-legal a,
+.settings-legal a,
+.profile-legal a {
+  text-decoration: none;
+}
+.lobby-legal a:hover,
+.settings-legal a:hover,
+.profile-legal a:hover {
+  text-decoration: underline;
+}
+.settings-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 12px;
+  font-size: 13px;
+}
+.profile-legal {
+  color: var(--muted);
+}
+.profile-legal a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
