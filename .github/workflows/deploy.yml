@@ -46,9 +46,8 @@ jobs:
         run: |
           if [ "$FORCE_FULL" = "true" ]; then echo "mode=full" >> "$GITHUB_OUTPUT"; echo "forced full"; exit 0; fi
           # An unreadable range (new branch, force push, shallow history) yields an empty list ⇒ full.
-          git diff --name-only "$BASE" "$HEAD" > /tmp/changed.txt 2>/dev/null || : > /tmp/changed.txt
-          echo "changed files:"; cat /tmp/changed.txt
-          node scripts/ci/classify-changes.mjs /tmp/changed.txt >> "$GITHUB_OUTPUT"
+          git diff --no-renames --name-only -z "$BASE" "$HEAD" > /tmp/changed-paths 2>/dev/null || : > /tmp/changed-paths
+          node scripts/ci/classify-changes.mjs /tmp/changed-paths >> "$GITHUB_OUTPUT"
           tail -n1 "$GITHUB_OUTPUT"
 
   unit:
@@ -180,7 +179,7 @@ jobs:
 
   deploy:
     needs: [scope, ci-result]
-    if: always() && github.event_name != 'pull_request' && github.event_name != 'schedule' && needs.ci-result.result == 'success' && needs.scope.outputs.mode != 'docs'
+    if: always() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.ci-result.result == 'success' && needs.scope.outputs.mode != 'docs'
     runs-on: ubuntu-latest
     permissions:
       pages: write

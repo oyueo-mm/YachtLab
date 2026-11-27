@@ -3,22 +3,55 @@ on:
   workflow_dispatch:
     inputs:
       free_plan_confirmed:
-        description: "I verified that this Cloudflare account uses Workers Free and does not have paid billing enabled."
+        description: "I verified Workers Free and that paid billing is disabled."
         required: true
         type: boolean
         default: false
+      reviewed_sha:
+        description: "Full main SHA reviewed for this release."
+        required: true
+        type: string
+      pages_build:
+        description: "Live Pages version.json build reviewed for Worker compatibility."
+        required: true
+        type: string
+      active_worker_version:
+        description: "Live Worker version UUID at 100%, confirmed as the rollback target."
+        required: true
+        type: string
+
 permissions:
   contents: read
 concurrency:
   group: yachtlab-online-worker-deploy
   cancel-in-progress: false
+
 jobs:
-  deploy:
-    if: ${{ inputs.free_plan_confirmed }}
+  verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
+      - name: Require an explicit release from main
+        env:
+          FREE_PLAN: ${{ inputs.free_plan_confirmed }}
+          REVIEWED_SHA: ${{ inputs.reviewed_sha }}
+          PAGES_BUILD: ${{ inputs.pages_build }}
+          EXPECTED_WORKER_VERSION: ${{ inputs.active_worker_version }}
+        shell: bash
+        run: |
+          [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_RUN_ATTEMPT" == 1 && "$FREE_PLAN" == true ]] ||
+            { echo 'Dispatch a new run against main with Workers Free confirmed.'; exit 1; }
+          [[ "$REVIEWED_SHA" == "$GITHUB_SHA" ]] ||
+            { echo 'The reviewed SHA must match the dispatched SHA.'; exit 1; }
+          [[ "$PAGES_BUILD" =~ ^[0-9a-f]{7,40}-[0-9a-z]+$ &&
+             "$EXPECTED_WORKER_VERSION" =~ ^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$ ]] ||
+            { echo 'Supply a valid Pages build ID and active Worker UUID.'; exit 1; }
+          printf '### Requested release\n\n- Commit: `%s`\n- Pages build: `%s`\n- Rollback version: `%s`\n' \
+            "$REVIEWED_SHA" "$PAGES_BUILD" "$EXPECTED_WORKER_VERSION" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -26,10 +59,37 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - name: Deploy only the existing yachtlab-online Worker
-        uses: cloudflare/wrangler-action@v4
+      - name: Validate the Worker bundle without Cloudflare credentials
+        env:
+          WRANGLER_SEND_METRICS: "false"
+        run: npx --no-install wrangler deploy --dry-run --config worker/wrangler.toml --outdir "$RUNNER_TEMP/worker-dry-run"
+
+  deploy:
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.run_attempt == '1' && inputs.free_plan_confirmed
+    environment: worker-production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Require operator enablement
+        env:
+          WORKER_DEPLOY_ENABLED: ${{ vars.WORKER_PRODUCTION_DEPLOY_ENABLED }}
+        run: |
+          test "$WORKER_DEPLOY_ENABLED" = true ||
+            { echo 'worker-production is disabled. Follow the release checklist.'; exit 1; }
+      - uses: actions/checkout@v4
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: worker
-          command: deploy --config wrangler.toml
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Release and record the existing yachtlab-online Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.WORKER_PRODUCTION_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.WORKER_PRODUCTION_ACCOUNT_ID }}
+          EXPECTED_WORKER_VERSION: ${{ inputs.active_worker_version }}
+          PAGES_BUILD: ${{ inputs.pages_build }}
+        run: node scripts/ci/deploy-online-worker.mjs
