@@ -250,6 +250,10 @@ Sixes·Choice 조건은 정책마다 50,000번 Monte Carlo 검산. **근거:** [
 
 헤드리스 Chromium + SwiftShader 에뮬레이션(실기기 아님), 같은 스크립트·같은 컨테이너, main `d8a24a8` → A1 `08c507b` → A1.1, 2회 × 9굴림. 폰(Pixel 7 에뮬레이션, CPU 4×): 번개 시너지 평균 프레임 116.8 → 25.0 → **22.1 ms**, 용암 시너지 88.3 → 26.3 → **21.6 ms**, 초원 시너지 26.0 → 24.3 → **19.3 ms**, 벚꽃 시너지 27.9 → 24.5 → **20.7 ms**, 초원 Lv.3 18.0 → 20.1 → **18.1 ms**. 시너지 탭→첫 프레임 p50 81~92 → 57~115 → **51~61 ms**. 용암 조합 물리 사전 계산 성공 main 6/18, A1 12/18 → A1.1 18/18(탭→첫 프레임 중앙값 84 / 79 → 56 ms). 데스크톱 모든 조합 평균 16.6~17.1 ms. 폰 Lv.3/시너지는 18~22 ms로 60 fps 미달. 원자료 `docs/perf/a11-*.json`, `docs/perf/a1-08c507b-*.json`, 표 [A1-DICE-BOARD §8.4](./A1-DICE-BOARD-2026-11-27.md).
 
+## 2026-11-27 A2 꾸미기·채팅 연출 성능 — 게임 AI 결과가 아님
+
+헤드리스 Chromium + SwiftShader 에뮬레이션(실기기 아님). A1.1 회귀: main `0939a27` vs A2, `scripts/measure-board-fx-perf.mjs` default/lava-synergy/thunder-synergy 2회×6굴림, 평균 프레임 16.6–17.7 ms로 시도 간 편차 이내(회귀 없음). 꾸미기 고부하 조합(Pixel 7 에뮬, CPU 4배): 평균 16.7–16.8 ms, p99 16.8, 33 ms 초과 0, CPU 기준선 ~8% → ~55%. 상세·한계는 [A2 §6](./A2-COSMETICS-CHAT-2026-11-27.md).
+
 ## 2026-11-25 Win DP v5 — 정확 PMF 롤아웃·정확 2인 종반 (연구 브랜치)
 
 상세·방법·한계: [V5-APEX-RESEARCH](./V5-APEX-RESEARCH.md). 규칙 12칸 YachtLab-12, `createGame(seed, true)`, 시드마다 좌석 교대 2경기, 승 1/무 0.5/패 0, 시드쌍 단위 99% 정규 근사 CI. 모델 커밋: 브랜치 `ccr-4b6d4930-6rem08`(코드 `f9093a3` 이후 알고리즘 불변, 이후 커밋은 평가·문서). 상대 v3 = `winDPv3Decision ?? DP Expert`(기본 Gaussian), v4-D = `src/ai.ts` 등록 구성(v3.3 pack 없음).
@@ -394,8 +398,3 @@ I2R vs v6-P 49.956%, I2R vs I1RO 49.900% (9105, 각 8,000경기, I2R 판단 평�
 - **I3 창 변형 개발 9108(각 10k):** I3RpW4 vs v6-P 50.180%, vs I1RO 49.960%, vs I2RO 49.890%, 최대 판단 5.2 s → 확증 미등록. run 45681919547.
 - **9591 S3·S4(마지막):** I2R1 vs v4-D 50.865%(40k), I2R1 − I2RO1(상대 v4-D) −0.040%p(−0.151~+0.071), I2R1 vs I2RO1 직접 50.047%(40k, 49.929–50.166). runs 45717557037·45717560904. → 단일 은행 후보 간 대국 차이 없음.
 - **2026-11-26 연구 잠정 종료(D-V7-6):** 매우 어려움은 v4-D 유지, v5-R·I2RO1 교체 보류.
-
-## 2026-11-27 A2 꾸미기·채팅 연출 성능 — 게임 AI 결과가 아님
-
-헤드리스 Chromium + SwiftShader 에뮬레이션(실기기 아님). A1.1 회귀: main `0939a27` vs A2, `scripts/measure-board-fx-perf.mjs` default/lava-synergy/thunder-synergy 2회×6굴림, 평균 프레임 16.6–17.7 ms로 시도 간 편차 이내(회귀 없음). 꾸미기 고부하 조합(Pixel 7 에뮬, CPU 4배): 평균 16.7–16.8 ms, p99 16.8, 33 ms 초과 0, CPU 기준선 ~8% → ~55%. 상세·한계는 [A2 §6](./A2-COSMETICS-CHAT-2026-11-27.md).
-
