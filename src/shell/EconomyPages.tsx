@@ -9,7 +9,7 @@ import { ArrowDown, ArrowUp, Check, CircleHelp, Coins, Gem, RefreshCw, Sparkles,
 import { Coach, useCoach, type CoachStep } from "../ui/Coach";
 import { DRAW_COST, DRAW_DAILY_LIMIT, DUPLICATE_COINS } from "../economy/live/draw";
 import { ACHIEVEMENTS, ECONOMY, QUESTS, SLOTS, TIERS, nextDayStart, nextWeekStart, type TierId } from "../economy/live/config";
-import { CATEGORIES, DEFAULT_LOADOUT, ITEMS, SINGLE_SLOTS, itemById, priceOf, publicLook, sellableOn, slotPrice, upgradeCost, type ItemCategory, type ItemDef, type Loadout } from "../economy/live/catalog";
+import { CATEGORIES, DEFAULT_LOADOUT, ITEMS, SINGLE_SLOTS, itemById, priceOf, publicLook, sellableOn, slotPrice, upgradeCost, upgradeSupportedOn, type ItemCategory, type ItemDef, type Loadout } from "../economy/live/catalog";
 import { EconomyError, buy, buySlot, economy, rerollQuest, saveLoadout, signedIn, upgrade, type Snapshot } from "../identity/economy-client";
 import { PlayerTag } from "../play/Looks";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
@@ -32,13 +32,16 @@ function useEconomy(server: string | null) {
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const load = useCallback(() => {
+  const load = useCallback(async (clearError = true) => {
     if (!server || !signedIn()) return;
-    economy(server)
-      .then((s) => (setSnap(s), setError("")))
-      .catch((e: Error) => setError(e.message));
+    try {
+      setSnap(await economy(server));
+      if (clearError) setError("");
+    } catch (error) {
+      if (clearError) setError(error instanceof Error ? error.message : String(error));
+    }
   }, [server]);
-  useEffect(load, [load]);
+  useEffect(() => { void load(); }, [load]);
   /** Run one server action; the new snapshot replaces the old one. */
   const act = async (fn: () => Promise<Snapshot>, ok?: string) => {
     setBusy(true);
@@ -48,7 +51,7 @@ function useEconomy(server: string | null) {
       return ok ?? "";
     } catch (e) {
       setError(e instanceof EconomyError ? e.message : String(e));
-      if (e instanceof EconomyError && e.code !== "NETWORK") load();
+      if (e instanceof EconomyError && e.code !== "NETWORK") await load(false);
       return null;
     } finally {
       setBusy(false);
@@ -572,8 +575,8 @@ function InventoryPage({ server, go, economyState, active }: EconomyProps) {
               </div>
             </div>
             {busy && <p className="econ-note" role="status"><BrandMark /> 저장 중…</p>}
-            {saved && <p className="econ-ok" role="status">{saved}</p>}
-            {error && (
+            {saved && !open && <p className="econ-ok" role="status">{saved}</p>}
+            {error && !open && (
               <p className="error-message" role="alert">
                 {error}
               </p>
@@ -624,22 +627,31 @@ function InventoryPage({ server, go, economyState, active }: EconomyProps) {
             const i = open;
             const have = owned.get(i.id) ?? 1;
             const cost = upgradeCost(i, have);
-            const pickable = previewLevel <= have;
+            const upgradeSupported = upgradeSupportedOn(i, snap.catalogRev);
+            const pickable = previewLevel <= have && (previewLevel === 1 || upgradeSupported);
             return (
               <>
+                <p className="item-short">보유 Lv.{have} · 선택 Lv.{shownLevel(i)}</p>
+                {saved && <p className="econ-ok" role="status">{saved}</p>}
+                {error && <p className="error-message" role="alert">{error}</p>}
                 <button type="button" className={isEquipped(i) ? "secondary" : "primary"} onClick={() => toggle(i)}>
                   {isEquipped(i) ? "장착 해제" : "장착"}
                 </button>
                 {i.maxLevel > 1 && (
                   <button type="button" className="secondary" disabled={!pickable || shownLevel(i) === previewLevel} onClick={() => setChanges({ ...draft, levels: { ...draft.levels, [i.id]: previewLevel } })}>
-                    {pickable ? `Lv.${previewLevel} 모습으로 표시` : `Lv.${previewLevel}은 강화 후 사용`}
+                    {pickable ? `Lv.${previewLevel} 모습으로 표시` : !upgradeSupported ? `Lv.${previewLevel} 서버 지원 준비 중` : `Lv.${previewLevel}은 강화 후 사용`}
                   </button>
                 )}
-                {cost !== null && (
-                  <button type="button" className="secondary" disabled={busy || snap.wallet.coins < cost} onClick={() => setConfirmUp({ item: i, cost, to: have + 1 })} aria-label={`${i.name} Lv.${have + 1} 강화`}>
+                {cost !== null && (!upgradeSupported ? (
+                  <p className="item-short" role="status">현재 서버에서는 이 단계의 강화를 준비 중이에요. 외형은 미리 볼 수 있어요.</p>
+                ) : (
+                  <button type="button" className="secondary" disabled={busy || snap.wallet.coins < cost} onClick={() => {
+                    setSaved("");
+                    setConfirmUp({ item: i, cost, to: have + 1 });
+                  }} aria-label={`${i.name} Lv.${have + 1} 강화`}>
                     <Sparkles size={15} /> Lv.{have + 1} 강화 · <Coins size={13} /> {fmt(cost)}
                   </button>
-                )}
+                ))}
                 <small className="item-short">장착·단계 변경은 &lsquo;장착 저장&rsquo;을 눌러야 다음 경기에 적용돼요.</small>
               </>
             );
@@ -656,7 +668,14 @@ function InventoryPage({ server, go, economyState, active }: EconomyProps) {
         onConfirm={() => {
           const c = confirmUp;
           setConfirmUp(null);
-          if (c) void act(() => upgrade(server!, c.item.id), `${c.item.name} Lv.${c.to} 강화 완료`).then((r) => r && setSaved(r));
+          if (!c || !snap || !upgradeSupportedOn(c.item, snap.catalogRev)) return;
+          void act(async () => {
+            const updated = await upgrade(server!, c.item.id);
+            if (!updated.inventory.some((entry) => entry.id === c.item.id && entry.level >= c.to)) {
+              throw new EconomyError("UPGRADE_UNCONFIRMED", "강화 결과를 확인하지 못했어요. 보유 단계와 재화 내역을 확인해 주세요.");
+            }
+            return updated;
+          }, `${c.item.name} Lv.${c.to} 강화 완료`).then((r) => r && setSaved(r));
         }}
       />
     </section>
