@@ -10,7 +10,7 @@
 
 > **1인 플레이·프로필·컬렉션·시너지·한정판·상점 안내·오디오 믹스(2026-11-27)** → [COLLECTIONS-2026-11-27](./COLLECTIONS-2026-11-27.md), [STREAK-REVIEW-2026-11-27](./STREAK-REVIEW-2026-11-27.md), [오디오 믹스](../audio/MIX.md), D-074~D-078. 코드: 1인 플레이 `src/play/SoloGame.tsx`·`src/solo/`(기록·동기화), 오프라인 장착 `src/play/own-look.ts`, 프로필 `src/shell/ProfileSections.tsx`, 컬렉션 `src/economy/live/collections.ts`, 시너지 `src/play/board-synergy.ts`, 2.5D 효과 `src/dice3d/Dice25Fx.tsx`·`src/play/tray-attach.ts`, 안내 `src/ui/Coach.tsx`, 믹스 `src/sound.ts`(버스·`volumeCurve`)·`src/audio/bgm-render.ts`(`normalize`). **워커 배포 전**에는 1인 기록 계정 보관과 신규 11종 판매가 꺼져 있다(의도된 안전 동작).
 >
-> **꾸미기·채팅 연출(A2, 2026-11-27)** → [A2-COSMETICS-CHAT](./A2-COSMETICS-CHAT-2026-11-27.md), [C5 카탈로그 제안](./A2-C5-CATALOG-PROPOSAL-2026-11-27.md), D-085~D-087. 코드: `src/cosmetics-a2.css`, 공용 렌더러 `src/play/ChatMessage.tsx`, 미리보기 `#cosmetics-lab`(`src/lab/CosmeticsLab.tsx`), 채팅 fixture `src/chat/`. 카탈로그 파일·워커·경제는 건드리지 않았다(C5 담당).
+> **꾸미기·채팅 연출(A2, 2026-11-27)** → [A2-COSMETICS-CHAT](./A2-COSMETICS-CHAT-2026-11-27.md), [C5 카탈로그 제안](./A2-C5-CATALOG-PROPOSAL-2026-11-27.md), D-085~D-090. 코드: `src/cosmetics-a2.css`, 공용 렌더러 `src/play/ChatMessage.tsx`, 미리보기 `#cosmetics-lab`(`src/lab/CosmeticsLab.tsx`), 채팅 fixture `src/chat/`. 카탈로그 파일·워커·경제는 건드리지 않았다(C5 담당).
 >
 > **주사위 물리·보드판 강화 단계·시너지·효과 성능(A1, 2026-11-27)** → [A1-DICE-BOARD-2026-11-27](./A1-DICE-BOARD-2026-11-27.md), D-079~D-083. 코드: 물리 `src/dice3d/physics.ts`(`impulse`), 사전 계산 워커 `src/dice3d/physics-worker.ts`, 적응형 효과 품질 `src/fx-quality.ts`, 이동 `carryPose`(`src/dice3d/table.ts`), 표면음 `SURFACES`(`src/sound.ts`), 보드 장면 `src/play/board-scene.ts`·`BoardFxLayer.tsx`, 시너지 `src/play/board-synergy.ts`, 측정 `scripts/measure-board-fx-perf.mjs`.
 >

@@ -42,10 +42,10 @@ test.afterAll(async () => { await worker?.stop(); idp?.close(); });
 const entry = (room?: string) => `?online-server=${encodeURIComponent(worker.url)}${room ? `&room=${room}` : ""}#online`;
 async function device(browser: Browser, key: string | null, size = { width: 1366, height: 768 }): Promise<Page> {
   const ctx = await browser.newContext({ storageState: returningVisitorState(), viewport: size, baseURL: ORIGIN + "/YachtLab/", reducedMotion: "no-preference" });
-  await ctx.addInitScript(([s]) => {
+  await ctx.addInitScript(([s, quality]) => {
     if (s) localStorage.setItem("yachtlab.session.v1", s);
-    localStorage.setItem("yachtlab.settings.v1", JSON.stringify({ muted: true, diceQuality: process.env.A2_DICE ?? "2.5d" }));
-  }, [key ? sessions[key] : null] as const);
+    localStorage.setItem("yachtlab.settings.v1", JSON.stringify({ muted: true, diceQuality: quality }));
+  }, [key ? sessions[key] : null, process.env.A2_DICE ?? "2.5d"] as const);
   contexts.push(ctx);
   return ctx.newPage();
 }
