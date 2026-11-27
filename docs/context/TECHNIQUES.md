@@ -211,3 +211,7 @@ v5-R 단일 Float32 은행은 워커의 WASM 메모리에 직접 생성한다. O
 | 단일 은행 I2RO1 / I2R1 (제품) | DP 은행 1개로 두 수 반응; 단일 은행 동치표(V7 §9.1) | ✅ regret K=4 0.0043/0.0035, v5-R과 같은 메모리 → **제품 주 후보**, 확증 9571/9581 진행 |
 | 정확 솔버 해시 메모 | Float64 개방 주소 메모(값 동일), 6M 삭제 한계 제거 | ✅ K=7/6 루트 499 s |
 | 브라우저 벤치(Chromium 워커) | esbuild 번들 + WASM f32 은행 + 후보 판단 시간 | ✅ `scripts/research-v7/browser/run.cjs` |
+
+## 경제 v2 정책 평가
+
+C1에서 카탈로그 고정 선호, KST 사용자 정산·UTC 서비스 방 용량, 기존 사용자의 워밍업과 정책 전환, 날짜별 구매/검열, 시드별 사용자 대응 비교, Pareto 민감도, 가상 가격 인하 원장을 연구했다. [C1 보고서](../economy/ECONOMY-V2-RESEARCH.md) · [홀드아웃 규약](../economy/v2/C1-EVALUATION-PROTOCOL.md)

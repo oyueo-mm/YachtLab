@@ -1,0 +1,38 @@
+{
+  "E0": {
+    "expected": 18,
+    "replayed": 18,
+    "capFieldsChecked": 54,
+    "capFieldsChanged": 36,
+    "otherChanged": 0,
+    "firstDifferences": []
+  },
+  "E1": {
+    "expected": 384,
+    "status": "pending"
+  },
+  "E2": {
+    "expected": 80,
+    "status": "pending"
+  },
+  "E3": {
+    "expected": 240,
+    "status": "pending"
+  },
+  "E4": {
+    "expected": 304,
+    "status": "pending"
+  },
+  "E5": {
+    "expected": 18,
+    "status": "pending"
+  },
+  "E6": {
+    "expected": 48,
+    "status": "pending"
+  },
+  "E7": {
+    "expected": 16,
+    "status": "pending"
+  }
+}

@@ -65,3 +65,5 @@
 ## 온라인 요트다이스 브랜드·경제 출시
 
 [제품 업데이트](./ONLINE-YACHT-PRODUCT.md)에서 릴리스 순서, 검증 현황, SEO 등록 절차를 확인한다. [뽑기 경제](../economy/ONLINE-YACHT-DRAW.md)에서 7,776개 전수 확률, 서버 계정 원장, 시즌 기간, 시뮬레이션과 롤백을 확인한다. 매우 어려움 기본은 v4-D, 시험 경로는 v5-R이다.
+
+C1 사용자 검토용 결과와 가격 중심 조건부 추천은 [경제 v2 보고서](../economy/ECONOMY-V2-RESEARCH.md)에서 확인한다. 정책 승인 이후의 실행 순서, 견적 호환과 롤백은 [C5 인수인계](../economy/v2/HANDOFF-C5-ECONOMY-V2.md)에 있다.
