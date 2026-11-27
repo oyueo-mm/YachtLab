@@ -57,7 +57,7 @@ export function auditJobs(quick: boolean): Job[] {
     { name: "indifferent", p: persona(60, { spend: "indifferent" }), age: 60 },
     { name: "slow20", p: persona(60, { matchMinutes: { random: 20, ai: 16, friend: 20, solo: 8, offline: 12 } }), age: 60 },
     { name: "low-queue", p: persona(60, { queueSuccess: 0.35, queue: { meanWaitSec: 270, patienceSec: 180, fallback: "offline" } }), age: 60 },
-    { name: "ai-room-cap", p: persona(60, { ...SENSITIVITY.find((x) => x.id === "aiHeavy")!.patch, aiClosesAt: 16 }), age: 60 },
+    { name: "ai-room-cap", p: persona(60, { ...SENSITIVITY.find((x) => x.id === "aiHeavy")!.patch, aiClosesAt: 7 }), age: 60 },
     { name: "ai-open", p: persona(60, SENSITIVITY.find((x) => x.id === "aiHeavy")!.patch), age: 60 },
     { name: "offline-heavy", p: persona(60, SENSITIVITY.find((x) => x.id === "offlineHeavy")!.patch), age: 60 },
     { name: "small-pool", p: persona(60, SENSITIVITY.find((x) => x.id === "smallPool")!.patch), age: 60 },
@@ -84,7 +84,7 @@ export function auditJobs(quick: boolean): Job[] {
   for (const c of choose(["BASE", "C1-PRICE", "C1-QUEST", "C1-LONG", "V2-EXP"])) {
     for (const p of [...ABUSE, persona(240, { ...ABUSE[1], modeMix: { random: 1 }, ownForfeit: 1 }, "forfeit-own"),
       persona(240, { ...ABUSE[1], modeMix: { random: 1 }, opponentPool: 1, oppForfeit: 1, ownForfeit: 0 }, "forfeit-opponent"),
-      persona(240, { ...ABUSE[0], aiClosesAt: 14 }, "ai-cap-global")]) {
+      persona(240, { ...ABUSE[0], aiClosesAt: 5 }, "ai-cap-global")]) {
       add("E12", c, p, 7, p.id, 30, 24);
     }
     for (const suppressWelcome of [false, true]) add("E12", c, persona(30, { spend: "indifferent" }), 0, suppressWelcome ? "rejoin-cooled" : "new-distinct", 7, 60, { suppressWelcome });

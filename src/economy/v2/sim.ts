@@ -55,7 +55,7 @@ export type Persona = {
   reserveCoins?: number;
   weekendOnly?: boolean;
   queueSuccess?: number;
-  /** KST hour when exogenous demand has exhausted the global AI-room allocation. */
+  /** UTC hour when exogenous demand has exhausted the global AI-room allocation. */
   aiClosesAt?: number;
 };
 
@@ -153,9 +153,7 @@ const lognormal = (r: Rng, mean: number) => mean * Math.exp(SIGMA * normal(r) - 
 type Mirror = { meanTotal: number; sdTotal: number };
 const mirror = (matchEvents as unknown as { mirror: Record<string, Mirror> }).mirror;
 
-function pickMode(r: Rng, mix: Partial<Record<PlayMode, number>>): PlayMode {
-  const entries = Object.entries(mix) as [PlayMode, number][];
-  const total = entries.reduce((s, [, w]) => s + w, 0);
+function pickMode(r: Rng, entries: [PlayMode, number][], total: number): PlayMode {
   let x = r() * total;
   for (const [m, w] of entries) if ((x -= w) <= 0) return m;
   return entries[entries.length - 1][0];
@@ -194,6 +192,12 @@ class Player {
   wallet: Wallet = { coins: 0, gems: 0 };
   owned = new Map<string, number>();
   wish: PricedItem[] = [];
+  coinWish: PricedItem[] = [];
+  gemWish: PricedItem[] = [];
+  looksWish: PricedItem[] = [];
+  upgradeWish: PricedItem[] = [];
+  favoriteItem?: PricedItem;
+  lastSpend: { coins: number; gems: number; draws: number; drawRoll: boolean } | null = null;
   priority = new Map<string, number>();
   desired = new Set<string>();
   achievementItems = new Set<string>();
@@ -221,6 +225,8 @@ class Player {
   coinsByDay = new Map<number, number>();
   drawR: Rng;
   playR: Rng;
+  modeWeights: [PlayMode, number][];
+  modeWeightTotal: number;
   cat!: PricedItem[];
   byId!: Map<string, PricedItem>;
   pools!: Record<PricedTier, PricedItem[]>;
@@ -255,6 +261,8 @@ class Player {
     this.econ = newEconState(userId, createdAt);
     this.drawR = opts.audited ? mulberry32(hashSeed(userSeed, "draw")) : r;
     this.playR = r;
+    this.modeWeights = Object.entries(persona.modeMix) as [PlayMode, number][];
+    this.modeWeightTotal = this.modeWeights.reduce((sum, [, weight]) => sum + weight, 0);
   }
 
   setParams(p: V2Params, rollWish: boolean) {
@@ -279,7 +287,18 @@ class Player {
       this.wishIds = this.cat.filter((i) => this.r() < want[i.liveTier as PricedTier] && (i.coins !== null || i.gems !== null)).map((i) => i.id);
     }
     this.wish = this.wishIds.map((id) => this.byId.get(id)).filter((i): i is PricedItem => !!i);
+    this.coinWish = this.wish.filter((i) => i.coins !== null).sort((a, b) => a.coins! - b.coins!);
+    this.gemWish = this.wish.filter((i) => i.gems !== null).sort((a, b) => a.gems! - b.gems!);
+    this.looksWish = this.coinWish.filter((i) => i.category === "dice" || i.category === "board")
+      .sort((a, b) => audited ? this.priority.get(a.id)! - this.priority.get(b.id)! : b.coins! - a.coins! || this.wish.indexOf(a) - this.wish.indexOf(b));
+    this.upgradeWish = this.coinWish.filter((i) => i.up);
+    this.lastSpend = null;
     this.goal = null;
+    this.favoriteItem = undefined;
+    for (const id of this.owned.keys()) {
+      const item = this.byId.get(id);
+      if (item) this.considerFavorite(item);
+    }
   }
   wishIds: string[] = [];
 
@@ -345,8 +364,15 @@ class Player {
       this.res.firstTierDay[t] = this.day;
     }
   }
+  considerFavorite(item: PricedItem) {
+    if (!item.up || (item.category !== "dice" && item.category !== "board")) return;
+    const old = this.favoriteItem;
+    if (!old || (this.opts.audited && this.persona.favorite !== "first" &&
+      item.up[0] + (item.up[1] ?? 0) < old.up![0] + (old.up![1] ?? 0))) this.favoriteItem = item;
+  }
   addItem(item: PricedItem, viaBuy: boolean) {
     this.owned.set(item.id, 1);
+    this.considerFavorite(item);
     this.markObtained(item, viaBuy);
     if (this.opts.audited) {
       const out = unlockV2Achievements({ ...this.econ, counters: { ...this.econ.counters, items: this.owned.size } }, this.p);
@@ -435,6 +461,9 @@ class Player {
     if (this.drawsToday.day !== day) this.drawsToday = { day, n: 0 };
     const week = this.opts.audited ? economyWeek(at) : Math.floor((day + 3) / 7);
     if (this.couponWeek.week !== week) this.couponWeek = { week, n: 0 };
+    const last = this.lastSpend;
+    if (this.opts.audited && this.p.booster.kind !== "coupon" && this.freeDrawsLeft === 0 && last?.coins === this.wallet.coins &&
+      last.gems === this.wallet.gems && last.draws === this.drawsToday.n && last.drawRoll === sessionDrawRoll) return;
     while (this.freeDrawsLeft > 0) {
       if (this.opts.audited && this.drawsToday.n >= this.p.draw.dailyLimit) break;
       if (this.opts.audited) this.drawsToday.n++;
@@ -444,12 +473,23 @@ class Player {
     const style = this.persona.spend;
     if (style === "indifferent") return;
     if (style === "drawer" || (sessionDrawRoll && style !== "saver")) while (this.drawOnce(false));
-    const coinsFirst = (list: PricedItem[]) => list.sort((a, z) =>
-      (this.opts.audited ? this.priceFor(a, "coins")! - this.priceFor(z, "coins")! : (a.coins ?? Infinity) - (z.coins ?? Infinity)));
+    const unowned = (i: PricedItem) => !this.owned.has(i.id) && !this.giftIds.has(i.id);
+    const nextItem = (list: PricedItem[]) => {
+      const b = this.p.booster;
+      const st = this.p.starter;
+      const specialPrice = this.opts.audited && ((!this.firstBuyDone && st) || (b.kind === "coupon" && this.couponWeek.n < b.discountPerWeek));
+      if (!specialPrice) return list.find(unowned);
+      let next: PricedItem | undefined, best = Infinity;
+      for (const i of list) {
+        if (!unowned(i)) continue;
+        const price = this.priceFor(i, "coins")!;
+        if (price < best) [best, next] = [price, i];
+      }
+      return next;
+    };
     if (style === "saver") {
       if (!this.goal || this.owned.has(this.goal.id) && (this.owned.get(this.goal.id)! >= this.goal.maxLevel || !this.goal.up)) {
-        const cands = this.wantedUnowned().filter((i) => i.coins !== null && (i.category === "dice" || i.category === "board"));
-        this.goal = cands.sort((a, z) => this.opts.audited ? this.priority.get(a.id)! - this.priority.get(z.id)! : (z.coins ?? 0) - (a.coins ?? 0))[0] ?? null;
+        this.goal = this.looksWish.find(unowned) ?? null;
       }
       if (this.goal) {
         if (!this.owned.has(this.goal.id)) this.buy(this.goal, "coins");
@@ -463,18 +503,15 @@ class Player {
           if (!this.upgrade(up[0].it!)) break;
           continue;
         }
-        const next = coinsFirst(this.wantedUnowned().filter((i) => i.up && i.coins !== null))[0];
+        const next = nextItem(this.upgradeWish);
         if (!next || !this.buy(next, "coins")) break;
       }
     } else {
       // spender / drawer / collector: whichever is cheaper — the next wanted item, or the next level of the
       // favourite (first die or board bought; collectors never upgrade)
       for (;;) {
-        const next = coinsFirst(this.wantedUnowned().filter((i) => i.coins !== null))[0];
-        const favorites = style === "collector" ? [] : [...this.owned.keys()].map((id) => this.byId.get(id))
-          .filter((i): i is PricedItem => !!(i?.up && (i.category === "dice" || i.category === "board")));
-        if (this.opts.audited && this.persona.favorite !== "first") favorites.sort((a, b) => a.up![0] + (a.up![1] ?? 0) - b.up![0] - (b.up![1] ?? 0));
-        const fav = favorites[0];
+        const next = nextItem(this.coinWish);
+        const fav = style === "collector" ? undefined : this.favoriteItem;
         const favLv = fav ? this.owned.get(fav.id)! : 3;
         const upCost = fav && favLv < fav.maxLevel ? fav.up![favLv - 1] ?? Infinity : Infinity;
         if (Number.isFinite(upCost) && upCost <= (this.opts.audited && next ? this.priceFor(next, "coins")! : next?.coins ?? Infinity)) {
@@ -482,11 +519,14 @@ class Player {
         } else if (!next || !this.buy(next, "coins")) break;
       }
     }
+    const coinsAfterCoinPurchases = this.wallet.coins;
+    const gemBalanceBefore = this.wallet.gems;
     // gems: cheapest wanted gem-purchasable item
     for (;;) {
-      const g = this.wantedUnowned().filter((i) => i.gems !== null).sort((a, z) => a.gems! - z.gems!)[0];
+      const g = this.gemWish.find(unowned);
       if (!g || !this.buy(g, "gems")) break;
     }
+    this.lastSpend = gemBalanceBefore === this.wallet.gems ? { coins: coinsAfterCoinPurchases, gems: this.wallet.gems, draws: this.drawsToday.n, drawRoll: sessionDrawRoll } : null;
   }
 
   /* ------------------------------------------------------------- play ------------------------------------------------------------- */
@@ -555,7 +595,7 @@ class Player {
       }
       const tBefore = t;
       if (audited) this.playR = mulberry32(hashSeed(this.userSeed, "match", day, matchIndex++));
-      let mode = pickMode(r, P.modeMix);
+      let mode = pickMode(r, this.modeWeights, this.modeWeightTotal);
       if (mode === "random") {
         const unsuccessful = P.queueSuccess !== undefined && r() >= P.queueSuccess;
         const wait = unsuccessful ? Infinity : -Math.log(1 - r()) * P.queue.meanWaitSec;
@@ -571,8 +611,8 @@ class Player {
           else aiStarts++;
         } else {
           this.econ = rollover(this.econ, this.userId, t);
-          const kstHour = (t + 9 * HOUR) % DAY / HOUR;
-          const denied = this.econ.aiStarts >= this.p.daily.aiStarts || (P.aiClosesAt !== undefined && kstHour >= P.aiClosesAt);
+          const utcHour = t % DAY / HOUR;
+          const denied = this.econ.aiStarts >= this.p.daily.aiStarts || (P.aiClosesAt !== undefined && utcHour >= P.aiClosesAt);
           if (this.measuring) this.aiAttempts++;
           if (denied) {
             if (this.measuring) this.aiDenied++;

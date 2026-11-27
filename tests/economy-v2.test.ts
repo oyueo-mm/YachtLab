@@ -257,3 +257,82 @@ describe("경제 v2 시뮬레이터", () => {
     expect(BOOSTERS[0].booster.kind).toBe("none");
   });
 });
+
+describe("C1 독립 감사 경계", () => {
+  it("두 주의 매일 KST 자정 경계에서 퀘스트·업적·승리와 원장 키가 일치한다", () => {
+    const inputs: RewardInput[] = [];
+    for (let d = 0; d < 16; d++) {
+      const midnight = T0 + d * DAY;
+      for (const [i, offset] of [-1, 0, 1, 6000, 15000, 21000].entries()) {
+        inputs.push(input(inputs.length, { endedAt: midnight + offset, opponentUserId: `repeat-${i % 2}`, outcome: "win", card: fullCard({ yacht: 50, full: 25, large: 30 }) }));
+      }
+    }
+    const settled = run(inputs);
+    const grantKeys = settled.flatMap((r) => r.grants.map((g) => g.key));
+    expect(new Set(grantKeys).size).toBe(grantKeys.length);
+    expect(grantKeys.some((k) => k.startsWith("qb:weekly:"))).toBe(true);
+    expect(grantKeys).toContain("a:a.match.10");
+    expect(settled[1].state.day).toBe(settled[0].state.day + 1);
+    expect(settled[1].state.week).toBe(settled[0].state.week + 1);
+    expect(settled[2].state.lastPlayDay).toBe(settled[1].state.lastPlayDay);
+  });
+
+  it("활성 이벤트 시작 포함·종료 제외, 감소 및 상한에서도 완료 보너스는 한 번 지급한다", () => {
+    const event = { id: "audit-fixture", label: "fixture", start: T0, end: T0 + 100, perMatch: 9, minMatches: 31, reward: { coins: 21, gems: 2 } };
+    let s = newEconState(account.userId, T0 - 1);
+    let ext = newExt();
+    const before = applyMatchV2(s, ext, input(99, { endedAt: T0 - 1 }), account, baselineParams(), null, [event]);
+    expect(before.grants.find((g) => g.kind === "match")?.coins).toBe(10);
+    const actual = [];
+    for (let i = 0; i < 34; i++) {
+      const next = applyMatchV2(s, ext, input(i, { endedAt: i < 33 ? T0 + i : event.end }), account, baselineParams(), null, [event]);
+      actual.push(next);
+      s = next.state;
+      ext = next.ext;
+    }
+    expect(actual[0].grants.find((g) => g.kind === "match")?.coins).toBe(19);
+    expect(actual[10].grants.find((g) => g.kind === "match")?.coins).toBe(3);
+    expect(actual[30].grants.filter((g) => g.kind === "match")).toEqual([]);
+    expect(actual.flatMap((r) => r.grants.filter((g) => g.kind === "event")).map((g) => g.key)).toEqual(["e:audit-fixture"]);
+    expect(s.events[event.id]).toEqual({ matches: 33, paid: true });
+  });
+
+  it("Rev.1 보드 비용, 보유권을 보존하는 채팅 가상 전환 및 Lv.1 전용을 검증한다", () => {
+    const p = baselineParams();
+    const index = (items: ReturnType<typeof pricedCatalog>) => new Map(items.map((i) => [i.id, i]));
+    const r1 = index(pricedCatalog(p, { revision: 1, audited: true }));
+    const r2 = index(pricedCatalog(p, { revision: 2, audited: true }));
+    expect(r1.has("dice.thunder")).toBe(false);
+    expect(r2.get("dice.thunder")!.drawable).toBe(false);
+    expect(r1.get("board.wood_oak")).toMatchObject({ maxLevel: 1, up: null, coins: r2.get("board.wood_oak")!.coins });
+    expect(r2.get("board.wood_oak")).toMatchObject({ maxLevel: 3 });
+    expect(r1.get("board.marble")!.up).toEqual([1350, 2700]);
+    const chat = pricedCatalog(p, { revision: 2, proposedChat: true, audited: true });
+    const sale = chat.filter((i) => i.category === "chat" && !i.season && i.coins !== null);
+    expect(sale).toHaveLength(38);
+    expect(sale.filter((i) => i.drawable && i.maxLevel === 1 && i.up === null)).toHaveLength(38);
+    expect(index(chat).get("chat.great")).toMatchObject({ defaultOwned: true, tier: "rare" });
+    expect(index(chat).get("chat.congrats")).toMatchObject({ id: "chat.congrats", coins: 165 });
+    expect(index(chat).get("chat.learn")).toMatchObject({ coins: null, drawable: false });
+  });
+
+  it("30일 초과 코인/보석 보존, 보유 업적 및 서로 다른 시각의 전역 AI 제한과 계정 제한을 검증한다", () => {
+    const p = baselineParams();
+    const template = MAIN_PERSONAS.find((x) => x.minutesPerDay === 240)!;
+    const a = { ...template, modeMix: { ai: 1 }, startHour: 18, matchMinutes: { ...template.matchMinutes, ai: 1 }, ownForfeit: 0, aiClosesAt: 8 };
+    const opts = { days: 35, snapshots: [1, 7, 30, 35], warmupDays: 0, includeRev2: true, audited: true, t0: T0, initialCoins: 9500, initialGems: 35 };
+    const capped = simulateUser(a, p, 111, 0, opts).snapshots.at(-1)!;
+    expect(capped.audit!.eligibleAiStarts).toBe(0);
+    expect(capped.audit!.aiDenied).toBeGreaterThan(0);
+    expect(capped.paidMatches).toBe(0);
+    const normal = simulateUser({ ...a, aiClosesAt: undefined }, p, 111, 0, opts).snapshots.at(-1)!;
+    expect(normal.audit!.eligibleAiStarts).toBe(30 * opts.days);
+    expect(normal.audit!.aiDenied).toBeGreaterThan(0);
+    expect(normal.daysCapped).toBe(opts.days);
+    expect(normal.coins).toBe(opts.initialCoins + normal.audit!.netCoins);
+    expect(normal.gems).toBe(opts.initialGems + normal.audit!.netGems);
+    expect(normal.audit!.purchases).toBeGreaterThan(2);
+    expect(capped.bySource.achievement).toBeGreaterThan(0); // only acquisition achievements are reachable with no eligible matches
+    expect(normal.audit!.purchaseTimes).toEqual([...normal.audit!.purchaseTimes].sort((a, b) => a - b));
+  });
+});
