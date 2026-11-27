@@ -242,7 +242,10 @@ export class FxCanvas {
         g.stroke();
       }
     }
-    // particles
+    // particles: one setTransform per particle from the base matrix (no save / translate / rotate /
+    // restore stack per particle — A1.1 profile); round shapes skip the rotation.
+    const base = g.getTransform();
+    const ba = base.a, bd = base.d, be = base.e, bf = base.f;
     let alive = false;
     for (const p of this.pool) {
       if (!p.on) continue;
@@ -265,12 +268,15 @@ export class FxCanvas {
       // hue cycling in 15° steps (a bounded set of colours for the glow sprite cache)
       const color = p.hue ? `hsl(${Math.round(((now / 5 + p.x) % 360) / 15) * 15} 90% 72%)` : p.color;
       g.fillStyle = g.strokeStyle = color;
-      g.save();
-      g.translate(p.x, p.y);
-      g.rotate(p.shape === "spark" ? Math.atan2(p.vy, p.vx) : p.angle);
+      const round = p.shape === "glow" || p.shape === "dot" || p.shape === "drop" || p.shape === "ember" || p.shape === "smoke" || p.shape === "bubble";
+      if (round) g.setTransform(ba, 0, 0, bd, ba * p.x + be, bd * p.y + bf);
+      else {
+        const a = p.shape === "spark" ? Math.atan2(p.vy, p.vx) : p.angle, c = Math.cos(a), sn = Math.sin(a);
+        g.setTransform(ba * c, bd * sn, -ba * sn, bd * c, ba * p.x + be, bd * p.y + bf);
+      }
       shape(g, p.shape, s, p, t);
-      g.restore();
     }
+    g.setTransform(base);
     g.globalAlpha = 1;
     g.globalCompositeOperation = "source-over";
     return alive || this.rings.length > 0 || this.lines.length > 0 || [...this.streaks.values()].some((s) => s.pts.length > 1);

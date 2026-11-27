@@ -250,57 +250,57 @@ export class SynergyLayer {
       }
       return;
     }
+    // Segments are bucketed into 4 age bands and stroked once per band (was one stroke per segment).
+    const banded = (style: (f: number) => void) => {
+      const bands: (Path2D | null)[] = [null, null, null, null];
+      for (let i = 1; i < pts.length; i++) {
+        const f = 1 - (now - pts[i].t) / life;
+        if (f <= 0) continue;
+        const b = Math.min(3, Math.floor(f * 4));
+        const path = (bands[b] ??= new Path2D());
+        path.moveTo(pts[i - 1].x, pts[i - 1].y);
+        path.lineTo(pts[i].x, pts[i].y);
+      }
+      bands.forEach((path, b) => {
+        if (!path) return;
+        style((b + 0.5) / 4);
+        g.stroke(path);
+      });
+    };
     if (k === "lava") {
       // a molten track that cools from white-hot to dark rock behind the die
-      seg((a, b, f) => {
+      banded((f) => {
         g.globalCompositeOperation = f > 0.35 ? "lighter" : "source-over";
         g.strokeStyle = f > 0.8 ? "#fff0c8" : f > 0.55 ? "#ffb067" : f > 0.35 ? "#ff6a1a" : "#3a1d14";
         g.lineWidth = 2 + 3 * f;
         g.globalAlpha = f > 0.35 ? 0.85 : 0.5 * (f / 0.35) + 0.1;
-        g.beginPath();
-        g.moveTo(a.x, a.y);
-        g.lineTo(b.x, b.y);
-        g.stroke();
       });
       return;
     }
     if (k === "frost") {
       g.globalCompositeOperation = "lighter";
-      seg((a, b, f) => {
-        g.strokeStyle = "#dff6ff";
-        g.lineWidth = 2.2;
-        g.globalAlpha = 0.5 * f;
-        g.beginPath();
-        g.moveTo(a.x, a.y);
-        g.lineTo(b.x, b.y);
-        g.stroke();
-      });
+      g.strokeStyle = "#dff6ff";
+      g.lineWidth = 2.2;
+      banded((f) => (g.globalAlpha = 0.5 * f));
       return;
     }
     if (k === "aurora") {
       g.globalCompositeOperation = "lighter";
-      seg((a, b, f) => {
-        g.strokeStyle = `hsl(${(140 + (b.t / 8) % 120) | 0} 90% 65%)`;
+      banded((f) => {
+        // hue by the band's age (the path keeps its colour gradient, in 4 steps)
+        g.strokeStyle = `hsl(${(140 + ((now - (1 - f) * life) / 8) % 120) | 0} 90% 65%)`;
         g.lineWidth = 6 * f + 1;
         g.globalAlpha = 0.28 * f;
-        g.beginPath();
-        g.moveTo(a.x, a.y);
-        g.lineTo(b.x, b.y);
-        g.stroke();
       });
       return;
     }
     if (k === "cosmos" || k === "abyss") {
       // comet tail / glowing wake
       g.globalCompositeOperation = "lighter";
-      seg((a, b, f) => {
-        g.strokeStyle = COLOR[k];
+      g.strokeStyle = COLOR[k];
+      banded((f) => {
         g.lineWidth = 3.5 * f + 0.5;
         g.globalAlpha = 0.5 * f * f;
-        g.beginPath();
-        g.moveTo(a.x, a.y);
-        g.lineTo(b.x, b.y);
-        g.stroke();
       });
       return;
     }
@@ -319,27 +319,15 @@ export class SynergyLayer {
     }
     if (k === "meadow") {
       // a wind lane: a pale band where the grass was combed by the die
-      seg((a, b, f) => {
-        g.strokeStyle = "#e4f5b8";
-        g.lineWidth = 9;
-        g.globalAlpha = 0.12 * f;
-        g.beginPath();
-        g.moveTo(a.x, a.y);
-        g.lineTo(b.x, b.y);
-        g.stroke();
-      });
+      g.strokeStyle = "#e4f5b8";
+      g.lineWidth = 9;
+      banded((f) => (g.globalAlpha = 0.12 * f));
       return;
     }
     // bloom / sakura: a faint coloured wake under the marks
-    seg((a, b, f) => {
-      g.strokeStyle = COLOR[k];
-      g.lineWidth = 2;
-      g.globalAlpha = 0.25 * f;
-      g.beginPath();
-      g.moveTo(a.x, a.y);
-      g.lineTo(b.x, b.y);
-      g.stroke();
-    });
+    g.strokeStyle = COLOR[k];
+    g.lineWidth = 2;
+    banded((f) => (g.globalAlpha = 0.25 * f));
   }
 
   private drawMark(g: CanvasRenderingContext2D, m: Mark, k: number, now: number) {

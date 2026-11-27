@@ -98,6 +98,19 @@ export function motionLevel(settings: Settings = current): MotionLevel {
   return settings.reducedEffects || isLowEndDevice() ? "lite" : "full";
 }
 
+/**
+ * innerWidth < 560, kept up to date by `resize`. Reading innerWidth when the DOM has just changed (as at
+ * the start of a throw) forces a synchronous layout; the profile showed it on the tap → first-frame path.
+ */
+let narrowCache: boolean | undefined;
+function isNarrowViewport() {
+  if (typeof window === "undefined") return false;
+  if (narrowCache === undefined) {
+    narrowCache = window.innerWidth < 560;
+    window.addEventListener("resize", () => (narrowCache = window.innerWidth < 560), { passive: true });
+  }
+  return narrowCache;
+}
 let lowEndCache: boolean | undefined;
 export const isLowEndDevice = () => {
   if (typeof navigator === "undefined") return false;
@@ -146,7 +159,7 @@ export function fxBudget(settings: Settings = current): number {
   if (level === "none") return 0;
   if (settings.fxQuality === "low") return 0.4;
   if (settings.fxQuality === "high") return level === "lite" ? 0.6 : 1;
-  const narrow = typeof window !== "undefined" && window.innerWidth < 560;
+  const narrow = isNarrowViewport();
   return level === "lite" ? 0.4 : narrow ? 0.7 : 1;
 }
 /** Listen to settings changes outside React (audio engine). */
