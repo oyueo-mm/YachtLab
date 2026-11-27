@@ -1,24 +1,44 @@
 name: Context sync
+# CI-1: generated context docs reach main ONLY through one automation pull request (automation/context-sync),
+# never by a direct push, so branch protection on main can be switched on without breaking this workflow.
+#   push to main / daily schedule / manual → regenerate → (changed?) → update the single PR → start the real CI on it
+#   GitHub Wiki mirroring is its own workflow (context-wiki.yml) and runs when the snapshot is MERGED on main.
+# See docs/operations/CI-1-CONTEXT-SYNC-PROTECTION.md for permissions, the one admin setting this needs,
+# loop/duplicate protection and recovery.
 on:
   push:
     branches: [main]
+    # A merged snapshot PR changes only these files: it must not start another sync (loop protection).
     paths-ignore:
       - "docs/context/_generated/**"
   schedule:
     - cron: "20 0 * * *"
   workflow_dispatch:
+    inputs:
+      branch:
+        description: "Automation branch to write (must start with automation/). Leave the default except for tests."
+        type: string
+        default: "automation/context-sync"
+      run_ci:
+        description: "Start the required CI (deploy.yml) on the automation branch"
+        type: boolean
+        default: true
   pull_request:
     paths:
       - "docs/context/**"
       - "scripts/update-context.mjs"
       - "scripts/prepare-context-wiki.mjs"
+      - "scripts/ci/publish-generated.mjs"
+      - "scripts/ci/sync-wiki.mjs"
       - ".github/workflows/context-sync.yml"
+      - ".github/workflows/context-wiki.yml"
       - "src/ai.ts"
       - "src/engine.ts"
 permissions:
   contents: read
 concurrency:
-  group: context-sync-main
+  # One writer for the automation branch at a time; a queued run is replaced by the newest, which regenerates from the latest main.
+  group: context-sync-automation
   cancel-in-progress: false
 jobs:
   check:
@@ -35,6 +55,8 @@ jobs:
         run: |
           node --check scripts/update-context.mjs
           node --check scripts/prepare-context-wiki.mjs
+          node --check scripts/ci/publish-generated.mjs
+          node --check scripts/ci/sync-wiki.mjs
           node scripts/update-context.mjs --check
           node scripts/update-context.mjs --write
           node scripts/prepare-context-wiki.mjs /tmp/yachtlab-context-wiki-preview
@@ -44,12 +66,18 @@ jobs:
   sync:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
-      contents: write
+      contents: write # push ONLY the automation/* branch (the script refuses any other branch)
+      pull-requests: write # open / edit / close the single automation PR
+      actions: write # start deploy.yml (workflow_dispatch) so the required ci-result check exists on the PR head
+    env:
+      AUTOMATION_BRANCH: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || 'automation/context-sync' }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          # push / schedule: the latest main. Manual: the ref the operator selected (lets a change to this workflow be tried).
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || 'main' }}
           fetch-depth: 80
       - uses: actions/setup-node@v4
         with:
@@ -58,45 +86,33 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/update-context.mjs --write
-      - name: Commit only changed generated context
-        run: |
-          set -eu
-          git add docs/context/_generated/
-          if ! git diff --cached --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "chore(context): refresh repository snapshot [skip ci]"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          else
-            echo "No context changes; skipping auto commit"
-          fi
-      - name: Mirror context pages to built-in GitHub Wiki if permitted
-        id: wiki
-        continue-on-error: true
+      - name: Propose changed generated context through the automation PR
+        id: publish
         env:
-          WIKI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
         run: |
           set -eu
-          wiki_dir="$RUNNER_TEMP/yachtlab-context-wiki"
-          wiki_url="https://x-access-token:${WIKI_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
-          if ! git clone --quiet "$wiki_url" "$wiki_dir"; then
-            echo "Wiki not initialized or clone unavailable; attempting bootstrap"
-            mkdir -p "$wiki_dir"
-            git -C "$wiki_dir" init -q --initial-branch=master
-            git -C "$wiki_dir" remote add origin "$wiki_url"
-          fi
-          node scripts/prepare-context-wiki.mjs "$wiki_dir"
-          git -C "$wiki_dir" add -A
-          if ! git -C "$wiki_dir" diff --cached --quiet; then
-            git -C "$wiki_dir" config user.name "github-actions[bot]"
-            git -C "$wiki_dir" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git -C "$wiki_dir" commit -q -m "Sync YachtLab context docs"
-            git -C "$wiki_dir" push --quiet origin HEAD:master
-          else
-            echo "GitHub Wiki already synchronized"
-          fi
-      - name: Explain optional wiki mirror status
-        if: steps.wiki.outcome == 'failure'
+          # On push only the cheap-to-ignore per-commit fields would change on nearly every merge; refresh those on the
+          # daily/manual run, but always rebase an already open PR so it stays current with main.
+          extra=""
+          if [ "$EVENT" = "push" ]; then extra="--skip-volatile-only"; fi
+          node scripts/ci/publish-generated.mjs publish \
+            --branch "$AUTOMATION_BRANCH" \
+            --allow docs/context/_generated/ \
+            --title "chore(context): refresh repository snapshot" \
+            --note "GitHub Actions가 코드·Git 기록에서 다시 생성한 맥락 문서입니다. 사람이 쓴 문서는 포함되지 않습니다." \
+            --volatile-json docs/context/_generated/manifest.json \
+            --volatile-keys recentSourceCommits,recentWorkflowRuns,workflowQuery \
+            --derived docs/context/_generated/CURRENT_STATE.md \
+            $extra
+      - name: Start the required CI on the automation branch
+        if: steps.publish.outputs.head_sha != '' && (github.event_name != 'workflow_dispatch' || inputs.run_ci)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ steps.publish.outputs.head_sha }}
+          EVENT: ${{ github.event_name }}
         run: |
-          echo "::warning::Wiki mirror requires an initialized GitHub Wiki and token permissions; docs/context/ is still complete and automatically maintained."
+          extra=""
+          if [ "$EVENT" = "workflow_dispatch" ]; then extra="--force-redispatch"; fi
+          node scripts/ci/publish-generated.mjs ensure-ci --branch "$AUTOMATION_BRANCH" --sha "$HEAD_SHA" --workflow deploy.yml $extra

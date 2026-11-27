@@ -1,0 +1,43 @@
+name: Context wiki
+# CI-1: the GitHub Wiki mirrors docs/context as it is MERGED on main — including the generated snapshot after its
+# automation PR is merged (that merge is excluded from Context sync by paths-ignore, so it could never trigger
+# the old mirror step). Not part of any required check; a red run means the Wiki is stale (see the ops guide).
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/context/*.md"
+      - "docs/context/_generated/CURRENT_STATE.md"
+      - "scripts/prepare-context-wiki.mjs"
+      - "scripts/ci/sync-wiki.mjs"
+      - ".github/workflows/context-wiki.yml"
+  schedule:
+    # Retries a failed mirror once a day; does nothing when the Wiki is current.
+    - cron: "50 0 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  # Every run mirrors the latest main, so a queued run replaces an older queued run.
+  group: context-wiki
+  cancel-in-progress: false
+jobs:
+  mirror:
+    # Trusted code only: main (a manual run from another branch would otherwise mirror unreviewed docs).
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # GITHUB_TOKEN reaches the wiki repository through contents access; the main repo is never pushed to here
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Mirror context pages to the GitHub Wiki
+        env:
+          WIKI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ci/sync-wiki.mjs --remote "https://x-access-token:${WIKI_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"

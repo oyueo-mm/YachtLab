@@ -27,12 +27,13 @@ GitHub에 있는 정보를 다음 채팅에서 다시 설명할 필요 없이 �
 
 ## 구현
 
-- [동기화 스크립트](../../scripts/update-context.mjs)
-- [GitHub Actions](../../.github/workflows/context-sync.yml)
-- 이벤트: main Push / 매일 00:20 UTC / 수동 workflow_dispatch.
-- Push/Schedule: 스크립트가 코드·Git 기록에서 현재 상태 문서를 생성하고, **실제 내용이 바뀌었을 때만** git commit/push 한다.
-- PR: 문법 및 문서 링크 검증; 자동 문서 생성물은 main에만 저장한다.
-- GitHub Wiki: Wiki가 초기화되어 쓰기 권한이 있는 경우에만 별도 Wiki 페이지로 **best-effort 미러**한다. 실패해도 원본 docs/context는 유지하고 CI에 실패 기록을 남긴다.
+- [동기화 스크립트](../../scripts/update-context.mjs) · [PR 게시 스크립트](../../scripts/ci/publish-generated.mjs)
+- [Context sync](../../.github/workflows/context-sync.yml) · [Context wiki](../../.github/workflows/context-wiki.yml)
+- 이벤트: main Push(생성물만 바뀐 병합은 제외) / 매일 00:20 UTC / 수동 workflow_dispatch.
+- Push/Schedule: 스크립트가 코드·Git 기록에서 현재 상태 문서를 생성하고, **main에 push하지 않고** `automation/context-sync` 브랜치의 단일 PR로 올린다(CI-1, D-CI1-1). 변경이 없으면 아무것도 하지 않고, 열린 PR이 있으면 갱신한다. 그 PR의 필수 체크 `ci-result`는 `deploy.yml`을 workflow_dispatch로 시작해 만든다.
+- PR: 문법 및 문서 링크 검증.
+- GitHub Wiki: `Context wiki` 워크플로가 **병합된 main**의 docs/context를 미러한다. Wiki 저장소가 초기화되지 않았거나 쓰기가 막히면 이 워크플로가 실패로 표시된다(원본 docs/context는 영향 없음).
+- 권한·보호 규칙·복구 절차: [CI-1 운영 가이드](../operations/CI-1-CONTEXT-SYNC-PROTECTION.md).
 
 ## 새 채팅 진입점
 
@@ -43,9 +44,9 @@ GitHub에 있는 정보를 다음 채팅에서 다시 설명할 필요 없이 �
 
 ## 오작동·충돌 대응
 
-1. Actions → Context sync 확인. 출처/입력 오류가 있으면 맥락 생성 코드를 고치고 PR 검증.
-2. generated 파일은 직접 수정하지 않는다(다음 자동 생성 시 덮어씀).
-3. GitHub Wiki 동기화 실패가 생기면 우선 repo의 docs/context 링크를 사용한다.
-4. GitHub 저장소 main에 동시 push가 있었다면 auto commit은 fast-forward 및 정상 pull/rebase만 수행하며 강제 push를 허용하지 않는다.
-5. 생성물만 바뀐 커밋에 대해서는 Context sync 워크플로가 다시 실행되지 않도록 paths-ignore을 적용한다.
+1. Actions → Context sync / Context wiki 확인. 원인별 조치는 [CI-1 가이드 §6](../operations/CI-1-CONTEXT-SYNC-PROTECTION.md)을 따른다.
+2. generated 파일은 직접 수정하지 않는다(다음 자동 생성 시 덮어씀). 자동화 브랜치에도 직접 커밋하지 않는다.
+3. Wiki 동기화가 실패하면 우선 repo의 docs/context 링크를 사용한다.
+4. 자동화 브랜치는 `--force-with-lease`로만 갱신하며 main에는 어떤 push도 하지 않는다. 동시 실행은 워크플로 concurrency와 lease가 막고, 실패하면 재실행이 안전하다.
+5. 생성물만 바뀐 병합 커밋에 대해서는 Context sync가 다시 실행되지 않도록 paths-ignore를 적용한다.
 6. 시험에 사용한 미사용 시드 결과는 RESULTS.md와 정확한 워크플로 링크를 함께 갱신한다.

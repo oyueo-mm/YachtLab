@@ -366,6 +366,11 @@
 - ✅ IndexNow(Bing·네이버) 배포 후 자동 통지, 최초 8개 일괄·이후 변경분, 재시도·기록·수동 실행, 콘텐츠 기준 lastmod, 사전/사후 검증, 이전 배포 자산 보존, 호스트 루트 robots.txt·키.
 - ⏭ Search Console에서 페이지 리소스 실패가 사라졌는지 URL 검사로 확인, Bing·네이버 콘솔에서 IndexNow 수신 확인, 네이버에 프로젝트 사이트맵 등록(콘솔 작업). 필요하면 Search Console API 사이트맵 재제출(서비스 계정 필요) 검토.
 
+### 2026-11-27: CI-1 개발 인프라 안정화 (D-CI1-1, [운영 가이드](../operations/CI-1-CONTEXT-SYNC-PROTECTION.md))
+
+- ✅ Context sync를 자동화 브랜치의 단일 PR로 전환, 필수 CI 자동 시작, Wiki 별도 워크플로, 직접 push 인벤토리와 보호 규칙 가이드. 병합·관리자 설정 적용은 Work·운영자 승인 대기.
+- ⏭ **CI-1.1**: 연구 워크플로 26개의 `git push origin HEAD:main`을 `publish-generated.mjs`로 이전(보호 규칙을 켜기 전 선행). 관리자: PR 생성 허용 설정과 Wiki 첫 페이지 생성.
+
 ### 검색 의도와 공개 연구
 
 - [검색 의도·경쟁 페이지 표본](./SEARCH-INTENT-2026-11-26.md)을 기존 8개 플레이·안내 페이지에 반영합니다. [한국어 연구 보고서](https://oyueo-mm.github.io/YachtLab/research/)와 [영어 연구 보고서](https://oyueo-mm.github.io/YachtLab/research/en/)는 같은 수치와 원자료를 사용합니다.
