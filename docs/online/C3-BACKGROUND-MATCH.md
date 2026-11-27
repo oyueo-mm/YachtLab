@@ -10,7 +10,7 @@
 | --- | --- |
 | `idle → connecting` | 빠른 대전 시작 또는 같은 탭의 티켓 복구. 중복 클릭은 기존 요청을 사용한다. |
 | `connecting / reconnecting → waiting` | 서버가 `queued{since,waiting}` 확인. 표시 시간의 기준은 `since`다. |
-| `waiting → pairing` | 서버의 `check`에 브라우저가 자동 `ready` 응답하고, 허브가 후보 소켓의 응답을 확인해 방 할당 시작. 체크에서 실패한 상대는 제외하며 남은 대기자 순서를 유지한다. |
+| `waiting → pairing` | 서버의 `check`에 브라우저가 자동 `ready` 응답하고, 허브가 후보 소켓의 응답을 확인해 방 할당 시작. 체크에서 실패한 상대는 제외하며 남은 대기자 순서를 유지한다. 연결 확인 창은 최대 4초다. |
 | `waiting / connecting → cancelling` | 취소 요청을 전송하거나 재접속 시 전달. 서버가 `cancelled`를 확인하면 `idle`. 이미 할당을 시작했으면 같은 배정 결과를 처리한다. |
 | `matched → entering` | 서버의 `matched`를 받은 탭이 좌석을 저장하고 자동 이동. 여기서 `yachtlab-match-found`가 `{code, opponent}`로 한 번 발생하고 알림음을 재생한다. 상태 두 개는 한 렌더로 합쳐질 수 있다. |
 | `entering → idle / error` | 룸 `welcome`이면 `entered()`. 치명 오류 또는 20초 동안 인증된 룸 입장 응답이 없으면 `entryFailed(message, room)`. 해당 좌석으로 재입장할 수 있다. |
@@ -23,7 +23,7 @@
 ## 서버와 구버전 호환성
 
 - `GET /api/features`의 선택 플래그는 `backgroundMatch`, `activity`, `friendPublicSpectate`다. 기존 빠른 대전 플래그만 있으면 WebSocket 레거시 큐를 사용한다. 이 경우 전역 탐색은 가능하지만 v2 취소 확인·준비 확인·할당 경합 응답은 지원 범위가 기존 Worker 수준이다. `quickMatch`가 없는 Worker 및 로컬 Node 서버에서는 친구 대전 진입점을 사용한다. 새 현황 API는 플래그가 있을 때만 호출한다.
-- `/ws/match`의 `queue`는 `name,ticket,device,session?,v?`를 받는다. `v:2`에서 서버 `check{id}`에 `ready{id,session?}`를 자동 응답한다. 연결이 끊긴 취소는 `cancel{v:2,ticket,session?}`로 재접속해 확인한다. 15초마다 `alive`, 미응답 45초 및 최대 대기 5분은 기존 기준이다. 사용자·기기 해시·티켓을 중복 검사하며, 기존 브라우저 저장소로 식별할 수 없는 게스트가 여러 모드에 접속하는 경우는 계정 수준 중복 방지를 적용할 수 없다.
+- `/ws/match`의 `queue`는 `name,ticket,device,session?,v?`를 받는다. `v:2`에서 서버 `check{id}`에 `ready{id,session?}`를 자동 응답한다. 연결이 끊긴 취소는 `cancel{v:2,ticket,session?}`로 재접속해 확인한다. 15초마다 `alive`, 미응답 45초 및 최대 대기 5분은 기존 기준이다. 연결이 짧게 끊기면 허브 메모리의 기존 대기 순서를 이어간다. 허브 재시작 전에 끊긴 소켓의 대기 순서는 초기화될 수 있다. 사용자·기기 해시·티켓을 중복 검사하며, 기존 브라우저 저장소로 식별할 수 없는 게스트가 여러 모드에 접속하는 경우는 계정 수준 중복 방지를 적용할 수 없다.
 - 방 할당 시작 전 허브가 시도 ID, 좌석 순서와 자격 증명을 기록한다. 디렉터리는 같은 ID에 같은 방 코드를 반환하고 룸은 서버가 제공한 동일 좌석 토큰으로 재시도를 검증한다. 허브는 두 결과와 대기 잠금 변경을 한 SQLite 트랜잭션에 반영한다. 결과와 미확정 시도는 최대 5분 동안 검색 가능하다. 룸 정리 알람과 디렉터리 보존 기한은 기존 값이다. 디렉터리가 새 경기의 회원 좌석을 예약하므로 친구·빠른 대전·서버 AI의 동시에 시작하는 경기는 충돌로 거절한다. 업데이트 이전부터 시작한 경기에 대한 회원 좌석 예약은 소급하지 않는다.
 - `GET /api/spectate/rooms`는 공개된 경기의 `code,kind,status,participants,players,round,rounds,spectators,max`를 반환한다. `players`는 이름·점수·공개 장착 정보만 포함한다. 친구 대전의 `spectate{allow,visibility?}`는 참가 좌석 소켓에서 보낸다. `visibility`는 `private | invite | public`이고, 기존 `allow:true`는 링크 관전 동의로 매핑한다. `spectate` 응답은 `preferences`와 유효 범위 `visibility`를 제공한다. 한 명이 비공개면 관전이 꺼지고, 전원이 공개면 목록에 오른다. 나머지 전원 동의 조합에서는 토큰 링크로만 볼 수 있다.
 - `POST /api/spectate/:code/watch`가 조회 시점에 룸에서 공개와 인원을 다시 검사해 `{code,key}`를 반환한다. `/ws/:code` 첫 프레임 `watch{key,since?}`는 복구에도 같은 권한 검증을 거친다. 토큰은 참가 인증 `hello{token}`에 사용할 수 없다. 친구 경기 종료와 공개 범위 축소는 기존 키와 관전자 소켓을 폐기한다. 친구 대전 기본 공개 정책은 미확정이며 기존 방에 명시적 공개 동의를 부여하지 않는다.

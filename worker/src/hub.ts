@@ -88,7 +88,8 @@ type Counters = Record<string, number>;
 
 export class HubCore {
   private recent = new Map<string, number>();
-  private pairing = new Map<string, { waiter: Waiter; socket: HostSocket; check?: { id: string; resolve: (ready: boolean) => void } }>();
+  private pairing = new Map<string, { waiter: Waiter; socket: HostSocket; check?: { id: string; received?: boolean; resolve: (ready: boolean) => void } }>();
+  private detached = new Map<string, Waiter>();
   private recovering = new Map<string, Promise<MatchResult>>();
   private rooms = new Map<string, { kind: MatchKind; status: string; spectators: number; public: boolean }>();
   private publicList = new Map<string, PublicEntry & { at: number }>();
@@ -157,9 +158,14 @@ export class HubCore {
   }
 
   closed(ws: HostSocket) {
+    if (this.gone.has(ws)) return;
     const w = this.att(ws);
     this.gone.add(ws);
-    if (w?.state === "waiting") this.count("queue.leave");
+    if (w?.state === "waiting") {
+      this.detached.set(w.ticket, w);
+      this.sweep(this.deps.now());
+      this.count("queue.leave");
+    }
     if (w && this.pairing.get(w.ticket)?.socket === ws) this.pairing.get(w.ticket)?.check?.resolve(false);
   }
 
@@ -186,7 +192,8 @@ export class HubCore {
     if (msg.t === "ready" && me) {
       const pending = this.pairing.get(me.ticket);
       const check = pending?.check;
-      if (pending?.socket !== ws || !check || check.id !== msg.id) return;
+      if (pending?.socket !== ws || !check || check.id !== msg.id || check.received) return;
+      check.received = true;
       if (me.userId) {
         const user = typeof msg.session === "string" ? await this.deps.auth(msg.session).catch(() => null) : null;
         if (this.gone.has(ws) || pending.check !== check) return;
@@ -241,6 +248,7 @@ export class HubCore {
       return this.reject(ws, "PAIRING", "매칭을 마무리하는 중이에요. 잠시 후 다시 시도해 주세요.");
     }
     if (cancel) {
+      if (this.detached.get(ticket)?.userId === userId) this.detached.delete(ticket);
       for (const other of this.open()) {
         const queued = this.att(other);
         if (queued?.ticket === ticket && queued.userId === userId) this.cancelled(other);
@@ -258,6 +266,13 @@ export class HubCore {
       if (this.overlaps(w, pending.waiter)) return this.reject(ws, "DUPLICATE", "다른 화면에서 이미 매칭을 기다리고 있어요.");
     }
     this.sweep(t);
+    const detached = this.detached.get(ticket);
+    if (detached?.userId === userId) w.since = detached.since;
+    for (const previous of this.detached.values()) {
+      if (previous.ticket !== ticket && this.overlaps(w, previous) && (w.v === 2 || previous.v === 2)) {
+        return this.reject(ws, "DUPLICATE", "다른 화면에서 이미 매칭을 기다리고 있어요.");
+      }
+    }
     for (const s of this.open()) {
       if (s === ws) continue;
       const o = this.att(s);
@@ -270,6 +285,7 @@ export class HubCore {
       }
     }
     if (this.waiting() >= HUB_LIMITS.maxWaiters) return this.reject(ws, "BUSY", "지금은 대기 인원이 많아요. 잠시 후 다시 시도해 주세요.");
+    this.detached.delete(ticket);
     ws.serializeAttachment(w);
     this.count("queue.join");
     this.send(ws, { t: "queued", since: w.since, waiting: this.waiting() });
@@ -301,6 +317,10 @@ export class HubCore {
 
   /** Drop ghosts and expired waiters. */
   private sweep(now: number) {
+    for (const [ticket, w] of this.detached) {
+      if (now - w.aliveAt > HUB_LIMITS.aliveTimeoutMs || now - w.since > HUB_LIMITS.waitMs) this.detached.delete(ticket);
+    }
+    if (this.detached.size > HUB_LIMITS.maxWaiters) this.detached.delete(this.detached.keys().next().value!);
     for (const s of this.open()) {
       const w = this.att(s);
       if (!w || w.state !== "waiting") continue;
@@ -329,10 +349,13 @@ export class HubCore {
     for (;;) {
       const now = this.deps.now();
       this.sweep(now);
-      const busyCodes = new Set(this.deps.sql.exec<{ identity: string }>("SELECT identity FROM assignments WHERE expires > ?", now).toArray().map((row) => row.identity));
-      const waiting = this.open()
+      const contenders = this.open()
         .map((s) => ({ s, w: this.att(s)! }))
-        .filter((x) => x.w?.state === "waiting" && !this.keys(x.w).some((key) => busyCodes.has(key)))
+        .filter((x) => x.w?.state === "waiting");
+      if (contenders.length < 2) return;
+      const locked = new Set(this.deps.sql.exec<{ identity: string }>("SELECT identity FROM assignments WHERE expires > ?", now).toArray().map((row) => row.identity));
+      const waiting = contenders
+        .filter(({ w }) => !this.keys(w).some((key) => locked.has(key)))
         .sort((x, y) => x.w.since - y.w.since);
       let chosen: [typeof waiting[number], typeof waiting[number]] | null = null;
       outer: for (let i = 0; i < waiting.length; i++)

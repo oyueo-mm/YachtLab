@@ -82,6 +82,10 @@ export function useBackgroundMatch(server: string | null, onMatched: (match: Qui
   const reconnect = () => {
     const saved = pendingQuick();
     if (saved && (!saved.base || saved.base === serverRef.current)) start(saved.name);
+    else if (state.phase === "error" && state.code === "NETWORK") {
+      update({ phase: "idle" });
+      setDisplay("hidden");
+    }
   };
 
   useEffect(() => {

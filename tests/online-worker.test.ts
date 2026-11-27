@@ -269,32 +269,33 @@ const tk = (n: number) => ("tk" + n).padEnd(30, "q");
 
 describe("C3 친구 대전 관전과 공개 서버 현황", () => {
   it("비공개 상태는 숫자로만 집계하며, 공개 권한과 관전 키를 실시간으로 검증한다", async () => {
-    const { code, a, b } = await twoPlayerRoom(main);
+    const worker = await boot({ TURN_TIMEOUT_MS: "0" });
+    const { code, a, b } = await twoPlayerRoom(worker);
     expect((await a.cmd({ type: "start" })).ok).toBe(true);
-    const list = async () => (await api(main, "/api/spectate/rooms")).body.rooms;
+    const list = async () => (await api(worker, "/api/spectate/rooms")).body.rooms;
     const entries = async () => (await list()).filter((room: { code: string }) => room.code === code);
-    const activity = async () => (await api(main, "/api/activity")).body;
-    await expect.poll(async () => (await activity()).playing?.friend).toBeGreaterThanOrEqual(1);
+    const activity = async () => (await api(worker, "/api/activity")).body;
+    await expect.poll(async () => (await activity()).playing?.friend ?? 0).toBeGreaterThanOrEqual(1);
     expect(await entries()).toEqual([]);
     expect(JSON.stringify(await activity())).not.toContain(code);
-    expect((await api(main, `/api/spectate/${code}/watch`, {})).status).toBe(409);
+    expect((await api(worker, `/api/spectate/${code}/watch`, {})).status).toBe(409);
     const preference = (client: Client, visibility: string) => client.ws.send(JSON.stringify({ t: "spectate", allow: visibility !== "private", visibility }));
     preference(a, "public");
     preference(b, "public");
     await expect.poll(entries).toMatchObject([{ code, kind: "friend", participants: 2, status: "playing", round: 1 }]);
-    const publicKey = (await api(main, `/api/spectate/${code}/watch`, {})).body.key;
+    const publicKey = (await api(worker, `/api/spectate/${code}/watch`, {})).body.key;
     expect(typeof publicKey).toBe("string");
-    const watcher = new Client(main.url, code);
+    const watcher = new Client(worker.url, code);
     await watcher.opened();
     const watching = watcher.next((m) => m.t === "watching");
     watcher.ws.send(JSON.stringify({ t: "watch", key: publicKey }));
     await watching;
-    await expect.poll(async () => (await activity()).spectators).toBeGreaterThanOrEqual(1);
-    expect((await api(main, `/api/rooms/${code}/join`, { name: "관전자", key: publicKey })).status).toBe(409);
+    await expect.poll(async () => (await activity()).spectators ?? 0).toBeGreaterThanOrEqual(1);
+    expect((await api(worker, `/api/rooms/${code}/join`, { name: "관전자", key: publicKey })).status).toBe(409);
     preference(a, "private");
     await watcher.waitForClose();
     await expect.poll(entries).toEqual([]);
-    expect((await api(main, `/api/spectate/${code}/watch`, {})).status).toBe(409);
+    expect((await api(worker, `/api/spectate/${code}/watch`, {})).status).toBe(409);
   });
 });
 

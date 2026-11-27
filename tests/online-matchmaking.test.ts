@@ -179,6 +179,21 @@ describe("빠른 대전 매칭 큐", () => {
     expect(a4.last("matched")).toBeUndefined();
   });
 
+  it("짧게 끊긴 탭은 살아 있는 동일 티켓으로 다시 연결해 큐 순서를 유지한다", async () => {
+    const h = harness();
+    const a = h.connect();
+    const info = { name: "민수", ticket: ticket(1), device: device(1), v: 2 };
+    await h.queue(a, info);
+    const since = a.last("queued")?.since;
+    a.close();
+    h.hub().closed(a);
+    h.advance(1_000);
+    const b = h.connect();
+    await h.queue(b, info);
+    expect(b.last("queued")?.since).toBe(since);
+    expect(h.hub().waiting()).toBe(1);
+  });
+
   it("진행 중인 무작위 대전이 있으면 다시 매칭하지 않고, 경기가 끝나면 다시 가능하다", async () => {
     const h = harness();
     await h.queue(h.connect(), { name: "민수", ticket: ticket(1), device: device(1) });

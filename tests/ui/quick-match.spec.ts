@@ -160,3 +160,24 @@ test("사이트에서 이동해도 한 번만 대기하고, 자동 입장 실패
   await expect(a.getByRole("button", { name: "진행 중인 경기로 돌아가기" })).toBeVisible();
   expect(queueSockets).toBe(1);
 });
+
+test("구버전 기능 응답에서는 기존 큐로 전역 대기하며 신규 현황을 요청하지 않는다", async ({ browser }, testInfo) => {
+  test.skip(testInfo.project.name === "mobile", "두 기기를 테스트에서 직접 만든다");
+  const a = await device(browser, "desktop");
+  const b = await device(browser, "phone");
+  const requests: string[] = [];
+  for (const page of [a, b]) {
+    page.on("request", (request) => requests.push(request.url()));
+    await page.route("**/api/features", (route) => route.fulfill({
+      json: { quickMatch: true, publicSpectate: true, signIn: false },
+    }));
+  }
+  await quick(a, "호환대기", true);
+  await expect(a.getByText("상대를 찾는 중이에요")).toBeVisible();
+  await a.getByRole("tab", { name: "관전방" }).click();
+  await expect(a.getByText(/지금 공개된 경기가 없어요|라운드/).first()).toBeVisible();
+  await quick(b, "호환상대", true);
+  await expect(a.locator(".roll-button")).toBeVisible();
+  await expect(b.locator(".roll-button")).toBeVisible();
+  expect(requests.some((url) => url.endsWith("/api/activity"))).toBe(false);
+});
