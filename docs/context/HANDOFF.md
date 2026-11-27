@@ -4,6 +4,8 @@
 
 ## 새로운 ChatGPT/에이전트가 해야 할 일
 
+> **계정 탈퇴·친구 관계·세션 보안(C4.2)** → [C4-2-ACCOUNT-SECURITY](../audits/c4-2026-11-28/C4-2-ACCOUNT-SECURITY.md), D-C42-1~4. 코드: `worker/src/friends.ts`(세대 코드·`forget`·`acceptedBy`), `worker/src/account-cleanup.ts`(정리 대기열), `worker/src/account.ts`(세션 정리·상한), `UserStore.deleteAccount`/`alarm`. 테스트: `tests/account-security*.test.ts`.
+
 > **공개 검색·연구 콘텐츠**는 [검색 의도 조사](./SEARCH-INTENT-2026-11-26.md), [SEO 자동화](./SEO-AUTOMATION.md), `scripts/seo/research-content.mjs`에서 시작한다. 공개 한국어·영어 보고서는 동일한 실험 표와 출처를 사용한다.
 
 > **게임 리뷰**는 [제품 복기의 수치 기준과 데이터 경계](./AI-REVIEW.md)에서 시작한다. C2의 모델 선택, 첫 굴림·재굴림 운, 기보 연결 및 A5 계약은 [C2 게임 리뷰](./C2-GAME-REVIEW.md)에 있다.
