@@ -246,6 +246,11 @@ describe("경제 v2 시뮬레이터", () => {
       expect(s.coinsEarned - s.spent.item - s.spent.upgrade - s.spent.draw).toBe(s.coins);
     }
   });
+  it("하루 8시간 사용자는 감소 구간·30경기 상한 도달 일이 집계된다(지표 회귀 방지)", () => {
+    const r = simulateUser(MAIN_PERSONAS[5], baselineParams(), 1, 0, opts);
+    expect(r.snapshots[1].daysReduced).toBeGreaterThan(0);
+    expect(r.snapshots[1].daysCapped).toBeGreaterThan(0);
+  });
   it("후보 ID는 고유하고 부스터 후보에 미도입이 포함된다", () => {
     const ids = [...SINGLE, ...POLICIES].map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);

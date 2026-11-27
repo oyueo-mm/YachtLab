@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="viz" viewBox="0 0 760 460" role="img" aria-label="경제 v2 후보: 기존 사용자의 다음 상품까지 시간 대 장기 보유 가치"><style>
+.viz{--s:#ffffff;--t1:#191919;--t2:#666666;--g:#e5e5e5;--a:#257de0;--b:#f47230;--n:#9c9c9c;font:12px system-ui,-apple-system,sans-serif}
+@media (prefers-color-scheme:dark){.viz{--s:#191919;--t1:#efefef;--t2:#9c9c9c;--g:#333333;--a:#338ced;--b:#e76624;--n:#666666}}
+.bg{fill:var(--s)}.t1{fill:var(--t1)}.t2{fill:var(--t2)}.grid{stroke:var(--g)}.dot{fill:var(--n)}.front{fill:var(--a)}.pol{fill:var(--b)}.fl{stroke:var(--a);fill:none;stroke-width:2}
+</style>
+<rect class="bg" width="760" height="460"/>
+<text class="t1" x="70" y="20" font-weight="600">후보별 만족(왼쪽일수록 빠름) × 장기 가치(아래일수록 희소성 유지) — 파란 점선 = Pareto frontier</text>
+<line class="grid" x1="131.13328532796092" x2="131.13328532796092" y1="40" y2="410"/><text class="t2" x="131.13328532796092" y="426" text-anchor="middle">10</text>
+<line class="grid" x1="291.663191719669" x2="291.663191719669" y1="40" y2="410"/><text class="t2" x="291.663191719669" y="426" text-anchor="middle">20</text>
+<line class="grid" x1="503.87218504850614" x2="503.87218504850614" y1="40" y2="410"/><text class="t2" x="503.87218504850614" y="426" text-anchor="middle">50</text>
+<line class="grid" x1="664.4020914402141" x2="664.4020914402141" y1="40" y2="410"/><text class="t2" x="664.4020914402141" y="426" text-anchor="middle">100</text>
+<line class="grid" x1="70" x2="740" y1="410" y2="410"/><text class="t2" x="64" y="414" text-anchor="end">68k</text>
+<line class="grid" x1="70" x2="740" y1="317.5" y2="317.5"/><text class="t2" x="64" y="321.5" text-anchor="end">94k</text>
+<line class="grid" x1="70" x2="740" y1="225" y2="225"/><text class="t2" x="64" y="229" text-anchor="end">119k</text>
+<line class="grid" x1="70" x2="740" y1="132.5" y2="132.5"/><text class="t2" x="64" y="136.5" text-anchor="end">145k</text>
+<line class="grid" x1="70" x2="740" y1="40" y2="40"/><text class="t2" x="64" y="44" text-anchor="end">171k</text>
+<text class="t2" x="415" y="448" text-anchor="middle">기존 사용자(하루 60분)가 다음 상품을 얻기까지 플레이 분 (로그)</text>
+<text class="t2" transform="translate(16 225) rotate(-90)" text-anchor="middle">하루 8시간 기존 사용자 90일 보유 가치(코인)</text>
+<polyline class="fl" stroke-dasharray="5 4" points="121.6790869371292,148.9629176111585 169.46571754505072,397.1595759930223"/>
+<circle class="dot" cx="674.8177295315579" cy="161.93458650087342" r="4.5" stroke="var(--s)" stroke-width="2"><title>BASE 현행 M3i-W30@2: 104.6분, 136,838코인</title></circle>
+<circle class="dot" cx="651.5455865324751" cy="140.82753275655557" r="4.5" stroke="var(--s)" stroke-width="2"><title>M15 경기 보상 ×1.5: 94.6분, 142,708코인</title></circle>
+<circle class="dot" cx="617.0252155208238" cy="113.91334241989131" r="4.5" stroke="var(--s)" stroke-width="2"><title>M20 경기 보상 ×2: 81.5분, 150,193코인</title></circle>
+<circle class="dot" cx="608.6341974203901" cy="93.84905623704742" r="4.5" stroke="var(--s)" stroke-width="2"><title>M25 경기 보상 ×2.5: 78.6분, 155,773코인</title></circle>
+<circle class="dot" cx="600.2334323890802" cy="74.46796259447956" r="4.5" stroke="var(--s)" stroke-width="2"><title>M30 경기 보상 ×3: 75.8분, 161,163코인</title></circle>
+<circle class="dot" cx="674.8177295315579" cy="133.93268172508544" r="4.5" stroke="var(--s)" stroke-width="2"><title>D15 전액 15경기·감소 40경기까지: 104.6분, 144,625코인</title></circle>
+<circle class="dot" cx="674.8177295315579" cy="150.34728144277045" r="4.5" stroke="var(--s)" stroke-width="2"><title>D5 감소 구간 3→5코인: 104.6분, 140,060코인</title></circle>
+<circle class="dot" cx="674.8177295315579" cy="102.55976112556698" r="4.5" stroke="var(--s)" stroke-width="2"><title>D20 전액 20경기·감소 40경기 5코인: 104.6분, 153,350코인</title></circle>
+<circle class="dot" cx="599.0080554570361" cy="236.37560526437267" r="4.5" stroke="var(--s)" stroke-width="2"><title>P85 상품 가격 85%: 75.4분, 116,135코인</title></circle>
+<circle class="dot" cx="393.907029683712" cy="310.3851340024344" r="4.5" stroke="var(--s)" stroke-width="2"><title>P70 상품 가격 70%: 31.1분, 95,553코인</title></circle>
+<circle class="front" cx="169.46571754505072" cy="397.1595759930223" r="4.5" stroke="var(--s)" stroke-width="2"><title>P50 상품 가격 50%: 11.8분, 71,420코인</title></circle>
+<circle class="dot" cx="169.46571754505072" cy="287.78584392014517" r="4.5" stroke="var(--s)" stroke-width="2"><title>PLOW 일반·고급 50%, 영웅 75%, 전설·신화 100%: 11.8분, 101,838코인</title></circle>
+<circle class="dot" cx="693.9336280970491" cy="168.65863939727453" r="4.5" stroke="var(--s)" stroke-width="2"><title>U75 강화 비용 75%: 113.6분, 134,968코인</title></circle>
+<circle class="dot" cx="697.7751114537026" cy="168.65863939727453" r="4.5" stroke="var(--s)" stroke-width="2"><title>U50 강화 비용 50%: 115.5분, 134,968코인</title></circle>
+<circle class="dot" cx="697.7751114537026" cy="168.75752252810392" r="4.5" stroke="var(--s)" stroke-width="2"><title>ULOW 일반·고급 50%, 영웅 70%, 전설·신화 100%: 115.5분, 134,940코인</title></circle>
+<circle class="dot" cx="674.8177295315579" cy="161.93458650087342" r="4.5" stroke="var(--s)" stroke-width="2"><title>N500 가입 500코인·보석 30, 7일 +10: 104.6분, 136,838코인</title></circle>
+<circle class="dot" cx="674.8177295315579" cy="161.93458650087342" r="4.5" stroke="var(--s)" stroke-width="2"><title>NSTART 첫 구매 50%(고급 이하)·무료 뽑기 3회: 104.6분, 136,838코인</title></circle>
+<circle class="dot" cx="674.8177295315579" cy="161.93458650087342" r="4.5" stroke="var(--s)" stroke-width="2"><title>N14 신규 보너스 14일 +10: 104.6분, 136,838코인</title></circle>
+<circle class="dot" cx="617.0252155208238" cy="113.33802238597463" r="4.5" stroke="var(--s)" stroke-width="2"><title>QD2 일일 퀘스트 ×2: 81.5분, 150,353코인</title></circle>
+<circle class="dot" cx="663.2412083084845" cy="157.57473936884864" r="4.5" stroke="var(--s)" stroke-width="2"><title>QW15 주간 퀘스트 ×1.5: 99.5분, 138,050코인</title></circle>
+<circle class="dot" cx="674.8177295315579" cy="173.81854095146466" r="4.5" stroke="var(--s)" stroke-width="2"><title>A15 업적 ×1.5: 104.6분, 133,533코인</title></circle>
+<circle class="dot" cx="617.309207830923" cy="130.48975089711536" r="4.5" stroke="var(--s)" stroke-width="2"><title>QALL 일일·주간·업적 ×1.5: 81.6분, 145,583코인</title></circle>
+<circle class="dot" cx="638.7108190010184" cy="69.69460418807716" r="4.5" stroke="var(--s)" stroke-width="2"><title>G150 뽑기 150코인: 89.5분, 162,490코인</title></circle>
+<circle class="dot" cx="668.5337397646915" cy="131.94602973296696" r="4.5" stroke="var(--s)" stroke-width="2"><title>GDUP 중복 보상 25→75: 101.8분, 145,178코인</title></circle>
+<circle class="dot" cx="674.8177295315579" cy="170.02502447782663" r="4.5" stroke="var(--s)" stroke-width="2"><title>G10 하루 10회: 104.6분, 134,588코인</title></circle>
+<circle class="dot" cx="674.8177295315579" cy="167.13044555718335" r="4.5" stroke="var(--s)" stroke-width="2"><title>STRK 주간 최고 연승 3·5·8 → 15·30·50: 104.6분, 135,393코인</title></circle>
+<circle class="dot" cx="674.8177295315579" cy="161.36825584248672" r="4.5" stroke="var(--s)" stroke-width="2"><title>COLL 컬렉션 완성 300코인·보석 10: 104.6분, 136,995코인</title></circle>
+<circle class="front" cx="121.6790869371292" cy="148.9629176111585" r="4.5" stroke="var(--s)" stroke-width="2"><title>TIER1 확정 주사위·이모티콘 재분류(가격 자동): 9.6분, 140,445코인</title></circle>
+<circle class="dot" cx="121.6790869371292" cy="136.8811968989084" r="4.5" stroke="var(--s)" stroke-width="2"><title>TIER2 확정 + 보드 제안 매핑(가격 자동): 9.6분, 143,805코인</title></circle>
+<circle class="pol" cx="557.7639865868314" cy="141.6545553053108" r="6" stroke="var(--s)" stroke-width="2"><title>V2-CONS 보수형: 63.1분, 142,478코인</title></circle>
+<circle class="pol" cx="369.58871484533165" cy="136.34183436711152" r="6" stroke="var(--s)" stroke-width="2"><title>V2-BAL 균형형: 28분, 143,955코인</title></circle>
+<circle class="pol" cx="155.30261611497266" cy="57.8825647417255" r="6" stroke="var(--s)" stroke-width="2"><title>V2-EXP 보상 확대형: 11.1분, 165,775코인</title></circle>
+<text class="t1" x="682.8177295315579" y="155.93458650087342">BASE</text>
+<text class="t1" x="177.46571754505072" y="391.1595759930223">P50</text>
+<text class="t1" x="129.6790869371292" y="142.9629176111585">TIER1</text>
+<text class="t1" x="565.7639865868314" y="135.6545553053108">V2-CONS</text>
+<text class="t1" x="377.58871484533165" y="130.34183436711152">V2-BAL</text>
+<text class="t1" x="163.30261611497266" y="51.8825647417255">V2-EXP</text>
+</svg>

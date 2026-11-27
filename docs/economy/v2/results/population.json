@@ -1,0 +1,89 @@
+{
+ "meta": {
+  "generatedBy": "scripts/economy/v2/run.ts",
+  "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
+  "seed": 20261127,
+  "seedNote": "development seeds; SEED+1 = E7 stability block; not a holdout",
+  "t0": "2026-11-29T15:00:00.000Z",
+  "horizons": [
+   1,
+   7,
+   30,
+   90
+  ],
+  "warmupDays": 60,
+  "jobs": 1108,
+  "players": 208140,
+  "threads": 4,
+  "seconds": 1485.2,
+  "node": "v22.23.5",
+  "cpu": "Intel(R) Xeon(R) Processor",
+  "quick": false
+ },
+ "populations": {
+  "BASE|existing": {
+   "n": 2000,
+   "gini": 0.3629,
+   "top10Share": 0.226,
+   "bottom50Share": 0.2317,
+   "p90p10": 6.8,
+   "meanEarned90": 10651
+  },
+  "V2-CONS|existing": {
+   "n": 2000,
+   "gini": 0.3598,
+   "top10Share": 0.2234,
+   "bottom50Share": 0.2327,
+   "p90p10": 6.53,
+   "meanEarned90": 14144
+  },
+  "V2-BAL|existing": {
+   "n": 2000,
+   "gini": 0.382,
+   "top10Share": 0.2377,
+   "bottom50Share": 0.2185,
+   "p90p10": 7.57,
+   "meanEarned90": 17331
+  },
+  "V2-EXP|existing": {
+   "n": 2000,
+   "gini": 0.411,
+   "top10Share": 0.2629,
+   "bottom50Share": 0.2041,
+   "p90p10": 8.58,
+   "meanEarned90": 24463
+  },
+  "BASE|new": {
+   "n": 2000,
+   "gini": 0.3615,
+   "top10Share": 0.23,
+   "bottom50Share": 0.2307,
+   "p90p10": 6.84,
+   "meanEarned90": 11992
+  },
+  "V2-CONS|new": {
+   "n": 2000,
+   "gini": 0.3603,
+   "top10Share": 0.228,
+   "bottom50Share": 0.2315,
+   "p90p10": 6.79,
+   "meanEarned90": 15461
+  },
+  "V2-BAL|new": {
+   "n": 2000,
+   "gini": 0.38,
+   "top10Share": 0.2397,
+   "bottom50Share": 0.2186,
+   "p90p10": 7.57,
+   "meanEarned90": 18525
+  },
+  "V2-EXP|new": {
+   "n": 2000,
+   "gini": 0.4088,
+   "top10Share": 0.2646,
+   "bottom50Share": 0.2047,
+   "p90p10": 8.73,
+   "meanEarned90": 26237
+  }
+ }
+}

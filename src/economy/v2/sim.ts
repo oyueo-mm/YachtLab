@@ -395,6 +395,8 @@ class Player {
     const drawRoll = this.r() < P.drawAppetite;
     let extraForQuests = P.questFocus > 0.5 ? 2 : 0;
     let aiStarts = 0;
+    let reducedHit = false;
+    let cappedHit = false;
     for (;;) {
       if (t >= end) {
         if (extraForQuests > 0 && this.econ.daily.some((q) => !q.done)) extraForQuests--;
@@ -453,13 +455,15 @@ class Player {
         if (this.measuring) this.boostCoins += out.boostCoins;
       }
       if (out.position !== null && this.measuring) this.paidMatches += out.position <= this.p.daily.reducedUntil ? 1 : 0;
+      if (out.position !== null && out.position > this.p.daily.fullMatches) reducedHit = true;
+      if (out.position !== null && out.position >= this.p.daily.reducedUntil) cappedHit = true;
       this.grant(out.grants);
       this.spend(drawRoll);
     }
-    if (this.measuring && this.econ.day === day) {
-      if (this.econ.rewarded > this.p.daily.fullMatches) this.daysReduced++;
-      if (this.econ.rewarded >= this.p.daily.reducedUntil) this.daysCapped++;
-    }
+    // (fixed after the 2026-11-27 full run: this used to compare the absolute economy day with the
+    // relative sim day, so reducedDayShare / cappedDayShare / everCapped were always 0 in that run)
+    if (this.measuring && reducedHit) this.daysReduced++;
+    if (this.measuring && cappedHit) this.daysCapped++;
     this.spend(drawRoll);
     if (this.measuring) this.res.maxCoinsDay = Math.max(this.res.maxCoinsDay, this.coinsToday);
   }

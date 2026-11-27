@@ -1,0 +1,21 @@
+{
+ "generatedBy": "scripts/economy/v2/run.ts",
+ "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
+ "seed": 20261127,
+ "seedNote": "development seeds; SEED+1 = E7 stability block; not a holdout",
+ "t0": "2026-11-29T15:00:00.000Z",
+ "horizons": [
+  1,
+  7,
+  30,
+  90
+ ],
+ "warmupDays": 60,
+ "jobs": 1108,
+ "players": 208140,
+ "threads": 4,
+ "seconds": 1485.2,
+ "node": "v22.23.5",
+ "cpu": "Intel(R) Xeon(R) Processor",
+ "quick": false
+}
