@@ -4,6 +4,8 @@
 
 ## 새로운 ChatGPT/에이전트가 해야 할 일
 
+> **C0 운영 점검(2026-11-27)**은 [검증 보고서](../operations/C0-PRODUCTION-VERIFICATION-2026-11-27.md)를 먼저 확인한다. 마지막 성공 Pages 배포와 기준 main의 제품 코드는 같다. Worker는 현재 운영 버전·Workers Free·유료 결제 비활성·롤백 대상 확인 후 배포 여부를 결정한다. C1 연구와 A1 로컬 개발은 병행할 수 있다.
+
 > **공개 검색·연구 콘텐츠**는 [검색 의도 조사](./SEARCH-INTENT-2026-11-26.md), [SEO 자동화](./SEO-AUTOMATION.md), `scripts/seo/research-content.mjs`에서 시작한다. 공개 한국어·영어 보고서는 동일한 실험 표와 출처를 사용한다.
 
 > **게임 리뷰**는 [제품 복기의 수치 기준과 데이터 경계](./AI-REVIEW.md)에서 시작한다. 브라우저 Web Worker에서 DP Expert와 작은 v5 종반 범위를 사용한다.
