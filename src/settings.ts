@@ -63,6 +63,12 @@ const listeners = new Set<() => void>();
 
 export const getSettings = () => current;
 
+/** "효과 줄이기" mirrored on <html> so pure-CSS cosmetic motion (names, frames, bubbles) can stop too. */
+const syncRoot = () => {
+  if (typeof document !== "undefined") document.documentElement.toggleAttribute("data-fx-reduced", current.reducedEffects);
+};
+syncRoot();
+
 export function updateSettings(patch: Partial<Settings>) {
   current = sanitize({ ...current, ...patch });
   try {
@@ -70,6 +76,7 @@ export function updateSettings(patch: Partial<Settings>) {
   } catch {
     // Private mode or blocked storage: keep the in-memory value for this session.
   }
+  syncRoot();
   listeners.forEach((fn) => fn());
 }
 

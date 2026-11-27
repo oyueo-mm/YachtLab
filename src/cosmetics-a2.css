@@ -1,0 +1,465 @@
+/*
+ * A2 (2026-11-27): cosmetics presentation pass. Loaded after items.css / items-content.css and only
+ * ADDS layers: it never changes sizes, layout or the existing classes' meaning. Rules:
+ *  - decorations live in ::after (bubbles; ::before is the speech tail), ::before/::after (frames)
+ *  - animation only on transform / opacity / background-position of a small pseudo layer
+ *  - every animation is level-gated (Lv.3 for bubbles/frames/names) and switched off for
+ *    `.static` (reduced effects), prefers-reduced-motion and off-screen thumbnails
+ *  - names and titles stay readable: the text colour is never replaced by a pattern.
+ */
+
+/* ============================================================ chat lines: own motion ============================================================ */
+/* The line's entrance follows its meaning (chat-mood.ts) and its tier sets the strength (--chat-amp).
+   Separate from the equipped bubble, which only styles the surface. */
+.feed-msg[class*="chat-m-"] .feed-text {
+  padding: 4px;
+  margin: -4px;
+  animation-duration: 0.46s;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.feed-msg.chat-m-cheer .feed-text { animation-name: chat-cheer; }
+.feed-msg.chat-m-ask .feed-text { animation-name: chat-ask; transform-origin: 20% 90%; }
+.feed-msg.chat-m-sigh .feed-text { animation-name: chat-sigh; animation-duration: 0.8s; animation-timing-function: ease-out; }
+.feed-msg.chat-m-plead .feed-text { animation-name: chat-plead; animation-duration: 0.7s; }
+.feed-msg.chat-m-shout .feed-text { animation-name: chat-shout; animation-duration: 0.36s; }
+.feed-msg.chat-m-calm .feed-text { animation-name: chat-calm; animation-duration: 0.3s; animation-timing-function: ease-out; }
+@keyframes chat-cheer {
+  0% { opacity: 0; transform: translateY(5px) scale(0.82); }
+  55% { opacity: 1; transform: translateY(-2px) scale(calc(1 + 0.08 * var(--chat-amp, 1))); }
+  100% { transform: none; }
+}
+@keyframes chat-ask {
+  0% { opacity: 0; transform: rotate(-9deg) scale(0.9); }
+  45% { opacity: 1; transform: rotate(calc(5deg * var(--chat-amp, 1))); }
+  70% { transform: rotate(calc(-3deg * var(--chat-amp, 1))); }
+  100% { transform: none; }
+}
+@keyframes chat-sigh {
+  0% { opacity: 0; transform: translateY(calc(-4px * var(--chat-amp, 1))); }
+  60% { opacity: 0.85; transform: translateY(calc(2px * var(--chat-amp, 1))); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes chat-plead {
+  0% { opacity: 0; transform: translateY(3px); }
+  25% { opacity: 1; transform: translateY(calc(3px * var(--chat-amp, 1))) rotate(-2deg); }
+  50% { transform: translateY(-1px); }
+  75% { transform: translateY(calc(2px * var(--chat-amp, 1))) rotate(2deg); }
+  100% { transform: none; }
+}
+@keyframes chat-shout {
+  0% { opacity: 0; transform: scale(calc(1.25 + 0.15 * var(--chat-amp, 1))); }
+  35% { opacity: 1; transform: scale(0.96) translateX(calc(-2px * var(--chat-amp, 1))); }
+  60% { transform: scale(1.04) translateX(calc(2px * var(--chat-amp, 1))); }
+  100% { transform: none; }
+}
+@keyframes chat-calm { from { opacity: 0; transform: translateY(3px); } }
+/* Tier: strength of the text itself (still plain, readable text). */
+.feed-msg.chat-t-rare .feed-text { font-weight: 700; }
+.feed-msg.chat-t-epic .feed-text { font-weight: 750; letter-spacing: 0.01em; }
+.feed-msg.chat-t-legendary .feed-text { font-weight: 800; letter-spacing: 0.015em; text-shadow: 0 0 0.5px currentColor; }
+.feed-msg.chat-t-mythic .feed-text {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: linear-gradient(90deg, #d4a017, #ff8a3d) no-repeat 0 calc(100% - 3px) / 100% 2px;
+}
+.feed-msg.chat-t-mythic.chat-m-shout .feed-text,
+.feed-msg.chat-t-mythic.chat-m-cheer .feed-text { animation-name: chat-shout; }
+.feed-msg.chat-m-sigh .feed-text { color: color-mix(in srgb, currentColor 82%, #6b7280); }
+.feed-msg.chat-m-plead .feed-text,
+.feed-msg.chat-m-shout .feed-text { font-weight: 800; }
+
+/* =========================================================== speech bubbles (equipped, surface only) =========================================================== */
+.feed-msg[class*="bubble-"] { position: relative; }
+.feed-msg[class*="bubble-"]::after { content: ""; position: absolute; pointer-events: none; }
+
+/* 민트: 기포가 올라오는 청량한 알약 */
+.feed-msg.bubble-mint::after {
+  inset: 4px 6px 4px auto; width: 14px;
+  background: radial-gradient(circle at 30% 70%, #fff 0 2px, transparent 2.5px), radial-gradient(circle at 70% 35%, #fff 0 1.6px, transparent 2px), radial-gradient(circle at 45% 20%, #ffffffc0 0 1.2px, transparent 1.6px);
+}
+/* 하늘: 모서리에 구름 */
+.feed-msg.bubble-sky { border-radius: 18px 18px 18px 6px; }
+.feed-msg.bubble-sky::after {
+  left: 8px; top: -5px; width: 34px; height: 10px;
+  background: radial-gradient(circle at 8px 8px, #fff 0 5px, transparent 5.5px), radial-gradient(circle at 18px 6px, #fff 0 6px, transparent 6.5px), radial-gradient(circle at 27px 8px, #fff 0 4.5px, transparent 5px);
+  filter: drop-shadow(0 -1px 0 #74b9f0);
+}
+/* 레몬: 얇게 썬 레몬 조각 + 점선 껍질 */
+.feed-msg.bubble-lemon { border-radius: 14px; box-shadow: inset 0 0 0 1px #e0c23a, inset 0 0 0 4px #fff8cc, inset 0 0 0 5px #f1dd7c; }
+.feed-msg.bubble-lemon::after {
+  right: 5px; top: 5px; width: 9px; height: 9px; border-radius: 50%;
+  background: repeating-conic-gradient(#fff6a8 0 20deg, #ffe66d 20deg 40deg); box-shadow: 0 0 0 1.5px #f2d23c;
+  opacity: 0.9;
+}
+/* 라벤더: 스티치 + 모서리 꽃 */
+.feed-msg.bubble-lavender { border-radius: 18px 6px 18px 18px; }
+.feed-msg.bubble-lavender::after { inset: 3px; border-radius: inherit; border: 1px dashed #b9a2ee; }
+/* 피치: 말랑한 복숭아 + 은은한 솜털 하이라이트 */
+.feed-msg.bubble-peach { border-radius: 20px; }
+.feed-msg.bubble-peach::after {
+  inset: 0; border-radius: inherit;
+  background: radial-gradient(ellipse at 22% 18%, #fff9 0 24%, transparent 55%), radial-gradient(ellipse at 90% 100%, #ffb88a55, transparent 60%);
+}
+/* 구름: 윗면이 몽글몽글한 구름 */
+.feed-msg.bubble-cloud { border-radius: 18px; }
+.feed-msg.bubble-cloud::after {
+  left: 12px; right: 12px; top: -5px; height: 9px;
+  background: radial-gradient(circle at 7px 9px, #fff 0 6px, transparent 6.4px) 0 0 / 16px 9px repeat-x;
+  filter: drop-shadow(0 -1px 1px rgba(60, 90, 140, 0.18));
+}
+/* 체크무늬: 피크닉 천 + 접힌 모서리 */
+.feed-msg.bubble-check { border-radius: 8px; box-shadow: inset 0 0 0 1px #9aa8bd, inset 0 0 0 3px #fff, inset 0 0 0 4px #c9d3e2; }
+.feed-msg.bubble-check::after {
+  right: 0; top: 0; width: 11px; height: 11px; border-radius: 0 8px 0 4px;
+  background: linear-gradient(225deg, #fff 50%, #cdd6e3 50%); box-shadow: -1px 1px 2px rgba(0, 0, 0, 0.12);
+}
+/* 물방울 무늬: 만화 말풍선(굵은 외곽선 + 어긋난 그림자) */
+.feed-msg.bubble-dots { border-radius: 22px 22px 22px 8px; box-shadow: inset 0 0 0 2px #f08aa9, 3px 3px 0 #f08aa9; }
+/* 서리 유리: 반투명 유리 + 모서리 결정선 */
+.feed-msg.bubble-frost { border-radius: 14px; backdrop-filter: none; }
+.feed-msg.bubble-frost::after {
+  left: 3px; top: 3px; width: 16px; height: 16px;
+  background: linear-gradient(135deg, transparent 46%, #b8dcf5 47% 53%, transparent 54%), linear-gradient(45deg, transparent 46%, #b8dcf5 47% 53%, transparent 54%), linear-gradient(90deg, transparent 47%, #d6ecfb 48% 52%, transparent 53%);
+  opacity: 0.8;
+}
+/* 네온 블루: 간판 튜브(안쪽 선 + 빛) */
+.feed-msg.bubble-neon { border-radius: 10px; box-shadow: inset 0 0 0 1px #4fd8ff, inset 0 0 0 3px #10131f, inset 0 0 0 4px #4fd8ff99, 0 0 8px rgba(79, 216, 255, 0.5); }
+/* 노을: 수평선 위 반쯤 가라앉은 해 */
+.feed-msg.bubble-sunset { border-radius: 16px; overflow: visible; }
+.feed-msg.bubble-sunset::after {
+  right: 8px; bottom: 0; width: 16px; height: 7px; border-radius: 8px 8px 0 0;
+  background: linear-gradient(#ffb15c, #ff7a59); opacity: 0.75; box-shadow: 0 -3px 0 -1px #ffd9a8aa;
+}
+/* 오로라: 세로 커튼 줄무늬 */
+.feed-msg.bubble-aurora { border-radius: 18px; }
+.feed-msg.bubble-aurora::after {
+  inset: 0; border-radius: inherit;
+  background: repeating-linear-gradient(100deg, transparent 0 9px, #5eead433 9px 15px, #a78bfa2e 15px 22px);
+}
+/* 홀로그램: 프리즘 호일 */
+.feed-msg.bubble-holo { border-radius: 14px; }
+.feed-msg.bubble-holo::after {
+  inset: 0; border-radius: inherit;
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.75) 50%, transparent 62%) 120% 0 / 260% 100% no-repeat, conic-gradient(from 210deg at 85% 15%, #ff9ad533, #9ad0ff33, #a8ffcf33, #fff5a533, #ff9ad533);
+}
+/* 골드: 금속 명판 + 리벳 */
+.feed-msg.bubble-gold { border-radius: 8px; }
+.feed-msg.bubble-gold::after {
+  inset: 0; border-radius: inherit;
+  background: radial-gradient(circle at 5px 5px, #8a6a10 0 1.4px, transparent 1.8px), radial-gradient(circle at calc(100% - 5px) 5px, #8a6a10 0 1.4px, transparent 1.8px), radial-gradient(circle at 5px calc(100% - 5px), #8a6a10 0 1.4px, transparent 1.8px), radial-gradient(circle at calc(100% - 5px) calc(100% - 5px), #8a6a10 0 1.4px, transparent 1.8px);
+}
+/* 캔디케인(시즌): 사선 줄무늬 테두리 */
+.feed-msg.bubble-christmas { border-radius: 16px; box-shadow: none; }
+.feed-msg.bubble-christmas::after {
+  inset: 0; border-radius: inherit; padding: 2.5px;
+  background: repeating-linear-gradient(45deg, #bd4151 0 6px, #fff 6px 12px);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.feed-msg[class*="bubble-"] > * { position: relative; z-index: 1; }
+
+/* Lv.2/Lv.3 of the upgradable bubbles: each theme keeps its own character. */
+.feed-msg.bubble-lv3.bubble-frost::after { animation: a2-glint 2.6s ease-in-out infinite; }
+.feed-msg.bubble-lv3.bubble-neon { animation: feed-in 0.22s ease-out, a2-neon-flick 3.4s steps(1) 0.3s infinite, feed-out 0.35s ease-in 3.8s forwards; }
+.feed-msg.bubble-lv3.bubble-sunset::after { animation: a2-sun 2.8s ease-in-out infinite; }
+.feed-msg.bubble-lv3.bubble-aurora::after { animation: a2-curtain 4s steps(16) infinite; background-size: 44px 100%; }
+.feed-msg.bubble-lv3.bubble-holo::after { animation: a2-foil 3.2s steps(14) infinite; }
+@keyframes a2-glint { 0%, 100% { opacity: 0.35; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.1) rotate(8deg); } }
+@keyframes a2-neon-flick { 0%, 6%, 10%, 100% { opacity: 1; } 7%, 9% { opacity: 0.72; } }
+@keyframes a2-sun { 50% { transform: translateY(-3px); opacity: 1; } }
+@keyframes a2-curtain { to { background-position: 44px 0; } }
+@keyframes a2-foil { to { background-position: -40% 0, 0 0; } }
+/* sheen sweep for the metallic / glassy ones at Lv.3 (does not touch the text) */
+.feed-msg.bubble-lv3.bubble-gold::after { animation: a2-plate 3s ease-in-out infinite; }
+@keyframes a2-plate { 0%, 55% { background-position: 0 0, 100% 0, 0 100%, 100% 100%; filter: none; } 80% { filter: brightness(1.5); } 100% { filter: none; } }
+
+/* ============================================================ nickname effects ============================================================ */
+/* Flat colours get a thin themed line; all keep the real text colour. */
+.player-name.namefx-sky { text-decoration: underline dotted #74c0fc; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.player-name.namefx-mint { text-decoration: underline wavy #63e6be; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.player-name.namefx-coral { text-decoration: underline double #ffa07a; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.player-name.namefx-violet { text-decoration: overline solid #b197fc; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+/* Gradient names: the underline carries the theme, the glyphs carry the colour. */
+.player-name.namefx-sunset { text-decoration: underline solid #ff922b; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.player-name.namefx-ocean { text-decoration: underline wavy #3bc9db; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+.player-name.namefx-forest { text-decoration: underline dashed #8ce99a; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.player-name.namefx-gold { filter: drop-shadow(0 1px 0 rgba(120, 80, 0, 0.45)); }
+.player-name.namefx-ember { filter: drop-shadow(0 0 2px rgba(255, 107, 0, 0.55)); }
+.player-name.namefx-holo { background-image: repeating-linear-gradient(100deg, #e64980 0 14%, #4dabf7 14% 28%, #51cf66 28% 42%, #fcc419 42% 56%, #e64980 56% 70%); background-size: 160% 100%; }
+.player-name.namefx-aurora { text-decoration: underline solid #38d9a9; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+/* Lv.2+ motion: one distinct movement per effect */
+.player-name.namefx-ocean.fx-lv2, .player-name.namefx-ocean.fx-lv3 { animation: namefx-flow 4s linear infinite, a2-bob 2.4s ease-in-out infinite; }
+.player-name.namefx-ember.fx-lv2, .player-name.namefx-ember.fx-lv3 { animation: namefx-flow 4s linear infinite, a2-ember 1.4s steps(2) infinite; }
+.player-name.namefx-aurora.fx-lv3 { animation: namefx-flow 4s linear infinite, a2-hue 6s ease-in-out infinite alternate; }
+.player-name.namefx-holo.fx-lv3 { animation: namefx-flow 2.4s linear infinite, a2-glitch 3.2s steps(1) infinite; }
+.player-name.namefx-neon.fx-lv2, .player-name.namefx-neon.fx-lv3 { animation: a2-neon-text 3.2s steps(1) infinite; }
+@keyframes a2-bob { 50% { text-underline-offset: 5px; } }
+@keyframes a2-ember { 50% { filter: drop-shadow(0 -1px 3px rgba(255, 140, 0, 0.8)) brightness(1.15); } }
+@keyframes a2-hue { to { filter: hue-rotate(50deg); } }
+@keyframes a2-glitch { 0%, 92%, 100% { transform: none; } 93% { transform: translateX(-1px); } 95% { transform: translateX(1px); } 97% { transform: none; } }
+@keyframes a2-neon-text { 0%, 7%, 11%, 100% { opacity: 1; } 8%, 10% { opacity: 0.55; } }
+/* Lv.3 sparkle on the metal / sky-like names: one tiny star at the end of the name */
+.player-name.namefx-gold.fx-lv3, .player-name.namefx-aurora.fx-lv3 { position: relative; padding-right: 0.5em; }
+.player-name.namefx-gold.fx-lv3::after, .player-name.namefx-aurora.fx-lv3::after {
+  content: ""; position: absolute; right: 0.05em; top: 0.1em; width: 0.38em; height: 0.38em;
+  background: radial-gradient(circle, #fff 0 18%, transparent 20%), linear-gradient(90deg, transparent 42%, #fff 43% 57%, transparent 58%), linear-gradient(0deg, transparent 42%, #fff 43% 57%, transparent 58%);
+  filter: drop-shadow(0 0 1px #c08a00); animation: a2-star 2.2s ease-in-out infinite;
+}
+@keyframes a2-star { 0%, 100% { opacity: 0; transform: scale(0.4); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }
+
+/* On the dark seat chips the same effects use their light variants so the name stays readable. */
+.table-v4 .seat-chip .player-name[class*="namefx-"] { filter: brightness(1.35) saturate(1.1); }
+.table-v4 .seat-chip .player-name:is(.namefx-sky, .namefx-mint, .namefx-coral, .namefx-violet, .namefx-neon) { color: revert-layer; }
+
+/* ================================================================= titles ================================================================= */
+/* Tier sets the plate; each title adds a small glyph that matches its meaning (decorative, silent). */
+.player-title { display: inline-flex; align-items: center; gap: 3px; letter-spacing: 0; }
+.player-title[data-title]::before { font-size: 0.9em; line-height: 1; opacity: 0.85; }
+.player-title.title-common { background: #f1f3f5; color: #495057; }
+.player-title.title-rare { box-shadow: inset 2px 0 0 #4dabf7; padding-left: 8px; border-radius: 4px 999px 999px 4px; }
+.player-title.title-epic {
+  border-radius: 4px; padding: 1px 8px; box-shadow: inset 0 0 0 1px #b197fc;
+  clip-path: polygon(5px 0, calc(100% - 5px) 0, 100% 50%, calc(100% - 5px) 100%, 5px 100%, 0 50%);
+}
+.player-title.title-legendary {
+  border-radius: 4px; padding: 1px 9px; box-shadow: inset 0 0 0 1px #e0b324, inset 0 -2px 0 #e0b32466;
+  background: linear-gradient(100deg, #fff3bf, #ffe8cc 60%, #fff3bf); background-size: 200% 100%;
+}
+.player-title.title-legendary::before { color: #b8860b; }
+.player-title[data-title="title.beginner"] { --g: "◇"; }
+.player-title[data-title="title.one_more"] { --g: "↻"; }
+.player-title[data-title="title.yacht_sprout"] { --g: "▲"; }
+.player-title[data-title="title.easygoing"] { --g: "~"; }
+.player-title[data-title="title.bonus_hunter"] { --g: "◎"; }
+.player-title[data-title="title.straight_master"] { --g: "→"; }
+.player-title[data-title="title.comeback"] { --g: "↺"; }
+.player-title[data-title="title.cool_head"] { --g: "◐"; }
+.player-title[data-title="title.collector"] { --g: "◆"; }
+.player-title[data-title="title.odds_wizard"] { --g: "✦"; }
+.player-title[data-title="title.table_master"] { --g: "♛"; }
+.player-title[data-title="title.legend_roll"] { --g: "★"; }
+.player-title[data-title="title.golden_hand"] { --g: "♦"; }
+.player-title[data-title="title.lucky_star"] { --g: "★"; }
+.player-title[data-title="title.perfect"] { --g: "✔"; }
+.player-title[data-title="title.christmas"] { --g: "❄"; }
+.player-title[data-title]::before { content: var(--g, none); }
+@media (prefers-reduced-motion: no-preference) {
+  .player-title.title-legendary { animation: a2-plate-shine 5s linear infinite; }
+}
+@keyframes a2-plate-shine { to { background-position: -200% 0; } }
+
+/* ============================================================ profile frames ============================================================ */
+/* Frames draw OUTSIDE the avatar on pseudo layers so the seat-colour ring (box-shadow) stays visible. */
+.player-icon[class*="pf-ring-"] { position: relative; isolation: isolate; }
+.player-icon[class*="pf-ring-"]::before, .player-icon[class*="pf-ring-"]::after { content: ""; position: absolute; pointer-events: none; z-index: -1; }
+.player-icon[class*="pf-ring-"]::before { inset: -0.3em; background: center / 100% 100% no-repeat; }
+.pf-ring-silver::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='18.4' fill='none' stroke='%23c5ccd6' stroke-width='1.2'/%3E%3Ccircle cx='20' cy='20' r='16.2' fill='none' stroke='%238e98a6' stroke-width='2' stroke-dasharray='0.1 3.2' stroke-linecap='round'/%3E%3C/svg%3E"); }
+.pf-ring-violet::before { inset: -0.45em; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cellipse cx='20' cy='20' rx='19' ry='6.5' fill='none' stroke='%23845ef7' stroke-width='1.3' transform='rotate(-24 20 20)'/%3E%3Ccircle cx='36.2' cy='12.3' r='2.3' fill='%23b197fc' stroke='%23fff' stroke-width='0.6'/%3E%3C/svg%3E"); }
+.pf-ring-ocean::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='18' fill='none' stroke='%231c7ed6' stroke-width='1.6'/%3E%3Cpath d='M3 27q4-4 8 0t8 0 8 0 8 0 4-2' fill='none' stroke='%2374c0fc' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath d='M5 31q4-3 7.5 0t7.5 0 7.5 0 6-1.5' fill='none' stroke='%233bc9db' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E"); }
+.pf-ring-fire::before { inset: -0.42em; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cdefs%3E%3Cpath id='f' d='M20 1.2c2.6 3.4 2.6 6 0 9.2-2.6-3.2-2.6-5.8 0-9.2z' fill='%23ff922b' stroke='%23f03e3e' stroke-width='0.6'/%3E%3C/defs%3E%3Cg%3E%3Cuse href='%23f'/%3E%3Cuse href='%23f' transform='rotate(45 20 20)'/%3E%3Cuse href='%23f' transform='rotate(90 20 20)'/%3E%3Cuse href='%23f' transform='rotate(135 20 20)'/%3E%3Cuse href='%23f' transform='rotate(180 20 20)'/%3E%3Cuse href='%23f' transform='rotate(225 20 20)'/%3E%3Cuse href='%23f' transform='rotate(270 20 20)'/%3E%3Cuse href='%23f' transform='rotate(315 20 20)'/%3E%3C/g%3E%3Ccircle cx='20' cy='20' r='15.8' fill='none' stroke='%23f76707' stroke-width='1.4'/%3E%3C/svg%3E"); }
+.pf-ring-ice::before { inset: -0.36em; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpolygon points='20,2.5 35.2,11.2 35.2,28.8 20,37.5 4.8,28.8 4.8,11.2' fill='none' stroke='%2374c0fc' stroke-width='1.6' stroke-linejoin='round'/%3E%3Cpath d='M20 0v4M20 36v4M3.4 10l3.4 2M33.2 28l3.4 2M3.4 30l3.4-2M33.2 12l3.4-2' stroke='%23a5d8ff' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E"); }
+.pf-ring-neon::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='18' fill='none' stroke='%23ff4fcf' stroke-width='2' stroke-dasharray='11 4.3' stroke-linecap='round'/%3E%3Ccircle cx='20' cy='20' r='15.6' fill='none' stroke='%2300e5ff' stroke-width='0.8' stroke-opacity='0.8'/%3E%3C/svg%3E"); }
+.pf-ring-gold::before { inset: -0.34em; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='17.6' fill='none' stroke='%23e0b324' stroke-width='2.4'/%3E%3Ccircle cx='20' cy='20' r='15.6' fill='none' stroke='%23fff3bf' stroke-width='0.8'/%3E%3Cg fill='%23fcc419' stroke='%23a87b12' stroke-width='0.7'%3E%3Crect x='17.6' y='0.6' width='4.8' height='4.8' transform='rotate(45 20 3)'/%3E%3Crect x='17.6' y='34.6' width='4.8' height='4.8' transform='rotate(45 20 37)'/%3E%3Crect x='0.6' y='17.6' width='4.8' height='4.8' transform='rotate(45 3 20)'/%3E%3Crect x='34.6' y='17.6' width='4.8' height='4.8' transform='rotate(45 37 20)'/%3E%3C/g%3E%3C/svg%3E"); }
+.pf-ring-holo::before { inset: -0.3em; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ff9ad5'/%3E%3Cstop offset='.33' stop-color='%239ad0ff'/%3E%3Cstop offset='.66' stop-color='%23a8ffcf'/%3E%3Cstop offset='1' stop-color='%23fff5a5'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='20' cy='20' r='18' fill='none' stroke='url(%23g)' stroke-width='2.6'/%3E%3C/svg%3E"); }
+/* Lv.2 = lit frame; Lv.3 = it moves, each in its own way (one transform per frame, composited). */
+.pf-lv2.pf-ring-neon::before, .pf-lv3.pf-ring-neon::before { filter: drop-shadow(0 0 3px #ff4fcf); }
+.pf-lv2.pf-ring-fire::before, .pf-lv3.pf-ring-fire::before { filter: drop-shadow(0 0 3px #ff922b); }
+.pf-lv2.pf-ring-gold::before, .pf-lv3.pf-ring-gold::before { filter: drop-shadow(0 0 3px #fcc419); }
+.pf-lv2.pf-ring-ice::before, .pf-lv3.pf-ring-ice::before { filter: drop-shadow(0 0 3px #a5d8ff); }
+.pf-lv3.pf-ring-violet::before { animation: a2-orbit 6s linear infinite; }
+.pf-lv3.pf-ring-ocean::before { animation: a2-tide 2.8s ease-in-out infinite; }
+.pf-lv3.pf-ring-fire::before { animation: a2-flame 0.9s steps(2) infinite; }
+.pf-lv3.pf-ring-ice::before { animation: a2-orbit 14s linear infinite; }
+.pf-lv3.pf-ring-neon::before { animation: a2-orbit 5s linear infinite; }
+.pf-lv3.pf-ring-holo::before { animation: a2-orbit 3.6s linear infinite; }
+.pf-lv3.pf-ring-gold::after {
+  inset: -0.34em; z-index: 1; background: center / 100% 100% no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='17.6' fill='none' stroke='%23fffbe6' stroke-width='2.4' stroke-opacity='.9' stroke-dasharray='9 102' stroke-linecap='round'/%3E%3C/svg%3E");
+  animation: a2-orbit 3.2s linear infinite;
+}
+@keyframes a2-orbit { to { transform: rotate(360deg); } }
+@keyframes a2-tide { 50% { transform: translateY(0.08em) scale(1.02); } }
+@keyframes a2-flame { 50% { transform: scale(1.06) rotate(4deg); } }
+.item-thumb.offscreen *::before, .item-thumb.offscreen *::after { animation-play-state: paused !important; }
+
+/* =================================================== special effects: shape-specific motion + staging =================================================== */
+/* "win" falls over the result card; each shape moves in its own way. */
+.fx-burst.fx-kind-win:is(.fx-shape-petal, .fx-shape-leaf, .fx-shape-snow) i { animation-name: a2-fall-sway; }
+.fx-burst.fx-kind-win.fx-shape-coin i { animation-name: a2-fall-flip; }
+.fx-burst.fx-kind-win:is(.fx-shape-heart, .fx-shape-note) i { animation-name: a2-rise-sway; top: auto; bottom: -14px; }
+.fx-burst.fx-kind-win.fx-shape-star i { animation-name: a2-fall-twinkle; }
+.fx-burst.fx-kind-win.fx-shape-bolt i { animation-name: a2-zap; animation-timing-function: steps(5, end); }
+.fx-burst.fx-kind-win.fx-shape-ribbon i { animation-name: a2-fall-sway; transform-origin: 50% 0; }
+.fx-burst.fx-kind-win.fx-shape-spark i { animation-name: a2-shell; top: 24%; animation-timing-function: cubic-bezier(0.1, 0.8, 0.3, 1); }
+.fx-burst.fx-kind-win.fx-shape-rainbow i { animation-name: a2-arc; top: 58%; }
+.fx-burst.fx-kind-win.fx-shape-galaxy i { animation-name: a2-swirl; top: 40%; }
+@keyframes a2-fall-sway {
+  0% { opacity: 0; transform: translate(0, 0) rotate(var(--rot)) rotateY(0); }
+  10% { opacity: 1; }
+  35% { transform: translate(calc(var(--drift) * 0.9), 90px) rotate(calc(var(--rot) + 90deg)) rotateY(90deg); }
+  65% { transform: translate(calc(var(--drift) * -0.6), 180px) rotate(calc(var(--rot) + 200deg)) rotateY(180deg); }
+  100% { opacity: 0; transform: translate(var(--drift), 280px) rotate(calc(var(--rot) + 320deg)) rotateY(270deg); }
+}
+@keyframes a2-fall-flip {
+  0% { opacity: 0; transform: translate(0, 0) rotateY(0); }
+  10% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--drift), 270px) rotateY(1080deg); }
+}
+@keyframes a2-rise-sway {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  15% { opacity: 1; }
+  40% { transform: translate(calc(var(--drift) * 0.6), -90px) scale(1); }
+  70% { transform: translate(calc(var(--drift) * -0.5), -170px); }
+  100% { opacity: 0; transform: translate(calc(var(--drift) * 0.3), -250px) scale(0.9); }
+}
+@keyframes a2-fall-twinkle {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.4) rotate(var(--rot)); }
+  15% { opacity: 1; transform: translate(calc(var(--drift) * 0.3), 30px) scale(1.2); }
+  35% { opacity: 0.5; } 50% { opacity: 1; transform: translate(calc(var(--drift) * 0.7), 120px) scale(0.9); }
+  100% { opacity: 0; transform: translate(var(--drift), 270px) scale(0.5) rotate(calc(var(--rot) + 240deg)); }
+}
+@keyframes a2-zap {
+  0% { opacity: 0; transform: translate(0, 0); }
+  20% { opacity: 1; transform: translate(calc(var(--drift) * 0.5), 60px) scaleY(1.4); }
+  40% { opacity: 0.2; } 60% { opacity: 1; transform: translate(calc(var(--drift) * -0.4), 150px) scaleY(1.2); }
+  100% { opacity: 0; transform: translate(var(--drift), 250px); }
+}
+/* firework shells: burst outward from a point, then sag */
+@keyframes a2-shell {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.3); }
+  12% { opacity: 1; }
+  45% { opacity: 1; transform: translate(calc(var(--cx) * var(--reach)), calc(var(--cy) * var(--reach) * 0.8)) scale(1.1); }
+  100% { opacity: 0; transform: translate(calc(var(--cx) * var(--reach) * 1.15), calc(var(--cy) * var(--reach) * 0.8 + 90px)) scale(0.5); }
+}
+@keyframes a2-arc {
+  0% { opacity: 0; transform: translate(-90px, 70px); }
+  25% { opacity: 1; }
+  50% { transform: translate(0, -40px); }
+  100% { opacity: 0; transform: translate(90px, 70px); }
+}
+@keyframes a2-swirl {
+  0% { opacity: 0; transform: rotate(var(--rot)) translateX(10px) scale(0.3); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(calc(var(--rot) + 200deg)) translateX(calc(var(--reach) * 1.2)) scale(1.1); }
+}
+
+/* "yacht": one burst from a point above the dice row (kept in the upper third; the row stays visible) */
+.fx-burst.fx-kind-yacht i { top: 26%; left: 50% !important; animation-name: a2-out; animation-duration: 1.1s !important; animation-timing-function: cubic-bezier(0.1, 0.8, 0.3, 1); }
+.fx-burst.fx-kind-yacht:is(.fx-shape-heart, .fx-shape-note, .fx-shape-bubble) i { bottom: auto; --g: -50px; }
+.fx-burst.fx-kind-yacht:is(.fx-shape-coin, .fx-shape-petal, .fx-shape-leaf, .fx-shape-snow, .fx-shape-ribbon, .fx-shape-star) i { --g: 120px; }
+.fx-burst.fx-kind-yacht.fx-shape-bolt i { animation-name: a2-out-zig; animation-timing-function: steps(6, end); }
+@keyframes a2-out {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.3) rotate(0); }
+  10% { opacity: 1; }
+  55% { opacity: 1; transform: translate(calc(var(--cx) * var(--reach)), calc(var(--cy) * var(--reach) * 0.7)) scale(1) rotate(var(--rot)); }
+  100% { opacity: 0; transform: translate(calc(var(--cx) * var(--reach) * 1.1), calc(var(--cy) * var(--reach) * 0.7 + var(--g, 60px))) scale(0.6) rotate(calc(var(--rot) * 1.5)); }
+}
+@keyframes a2-out-zig {
+  0% { opacity: 0; transform: translate(0, 0) scaleY(0.3); }
+  20% { opacity: 1; transform: translate(calc(var(--cx) * var(--reach) * 0.4), calc(var(--cy) * var(--reach) * 0.3)) scaleY(1.3); }
+  60% { opacity: 0.3; } 80% { opacity: 1; transform: translate(calc(var(--cx) * var(--reach) * 0.9), calc(var(--cy) * var(--reach) * 0.6)); }
+  100% { opacity: 0; transform: translate(calc(var(--cx) * var(--reach)), calc(var(--cy) * var(--reach) * 0.7)); }
+}
+
+/* "large straight": a light travels along the dice row from the 1st die to the 5th */
+.fx-burst.fx-kind-large i { top: 56%; animation-name: a2-pop; animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1); }
+.fx-burst.fx-kind-large::before {
+  content: ""; position: absolute; left: 4%; right: 4%; top: 56%; height: 3px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--fx-c0, #ffd75e), var(--fx-c1, #fff), transparent);
+  transform-origin: 0 50%; opacity: 0; animation: a2-sweep 0.75s ease-out forwards;
+}
+.fx-burst.fx-kind-large.fx-shape-bolt::before { height: 2px; box-shadow: 0 0 6px var(--fx-c0, #ffd75e); }
+@keyframes a2-pop {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.3); }
+  25% { opacity: 1; transform: translate(calc(var(--drift) * 0.3), calc(var(--lift) * -0.6)) scale(1.15) rotate(var(--rot)); }
+  100% { opacity: 0; transform: translate(calc(var(--drift) * 0.6), calc(var(--lift) * -1.6 - 18px)) scale(0.6) rotate(calc(var(--rot) + 120deg)); }
+}
+@keyframes a2-sweep { 0% { opacity: 0; transform: scaleX(0); } 20% { opacity: 0.9; } 100% { opacity: 0; transform: scaleX(1); } }
+.fx-burst.fx-kind-large.fx-shape-bubble i { animation-name: a2-pop; bottom: auto; }
+
+/* ================================================================= chat picker sheet ================================================================= */
+.social-lines { display: block; margin-top: 8px; }
+.social-tier { margin-top: 8px; }
+.social-tier:first-child { margin-top: 0; }
+.social-tier > h4 {
+  margin: 0 0 4px; padding-left: 2px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+}
+.social-tier-lines { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.social-tier-lines button {
+  min-height: 44px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 12px; background: #fff;
+  font-size: 13px; line-height: 1.25; text-align: center; box-shadow: inset 3px 0 0 var(--tier-c, transparent);
+  overflow-wrap: anywhere; touch-action: manipulation;
+}
+.social-tier-lines button[data-tier="common"] { --tier-c: #adb5bd; }
+.social-tier-lines button[data-tier="rare"] { --tier-c: #4dabf7; }
+.social-tier-lines button[data-tier="epic"] { --tier-c: #9775fa; }
+.social-tier-lines button[data-tier="legendary"] { --tier-c: #f59f00; }
+.social-tier-lines button[data-tier="mythic"] { --tier-c: #f03e3e; }
+.social-tier-lines button:active:enabled { transform: scale(0.97); background: var(--soft); }
+.social-tier-lines button:disabled { opacity: 0.5; }
+.social-panel.dock-sheet { max-height: min(70dvh, 520px); overflow-y: auto; overscroll-behavior: contain; }
+.social-panel.dock-sheet .social-panel-head { position: sticky; top: -10px; z-index: 2; margin: -10px -10px 6px; padding: 10px; background: #fff; border-radius: 16px 16px 0 0; }
+@media (max-width: 760px) {
+  .social-tier-lines { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .social-emotes { grid-template-columns: repeat(5, 1fr); }
+  .social-emotes button { min-height: 48px; }
+}
+
+/* ======================================================== preview page (연구실 > 꾸미기 미리보기) ======================================================== */
+.cosm-lab { display: grid; gap: 16px; max-width: 960px; }
+.cosm-lab > section { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.cosm-lab h2 { margin: 0; font-size: 15px; }
+.cosm-lab .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cosm-lab .chips button { min-height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--soft); font-size: 13px; }
+.cosm-lab .chips button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.cosm-lab .stage { min-height: 120px; display: grid; place-items: center; gap: 10px; padding: 14px; border-radius: 12px; background: #2d2f36; position: relative; overflow: hidden; }
+.cosm-lab .stage .table-feed { height: auto; min-height: 40px; width: 100%; justify-content: center; }
+.cosm-lab .tier-block h3 { margin: 6px 0 2px; font-size: 12px; color: var(--muted); }
+.cosm-lab .line-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+.cosm-lab .line-buttons button { min-height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: inset 3px 0 0 var(--tier-c, transparent); font-size: 13px; }
+
+
+/* shop / inventory stage additions */
+.stage-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.stage-chips button { min-height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--soft); font-size: 13px; }
+.stage-chips button[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.stage-chips button:disabled { opacity: 0.45; }
+.item-stage > .profile-card-seat { margin-top: 8px; justify-self: start; }
+.profile-card-seat, .cosm-lab .seat-dark { padding: 8px 12px; border-radius: 10px; background: #2d2f36; color: #fff; font-size: 14px; font-weight: 700; }
+.profile-card-seat .player-icon { font-size: 20px; }
+.stage-large { display: inline-flex; gap: 6px; }
+.stage-large span { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 6px; background: #fff; color: var(--ink); font-size: 14px; }
+.stage-result { position: relative; }
+.cosm-pick { display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
+.cosm-pick select { min-height: 40px; padding: 0 8px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); font-size: 14px; }
+.cosm-hint { margin: 0; color: var(--muted); font-size: 12px; }
+.cosm-lab .stage.tall { min-height: 220px; }
+.cosm-lab .stage-label { color: #fff; }
+.cosm-lab .stage-meta { color: #c5cad2; }
+.cosm-lab .stage .profile-card-sample { color: #fff; }
+.cosm-lab .line-buttons button[aria-pressed="true"] { background: var(--soft); border-color: var(--ink); }
+
+/* ============================================================== reduced motion ============================================================== */
+.feed-msg.static *, .feed-msg.static::after { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .feed-msg[class*="chat-m-"] .feed-text, .feed-msg[class*="bubble-"]::after,
+  .player-name[class*="namefx-"], .player-name[class*="namefx-"]::after,
+  .player-icon[class*="pf-ring-"]::before, .player-icon[class*="pf-ring-"]::after, .player-title { animation: none !important; }
+  .fx-burst { display: none; }
+}
+/* "효과 줄이기" (settings) behaves like the system setting for the pure-CSS cosmetics. */
+:root[data-fx-reduced] .feed-msg[class*="chat-m-"] .feed-text,
+:root[data-fx-reduced] .feed-msg[class*="bubble-"]::after,
+:root[data-fx-reduced] .player-name[class*="namefx-"],
+:root[data-fx-reduced] .player-name[class*="namefx-"]::after,
+:root[data-fx-reduced] .player-icon[class*="pf-ring-"]::before,
+:root[data-fx-reduced] .player-icon[class*="pf-ring-"]::after,
+:root[data-fx-reduced] .player-title { animation: none !important; }
+
+/* Lowest adaptive tier / "효과 품질: 낮음" (A1.1): decorative loops stop; the still decoration stays. */
+:root[data-fx-tier="2"] .feed-msg[class*="bubble-"]::after,
+:root[data-fx-tier="2"] .player-name[class*="namefx-"],
+:root[data-fx-tier="2"] .player-name[class*="namefx-"]::after,
+:root[data-fx-tier="2"] .player-icon[class*="pf-ring-"]::before,
+:root[data-fx-tier="2"] .player-icon[class*="pf-ring-"]::after,
+:root[data-fx-tier="2"] .player-title { animation: none !important; }

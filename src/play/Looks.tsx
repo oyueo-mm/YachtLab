@@ -56,7 +56,7 @@ export function PlayerTag({ name, look, me = false, compact = false, tone }: { n
     <span className={"player-tag" + (compact ? " compact" : "") + (tone ? " tone-" + tone : "")}>
       <ProfileAvatar look={look} me={me} tone={tone} />
       <span className={"player-name" + (fx && showFx ? ` ${fx} fx-lv${lv}` : "")}>{name}</span>
-      {title && !compact && <span className={"player-title" + (titleItem?.look.css ? " " + titleItem.look.css : "")}>{title}</span>}
+      {title && !compact && <span className={"player-title" + (titleItem?.look.css ? " " + titleItem.look.css : "")} data-title={titleItem?.id}>{title}</span>}
     </span>
   );
 }

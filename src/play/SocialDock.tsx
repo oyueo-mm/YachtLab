@@ -5,7 +5,8 @@ import { GUEST_LOOK, type PublicLook } from "../economy/live/catalog";
 import { PlayerTag, bubbleCssOf } from "./Looks";
 import { getSettings, useSettings } from "../settings";
 import { playEmoteSfx } from "../sound";
-import { EmoteGlyph } from "./EmoteGlyph";
+import { ChatMessage } from "./ChatMessage";
+import { chatMoodOf } from "../chat/chat-mood";
 
 /**
  * Preset chat and emotes (C, 2026-11-25). Root causes of "sent but nobody saw it" that this fixes:
@@ -21,6 +22,14 @@ import { EmoteGlyph } from "./EmoteGlyph";
 export type Sent = { id: string; key: number };
 type Feedback = { text: string; tone: "info" | "error" } | null;
 export const ECHO_TIMEOUT_MS = 4000;
+
+
+const TIER_ORDER = ["basic", "common", "rare", "epic", "legendary", "mythic"] as const;
+export const TIER_NAME: Record<string, string> = { basic: "기본", common: "일반", rare: "고급", epic: "영웅", legendary: "전설", mythic: "신화" };
+/** Lines grouped by tier in a fixed order (free first), keeping the equipped order inside a group. */
+export function groupByTier<T extends { tier: string }>(items: readonly T[]): [string, T[]][] {
+  return TIER_ORDER.map((t) => [t, items.filter((i) => i.tier === t)] as [string, T[]]).filter(([, g]) => g.length > 0);
+}
 
 /** Messages shown under the board (latest first), from the server's `said` relay. */
 export type FeedEntry = { key: number; from: string; id: string; at: number };
@@ -40,7 +49,8 @@ const readHidden = () => {
  * Everything about one table's chat: the feed of received messages, the sender with its own copy of
  * the server's rate limit, and the "hide other players' messages" switch.
  */
-export function useTableChat(me: string | null) {
+export type ResolveItem = (id: unknown) => SocialItem | null;
+export function useTableChat(me: string | null, resolve: ResolveItem = socialItem) {
   const [feed, setFeed] = useState<FeedEntry[]>([]);
   const [history, setHistory] = useState<FeedEntry[]>([]);
   const [hideOthers, setHideState] = useState(readHidden);
@@ -56,6 +66,8 @@ export function useTableChat(me: string | null) {
   const levelRef = useRef<(from: string, id: string) => number>(() => 1);
   const meRef = useRef(me);
   meRef.current = me;
+  const resolveRef = useRef(resolve);
+  resolveRef.current = resolve;
   const pendingRef = useRef<Sent | null>(null);
   pendingRef.current = pending;
   const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
@@ -78,7 +90,7 @@ export function useTableChat(me: string | null) {
 
   /** A relayed message (`said`): mine confirms my send; others' respect the hide switch. */
   const received = useCallback((from: string, id: string) => {
-    const item = socialItem(id);
+    const item = resolveRef.current(id);
     if (!item) return;
     const mine = from === meRef.current;
     if (mine && pendingRef.current?.id === id) setPending(null);
@@ -166,14 +178,14 @@ export type TableChat = ReturnType<typeof useTableChat>;
  * the dice or the roll button. Multi-player tables show who sent it. Bubble styles and emote levels
  * come from the sender's server-validated look; other players' effects follow "상대 아이템 효과".
  */
-export function TableFeed({ chat, names, looks, me, from, avatars = false }: {
-  chat: TableChat; names: Record<string, string>; looks: Record<string, PublicLook>; me: string | null; from?: string; avatars?: boolean;
+export function TableFeed({ chat, names, looks, me, from, avatars = false, resolve = socialItem }: {
+  chat: TableChat; names: Record<string, string>; looks: Record<string, PublicLook>; me: string | null; from?: string; avatars?: boolean; resolve?: ResolveItem;
 }) {
   const { reducedEffects, opponentFx } = useSettings();
   return (
     <div className={from ? "table-feed anchored-feed" : "table-feed"} aria-live="polite" aria-label="채팅 메시지">
       {chat.feed.filter((entry) => (!from || entry.from === from) && (!chat.hideOthers || entry.from === me)).map((e) => {
-        const item = socialItem(e.id);
+        const item = resolve(e.id);
         if (!item) return null;
         const mine = e.from === me;
         const fxOn = mine || opponentFx;
@@ -181,14 +193,16 @@ export function TableFeed({ chat, names, looks, me, from, avatars = false }: {
         const lv = item.kind === "emote" ? (look?.emotes.find((x) => x.id === e.id)?.lv ?? 1) : 1;
         const css = fxOn ? bubbleCssOf(look) : "";
         return (
-          <span key={e.key} className={"feed-msg " + item.kind + (mine ? " mine" : "") + (css ? " " + css : "") + (fxOn && !reducedEffects && item.kind === "emote" ? ` emote-lv${lv}` : "") + (fxOn && !reducedEffects && item.style !== "default" ? ` social-${item.style}` : "") + (reducedEffects ? " static" : "")} role="status">
-            <b className="feed-from">{avatars
-              ? <PlayerTag name={mine ? "나" : (names[e.from] ?? "")} look={look} me={mine} compact />
-              : (mine ? "나" : (names[e.from] ?? ""))}</b>
-            <span className="feed-text" aria-label={item.kind === "emote" ? item.label : undefined}>
-              {item.kind === "emote" ? <EmoteGlyph id={item.id} text={item.text} level={lv} effects={fxOn && !reducedEffects} /> : item.text}
-            </span>
-          </span>
+          <ChatMessage
+            key={e.key}
+            item={item}
+            mine={mine}
+            level={lv}
+            bubbleCss={css}
+            effects={fxOn && !reducedEffects}
+            staticMode={reducedEffects}
+            from={avatars ? <PlayerTag name={mine ? "나" : (names[e.from] ?? "")} look={look} me={mine} compact /> : (mine ? "나" : (names[e.from] ?? ""))}
+          />
         );
       })}
       {!from && chat.hideOthers && (
@@ -204,9 +218,9 @@ export function TableFeed({ chat, names, looks, me, from, avatars = false }: {
  * The send bar under the board: every equipped emote one tap away, preset chat in a sheet. Only
  * equipped items are offered (the server refuses anything else); disabled while offline.
  */
-export function SocialDock({ chat, look = GUEST_LOOK, online, transport, names = {}, me }: {
+export function SocialDock({ chat, look = GUEST_LOOK, online, transport, names = {}, me, resolve = socialItem }: {
   chat: TableChat; look?: PublicLook; online: boolean; transport: (id: string) => boolean;
-  names?: Record<string, string>; me?: string;
+  names?: Record<string, string>; me?: string; /** Preview page only: resolves fixture ids. The game always uses the live catalog. */ resolve?: ResolveItem;
 }) {
   const [open, setOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -230,7 +244,7 @@ export function SocialDock({ chat, look = GUEST_LOOK, online, transport, names =
       document.removeEventListener("keydown", esc);
     };
   }, [open]);
-  const items = (ids: string[]) => ids.map((id) => socialItem(id)).filter((i): i is SocialItem => !!i && !i.retired);
+  const items = (ids: string[]) => ids.map((id) => resolve(id)).filter((i): i is SocialItem => !!i && !i.retired);
   const emotes = items(look.emotes.map((e) => e.id));
   const lines = items(look.chats);
   const fire = (id: string, closeAfter = false) => {
@@ -270,10 +284,17 @@ export function SocialDock({ chat, look = GUEST_LOOK, online, transport, names =
             ))}
           </div>
           <div className="social-lines" role="group" aria-label="프리셋 채팅">
-            {lines.map((i) => (
-              <button key={i.id} type="button" disabled={disabled} onClick={() => fire(i.id, true)}>
-                {i.text}
-              </button>
+            {groupByTier(lines).map(([tier, group]) => (
+              <section key={tier} className="social-tier" data-tier={tier} aria-label={TIER_NAME[tier] + " 채팅"}>
+                {groupByTier(lines).length > 1 && <h4>{TIER_NAME[tier]}</h4>}
+                <div className="social-tier-lines">
+                  {group.map((i) => (
+                    <button key={i.id} type="button" data-tier={i.tier} data-mood={chatMoodOf(i.text)} disabled={disabled} onClick={() => fire(i.id, true)}>
+                      {i.text}
+                    </button>
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
           <p className="dock-sheet-state" role="status">
@@ -282,7 +303,7 @@ export function SocialDock({ chat, look = GUEST_LOOK, online, transport, names =
           <button type="button" className="text-button" aria-expanded={historyOpen} onClick={() => setHistoryOpen(!historyOpen)}>채팅 기록</button>
           {historyOpen && <ol className="chat-history" aria-label="채팅 기록">
             {chat.history.filter((entry) => !chat.hideOthers || entry.from === me).map((entry) => <li key={entry.key}>
-              <strong>{entry.from === me ? "나" : names[entry.from]}</strong> {socialItem(entry.id)?.text}
+              <strong>{entry.from === me ? "나" : names[entry.from]}</strong> {resolve(entry.id)?.text}
             </li>)}
           </ol>}
           <label className="social-hide">

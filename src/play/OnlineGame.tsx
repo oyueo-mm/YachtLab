@@ -40,7 +40,7 @@ import { PlayerTag, useBoardTheme, diceLookOf, diceMaterialOf, toneOf } from "./
 import { SeatChips } from "./SeatChips";
 import { GUEST_LOOK, itemById, type PublicLook } from "../economy/live/catalog";
 import type { FxLook } from "../economy/live/content-items";
-import { FxBurst } from "./FxBurst";
+import { FxBurst, type FxKind } from "./FxBurst";
 import { FriendInvite } from "../shell/Friends";
 import { saveLocalRecord } from "../identity/local";
 import { RULES_ID } from "../identity/records";
@@ -131,7 +131,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const looksRef = useRef(looks);
   chat.levelRef.current = (from, id) => looks[from]?.emotes.find((x) => x.id === id)?.lv ?? 1;
   looksRef.current = looks;
-  const [yachtFx, setYachtFx] = useState<{ fx: FxLook; level: number; seed: string } | null>(null);
+  const [yachtFx, setYachtFx] = useState<{ fx: FxLook; level: number; seed: string; kind: FxKind } | null>(null);
   const [aiSeat, setAiSeat] = useState<string | null>(null);
   const [lobby, setLobby] = useState<LobbyState | null>(null);
   const settings = useSettings();
@@ -206,11 +206,11 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
             if (e.type === "diceRolled" && mine) {
               rolled = true;
               kept = e.kept;
-            } else if (e.type === "categoryScored" && e.category === "yacht" && e.points === 50 && looksRef.current[e.playerId]?.fxLv && (looksRef.current[e.playerId]?.fxLv ?? 1) >= 2 && looksRef.current[e.playerId]?.fx !== "fx.none") {
+            } else if (e.type === "categoryScored" && ((e.category === "yacht" && e.points === 50) || (e.category === "large" && e.points > 0)) && looksRef.current[e.playerId]?.fxLv && (looksRef.current[e.playerId]?.fxLv ?? 1) >= 2 && looksRef.current[e.playerId]?.fx !== "fx.none") {
               // Lv.2 special effects also play on that player's yacht (every screen, once per event).
               const lk = looksRef.current[e.playerId];
               const fxl = itemById(lk.fx)?.look.fx;
-              if (fxl && (e.playerId === me || settingsRef.current.opponentFx)) setYachtFx({ fx: fxl, level: lk.fxLv, seed: `${next.matchId}-${e.seq}` });
+              if (fxl && (e.playerId === me || settingsRef.current.opponentFx)) setYachtFx({ fx: fxl, level: lk.fxLv, seed: `${next.matchId}-${e.seq}`, kind: e.category === "large" ? "large" : "yacht" });
               if (mine) announceScore(e.dice.map((value, id) => ({ id, value })), e.category);
               setFeedback(`${e.playerId === me ? "나" : nameOf(e.playerId)} · ${names[e.category]} ${e.points}점 기록`);
             } else if (e.type === "categoryScored" && mine) {
@@ -679,7 +679,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
                 <PlayerTag name={opponent.name} look={looks[opponent.playerId] ?? GUEST_LOOK} tone="opp" />
               </div>
             )}
-            {yachtFx && <FxBurst key={yachtFx.seed} fx={yachtFx.fx} level={yachtFx.level} seed={yachtFx.seed} />}
+            {yachtFx && <FxBurst key={yachtFx.seed} fx={yachtFx.fx} level={yachtFx.level} seed={yachtFx.seed} kind={yachtFx.kind} />}
             {/* Seats, chat bubbles, the send button and connection notices sit on the board's edges (D-060). */}
             <SeatChips
               players={players}
