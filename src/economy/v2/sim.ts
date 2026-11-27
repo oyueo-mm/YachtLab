@@ -754,26 +754,58 @@ class Player {
   }
 }
 
+type WarmupState = Pick<Player, "econ" | "ext" | "firstBuyDone" | "coinsToday" | "drawsToday" | "couponWeek"> & {
+  coins: number; gems: number; owned: [string, number][]; wishIds: string[];
+  rngDraws: number;
+};
+export type LegacyWarmups = WarmupState[];
+
 /** Simulate one player under candidate `p` (after optional warm-up under the baseline). */
-export function simulateUser(persona: Persona, p: V2Params, seed: number, index: number, opts: SimOptions): UserResult {
+export function simulateUser(persona: Persona, p: V2Params, seed: number, index: number, opts: SimOptions, warmups?: LegacyWarmups): UserResult {
   const userSeed = hashSeed("econ-v2", seed, persona.id, index);
-  const r = mulberry32(userSeed);
+  if (warmups && (opts.audited || !opts.warmupDays || opts.warmupParams?.id !== "BASE" || opts.suppressWelcome)) {
+    throw new Error("Warm-up cache requires the legacy BASE warm-up");
+  }
+  const cached = warmups?.[index];
+  // Mulberry32 adds this constant once per draw. Start at the exact cached RNG state.
+  const rng = mulberry32(userSeed + Math.imul(0x6d2b79f5, cached?.rngDraws ?? 0));
+  let rngDraws = 0;
+  const r = warmups && !cached ? () => { rngDraws++; return rng(); } : rng;
   const userId = `u${seed}-${index}`;
-  const createdAt = opts.t0 - opts.warmupDays * 86_400_000 + (opts.audited ? 0 : 3600_000 * 12);
+  const createdAt = opts.t0 - opts.warmupDays * DAY + (opts.audited ? 0 : 12 * HOUR);
   const pl = new Player(userId, persona, createdAt, r, opts, userSeed);
   const warm = opts.warmupParams ?? p;
-  pl.setParams(opts.warmupDays > 0 ? warm : p, true);
-  if (!opts.suppressWelcome) pl.grant([welcomeGrant(opts.warmupDays > 0 ? warm : p)]);
-  if (opts.audited) {
-    pl.wallet.coins += opts.initialCoins ?? 0;
-    pl.wallet.gems += opts.initialGems ?? 0;
-    for (const [id, level] of Object.entries(opts.initialItems ?? {})) {
-      const item = pl.byId.get(id);
-      if (item && !item.defaultOwned) pl.owned.set(id, Math.min(level, item.maxLevel));
+  if (cached) {
+    pl.econ = cached.econ;
+    pl.ext = cached.ext;
+    pl.wallet = { coins: cached.coins, gems: cached.gems };
+    pl.owned = new Map(cached.owned);
+    pl.wishIds = cached.wishIds;
+    pl.firstBuyDone = cached.firstBuyDone;
+    pl.coinsToday = cached.coinsToday;
+    pl.drawsToday = { ...cached.drawsToday };
+    pl.couponWeek = { ...cached.couponWeek };
+  } else {
+    pl.setParams(opts.warmupDays > 0 ? warm : p, true);
+    if (!opts.suppressWelcome) pl.grant([welcomeGrant(opts.warmupDays > 0 ? warm : p)]);
+    if (opts.audited) {
+      pl.wallet.coins += opts.initialCoins ?? 0;
+      pl.wallet.gems += opts.initialGems ?? 0;
+      for (const [id, level] of Object.entries(opts.initialItems ?? {})) {
+        const item = pl.byId.get(id);
+        if (item && !item.defaultOwned) pl.owned.set(id, Math.min(level, item.maxLevel));
+      }
+    }
+    if (opts.warmupDays === 0 && p.starter) pl.freeDrawsLeft += p.starter.freeDraws;
+    for (let d = -opts.warmupDays; d < 0; d++) pl.playDay(d);
+    if (warmups) {
+      warmups[index] = {
+        econ: pl.econ, ext: pl.ext, coins: pl.wallet.coins, gems: pl.wallet.gems, owned: [...pl.owned],
+        wishIds: pl.wishIds, firstBuyDone: pl.firstBuyDone, coinsToday: pl.coinsToday, rngDraws,
+        drawsToday: { ...pl.drawsToday }, couponWeek: { ...pl.couponWeek },
+      };
     }
   }
-  if (opts.warmupDays === 0 && p.starter) pl.freeDrawsLeft += p.starter.freeDraws;
-  for (let d = -opts.warmupDays; d < 0; d++) pl.playDay(d);
   if (opts.warmupDays > 0) pl.setParams(p, false);
   if (opts.audited) {
     pl.setDesired();
@@ -784,7 +816,7 @@ export function simulateUser(persona: Persona, p: V2Params, seed: number, index:
   pl.measuring = true;
   pl.measureStartMin = 0;
   pl.minutes = 0;
-  // the new-user grant is part of what a new player earns; for warm-up users it was earned before day 0
+  // The new-user grant is recorded only when it falls in the measurement period.
   if (opts.warmupDays === 0 && !opts.suppressWelcome) {
     pl.earned.coins += p.newUser.coins;
     pl.earned.gems += p.newUser.gems;
@@ -799,4 +831,3 @@ export function simulateUser(persona: Persona, p: V2Params, seed: number, index:
 }
 
 export const questLabel = (id: string) => questById(id)?.label ?? id;
-export type { TierId };

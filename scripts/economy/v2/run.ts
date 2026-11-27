@@ -17,7 +17,7 @@ import { ABUSE, BOOSTERS, INTERACTION, MAIN_PERSONAS, POLICIES, POPULATION, SENS
 import { baselineParams, PRICED_TIERS, type V2Params } from "../../../src/economy/v2/params";
 import { auditJobs, type Job } from "./audit-plan";
 import { survivalTimes } from "./survival";
-import { simulateUser, type Persona, type UserResult } from "../../../src/economy/v2/sim";
+import { simulateUser, type LegacyWarmups, type Persona, type UserResult } from "../../../src/economy/v2/sim";
 
 const { values: options } = parseArgs({ options: {
   quick: { type: "boolean" },
@@ -166,6 +166,8 @@ function rawRows(job: Job, rs: UserResult[]) {
 }
 const RAW_HEADER = "exp,cell,candidate,persona,user,seed,idx,firstObtainMin,firstBuyMin,commonDay,rareDay,epicDay,legendaryDay,mythicDay,lv3Day,maxCoinsDay,day,minutes,matches,paidMatches,coinsEarned,gemsEarned,coins,gems,owned,ownedValue,lv3,collectionsComplete,spentItem,spentUpgrade,spentDraw,boostCoins,draws,duplicates";
 
+const legacyWarmups = new Map<string, LegacyWarmups>();
+
 function runJob(job: Job) {
   const rs: UserResult[] = [];
   const horizons = job.audit ? AUDIT_HORIZONS : HORIZONS;
@@ -173,7 +175,13 @@ function runJob(job: Job) {
     snapshots: horizons.filter((h) => h <= job.days),
     includeRev2: job.audit?.revision ? job.audit.revision === 2 : options.rev !== "1",
     t0: job.t0 ?? T0, ...job.audit, audited: !!job.audit };
-  for (let i = 0; i < job.users; i++) rs.push(simulateUser(job.persona, job.params, job.seed, i, opts));
+  const warmKey = JSON.stringify([job.persona, job.seed, opts.t0, opts.warmupDays, opts.includeRev2]);
+  let warmups: LegacyWarmups | undefined;
+  if (!job.audit && job.warmupDays) {
+    warmups = legacyWarmups.get(warmKey);
+    if (!warmups) legacyWarmups.set(warmKey, warmups = []);
+  }
+  for (let i = 0; i < job.users; i++) rs.push(simulateUser(job.persona, job.params, job.seed, i, opts, warmups));
   const sample = (r: UserResult) => {
     const end = r.snapshots.at(-1)!;
     const d30 = r.snapshots.find((s) => s.day === 30) ?? end;
@@ -279,8 +287,27 @@ if (!isMainThread) {
     if (!existsSync(path)) return true;
     outputs.set(job, JSON.parse(readFileSync(path, "utf8")) as Result);
     return false;
-  }).sort((a, b) => cost(b) - cost(a));
+  }).sort((a, b) => {
+    const phases = ["E0", "E7", "E2", "E3", "E5", "E6", "E4", "E1"];
+    const stage = (job: Job) => phases.indexOf(job.exp);
+    return stage(a) - stage(b) || cost(b) - cost(a);
+  });
   const threads = Math.min(order.length, requestedWorkers);
+  const meta = { generatedBy: "scripts/economy/v2/run.ts", config: "M3i-W30@2 baseline (src/economy/live/config.ts)", codeHash, settingsHash, seed: seed ?? SEED, seedNote: "E0–E7 development runs; E7 uses seed+1", rev: Number(options.rev ?? 2), t0: new Date(T0).toISOString(), horizons: HORIZONS, warmupDays: WARMUP, jobs: all.length, players: all.reduce((a, j) => a + j.users, 0), node: process.version, quick: QUICK };
+  const groups = Map.groupBy(all, (j) => j.exp);
+  function writeGroup(exp: string) {
+    const batch = groups.get(exp)!;
+    if (batch.some((j) => !outputs.has(j))) return;
+    const cells = Object.fromEntries([...batch].sort((a, b) => a.cell.localeCompare(b.cell)).map((job) => {
+      const m = outputs.get(job)!;
+      return [job.cell, { candidate: job.params.id, label: job.params.label, group: job.params.group, persona: job.persona.id,
+        minutesPerDay: job.persona.minutesPerDay, user: job.warmupDays ? "existing" : "new", seed: job.seed, ...job.tag, ...m.agg }];
+    }));
+    atomic(resolve(dir, exp + ".json"), JSON.stringify({ meta, cells }));
+  }
+  // A fully completed experiment is readable even if a later job fails.
+  for (const exp of groups.keys()) writeGroup(exp);
+  const left = new Map([...groups].map(([exp, batch]) => [exp, batch.filter((j) => !outputs.has(j)).length]));
   let next = 0;
   let done = outputs.size;
   console.log(`economy-v2: ${all.length} jobs, ${done} resumed, ${threads} workers`);
@@ -306,6 +333,12 @@ if (!isMainThread) {
           const output = { agg, raw, earned, firstObtain, samples: m.samples };
           atomic(checkpoint(job), JSON.stringify(output));
           outputs.set(job, output);
+          const remaining = (left.get(job.exp) ?? 0) - 1;
+          left.set(job.exp, remaining);
+          if (remaining === 0) {
+            writeGroup(job.exp);
+            console.log(`  ${job.exp} complete`);
+          }
           if (++done % 50 === 0 || done === all.length) console.log(`  ${done}/${all.length} (${((performance.now() - started) / 1000).toFixed(0)} s)`);
           feed();
         } catch (e) { fail(e); }
@@ -316,12 +349,10 @@ if (!isMainThread) {
     await Promise.all(pool.map((worker) => worker.terminate()));
   }
   const seconds = (performance.now() - started) / 1000;
-  const results: Record<string, Record<string, unknown>> = {};
   const raw: string[] = [];
   const pops: Record<string, { earned: number[]; firstObtain: (number | null)[] }> = {};
   for (const job of [...all].sort((a, b) => a.exp.localeCompare(b.exp) || a.cell.localeCompare(b.cell))) {
     const m = outputs.get(job)!;
-    (results[job.exp] ??= {})[job.cell] = { candidate: job.params.id, label: job.params.label, group: job.params.group, persona: job.persona.id, minutesPerDay: job.persona.minutesPerDay, user: job.warmupDays ? "existing" : "new", seed: job.seed, ...job.tag, ...m.agg };
     raw.push(...m.raw);
     if (job.exp === "E6") {
       const key = `${job.params.id}|${job.warmupDays ? "existing" : "new"}`;
@@ -333,11 +364,9 @@ if (!isMainThread) {
   const popSummary = Object.fromEntries(Object.entries(pops).map(([k, v]) => {
     const s = [...v.earned].sort((a, b) => b - a);
     const tot = s.reduce((a, b) => a + b, 0);
-    return [k, { n: s.length, gini: +gini(v.earned).toFixed(4), top10Share: +(s.slice(0, Math.ceil(s.length / 10)).reduce((a, b) => a + b, 0) / tot).toFixed(4), bottom50Share: +(s.slice(Math.floor(s.length / 2)).reduce((a, b) => a + b, 0) / tot).toFixed(4), p90p10: +(q(v.earned, 0.9) / Math.max(1, q(v.earned, 0.1))).toFixed(2), meanEarned90: +mean(v.earned).toFixed(0) }];
+    return [k, { n: s.length, gini: +gini(v.earned).toFixed(4), top10Share: +(s.slice(0, Math.ceil(s.length / 10)).reduce((a, b) => a + b, 0) / Math.max(1, tot)).toFixed(4), bottom50Share: +(s.slice(Math.floor(s.length / 2)).reduce((a, b) => a + b, 0) / Math.max(1, tot)).toFixed(4), p90p10: +(q(v.earned, 0.9) / Math.max(1, q(v.earned, 0.1))).toFixed(2), meanEarned90: +mean(v.earned).toFixed(0) }];
   }));
-  const meta = { generatedBy: "scripts/economy/v2/run.ts", config: "M3i-W30@2 baseline (src/economy/live/config.ts)", codeHash, settingsHash, seed: seed ?? SEED, seedNote: "E0–E7 development runs; E7 uses seed+1", rev: Number(options.rev ?? 2), t0: new Date(T0).toISOString(), horizons: HORIZONS, warmupDays: WARMUP, jobs: all.length, players: all.reduce((a, j) => a + j.users, 0), node: process.version, quick: QUICK };
-  for (const [exp, cells] of Object.entries(results)) atomic(resolve(dir, exp + ".json"), JSON.stringify({ meta, cells }));
-  if (results.E6) atomic(resolve(dir, "population.json"), JSON.stringify({ meta, populations: popSummary }, null, 1));
+  if (groups.has("E6")) atomic(resolve(dir, "population.json"), JSON.stringify({ meta, populations: popSummary }, null, 1));
   const sampled = [...outputs].filter(([, m]) => m.samples.length).sort(([a], [b]) => a.cell.localeCompare(b.cell));
   if (sampled.length) atomic(resolve(dir, "H1-samples.json.gz"), gzipSync(JSON.stringify(Object.fromEntries(sampled.map(([j, m]) => [j.cell, m.samples])))));
   if (audit) {
