@@ -39,7 +39,7 @@ for (const board of BOARDS.filter((b) => !ONLY || ONLY.split(",").includes(b))) 
     const tray = page.locator(".game-board").first();
     await tray.waitFor();
     await page.waitForTimeout(1500);
-    const name = `${OUT}/${board.replace("board.", "")}-lv${lv}.png`;
+    const name = `${OUT}/${board.replace("board.", "")}-lv${lv}.png`; // committed copies are converted to JPEG (q80)
     if (lv === 3) {
       await page.locator(".roll-button").click();
       await page.waitForTimeout(VIDEO ? 2600 : 560);

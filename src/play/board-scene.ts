@@ -32,25 +32,8 @@ type Thing = { x: number; y: number; t0: number; life: number; s: number; k: str
 
 /* ------------------------------------------------------------------ helpers ------------------------------------------------------------------ */
 
-const sprites = new Map<string, HTMLCanvasElement>();
-/** A cached 64 px radial glow of `color` (drawImage is far cheaper than a gradient fill per frame). */
-export function glowSprite(color: string): HTMLCanvasElement {
-  let c = sprites.get(color);
-  if (c) return c;
-  c = document.createElement("canvas");
-  c.width = c.height = 64;
-  const g = c.getContext("2d");
-  if (g) {
-    const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-    r.addColorStop(0, color);
-    r.addColorStop(0.45, color + "88".slice(0, color.length === 7 ? 2 : 0));
-    r.addColorStop(1, "rgba(0,0,0,0)");
-    g.fillStyle = r;
-    g.fillRect(0, 0, 64, 64);
-  }
-  sprites.set(color, c);
-  return c;
-}
+import { glowSprite } from "../dice3d/fx-canvas";
+export { glowSprite };
 function soft(g: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, alpha: number, rx = r) {
   if (alpha <= 0.003 || r <= 0) return;
   g.globalAlpha = Math.min(1, alpha);

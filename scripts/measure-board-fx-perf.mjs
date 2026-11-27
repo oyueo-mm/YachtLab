@@ -8,7 +8,8 @@
  * For each equip combo (offline own look, #solo): fresh context → board visible (init time) →
  * idle window (no roll; Lv.2 ambient cost) → `rolls` throws in 2 turns (tap→first frame, frame
  * intervals while dice move, long tasks) → CDP metrics (TaskDuration / ScriptDuration per second,
- * JS heap, DOM nodes, canvas count). The frame samples are rAF intervals of the page.
+ * JS heap after a forced GC (start of the throws vs after them: growth), DOM nodes, canvas count).
+ * `firstRollFrames` = the first throw of the session, `laterRollFrames` = the last third (sustained play). The frame samples are rAF intervals of the page.
  *
  * EMULATION ONLY: headless Chromium with SwiftShader (CPU software GPU), 60 Hz rAF cap. Not a real device;
  * GPU usage is not measurable here (SwiftShader runs on the CPU, so it shows up in TaskDuration).
@@ -134,7 +135,8 @@ for (const key of keys) {
     }, idleFrom);
     agg.idle.push(...idleIv);
     agg.cpuIdle.push(((m1.TaskDuration - m0.TaskDuration) / (m1.Timestamp - m0.Timestamp)) * 100);
-    const heap0 = m1.JSHeapUsedSize;
+    await cdp.send("HeapProfiler.collectGarbage").catch(() => {});
+    const heap0 = (await metrics(cdp)).JSHeapUsedSize;
     let cpuRollT = 0, cpuRollW = 0, scriptT = 0;
     for (let i = 0; i < ROLLS; i++) {
       const a = await metrics(cdp);
@@ -144,7 +146,9 @@ for (const key of keys) {
       scriptT += b.ScriptDuration - a.ScriptDuration;
       cpuRollW += b.Timestamp - a.Timestamp;
       agg.roll.push(...r.iv);
-      (i === 0 ? agg.firstRollIv : agg.lateRollIv).push(...r.iv);
+      // sustained play: the first throw vs the last third of the session
+      if (i === 0) agg.firstRollIv.push(...r.iv);
+      else if (i >= Math.floor((ROLLS * 2) / 3)) agg.lateRollIv.push(...r.iv);
       if (r.firstFrame != null) agg.firstFrame.push(r.firstFrame);
       agg.long.push(r.long);
       agg.longMs.push(r.longMs);
@@ -157,6 +161,8 @@ for (const key of keys) {
     }
     agg.cpuRoll.push((cpuRollT / cpuRollW) * 100);
     agg.scriptRoll.push((scriptT / cpuRollW) * 100);
+    await page.waitForTimeout(1500);
+    await cdp.send("HeapProfiler.collectGarbage").catch(() => {});
     const m2 = await metrics(cdp);
     agg.heap.push(m2.JSHeapUsedSize / 1048576);
     agg.heapGrowth.push((m2.JSHeapUsedSize - heap0) / 1048576);

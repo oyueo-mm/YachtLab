@@ -16,6 +16,27 @@ type L = Lines & { x: number; y: number; age: number; paths: number[][] };
 type S = { pts: { x: number; y: number; t: number }[]; spec: Streak };
 
 const MAX = 160;
+
+const sprites = new Map<string, HTMLCanvasElement>();
+/** A cached 64 px radial glow of `color` (drawImage is far cheaper than a gradient fill per frame). */
+export function glowSprite(color: string): HTMLCanvasElement {
+  let c = sprites.get(color);
+  if (c) return c;
+  c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const g = c.getContext("2d");
+  if (g) {
+    const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    r.addColorStop(0, color);
+    if (/^#[0-9a-f]{6}$/i.test(color)) r.addColorStop(0.45, color + "88");
+    r.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = r;
+    g.fillRect(0, 0, 64, 64);
+  }
+  if (sprites.size > 96) sprites.clear();
+  sprites.set(color, c);
+  return c;
+}
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
 export class FxCanvas {
@@ -42,7 +63,8 @@ export class FxCanvas {
   layout(width: number, height: number) {
     this.w = width;
     this.h = height;
-    this.ratio = Math.min(2, window.devicePixelRatio || 1);
+    // overlay particles: up to 1.5 device px per CSS px (2× quadrupled the fill cost for soft shapes)
+    this.ratio = Math.min(1.5, window.devicePixelRatio || 1);
     this.canvas.width = Math.max(1, Math.round(width * this.ratio));
     this.canvas.height = Math.max(1, Math.round(height * this.ratio));
     this.canvas.style.width = width + "px";
@@ -163,16 +185,17 @@ export class FxCanvas {
         g.globalAlpha = k * 0.8;
         g.lineWidth = s.spec.width * (0.35 + 0.65 * k);
         g.strokeStyle = s.spec.hue ? `hsl(${(now / 6 + i * 14) % 360} 90% 70%)` : s.spec.colors[i % s.spec.colors.length];
-        if (s.spec.glow) {
-          g.shadowColor = g.strokeStyle as string;
-          g.shadowBlur = 8;
-        }
         g.beginPath();
         g.moveTo(a.x, a.y);
         g.lineTo(b.x, b.y);
         g.stroke();
+        if (s.spec.glow) {
+          // halo: a wide faint stroke under "lighter" (shadowBlur was the most expensive call here)
+          g.globalAlpha = k * 0.22;
+          g.lineWidth = s.spec.width * 3.2;
+          g.stroke();
+        }
       }
-      g.shadowBlur = 0;
     }
     // rings
     this.rings = this.rings.filter((r) => (r.age += dt) < r.life);
@@ -204,19 +227,20 @@ export class FxCanvas {
       g.strokeStyle = l.color;
       g.lineWidth = l.width ?? 1.5;
       g.lineJoin = "round";
-      if (l.glow) {
-        g.shadowColor = l.color;
-        g.shadowBlur = 6;
-      }
+      const alpha = g.globalAlpha;
+      g.beginPath();
       for (const pts of l.paths) {
         const grow = l.kind === "crack" ? Math.min(1, t * 4) : 1;
         const n = Math.max(2, Math.round((pts.length / 2) * grow));
-        g.beginPath();
         g.moveTo(pts[0], pts[1]);
         for (let i = 1; i < n; i++) g.lineTo(pts[i * 2], pts[i * 2 + 1]);
+      }
+      g.stroke();
+      if (l.glow) {
+        g.globalAlpha = alpha * 0.25;
+        g.lineWidth = (l.width ?? 1.5) * 3.5;
         g.stroke();
       }
-      g.shadowBlur = 0;
     }
     // particles
     let alive = false;
@@ -238,7 +262,8 @@ export class FxCanvas {
       const s = p.size * (1 + (p.grow - 1) * t);
       g.globalCompositeOperation = p.glow ? "lighter" : "source-over";
       g.globalAlpha = p.alpha * (t < 0.15 ? t / 0.15 : 1 - (t - 0.15) / 0.85);
-      const color = p.hue ? `hsl(${(now / 5 + p.x) % 360} 90% 72%)` : p.color;
+      // hue cycling in 15° steps (a bounded set of colours for the glow sprite cache)
+      const color = p.hue ? `hsl(${Math.round(((now / 5 + p.x) % 360) / 15) * 15} 90% 72%)` : p.color;
       g.fillStyle = g.strokeStyle = color;
       g.save();
       g.translate(p.x, p.y);
@@ -277,15 +302,9 @@ function shape(g: CanvasRenderingContext2D, kind: FxShape, s: number, p: { vx: n
       g.arc(0, 0, s * 0.5, 0, Math.PI * 2);
       g.fill();
       return;
-    case "glow": {
-      const r = g.createRadialGradient(0, 0, 0, 0, 0, s);
-      r.addColorStop(0, g.fillStyle as string);
-      r.addColorStop(1, "rgba(0,0,0,0)");
-      g.fillStyle = r;
-      g.arc(0, 0, s, 0, Math.PI * 2);
-      g.fill();
+    case "glow":
+      g.drawImage(glowSprite(g.fillStyle as string), -s, -s, s * 2, s * 2);
       return;
-    }
     case "spark": {
       const len = Math.min(16, Math.hypot(p.vx, p.vy) * 0.05 + s);
       g.lineWidth = 1.3;

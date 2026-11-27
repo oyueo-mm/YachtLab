@@ -8,6 +8,8 @@
 
 > **게임 리뷰**는 [제품 복기의 수치 기준과 데이터 경계](./AI-REVIEW.md)에서 시작한다. 브라우저 Web Worker에서 DP Expert와 작은 v5 종반 범위를 사용한다.
 
+> **주사위 물리·보드판 강화 단계·시너지·효과 성능(A1, 2026-11-27)** → [A1-DICE-BOARD-2026-11-27](./A1-DICE-BOARD-2026-11-27.md), D-079~D-082. 코드: 물리 `src/dice3d/physics.ts`(`impulse`), 이동 `carryPose`(`src/dice3d/table.ts`), 표면음 `SURFACES`(`src/sound.ts`), 보드 장면 `src/play/board-scene.ts`·`BoardFxLayer.tsx`, 시너지 `src/play/board-synergy.ts`, 측정 `scripts/measure-board-fx-perf.mjs`.
+>
 > **1인 플레이·프로필·컬렉션·시너지·한정판·상점 안내·오디오 믹스(2026-11-27)** → [COLLECTIONS-2026-11-27](./COLLECTIONS-2026-11-27.md), [STREAK-REVIEW-2026-11-27](./STREAK-REVIEW-2026-11-27.md), [오디오 믹스](../audio/MIX.md), D-074~D-078. 코드: 1인 플레이 `src/play/SoloGame.tsx`·`src/solo/`(기록·동기화), 오프라인 장착 `src/play/own-look.ts`, 프로필 `src/shell/ProfileSections.tsx`, 컬렉션 `src/economy/live/collections.ts`, 시너지 `src/play/board-synergy.ts`, 2.5D 효과 `src/dice3d/Dice25Fx.tsx`·`src/play/tray-attach.ts`, 안내 `src/ui/Coach.tsx`, 믹스 `src/sound.ts`(버스·`volumeCurve`)·`src/audio/bgm-render.ts`(`normalize`). **워커 배포 전**에는 1인 기록 계정 보관과 신규 11종 판매가 꺼져 있다(의도된 안전 동작).
 >
 > **꾸미기 연출·설정·BGM·단축키·규칙/FAQ 페이지 작업이면** [POLISH-2026-11-26](./POLISH-2026-11-26.md)과 D-068~D-073부터: 효과 데이터 `src/dice3d/dice-fx.ts`·`src/board-fx.ts`·`src/emote-fx.ts`(단계 설명은 `src/fx-texts.ts`와 테스트로 동기화), 렌더러 `src/dice3d/fx-canvas.ts`, 이벤트 `src/fx-bus.ts`, 설정 `src/settings.ts`, 공통 UI `src/ui/kit.tsx`, 단축키 `src/ui/shortcuts.tsx`, BGM `src/audio/`. 음원 라이선스는 [audio/LICENSES](../audio/LICENSES.md).
