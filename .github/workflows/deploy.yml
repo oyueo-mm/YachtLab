@@ -45,6 +45,9 @@ jobs:
           FORCE_FULL: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.full) }}
         run: |
           if [ "$FORCE_FULL" = "true" ]; then echo "mode=full" >> "$GITHUB_OUTPUT"; echo "forced full"; exit 0; fi
+          # CI-1: a manual run on a non-main branch (the generated-docs automation PR) has no push/PR base: use the
+          # merge-base with main. Not found ⇒ BASE stays empty ⇒ full (fail safe).
+          if [ -z "$BASE" ] && [ "$EVENT" = "workflow_dispatch" ] && [ "$GITHUB_REF" != "refs/heads/main" ]; then BASE=$(git merge-base origin/main "$HEAD" 2>/dev/null || true); fi
           # An unreadable range (new branch, force push, shallow history) yields an empty list ⇒ full.
           git diff --name-only "$BASE" "$HEAD" > /tmp/changed.txt 2>/dev/null || : > /tmp/changed.txt
           echo "changed files:"; cat /tmp/changed.txt
@@ -180,7 +183,7 @@ jobs:
 
   deploy:
     needs: [scope, ci-result]
-    if: always() && github.event_name != 'pull_request' && github.event_name != 'schedule' && needs.ci-result.result == 'success' && needs.scope.outputs.mode != 'docs'
+    if: always() && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.ci-result.result == 'success' && needs.scope.outputs.mode != 'docs'
     runs-on: ubuntu-latest
     permissions:
       pages: write
