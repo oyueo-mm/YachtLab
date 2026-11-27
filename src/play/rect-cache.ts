@@ -1,8 +1,8 @@
 /**
  * Cached element rectangle for effect layers. Reading getBoundingClientRect on every presentation event
  * forced a synchronous layout right when a throw starts (React has just changed the DOM), which added
- * tens of ms to the first frame on slow phones. The rect is refreshed at most every 250 ms, and at once
- * after resize / scroll.
+ * tens of ms to the first frame on slow phones. The rect is kept until scroll / resize / the owner's
+ * layout (ResizeObserver) invalidates it, and refreshed at most once a second otherwise.
  */
 export function rectCache(el: Element) {
   let rect: DOMRect | null = null;
@@ -13,7 +13,7 @@ export function rectCache(el: Element) {
   return {
     get(): DOMRect {
       const now = performance.now();
-      if (!rect || now - at > 250) {
+      if (!rect || now - at > 1000) {
         rect = el.getBoundingClientRect();
         at = now;
       }

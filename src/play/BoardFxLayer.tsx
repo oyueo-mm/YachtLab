@@ -182,7 +182,7 @@ export class BoardLayer {
     if (!this.running()) return; // stays stopped until visible again (no idle rAF)
     this.raf = requestAnimationFrame(this.tick);
     if (now < this.holdUntil) return;
-    const busy = (this.scene?.busy() ?? false) || this.fx.busy;
+    const busy = ((this.scene?.busy() ?? false) && !this.scene?.calmReactions) || this.fx.busy;
     const interval = busy ? 15 : this.budget < 0.75 ? 39 : 32;
     if (now - this.last < interval) return;
     const dt = this.last ? Math.min(0.1, (now - this.last) / 1000) : 0.03;
@@ -193,7 +193,10 @@ export class BoardLayer {
     g.setTransform(this.ratio, 0, 0, this.ratio, 0, 0);
     g.clearRect(0, 0, this.w, this.h);
     g.globalCompositeOperation = "source-over";
-    this.scene?.ambient(g, (now - this.start) / 1000, dt);
+    if (this.scene) {
+      this.scene.clock = performance.now();
+      this.scene.ambient(g, (now - this.start) / 1000, dt);
+    }
     g.globalAlpha = 1;
     g.globalCompositeOperation = "source-over";
     if (this.fx.busy) this.fx.drawInto(g, now);

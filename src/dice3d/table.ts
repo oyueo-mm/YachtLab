@@ -176,6 +176,8 @@ export class DiceTable {
     this.scene.add(this.light, this.light.target);
     this.blob = blobTexture();
     host.appendChild(this.canvas);
+    addEventListener("scroll", this.dropRect, { passive: true, capture: true });
+    addEventListener("resize", this.dropRect, { passive: true });
   }
 
   private mesh(id: number) {
@@ -205,6 +207,7 @@ export class DiceTable {
     this.width = widthPx / size;
     this.height = heightPx / size;
     this.cssSize = { w: widthPx, h: heightPx };
+    this.clientRect = null;
     this.fx?.layout(widthPx, heightPx);
     this.renderer.setSize(widthPx, heightPx, false);
     const distance = this.height / 2 / Math.tan(((this.camera.fov / 2) * Math.PI) / 180);
@@ -449,13 +452,17 @@ export class DiceTable {
   }
   private clientRect: DOMRect | null = null;
   private clientRectAt = 0;
+  private dropRect = () => {
+    this.clientRect = null;
+  };
   /** Same point in viewport coordinates (for the board's reactions). */
   private client(id: number) {
     const p = this.screen(id);
     if (!p) return null;
-    // one layout read per animation frame at most (several dice ask in the same frame)
+    // The canvas only moves with scrolling, resizing or a layout change: the rect is read once and kept
+    // (invalidated by those), at most every 500 ms otherwise — never once per frame (A1.1 profile).
     const now = performance.now();
-    if (!this.clientRect || now - this.clientRectAt > 16) {
+    if (!this.clientRect || now - this.clientRectAt > 500) {
       this.clientRect = this.canvas.getBoundingClientRect();
       this.clientRectAt = now;
     }
@@ -710,6 +717,8 @@ export class DiceTable {
 
   dispose() {
     this.disposed = true;
+    removeEventListener("scroll", this.dropRect, { capture: true });
+    removeEventListener("resize", this.dropRect);
     this.moves.forEach((stop) => stop());
     this.moves.clear();
     if (this.tickRaf) cancelAnimationFrame(this.tickRaf);

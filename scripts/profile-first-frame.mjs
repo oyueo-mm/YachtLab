@@ -19,6 +19,8 @@ const CPU = Number(arg("cpu", 4));
 const ROLLS = Number(arg("rolls", 6));
 const LOOK = JSON.parse(arg("look", '{"dice":"dice.lava","diceLv":3,"board":"board.volcano","boardLv":3}'));
 const TOP = Number(arg("top", 18));
+/** "first": tap → first frame; "roll": tap → dice at rest (whole throw). */
+const WINDOW = arg("window", "first");
 const BASE = `http://127.0.0.1:${PORT}/YachtLab/`;
 const preview = await startPreview(DIST, PORT);
 
@@ -64,7 +66,8 @@ for (let i = 0; i < ROLLS; i++) {
     await page.waitForTimeout(1500);
     continue;
   }
-  const { tap, first } = await page.evaluate(() => ({ tap: window.__taps.at(-1), first: window.__yachtlabDice.last.firstFrameAt }));
+  if (WINDOW === "roll") await page.waitForTimeout(50);
+  const { tap, first } = await page.evaluate((w) => ({ tap: window.__taps.at(-1), first: w === "roll" ? window.__yachtlabDice.last.endedAt : window.__yachtlabDice.last.firstFrameAt }), WINDOW);
   firsts.push(first - tap);
   // samples → times (profile timestamps are µs on the same monotonic clock as performance.now() * 1000 + offset;
   // align by the first sample, i.e. use relative deltas from the profile start and the tap delay measured in-page)

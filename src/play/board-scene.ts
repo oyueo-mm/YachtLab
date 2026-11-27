@@ -16,6 +16,10 @@
  */
 export type HitKind = "impact" | "land";
 export type Scene = {
+  /** Frame time (performance.now ms) set by the layer before `ambient` — read once, not per blade. */
+  clock: number;
+  /** Reactions that move slowly (springs, ripples of light) do not need 60 fps redraws. */
+  calmReactions?: boolean;
   /** Called on (re)layout with the tray size in CSS px. */
   layout(w: number, h: number): void;
   /** Lv.2 environment, every ambient frame. `t` seconds since start, `dt` seconds since last frame. */
@@ -48,6 +52,8 @@ const now = () => performance.now();
 
 /** Base with a list of timed things (reactions) and the board size. */
 abstract class Base implements Scene {
+  clock = 0;
+  calmReactions = false;
   w = 1;
   h = 1;
   things: Thing[] = [];
@@ -235,7 +241,7 @@ class Navy extends Base {
       const x = w * 0.62 + (u - 0.5) * w * spread + Math.sin(t * 0.7 + p) * 6;
       let k = Math.pow(Math.max(0, Math.sin(t * 2.2 + p * 3)), 8);
       for (const r of ripples) {
-        const age = (now() - r.t0) / 1000, d = Math.hypot(x - r.x, (y - r.y) / 0.78);
+        const age = (this.clock - r.t0) / 1000, d = Math.hypot(x - r.x, (y - r.y) / 0.78);
         k += Math.max(0, 1 - Math.abs(d - (4 + age * 70 * (0.6 + 0.5 * r.s))) / 10) * (1 - age / r.life);
       }
       if (k < 0.04) continue;
@@ -275,7 +281,7 @@ class Ocean extends Base {
       for (let x = 0; x <= w; x += 10) {
         let y = y0 + Math.sin(x / 34 + t * 1.1 + i * 1.7) * 7 + Math.sin(x / 13 - t * 1.7 + i) * 2.5;
         for (const r of local) {
-          const age = (now() - r.t0) / 1000, d = Math.hypot(x - r.x, y - r.y), front = age * 90;
+          const age = (this.clock - r.t0) / 1000, d = Math.hypot(x - r.x, y - r.y), front = age * 90;
           y += Math.sin((d - front) / 6) * 6 * r.s * Math.exp(-Math.abs(d - front) / 20) * (1 - age / r.life);
         }
         g.lineTo(x, y);
@@ -631,7 +637,7 @@ class Desert extends Base {
       for (let x = 0; x <= w; x += 10) {
         let y = y0 + Math.sin(x / 46 - t * 0.35 + i * 0.8) * 6;
         for (const c of craters) {
-          const age = (now() - c.t0) / 1000, d = Math.hypot(x - c.x, y - c.y), R = 14 + 22 * c.s;
+          const age = (this.clock - c.t0) / 1000, d = Math.hypot(x - c.x, y - c.y), R = 14 + 22 * c.s;
           if (d < R * 1.6) y += ((y - c.y) / (d + 1)) * (R * 1.6 - d) * 0.35 * Math.min(1, age * 6) * (1 - age / c.life);
         }
         g.lineTo(x, y);
@@ -827,7 +833,7 @@ class Space extends Base {
     for (const s of this.stars) {
       let x = s[0], y = s[1];
       for (const wv of waves) {
-        const age = (now() - wv.t0) / 1000, dx = x - wv.x, dy = y - wv.y, d = Math.hypot(dx, dy) + 0.01, front = age * 140;
+        const age = (this.clock - wv.t0) / 1000, dx = x - wv.x, dy = y - wv.y, d = Math.hypot(dx, dy) + 0.01, front = age * 140;
         const push = 10 * wv.s * Math.exp(-Math.pow((d - front) / 14, 2)) * (1 - age / wv.life);
         x += (dx / d) * push;
         y += (dy / d) * push;
@@ -925,7 +931,7 @@ class Aurora extends Base {
       for (let x = 0; x < w; x += 7) {
         let bx = x;
         for (const b of bends) {
-          const age = (now() - b.t0) / 1000, d = x - b.x;
+          const age = (this.clock - b.t0) / 1000, d = x - b.x;
           bx -= d * 0.25 * b.s * Math.exp(-Math.abs(d) / 60) * Math.sin(Math.min(1, age * 3) * Math.PI) * (1 - age / b.life);
         }
         const top = h * (0.08 + c * 0.1) + Math.sin(x / 60 + t * 0.5 + c) * 14;
@@ -1012,6 +1018,7 @@ class Storm extends Base {
 }
 
 class Meadow extends Base {
+  calmReactions = true; // the grass springs back over ~1.5 s: 30 fps is enough (A1.1)
   private blades: number[][] = [];
   private seeds: number[][] = [];
   protected build() {
@@ -1025,18 +1032,24 @@ class Meadow extends Base {
     g.lineCap = "round";
     g.lineWidth = 1.6;
     // grass over the whole board; a gust wave visibly travels across it every few seconds
+    // per push, once per frame: reach and the damped spring factor (not per blade)
+    const forces = pushes.map((f) => {
+      const age = (this.clock - f.t0) / 1000, R = 50 + 60 * f.s;
+      return { x: f.x, y: f.y, R, R2: R * R, k: 1.4 * f.s * Math.exp(-age * 2.2) * Math.cos(age * 6) };
+    });
+    const gx = ((t * 70) % (w * 2.2)) - w * 0.6;
     for (const pass of [0, 1]) {
       g.strokeStyle = pass ? "#cfe8a6" : "#8cc152";
       g.globalAlpha = 0.62;
       g.beginPath();
       for (const b of this.blades) {
         if (b[4] !== pass) continue;
-        const gx = ((t * 70) % (w * 2.2)) - w * 0.6;
-        let lean = b[3] + Math.sin(t * 1.4 + b[0] / 45) * 0.15 + 0.7 * Math.exp(-Math.pow((b[0] - gx) / 60, 2));
-        for (const f of pushes) {
-          const age = (now() - f.t0) / 1000, dx = b[0] - f.x, dy = b[1] - f.y, d = Math.hypot(dx, dy), R = 50 + 60 * f.s;
+        const gd = b[0] - gx;
+        let lean = b[3] + Math.sin(t * 1.4 + b[0] / 45) * 0.15 + (gd > -180 && gd < 180 ? 0.7 * Math.exp(-(gd * gd) / 3600) : 0);
+        for (const f of forces) {
+          const dx = b[0] - f.x, dy = b[1] - f.y, d2 = dx * dx + dy * dy;
           // flattened outward, then springs back with a damped wobble
-          if (d < R) lean += Math.sign(dx || 1) * (1 - d / R) * 1.4 * f.s * Math.exp(-age * 2.2) * Math.cos(age * 6);
+          if (d2 < f.R2) lean += Math.sign(dx || 1) * (1 - Math.sqrt(d2) / f.R) * f.k;
         }
         lean = clamp(lean, -1.3, 1.3);
         g.moveTo(b[0], b[1]);
@@ -1054,7 +1067,7 @@ class Meadow extends Base {
       g.globalAlpha = 0.6 * (1 - s[2] / s[3]);
       g.fillRect(s[0], s[1], 1.6, 1.6);
     }
-    this.things = this.things.filter((f) => (now() - f.t0) / 1000 < f.life);
+    this.things = this.things.filter((f) => (this.clock - f.t0) / 1000 < f.life);
   }
   protected react(x: number, y: number, s: number) {
     this.add("push", x, y, 1.6, s);

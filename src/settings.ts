@@ -85,18 +85,25 @@ export function useSettings(): Settings {
 export type MotionLevel = "full" | "lite" | "none";
 
 /** System "reduce motion" always wins; low-end hardware or the user setting selects the lighter motion. */
+// One live MediaQueryList (its `.matches` follows the system setting); creating a new query on every
+// call cost a style recalculation each time, and effect layers ask on every render (A1.1 profile).
+let reduceQuery: MediaQueryList | null | undefined;
+const reducedMotionQuery = () => {
+  if (reduceQuery === undefined) reduceQuery = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  return reduceQuery;
+};
 export function motionLevel(settings: Settings = current): MotionLevel {
   if (typeof window === "undefined") return "none";
-  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return "none";
-  const nav = navigator as Navigator & { deviceMemory?: number };
-  const lowEnd = (nav.hardwareConcurrency ?? 8) <= 2 || (nav.deviceMemory ?? 8) <= 2;
-  return settings.reducedEffects || lowEnd ? "lite" : "full";
+  if (reducedMotionQuery()?.matches) return "none";
+  return settings.reducedEffects || isLowEndDevice() ? "lite" : "full";
 }
 
+let lowEndCache: boolean | undefined;
 export const isLowEndDevice = () => {
   if (typeof navigator === "undefined") return false;
+  if (lowEndCache !== undefined) return lowEndCache;
   const nav = navigator as Navigator & { deviceMemory?: number };
-  return (nav.hardwareConcurrency ?? 8) <= 2 || (nav.deviceMemory ?? 8) <= 2;
+  return (lowEndCache = (nav.hardwareConcurrency ?? 8) <= 2 || (nav.deviceMemory ?? 8) <= 2);
 };
 let webgl: boolean | null = null;
 /** WebGL availability, probed once (a throwaway canvas). */

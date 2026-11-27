@@ -193,8 +193,8 @@ export function PhysicalDice({
       const el = hitEls.current.get(id),
         d = dimsRef.current;
       if (el && d) {
-        el.style.left = `${p.x * d.size - d.size / 2}px`;
-        el.style.top = `${p.z * d.size - d.size / 2}px`;
+        // transform, not left/top: moving five buttons every frame must not dirty layout (A1.1)
+        el.style.transform = `translate3d(${p.x * d.size - d.size / 2}px, ${p.z * d.size - d.size / 2}px, 0)`;
       }
     };
     table.current.layout(dims.w, dims.h, dims.size);
@@ -575,7 +575,7 @@ export function PhysicalDice({
               data-die-id={id}
               data-key={id + 1}
               data-zone={d.held ? "hold" : "tray"}
-              style={t ? { left: t.cx - dims.size / 2, top: t.cy - dims.size / 2, width: dims.size, height: dims.size } : { display: "none" }}
+              style={t ? { transform: `translate3d(${t.cx - dims.size / 2}px, ${t.cy - dims.size / 2}px, 0)`, width: dims.size, height: dims.size } : { display: "none" }}
               disabled={!interactive || busy || !state.rolls || (focusDie !== undefined && id !== focusDie)}
               aria-pressed={d.held}
               aria-label={`주사위 ${id + 1}, ${d.value}, ${d.held ? "고정됨" : "고정 안 됨"}`}
