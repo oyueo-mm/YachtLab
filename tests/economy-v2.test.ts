@@ -174,7 +174,7 @@ describe("경제 v2 연구 카탈로그 — 가격·강화·뽑기 재현과 등
     for (const c of half) {
       if (c.coins !== null) expect(c.coins % 5).toBe(0), expect(c.coins).toBeGreaterThan(0);
       if (c.gems !== null) expect(c.gems).toBeGreaterThan(0);
-      if (c.up) expect(c.up[0] % 5 + c.up[1] % 5).toBe(0);
+      if (c.up) expect(c.up[0] % 5 + (c.up[1] ?? 0) % 5).toBe(0);
     }
     expect(half.find((c) => c.id === "dice.royal")!.coins).toBe(12500);
   });
@@ -306,6 +306,10 @@ describe("C1 독립 감사 경계", () => {
     expect(r2.get("dice.thunder")!.drawable).toBe(false);
     expect(r1.get("board.wood_oak")).toMatchObject({ maxLevel: 1, up: null, coins: r2.get("board.wood_oak")!.coins });
     expect(r2.get("board.wood_oak")).toMatchObject({ maxLevel: 3 });
+    for (const id of ["board.felt", "board.navy"]) {
+      expect(r1.get(id)).toMatchObject({ maxLevel: 1, up: null });
+      expect(r2.get(id)!.maxLevel).toBe(3);
+    }
     expect(r1.get("board.marble")!.up).toEqual([1350, 2700]);
     const chat = pricedCatalog(p, { revision: 2, proposedChat: true, audited: true });
     const sale = chat.filter((i) => i.category === "chat" && !i.season && i.coins !== null);

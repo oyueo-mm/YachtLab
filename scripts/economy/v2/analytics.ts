@@ -26,7 +26,7 @@ const changed = cats["confirmed+proposed"].filter((c) => c.tier !== c.liveTier).
     id: c.id, name, category: c.category, status: CONFIRMED_TIER_MAP[c.id] ? "확정" : PROPOSED_BOARD_MAP[c.id] ? "제안" : "",
     from: c.liveTier, to: c.tier,
     coins: [live.coins, c.coins], gems: [live.gems, c.gems],
-    fullUpgrade: [live.up ? live.up[0] + live.up[1] : null, c.up ? c.up[0] + c.up[1] : null],
+    fullUpgrade: [live.up ? live.up[0] + (live.up[1] ?? 0) : null, c.up ? c.up[0] + (c.up[1] ?? 0) : null],
     confirmedOnly: conf.tier !== conf.liveTier,
   };
 });
@@ -53,7 +53,7 @@ const itemProbChange = changed.map((c) => {
 const totals = (cat: PricedItem[]) => {
   const buy = cat.filter((i) => !i.season && i.coins !== null);
   const coins = buy.reduce((a, i) => a + i.coins!, 0);
-  const up = cat.filter((i) => !i.season && i.up).reduce((a, i) => a + i.up![0] + i.up![1], 0);
+  const up = cat.filter((i) => !i.season && i.up).reduce((a, i) => a + i.up![0] + (i.up![1] ?? 0), 0);
   const byTier = Object.fromEntries(PRICED_TIERS.map((t) => [t, { n: cat.filter((i) => i.tier === t && !i.season).length, coins: cat.filter((i) => i.tier === t && !i.season && i.coins !== null).reduce((a, i) => a + i.coins!, 0) }]));
   return { coinItems: buy.length, coins, upgrades: up, all: coins + up, byTier };
 };

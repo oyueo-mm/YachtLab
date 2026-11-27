@@ -44,6 +44,13 @@ for i in range(8):
     report[name] = {"expected": len(expected), "replayed": len(actual), **counts,
                     "otherChanged": len(changes), "firstDifferences": changes[:25]}
 
+if (args.replay / "population.json").exists():
+    source_pop = json.loads((args.legacy / "results" / "population.json").read_text())["populations"]
+    replay_pop = json.loads((args.replay / "population.json").read_text())["populations"]
+    changes = []
+    compare(source_pop, replay_pop, "population", collections.Counter(), changes)
+    report["population"] = {"otherChanged": len(changes), "firstDifferences": changes[:25]}
+
 original = args.legacy / "raw" / "E1-users.csv.gz"
 current = args.replay / "E1-users.csv.gz"
 if current.exists():

@@ -72,7 +72,7 @@ function retieredPrice(item: ItemDef, tier: PricedTier, currency: "coins" | "gem
 }
 // Transcribed from upgradeCost in 54c1367. Other Rev.1 economic fields were checked against that source.
 const REV1_LEVEL_ONE_BOARDS = new Set([
-  "board.christmas", "board.felt_red", "board.felt_blue", "board.felt_purple", "board.felt_sand",
+  "board.felt", "board.navy", "board.christmas", "board.felt_red", "board.felt_blue", "board.felt_purple", "board.felt_sand",
   "board.wood_oak", "board.wood_walnut", "board.leather_brown", "board.leather_black",
 ]);
 const liveSocial = new Map(SOCIAL_ITEMS.map((item) => [item.id, item]));
@@ -101,7 +101,7 @@ function retieredUpgrade(item: ItemDef, tier: PricedTier, audited: boolean): Pri
 export function pricedCatalog(p: V2Params, options: CatalogOptions = {}): PricedItem[] {
   const audited = options.audited ?? false;
   const items = ITEMS.filter((i) => !i.retired && (i.rev ?? 1) <= (options.revision ?? 2)).map((i) => {
-    const item = options.revision === 1 && REV1_LEVEL_ONE_BOARDS.has(i.id) ? { ...i, maxLevel: 1 } : i;
+    const item: ItemDef = options.revision === 1 && REV1_LEVEL_ONE_BOARDS.has(i.id) ? { ...i, maxLevel: 1 } : i;
     const tier = tierOf(item, p.tierMap);
     const priced = tier !== "basic" && tier !== "special";
     const pm = priced ? p.priceMult[tier] : 1;

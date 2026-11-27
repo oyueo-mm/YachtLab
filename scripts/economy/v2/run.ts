@@ -244,6 +244,12 @@ function jobs(): Job[] {
   return list;
 }
 
+function groupsSeedNote(all: Job[]) {
+  return all.some((job) => job.exp === "H1")
+    ? "H1 uses the four pre-registered holdout seeds; see the per-cell settings"
+    : "Development experiments; see the per-cell settings";
+}
+
 /* --------------------------------------------------------------- driver --------------------------------------------------------------- */
 if (!isMainThread) {
   parentPort!.on("message", (job: Job) => parentPort!.postMessage({ cell: job.cell, exp: job.exp, ...runJob(job) }));
@@ -293,7 +299,8 @@ if (!isMainThread) {
     return stage(a) - stage(b) || cost(b) - cost(a);
   });
   const threads = Math.min(order.length, requestedWorkers);
-  const meta = { generatedBy: "scripts/economy/v2/run.ts", config: "M3i-W30@2 baseline (src/economy/live/config.ts)", codeHash, settingsHash, seed: seed ?? SEED, seedNote: "E0–E7 development runs; E7 uses seed+1", rev: Number(options.rev ?? 2), t0: new Date(T0).toISOString(), horizons: HORIZONS, warmupDays: WARMUP, jobs: all.length, players: all.reduce((a, j) => a + j.users, 0), node: process.version, quick: QUICK };
+  const runSeeds = [...new Set(all.map((j) => j.seed))].sort((a, b) => a - b);
+  const meta = { generatedBy: "scripts/economy/v2/run.ts", config: "M3i-W30@2 baseline (src/economy/live/config.ts)", codeHash, settingsHash, seed: runSeeds.length === 1 ? runSeeds[0] : null, seeds: runSeeds, seedNote: groupsSeedNote(all), rev: Number(options.rev ?? 2), t0: new Date(T0).toISOString(), horizons: HORIZONS, warmupDays: WARMUP, jobs: all.length, players: all.reduce((a, j) => a + j.users, 0), node: process.version, quick: QUICK };
   const groups = Map.groupBy(all, (j) => j.exp);
   function writeGroup(exp: string) {
     const batch = groups.get(exp)!;

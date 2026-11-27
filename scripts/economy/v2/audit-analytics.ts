@@ -1,7 +1,7 @@
 /** Closed-form draw, catalog and capacity analysis plus synthetic reimbursement ledger. */
 import { mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { AUDIT_CANDIDATES, SINGLE, POLICIES, INTERACTION, persona, POPULATION } from "../../../src/economy/v2/candidates";
+import { AUDIT_CANDIDATES, SINGLE, POLICIES, INTERACTION, BOOSTERS, persona, POPULATION } from "../../../src/economy/v2/candidates";
 import { pricedCatalog, drawPools, DRAW_TIER_P } from "../../../src/economy/v2/catalog";
 import { PROPOSED_CHAT, PROPOSED_DEFAULTS } from "../../../src/economy/v2/chat-proposal";
 import { baselineParams, PRICED_TIERS, type V2Params } from "../../../src/economy/v2/params";
@@ -18,7 +18,10 @@ function write(name: string, value: unknown) {
   renameSync(temp, path);
 }
 const base = baselineParams();
-const chosen = new Map([...SINGLE, ...POLICIES, ...AUDIT_CANDIDATES, ...INTERACTION, ...auditJobs(false).map((j) => j.params)].map((p) => [p.id, p]));
+const legacyBoosters = [base, POLICIES.find((c) => c.id === "V2-BAL")!].flatMap((c) => BOOSTERS.map((b) => ({
+  ...c, id: `${c.id}+${b.id}`, label: `${c.label} + ${b.label}`, booster: b.booster,
+})));
+const chosen = new Map([...SINGLE, ...POLICIES, ...legacyBoosters, ...AUDIT_CANDIDATES, ...INTERACTION, ...auditJobs(false).map((j) => j.params)].map((p) => [p.id, p]));
 write("candidates", Object.fromEntries([...chosen].sort(([a], [b]) => a.localeCompare(b))));
 
 const catalogCases: { name: string; revision: 1 | 2; proposedChat?: boolean; policy: V2Params }[] = [
@@ -66,7 +69,7 @@ const allCatalogs = Object.fromEntries(catalogCases.map((c) => {
     count: probabilities[t].length, p: DRAW_TIER_P[t], pItem: DRAW_TIER_P[t] / probabilities[t].length,
   }])), items, coverage: exposed }];
 }));
-write("catalog-and-draw", { catalogs: allCatalogs, proposedChats: PROPOSED_CHAT, proposedDefaults: PROPOSED_DEFAULTS, hours: [5, 10] });
+write("catalog-and-draw", { catalogs: allCatalogs, proposedChats: PROPOSED_CHAT, proposedDefaults: PROPOSED_DEFAULTS });
 
 const policyIds = ["BASE", "V2-CONS", "V2-BAL", "V2-EXP", "C1-SAFE", "C1-PRICE", "C1-QUEST", "C1-LOOP", "C1-LONG", "C1-PRICE-R", "C1-COMBO"];
 const limits = Object.fromEntries(policyIds.map((id) => {
