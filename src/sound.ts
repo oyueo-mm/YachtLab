@@ -47,6 +47,8 @@ export type Sfx =
   /** Another player joined the online room. */
   | "join"
   | "emote"
+  /** Short, soft chat-line accent by mood (A2); only epic+ lines, never for calm lines. */
+  | "chat"
   /** Dedicated Lv.3 emote sound (`voice`). */
   | "emoteLv3";
 
@@ -153,6 +155,7 @@ const busOf = (name: Sfx): SfxBus => {
     case "boardFx":
       return "item";
     case "emote":
+    case "chat":
     case "emoteLv3":
       return "emote";
     case "grand":
@@ -473,7 +476,7 @@ function v3Shake(audio: BaseAudioContext, out: AudioNode, t: number, k: number) 
  * at once, and the same kind of sound is not repeated within a few milliseconds (louder hits win).
  */
 export const MAX_VOICES = 10;
-const MIN_GAP: Partial<Record<Sfx, number>> = { emote: 0.3, diceFx: 0.25, boardFx: 0.2, impact: 0.018, clack: 0.024, roll: 0.06, settle: 0.08 };
+const MIN_GAP: Partial<Record<Sfx, number>> = { emote: 0.3, chat: 0.9, diceFx: 0.25, boardFx: 0.2, impact: 0.018, clack: 0.024, roll: 0.06, settle: 0.08 };
 /** Pure admission control for collision sounds (times in seconds, on the audio clock). */
 export function createVoiceBudget(maxVoices = MAX_VOICES) {
   let ends: number[] = [];
@@ -735,6 +738,24 @@ function syllable(audio: BaseAudioContext, out: AudioNode, t: number, f: number,
   o.stop(t + len + 0.02);
   burst(audio, out, t, 0.03, gain * 0.25, "highpass", 3000);
 }
+/**
+ * Chat-line accents by mood (A2): one or two soft notes, 0.1–0.3 s, quieter than emote voices. They are
+ * a hint of the line's feeling, not a jingle: calm lines have none, and `playChatSfx` skips tiers below epic.
+ */
+export const CHAT_VOICES: Record<string, Voice> = {
+  cheer: (a, o, t) => notes(a, o, t, [660, 880], 0.07, 0.12, 0.05, "sine"),
+  ask: (a, o, t) => tone(a, o, t, 420, 0.16, 0.05, "sine", 620),
+  sigh: (a, o, t) => tone(a, o, t, 340, 0.28, 0.045, "sine", 230),
+  plead: (a, o, t) => notes(a, o, t, [392, 392], 0.14, 0.1, 0.045, "triangle"),
+  shout: (a, o, t) => { burst(a, o, t, 0.05, 0.07, "bandpass", 1800, 900, 1); tone(a, o, t, 520, 0.14, 0.07, "triangle", 330); },
+};
+/** Which moods and tiers get a sound at all (kept sparse so busy chats stay pleasant). */
+export const CHAT_SOUND_TIERS: ReadonlySet<string> = new Set(["epic", "legendary", "mythic"]);
+export function playChatSfx(mood: string, tier: string) {
+  if (!CHAT_SOUND_TIERS.has(tier) || !CHAT_VOICES[mood]) return;
+  playSfx("chat", { voice: mood, intensity: tier === "mythic" ? 0.85 : 0.7 });
+}
+
 /** Dedicated Lv.3 emote sounds (one per emote, all synthesized here). */
 export const EMOTE_VOICES: Record<string, Voice> = {
   smile: (a, o, t) => notes(a, o, t, [784, 988], 0.08, 0.18, 0.06, "sine"),
@@ -873,6 +894,10 @@ function dispatch(audio: BaseAudioContext, rawOut: AudioNode, name: Sfx, options
     if (!admit("emote", t, 0.6, k)) return;
     const v = options.voice ?? "";
     return EMOTE_VOICES[v]?.(audio, trimmed(audio, out, LV3_TRIM_DB[v]), t);
+  }
+  if (name === "chat") {
+    if (!admit(name, t, 0.4, k)) return;
+    return CHAT_VOICES[options.voice ?? ""]?.(audio, out, t);
   }
   if (name === "emote") {
     if (!admit(name, t, .36, k)) return;

@@ -149,16 +149,6 @@ export default function SoloGame({ name, server, onLeave, onProgress, onRecords 
   const gap = best === null ? null : score - best;
   return (
     <div className="solo-game">
-      <div className="game-tools">
-        <button className="text-button" onClick={() => setViewReplay(record.current!)}>
-          <History size={15} /> 기보 보기
-        </button>
-        {!state.done && (
-          <button className="text-button" onClick={() => guarded({ title: "처음부터 다시 할까요?", message: "진행 중인 경기는 기록되지 않고 새 경기를 시작해요.", confirmLabel: "다시 시작", run: restart })}>
-            <RotateCcw size={15} /> 다시 시작
-          </button>
-        )}
-      </div>
       <div className="game-grid solo-grid">
         <div className="game-left">
           <div className="score-summary solo-summary" aria-label="1인 플레이 진행">
@@ -175,6 +165,16 @@ export default function SoloGame({ name, server, onLeave, onProgress, onRecords 
               <strong>{state.round}<small>/ 12</small></strong>
             </div>
             <BonusChip card={card} />
+          <div className="game-tools solo-tools">
+            <button className="text-button" onClick={() => setViewReplay(record.current!)}>
+              <History size={15} /> 기보 보기
+            </button>
+            {!state.done && (
+              <button className="text-button" onClick={() => guarded({ title: "처음부터 다시 할까요?", message: "진행 중인 경기는 기록되지 않고 새 경기를 시작해요.", confirmLabel: "다시 시작", run: restart })}>
+                <RotateCcw size={15} /> 다시 시작
+              </button>
+            )}
+          </div>
           </div>
           <section
             className={"game-board throw-tray" + (state.rolls === 0 ? " dice-ready" : "") + (canAct && nearYacht(state.dice, state.rolls, card) ? " yacht-near" : "") + theme.className}

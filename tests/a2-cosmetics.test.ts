@@ -81,7 +81,7 @@ describe("A2 every sold cosmetic has its own presentation rule", () => {
     for (const c of cls("profile").filter((c) => /^pf-ring-/.test(c))) expect(css, c).toContain(`.${c}::before`);
   });
   it("titles: every shop and achievement title (except none) has its own mark", () => {
-    for (const t of ITEMS.filter((i) => i.category === "title" && i.id !== "title.none" && !/^title\.(rookie|dicer|300|310)$/.test(i.id))) expect(css, t.id).toContain(`data-title="${t.id}"`);
+    for (const t of ITEMS.filter((i) => i.category === "title" && i.id !== "title.none")) expect(css, t.id).toContain(`data-title="${t.id}"`);
   });
   it("special effects: every shape except plain confetti (falls) and bubble (rises) has a win staging; yacht and large straight have their own", () => {
     const shapes = new Set(ITEMS.filter((i) => i.category === "fx").map((i) => i.look.fx?.shape));
@@ -93,5 +93,41 @@ describe("A2 every sold cosmetic has its own presentation rule", () => {
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain(':root[data-fx-reduced] .player-icon[class*="pf-ring-"]::before');
     expect(css).toContain(':root[data-fx-tier="2"] .player-icon[class*="pf-ring-"]::before');
+  });
+});
+
+import { canSend, socialItem } from "../src/social/catalog";
+import { CHAT_SOUND_TIERS, CHAT_VOICES } from "../src/sound";
+import { emoteFx } from "../src/emote-fx";
+
+describe("A2 chat sound is sparse and mood-based", () => {
+  it("every mood except calm has a voice; basic/common/rare and calm lines are silent", () => {
+    for (const mood of ["cheer", "ask", "sigh", "plead", "shout"]) expect(CHAT_VOICES[mood]).toBeTypeOf("function");
+    expect(CHAT_VOICES.calm).toBeUndefined();
+    expect([...CHAT_SOUND_TIERS].sort()).toEqual(["epic", "legendary", "mythic"]);
+  });
+});
+
+describe("A2 fixture lines never reach the live service", () => {
+  it("fixture ids are unknown to the catalog, cannot be sent, and are not shop items", () => {
+    const all = new Set(FIXTURE_CHATS.map((l) => l.id));
+    for (const id of all) {
+      expect(socialItem(id)).toBeNull();
+      expect(canSend(id, all)).toBe(false);
+    }
+    expect(ITEMS.some((i) => all.has(i.id))).toBe(false);
+  });
+  it("the preview resolver is opt-in: the game's default resolver is the live catalog", () => {
+    const src = readFileSync(new URL("../src/play/SocialDock.tsx", import.meta.url), "utf8");
+    expect(src).toContain("resolve: ResolveItem = socialItem");
+    expect(src).toContain("resolve = socialItem");
+    const online = readFileSync(new URL("../src/play/OnlineGame.tsx", import.meta.url), "utf8");
+    expect(online).not.toContain("a2-fixture");
+  });
+});
+
+describe("A2 emote touch-ups", () => {
+  it("question / exclaim / cool now have their own bursts", () => {
+    for (const id of ["emote.question", "emote.exclaim", "emote.cool"]) expect(emoteFx(id)?.burst?.length).toBeGreaterThan(0);
   });
 });

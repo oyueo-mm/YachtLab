@@ -210,7 +210,11 @@
 
 /* On the dark seat chips the same effects use their light variants so the name stays readable. */
 .table-v4 .seat-chip .player-name[class*="namefx-"] { filter: brightness(1.35) saturate(1.1); }
-.table-v4 .seat-chip .player-name:is(.namefx-sky, .namefx-mint, .namefx-coral, .namefx-violet, .namefx-neon) { color: revert-layer; }
+.table-v4 .seat-chip .player-name.namefx-sky { color: #8ccbff; }
+.table-v4 .seat-chip .player-name.namefx-mint { color: #63e6be; }
+.table-v4 .seat-chip .player-name.namefx-coral { color: #ffa07a; }
+.table-v4 .seat-chip .player-name.namefx-violet { color: #b9a6ff; }
+.table-v4 .seat-chip .player-name.namefx-neon { color: #ff9ed0; filter: none; }
 
 /* ================================================================= titles ================================================================= */
 /* Tier sets the plate; each title adds a small glyph that matches its meaning (decorative, silent). */
@@ -243,6 +247,10 @@
 .player-title[data-title="title.lucky_star"] { --g: "★"; }
 .player-title[data-title="title.perfect"] { --g: "✔"; }
 .player-title[data-title="title.christmas"] { --g: "❄"; }
+.player-title[data-title="title.rookie"] { --g: "☆"; }
+.player-title[data-title="title.dicer"] { --g: "▣"; }
+.player-title[data-title="title.300"] { --g: "◉"; }
+.player-title[data-title="title.310"] { --g: "✪"; }
 .player-title[data-title]::before { content: var(--g, none); }
 @media (prefers-reduced-motion: no-preference) {
   .player-title.title-legendary { animation: a2-plate-shine 5s linear infinite; }
@@ -463,3 +471,12 @@
 :root[data-fx-tier="2"] .player-icon[class*="pf-ring-"]::before,
 :root[data-fx-tier="2"] .player-icon[class*="pf-ring-"]::after,
 :root[data-fx-tier="2"] .player-title { animation: none !important; }
+
+/* Hidden tab: continuous cosmetic loops pause (frames, bubbles, names, titles); they resume with the tab. */
+:root[data-tab-hidden] .player-icon[class*="pf-ring-"]::before,
+:root[data-tab-hidden] .player-icon[class*="pf-ring-"]::after,
+:root[data-tab-hidden] .player-icon.pf-lv3,
+:root[data-tab-hidden] .player-name[class*="namefx-"],
+:root[data-tab-hidden] .player-name[class*="namefx-"]::after,
+:root[data-tab-hidden] .player-title,
+:root[data-tab-hidden] .feed-msg[class*="bubble-"]::after { animation-play-state: paused !important; }

@@ -68,6 +68,12 @@ const syncRoot = () => {
   if (typeof document !== "undefined") document.documentElement.toggleAttribute("data-fx-reduced", current.reducedEffects);
 };
 syncRoot();
+/** Hidden tab: <html data-tab-hidden> lets the pure-CSS cosmetic loops pause (they resume with the tab). */
+if (typeof document !== "undefined") {
+  const mirrorHidden = () => document.documentElement.toggleAttribute("data-tab-hidden", document.hidden);
+  document.addEventListener("visibilitychange", mirrorHidden);
+  mirrorHidden();
+}
 
 export function updateSettings(patch: Partial<Settings>) {
   current = sanitize({ ...current, ...patch });

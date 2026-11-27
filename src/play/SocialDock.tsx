@@ -4,7 +4,7 @@ import { allowSocial, newSocialBucket, socialItem, socialRetryMs, type SocialBuc
 import { GUEST_LOOK, type PublicLook } from "../economy/live/catalog";
 import { PlayerTag, bubbleCssOf } from "./Looks";
 import { getSettings, useSettings } from "../settings";
-import { playEmoteSfx } from "../sound";
+import { playChatSfx, playEmoteSfx } from "../sound";
 import { ChatMessage } from "./ChatMessage";
 import { chatMoodOf } from "../chat/chat-mood";
 
@@ -97,10 +97,15 @@ export function useTableChat(me: string | null, resolve: ResolveItem = socialIte
     if (!mine && hideRef.current) return;
     const now = Date.now();
     const key = ++seq.current;
+    for (const [key, time] of heard.current) if (now - time > 1000) heard.current.delete(key);
     if ((item.kind === "emote" || item.style !== "default") && (mine || getSettings().opponentFx)) {
       const messageKey = from + "/" + id;
-      for (const [key, time] of heard.current) if (now - time > 1000) heard.current.delete(key);
       if (!heard.current.has(messageKey)) playEmoteSfx(id, levelRef.current(from, id));
+      heard.current.set(messageKey, now);
+    } else if (item.kind === "chat" && (mine || getSettings().opponentFx) && !getSettings().reducedEffects) {
+      // The line's own accent (mood + tier); independent of the sender's equipped bubble.
+      const messageKey = from + "/" + id;
+      if (!heard.current.has(messageKey)) playChatSfx(chatMoodOf(item.text), item.tier);
       heard.current.set(messageKey, now);
     }
     const entry = { key, from, id, at: now };

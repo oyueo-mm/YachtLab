@@ -34,7 +34,11 @@ type SocialItem = {
 ## 3. 칭호 전용 표식 (선택)
 
 칭호 CSS 클래스는 `title-{tier}` 하나뿐이라 A2는 `data-title="title.<id>"` 속성과 CSS(`cosmetics-a2.css`)로 칭호마다 표식(◆ ★ ↻ …)을 붙였다. **새 칭호를 추가하면 CSS에 표식 한 줄이 필요**하다(`tests/a2-cosmetics.test.ts`가 누락을 잡는다). 대안: `ItemDef.look`에 `glyph?: string`을 두고 A2가 읽도록 하면 CSS 수정이 필요 없다.
-- 현재 표식이 없는 칭호: 새내기 요트러·주사위 장인·300클럽·310클럽(tier special 포함 — 전용 표식 디자인 후보 필요, 이름만으로 충분하다고 판단해 그대로 둠).
+- 기존 모든 칭호에 표식이 있다(A2.1에서 새내기 ☆·주사위 장인 ▣·300클럽 ◉·310클럽 ✪ 추가).
+
+## 3-1. 채팅 효과음 (A2.1)
+
+`src/sound.ts`의 `CHAT_VOICES`/`CHAT_SOUND_TIERS`(영웅 이상·calm 제외)가 문구 mood와 `SocialItem.tier`만 읽는다. 등급이 재분류되면 소리 대상도 따라 바뀐다(별도 필드 불필요). 소리를 끄고 싶은 문구가 있으면 `mood: "calm"`을 주면 된다.
 
 ## 4. 특수 효과(`fx.*`) 레벨 설명 문구
 
