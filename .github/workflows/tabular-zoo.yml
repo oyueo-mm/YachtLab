@@ -4,11 +4,6 @@ on:
     paths:
       - "training/tabular_choice_zoo.py"
       - ".github/workflows/tabular-zoo.yml"
-  push:
-    branches: [main]
-    paths:
-      - "training/tabular_choice_zoo.py"
-      - ".github/workflows/tabular-zoo.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -27,7 +22,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: python training/tabular_choice_zoo.py --smoke
       - name: Train eight tabular learners for 250,000 episodes each, evaluate 10,000 held-out games
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'workflow_dispatch'
         run: python training/tabular_choice_zoo.py --episodes 250000 --eval 10000 --seed 28111
       - name: Archive scorecard and compact learned Q-tables
         uses: actions/upload-artifact@v4

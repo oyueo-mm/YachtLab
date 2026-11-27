@@ -6,13 +6,6 @@ on:
       - scripts/summarize-50k-league.mjs
       - training/research-archive/v4-reinforce-seed1-frozen.json
       - .github/workflows/research-50k-league.yml
-  push:
-    branches: [main]
-    paths:
-      - scripts/bench-50k-league.mjs
-      - scripts/summarize-50k-league.mjs
-      - training/research-archive/v4-reinforce-seed1-frozen.json
-      - .github/workflows/research-50k-league.yml
   workflow_dispatch:
 permissions:
   contents: read
@@ -59,7 +52,7 @@ jobs:
             node scripts/bench-50k-league.mjs --smoke --mode league --left "$a" --right "$b" --shard 6001
           done
   budget:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 180
@@ -92,7 +85,7 @@ jobs:
           retention-days: 90
           if-no-files-found: error
   league:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 180
@@ -130,11 +123,13 @@ jobs:
           if-no-files-found: error
   report-budget:
     needs: budget
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     permissions:
-      contents: write
-      actions: read
+      contents: write # push ONLY the automation/research-* branch
+      pull-requests: write # open / update the research report PR
+      actions: write # start deploy.yml so the required ci-result exists on that PR (also reads artifacts)
     steps:
       - uses: actions/checkout@v4
         with:
@@ -157,25 +152,32 @@ jobs:
             docs/context/_generated/RESEARCH-50K-BUDGET-LATEST.md
           retention-days: 90
       - name: Publish research report only
+        id: publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/context/_generated/RESEARCH-50K-BUDGET-LATEST.md
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "chore(research): publish 50k-per-v3.4-budget study [skip ci]"
-          for attempt in 1 2 3 4 5; do
-            git pull --rebase origin main
-            if git push origin HEAD:main; then exit 0; fi
-            sleep 2
-          done
-          exit 1
+          set -eu
+          node scripts/ci/publish-generated.mjs publish \
+            --branch automation/research-50k-league-budget \
+            --allow "docs/context/_generated/RESEARCH-50K-BUDGET-LATEST.md" \
+            --scope-to-allow --preserve-history \
+            --title "chore(research): publish 50k-per-v3.4-budget study" \
+            --note "연구 워크플로가 생성한 보고서입니다. 알고리즘·실험 설정·시드·결과는 바꾸지 않고 문서만 추가/갱신합니다. 원본 실행과 아티팩트: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+      - name: Start the required CI on the research report PR
+        if: steps.publish.outputs.head_sha != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ steps.publish.outputs.head_sha }}
+        run: node scripts/ci/publish-generated.mjs ensure-ci --branch automation/research-50k-league-budget --sha "$HEAD_SHA" --workflow deploy.yml
   report-league:
     needs: league
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     permissions:
-      contents: write
-      actions: read
+      contents: write # push ONLY the automation/research-* branch
+      pull-requests: write # open / update the research report PR
+      actions: write # start deploy.yml so the required ci-result exists on that PR (also reads artifacts)
     steps:
       - uses: actions/checkout@v4
         with:
@@ -198,15 +200,20 @@ jobs:
             docs/context/_generated/RESEARCH-50K-LEAGUE-LATEST.md
           retention-days: 90
       - name: Publish research league report only
+        id: publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/context/_generated/RESEARCH-50K-LEAGUE-LATEST.md
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "chore(research): publish six-way 50k-match head-to-head paired league [skip ci]"
-          for attempt in 1 2 3 4 5; do
-            git pull --rebase origin main
-            if git push origin HEAD:main; then exit 0; fi
-            sleep 2
-          done
-          exit 1
+          set -eu
+          node scripts/ci/publish-generated.mjs publish \
+            --branch automation/research-50k-league \
+            --allow "docs/context/_generated/RESEARCH-50K-LEAGUE-LATEST.md" \
+            --scope-to-allow --preserve-history \
+            --title "chore(research): publish six-way 50k-match head-to-head paired league" \
+            --note "연구 워크플로가 생성한 보고서입니다. 알고리즘·실험 설정·시드·결과는 바꾸지 않고 문서만 추가/갱신합니다. 원본 실행과 아티팩트: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+      - name: Start the required CI on the research report PR
+        if: steps.publish.outputs.head_sha != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ steps.publish.outputs.head_sha }}
+        run: node scripts/ci/publish-generated.mjs ensure-ci --branch automation/research-50k-league --sha "$HEAD_SHA" --workflow deploy.yml

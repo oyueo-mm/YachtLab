@@ -148,6 +148,8 @@ GitHub 정책상 `GITHUB_TOKEN`으로 push/PR을 만들면 `push`·`pull_request
 
 ## 10. main에 직접 push하는 연구 워크플로 (보호 규칙과 충돌)
 
+> **CI-1.1에서 해소됨** — 아래 26개는 모두 자동화 PR 방식으로 이전되었습니다. 절차·검증·적용 순서: [CI-1.1 가이드](./CI-1-1-RESEARCH-PUBLISH.md). 아래는 이전 시점의 기록입니다.
+
 `node scripts/ci/audit-workflows.mjs` 결과 — **26개 워크플로가 `git push origin HEAD:main`** 으로 연구 보고서를 올립니다(`[skip ci]`). 모두 `docs/context/_generated/` 아래 파일만 `git add`합니다. 보호 규칙이 켜지면 이 push 단계가 거부되고, **보고서는 90일 보존되는 아티팩트에만 남습니다**(실험 자체는 성공).
 
 이번 PR은 **이 워크플로를 변경하지 않았습니다**(실행 비용이 크고 이 환경에서 실행·검증할 수 없어 임의 수정 금지). 대신 같은 구조로 옮길 수 있게 `publish-generated.mjs`를 일반화해 두었습니다(분기별 `--branch automation/<이름>`, 같은 허용 경로 `docs/context/_generated/`). 후속(CI-1.1)에서 각 `git push origin HEAD:main` 단계를 `node scripts/ci/publish-generated.mjs publish --branch automation/research-<워크플로> --allow docs/context/_generated/ ...` 로 바꾸는 것을 권장합니다. **그 전에 보호 규칙을 켜려면** 연구 보고 push 실패를 감수하거나(아티팩트에서 복구) 규칙을 켜지 않는 쪽을 선택하세요. 권한 우회(ruleset bypass)는 이 작업의 금지 사항이라 제안하지 않습니다.

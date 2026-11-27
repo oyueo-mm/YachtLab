@@ -12,17 +12,6 @@ on:
       - "tests/psro-meta.test.ts"
       - "tests/ppo-surrogate.test.ts"
       - ".github/workflows/psro-ppo.yml"
-  push:
-    branches: [main]
-    paths:
-      - "src/psro-meta.ts"
-      - "src/ppo-surrogate.ts"
-      - "src/neural-residual.ts"
-      - "src/competitive-v3.ts"
-      - "scripts/research-psro.mjs"
-      - "scripts/research-opponent-pmf.mjs"
-      - "scripts/train-ppo-psro.mjs"
-      - ".github/workflows/psro-ppo.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -33,8 +22,6 @@ jobs:
   research:
     runs-on: ubuntu-24.04
     timeout-minutes: 55
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -82,15 +69,55 @@ jobs:
             training/checkpoints/ppo-selected.json
             docs/context/_generated/PPO-LATEST.md
           retention-days: 90
+      - name: Keep the report file(s) for the publish job
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-report-psro-ppo
+          path: |
+            docs/context/_generated/PSRO-LATEST.md
+            docs/context/_generated/PMF-LATEST.md
+            docs/context/_generated/PPO-LATEST.md
+          retention-days: 90
+          if-no-files-found: ignore
+  publish-report:
+    needs: research
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write # push ONLY the automation/research-* branch
+      pull-requests: write # open / update the research report PR
+      actions: write # start deploy.yml so the required ci-result exists on that PR
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Fetch the report file(s) produced by research
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: research-report-psro-ppo
+          path: docs/context/_generated
       - name: Persist independently measured research results to GitHub context hub
-        if: github.event_name != 'pull_request'
+        id: publish
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eu
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/context/_generated/PSRO-LATEST.md docs/context/_generated/PMF-LATEST.md docs/context/_generated/PPO-LATEST.md
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(context): record PSRO-PMF-PPO real experiments [skip ci]"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
+          node scripts/ci/publish-generated.mjs publish \
+            --branch automation/research-psro-ppo \
+            --allow "docs/context/_generated/PSRO-LATEST.md" \
+            --allow "docs/context/_generated/PMF-LATEST.md" \
+            --allow "docs/context/_generated/PPO-LATEST.md" \
+            --scope-to-allow --preserve-history \
+            --title "chore(context): record PSRO-PMF-PPO real experiments" \
+            --note "연구 워크플로가 생성한 보고서입니다. 알고리즘·실험 설정·시드·결과는 바꾸지 않고 문서만 추가/갱신합니다. 원본 실행과 아티팩트: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+      - name: Start the required CI on the research report PR
+        if: github.event_name == 'workflow_dispatch' && steps.publish.outputs.head_sha != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ steps.publish.outputs.head_sha }}
+        run: node scripts/ci/publish-generated.mjs ensure-ci --branch automation/research-psro-ppo --sha "$HEAD_SHA" --workflow deploy.yml

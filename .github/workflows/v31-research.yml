@@ -7,17 +7,7 @@ on:
       - scripts/bench-v31.mjs
       - scripts/summarize-v31.mjs
       - .github/workflows/v31-research.yml
-  push:
-    branches: [main]
-    paths:
-      - src/research-v31.ts
-      - tests/research-v31.test.ts
-      - scripts/bench-v31.mjs
-      - scripts/summarize-v31.mjs
-      - .github/workflows/v31-research.yml
   workflow_dispatch:
-  schedule:
-    - cron: "0 12 * * 0"
 permissions:
   contents: read
 concurrency:
@@ -47,7 +37,7 @@ jobs:
           node scripts/bench-v31.mjs --candidate v31-hybrid --opponent "DP Expert" --shard 1 --smoke
           node scripts/bench-v31.mjs --candidate v3-unmodified --opponent "Win DP v2" --shard 1 --smoke
   duel:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 180
@@ -89,10 +79,13 @@ jobs:
           if-no-files-found: warn
   summarize:
     needs: duel
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
-      contents: write
+      contents: write # push ONLY the automation/research-* branch
+      pull-requests: write # open / update the research report PR
+      actions: write # start deploy.yml so the required ci-result exists on that PR (also reads artifacts)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -116,16 +109,20 @@ jobs:
             docs/context/_generated/V31-LATEST.md
           retention-days: 90
       - name: Commit research-only summary without promoting AI
+        id: publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/context/_generated/V31-LATEST.md
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(research): publish Win DP v3.1 fresh-shard evidence [skip ci]"
-            for attempt in 1 2 3 4 5; do
-              git pull --rebase origin main
-              if git push origin HEAD:main; then exit 0; fi
-              sleep 2
-            done
-            exit 1
-          fi
+          set -eu
+          node scripts/ci/publish-generated.mjs publish \
+            --branch automation/research-v31-research \
+            --allow "docs/context/_generated/V31-LATEST.md" \
+            --scope-to-allow --preserve-history \
+            --title "chore(research): publish Win DP v3.1 fresh-shard evidence" \
+            --note "연구 워크플로가 생성한 보고서입니다. 알고리즘·실험 설정·시드·결과는 바꾸지 않고 문서만 추가/갱신합니다. 원본 실행과 아티팩트: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+      - name: Start the required CI on the research report PR
+        if: steps.publish.outputs.head_sha != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ steps.publish.outputs.head_sha }}
+        run: node scripts/ci/publish-generated.mjs ensure-ci --branch automation/research-v31-research --sha "$HEAD_SHA" --workflow deploy.yml

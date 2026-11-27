@@ -15,22 +15,6 @@ on:
       - scripts/summarize-upgrades.mjs
       - tests/research-followup.test.ts
       - .github/workflows/followup-ablations.yml
-  push:
-    branches: [main]
-    paths:
-      - src/research-opponent-belief.ts
-      - src/research-v33-belief.ts
-      - src/research-v33.ts
-      - src/competitive-v3.ts
-      - src/research-v34.ts
-      - src/research-v34-adaptive.ts
-      - scripts/train-v33-belief.mjs
-      - scripts/train-v4-ablation.mjs
-      - scripts/select-v4-ablation.mjs
-      - scripts/bench-upgrades.mjs
-      - scripts/summarize-upgrades.mjs
-      - tests/research-followup.test.ts
-      - .github/workflows/followup-ablations.yml
   workflow_dispatch:
 permissions:
   contents: read
@@ -81,7 +65,7 @@ jobs:
             node scripts/bench-upgrades.mjs --smoke --candidate "$candidate" --opponent "Win DP v2" --shard 2000
           done
   train-opponent-models:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 100
@@ -104,7 +88,7 @@ jobs:
             training/results/v33-belief-pack.json
           retention-days: 90
   train-psro:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 90
@@ -284,10 +268,13 @@ jobs:
           retention-days: 90
   report-v33:
     needs: duel-v33
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
-      contents: write
+      contents: write # push ONLY the automation/research-* branch
+      pull-requests: write # open / update the research report PR
+      actions: write # start deploy.yml so the required ci-result exists on that PR (also reads artifacts)
     steps:
       - uses: actions/checkout@v4
         with:
@@ -308,23 +295,32 @@ jobs:
             training/results/followup-ablation/v33-summary.json
             docs/context/_generated/FOLLOWUP-V33-LATEST.md
       - name: Publish independent policy-diversity evidence
+        id: publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/context/_generated/FOLLOWUP-V33-LATEST.md
-          git commit -m "chore(research): publish six-opponent Bayesian report [skip ci]"
-          for attempt in 1 2 3 4 5 6; do
-            git pull --rebase origin main
-            if git push origin HEAD:main; then exit 0; fi
-            sleep 2
-          done
-          exit 1
+          set -eu
+          node scripts/ci/publish-generated.mjs publish \
+            --branch automation/research-followup-ablations-v33 \
+            --allow "docs/context/_generated/FOLLOWUP-V33-LATEST.md" \
+            --scope-to-allow --preserve-history \
+            --title "chore(research): publish six-opponent Bayesian report" \
+            --note "연구 워크플로가 생성한 보고서입니다. 알고리즘·실험 설정·시드·결과는 바꾸지 않고 문서만 추가/갱신합니다. 원본 실행과 아티팩트: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+      - name: Start the required CI on the research report PR
+        if: steps.publish.outputs.head_sha != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ steps.publish.outputs.head_sha }}
+        run: node scripts/ci/publish-generated.mjs ensure-ci --branch automation/research-followup-ablations-v33 --sha "$HEAD_SHA" --workflow deploy.yml
   report-v34:
     needs: duel-v34
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
-      contents: write
+      contents: write # push ONLY the automation/research-* branch
+      pull-requests: write # open / update the research report PR
+      actions: write # start deploy.yml so the required ci-result exists on that PR (also reads artifacts)
     steps:
       - uses: actions/checkout@v4
         with:
@@ -345,23 +341,32 @@ jobs:
             training/results/followup-ablation/v34-summary.json
             docs/context/_generated/FOLLOWUP-V34-LATEST.md
       - name: Publish exploratory budget and latency evidence
+        id: publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/context/_generated/FOLLOWUP-V34-LATEST.md
-          git commit -m "chore(research): publish v3.4 adaptive budget pilot [skip ci]"
-          for attempt in 1 2 3 4 5 6; do
-            git pull --rebase origin main
-            if git push origin HEAD:main; then exit 0; fi
-            sleep 2
-          done
-          exit 1
+          set -eu
+          node scripts/ci/publish-generated.mjs publish \
+            --branch automation/research-followup-ablations-v34 \
+            --allow "docs/context/_generated/FOLLOWUP-V34-LATEST.md" \
+            --scope-to-allow --preserve-history \
+            --title "chore(research): publish v3.4 adaptive budget pilot" \
+            --note "연구 워크플로가 생성한 보고서입니다. 알고리즘·실험 설정·시드·결과는 바꾸지 않고 문서만 추가/갱신합니다. 원본 실행과 아티팩트: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+      - name: Start the required CI on the research report PR
+        if: steps.publish.outputs.head_sha != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ steps.publish.outputs.head_sha }}
+        run: node scripts/ci/publish-generated.mjs ensure-ci --branch automation/research-followup-ablations-v34 --sha "$HEAD_SHA" --workflow deploy.yml
   report-v4:
     needs: duel-v4
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     permissions:
-      contents: write
+      contents: write # push ONLY the automation/research-* branch
+      pull-requests: write # open / update the research report PR
+      actions: write # start deploy.yml so the required ci-result exists on that PR (also reads artifacts)
     steps:
       - uses: actions/checkout@v4
         with:
@@ -383,14 +388,20 @@ jobs:
             training/results/followup-ablation/v4-summary.json
             docs/context/_generated/FOLLOWUP-V4-LATEST.md
       - name: Publish results only, no default AI promotion
+        id: publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/context/_generated/FOLLOWUP-V4-LATEST.md
-          git commit -m "chore(research): publish 1m-game A-E ablation with paired 99pct CI [skip ci]"
-          for attempt in 1 2 3 4 5 6; do
-            git pull --rebase origin main
-            if git push origin HEAD:main; then exit 0; fi
-            sleep 2
-          done
-          exit 1
+          set -eu
+          node scripts/ci/publish-generated.mjs publish \
+            --branch automation/research-followup-ablations-v4 \
+            --allow "docs/context/_generated/FOLLOWUP-V4-LATEST.md" \
+            --scope-to-allow --preserve-history \
+            --title "chore(research): publish 1m-game A-E ablation with paired 99pct CI" \
+            --note "연구 워크플로가 생성한 보고서입니다. 알고리즘·실험 설정·시드·결과는 바꾸지 않고 문서만 추가/갱신합니다. 원본 실행과 아티팩트: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+      - name: Start the required CI on the research report PR
+        if: steps.publish.outputs.head_sha != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ steps.publish.outputs.head_sha }}
+        run: node scripts/ci/publish-generated.mjs ensure-ci --branch automation/research-followup-ablations-v4 --sha "$HEAD_SHA" --workflow deploy.yml

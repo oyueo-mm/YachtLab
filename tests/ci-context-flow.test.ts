@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 // @ts-expect-error plain ESM scripts without types
 import { classify } from "../scripts/ci/classify-changes.mjs";
 // @ts-expect-error plain ESM scripts without types
-import { findMainPushers } from "../scripts/ci/audit-workflows.mjs";
+import { auditResearchStart, findMainPushers, parseWorkflow, pullRequestJobs } from "../scripts/ci/audit-workflows.mjs";
 // @ts-expect-error plain ESM scripts without types
 import { syncWiki } from "../scripts/ci/sync-wiki.mjs";
 
@@ -141,12 +141,9 @@ describe("workflow contracts for branch protection (static)", () => {
     expect(deploy).toMatch(/pull_request:\n/);
     expect(deploy).toMatch(/workflow_dispatch:/);
   });
-  it("only the documented research workflows still push to main; the protected-path workflows never do", () => {
-    const pushers = findMainPushers(path.join(repoRoot, ".github/workflows")).map((e: { workflow: string }) => e.workflow);
-    for (const name of ["context-sync.yml", "context-wiki.yml", "deploy.yml", "deploy-online-worker.yml", "seo-indexnow.yml", "online-live-check.yml", "gameplay-ui-smoke.yml"]) expect(pushers).not.toContain(name);
-    // inventory guard: a NEW workflow must not add a direct main push (use scripts/ci/publish-generated.mjs)
-    const legacy = read("docs/operations/CI-1-CONTEXT-SYNC-PROTECTION.md");
-    for (const name of pushers) expect(legacy, `${name} must be listed in the CI-1 guide inventory`).toContain(name);
+  it("no workflow pushes to main any more (CI-1.1): audit --strict would exit 0", () => {
+    expect(findMainPushers(path.join(repoRoot, ".github/workflows"))).toEqual([]);
+    for (const name of workflows) expect(read(`.github/workflows/${name}`), name).not.toMatch(/\[skip ci\]|\[ci skip\]/i);
   });
 });
 
@@ -197,5 +194,119 @@ describe("deploy.yml scope step for a manual run on the automation branch (the r
   });
   it("a forced-full manual run stays full", () => {
     expect(scope(["docs/context/_generated/a.md"], { EVENT: "workflow_dispatch", GITHUB_REF: "refs/heads/automation/context-sync", FORCE_FULL: "true" })).toBe("mode=full");
+  });
+});
+
+describe("research workflows publish through automation PRs (CI-1.1, static contract)", () => {
+  const files = readdirSync(path.join(repoRoot, ".github/workflows")).filter((f) => /\.ya?ml$/.test(f));
+  type Step = { file: string; job: string; branch: string; allow: string[]; text: string };
+  const steps: Step[] = [];
+  for (const file of files) {
+    if (file === "context-sync.yml") continue;
+    const text = read(`.github/workflows/${file}`);
+    const jobs = text.split(/\n(?=  [A-Za-z0-9_-]+:\n)/);
+    for (const job of jobs) {
+      if (!job.includes("publish-generated.mjs publish")) continue;
+      const branch = /--branch (automation\/research-[a-z0-9-]+) \\/.exec(job)?.[1] ?? "";
+      const allow = [...job.matchAll(/--allow "([^"]+)"/g)].map((m) => m[1]);
+      steps.push({ file, job: /^\s*([A-Za-z0-9_-]+):/.exec(job)?.[1] ?? "?", branch, allow, text: job });
+    }
+  }
+  it("finds the 30 migrated publish steps of 26 research workflows", () => {
+    expect(steps).toHaveLength(30);
+    expect(new Set(steps.map((s) => s.file)).size).toBe(26);
+  });
+  it("every step publishes on its own automation/research-* branch, without force and without main", () => {
+    expect(steps.every((s) => /^automation\/research-[a-z0-9-]+$/.test(s.branch))).toBe(true);
+    expect(new Set(steps.map((s) => s.branch)).size).toBe(steps.length);
+    for (const s of steps) {
+      expect(s.text, s.file).toContain("--scope-to-allow --preserve-history");
+      expect(s.text, s.file).not.toMatch(/git push|HEAD:main|--force/);
+      expect(s.text, s.file).toMatch(new RegExp(`ensure-ci --branch ${s.branch} --sha "\\$HEAD_SHA" --workflow deploy.yml`));
+    }
+  });
+  it("each step may publish only named files under docs/context/_generated/ (no directories, one wildcard family)", () => {
+    for (const s of steps) {
+      expect(s.allow.length, s.file).toBeGreaterThan(0);
+      for (const a of s.allow) {
+        expect(a, s.file).toMatch(/^docs\/context\/_generated\/[A-Za-z0-9._*-]+\.(?:md|json)$/);
+        if (a.includes("*")) expect(a).toBe("docs/context/_generated/FRONTIER-*.md");
+      }
+    }
+    const all = steps.flatMap((s) => s.allow);
+    expect(new Set(all).size, "no file is published by two different research PRs").toBe(all.length);
+  });
+  it("the publishing job has exactly contents/pull-requests/actions write", () => {
+    for (const s of steps) {
+      const perms = /\n    permissions:\n((?:      .+\n)+)/.exec(s.text)?.[1] ?? "";
+      const keys = [...perms.matchAll(/^ {6}([a-z-]+): (\w+)/gm)].map((m) => `${m[1]}:${m[2]}`).sort();
+      expect(keys, `${s.file}/${s.job}`).toEqual(["actions:write", "contents:write", "pull-requests:write"]);
+    }
+  });
+});
+
+describe("large research starts only from an explicit workflow_dispatch (CI-1.2)", () => {
+  it("the real workflows pass the audit: no push/schedule triggers, nothing writable on pull requests, publishing is dispatch-only", () => {
+    expect(auditResearchStart(path.join(repoRoot, ".github/workflows"))).toEqual([]);
+  });
+
+  it("the audit catches each way research could start or gain write access", () => {
+    const dir = path.join(root, "wf");
+    mkdirSync(dir, { recursive: true });
+    const base = (on: string, jobs: string) => `name: x\non:\n${on}permissions:\n  contents: read\njobs:\n${jobs}`;
+    const publish = "      - run: node scripts/ci/publish-generated.mjs publish --branch automation/research-x\n";
+    writeFileSync(path.join(dir, "tabular-zoo.yml"), base("  push:\n    branches: [main]\n  workflow_dispatch:\n", "  a:\n    steps:\n      - run: echo\n"));
+    writeFileSync(path.join(dir, "confirm-v2.yml"), base("  pull_request:\n  schedule:\n    - cron: '0 0 * * 0'\n", "  a:\n    steps:\n      - run: echo\n"));
+    writeFileSync(path.join(dir, "integrated-research.yml"), base("  pull_request:\n  workflow_dispatch:\n", `  a:\n    permissions:\n      contents: write\n    steps:\n      - run: echo\n  p:\n    needs: a\n    steps:\n${publish}`));
+    writeFileSync(path.join(dir, "competitive-research.yml"), base("  pull_request:\n  workflow_dispatch:\n", `  a:\n    steps:\n      - run: echo\n  p:\n    needs: a\n    if: github.event_name == 'workflow_dispatch'\n    permissions:\n      contents: write\n    steps:\n${publish}`));
+    const problems = auditResearchStart(dir).join("\n");
+    expect(problems).toContain("tabular-zoo.yml: trigger 'push'");
+    expect(problems).toContain("confirm-v2.yml: trigger 'schedule'");
+    expect(problems).toContain("integrated-research.yml/a: runs on pull requests but has write permission");
+    expect(problems).toContain("integrated-research.yml/p: publishes but a pull request can run it");
+    expect(problems).toContain("integrated-research.yml/p: publishing job is not restricted to workflow_dispatch");
+    expect(problems).not.toContain("competitive-research.yml");
+  });
+
+  it("jobs a pull request can run: lightweight validation and smoke only; the experiments are dispatch-only", () => {
+    const dir = path.join(repoRoot, ".github/workflows");
+    for (const name of readdirSync(dir).filter((f) => /\.ya?ml$/.test(f))) {
+      const text = read(`.github/workflows/${name}`);
+      if (!text.includes("publish-generated.mjs publish") || name === "context-sync.yml") continue;
+      const { jobs } = parseWorkflow(text);
+      for (const job of pullRequestJobs(jobs)) {
+        expect(job.perms, `${name}/${job.name}`).toEqual({});
+        expect(job.publishes, `${name}/${job.name}`).toBe(false);
+      }
+    }
+    // the one reproduction job that used to run on every PR
+    const qr = parseWorkflow(read(".github/workflows/qr-followup.yml")).jobs;
+    expect(qr.find((j: { name: string }) => j.name === "reproduce-54")?.if).toContain("workflow_dispatch");
+  });
+
+  it("the lightweight PR validation is still wired: every research workflow keeps a pull_request trigger with paths, except the dispatch-only ones", () => {
+    const dir = path.join(repoRoot, ".github/workflows");
+    let withPr = 0;
+    for (const name of readdirSync(dir).filter((f) => /\.ya?ml$/.test(f))) {
+      const text = read(`.github/workflows/${name}`);
+      if (!text.includes("publish-generated.mjs publish") || name === "context-sync.yml") continue;
+      const { triggers } = parseWorkflow(text);
+      expect(triggers.sort(), name).toEqual(triggers.includes("pull_request") ? ["pull_request", "workflow_dispatch"] : ["workflow_dispatch"]);
+      if (triggers.includes("pull_request")) withPr += 1;
+    }
+    expect(withPr).toBe(26);
+  });
+
+  it("split publish jobs fetch exactly the files the compute job kept, and publish with the same arguments", () => {
+    for (const name of ["algorithm-zoo.yml", "full-selfplay.yml", "neural-selfplay.yml", "offpolicy-ppo-expanded.yml", "psro-extended.yml", "psro-ppo.yml"]) {
+      const text = read(`.github/workflows/${name}`);
+      const upload = /name: (research-report-[a-z0-9-]+)\n {10}path: \|\n((?: {12}docs\/context\/_generated\/\S+\n)+)/.exec(text);
+      expect(upload, name).not.toBeNull();
+      const kept = [...upload![2].matchAll(/docs\/context\/_generated\/\S+/g)].map((m) => m[0]).sort();
+      const allowed = [...text.matchAll(/--allow "([^"]+)"/g)].map((m) => m[1]).sort();
+      expect(kept, name).toEqual(allowed);
+      expect(text, name).toContain(`name: ${upload![1]}\n          path: docs/context/_generated`);
+      expect(parseWorkflow(text).jobs.find((j: { name: string }) => j.name === "publish-report")?.perms, name).toEqual({ contents: "write", "pull-requests": "write", actions: "write" });
+    }
   });
 });

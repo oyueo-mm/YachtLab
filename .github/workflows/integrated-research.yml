@@ -7,14 +7,6 @@ on:
       - "scripts/research-league.mjs"
       - "training/qr_dqn_choice.py"
       - ".github/workflows/integrated-research.yml"
-  push:
-    branches: [main]
-    paths:
-      - "src/competitive-v2.ts"
-      - "src/research-guided-mcts.ts"
-      - "scripts/research-league.mjs"
-      - "training/qr_dqn_choice.py"
-      - ".github/workflows/integrated-research.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -33,7 +25,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: node scripts/research-league.mjs --smoke
       - name: Complete paired league and held-out hybrid validation
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'workflow_dispatch'
         run: node scripts/research-league.mjs
       - name: Upload raw independent league results
         uses: actions/upload-artifact@v4
@@ -53,15 +45,15 @@ jobs:
         if: github.event_name == 'pull_request'
         run: python -m py_compile training/qr_dqn_choice.py
       - name: Install CPU-only PyTorch and numpy
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'workflow_dispatch'
         run: |
           python -m pip install numpy
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
       - name: Train and evaluate QR-DQN on Choice-only stochastic endgame
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'workflow_dispatch'
         run: python training/qr_dqn_choice.py --episodes 6000 --eval 3000 --seed 26020
       - name: Preserve learned weights and unbiased evaluation
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: yachtlab-qr-dqn-choice-pilot

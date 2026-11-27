@@ -6,12 +6,6 @@ on:
       - "training/choice_rl_zoo.py"
       - ".github/workflows/algorithm-zoo.yml"
       - "docs/context/EXPERIMENT-ZOO.md"
-  push:
-    branches: [main]
-    paths:
-      - "scripts/sweep-algorithms.mjs"
-      - "training/choice_rl_zoo.py"
-      - ".github/workflows/algorithm-zoo.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,8 +16,6 @@ jobs:
   sweep:
     runs-on: ubuntu-24.04
     timeout-minutes: 55
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,7 +31,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: node scripts/sweep-algorithms.mjs --smoke
       - name: Full algorithm-family search, validation and independent confirmation
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'workflow_dispatch'
         run: node scripts/sweep-algorithms.mjs
       - name: Archive all configurations, raw matches and statistical results
         uses: actions/upload-artifact@v4
@@ -50,18 +42,56 @@ jobs:
             docs/context/_generated/zoo-summary.json
             docs/context/_generated/LATEST_EXPERIMENT.md
           retention-days: 90
+      - name: Keep the report file(s) for the publish job
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-report-algorithm-zoo
+          path: |
+            docs/context/_generated/zoo-summary.json
+            docs/context/_generated/LATEST_EXPERIMENT.md
+          retention-days: 90
+          if-no-files-found: ignore
+  publish-report:
+    needs: sweep
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write # push ONLY the automation/research-* branch
+      pull-requests: write # open / update the research report PR
+      actions: write # start deploy.yml so the required ci-result exists on that PR
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Fetch the report file(s) produced by sweep
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: research-report-algorithm-zoo
+          path: docs/context/_generated
       - name: Publish compact, source-generated research results to GitHub
-        if: github.event_name != 'pull_request'
+        id: publish
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eu
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/context/_generated/zoo-summary.json docs/context/_generated/LATEST_EXPERIMENT.md
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(context): record algorithm-zoo results [skip ci]"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
+          node scripts/ci/publish-generated.mjs publish \
+            --branch automation/research-algorithm-zoo \
+            --allow "docs/context/_generated/zoo-summary.json" \
+            --allow "docs/context/_generated/LATEST_EXPERIMENT.md" \
+            --scope-to-allow --preserve-history \
+            --title "chore(context): record algorithm-zoo results" \
+            --note "연구 워크플로가 생성한 보고서입니다. 알고리즘·실험 설정·시드·결과는 바꾸지 않고 문서만 추가/갱신합니다. 원본 실행과 아티팩트: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+      - name: Start the required CI on the research report PR
+        if: github.event_name == 'workflow_dispatch' && steps.publish.outputs.head_sha != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ steps.publish.outputs.head_sha }}
+        run: node scripts/ci/publish-generated.mjs ensure-ci --branch automation/research-algorithm-zoo --sha "$HEAD_SHA" --workflow deploy.yml
   rl:
     runs-on: ubuntu-24.04
     timeout-minutes: 50
@@ -73,15 +103,15 @@ jobs:
       - name: Check research-only RL implementations
         run: python -m py_compile training/choice_rl_zoo.py
       - name: Install CPU research dependencies
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'workflow_dispatch'
         run: |
           python -m pip install numpy
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
       - name: Train REINFORCE, A2C, DQN and Double DQN with independent evaluation
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'workflow_dispatch'
         run: python training/choice_rl_zoo.py --episodes 9000 --eval 5000 --seed 27111
       - name: Save actual trained models and complete evaluation logs
-        if: github.event_name != 'pull_request'
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: algorithm-zoo-rl-weights

@@ -42,7 +42,16 @@ export function isAllowedPath(file, allow) {
   if (typeof file !== "string" || file === "" || file.startsWith("/") || file.includes("\\") || file.includes("\0")) return false;
   const segments = file.split("/");
   if (segments.some((s) => s === "" || s === "." || s === ".." || s.toLowerCase() === ".git")) return false;
-  return allow.some((entry) => (entry.endsWith("/") ? file.startsWith(entry) && file.length > entry.length : file === entry));
+  return allow.some((entry) => {
+    if (entry.endsWith("/")) return file.startsWith(entry) && file.length > entry.length;
+    // one `*` wildcard per file name (never across directories): docs/context/_generated/FRONTIER-*.md
+    if (entry.includes("*")) return globToRegExp(entry).test(file);
+    return file === entry;
+  });
+}
+
+function globToRegExp(entry) {
+  return new RegExp("^" + entry.split("*").map((part) => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join("[^/]*") + "$");
 }
 
 /** The fields that change with every commit / CI run, listed by the caller; everything else is "structural". */
@@ -64,7 +73,7 @@ function parseArgs(argv) {
     const token = tokens[i];
     if (!token.startsWith("--")) throw new Error(`알 수 없는 인자: ${token}`);
     const key = token.slice(2);
-    if (["skip-volatile-only", "force-redispatch", "dry-run"].includes(key)) options[key] = true;
+    if (["skip-volatile-only", "force-redispatch", "dry-run", "scope-to-allow", "preserve-history"].includes(key)) options[key] = true;
     else if (key === "allow") options.allow.push(tokens[++i]);
     else options[key] = tokens[++i];
   }
@@ -147,7 +156,10 @@ export function publish(options, cwd = process.cwd()) {
   const remote = options.remote ?? "origin";
 
   // 1) Allowed paths only — anything else is a hard failure, before any git object is created.
-  const changes = workingTreeChanges(git);
+  let changes = workingTreeChanges(git);
+  // research jobs check out the whole repository and download artifacts: only the files the job may publish count.
+  if (options["scope-to-allow"]) changes = changes.filter((file) => isAllowedPath(file, allow));
+  if (options["preserve-history"]) return publishPreservingHistory(options, { git, gh, cwd, branch, baseName, allow, changes, remote });
   const forbidden = changes.filter((file) => !isAllowedPath(file, allow));
   if (forbidden.length > 0) {
     throw new Error(`허용 경로(${allow.join(", ")}) 밖의 파일이 변경되어 중단함 — 자동화는 아무것도 커밋하지 않음:\n  ${forbidden.join("\n  ")}`);
@@ -221,6 +233,11 @@ export function publish(options, cwd = process.cwd()) {
   }
 
   // 5) Exactly one PR.
+  return upsertPr({ gh, options, openPr, branchChanged, branch, baseName, baseSha, headSha, allow, changes });
+}
+
+/** Creates the PR, or edits the open one. Shared by both publish modes. */
+function upsertPr({ gh, options, openPr, branchChanged, branch, baseName, baseSha, headSha, allow, changes, footer = [] }) {
   const body = [
     options.note ?? "자동 생성 문서 갱신입니다.",
     "",
@@ -228,7 +245,7 @@ export function publish(options, cwd = process.cwd()) {
     `- 변경 파일 ${changes.length}개 — 모두 허용 경로 \`${allow.join("`, `")}\` 안:`,
     ...changes.map((file) => `  - \`${file}\``),
     "- 이 PR은 `ci-result` 필수 체크가 통과해야 병합됩니다. 병합해도 같은 내용으로 새 PR이 다시 만들어지지 않습니다.",
-    "- 병합 전 `main`이 앞서면 워크플로가 이 브랜치를 최신 main 위에서 다시 만듭니다.",
+    ...(footer.length ? footer : ["- 병합 전 `main`이 앞서면 워크플로가 이 브랜치를 최신 main 위에서 다시 만듭니다."]),
   ].join("\n");
   const tmp = mkdtempSync(path.join(tmpdir(), "publish-generated-body-"));
   const bodyFile = path.join(tmp, "body.md");
@@ -242,21 +259,108 @@ export function publish(options, cwd = process.cwd()) {
     } else {
       try {
         prUrl = gh(["pr", "create", "--base", baseName, "--head", branch, "--title", options.title, "--body-file", bodyFile]).split("\n").pop();
+        action = "created";
       } catch (error) {
         if (/not permitted to create or approve pull requests/i.test(String(error.message))) {
           throw new Error(
-            `PR 생성이 거부됨: 저장소 설정 'Allow GitHub Actions to create and approve pull requests'가 꺼져 있음 (Settings → Actions → General → Workflow permissions). 브랜치 ${branch}@${headSha.slice(0, 10)}는 이미 push되어 있으니 설정 후 Context sync를 다시 실행하면 PR만 만들어짐.`,
+            `PR 생성이 거부됨: 저장소 설정 'Allow GitHub Actions to create and approve pull requests'가 꺼져 있음 (Settings → Actions → General → Workflow permissions). 브랜치 ${branch}@${headSha.slice(0, 10)}는 이미 push되어 있으니 설정 후 워크플로를 다시 실행하면 PR만 만들어짐.`,
           );
         }
-        throw error;
+        // a parallel run of the same branch created it a moment ago: that PR is the one to use
+        const again = JSON.parse(gh(["pr", "list", "--head", branch, "--base", baseName, "--state", "open", "--json", "number,url", "--limit", "5"]) || "[]")[0];
+        if (!again || !/already exists/i.test(String(error.message))) throw error;
+        gh(["pr", "edit", String(again.number), "--title", options.title, "--body-file", bodyFile]);
+        prUrl = again.url;
+        action = "updated";
       }
-      action = "created";
     }
     summary(`### 생성 문서 PR: ${action}\n${prUrl}\n\n브랜치 \`${branch}\` @ \`${headSha.slice(0, 10)}\` (기준 ${baseName}@${baseSha.slice(0, 10)}), 파일 ${changes.length}개`);
     setOutputs({ action, pr_url: prUrl, head_sha: headSha, branch });
     return action;
   } finally {
     rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
+const sleepSync = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+/**
+ * Research reports (CI-1.1): the branch is NEVER force-pushed. Every run adds a commit on top of the existing
+ * unmerged branch (and merges the latest main into it), so an earlier run's unmerged result stays in the PR
+ * history and a concurrent writer can only make the plain push fail — the retry then re-merges and loses nothing.
+ * Tree = 3-way merge(main, branch) + this run's files; if main and the branch changed the same file differently
+ * the run stops without touching the branch (nothing is lost; merge or close the open PR, then re-run).
+ */
+function publishPreservingHistory(options, { git, gh, cwd, branch, baseName, allow, changes, remote }) {
+  const maxAttempts = Number(process.env.PUBLISH_GENERATED_ATTEMPTS ?? 6);
+  const retryMs = Number(process.env.PUBLISH_GENERATED_RETRY_MS ?? 1500);
+  const isAncestor = (a, b) => git(["merge-base", "--is-ancestor", a, b], { allowFailure: true }) !== null;
+  if (git(["rev-parse", "--is-shallow-repository"]) === "true") {
+    git(["fetch", "--quiet", "--unshallow", "--no-tags", remote, `+refs/heads/${baseName}:refs/remotes/${remote}/${baseName}`]);
+  }
+  for (let attempt = 1; ; attempt += 1) {
+    git(["fetch", "--quiet", "--no-tags", remote, `+refs/heads/${baseName}:refs/remotes/${remote}/${baseName}`]);
+    const baseSha = git(["rev-parse", `refs/remotes/${remote}/${baseName}`]);
+    const baseTree = git(["rev-parse", `${baseSha}^{tree}`]);
+    const listed = gh(["pr", "list", "--head", branch, "--base", baseName, "--state", "open", "--json", "number,url", "--limit", "5"]);
+    const openPrs = listed ? JSON.parse(listed) : [];
+    if (openPrs.length > 1) throw new Error(`같은 브랜치의 열린 PR이 ${openPrs.length}개임: 하나만 남기고 닫아야 함`);
+    const openPr = openPrs[0] ?? null;
+    const line = git(["ls-remote", remote, `refs/heads/${branch}`]);
+    const tip = line ? line.split(/\s+/)[0] : null;
+    if (tip) git(["fetch", "--quiet", "--no-tags", remote, `+refs/heads/${branch}:refs/remotes/${remote}/${branch}`]);
+
+    let mergedTree = baseTree;
+    const tipInMain = tip ? isAncestor(tip, baseSha) : false;
+    if (tip && !tipInMain) {
+      const merged = git(["merge-tree", "--write-tree", baseSha, tip], { allowFailure: true });
+      if (merged === null) {
+        throw new Error(
+          `${branch}의 미병합 결과와 ${baseName}이 같은 파일을 서로 다르게 바꿨음. 아무것도 덮어쓰지 않고 중단함 — 열린 PR을 병합하거나 닫은 뒤 다시 실행하세요.`,
+        );
+      }
+      mergedTree = merged.split("\n")[0];
+    }
+    const desiredTree = buildTree(git, cwd, mergedTree, changes);
+
+    if (desiredTree === baseTree) {
+      if (openPr) {
+        gh(["pr", "close", String(openPr.number), "--delete-branch", "--comment", `이 PR의 내용이 이미 ${baseName}에 있어 닫습니다. (자동 생성)`]);
+        summary(`### 변경 없음\n\`${baseName}\`가 이미 이 결과를 포함하므로 열려 있던 PR #${openPr.number}을 닫았습니다.`);
+        setOutputs({ action: "closed-stale", pr_url: openPr.url, head_sha: "", branch });
+        return "noop";
+      }
+      summary("### 변경 없음\n결과가 main과 동일합니다. 커밋과 PR 갱신을 생략했습니다.");
+      setOutputs({ action: "noop", pr_url: "", head_sha: "", branch });
+      return "noop";
+    }
+
+    let headSha = tip;
+    let branchChanged = false;
+    const reusable = tip && git(["rev-parse", `${tip}^{tree}`]) === desiredTree && isAncestor(baseSha, tip);
+    if (!reusable) {
+      const parents = tip && !tipInMain ? (isAncestor(baseSha, tip) ? [tip] : [tip, baseSha]) : [baseSha];
+      const message = `${options.title}\n\n자동 생성 (research publish). 기준: ${baseName}@${baseSha}\n이번 실행의 파일:\n${changes.map((f) => `- ${f}`).join("\n") || "- (없음: main 반영만)"}\n`;
+      headSha = git(["commit-tree", desiredTree, ...parents.flatMap((p) => ["-p", p]), "-m", message]);
+      if (options["dry-run"]) {
+        summary(`dry-run: ${changes.length}개 파일, 커밋 ${headSha} (push 안 함)`);
+        setOutputs({ action: "dry-run", pr_url: openPr?.url ?? "", head_sha: headSha, branch });
+        return "dry-run";
+      }
+      try {
+        git(["push", "--quiet", remote, `${headSha}:refs/heads/${branch}`]); // plain push: fast-forward only
+      } catch (error) {
+        if (attempt >= maxAttempts) throw new Error(`${branch} push가 ${attempt}번 모두 실패: ${String(error.message).split("\n")[0]}`);
+        sleepSync(Math.floor(retryMs * attempt * (0.5 + Math.random())));
+        continue; // someone else advanced the branch (or main moved): redo the merge on top of it
+      }
+      branchChanged = true;
+    }
+    const prFiles = splitNul(git(["diff", "--no-renames", "--name-only", "-z", baseSha, headSha]));
+    return upsertPr({
+      gh, options, openPr, branchChanged, branch, baseName, baseSha, headSha, allow, changes: prFiles,
+      footer: ["- 이 브랜치는 강제 푸시 없이 기록을 쌓으며 갱신됩니다. 같은 연구를 다시 실행해도 이전 미병합 결과 커밋이 이 PR 기록에 남고, 최신 main이 병합되어 있습니다."],
+    });
   }
 }
 
