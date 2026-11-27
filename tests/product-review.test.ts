@@ -56,7 +56,7 @@ test("solved endgame keeps outcome probabilities absent and certainty does not l
 });
 
 
-test("exceptional grades require a unique exact advantage and a measurable expected-score sacrifice", () => {
+test("exceptional grades depend only on a unique exact win-credit advantage", () => {
   const actual = { action: { type: "score", category: "choice" } as const, expected: 180, winCredit: .8 };
   const alternative = { action: { type: "score", category: "yacht" } as const, expected: 183, winCredit: .55 };
   const example = { index: 0, actual, options: [actual, alternative], loss: 3 };
@@ -64,4 +64,21 @@ test("exceptional grades require a unique exact advantage and a measurable expec
   expect(grade({ ...example, exactness: "exact" })).toBe("!!");
   expect(grade({ ...example, exactness: "exact", options: [actual, { ...alternative, winCredit: .66 }], loss: 1 })).toBe("!");
   expect(grade({ ...example, exactness: "exact", options: [actual, { ...alternative, winCredit: .8 }] })).toBe("★");
+});
+
+test("a simultaneous opponent score between rolls cannot masquerade as dice luck", () => {
+  const initial = transition(createGame(671), { type: "roll" });
+  const before = { ...position(initial), simultaneous: true as const };
+  const afterRoll = { ...position(transition(initial, { type: "roll" })), simultaneous: true as const };
+  const recorded = { ...afterRoll, cards: [{}, { choice: 29 }] as Position["cards"] };
+  const action = { type: "reroll", ids: [] } as const;
+  const base = analyzeProductSituation({ before, action: { ...action, ids: [] }, firstRoll: before, afterRoll }, 0, config);
+  const changed = analyzeProductSituation({ before, action: { ...action, ids: [] }, firstRoll: before, afterRoll: recorded }, 0, config);
+  expect(changed.winLuck).toBe(base.winLuck);
+  expect(changed.firstWinLuck).toBe(base.firstWinLuck);
+  expect(changed.firstWinLuck).toBeDefined();
+  const orderOnly = analyzeProductSituation({ before: { ...before, cards: recorded.cards }, action: { ...action, ids: [] },
+    firstRoll: before, afterRoll: recorded }, 0, config);
+  expect(orderOnly.firstWinLuck).toBe(base.firstWinLuck);
+  expect(orderOnly.actual.winCredit).not.toBe(base.actual.winCredit);
 });

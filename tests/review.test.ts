@@ -4,6 +4,7 @@ import { gunzipSync } from "node:zlib";
 import { readFileSync } from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
 import manifest from "../src/dp-manifest.json";
+import { FULL, PROB, STATES } from "../src/research-v5/kernel";
 import { choiceIndex, dpActionValue, dpDecision, dpFutureValue, setDPTable } from "../src/dp";
 import { categories, createGame, transition, type Game } from "../src/engine";
 import { appendFrame, newReplay } from "../src/replay";
@@ -84,4 +85,48 @@ it("cross-checks v5 win credit for final-turn scoring and every canonical re-rol
     const option = reviewed.options.find((entry) => choiceIndex(entry.action) === index);
     expect(option?.winCredit).toBeCloseTo(item.winCredit, 10);
   }
+});
+
+it("balances first-roll luck across all dice and attributes each roll once", async () => {
+  const { createReviewReport } = await import("../src/review/report");
+  const zeros = Object.fromEntries(categories.filter((category) => category !== "choice").map((category) => [category, 0]));
+  const base = { ...position(transition(createGame(17), { type: "roll" })), cards: [zeros, {}] as Position["cards"], simultaneous: true as const };
+  const move = { type: "score", category: "choice" } as const;
+  const sum = Array.from({ length: FULL }, (_, index) => {
+    const before = { ...base, dice: base.dice.map((die, id) => ({ ...die, value: STATES[210 + index][id] })) };
+    return PROB[index] * assessSituation({ before, action: move, firstRoll: before }, 0).firstLuck!;
+  }).reduce((total, value) => total + value, 0);
+  expect(sum).toBeCloseTo(0, 10);
+
+  const first: Situation = { before: base, firstRoll: base, action: { type: "reroll", ids: [0, 1, 2, 3, 4] }, afterRoll: { ...base, rolls: 2 } };
+  const second: Situation = { before: first.afterRoll!, action: move, automatic: true };
+  const match = { id: "luck", players: ["A", ""] as [string, string], winners: [0 as const],
+    scores: [0, 0] as [number, number], solo: true as const, steps: [first, second] };
+  const result = createReviewReport(match, match.steps.map(assessSituation));
+  const [player] = result.players;
+  const [opening, recorded] = player.rounds[0].actions;
+  expect(result.unit).toBe("points");
+  expect(opening.rolls.map(({ kind }) => kind)).toEqual(["first", "reroll"]);
+  expect(opening.rolls[1].swing).toBe(0);
+  expect(recorded.evaluation).toEqual({ state: "unassessed", reason: "automatic" });
+  expect(player.totals.assessedRolls).toBe(2);
+  expect(player.totals.luck).toBe(opening.rolls[0].swing);
+  expect(recorded.cumulativeLuck).toBe(player.totals.luck);
+  const fallback = createReviewReport({ ...match, solo: undefined }, match.steps.map(assessSituation));
+  expect(fallback.unit).toBe("percentage-points");
+  expect(fallback.players[0].totals).toMatchObject({ accuracy: null, loss: null, luck: null, assessedRolls: 0 });
+});
+
+it("includes a real first roll even when the game ends before the player chooses", async () => {
+  const { assessOpening } = await import("../src/review/solver");
+  const { createReviewReport } = await import("../src/review/report");
+  const first = position(transition(createGame(728), { type: "roll" }));
+  const match = { id: "resigned", players: ["A", "B"] as [string, string], scores: [0, 0] as [number, number],
+    winners: [1 as const], steps: [], unpairedFirstRolls: [first], solo: undefined };
+  const row = { ...assessOpening(first), preRollValue: 0.5, firstWinLuck: 0.125, exactness: "estimate" as const };
+  const report = createReviewReport(match, [], undefined, [row]);
+  expect(report.players[0].totals).toMatchObject({ firstLuck: 12.5, luck: 12.5, observedRolls: 1, assessedActions: 0, accuracy: null });
+  expect(report.players[0].rounds[0].actions).toEqual([]);
+  expect(report.players[0].rounds[0].unpairedFirstRolls[0].roll?.realizedValue).toBe(62.5);
+  expect(report.players[0].highlights.lucky[0]).toMatchObject({ round: 1, index: null });
 });

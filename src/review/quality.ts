@@ -12,22 +12,38 @@ export const grades = {
 
 export function winLoss(entry: Assessment) {
   const actual = entry.actual.winCredit;
-  if (actual === undefined) return undefined;
+  if (actual === undefined || entry.options.some(({ winCredit }) => winCredit === undefined)) return undefined;
   return Math.max(0, ...entry.options.map((row) => (row.winCredit ?? actual) - actual)) * 100;
 }
 
-export function accuracy(rows: Assessment[], criterion: "score" | "win") {
-  const losses = rows.flatMap((row) => {
-    const loss = criterion === "score" ? row.loss : winLoss(row);
-    // Once the result is forced for all legal choices, win accuracy has no decision to assess.
-    if (loss === undefined || (criterion === "win" &&
-      row.options.every(({ winCredit }) => winCredit === row.actual.winCredit) &&
-      [0, 0.5, 1].includes(row.actual.winCredit!))) return [];
-    return [loss];
-  });
-  if (!losses.length) return undefined;
+export type Criterion = "score" | "win";
+
+export function decisionLoss(row: Assessment, criterion: Criterion) {
+  const loss = criterion === "score" ? row.loss : winLoss(row);
+  if (loss === undefined || row.options.length < 2) return undefined;
+  if (criterion === "win" && row.exactness === "exact" && loss <= 1e-8 &&
+      [0, 0.5, 1].includes(row.actual.winCredit!) &&
+      row.options.every(({ winCredit }) => Math.abs(winCredit! - row.actual.winCredit!) <= 1e-8)) return undefined;
+  return loss;
+}
+
+export function decisionAccuracy(loss: number, criterion: Criterion) {
   const [tolerance, scale] = criterion === "score" ? [0.1, 8] : [0.25, 10];
-  return (100 / losses.length) * losses.reduce((sum, loss) => sum + Math.exp(-Math.max(0, loss - tolerance) / scale), 0);
+  return 100 * Math.exp(-Math.max(0, loss - tolerance) / scale);
+}
+
+export function accuracy(rows: Assessment[], criterion: Criterion) {
+  const scores = rows.flatMap((row) => {
+    const loss = decisionLoss(row, criterion);
+    return loss === undefined ? [] : [decisionAccuracy(loss, criterion)];
+  });
+  return scores.length ? scores.reduce((sum, value) => sum + value, 0) / scores.length : undefined;
+}
+
+export function recommended(row: Assessment, criterion: Criterion) {
+  if (criterion === "score") return row.options[0];
+  if (winLoss(row) === undefined) return undefined;
+  return row.options.reduce((best, option) => option.winCredit! > best.winCredit! ? option : best);
 }
 
 export function grade(entry: Assessment): keyof typeof grades {
@@ -42,8 +58,8 @@ export function grade(entry: Assessment): keyof typeof grades {
         (played.ids.length !== action.ids.length || played.ids.some((id) => !action.ids.includes(id)))))
       .map(({ winCredit }) => winCredit ?? -Infinity));
     const gap = ((entry.actual.winCredit ?? 0) - runnerUp) * 100;
-    if (Number.isFinite(gap) && gap >= 20 && entry.loss >= 3) return "!!";
-    if (Number.isFinite(gap) && gap >= 10 && entry.loss >= 1) return "!";
+    if (Number.isFinite(gap) && gap >= 20) return "!!";
+    if (Number.isFinite(gap) && gap >= 10) return "!";
   }
   if (loss <= best) return "★";
   if (loss <= good) return "✓";

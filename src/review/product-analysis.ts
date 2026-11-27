@@ -1,12 +1,12 @@
-import { createGame } from "../engine";
-import { analyzeV6, decomposeStep, type V6Analysis } from "../research-v6/analysis6";
+import { categories, createGame } from "../engine";
+import { analyzeV6, type V6Analysis } from "../research-v6/analysis6";
 import type { V6Config } from "../research-v6/apex6";
-import type { V5Config } from "../research-v5/apex";
-import { assessSituation } from "./solver";
-import type { Assessment, Position, Situation, Value } from "./model";
+import { winDPv5Decision, type V5Config } from "../research-v5/apex";
+import { assessOpening, assessSituation } from "./solver";
+import { firstRollPosition, type Assessment, type OpeningAssessment, type Position, type Situation, type Value } from "./model";
 
 // Research comparison found no reason to use deeper fixed-opponent search as the product default.
-const reviewEngine = { name: "v5-r-review", depth: 1, brWindow: 0, minimaxWindow: 1, budgetMs: 5000 };
+const reviewEngine = { name: "v5-r-review", depth: 1, brWindow: 0, minimaxWindow: 0, budgetMs: 5000 };
 const game = (position: Position) => ({ ...createGame(0), ...position });
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 const keptKey = (position: Position, ids: number[]) =>
@@ -19,10 +19,11 @@ function actionKey(position: Position, action: Value["action"]) {
 export function analyzeProductSituation(situation: Situation, index: number, base: V5Config): Assessment {
   const row = assessSituation(situation, index);
   const { before, action, afterRoll } = situation;
-  // Separate players may be choosing at once. Their snapshots cannot establish an interactive game tree.
-  if (before.simultaneous) return row;
+  const firstRoll = firstRollPosition(situation);
+  if (row.exactness === "exact") return row;
 
-  const config: V6Config = { ...base, banks: [base.bank] };
+  // The approximate branch uses one fixed opponent continuation, including for simultaneous turns.
+  const config: V6Config = { ...base, endgame: "none", banks: [base.bank] };
   const analysis = analyzeV6(game(before), config, reviewEngine);
   const found = new Map(analysis.actions.map((option) => [
     option.kind === "score" ? option.category : keptKey(before, option.ids!),
@@ -45,18 +46,20 @@ export function analyzeProductSituation(situation: Situation, index: number, bas
     return { ...option, winCredit: clamp(match.winCredit), winExpected: match.expectedFinal, winOutcomes: outcomes(match) };
   });
   const actual = options.find((option) => option.action === row.actual.action)!;
-  let winLuck: number | undefined;
-  if (action.type === "reroll" && afterRoll?.player === before.player && actual.winCredit !== undefined) {
-    const canonical = found.get(actionKey(before, action));
-    winLuck = canonical?.ids
-      ? decomposeStep(game(before), { type: "reroll", ids: canonical.ids }, game(afterRoll), config, reviewEngine).luck
-      : clamp(analyzeV6(game(afterRoll), config, reviewEngine).currentValue) - actual.winCredit;
-  }
+  // Freeze the opponent's public card at commitment: intervening scores are not dice luck.
+  const rolled = afterRoll && action.type === "reroll" && afterRoll.player === before.player && actual.winCredit !== undefined
+    ? winDPv5Decision(game({ ...afterRoll, cards: before.cards }), config)
+    : undefined;
+  const opening = firstRoll
+    ? firstRoll.cards.every((card, seat) => categories.every((category) => card[category] === before.cards[seat][category]))
+      ? analysis
+      : analyzeV6(game(firstRoll), config, reviewEngine)
+    : undefined;
+  const winLuck = rolled && actual.winCredit !== undefined ? clamp(rolled.value) - actual.winCredit : undefined;
   const { offset, pmf } = analysis.scoreDiffDPExpert;
   return {
-    ...row, options, actual, winLuck,
-    preRollValue: Number.isFinite(analysis.preRollValue) ? clamp(analysis.preRollValue) : undefined,
-    exactness: analysis.exactness.kind === "exact-interactive" ? "exact" : "estimate",
+    ...row, options, actual, winLuck, ...(opening ? winOpening(opening) : {}),
+    exactness: "estimate",
     distribution: pmf.flatMap((mass, i) => mass > 0 ? [{ difference: offset + i, mass }] : []),
   };
 }
@@ -65,4 +68,17 @@ function outcomes(action: V6Analysis["actions"][number]): Value["winOutcomes"] {
   if (action.pWin === null || action.pTie === null || action.pLoss === null) return undefined;
   const sum = action.pWin + action.pTie + action.pLoss;
   return { win: action.pWin / sum, tie: action.pTie / sum, loss: action.pLoss / sum };
+}
+
+function winOpening(analysis: V6Analysis): OpeningAssessment {
+  if (!Number.isFinite(analysis.preRollValue)) return {};
+  const preRollValue = clamp(analysis.preRollValue);
+  return { preRollValue, firstWinLuck: clamp(analysis.currentValue) - preRollValue, exactness: "estimate" };
+}
+
+export function analyzeProductOpening(position: Position, base: V5Config): OpeningAssessment {
+  const result = assessOpening(position);
+  if (result.exactness === "exact") return result;
+  const analysis = analyzeV6(game(position), { ...base, endgame: "none", banks: [base.bank] }, reviewEngine);
+  return { ...result, ...winOpening(analysis) };
 }

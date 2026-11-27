@@ -37,6 +37,10 @@ async function transaction<T>(
 export const saveReplay = async (r: Replay) => {
   await transaction("readwrite", (s) => s.put(validateReplay(r)));
 };
+export const getReplay = async (id: string) => {
+  const replay: Replay | undefined = await transaction("readonly", (s) => s.get(id));
+  return replay && validateReplay(replay);
+};
 export const listReplays = async () => {
   const rows = await transaction("readonly", (s) => s.getAll());
   return (rows as Replay[])

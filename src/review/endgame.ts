@@ -1,7 +1,7 @@
 import kernel from "../dp-kernel.json";
 import { chanceValues } from "../dp";
 import { categories, score, total, upper } from "../engine";
-import { endgameValue } from "../research-v5/apex";
+import { endgameValue, maskOf } from "../research-v5/apex";
 import type { Position } from "./model";
 
 const fullDice = kernel.states.slice(210);
@@ -37,4 +37,13 @@ export function finalTurnWinCredit(position: Position): number[] | null {
     values[mask] = Math.max(0, Math.min(1, remaining[partialIndex.get(faces)!]));
   }
   return values;
+}
+
+/** Same exact objective as finalTurnWinCredit, before observing any dice. */
+export function finalTurnPreRoll(position: Position) {
+  if (position.simultaneous) return undefined;
+  const own = position.cards[position.player], other = position.cards[1 - position.player];
+  const mask = maskOf(own), opponentMask = maskOf(other);
+  if (!mask || (mask & (mask - 1)) || (opponentMask & (opponentMask - 1))) return undefined;
+  return Math.min(1, Math.max(0, endgameValue(mask, upper(own), opponentMask, upper(other), total(own) - total(other))));
 }

@@ -40,6 +40,11 @@ test("AI 대전 12라운드를 끝내면 기기 전적 요약은 프로필, 상�
   await expect(page.locator(".profile-recent li")).toHaveCount(1);
   await expect(page.locator(".profile-recent")).toContainText("매우 쉬움");
   await expect(page.locator(".profile-recent")).toContainText("기기 기록");
+  const recent = page.locator(".profile-recent li");
+  await recent.getByRole("button", { name: "게임 리뷰" }).click();
+  const review = page.getByRole("dialog", { name: "게임 리뷰" });
+  await expect(review.getByRole("region", { name: "최종 결과" })).toContainText("요트왕");
+  await review.getByRole("button", { name: "돌아가기" }).click();
   await page.getByText("상세 통계").click();
   await expect(page.locator(".profile-details")).toContainText("AI 난이도별");
   await page.getByRole("radio", { name: "온라인" }).check({ force: true });

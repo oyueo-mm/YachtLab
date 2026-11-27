@@ -1,8 +1,8 @@
-import { choiceIndex, dpActionValues, type Choice } from "../dp";
+import { choiceIndex, dpActionValues, dpFutureValue, type Choice } from "../dp";
 import { dpOpponentGains } from "../competitive-v2";
 import { categories, createGame, score, total, upper, type Card } from "../engine";
-import { finalTurnWinCredit } from "./endgame";
-import type { Assessment, Position, Situation, Value } from "./model";
+import { finalTurnPreRoll, finalTurnWinCredit } from "./endgame";
+import { firstRollPosition, type Assessment, type OpeningAssessment, type Position, type Situation, type Value } from "./model";
 
 const legalValues = (position: Position) => dpActionValues({ ...createGame(0), ...position });
 export const valueTolerance = 1e-8;
@@ -37,6 +37,7 @@ function scoreDifference(own: Card, other: Card) {
 
 export function assessSituation(situation: Situation, index: number): Assessment {
   const { before, action, afterRoll } = situation;
+  const firstRoll = firstRollPosition(situation);
   const q = legalValues(before);
   const endgame = finalTurnWinCredit(before);
   const actualIndex = choiceIndex(action);
@@ -53,8 +54,25 @@ export function assessSituation(situation: Situation, index: number): Assessment
   }).sort((a, b) => b.expected - a.expected);
   const actual = options.find((option) => choiceIndex(option.action) === actualIndex)!;
   const delta = options[0].expected - actual.expected;
+  const rolledWin = afterRoll && endgame ? finalTurnWinCredit({ ...afterRoll, cards: before.cards }) : null;
   return {
     index, options, actual, loss: delta > valueTolerance ? delta : 0, distribution,
-    ...(afterRoll && action.type === "reroll" ? { luck: Math.max(...legalValues(afterRoll)) - actual.expected } : {}),
+    ...(firstRoll ? assessOpening(firstRoll) : {}),
+    exactness: endgame ? "exact" : undefined,
+    luck: afterRoll && action.type === "reroll" ? Math.max(...legalValues(afterRoll)) - actual.expected : undefined,
+    winLuck: rolledWin && actual.winCredit !== undefined ? Math.max(...rolledWin) - actual.winCredit : undefined,
+  };
+}
+
+export function assessOpening(position: Position): OpeningAssessment {
+  const card = position.cards[position.player];
+  const preRollScore = total(card) + dpFutureValue(remaining(card), upper(card));
+  const preRollValue = finalTurnPreRoll(position);
+  const firstBest = preRollValue === undefined ? null : finalTurnWinCredit(position);
+  return {
+    firstLuck: Math.max(...legalValues(position)) - preRollScore,
+    preRollScore, preRollValue,
+    exactness: firstBest ? "exact" : undefined,
+    firstWinLuck: firstBest && preRollValue !== undefined ? Math.max(...firstBest) - preRollValue : undefined,
   };
 }
