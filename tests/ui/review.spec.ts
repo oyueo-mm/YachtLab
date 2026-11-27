@@ -64,11 +64,11 @@ test("저장된 1:1 기보의 게임 리뷰에서 그래프와 다시 도전을 
   await review.getByRole("button", { name: "분석 취소" }).click();
   release();
   await page.unroute(workerModule);
+  await expect(review.getByText("분석을 취소했어요.")).toBeVisible();
   await review.getByRole("button", { name: "분석 다시 시도" }).click();
-  await expect(review.getByRole("tabpanel", { name: "기본 리뷰" })).toBeVisible();
-  await review.getByRole("tab", { name: "상세 분석" }).click();
   await expect(review.getByRole("group", { name: "승리점수율 그래프" })).toBeVisible({ timeout: 30_000 });
-  await expect(review.getByText(/첫 굴림 운/)).toBeVisible();
+  await expect(review.getByText("분석 완료")).toBeVisible();
+  await expect(review.getByLabel("주사위 운").getByText(/첫 굴림/)).toBeVisible();
   await expect(review.getByRole("main")).toBeVisible();
   await expect(review.getByRole("table", { name: "당시 점수판" })).toBeVisible();
   expect(await review.evaluate((surface) => surface.scrollWidth)).toBeLessThanOrEqual(await review.evaluate((surface) => surface.clientWidth));
@@ -108,7 +108,8 @@ test("저장된 1:1 기보의 게임 리뷰에서 그래프와 다시 도전을 
   await page.route(workerModule, async (route) => { requestedAgain = true; await route.abort(); });
   await page.reload();
   await page.getByRole("button", { name: "게임 리뷰" }).click();
-  await expect(review.getByText(/판단 정확도 추정/).first()).toBeVisible();
+  await expect(review.getByText("저장된 분석")).toBeVisible();
+  await expect(review.getByRole("region", { name: "최종 결과" }).getByText("추정").first()).toBeVisible();
   expect(requestedAgain).toBe(false);
 });
 
@@ -137,7 +138,6 @@ test("온라인 경기 중 복기는 숨기고 서버가 종료한 본인 경기
     await other.getByRole("button", { name: "기권", exact: true }).click();
     await other.getByRole("dialog").getByRole("button", { name: "기권", exact: true }).click();
     await page.getByRole("button", { name: "게임 리뷰" }).click();
-    await page.getByRole("tab", { name: "상세 분석" }).click();
     await expect(page.getByRole("group", { name: "승리점수율 그래프" })).toBeVisible({ timeout: 55_000 });
   } finally {
     await guest.close();
@@ -150,14 +150,13 @@ test("기본 대전 리뷰는 중반 추정과 정확 종반을 구분하고 값
   await seedReview(page);
   await page.getByRole("button", { name: "게임 리뷰" }).click();
   const review = page.getByRole("dialog", { name: "게임 리뷰" });
-  await review.getByRole("tab", { name: "상세 분석" }).click();
   const win = review.getByRole("group", { name: "승리점수율 그래프" });
   await expect(win).toBeVisible({ timeout: 35_000 });
   await expect(review.getByText("모델 추정", { exact: true })).toBeVisible();
   await review.getByText("분석 정보", { exact: true }).click();
   await expect(review.getByText(/내 선택의 예상 승리 .* 무승부 .* 패배/)).toBeVisible();
-  await review.getByRole("combobox", { name: "그래프" }).selectOption("winLuck");
-  await expect(review.getByRole("group", { name: "승리점수율 기준 주사위 운 그래프" }).locator("output")).toContainText("%p");
+  await review.getByRole("radio", { name: "손실·운" }).click();
+  await expect(review.getByRole("group", { name: /라운드별 판단 손실과 주사위 운 그래프/ }).getByRole("button").first()).toHaveAttribute("aria-label", /%p/);
   await review.getByRole("button", { name: "마지막", exact: true }).click();
   await expect(review.getByText("정확 종반", { exact: true })).toBeVisible();
   await expect(review.getByText(/내 선택의 예상 승리 .* 무승부 .* 패배/)).toHaveCount(0);
