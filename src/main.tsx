@@ -13,6 +13,7 @@ import "./mobile-play-v2.css";
 import "./profile.css";
 import "./items.css";
 import "./items-content.css";
+import "./cosmetics-a2.css";
 import "./onboarding.css";
 import "./table-v4.css";
 import "./mobile-2026-11.css";

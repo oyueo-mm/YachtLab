@@ -1,0 +1,60 @@
+/* Upper-bonus moment (A2.2): popup over the table + progress emphasis on the score sheet. */
+.bonus-moment {
+  position: absolute; inset: 0; z-index: 9; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: 8px; padding-top: 14%; pointer-events: none; /* never blocks the dice, the roll button or the score sheet */
+  border-radius: inherit;
+}
+.bonus-pop {
+  position: relative; display: inline-flex; flex-direction: column; align-items: center; gap: 0; padding: 8px 24px 10px;
+  border-radius: 18px; color: #4a2b00; font-weight: 900; line-height: 1.1;
+  background: linear-gradient(135deg, #ffe066, #ffa94d); box-shadow: 0 8px 26px rgba(255, 146, 43, 0.5), 0 0 0 3px rgba(255, 255, 255, 0.85);
+  animation: bonus-pop 2.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+.bonus-pop:not(.mine) { transform-origin: center; padding: 6px 18px 8px; opacity: 0.96; }
+.bonus-title { display: inline-flex; align-items: center; gap: 6px; font-size: 20px; letter-spacing: 0.08em; }
+.bonus-pop b { font-size: 30px; letter-spacing: 0.02em; }
+.bonus-pop small { margin-top: 2px; max-width: 14em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; opacity: 0.85; }
+.bonus-pop > .fx-burst { inset: -120px -180px; overflow: visible; border-radius: 0; z-index: -1; }
+@keyframes bonus-pop {
+  0% { opacity: 0; transform: scale(0.45) translateY(10px); }
+  14% { opacity: 1; transform: scale(1.14); }
+  24% { transform: scale(1); }
+  86% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: translateY(-12px) scale(0.98); }
+}
+/* "BONUS!" fountain: the burst of the shared effect renderer rises from the label, then falls */
+.fx-burst.fx-kind-bonus i { top: 50%; left: 50% !important; animation-name: a2-fountain; animation-duration: 1.5s !important; animation-timing-function: cubic-bezier(0.15, 0.7, 0.35, 1); }
+.fx-burst.fx-kind-bonus:is(.fx-shape-bubble, .fx-shape-heart, .fx-shape-note) i { bottom: auto; }
+@keyframes a2-fountain {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.3); }
+  12% { opacity: 1; }
+  48% { opacity: 1; transform: translate(calc(var(--cx) * var(--reach) * 0.9), calc(var(--cy) * var(--reach) * -0.7 - 36px)) scale(1) rotate(var(--rot)); }
+  100% { opacity: 0; transform: translate(calc(var(--cx) * var(--reach) * 1.2), calc(var(--cy) * var(--reach) * 0.2 + 80px)) scale(0.6) rotate(calc(var(--rot) * 1.5)); }
+}
+/* reduced effects: the label stays readable, no motion and no particles */
+.bonus-moment.static .bonus-pop { animation: bonus-fade 2.4s linear both; }
+.bonus-moment.static .fx-burst { display: none; }
+@keyframes bonus-fade { 0%, 90% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .bonus-pop { animation: bonus-fade 2.4s linear both; }
+}
+:root[data-fx-reduced] .bonus-pop { animation: bonus-fade 2.4s linear both !important; }
+
+/* Score sheet: the bonus row and its progress bar light up when a player gets the bonus */
+.bonus-progress.just { animation: bonus-cell 2.8s ease-out both; }
+.bonus-progress.just strong { color: #b45309; }
+.bonus-progress.just .bonus-track { height: 5px; background: #ffe8a3; box-shadow: 0 0 0 2px #ffd43b66; }
+.bonus-progress.just .bonus-track i { height: 5px; background: linear-gradient(90deg, #ffa94d, #ffd43b); animation: bonus-bar 1.1s ease-out both; }
+.bonus-row:has(.bonus-progress.just) { background: #fff6d6; transition: background 0.4s; }
+.bonus-progress.achieved strong { color: #b45309; font-weight: 800; }
+@keyframes bonus-cell { 0%, 100% { transform: none; } 12% { transform: scale(1.15); } 26% { transform: scale(1); } }
+@keyframes bonus-bar { from { width: 40%; filter: brightness(1.6); } }
+:root[data-fx-reduced] .bonus-progress.just, :root[data-fx-reduced] .bonus-progress.just .bonus-track i { animation: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .bonus-progress.just, .bonus-progress.just .bonus-track i { animation: none !important; }
+}
+@media (max-width: 760px) {
+  .bonus-title { font-size: 16px; }
+  .bonus-pop b { font-size: 24px; }
+  .bonus-pop > .fx-burst { inset: -90px -120px; }
+}

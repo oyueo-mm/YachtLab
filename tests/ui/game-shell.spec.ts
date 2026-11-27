@@ -96,8 +96,8 @@ test("일반 메뉴와 설정에서 연구실을 숨기고 기존 딥링크와 �
   await page.goto("");
   await page.goto("#lab");
   await expect(page.getByRole("heading", { name: "연구실" })).toBeVisible();
-  await expect(page.locator(".lab-tool")).toHaveCount(5);
-  for (const name of ["AI 대전 관전", "AI 토너먼트", "전략 분석실", "주사위 실험실", "경제 연구실"]) {
+  await expect(page.locator(".lab-tool")).toHaveCount(6);
+  for (const name of ["AI 대전 관전", "AI 토너먼트", "전략 분석실", "주사위 실험실", "꾸미기 미리보기", "경제 연구실"]) {
     await page.getByRole("navigation", { name: "연구실 메뉴" }).getByRole("link", { name, exact: true }).click();
     await expect(page.getByRole("heading", { name })).toBeVisible();
   }

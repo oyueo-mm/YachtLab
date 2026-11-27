@@ -247,9 +247,15 @@
 .table-v4 .anchored-feed .feed-msg {
   position: relative;
   max-width: 100%;
+}
+.table-v4 .anchored-feed .feed-msg:not([class*="bubble-"]) {
   border-radius: 16px;
   background: #fff;
   box-shadow: inset 0 0 0 2px var(--tone, var(--orange)), 0 6px 18px rgb(0 0 0 / 35%);
+}
+/* A2: an equipped bubble keeps its own surface in the game (it used to be flattened to white here). */
+.table-v4 .anchored-feed .feed-msg[class*="bubble-"] {
+  filter: drop-shadow(0 5px 8px rgb(0 0 0 / 35%));
 }
 .table-v4 .seat-chip .anchored-feed .feed-msg::before {
   content: "";

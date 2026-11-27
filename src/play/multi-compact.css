@@ -1,0 +1,34 @@
+/*
+ * Multi-player score sheet (A2.2): 2–4 players fit side by side without any scroll, 12 combinations +
+ * bonus + total in one desktop screen. Same principle as the solo layout (play/solo.css): the width follows
+ * the number of players, rows are one compact line, the sheet starts at the content top, no inner scroll.
+ * Phones keep the existing layout (own scroll area, larger touch targets).
+ */
+.multi-scoreboard.compact th .col-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.multi-scoreboard.compact th .col-meta { display: block; margin-top: 1px; font-size: 10px; font-weight: 600; color: var(--muted); }
+.multi-scoreboard.compact th.current .col-meta { color: var(--red-deep, #b3261e); }
+@media (min-width: 761px) {
+  /* column width = names column + 104px per player (2 → 360px … 4 → 564px; more players scroll as before) */
+  .online-multi.game-grid { grid-template-columns: minmax(0, 1fr) clamp(360px, calc(148px + var(--np, 2) * 104px), 700px); align-items: start; gap: 24px; }
+  .multi-local-game .multi-game-grid.multi-small { grid-template-columns: minmax(0, 1fr) clamp(360px, calc(148px + var(--np, 2) * 104px), 700px); }
+  .multi-scoreboard.compact { align-self: start; }
+  .multi-scoreboard.compact .score-title { display: none; }
+  .multi-scoreboard.compact .multi-score-scroll { overflow: visible; max-height: none; }
+  .multi-scoreboard.compact .multi-score-scroll table { width: 100%; min-width: 0; table-layout: fixed; }
+  .multi-scoreboard.compact .multi-score-scroll th:first-child { position: static; min-width: 0; width: 140px; padding-left: 14px; }
+  .multi-scoreboard.compact .multi-score-scroll td { min-width: 0; max-width: none; width: auto; }
+  .multi-scoreboard.compact :is(th, td) { padding-top: 4px; padding-bottom: 4px; padding-left: 8px; padding-right: 8px; }
+  .multi-scoreboard.compact thead th { padding-top: 6px; padding-bottom: 4px; }
+  .multi-scoreboard.compact thead th:not(:first-child) { max-width: none; white-space: nowrap; text-align: right; }
+  .multi-scoreboard.compact tbody th svg { width: 15px; height: 15px; margin-right: 6px; }
+  .multi-scoreboard.compact .score-option { min-width: 0; min-height: 20px; margin: -3px 0; padding: 2px 0; }
+  .multi-scoreboard.compact .section-row th { padding: 3px 14px !important; }
+  .multi-scoreboard.compact .bonus-row :is(th, td) { padding-top: 4px; padding-bottom: 4px; }
+  .multi-scoreboard.compact .bonus-row .bonus-progress { min-width: 0; }
+  .multi-scoreboard.compact .bonus-row small { white-space: nowrap; font-size: 9.5px; }
+  .multi-scoreboard.compact .total-row :is(th, td) { padding-top: 6px; padding-bottom: 6px; font-size: 15px; }
+  /* the board's top band: tools, profile and emotes share one row instead of stacking */
+  .online-multi .game-tools.online-tools { margin-bottom: 6px; }
+  .online-multi .table-chat.multi-profile-chat { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 6px; }
+  .online-multi .multi-profile-chat .social-dock { flex: 1 1 auto; min-width: 0; }
+}

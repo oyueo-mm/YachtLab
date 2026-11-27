@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { ScoreTotal } from "./ui/GameMoments";
 import { Star, Sigma } from "lucide-react";
 import { categories, names, score, total, type Category } from "./engine";
@@ -6,7 +7,7 @@ import { CategoryHelp } from "./CategoryHelp";
 import { multiStandings, type MultiGame } from "./multi-engine";
 
 export function MultiScoreboard({
-  state, labels, select, selected = null, onConfirm, onClear, focused = false,
+  state, labels, select, selected = null, onConfirm, onClear, focused = false, compact = false,
 }: {
   state: MultiGame;
   labels: string[];
@@ -15,13 +16,16 @@ export function MultiScoreboard({
   onConfirm?: () => void;
   onClear?: () => void;
   focused?: boolean;
+  /** Multi-player desktop layout: width follows the player count, one row per combination, header with rank and turn. */
+  compact?: boolean;
 }) {
   const indices = focused ? [state.player] : state.cards.map((_, i) => i);
   const current = state.player;
   const chosen = (index: number, category: Category) =>
     Boolean(select) && index === current && state.rolls > 0 && !state.done && state.cards[index][category] === undefined;
+  const rankOf = compact ? new Map(multiStandings(state).map((x) => [x.player, x.rank])) : null;
   return (
-    <section className="scoreboard panel multi-scoreboard" aria-label="점수판">
+    <section className={"scoreboard panel multi-scoreboard" + (compact ? " compact" : "")} aria-label="점수판">
       <div className="score-title">
         <h2>{focused ? labels[current] + " 점수판" : "점수판"}</h2>
 
@@ -32,8 +36,9 @@ export function MultiScoreboard({
             <tr>
               <th scope="col">카테고리</th>
               {indices.map((i) => (
-                <th scope="col" className={current === i && !state.done ? "current" : ""} key={i}>
-                  {labels[i]}
+                <th scope="col" className={current === i && !state.done ? "current" : ""} key={i} title={labels[i]}>
+                  <span className="col-name">{labels[i]}</span>
+                  {rankOf && <span className="col-meta">{rankOf.get(i)}위{current === i && !state.done ? " · 차례" : ""}</span>}
                 </th>
               ))}
             </tr>
@@ -41,7 +46,7 @@ export function MultiScoreboard({
           <tbody>
             <tr className="section-row"><th colSpan={indices.length + 1}>상단</th></tr>
             {categories.map((category, ci) => (
-              <FragmentRow key={category} category={category} categoryIndex={ci} />
+              <Fragment key={category}>{FragmentRow({ category, categoryIndex: ci })}</Fragment>
             ))}
             <tr className="total-row">
               <th><Sigma size={17} /> 총점</th>
