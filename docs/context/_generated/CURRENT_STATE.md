@@ -71,6 +71,7 @@
 
 ## 맥락 허브의 보존된 문서
 
+- [A1-DICE-BOARD-2026-11-27.md](../A1-DICE-BOARD-2026-11-27.md)
 - [AI-REVIEW.md](../AI-REVIEW.md)
 - [AUTOMATION.md](../AUTOMATION.md)
 - [COLLECTIONS-2026-11-27.md](../COLLECTIONS-2026-11-27.md)
@@ -118,16 +119,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
-| [9f6a80c](https://github.com/oyueo-mm/YachtLab/commit/9f6a80c) | 2026-11-27 | Merge pull request #111 from oyueo-mm/claude/docs-2026-11 |
-| [509c687](https://github.com/oyueo-mm/YachtLab/commit/509c687) | 2026-11-27 | Merge pull request #110 from oyueo-mm/claude/onboarding-2026-11 |
-| [24cd79f](https://github.com/oyueo-mm/YachtLab/commit/24cd79f) | 2026-11-27 | Merge pull request #109 from oyueo-mm/claude/collections-2026-11 |
-| [2ce7cb3](https://github.com/oyueo-mm/YachtLab/commit/2ce7cb3) | 2026-11-26 | docs: streak review with simulation, long-term roadmap, decisions D-074..D-078, handoff |
-| [5fcb642](https://github.com/oyueo-mm/YachtLab/commit/5fcb642) | 2026-11-27 | Merge pull request #108 from oyueo-mm/claude/profile-2026-11 |
-| [5e504df](https://github.com/oyueo-mm/YachtLab/commit/5e504df) | 2026-11-26 | feat(onboarding,mobile): shop and draw guided tours; mobile spacing, Korean line breaks, touch targets |
-| [dd128b8](https://github.com/oyueo-mm/YachtLab/commit/dd128b8) | 2026-11-27 | Merge pull request #105 from oyueo-mm/claude/solo-play-2026-11 |
-| [3e1b585](https://github.com/oyueo-mm/YachtLab/commit/3e1b585) | 2026-11-26 | feat(collections): theme collections, 11 nature/element items, synergy effects, limited-time UI, 2.5D effects |
-| [6f254dd](https://github.com/oyueo-mm/YachtLab/commit/6f254dd) | 2026-11-26 | Merge branch 'claude/solo-play-2026-11' into claude/profile-2026-11 |
-| [b9b7ab3](https://github.com/oyueo-mm/YachtLab/commit/b9b7ab3) | 2026-11-26 | fix: centre only the modal result dialog; limiter at -3 dBFS; stable audio and reward tests |
+| [ff1cf4b](https://github.com/oyueo-mm/YachtLab/commit/ff1cf4b) | 2026-11-27 | Merge pull request #114 from oyueo-mm/claude/tender-mendel-q0vocx |
+| [4e797e6](https://github.com/oyueo-mm/YachtLab/commit/4e797e6) | 2026-11-27 | A1: post-deploy live verification script (read-only for production data) |
+| [126ce9c](https://github.com/oyueo-mm/YachtLab/commit/126ce9c) | 2026-11-27 | docs: place A1 context entries away from C1 (#113) edit points to avoid merge conflicts (content unchanged) |
+| [e2f4c06](https://github.com/oyueo-mm/YachtLab/commit/e2f4c06) | 2026-11-27 | A1.1: three-version perf comparison (main / A1 08c507b / A1.1) and context docs (D-083) |
+| [466f2e6](https://github.com/oyueo-mm/YachtLab/commit/466f2e6) | 2026-11-27 | A1.1: A1 (08c507b) desktop re-measurement, 3-version table script |
+| [e017a73](https://github.com/oyueo-mm/YachtLab/commit/e017a73) | 2026-11-27 | A1.1: adaptive effect quality from measured throw frames |
+| [a3083fb](https://github.com/oyueo-mm/YachtLab/commit/a3083fb) | 2026-11-27 | A1.1: no layout read in fxBudget, one transform per particle, banded synergy paths |
+| [d80a257](https://github.com/oyueo-mm/YachtLab/commit/d80a257) | 2026-11-27 | A1.1: no forced layouts during throws, cached motion queries, cheaper meadow |
+| [ede35f3](https://github.com/oyueo-mm/YachtLab/commit/ede35f3) | 2026-11-27 | A1.1: prepare throw physics in a Web Worker; dice first frames before decorative layers |
+| [08c507b](https://github.com/oyueo-mm/YachtLab/commit/08c507b) | 2026-11-27 | A1: before/after perf tables and results |
 
 ## 최근 GitHub Actions 상태
 
@@ -135,9 +136,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45961354601) | success | 466f2e6600 |
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45961354599) | success | 466f2e6600 |
-| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45924972701) | skipped | d8a24a8b72 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45997138923) | success | 4e797e6ec2 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45997138823) | success | 4e797e6ec2 |
+| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45979178829) | success | b6ebf72847 |
 
 ## 다음 채팅과 작업의 시작점
 
