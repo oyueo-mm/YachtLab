@@ -72,6 +72,8 @@
 ## 맥락 허브의 보존된 문서
 
 - [A1-DICE-BOARD-2026-11-27.md](../A1-DICE-BOARD-2026-11-27.md)
+- [A2-C5-CATALOG-PROPOSAL-2026-11-27.md](../A2-C5-CATALOG-PROPOSAL-2026-11-27.md)
+- [A2-COSMETICS-CHAT-2026-11-27.md](../A2-COSMETICS-CHAT-2026-11-27.md)
 - [AI-REVIEW.md](../AI-REVIEW.md)
 - [AUTOMATION.md](../AUTOMATION.md)
 - [C2-GAME-REVIEW.md](../C2-GAME-REVIEW.md)
@@ -120,16 +122,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [db2e17a](https://github.com/oyueo-mm/YachtLab/commit/db2e17a) | 2026-11-28 | Merge pull request #117 from oyueo-mm/claude/a2-cosmetics-chat |
+| [c5d4d95](https://github.com/oyueo-mm/YachtLab/commit/c5d4d95) | 2026-11-27 | Merge remote-tracking branch 'origin/main' into claude/a2-cosmetics-chat |
+| [d5791f8](https://github.com/oyueo-mm/YachtLab/commit/d5791f8) | 2026-11-27 | test(a2): fix member spec settings; docs for A2.2 (stage look, compact multi sheet, bonus moment) |
 | [fa22a35](https://github.com/oyueo-mm/YachtLab/commit/fa22a35) | 2026-11-28 | Merge pull request #119 from oyueo-mm/codex/hotfix-item-upgrade |
+| [4ab142e](https://github.com/oyueo-mm/YachtLab/commit/4ab142e) | 2026-11-27 | feat(a2.2): table follows player on turn, compact multi score sheet, upper bonus moment |
+| [d6dcd3a](https://github.com/oyueo-mm/YachtLab/commit/d6dcd3a) | 2026-11-27 | wip: stage look follows player on turn; member e2e harness; CI test fixes |
 | [74bfcd8](https://github.com/oyueo-mm/YachtLab/commit/74bfcd8) | 2026-11-27 | Guard item upgrades against legacy Worker catalog capabilities |
-| [ef725f6](https://github.com/oyueo-mm/YachtLab/commit/ef725f6) | 2026-11-27 | Merge pull request #116 from oyueo-mm/feat/c2-game-review |
-| [9685063](https://github.com/oyueo-mm/YachtLab/commit/9685063) | 2026-11-27 | Improve game review evaluation and replay linkage |
-| [013a0a3](https://github.com/oyueo-mm/YachtLab/commit/013a0a3) | 2026-11-27 | Merge pull request #115 from oyueo-mm/claude/tender-mendel-q0vocx |
-| [ec9c231](https://github.com/oyueo-mm/YachtLab/commit/ec9c231) | 2026-11-27 | docs: A1 merge, Pages deploy and live-site verification record (Worker not deployed) |
-| [ff1cf4b](https://github.com/oyueo-mm/YachtLab/commit/ff1cf4b) | 2026-11-27 | Merge pull request #114 from oyueo-mm/claude/tender-mendel-q0vocx |
-| [4e797e6](https://github.com/oyueo-mm/YachtLab/commit/4e797e6) | 2026-11-27 | A1: post-deploy live verification script (read-only for production data) |
-| [126ce9c](https://github.com/oyueo-mm/YachtLab/commit/126ce9c) | 2026-11-27 | docs: place A1 context entries away from C1 (#113) edit points to avoid merge conflicts (content unchanged) |
-| [e2f4c06](https://github.com/oyueo-mm/YachtLab/commit/e2f4c06) | 2026-11-27 | A1.1: three-version perf comparison (main / A1 08c507b / A1.1) and context docs (D-083) |
+| [a69bd71](https://github.com/oyueo-mm/YachtLab/commit/a69bd71) | 2026-11-27 | feat(a2.1): solo layout compaction, chat sfx, title marks, emote touch-ups, real-game checks |
+| [1408af0](https://github.com/oyueo-mm/YachtLab/commit/1408af0) | 2026-11-27 | docs: place A2 results mid-file to avoid appending conflicts |
+| [22a7806](https://github.com/oyueo-mm/YachtLab/commit/22a7806) | 2026-11-27 | Merge origin/main (C2 review, PR #116) into A2 |
 
 ## 최근 GitHub Actions 상태
 
@@ -137,8 +139,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/46018302968) | success | 74bfcd86d5 |
-| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/46009322210) | success | 0e9a211e27 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/46036871340) | success | c3d6f2b90a |
+| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/46036757691) | success | 0462030dc3 |
+| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/46035939115) | success | c5d4d955e5 |
 
 ## 다음 채팅과 작업의 시작점
 
