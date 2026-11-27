@@ -287,35 +287,46 @@ export function PhysicalDice({
       dice: moving.map((die) => ({ id: die.id, value: die.value, held: false, x: starts[die.id]?.x ?? d.W / 2, z: starts[die.id]?.z ?? d.trayH / 2 })),
     };
   };
-  // While the dice are at rest, run the physics of the next throw in idle time; the roll then only
+  // While the dice are at rest, run the physics of the next throw ahead of time; the roll then only
   // applies the values the engine/server decided (no simulation delay between the tap and the throw).
+  // A1.1: in a Web Worker as soon as the dice stop (fading particles no longer postpone it); the old
+  // idle-time main-thread path remains for browsers without workers.
   const prepared = useRef<PreparedThrow | null>(null);
+  const pendingKey = useRef("");
   const lastHeldKey = useRef("");
   const heldKey = state.dice.map((d) => (d.held ? 1 : 0)).join("");
   useEffect(() => {
     if (!dims || flying.size || state.rolls >= 3 || state.dice.every((d) => d.held)) return;
     const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+    const offThread = mod.offThreadPhysics();
     const run = () => {
-      // Never during an animation (score effect, slides): a long task there would drop frames.
-      if (isDiceBusy() || (table.current?.animating ?? false)) {
+      // Only real dice motion (a slide, a score effect) changes the starting poses; particles do not.
+      if (isDiceBusy() || (table.current?.moving ?? false) || (!offThread && (table.current?.animating ?? false))) {
         idle = 0;
-        timer = window.setTimeout(schedule, 400);
+        timer = window.setTimeout(schedule, offThread ? 120 : 400);
         return;
       }
       const input = throwInput((rollEvent + 1) % 2 ? 1 : -1, crypto.getRandomValues(new Uint32Array(1))[0]);
       if (!input || !input.dice.length) return;
-      if (prepared.current?.key === mod.throwKey(input)) return;
-      prepared.current = mod.prepareThrow(input);
+      const key = mod.throwKey(input);
+      if (prepared.current?.key === key || pendingKey.current === key) return;
+      if (offThread) {
+        pendingKey.current = key;
+        void mod.prepareOffThread(input).then((p) => {
+          if (pendingKey.current === key) pendingKey.current = "";
+          // stored even if this effect has re-run: the throw reuses it only when its key still matches
+          if (p) prepared.current = p;
+        });
+      } else prepared.current = mod.prepareThrow(input);
     };
     let idle = 0;
-    // Idle time (at most ~250 ms later), once hold/release slides have finished (final starting poses).
-    // Right after a throw lands nothing is sliding, so preparation starts almost at once: a quick
-    // re-roll without holding anything no longer has to simulate on the tap.
+    // Off-thread: right away (40 ms, or once hold / release slides have finished). Main thread: idle
+    // time, at most ~250 ms later.
     const schedule = () => {
-      if (w.requestIdleCallback) idle = w.requestIdleCallback(run, { timeout: 250 });
+      if (!offThread && w.requestIdleCallback) idle = w.requestIdleCallback(run, { timeout: 250 });
       else run();
     };
-    const sliding = table.current?.animating ?? false;
+    const sliding = table.current?.moving ?? false;
     let timer = window.setTimeout(schedule, sliding || heldKey !== lastHeldKey.current ? MOVE_MS + 60 : 40);
     lastHeldKey.current = heldKey;
     return () => {
@@ -341,6 +352,9 @@ export function PhysicalDice({
     // Physics prepared while the dice were at rest is reused when nothing relevant changed since.
     const ready = prepared.current;
     prepared.current = null;
+    const inputKey = mod.throwKey(input);
+    // diagnostics: was the prepared physics usable, still being computed, or for other poses?
+    const prep = ready?.key === inputKey ? "hit" : pendingKey.current === inputKey ? "pending" : ready ? "stale" : "none";
     const result = mod.simulateThrow(input, ready);
     for (const d of moving) tray.current.delete(d.id);
     setFlying(new Set(moving.map((d) => d.id)));
@@ -400,7 +414,8 @@ export function PhysicalDice({
           firstFrameAt,
           attempts: result.attempts,
           corrected: result.corrected,
-          prepared: !!ready && ready.key === mod.throwKey(input),
+          prepared: !!ready && ready.key === inputKey,
+          prep,
           pixelRatio: t.pixelRatio,
           ok: result.ok,
           frameMs: times.length ? { avg: times.reduce((a, b) => a + b, 0) / times.length, p95: times[Math.floor(times.length * 0.95)] ?? 0, max: times.at(-1) ?? 0 } : undefined,

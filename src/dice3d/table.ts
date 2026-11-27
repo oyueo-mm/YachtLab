@@ -19,6 +19,7 @@ import { CLASSIC_DICE, blobTexture, faceTexture, glowTexture, type DiceColors, t
  * so DOM hit targets can be placed exactly over each die.
  */
 export { simulateThrow, prepareThrow, throwKey, finalValue, canonicalOrientation, topFace, playRate };
+export { prepareOffThread, offThreadPhysics } from "./physics-client";
 export type { PreparedThrow };
 
 /**
@@ -475,7 +476,15 @@ export class DiceTable {
     const fx = this.fx;
     if (!fx || !fx.busy) return;
     this.stopFx?.();
-    this.stopFx = this.loop((stamp) => fx.frame(stamp));
+    const step = (stamp: number) => fx.frame(stamp);
+    this.drainStep = step;
+    this.stopFx = this.loop(step);
+  }
+  private drainStep: ((now: number) => boolean) | null = null;
+  /** True while dice themselves move (a throw, a slide, a score effect) — not while particles fade. */
+  get moving() {
+    for (const s of this.steps) if (s !== this.drainStep) return true;
+    return false;
   }
   private trailAt(id: number, now: number, scale = 1) {
     const fx = this.fx, profile = this.profile;

@@ -38,6 +38,9 @@ export default function BoardFxLayer({ itemId, level, host, sound = true }: { it
   return null;
 }
 
+/** Two frames: the dice table draws the start of a throw before any decorative layer redraws. */
+export const ROLL_PRIORITY_MS = 40;
+
 /** Diagnostics for tests / the perf probe: frames drawn by board layers. */
 const stats = { frames: 0, layers: 0 };
 if (typeof window !== "undefined") (window as unknown as { __yachtlabBoardFx?: typeof stats }).__yachtlabBoardFx = stats;
@@ -115,7 +118,10 @@ export class BoardLayer {
     if (withSound && reaction.sound && this.soundOn()) playSfx("boardFx", { land: reaction.sound, intensity: 0.6 });
   }
 
+  /** Decorative drawing pauses this long when a throw starts, so the dice's first frames come first. */
+  private holdUntil = 0;
   private react(e: FxEvent) {
+    if (e.type === "roll") this.holdUntil = performance.now() + ROLL_PRIORITY_MS;
     // Lv.2 only listens to nothing but its own clock; trails are for the synergy layer.
     if (this.level < 3 || e.type === "trail" || !this.visible || document.hidden) return;
     const { x, y } = this.local(e);
@@ -175,6 +181,7 @@ export class BoardLayer {
     this.raf = 0;
     if (!this.running()) return; // stays stopped until visible again (no idle rAF)
     this.raf = requestAnimationFrame(this.tick);
+    if (now < this.holdUntil) return;
     const busy = (this.scene?.busy() ?? false) || this.fx.busy;
     const interval = busy ? 15 : this.budget < 0.75 ? 39 : 32;
     if (now - this.last < interval) return;

@@ -15,7 +15,7 @@
  * GPU usage is not measurable here (SwiftShader runs on the CPU, so it shows up in TaskDuration).
  */
 import { chromium, devices } from "playwright";
-import { spawn } from "node:child_process";
+import { startPreview } from "./lib/preview-server.mjs";
 import { writeFileSync } from "node:fs";
 
 const arg = (name, fallback) => {
@@ -46,15 +46,7 @@ export const COMBOS = {
   "sakura-synergy": { dice: "dice.sakura", diceLv: 3, board: "board.sakura", boardLv: 3 },
 };
 
-const server = spawn("npx", ["vite", "preview", "--outDir", DIST, "--host", "127.0.0.1", "--port", String(PORT), "--strictPort"], { stdio: "ignore" });
-const stop = () => server.kill();
-process.on("exit", stop);
-for (let i = 0; i < 80; i++) {
-  try {
-    if ((await fetch(BASE)).ok) break;
-  } catch {}
-  await new Promise((r) => setTimeout(r, 250));
-}
+const preview = await startPreview(DIST, PORT);
 
 const PROBE = () => {
   const w = window;
@@ -194,5 +186,5 @@ for (const key of keys) {
 }
 await browser.close();
 if (OUT) writeFileSync(OUT, JSON.stringify(out, null, 1));
-stop();
+preview.stop();
 process.exit(0);

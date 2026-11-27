@@ -98,6 +98,7 @@ export class SynergyLayer {
     if (!this.visible || document.hidden || this.fx.budget <= 0) return;
     const now = performance.now();
     if (e.type === "roll") {
+      this.holdUntil = now + 40; // the dice's first frames first (see BoardFxLayer ROLL_PRIORITY_MS)
       this.rest = [];
       this.paths.clear();
       if (this.kind === "sakura") this.fx.emit({ shape: "petal", colors: ["#ffc4d6", "#ffe3ea"], n: 6 * this.power, speed: [120, 200], life: [0.8, 1.2], size: [2.5, 4], spin: 6, drag: 0.6 }, -8, this.h * 0.6);
@@ -183,9 +184,14 @@ export class SynergyLayer {
   }
 
   private last = 0;
+  private holdUntil = 0;
   private tick = (now: number) => {
     this.raf = 0;
     if (!this.running()) return;
+    if (now < this.holdUntil) {
+      this.raf = requestAnimationFrame(this.tick);
+      return;
+    }
     const g = this.g;
     if (!g) return;
     g.setTransform(this.ratio, 0, 0, this.ratio, 0, 0);

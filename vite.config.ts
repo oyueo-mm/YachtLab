@@ -42,7 +42,7 @@ const offlineFiles = (): Plugin => ({
         if (chunk?.type === "chunk") for (const dependency of chunk.imports) include(dependency, group);
       };
       for (const file of roots) {
-        if (/^assets\/(?:index|worker|stage|table)-.*\.(?:js|css)$/.test(file)) include(file, assets);
+        if (/^assets\/(?:index|worker|stage|table|physics-worker)-.*\.(?:js|css)$/.test(file)) include(file, assets);
         if (/^assets\/(?:(?:product-worker|review-worker|ReviewPage|EconomyPages)-.*\.(?:js|css)|pmf-.*\.wasm)$/.test(file)) include(file, optional);
       }
       for (const file of [`ai/${dpManifest.asset}`, "icons/online-yacht.svg", "icons/online-yacht-wordmark.svg",

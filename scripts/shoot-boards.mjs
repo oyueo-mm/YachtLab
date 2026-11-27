@@ -7,7 +7,7 @@
  *   npx vite build && node scripts/shoot-boards.mjs [--out docs/ui/a1-2026-11] [--only board.meadow,…] [--video]
  */
 import { chromium } from "playwright";
-import { spawn } from "node:child_process";
+import { startPreview } from "./lib/preview-server.mjs";
 import { mkdirSync } from "node:fs";
 
 const arg = (n, f) => { const i = process.argv.indexOf("--" + n); return i > 0 ? process.argv[i + 1] : f; };
@@ -19,9 +19,7 @@ const LEVELS = (arg("levels", "1,2,3")).split(",").map(Number);
 const BASE = `http://127.0.0.1:${PORT}/YachtLab/`;
 const BOARDS = ["board.charcoal", "board.felt", "board.felt_red", "board.felt_blue", "board.felt_purple", "board.felt_sand", "board.navy", "board.christmas", "board.wood_oak", "board.wood_walnut", "board.leather_brown", "board.leather_black", "board.marble", "board.ocean", "board.desert", "board.ice", "board.space", "board.neon", "board.aurora", "board.gold_table", "board.deep_sea", "board.storm", "board.meadow", "board.flower_field", "board.sakura", "board.forest", "board.volcano"];
 mkdirSync(OUT, { recursive: true });
-const server = spawn("npx", ["vite", "preview", "--host", "127.0.0.1", "--port", String(PORT), "--strictPort"], { stdio: "ignore" });
-process.on("exit", () => server.kill());
-for (let i = 0; i < 80; i++) { try { if ((await fetch(BASE)).ok) break; } catch {} await new Promise((r) => setTimeout(r, 250)); }
+const preview = await startPreview("dist", PORT);
 const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || undefined });
 const look = (extra) => (l) => {
   const u = "u_" + "a".repeat(22);
