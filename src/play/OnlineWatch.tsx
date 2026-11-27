@@ -1,4 +1,5 @@
 import { useSettings } from "../settings";
+import { BonusMoments } from "../bonus-moment";
 import { BrandMark } from "../ui/BrandLoading";
 import { useEffect, useRef, useState } from "react";
 import { Eye, Home, Trophy, WifiOff } from "lucide-react";
@@ -10,7 +11,8 @@ import type { PlayerView } from "../online/server-engine";
 import type { SeriesSummary } from "../online/wire";
 import { announceScore, clearScoreFx } from "../score-fx";
 import { TableFeed, useTableChat } from "./SocialDock";
-import { PlayerTag, diceLookOf, diceMaterialOf } from "./Looks";
+import { PlayerTag, useStageLook, diceLookOf, diceMaterialOf } from "./Looks";
+import { BoardFx } from "./BoardFx";
 import { OnlineStandings } from "./OnlineMulti";
 import { MultiScoreboard } from "../MultiScoreboard";
 import type { MultiGame } from "../multi-engine";
@@ -47,6 +49,10 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
   const chat = useTableChat(null);
   chat.levelRef.current = (from, id) => looks[from]?.emotes.find((x) => x.id === id)?.lv ?? 1;
   const { opponentFx } = useSettings();
+  // Spectators see the table of the player on turn (board surface, fx and dice skin), like the players do.
+  const stageTurn = view?.turn?.playerId ?? "";
+  const stage = useStageLook(view?.mode === "simultaneous" ? undefined : looks[stageTurn], false);
+  const boardRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     clearScoreFx();
@@ -179,7 +185,10 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
               <WifiOff size={15} /> 연결이 끊어졌어요. 다시 연결하는 중이에요…
             </p>
           )}
-          <section className="game-board throw-tray watch-board" aria-label="게임 보드">
+          <section className={"game-board throw-tray watch-board" + stage.theme.className} style={stage.theme.style} ref={boardRef} aria-label="게임 보드">
+            {stage.look && <BoardFx itemId={stage.look.board} level={stage.look.boardLv ?? 1} host={boardRef} />}
+          <BonusMoments scope={view.matchId} players={players.map((x) => ({ id: x.playerId, name: x.name, card: x.card, mine: false, look: looks[x.playerId] }))} />
+            <BonusMoments scope={view.matchId} players={players.map((x) => ({ id: x.playerId, name: x.name, card: x.card, mine: false, look: looks[x.playerId] }))} />
             <div className="board-top">
               <span className="turn-indicator">
                 <i />
@@ -200,7 +209,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
                 </p>
               </div>
             ) : (
-              <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""], opponentFx)} material={diceMaterialOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
+              <DiceArea state={game} colors={diceLookOf(stage.look, stage.showFx)} material={diceMaterialOf(stage.look)} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
             )}
             {finished && (
               <div className="game-result" role="status">
@@ -267,7 +276,8 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
             <WifiOff size={15} /> 연결이 끊어졌어요. 다시 연결하는 중이에요…
           </p>
         )}
-        <section className="game-board throw-tray" aria-label="게임 보드">
+        <section className={"game-board throw-tray" + stage.theme.className} style={stage.theme.style} ref={boardRef} aria-label="게임 보드">
+          {stage.look && <BoardFx itemId={stage.look.board} level={stage.look.boardLv ?? 1} host={boardRef} />}
           <div className="board-top">
             <span className="turn-indicator">
               <i />
@@ -277,7 +287,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
               굴림 <b>{rolls}</b> / 3
             </span>
           </div>
-          <DiceArea state={game} colors={diceLookOf(looks[players[turnIndex]?.playerId ?? ""], opponentFx)} material={diceMaterialOf(looks[players[turnIndex]?.playerId ?? ""])} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
+          <DiceArea state={game} colors={diceLookOf(stage.look, stage.showFx)} material={diceMaterialOf(stage.look)} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
           <div className="roll-area">
             <p className="watch-turn" role="status">
               {finished ? "경기가 끝났어요" : view.status === "lobby" ? "경기가 곧 시작돼요" : `${players[turnIndex]?.name ?? ""} 님의 차례 · 굴림 ${rolls}/3`}

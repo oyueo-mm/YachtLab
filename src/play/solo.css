@@ -34,3 +34,45 @@
 @media (max-width: 760px) {
   .solo-grid .solo-scores .solo-stats.compact { display: none; }
 }
+
+/* ---- 1인 플레이 레이아웃 압축 (A2.1): 점수판이 스크롤 없이 12개 족보 + 상단 보너스를 보여 준다 ---- */
+/* Phones keep the existing 4-up summary; the tools become a full-width row above it. */
+.solo-summary > .solo-tools { grid-column: 1 / -1; order: -1; margin: 0 0 6px; }
+@media (min-width: 761px) {
+  /* one line: score · personal best · round · bonus ........ tools */
+  .app-shell .solo-game .solo-summary {
+    display: flex; align-items: center; gap: 0; margin: 0 0 8px; padding: 0 0 8px; min-height: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .app-shell .solo-game .solo-summary > div:not(.solo-tools) {
+    display: flex; align-items: baseline; gap: 8px; flex: none; padding: 0 18px; border: 0;
+  }
+  .app-shell .solo-game .solo-summary > div:first-child { padding-left: 2px; }
+  .app-shell .solo-game .solo-summary > div:not(.solo-tools) + div:not(.solo-tools) { border-left: 1px solid var(--line); }
+  .app-shell .solo-game .solo-summary span { font-size: 12px; margin: 0; }
+  .app-shell .solo-game .solo-summary strong { font-size: 22px; line-height: 1.1; }
+  .app-shell .solo-game .solo-summary .round strong { font-size: 18px; }
+  .app-shell .solo-game .solo-summary > div:not(.tone-me, .solo-best, .round, .solo-tools) strong { font-size: 15px; }
+  .app-shell .solo-game .solo-summary small { font-size: 12px; margin-left: 3px; }
+  .app-shell .solo-game .solo-summary > .solo-tools { margin: 0 0 0 auto; padding: 0; grid-column: auto; order: 0; display: flex; gap: 6px; border: 0; }
+  .app-shell .solo-game .solo-summary > .solo-tools .text-button { min-height: 32px; padding: 0 10px; font-size: 12.5px; }
+  /* the grid starts at the content top; the scoreboard sits beside the summary line */
+  .solo-game { padding-top: 0; }
+  .solo-grid { align-items: start; }
+  .solo-grid > .solo-scores { align-self: start; margin-top: 0; }
+  /* scoreboard: compact rows, no heading, no inner scroll */
+  .solo-scores .multi-scoreboard .score-title { display: none; }
+  .solo-scores .multi-scoreboard .multi-score-scroll { overflow: visible; max-height: none; }
+  .solo-scores .multi-scoreboard :is(th, td) { padding-top: 4px; padding-bottom: 4px; }
+  .solo-scores .multi-scoreboard thead th { padding-top: 6px; padding-bottom: 4px; }
+  .solo-scores .multi-scoreboard tbody th svg { width: 15px; height: 15px; margin-right: 7px; }
+  .solo-scores .multi-scoreboard .score-option { min-height: 20px; margin: -3px 0; padding: 2px 0; }
+  .solo-scores .multi-scoreboard .section-row th { padding: 3px 24px !important; }
+  .solo-scores .multi-scoreboard .bonus-row :is(th, td) { padding-top: 4px; padding-bottom: 4px; }
+  .solo-scores .multi-scoreboard .bonus-track { margin-top: 3px; }
+  .solo-scores .multi-scoreboard .total-row :is(th, td) { padding-top: 6px; padding-bottom: 6px; font-size: 15px; }
+  /* the personal stats card is below the fold on short screens; the profile page has it in full */
+}
+@media (min-width: 761px) and (max-height: 860px) {
+  .solo-grid .solo-scores .solo-stats.compact { display: none; }
+}

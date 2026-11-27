@@ -12,7 +12,10 @@ import { TIERS } from "../economy/live/config";
 import { paintFace } from "../dice3d/face-paint";
 import { DiceArea } from "../DiceArea";
 import { boardTheme, DefaultAvatar, PlayerTag } from "../play/Looks";
-import { FxBurst, GLYPH } from "../play/FxBurst";
+import { FxBurst, GLYPH, type FxKind } from "../play/FxBurst";
+import { ChatMessage } from "../play/ChatMessage";
+import { useOwnLook } from "../play/own-look";
+import { GUEST_LOOK } from "../economy/live/catalog";
 import { socialItem } from "../social/catalog";
 import { playEmoteSfx, playSfx, unlockAudio } from "../sound";
 import { DieIcon } from "../Dice";
@@ -101,14 +104,18 @@ export function ItemThumb({ item, level = 1 }: { item: ItemDef; level?: number }
 }
 
 /** A look that shows exactly this item (everything else default) — for previews. */
-function lookWith(item: ItemDef, level: number): PublicLook {
-  const base = publicLook(DEFAULT_LOADOUT, new Map());
+function lookWith(item: ItemDef, level: number, equipped?: PublicLook | null): PublicLook {
+  // Cosmetic slots that are shown together (nickname + title + frame) start from what the player wears.
+  const base = equipped ?? publicLook(DEFAULT_LOADOUT, new Map());
   const slot = item.category;
   const lv = Math.max(1, Math.min(level, item.maxLevel));
   if (slot === "emote") return { ...base, emotes: [{ id: item.id, lv }] };
   if (slot === "chat") return { ...base, chats: [item.id] };
   return { ...base, [slot]: item.id, [slot + "Lv"]: lv } as PublicLook;
 }
+
+/** Sample lines for the bubble preview: one calm, one cheering, one questioning (never the live catalog). */
+const BUBBLE_LINES = ["안녕하세요!", "대단해요!", "정말요?"].map((text, i) => ({ id: "chat.hello", item: { id: "preview.line." + i, kind: "chat" as const, text, label: text, tier: "basic" as const, style: "default" as const } }));
 
 const randomDice = () => Array.from({ length: 5 }, (_, id) => ({ id, value: 1 + Math.floor(Math.random() * 6), held: false }));
 
@@ -122,6 +129,10 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
   const [rollEvent, setRollEvent] = useState(0);
   const [replay, setReplay] = useState(0);
   const [pair, setPair] = useState(false);
+  const [bubbleLine, setBubbleLine] = useState(0);
+  const [fxKind, setFxKind] = useState<FxKind>("win");
+  const own = useOwnLook();
+  const reduced = useSettings().reducedEffects;
   const boardRef = useRef<HTMLElement | null>(null);
   // Preview sounds follow the global settings (mute / effects switch / volume); no extra switch.
   const previewGrand = () => {
@@ -203,19 +214,21 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
     );
   }
   if (item.category === "emote" || item.category === "chat" || item.category === "bubble") {
-    const s = item.category === "bubble" ? socialItem("chat.hello") : socialItem(item.id);
+    const sample = BUBBLE_LINES[bubbleLine];
+    const s = item.category === "bubble" ? socialItem(sample.id) : socialItem(item.id);
     const css = item.category === "bubble" ? (look.css ?? "") : "";
     const lv = item.category === "emote" ? level : 1;
     return (
       <div className="item-stage">
         <div className="stage-feed">
           <div className="table-feed">
-            <span key={replay} className={"feed-msg " + (s?.kind ?? "chat") + (css ? " " + css : "") + (s?.kind === "emote" ? ` emote-lv${lv}` : "") + (s && s.style !== "default" ? ` social-${s.style}` : "")}>
-              <b className="feed-from">친구</b>
-              <span className="feed-text">{s?.kind === "emote" ? <EmoteGlyph id={s.id} text={s.text} level={lv} /> : s?.text}</span>
-            </span>
+            {s && <ChatMessage key={replay} item={item.category === "bubble" ? sample.item : s} from="친구" bubbleCss={css} level={lv} effects={!reduced} staticMode={reduced} />}
           </div>
-          <p className="stage-note">경기 중 메시지가 이렇게 보여요{item.category === "bubble" ? " (말풍선은 내가 보내는 모든 메시지에 적용)" : ""}.</p>
+          {item.category === "bubble" && (
+            <div className="stage-chips" role="group" aria-label="미리볼 문구">
+              {BUBBLE_LINES.map((l, i) => <button key={l.id} type="button" aria-pressed={i === bubbleLine} onClick={() => { setBubbleLine(i); setReplay((n) => n + 1); }}>{l.item.text}</button>)}
+            </div>
+          )}
         </div>
         <div className="stage-actions">
           <button type="button" className="primary stage-action" onClick={() => {
@@ -230,13 +243,25 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
     );
   }
   if (item.category === "fx" && look.fx) {
+    const kinds: { id: FxKind; label: string; min: number }[] = [
+      { id: "win", label: "승리", min: 1 },
+      { id: "yacht", label: "요트", min: 2 },
+      { id: "large", label: "라지 스트레이트", min: 2 },
+    ];
+    const shown = kinds.filter((k) => item.maxLevel === 1 ? k.id === "win" : true);
+    const active = fxKind === "win" || level >= 2 ? fxKind : "win";
     return (
       <div className="item-stage">
-        <div className="stage-result" role="img" aria-label="승리 연출 미리보기">
-          <FxBurst key={replay} fx={look.fx} level={level} seed={`preview-${item.id}-${replay}`} sound={replay > 0} />
-          <strong>승리했습니다!</strong>
-          <small>{level >= 2 ? "요트를 기록할 때도 나와요" : "승리하면 나와요"}{level >= 3 ? " · 전용 효과음" : ""}</small>
+        <div className={"stage-result stage-fx-" + active} role="img" aria-label={`${kinds.find((k) => k.id === active)?.label} 연출 미리보기`}>
+          <FxBurst key={replay} fx={look.fx} level={level} seed={`preview-${item.id}-${replay}`} sound={replay > 0} kind={active} />
+          {active === "win" ? <strong>승리했습니다!</strong> : active === "yacht" ? <strong>요트!</strong> : <strong className="stage-large"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></strong>}
+          <small>{level >= 3 ? "전용 효과음 포함" : ""}</small>
         </div>
+        {shown.length > 1 && (
+          <div className="stage-chips" role="group" aria-label="연출 종류">
+            {shown.map((k) => <button key={k.id} type="button" aria-pressed={k.id === active} disabled={level < k.min} onClick={() => { setFxKind(k.id); setReplay((n) => n + 1); }}>{k.label}{level < k.min ? " (Lv.2~)" : ""}</button>)}
+          </div>
+        )}
         <div className="stage-actions">
           <button type="button" className="primary stage-action" onClick={() => {
             unlockAudio();
@@ -246,13 +271,16 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
       </div>
     );
   }
-  // profile, nickname effect, title: the player card exactly as others see it
+  // profile, nickname effect, title: the player card exactly as others see it, worn with the rest of
+  // what the player has equipped (frame + nickname effect + title read together).
+  const worn = lookWith(item, level, own);
   return (
     <div className="item-stage">
       <div className="profile-card-sample">
-        <PlayerTag name={name} look={lookWith(item, level)} me />
-        <small>상대 화면과 관전 화면에 이렇게 보여요.</small>
+        <PlayerTag name={name} look={worn} me />
+        <small>{own && own !== GUEST_LOOK ? "지금 장착한 다른 꾸미기와 함께 보여요." : "상대 화면과 관전 화면에 이렇게 보여요."}</small>
       </div>
+      <div className="profile-card-seat" aria-hidden="true"><PlayerTag name={name} look={worn} me tone="me" compact /></div>
     </div>
   );
 }

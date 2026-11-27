@@ -68,10 +68,16 @@ export function applyPendingFxTier() {
   const next = wanted();
   if (next === active) return;
   active = next;
+  mirrorTier();
   listeners.forEach((fn) => fn());
+}
+/** The tier on <html> lets pure-CSS cosmetics (frames, bubbles, names) stop their loops at the lowest tier. */
+function mirrorTier() {
+  if (typeof document !== "undefined") document.documentElement.dataset.fxTier = String(active);
 }
 if (typeof window !== "undefined") {
   active = wanted();
+  mirrorTier();
   subscribeSettings(() => applyPendingFxTier()); // a settings change is the user's choice: apply at once
 }
 
