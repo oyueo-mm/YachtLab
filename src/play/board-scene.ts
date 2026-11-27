@@ -15,7 +15,10 @@
  * reaction runs, paused off screen / hidden tab, scaled by the effect budget (0 = not mounted).
  */
 export type HitKind = "impact" | "land";
+import { FX_TIERS, type FxTierParams } from "../fx-quality";
 export type Scene = {
+  /** Adaptive quality in force (set by the layer). Scenes drop only decorative halos with it. */
+  quality: FxTierParams;
   /** Frame time (performance.now ms) set by the layer before `ambient` — read once, not per blade. */
   clock: number;
   /** Reactions that move slowly (springs, ripples of light) do not need 60 fps redraws. */
@@ -52,6 +55,7 @@ const now = () => performance.now();
 
 /** Base with a list of timed things (reactions) and the board size. */
 abstract class Base implements Scene {
+  quality: FxTierParams = FX_TIERS[0];
   clock = 0;
   calmReactions = false;
   w = 1;
@@ -1000,6 +1004,7 @@ class Storm extends Base {
       g.save();
       g.globalCompositeOperation = "lighter";
       for (const [lw, color, a] of [[5, "#6f8fff", 0.25], [1.5, "#e6eeff", 0.95]] as const) {
+        if (lw > 2 && !this.quality.glow) continue; // halo only
         g.strokeStyle = color;
         g.lineWidth = lw;
         g.globalAlpha = a * (1 - k) * (0.7 + 0.3 * Math.sin(age * 120));
@@ -1310,7 +1315,7 @@ class Volcano extends Base {
       const heat = Math.max(0, 1 - k * 1.25);
       const color = heat > 0.75 ? "#ffe2a8" : heat > 0.4 ? "#ffb067" : heat > 0 ? "#ff6a1a" : "#3a1d14";
       const reveal = Math.min(1, age / 0.3);
-      if (heat > 0) {
+      if (heat > 0 && this.quality.glow) {
         g.strokeStyle = "#ff6a1a";
         g.lineWidth = 5 * heat + 1;
         g.globalAlpha = 0.25 * heat;

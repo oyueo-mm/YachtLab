@@ -9,7 +9,9 @@ import { fileURLToPath } from "node:url";
  */
 export async function startPreview(dist, port) {
   const base = `http://127.0.0.1:${port}/YachtLab/`;
-  const busy = await fetch(base).then(() => true, () => false);
+  const probe = await fetch(base).then(() => "busy", (e) => String(e?.cause?.message ?? e));
+  if (/bad port/i.test(probe)) throw new Error(`port ${port} is a blocked ("bad") port for fetch — choose another`);
+  const busy = probe === "busy";
   if (busy) throw new Error(`port ${port} is already serving something — stop it first (it may be an older build)`);
   const vite = fileURLToPath(new URL("../../node_modules/vite/bin/vite.js", import.meta.url));
   const child = spawn(process.execPath, [vite, "preview", "--outDir", dist, "--host", "127.0.0.1", "--port", String(port), "--strictPort"], { stdio: "ignore" });

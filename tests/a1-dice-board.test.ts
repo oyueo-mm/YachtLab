@@ -136,3 +136,41 @@ describe("board scenes (Lv.2 environment / Lv.3 reactions)", () => {
     expect(b.things.length).toBeGreaterThan(a.things.length);
   });
 });
+
+describe("A1.1 adaptive effect quality (decideTier)", () => {
+  const frames = (ms: number, jitter = 0) => Array.from({ length: 60 }, (_, i) => ms + (i % 7 === 0 ? jitter : 0));
+  it("steps down only after two slow throws in a row, one tier at a time, at most to tier 2", async () => {
+    const { decideTier } = await import("../src/fx-quality");
+    let s = { tier: 0 as 0 | 1 | 2, bad: 0, good: 0 };
+    s = decideTier(s.tier, s, frames(40));
+    expect(s.tier).toBe(0); // one slow throw is not enough
+    s = decideTier(s.tier, s, frames(40));
+    expect(s.tier).toBe(1);
+    s = decideTier(s.tier, s, frames(40));
+    s = decideTier(s.tier, s, frames(40));
+    expect(s.tier).toBe(2);
+    for (let i = 0; i < 4; i++) s = decideTier(s.tier, s, frames(40));
+    expect(s.tier).toBe(2);
+  });
+  it("steps back up only after five smooth throws; mixed results never flip the tier", async () => {
+    const { decideTier } = await import("../src/fx-quality");
+    let s = { tier: 2 as 0 | 1 | 2, bad: 0, good: 0 };
+    for (let i = 0; i < 4; i++) s = decideTier(s.tier, s, frames(16.7));
+    expect(s.tier).toBe(2);
+    s = decideTier(s.tier, s, frames(16.7));
+    expect(s.tier).toBe(1);
+    // alternating slow / smooth throws: no oscillation
+    let flips = 0;
+    for (let i = 0; i < 20; i++) {
+      const before = s.tier;
+      s = decideTier(s.tier, s, frames(i % 2 ? 40 : 16.7));
+      if (s.tier !== before) flips++;
+    }
+    expect(flips).toBe(0);
+    // a smooth throw with a few warm-up spikes (p95 over 30 ms, average ~18 ms) is not "slow"
+    const spiky = Array.from({ length: 60 }, (_, i) => (i % 15 === 0 ? 50 : 16.7));
+    expect(decideTier(0, { bad: 1, good: 0 }, spiky).tier).toBe(0);
+    // too few samples (e.g. a 2.5D or aborted throw) never decide anything
+    expect(decideTier(1, { bad: 1, good: 0 }, frames(40).slice(0, 10))).toEqual({ tier: 1, bad: 1, good: 0 });
+  });
+});

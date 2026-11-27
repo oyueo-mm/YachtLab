@@ -5,6 +5,7 @@ import { playSfx } from "../sound";
 import { rectCache } from "./rect-cache";
 import type { LandSound } from "../dice3d/dice-fx";
 import { glowSprite, rng } from "./board-scene";
+import { fxTierParams, onFxTier } from "../fx-quality";
 
 /**
  * Theme synergy (A1 rework, 2026-11-27): a die and a board of the same collection equipped together.
@@ -71,7 +72,19 @@ export class SynergyLayer {
       this.io.observe(tray);
     }
     document.addEventListener("visibilitychange", this.onVis);
-    this.off = onFx((e) => this.on(e));
+    const offFx = onFx((e) => this.on(e));
+    const offTier = onFxTier(() => this.applyTier(true));
+    this.off = () => (offFx(), offTier());
+    this.baseBudget = budget;
+    this.applyTier(false);
+  }
+
+  private baseBudget = 1;
+  private applyTier(relayout: boolean) {
+    const q = fxTierParams();
+    this.fx.budget = this.baseBudget * q.particles;
+    this.fx.glow = q.glow;
+    if (relayout) this.layout();
   }
 
   private layout() {
@@ -79,7 +92,7 @@ export class SynergyLayer {
     const r = this.tray.getBoundingClientRect();
     this.w = Math.max(1, r.width);
     this.h = Math.max(1, r.height);
-    this.ratio = Math.min(1.25, window.devicePixelRatio || 1);
+    this.ratio = Math.min(fxTierParams().canvas, window.devicePixelRatio || 1);
     this.canvas.width = Math.round(this.w * this.ratio);
     this.canvas.height = Math.round(this.h * this.ratio);
     this.canvas.style.width = this.w + "px";
@@ -138,7 +151,8 @@ export class SynergyLayer {
     if (last && Math.hypot(x - last.x, y - last.y) < 2) return;
     path.push({ x, y, t });
     if (path.length > 90) path.shift();
-    const step = MARK_STEP[this.kind];
+    // fewer marks at lower detail (the path itself stays continuous)
+    const step = MARK_STEP[this.kind] / Math.sqrt(fxTierParams().linkDetail);
     if (!step || !last) return;
     const d = Math.hypot(x - last.x, y - last.y);
     const n = Math.floor((d + (this.carry.get(id) ?? 0)) / step);
@@ -236,6 +250,7 @@ export class SynergyLayer {
       // a live wire: the path jitters every frame and flickers
       g.globalCompositeOperation = "lighter";
       for (const [lw, color, alpha] of [[4, "#6f8fff", 0.25], [1.4, "#e6eeff", 0.9]] as const) {
+        if (lw > 2 && !fxTierParams().glow) continue; // halo only
         g.strokeStyle = color;
         g.lineWidth = lw;
         g.beginPath();
@@ -419,6 +434,7 @@ export class SynergyLayer {
         case "lightning": {
           // chain lightning hopping from die to die
           for (const [lw, color, al] of [[4, "#6f8fff", 0.3], [1.3, "#ffffff", 0.95]] as const) {
+            if (lw > 2 && !fxTierParams().glow) continue; // halo only
             g.strokeStyle = color;
             g.lineWidth = lw;
             g.globalAlpha = al * Math.min(1, fade) * (0.5 + 0.5 * Math.random());
@@ -477,8 +493,9 @@ export class SynergyLayer {
           g.moveTo(a.x, a.y);
           g.lineTo(bx, by);
           g.stroke();
-          for (let s = 1; s < 6; s++) {
-            const t = s / 6, x = a.x + (bx - a.x) * t, y = a.y + (by - a.y) * t, n = Math.atan2(by - a.y, bx - a.x) + Math.PI / 2;
+          const ticks = Math.max(2, Math.round(6 * fxTierParams().linkDetail));
+          for (let s = 1; s < ticks; s++) {
+            const t = s / ticks, x = a.x + (bx - a.x) * t, y = a.y + (by - a.y) * t, n = Math.atan2(by - a.y, bx - a.x) + Math.PI / 2;
             g.beginPath();
             g.moveTo(x - Math.cos(n) * 4, y - Math.sin(n) * 4);
             g.lineTo(x + Math.cos(n) * 4, y + Math.sin(n) * 4);
@@ -496,8 +513,9 @@ export class SynergyLayer {
           g.quadraticCurveTo(mx, my + 10, bx, by);
           g.stroke();
           g.fillStyle = k === "forest" ? "#a9dd67" : k === "meadow" ? "#ffffff" : COLOR[k];
-          for (let s = 1; s < 5; s++) {
-            const t = s / 5, x = (1 - t) * (1 - t) * a.x + 2 * (1 - t) * t * mx + t * t * bx, y = (1 - t) * (1 - t) * a.y + 2 * (1 - t) * t * (my + 10) + t * t * by;
+          const dots = Math.max(2, Math.round(5 * fxTierParams().linkDetail));
+          for (let s = 1; s < dots; s++) {
+            const t = s / dots, x = (1 - t) * (1 - t) * a.x + 2 * (1 - t) * t * mx + t * t * bx, y = (1 - t) * (1 - t) * a.y + 2 * (1 - t) * t * (my + 10) + t * t * by;
             g.beginPath();
             g.arc(x, y, 2.2, 0, Math.PI * 2);
             g.fill();

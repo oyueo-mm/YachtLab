@@ -160,6 +160,8 @@ for (const key of keys) {
     agg.heapGrowth.push((m2.JSHeapUsedSize - heap0) / 1048576);
     agg.nodes.push(m2.Nodes);
     agg.canvases.push(await page.evaluate(() => document.querySelectorAll("canvas").length));
+    // A1.1 adaptive effect quality: the tier the governor reached (absent before A1.1 = 0)
+    (agg.tier ??= []).push(await page.evaluate(() => window.__yachtlabFxTier?.measured ?? 0));
     await ctx.close();
   }
   const mean = (xs) => r1(xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length));
@@ -180,9 +182,10 @@ for (const key of keys) {
     heapGrowthMB: mean(agg.heapGrowth),
     domNodes: mean(agg.nodes),
     canvases: mean(agg.canvases),
+    fxTier: agg.tier ?? [],
   };
   out.combos[key] = res;
-  console.log(`${key.padEnd(20)} init ${res.initMs}ms first ${res.tapToFirstFrameMs.p50}ms | roll avg ${res.rollFrames.avg} p95 ${res.rollFrames.p95} p99 ${res.rollFrames.p99} >33 ${res.rollFrames.over33}/${res.rollFrames.n} | idle avg ${res.idleFrames.avg} p95 ${res.idleFrames.p95} | cpu idle ${res.cpuIdlePct}% roll ${res.cpuRollPct}% | heap ${res.heapMB}MB (+${res.heapGrowthMB}) canvases ${res.canvases}`);
+  console.log(`${key.padEnd(20)} init ${res.initMs}ms first ${res.tapToFirstFrameMs.p50}ms | roll avg ${res.rollFrames.avg} p95 ${res.rollFrames.p95} p99 ${res.rollFrames.p99} >33 ${res.rollFrames.over33}/${res.rollFrames.n} | idle avg ${res.idleFrames.avg} p95 ${res.idleFrames.p95} | cpu idle ${res.cpuIdlePct}% roll ${res.cpuRollPct}% | heap ${res.heapMB}MB (+${res.heapGrowthMB}) canvases ${res.canvases} tier ${res.fxTier.join("/")}`);
 }
 await browser.close();
 if (OUT) writeFileSync(OUT, JSON.stringify(out, null, 1));

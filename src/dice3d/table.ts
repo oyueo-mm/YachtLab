@@ -2,6 +2,7 @@ import { FxCanvas } from "./fx-canvas";
 import { diceFx, type DiceFxProfile } from "./dice-fx";
 import { emitFx } from "../fx-bus";
 import { fxBudget } from "../settings";
+import { applyPendingFxTier, fxTierParams, reportThrowFrames } from "../fx-quality";
 import * as THREE from "three";
 import { MATERIAL_ORDER, canonicalOrientation, finalValue, playRate, prepareThrow, throwKey, qAxisAngle, qDot, qMul, qSlerp, simulateThrow, topFace, type PreparedThrow, type Quat, type SimResult } from "./physics";
 import { CLASSIC_DICE, blobTexture, faceTexture, glowTexture, type DiceColors, type Quality } from "./stage";
@@ -475,7 +476,9 @@ export class DiceTable {
       this.fx = new FxCanvas(this.host);
       this.fx.layout(this.cssSize.w, this.cssSize.h);
     }
-    this.fx.budget = fxBudget();
+    const q = fxTierParams();
+    this.fx.budget = fxBudget() * q.particles;
+    this.fx.glow = q.glow;
     return this.fx.budget > 0 ? this.fx : null;
   }
   /** Keep drawing the overlay until its particles have faded. */
@@ -515,6 +518,8 @@ export class DiceTable {
   /** Play a pre-simulated throw for the dice in `result.tracks`; they stay at their final pose. */
   play(result: SimResult, opts: { rate?: number; onFrame?: () => void; onRoll?: (level: number) => void; onImpact?: (i: { strength: number; kind: "floor" | "wall" | "die"; x: number }) => void; onDone: () => void }): () => void {
     this.warmUp();
+    applyPendingFxTier(); // a quality change measured on earlier throws takes effect between animations
+    const trailMs = fxTierParams().trailMs;
     for (const t of result.tracks) this.cancelMove(t.id);
     const rate = opts.rate ?? 1.2;
     const impacts = [...result.impacts].sort((a, b) => a.frame - b.frame);
@@ -587,7 +592,7 @@ export class DiceTable {
         }
       }
       // Synergy layers follow the dice paths across the board (~30 Hz, only dice near the floor).
-      if (now - lastTrailBus > 32) {
+      if (now - lastTrailBus > trailMs) {
         lastTrailBus = now;
         for (const t of result.tracks) {
           if (t.frames[i * 7 + 1] > 1.4) continue;
@@ -605,6 +610,7 @@ export class DiceTable {
         }
         this.drainFx();
         this.adapt(this.frameTimes);
+        reportThrowFrames(this.frameTimes);
         opts.onDone();
         return false;
       }

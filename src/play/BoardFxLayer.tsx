@@ -7,6 +7,7 @@ import { playSfx } from "../sound";
 import { rectCache } from "./rect-cache";
 import { attachToTray } from "./tray-attach";
 import { createScene, strengthOf, type Scene } from "./board-scene";
+import { fxTierParams, onFxTier } from "../fx-quality";
 
 /**
  * Living board layer (A1, 2026-11-27). ONE canvas inside the tray surface, under the dice canvas and
@@ -85,9 +86,21 @@ export class BoardLayer {
       this.io.observe(tray);
     }
     document.addEventListener("visibilitychange", this.onVis);
-    this.off = onFx((e) => this.react(e));
+    const offFx = onFx((e) => this.react(e));
+    // adaptive quality: resolution, particles and halos follow the tier (changes come at a throw start)
+    const offTier = onFxTier(() => this.applyTier(true));
+    this.off = () => (offFx(), offTier());
+    this.applyTier(false);
     stats.layers++;
     this.wake();
+  }
+
+  private applyTier(relayout: boolean) {
+    const q = fxTierParams();
+    this.fx.budget = this.budget * q.particles;
+    this.fx.glow = q.glow;
+    if (this.scene) this.scene.quality = q;
+    if (relayout) this.layout();
   }
 
   private layout() {
@@ -95,7 +108,7 @@ export class BoardLayer {
     const r = this.tray.getBoundingClientRect();
     this.w = Math.max(1, r.width);
     this.h = Math.max(1, r.height);
-    this.ratio = Math.min(1.25, window.devicePixelRatio || 1);
+    this.ratio = Math.min(fxTierParams().canvas, window.devicePixelRatio || 1);
     this.canvas.width = Math.round(this.w * this.ratio);
     this.canvas.height = Math.round(this.h * this.ratio);
     this.canvas.style.width = this.w + "px";
@@ -183,7 +196,8 @@ export class BoardLayer {
     this.raf = requestAnimationFrame(this.tick);
     if (now < this.holdUntil) return;
     const busy = ((this.scene?.busy() ?? false) && !this.scene?.calmReactions) || this.fx.busy;
-    const interval = busy ? 15 : this.budget < 0.75 ? 39 : 32;
+    const q = fxTierParams();
+    const interval = busy ? q.reactMs : Math.max(q.envMs, this.budget < 0.75 ? 39 : 0);
     if (now - this.last < interval) return;
     const dt = this.last ? Math.min(0.1, (now - this.last) / 1000) : 0.03;
     this.last = now;

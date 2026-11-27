@@ -51,6 +51,8 @@ export class FxCanvas {
   private h = 1;
   private ratio = 1;
   budget = 1;
+  /** Decorative halos around streaks and lines (adaptive quality may turn them off). */
+  glow = true;
 
   /** `host` null: no canvas of its own — the owner draws the effects into its canvas with `drawInto`. */
   constructor(host: HTMLElement | null, className = "dice-trail-canvas") {
@@ -189,7 +191,7 @@ export class FxCanvas {
         g.moveTo(a.x, a.y);
         g.lineTo(b.x, b.y);
         g.stroke();
-        if (s.spec.glow) {
+        if (s.spec.glow && this.glow) {
           // halo: a wide faint stroke under "lighter" (shadowBlur was the most expensive call here)
           g.globalAlpha = k * 0.22;
           g.lineWidth = s.spec.width * 3.2;
@@ -236,7 +238,7 @@ export class FxCanvas {
         for (let i = 1; i < n; i++) g.lineTo(pts[i * 2], pts[i * 2 + 1]);
       }
       g.stroke();
-      if (l.glow) {
+      if (l.glow && this.glow) {
         g.globalAlpha = alpha * 0.25;
         g.lineWidth = (l.width ?? 1.5) * 3.5;
         g.stroke();
