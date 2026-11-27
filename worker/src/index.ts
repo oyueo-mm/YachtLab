@@ -13,8 +13,9 @@ import { itemById } from "../../src/economy/live/catalog";
 /** Coin balance bucket for the privacy-light balance distribution. */
 const bucket = (c: number) => (c < 100 ? "0-99" : c < 500 ? "100-499" : c < 2000 ? "500-1999" : c < 10000 ? "2000-9999" : c < 50000 ? "10k-49k" : "50k+");
 import { validateNickname } from "../../src/identity/nickname";
-import { FriendIndexStore, FriendStore, Presence, type FriendSql } from "./friends";
-import { handleFriendRoute, sendInvites, type FriendDeps, type FriendUser } from "./friends-api";
+import { ABSENT_ACCOUNT, FriendIndexStore, FriendStore, Presence, type FriendSql } from "./friends";
+import { handleFriendRoute, sendInvites, type FriendDeps, type FriendUser, type ResidueMode } from "./friends-api";
+import { CleanupQueue, INDEX_TARGET, runCleanup, type CleanupJob } from "./account-cleanup";
 import { sameText } from "./oidc";
 import { authConfig, handleAccountRoute, sessionUser, type AccountBackends, type GuestApi, type UserApi } from "./accounts-api";
 import type { MatchRecord } from "../../src/identity/records";
@@ -48,6 +49,11 @@ export interface Env extends ConfigVars {
   DICE_DRAW?: string;
   /** "off" disables server AI matches (kill switch, default on). */
   SERVER_AI?: string;
+  /**
+   * C4.2: friend-list residue of accounts deleted before the deletion cleanup existed — "off" (default),
+   * "dry-run" (count only) or "on". Operator decision (docs/audits/c4-2026-11-28/C4-2-ACCOUNT-SECURITY.md).
+   */
+  FRIEND_RESIDUE_CLEANUP?: string;
   /** Operations metrics endpoint (`GET /api/admin/metrics`), off unless this secret (≥ 32 chars) is set. */
   ADMIN_TOKEN?: string;
   /** Sign-in (all four must be set, as Worker secrets / vars, or sign-in stays off). */
@@ -349,29 +355,35 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   private store: AccountStore;
   private econ: EconomyStore;
   private friends: FriendStore;
+  private cleanup: CleanupQueue;
   private presenceState = new Presence();
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.store = new AccountStore(ctx.storage.sql as unknown as Sql);
     this.econ = new EconomyStore(this.econSql());
     this.friends = new FriendStore(this.econSql() as unknown as FriendSql);
+    this.cleanup = new CleanupQueue(ctx.storage.sql as unknown as Sql);
     ctx.blockConcurrencyWhile(async () => {
       this.store.init();
       this.econ.init();
       this.friends.init();
+      this.cleanup.init();
     });
   }
   /* ---------------------------------------------- friends (I/J): one generic RPC over FriendStore ---------------------------------------------- */
-  private static FR_OPS = new Set(["code", "setCode", "spend", "isFriend", "isBlocking", "relation", "friendIds", "peerId", "lists", "canRequest", "recordOutgoing", "addFriend", "removeFriend", "cancelOutgoing", "declineIncoming", "incomingPeer", "block", "unblock", "receiveRequest", "outgoingDeclined", "incomingCancelled", "blockedBy", "refresh", "receiveInvite", "invites", "takeInvite", "inboxCount"]);
+  private static FR_OPS = new Set(["code", "setCode", "spend", "isFriend", "isBlocking", "relation", "friendIds", "peerId", "lists", "canRequest", "recordOutgoing", "addFriend", "removeFriend", "cancelOutgoing", "declineIncoming", "dropIncoming", "incomingPeer", "block", "unblock", "receiveRequest", "outgoingDeclined", "incomingCancelled", "blockedBy", "unblockedBy", "acceptedBy", "forget", "forgetMany", "retiredCodes", "residuePairs", "refresh", "receiveInvite", "invites", "takeInvite", "inboxCount"]);
   async fr(op: string, ...args: unknown[]) {
     if (!UserStore.FR_OPS.has(op)) throw Error("unknown op");
+    // an account that does not exist (never created, or deleted) answers neutrally and stores nothing
+    if (!this.store.exists()) return ABSENT_ACCOUNT[op];
     return (this.friends as unknown as Record<string, (...a: unknown[]) => unknown>)[op](...args);
   }
   async nickname() {
     return this.store.profile()?.nickname ?? null;
   }
-  /** Friends' view of this account (memory only, never stored). */
-  async presence() {
+  /** Friends' view of this account (memory only, never stored) — only for a viewer this account lists as a friend. */
+  async presence(viewer?: string) {
+    if (viewer !== undefined && (!this.store.exists() || !this.friends.isFriend(viewer))) return "offline" as const;
     return this.presenceState.status(Date.now());
   }
   async ping() {
@@ -478,7 +490,10 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     return this.store.createLoginCode(clientStateHash, Date.now());
   }
   async exchange(code: string, clientState: string) {
-    return this.store.exchange(code, clientState, Date.now());
+    const session = await this.store.exchange(code, clientState, Date.now());
+    // the alarm removes the session once expired, even if the account never comes back (SEC-04)
+    if (session) await this.scheduleAlarm();
+    return session;
   }
   async authenticate(session: string) {
     return this.store.authenticate(session, Date.now());
@@ -519,27 +534,67 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   async logoutAll() {
     this.store.logoutAll();
   }
-  /** Delete everything this account stores; returns linked guest ids so their claims can be released. */
+  /**
+   * Delete everything this account stores; returns linked guest ids so their claims can be released.
+   *
+   * C4.2 (SEC-03): in ONE transaction (nothing else can run on this object in between) the account's
+   * tables are dropped and a cleanup queue is written: every account holding a row about this one
+   * (friends, requests both ways, blocks either way) is told to forget this generation, and the global
+   * friend-code index drops its code. The queue is worked through at once and retried from the alarm.
+   * Kept afterwards: the deletion time (30-day re-join grant cooldown), the retired friend code (so a
+   * re-join is never handed it again) and the pending queue — no nickname, record, session or relation.
+   */
   async deleteAccount() {
     const guests = this.store.exists() ? this.store.guests() : [];
-    // Friends: everyone in my lists forgets me, and the search index drops me.
-    const me = this.store.profile();
-    if (me) {
-      for (const id of this.friends.friendIds()) await (this.env.USERS.get(this.env.USERS.idFromName(id)) as unknown as FriendUser).fr("blockedBy", me.userId).catch(() => undefined);
-      await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).remove(me.userId).catch(() => undefined);
-    }
-    await this.ctx.storage.deleteAll();
-    this.store = new AccountStore(this.ctx.storage.sql as unknown as Sql);
+    const owner = this.store.profile()?.userId ?? null;
+    const plan = owner ? this.friends.deletionPlan() : { code: null, peers: [] };
+    const now = Date.now();
+    const sql = this.ctx.storage.sql;
+    const keep = new Set(["tomb", "acct_cleanup", "fr_retired"]);
+    this.ctx.storage.transactionSync(() => {
+      const tables = sql.exec<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table'").toArray().map((r) => r.name);
+      for (const t of tables) if (!keep.has(t) && !t.startsWith("_cf_") && !t.startsWith("sqlite_")) sql.exec(`DROP TABLE IF EXISTS "${t.replace(/"/g, '""')}"`);
+      sql.exec("CREATE TABLE IF NOT EXISTS tomb (id INTEGER PRIMARY KEY CHECK (id = 1), deleted_at INTEGER NOT NULL)");
+      sql.exec("INSERT OR REPLACE INTO tomb (id, deleted_at) VALUES (1, ?)", now);
+      sql.exec("CREATE TABLE IF NOT EXISTS fr_retired (code TEXT PRIMARY KEY, at INTEGER NOT NULL)");
+      if (plan.code) sql.exec("INSERT OR IGNORE INTO fr_retired (code, at) VALUES (?, ?)", plan.code, now);
+      this.cleanup.init();
+      if (owner && (plan.code || plan.peers.length)) this.cleanup.enqueue(owner, [INDEX_TARGET, ...plan.peers], plan.code, now);
+    });
+    // Fresh, empty objects over the (re-created) empty tables; presence is forgotten too.
+    this.store = new AccountStore(sql as unknown as Sql);
     this.store.init();
     this.econ = new EconomyStore(this.econSql());
     this.econ.init();
-    // Everything is gone. Only "deleted at" is kept for 30 days so a delete-and-rejoin loop cannot
-    // collect the new-member grant again; an alarm removes it afterwards.
-    const now = Date.now();
-    this.ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS tomb (id INTEGER PRIMARY KEY CHECK (id = 1), deleted_at INTEGER NOT NULL)");
-    this.ctx.storage.sql.exec("INSERT OR REPLACE INTO tomb (id, deleted_at) VALUES (1, ?)", now);
-    await this.ctx.storage.setAlarm(now + ECONOMY.rejoinWelcomeCooldownMs + 60_000);
+    this.friends = new FriendStore(this.econSql() as unknown as FriendSql);
+    this.friends.init();
+    this.presenceState = new Presence();
+    await this.runCleanup();
+    await this.scheduleAlarm();
     return guests;
+  }
+  private async runCleanup() {
+    const send = async (job: CleanupJob, userId: string) => {
+      if (job.target === INDEX_TARGET) await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).removeCode(userId, job.code);
+      else await (this.env.USERS.get(this.env.USERS.idFromName(job.target)) as unknown as FriendUser).fr("forget", userId, job.code);
+    };
+    const run = await runCleanup(this.cleanup, send, Date.now);
+    const hub = this.hub();
+    await Promise.all([
+      run.failed ? hub.count("account.cleanup.retry", run.failed) : null,
+      run.gaveUp ? hub.count("account.cleanup.gaveUp", run.gaveUp) : null,
+    ]).catch(() => undefined);
+    return run;
+  }
+  /** One alarm per object: next session expiry, next cleanup retry, end of the re-join cooldown. */
+  private async scheduleAlarm() {
+    const until = this.rejoinBlockedUntil();
+    const expiry = this.store.exists() ? this.store.nextSessionExpiry() : null;
+    const times = [expiry === null ? null : expiry + 60_000, this.cleanup.nextAt(), until === null ? null : until + 60_000].filter((t): t is number => t !== null);
+    if (!times.length) return;
+    const want = Math.max(Math.min(...times), Date.now() + 1000);
+    const current = await this.ctx.storage.getAlarm();
+    if (current === null || current > want) await this.ctx.storage.setAlarm(want);
   }
   async publicProfile() {
     return this.store.publicProfile();
@@ -593,12 +648,22 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     return true;
   }
   async alarm() {
-    // Forget the deletion timestamp once the re-join cooldown is over.
+    const now = Date.now();
+    // Expired sessions / login codes go even if the account never signs in again (SEC-04).
+    if (this.store.exists()) this.store.pruneSessions(now);
+    // Deletion cleanup retries (SEC-03).
+    if (this.cleanup.pending()) await this.runCleanup();
+    // Forget the deletion timestamp once the re-join cooldown is over (and the cleanup has finished).
     const until = this.rejoinBlockedUntil();
-    if (until !== null && Date.now() >= until) {
-      if (!this.store.exists()) await this.ctx.storage.deleteAll();
-      else this.ctx.storage.sql.exec("DELETE FROM tomb WHERE id = 1");
+    if (until !== null && now >= until && !this.cleanup.pending()) {
+      if (!this.store.exists()) {
+        await this.ctx.storage.deleteAll();
+        return;
+      }
+      this.ctx.storage.sql.exec("DELETE FROM tomb WHERE id = 1");
+      this.ctx.storage.sql.exec("DELETE FROM fr_retired");
     }
+    await this.scheduleAlarm();
   }
 }
 
@@ -611,8 +676,14 @@ export class FriendIndex extends DurableObject<Env> {
     this.core = new FriendIndexStore(ctx.storage.sql as unknown as FriendSql);
     ctx.blockConcurrencyWhile(async () => this.core.init());
   }
-  async register(userId: string, nickname: string) {
-    return this.core.register(userId, nickname);
+  async register(userId: string, nickname: string, avoid?: string[]) {
+    return this.core.register(userId, nickname, avoid ?? []);
+  }
+  async removeCode(userId: string, code: string | null) {
+    this.core.removeCode(userId, code);
+  }
+  async live(pairs: { userId: string; code: string }[]) {
+    return this.core.live(pairs);
   }
   async lookup(code: string) {
     return this.core.lookup(code);
@@ -919,6 +990,8 @@ export default {
           index: env.FRIENDS.get(env.FRIENDS.idFromName("index")) as unknown as FriendDeps["index"],
           limited: (key, perMinute) => Promise.resolve(isolateLimited(key, perMinute)),
           now: Date.now,
+          residue: (["dry-run", "on"].includes(env.FRIEND_RESIDUE_CLEANUP ?? "") ? env.FRIEND_RESIDUE_CLEANUP : "off") as ResidueMode,
+          metric: (key, n) => hub().count(key, n).catch(() => undefined),
         };
         const readJson = async () => {
           const text = await request.text();

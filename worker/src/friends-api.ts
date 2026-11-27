@@ -19,20 +19,32 @@ export interface FriendUser {
   /** Dispatch to this account's FriendStore (see UserStore.fr). */
   fr<T = unknown>(op: string, ...args: unknown[]): Promise<T>;
   nickname(): Promise<string | null>;
-  presence(): Promise<"playing" | "online" | "offline">;
+  /** `viewer`: shown only to a player this account also lists as a friend (else "offline"). */
+  presence(viewer?: string): Promise<"playing" | "online" | "offline">;
   ping(): Promise<void>;
   publicProfile(): Promise<unknown>;
 }
 export interface FriendIndexApi {
-  register(userId: string, nickname: string): Promise<string>;
+  /** `avoid`: retired codes of the account's deleted generations, never handed back. */
+  register(userId: string, nickname: string, avoid?: string[]): Promise<string>;
   lookup(code: string): Promise<Peer | null>;
   search(nickname: string): Promise<Peer[]>;
+  live?(pairs: { userId: string; code: string }[]): Promise<boolean[]>;
 }
+/**
+ * Residue of accounts deleted BEFORE the C4.2 cleanup (rows in other players' lists): "off" (default, no
+ * check), "dry-run" (count only, nothing changes), "on" (forget them). Operator decision — see
+ * docs/audits/c4-2026-11-28/C4-2-ACCOUNT-SECURITY.md.
+ */
+export type ResidueMode = "off" | "dry-run" | "on";
 export type FriendDeps = {
   user(userId: string): FriendUser;
   index: FriendIndexApi;
   limited(key: string, perMinute: number): Promise<boolean>;
   now(): number;
+  residue?: ResidueMode;
+  /** Privacy-light operations counter (no ids). */
+  metric?(key: string, n: number): Promise<void>;
 };
 type Reply = (status: number, body: unknown) => Response;
 
@@ -42,10 +54,23 @@ export async function selfPeer(userId: string, d: FriendDeps): Promise<Peer> {
   const nickname = (await u.nickname()) ?? "이름 없음";
   let code = await u.fr<string | null>("code");
   if (!code) {
-    code = await d.index.register(userId, nickname);
-    await u.fr("setCode", code);
+    const retired = await u.fr<string[]>("retiredCodes");
+    code = await d.index.register(userId, nickname, retired);
+    code = (await u.fr<string | null>("setCode", code)) ?? code;
   }
   return { userId, code, nickname };
+}
+
+/**
+ * Both sides agreed (`aCode` / `bPeer` from the side that acts last): after writing my side, confirm the
+ * other side still holds the friendship of this generation; otherwise (it was deleted meanwhile) undo
+ * mine. Closes the race "account deleted while its request is being accepted".
+ */
+async function confirmFriend(me: FriendUser, other: FriendUser, meId: string, meCode: string, peer: Peer, now: number): Promise<boolean> {
+  await me.fr("addFriend", peer, now);
+  if (await other.fr<boolean>("isFriend", meId, meCode)) return true;
+  await me.fr("removeFriend", peer.userId);
+  return false;
 }
 
 export async function handleFriendRoute(request: Request, url: URL, me: { userId: string }, d: FriendDeps, reply: Reply, readBody: () => Promise<Record<string, unknown>>): Promise<Response | null> {
@@ -63,10 +88,12 @@ export async function handleFriendRoute(request: Request, url: URL, me: { userId
   }
   if (path === "/api/me/friends" && method === "GET") {
     const self = await selfPeer(me.userId, d);
+    await residueCheck(me.userId, d);
     const lists = await user.fr<FriendLists>("lists");
-    // Status of friends only (fan-out to at most 200 small objects, only while the page is open).
+    // Status of friends only (fan-out to at most 200 small objects, only while the page is open); each
+    // answers only if it lists me as a friend too.
     const ids = await Promise.all(lists.friends.map((f) => user.fr<string | null>("peerId", f.code)));
-    const status = await Promise.all(ids.map((id) => (id ? d.user(id).presence().catch(() => "offline" as const) : "offline")));
+    const status = await Promise.all(ids.map((id) => (id ? d.user(id).presence(me.userId).catch(() => "offline" as const) : "offline")));
     return reply(200, { me: { code: self.code, nickname: self.nickname }, friends: lists.friends.map((f, i) => ({ ...f, status: status[i] })), incoming: lists.incoming, outgoing: lists.outgoing, blocked: lists.blocked });
   }
   if (path === "/api/me/friends/profile" && method === "GET") {
@@ -111,7 +138,9 @@ export async function handleFriendRoute(request: Request, url: URL, me: { userId
 
   const code = normalizeCode(input.code);
   if (!code) return fail(400, "CODE", "친구 코드가 올바르지 않아요.");
-  const peerId = path === "/api/me/friends/request" || path === "/api/me/friends/block" ? (await d.index.lookup(code))?.userId ?? null : await user.fr<string | null>("peerId", code);
+  // request / block address anyone by their current code (global index); the rest act on my own lists.
+  const found = path === "/api/me/friends/request" || path === "/api/me/friends/block" ? await d.index.lookup(code) : null;
+  const peerId = found ? found.userId : path === "/api/me/friends/request" || path === "/api/me/friends/block" ? null : await user.fr<string | null>("peerId", code);
   if (!peerId || peerId === me.userId) return fail(404, "NOT_FOUND", "사용자를 찾을 수 없어요.");
   const self = await selfPeer(me.userId, d);
   const other = d.user(peerId);
@@ -119,25 +148,38 @@ export async function handleFriendRoute(request: Request, url: URL, me: { userId
 
   if (path === "/api/me/friends/request") {
     if (await d.limited("freq:" + me.userId, 10)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
-    const target = await selfPeer(peerId, d);
+    // The target as the index knows it now (its current generation), without writing to its account.
+    const target: Peer = { userId: peerId, code, nickname: found!.nickname || ((await other.nickname()) ?? "이름 없음") };
     const ok = await user.fr<{ ok: boolean; code?: string; message?: string }>("canRequest", target, now);
     if (!ok.ok) return fail(409, ok.code!, ok.message!);
     if (!(await user.fr<boolean>("spend", "requests", FRIEND_LIMITS.requestsPerDay, now))) return fail(429, "DAILY_LIMIT", "오늘은 친구 요청을 더 보낼 수 없어요.");
-    const got = await other.fr<"stored" | "friends" | "already" | "silent">("receiveRequest", self, now);
+    // My side first: if the target is deleted after receiving the request, its deletion finds the request
+    // in its lists and makes me forget it; if it is deleted before, it answers "gone" and I drop it here.
+    await user.fr("recordOutgoing", target, now);
+    const got = await other.fr<"stored" | "friends" | "already" | "silent" | "gone">("receiveRequest", self, now);
+    if (got === "gone") {
+      await user.fr("cancelOutgoing", peerId);
+      return fail(404, "NOT_FOUND", "사용자를 찾을 수 없어요.");
+    }
     if (got === "friends" || got === "already") {
-      await user.fr("addFriend", target, now);
-      return reply(200, { status: "friends" });
+      if (await confirmFriend(user, other, me.userId, self.code, target, now)) return reply(200, { status: "friends" });
+      return fail(404, "NOT_FOUND", "사용자를 찾을 수 없어요.");
     }
     // "silent" (blocked / full inbox) looks exactly like "stored" to the sender.
-    await user.fr("recordOutgoing", target, now);
     return reply(200, { status: "sent" });
   }
   if (path === "/api/me/friends/accept") {
     const peer = await user.fr<Peer | null>("incomingPeer", code);
     if (!peer) return fail(404, "NOT_FOUND", "받은 친구 요청이 없어요.");
     if ((await user.fr<string[]>("friendIds")).length >= FRIEND_LIMITS.maxFriends) return fail(409, "FULL", `친구는 ${FRIEND_LIMITS.maxFriends}명까지예요.`);
-    await other.fr("addFriend", self, now);
-    await user.fr("addFriend", peer, now);
+    // The requester's account must still hold this request (same generation): a deleted account, or the
+    // same Google account re-joined since, never becomes a friend without asking (SEC-03 R2).
+    const gone = () => fail(404, "REQUEST_GONE", "더 이상 유효하지 않은 친구 요청이에요.");
+    if (!(await d.user(peer.userId).fr<boolean>("acceptedBy", self, peer.code, now))) {
+      await user.fr("dropIncoming", peer.userId, peer.code);
+      return gone();
+    }
+    if (!(await confirmFriend(user, d.user(peer.userId), me.userId, self.code, peer, now))) return gone();
     return reply(200, { status: "friends" });
   }
   if (path === "/api/me/friends/decline") {
@@ -155,16 +197,39 @@ export async function handleFriendRoute(request: Request, url: URL, me: { userId
     return reply(200, { ok: true });
   }
   if (path === "/api/me/friends/block") {
-    const target = await selfPeer(peerId, d);
+    const target: Peer = { userId: peerId, code, nickname: found!.nickname || ((await other.nickname()) ?? "이름 없음") };
     await user.fr("block", target, now);
-    await other.fr("blockedBy", me.userId);
+    await other.fr("blockedBy", me.userId, self.code, now);
     return reply(200, { ok: true });
   }
   if (path === "/api/me/friends/unblock") {
     await user.fr("unblock", peerId);
+    await other.fr("unblockedBy", me.userId);
     return reply(200, { ok: true });
   }
   return fail(404, "NOT_FOUND", "없는 주소입니다.");
+}
+
+/**
+ * Residue of accounts deleted before the C4.2 cleanup (see ResidueMode): when the owner opens the friend
+ * list, at most once a day, one call to the global index checks which (id, code) rows still name a live
+ * account. Off by default; "dry-run" only counts. Never throws (the list is shown either way).
+ */
+async function residueCheck(userId: string, d: FriendDeps) {
+  const mode = d.residue ?? "off";
+  if (mode === "off" || !d.index.live) return;
+  try {
+    const user = d.user(userId);
+    const pairs = await user.fr<{ userId: string; code: string }[]>("residuePairs", d.now());
+    if (!pairs.length) return;
+    const live = await d.index.live(pairs);
+    const stale = pairs.filter((_, i) => live[i] === false);
+    if (!stale.length) return;
+    await d.metric?.(`friends.residue.${mode === "on" ? "cleaned" : "found"}`, stale.length);
+    if (mode === "on") await user.fr("forgetMany", stale);
+  } catch {
+    /* best effort */
+  }
 }
 
 /** Room invite to friends (J): returns, per code, "sent" / "not-friend" / "recent". Blocks stay invisible ("sent"). */
