@@ -219,23 +219,105 @@ describe("A3 panel markup", () => {
   });
 });
 
-describe("A3 hotfix candidate H-A3-1: account refresh after a match", () => {
-  it("refreshes once after the server receipt exists; never on delay or failure", async () => {
+describe("A3 hotfix H-A3-1/2: account refresh after a match", () => {
+  const receiptOk = () => Promise.resolve({ before: { coins: 0, gems: 0 }, after: { coins: 15, gems: 0 }, quests: [], grants: [] });
+  const notYet = () => Promise.reject(new AccountError("NOT_FOUND", "x", 404));
+  const make = (over: Partial<import("../src/match-result/account-refresh").RefreshDeps> = {}, log: string[] = []) => ({
+    readReceipt: receiptOk,
+    readAccount: async () => "snap",
+    publish: (s: unknown) => void log.push("publish:" + s),
+    announce: () => void log.push("records"),
+    wait: async () => undefined,
+    account: () => "acct-1",
+    ...over,
+  });
+  it("refreshes once after the receipt; skips duplicates; retries later after a network failure", async () => {
     const { refreshAfterMatch, resetRefreshed } = await import("../src/match-result/account-refresh");
     resetRefreshed();
-    const calls: string[] = [];
-    const wait = async () => undefined;
-    const deps = (receipt: () => Promise<unknown>) => ({ readReceipt: receipt, refreshAccount: async () => void calls.push("economy"), announce: () => void calls.push("records"), wait });
-    const ok = () => Promise.resolve({ before: { coins: 0, gems: 0 }, after: { coins: 15, gems: 0 }, quests: [], grants: [] });
-    expect(await refreshAfterMatch("m1", deps(ok))).toBe("settled");
-    expect(await refreshAfterMatch("m1", deps(ok))).toBe("skipped");
-    expect(calls).toEqual(["economy", "records"]);
-    const notYet = () => Promise.reject(new AccountError("NOT_FOUND", "x", 404));
-    expect(await refreshAfterMatch("m2", deps(notYet))).toBe("delayed");
-    expect(await refreshAfterMatch("m3", deps(() => Promise.reject(new Error("net"))))).toBe("failed");
-    expect(calls).toEqual(["economy", "records"]);
-    // a delayed match can be retried later
-    expect(await refreshAfterMatch("m2", deps(ok))).toBe("settled");
+    const log: string[] = [];
+    expect(await refreshAfterMatch("m1", make({}, log))).toBe("settled");
+    expect(await refreshAfterMatch("m1", make({}, log))).toBe("skipped");
+    expect(log).toEqual(["publish:snap", "records"]);
+    expect(await refreshAfterMatch("m3", make({ readReceipt: () => Promise.reject(new Error("net")) }, log))).toBe("failed");
+    expect(log).toHaveLength(2);
+    expect(await refreshAfterMatch("m3", make({}, log))).toBe("settled");
+  });
+  it("old Worker without the receipt API (always 404): still shows the ledger snapshot, never a gain", async () => {
+    const { refreshAfterMatch, resetRefreshed } = await import("../src/match-result/account-refresh");
+    resetRefreshed();
+    const log: string[] = [];
+    expect(await refreshAfterMatch("old", make({ readReceipt: notYet }, log))).toBe("delayed");
+    expect(log).toEqual(["publish:snap", "records"]);
+    // 결과 창은 같은 경우 "정산 지연" 문구만(금액 없음)
+    expect(rewardView({ status: "delayed" }, quest).kind).toBe("note");
+  });
+  it("a late response for the previous match never overwrites the newer snapshot", async () => {
+    const { refreshAfterMatch, resetRefreshed } = await import("../src/match-result/account-refresh");
+    resetRefreshed();
+    const log: string[] = [];
+    let release!: () => void;
+    const slow = new Promise<void>((r) => (release = r));
+    const first = refreshAfterMatch("g1", make({ readAccount: async () => { await slow; return "old"; } }, log));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(await refreshAfterMatch("g2", make({ readAccount: async () => "new" }, log))).toBe("settled");
+    release();
+    expect(await first).toBe("stale");
+    expect(log.filter((l) => l.startsWith("publish"))).toEqual(["publish:new"]);
+  });
+  it("sign-out or account switch during the refresh publishes nothing", async () => {
+    const { refreshAfterMatch, resetRefreshed } = await import("../src/match-result/account-refresh");
+    resetRefreshed();
+    const log: string[] = [];
+    let who: string | null = "acct-1";
+    const r = refreshAfterMatch("x", make({ account: () => who, readAccount: async () => { who = "acct-2"; return "snap"; } }, log));
+    expect(await r).toBe("stale");
+    expect(log).toEqual([]);
+  });
+  it("records reader keeps only the latest response for the current account", async () => {
+    const { createRecordsReader } = await import("../src/match-result/account-refresh");
+    const applied: string[] = [];
+    let who: string | null = "a";
+    const resolvers: ((v: never[]) => void)[] = [];
+    const reader = createRecordsReader(() => new Promise((r) => resolvers.push(r)), () => who, (owner, recs) => void applied.push(owner + ":" + recs.length));
+    const p1 = reader();
+    const p2 = reader();
+    resolvers[1]([]);
+    resolvers[0]([]);
+    await Promise.all([p1, p2]);
+    expect(applied).toEqual(["a:0"]);
+    const p3 = reader();
+    who = null;
+    resolvers[2]([]);
+    await p3;
+    expect(applied).toEqual(["a:0"]);
+  });
+});
+
+describe("A3 hotfix H-A3-3: reward notices for consecutive matches", () => {
+  it("keeps every match once (matchId dedupe), per account, bounded", async () => {
+    const { addNotice, noticesFor, dropNotices, MAX_NOTICES } = await import("../src/match-result/reward-notices");
+    let list = addNotice([], { matchId: "m1", account: "a", at: 1 });
+    list = addNotice(list, { matchId: "m2", account: "a", at: 2 });
+    list = addNotice(list, { matchId: "m1", account: "a", at: 3 });
+    list = addNotice(list, { matchId: "m3", account: "b", at: 4 });
+    expect(noticesFor(list, "a").map((n) => n.matchId)).toEqual(["m1", "m2"]);
+    expect(noticesFor(list, null)).toEqual([]);
+    expect(dropNotices(list, ["m1"]).map((n) => n.matchId)).toEqual(["m2", "m3"]);
+    for (let i = 0; i < 20; i++) list = addNotice(list, { matchId: "x" + i, account: "a", at: i });
+    expect(list).toHaveLength(MAX_NOTICES);
+  });
+  it("combines receipts: earlier quests/achievements kept, coins already shown on the result card not repeated", async () => {
+    const { combineReceipts } = await import("../src/match-result/reward-notices");
+    const r = (coins: number, quests: { id: string; previous: number; progress: number; done: boolean }[], grants: { kind: string; label: string; coins: number; gems: number }[] = []) => ({ before: { coins: 100, gems: 5 }, after: { coins: 100 + coins, gems: 5 }, quests, grants });
+    const n = combineReceipts([
+      { matchId: "m1", receipt: r(15, [{ id: "w.days4", previous: 0, progress: 1, done: false }, { id: "d.play3", previous: 1, progress: 2, done: false }], [{ kind: "match", label: "친구 대전 완료", coins: 15, gems: 0 }]) },
+      { matchId: "m2", receipt: r(30, [{ id: "d.play3", previous: 2, progress: 3, done: true }], [{ kind: "achievement", label: "첫 승리", coins: 6, gems: 0 }]) },
+      { matchId: "m3", receipt: null },
+    ], (id) => id === "m2");
+    expect(n.coins).toBe(15); // m2의 코인은 결과 창에서 이미 표시
+    expect(n.quests).toEqual([{ id: "w.days4", previous: 0, progress: 1, done: false }, { id: "d.play3", previous: 1, progress: 3, done: true }]);
+    expect(n.grants.map((g) => g.label)).toEqual(["첫 승리"]);
+    expect(n.unresolved).toBe(1);
   });
 });
 

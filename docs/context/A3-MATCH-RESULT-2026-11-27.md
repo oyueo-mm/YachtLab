@@ -100,7 +100,7 @@
 
 **수정안 (작성·검증 완료, 공용 파일 연결은 대기)**
 
-- H-A3-1 `src/match-result/account-refresh.ts` `useAccountRefreshAfterMatch(server, matchId, finished)`: receipt가 확정된 뒤(404 재시도, 지연·실패면 아무것도 바꾸지 않음) `economy()`를 다시 읽고, 기존 `yachtlab-economy` 이벤트 형식으로 알린다 → **App.tsx·profile-economy.ts 변경 없이** 상단 바·사이드바 갱신. 같은 matchId는 한 번만, 계정이 바뀌면 알리지 않음. 연결은 `OnlineGame`·`OnlineMulti`에 한 줄. 임시로 `OnlineGame`에 연결해 `A3_HOTFIX=1`로 같은 재현을 돌린 결과 방 안 상단 재화가 **215 → 230으로 서버와 일치**(커밋하지 않음, C3가 OnlineGame을 수정 중).
+- H-A3-1 `src/match-result/account-refresh.ts` `useAccountRefreshAfterMatch(server, matchId, finished)`: receipt 조회로 서버 반영을 기다린 뒤(404 재시도) 원장 스냅샷 `economy()`를 다시 읽고(지연·구버전 Worker에서도 원장 값 그대로라 지급처럼 보이지 않음, 네트워크 실패면 화면 값 유지), 나중에 시작한 갱신이 있으면 늦은 응답을 버리며(재대결 경합), 세션이 바뀌면 알리지 않고, 기존 `yachtlab-economy` 이벤트 형식으로 알린다 → **App.tsx·profile-economy.ts 변경 없이** 상단 바·사이드바 갱신. 같은 matchId는 한 번만, 계정이 바뀌면 알리지 않음. 연결은 `OnlineGame`·`OnlineMulti`에 한 줄. 임시로 `OnlineGame`에 연결해 `A3_HOTFIX=1`로 같은 재현을 돌린 결과 방 안 상단 재화가 **215 → 230으로 서버와 일치**(커밋하지 않음, C3가 OnlineGame을 수정 중).
 - H-A3-2 `Profile.tsx`·`MatchHistory.tsx`: 로그인 상태에서도 `yachtlab-records` 수신 시 `serverRecords` 재조회(위 훅이 이 이벤트를 보냄).
 - H-A3-3 `App.tsx`: `pendingReward`를 matchId 목록으로 바꾸고 홈 알림에서 여러 경기의 퀘스트·업적을 합쳐 표시(결과 창에서 이미 본 코인은 제외하는 현재 규칙 유지).
 
@@ -129,14 +129,23 @@
 - 기존 `MatchMilestones`(오프라인 두 화면)는 결과 창 하이라이트로 대체. `src/ui/MatchResult.tsx`는 온라인 화면이 계속 사용한다(C3 수정 중이므로 그대로).
 - `MatchResultPanel`은 `visible` prop을 받는다. C3의 `ActivityVisible`이 병합되면 게임 화면에서 그 값을 넘겨 백그라운드 매칭 중 결과 창을 닫아 둔다.
 
-**C3 병합 후 남은 작업**
+**C3 병합 후 최종 통합 작업 목록 (준비 완료 상태)**
 
-1. 각 게임 화면의 `<MatchResult>`를 `<MatchResultPanel>`로 교체: 온라인은 `fromOnline(view, reviewEvents, me, { rewards: useRewardState(server, matchId, true), streak, personal })`, AI 대전은 `fromOfflineFrames(record.frames, …)`.
-2. 재대결은 기존 `RematchControls`를 `actions.rematchSlot`으로 그대로 넣는다(서버 흐름 불변). 친구 추가는 상대가 회원이고 아직 친구가 아닐 때만 `addFriend` 전달.
-3. 장착 승리 특수 효과(`FxBurst`)는 `effect` 슬롯으로 우선 표시. BGM 장면(`useBgmScene`)은 기존 `MatchResult` 동작을 옮긴다.
-4. `MatchRewardSummary`/홈 알림 중복 제거는 H-A3-3과 함께 결정.
-5. 온라인 0점 팝업: `useZeroScoreNotice(cards, me만, view.version 동기화)`로 재접속·새로고침 따라잡기를 무시.
-6. H-A3-1 훅 한 줄, H-A3-2·3은 C3 담당과 순서를 정해 별도 Hotfix PR.
+준비된 신규 모듈(공용 파일 미변경, 단위 테스트 완료): `account-refresh.ts`(H-A3-1·2), `reward-notices.ts`(H-A3-3), `adapters.ts`(`fromOnline`·`stepsFromOnline`), `useZeroScore.ts`, `win-effect.tsx`, `MatchResultPanel`(`visible`·`rematchSlot`·`reviewSlot`·`shareSlot`·`effect`). C3 `0385810`과 시험 병합: 충돌 없음, `tsc -b` 통과.
+
+| # | 작업 | 파일(C3 이후) | 내용 |
+| --- | --- | --- | --- |
+| 1 | 온라인 1:1 결과 | `OnlineGame.tsx` | `MatchResult` → `MatchResultPanel`, 입력 `fromOnline(view, [...reviewEvents], me, { rewards: useRewardState(server, matchId, rewarded), streak })`. `visible`에 C3 `ActivityVisible` 전달. 방 전적(`series`)은 `children`으로 유지. 기존 `behindAfterNine`·`MatchMilestones`는 제거 |
+| 1 | 온라인 다인전 결과 | `OnlineMulti.tsx` | 같은 방식, 순위·공동 순위는 모델이 처리 |
+| 1 | 관전 결과 | `OnlineWatch.tsx` | `you` 없음 → 관찰자 화면(단독 승자 기준), 보상·친구 추가 없음 |
+| 2 | 온라인 0점 팝업 | 세 화면 | `useZeroScoreNotice(cards, 내 좌석만(관전은 이름 표시), view 동기화 키)` — 재접속·새로고침 따라잡기는 무시 |
+| 3 | 승리 효과·재대결 | `OnlineGame`·`OnlineMulti` | `winEffect(looks[winner], matchId)`(상대 효과는 "상대 아이템 효과" 설정 준수, 기존 `winnerFxItem` 규칙), 재대결은 `RematchControls`를 `rematchSlot`으로 그대로 |
+| 4 | H-A3-1 | `OnlineGame`·`OnlineMulti` | `useAccountRefreshAfterMatch(server, matchId, finished)` 한 줄 |
+| 5 | H-A3-2 | `Profile.tsx`·`MatchHistory.tsx` | 서버 기록 조회를 `useServerRecords(server, apply)`로 교체(최신 응답·현재 계정만 반영) |
+| 6 | H-A3-3 | `App.tsx`·`shell/MatchRewards.tsx` | `pendingReward` → `PendingNotice[]`(`addNotice`, matchId 중복 제거, 계정별). 홈 알림은 `combineReceipts`로 여러 경기 퀘스트·업적을 보존하고, 결과 창에서 본 코인(`markWalletShown`)은 제외. 닫으면 `dropNotices` |
+| 7 | 회귀 테스트 전환 | `tests/ui/a3-rematch-records.spec.ts` | "현재 동작" 단언을 제거하고 기대 동작 강제: 방 안 상단 재화 = 서버 값(경기마다), 홈 알림에 1경기 퀘스트(`w.days4`) 포함·코인 중복 없음, 프로필 2경기, 로그아웃 후 이전 계정 값 미표시, 정산 지연(receipt 라우트 404 주입) 시 금액 미표시 |
+
+추가 검증(통합 PR): 같은 방 3경기 연속, 새로고침·홈 이동 없이 반영, 늦은 응답 경합(라우트 지연 주입), 계정 전환, 구버전 Worker(receipt API 404 고정) — 단위 수준은 `tests/match-result-a3.test.ts`에서 이미 검증.
 
 ## 9. 검증 결과
 
