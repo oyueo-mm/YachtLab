@@ -219,3 +219,33 @@
 - `npm run build`(tsc 3종 + vite) 성공, Vitest 65파일 514테스트 통과(신규: 적응 품질 결정 규칙).
 - Playwright 관련 14스펙: 201 통과, 11 건너뜀, 0 실패(게임 흐름·테이블·모바일·컬렉션·폴리시·온보딩·안정성·PWA 포함 — 히트 버튼 `transform` 변경의 회귀 확인). 전체 스위트는 CI.
 - 원자료: `docs/perf/a1-08c507b-{desktop,phone}.json`, `docs/perf/a11-{desktop,phone}.json`, main `docs/perf/a1-before-*.json`.
+
+## 9. 병합·배포·운영 확인 (2026-11-27)
+
+- **병합**: PR #114 → main 병합 커밋 `ff1cf4b51fa7cf38837010d2f6bf4ff2af90f80d`(merge commit, 히스토리 보존). 병합 전 최종 head `4e797e6` CI 전 항목 성공(scope·unit·build·browser 1~4·ci-result·gameplay smoke·context check). 중간 커밋 2개의 `ci-result` 실패는 새 푸시로 browser 샤드가 취소된 집계였음(unit·build 성공).
+- **충돌 확인**: main(`b6ebf72`, 자동 컨텍스트 갱신)과 충돌 없음. 열린 PR #112(C0 문서)·#113(C1 경제 연구, draft)과의 병합 모의: C0 충돌 없음, C1은 공용 문서 3개(HANDOFF·RESULTS·TECHNIQUES)에서 같은 위치에 추가해 충돌 → A1 항목의 위치만 옮겨(내용 불변, 커밋 `126ce9c`) "A1 후 C0", "A1 후 C1", "A1 후 C0 후 C1" 모두 충돌 없음을 확인. 다른 브랜치는 수정하지 않음.
+- **Pages 배포**: main 실행 [Actions 45998504263](https://github.com/oyueo-mm/YachtLab/actions/runs/45998504263) 전 항목 성공, Deploy 성공. 운영 `version.json` = `ff1cf4b-mwyygkm7`(12:32:54 UTC 확인).
+- **Worker**: 배포하지 않음. `deploy-online-worker.yml`(수동 실행 전용)의 마지막 실행은 2026-11-26 `54c1367` 그대로 — C0 보류 유지. 이 PR은 `src/online`·`worker`·`server`·엔진·AI 코드를 바꾸지 않았고, `src/economy`에서는 컬렉션 시너지 설명 문구 10개만 바뀜(가격·보상·등급·확률 불변).
+
+### 운영 사이트 확인 (`scripts/verify-live-a1.mjs`, 헤드리스 Chromium + SwiftShader — 기능 확인이며 실기기 성능 아님)
+
+결과 원본: [docs/ui/a1-live/results.json](../ui/a1-live/results.json), 스크린샷 같은 폴더. 오프라인 기능은 계정 없는 오프라인 장착으로 확인했고, 그 컨텍스트의 Worker 요청은 차단해 가짜 세션이 운영에 닿지 않게 했다. 온라인은 읽기 전용(방 생성·대전 없음).
+
+| 항목 | 결과 | 근거 |
+|---|---|---|
+| 배포 빌드 | 통과 | `ff1cf4b-mwyygkm7` |
+| 주사위 굴림 | 통과 | 3D, 최종 눈 = 엔진 값 |
+| 고정·해제 | 통과 | 고정 주사위는 재굴림 제외, 해제 반영 |
+| Hover 테두리 제거 | 통과 | hover 전후 테두리 색 동일 |
+| 물리 사전 계산(Web Worker) | 통과 | 연속 굴림 `prep: hit` |
+| AI 대전 주사위 연출 | 통과 | AI 차례 3회 모두 3D, 값 일치 |
+| 보드판 Lv.1 / Lv.2 / Lv.3 (폭풍 번개) | 통과 | Lv.1 효과 캔버스 없음·표면 stone, Lv.2 정지 중 1초 30프레임, Lv.3 impact/land 반응 |
+| 컬렉션 시너지(용암) | 통과 | `data-synergy=lava`, 이동 경로 그려짐 |
+| 상점 미리보기(얼음) | 통과 | Lv.1 효과 없음 → Lv.2 → Lv.3 탭 선택 시 자동 굴림 1회 |
+| 적응형 그래픽 품질 | 통과 | 데스크톱 단계 0 유지, 강제 단계 2에서 장식 캔버스만 1.00→0.80, 주사위는 3D 유지 |
+| 모바일 레이아웃(Pixel 7 에뮬레이션) | 통과 | 가로 넘침 0, 굴리기 버튼 화면 안, 탭 고정, 점수판 열림 |
+| Worker 응답 | 통과 | `/healthz` 200 `{"ok":true}`, `/api/auth/config` 200 |
+| 온라인 대전 진입 화면 | 통과 | 빠른 대전 버튼, 친구 대전 방 만들기·참가 폼, 오류 없음 |
+| 실제 온라인 대전(2인 매칭·진행) | **미확인** | 운영 데이터에 방·전적을 만들지 않기 위해 실행하지 않음 |
+
+남은 미확인: 실기기 프레임·발열·적응 임계값 적합성, 충돌음 청취, 실제 2인 온라인 대전, iOS Safari.
