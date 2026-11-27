@@ -27,7 +27,9 @@ const save = () => fs.writeFileSync(file, JSON.stringify(state));
 const real = process.env.REAL_GIT;
 state.calls.push(args.slice(0, 2).join(" ") + (args[0] === "workflow" ? " ref=" + opt("--ref") + " " + args.slice(args.indexOf("-f") + 1).join(" ") : ""));
 if (args[0] === "pr" && args[1] === "list") { console.log(JSON.stringify(state.prs.map(({ number, url }) => ({ number, url })))); }
-else if (args[0] === "pr" && args[1] === "create") {
+else if (args[0] === "pr" && args[1] === "create" && process.env.FAKE_GH_REFUSE_CREATE) {
+  console.error("pull request create failed: GraphQL: GitHub Actions is not permitted to create or approve pull requests (createPullRequest)"); process.exit(1);
+} else if (args[0] === "pr" && args[1] === "create") {
   const number = state.nextPr++; const url = "https://example.test/pull/" + number;
   state.prs.push({ number, url, head: opt("--head"), title: opt("--title"), body: fs.readFileSync(opt("--body-file"), "utf8") });
   console.log("created " + url); console.log(url);
@@ -293,6 +295,20 @@ describe("publish", () => {
     write(MANIFEST, manifest("A", "c2"));
     write(STATE, "# state A c2\n");
     expect(publish().outputs.action).toBe("created");
+  });
+
+  it("explains the one admin setting when GitHub refuses to let Actions create pull requests, keeping the pushed branch", () => {
+    write(MANIFEST, manifest("B", "c2"));
+    const refused = publish([], { FAKE_GH_REFUSE_CREATE: "1" });
+    expect(refused.status).toBe(1);
+    expect(refused.stderr).toContain("Allow GitHub Actions to create and approve pull requests");
+    expect(remoteSha("refs/heads/automation/context-sync")).not.toBe("");
+    // after the admin enables the setting a plain re-run only creates the PR (branch reused, no new commit)
+    const tip = remoteSha("refs/heads/automation/context-sync");
+    const retry = publish();
+    expect(retry.outputs.action).toBe("created");
+    expect(remoteSha("refs/heads/automation/context-sync")).toBe(tip);
+    expect(gh().prs).toHaveLength(1);
   });
 
   it("dry-run builds the commit without pushing or calling the PR API for writes", () => {

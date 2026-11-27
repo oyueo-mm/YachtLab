@@ -159,3 +159,43 @@ describe("scope policy for the automation PR", () => {
     expect(classify(["docs/context/_generated/manifest.json", "src/ai.ts"])).toBe("full");
   });
 });
+
+describe("deploy.yml scope step for a manual run on the automation branch (the real step text, executed)", () => {
+  function scopeScript() {
+    const text = read(".github/workflows/deploy.yml");
+    const after = text.slice(text.indexOf("id: classify"));
+    const block = after.slice(after.indexOf("run: |\n") + 8, after.indexOf("\n\n  unit:"));
+    return block.split("\n").map((l) => l.replace(/^ {10}/, "")).join("\n");
+  }
+  function scope(changed: string[], env: Record<string, string>) {
+    const dir = path.join(root, "scope-repo");
+    mkdirSync(path.join(dir, "scripts/ci"), { recursive: true });
+    copyFileSync(path.join(repoRoot, "scripts/ci/classify-changes.mjs"), path.join(dir, "scripts/ci/classify-changes.mjs"));
+    git(dir, "init", "-q", "-b", "main");
+    writeFileSync(path.join(dir, "app.ts"), "1\n");
+    git(dir, "add", "-A");
+    git(dir, "commit", "-qm", "base");
+    git(dir, "update-ref", "refs/remotes/origin/main", "HEAD"); // what a full-depth checkout provides
+    git(dir, "checkout", "-q", "-b", "automation/context-sync");
+    for (const file of changed) { mkdirSync(path.dirname(path.join(dir, file)), { recursive: true }); writeFileSync(path.join(dir, file), "x\n"); }
+    git(dir, "add", "-A");
+    git(dir, "commit", "-qm", "snapshot");
+    const out = path.join(root, "gh-output");
+    writeFileSync(out, "");
+    execFileSync("bash", ["-e", "-c", scopeScript()], {
+      cwd: dir,
+      env: { ...gitEnv, GITHUB_OUTPUT: out, HEAD: git(dir, "rev-parse", "HEAD"), BASE: "", FORCE_FULL: "false", ...env },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return readFileSync(out, "utf8").trim();
+  }
+  it("generated docs only → mode=docs (ci-result passes without build, browser or deploy)", () => {
+    expect(scope(["docs/context/_generated/CURRENT_STATE.md"], { EVENT: "workflow_dispatch", GITHUB_REF: "refs/heads/automation/context-sync" })).toBe("mode=docs");
+  });
+  it("anything else on that branch → full (fail safe)", () => {
+    expect(scope(["docs/context/_generated/a.md", "src/x.ts"], { EVENT: "workflow_dispatch", GITHUB_REF: "refs/heads/automation/context-sync" })).toBe("mode=full");
+  });
+  it("a forced-full manual run stays full", () => {
+    expect(scope(["docs/context/_generated/a.md"], { EVENT: "workflow_dispatch", GITHUB_REF: "refs/heads/automation/context-sync", FORCE_FULL: "true" })).toBe("mode=full");
+  });
+});

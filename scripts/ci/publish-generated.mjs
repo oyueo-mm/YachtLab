@@ -240,7 +240,16 @@ export function publish(options, cwd = process.cwd()) {
       if (branchChanged) gh(["pr", "edit", String(openPr.number), "--title", options.title, "--body-file", bodyFile]);
       action = branchChanged ? "updated" : "unchanged";
     } else {
-      prUrl = gh(["pr", "create", "--base", baseName, "--head", branch, "--title", options.title, "--body-file", bodyFile]).split("\n").pop();
+      try {
+        prUrl = gh(["pr", "create", "--base", baseName, "--head", branch, "--title", options.title, "--body-file", bodyFile]).split("\n").pop();
+      } catch (error) {
+        if (/not permitted to create or approve pull requests/i.test(String(error.message))) {
+          throw new Error(
+            `PR 생성이 거부됨: 저장소 설정 'Allow GitHub Actions to create and approve pull requests'가 꺼져 있음 (Settings → Actions → General → Workflow permissions). 브랜치 ${branch}@${headSha.slice(0, 10)}는 이미 push되어 있으니 설정 후 Context sync를 다시 실행하면 PR만 만들어짐.`,
+          );
+        }
+        throw error;
+      }
       action = "created";
     }
     summary(`### 생성 문서 PR: ${action}\n${prUrl}\n\n브랜치 \`${branch}\` @ \`${headSha.slice(0, 10)}\` (기준 ${baseName}@${baseSha.slice(0, 10)}), 파일 ${changes.length}개`);
