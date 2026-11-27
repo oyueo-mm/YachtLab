@@ -27,6 +27,9 @@ export function ProgressChart({ label, unit, series, steps, rounds, selected, ch
     change(nearest.index);
   }
   const current = series.map((line) => ({ line, point: [...line.points].reverse().find(({ x: px }) => px <= selected) }));
+  const marked = all.some(({ exactness }) => exactness);
+  const kinds = new Set(all.map(({ exactness }) => exactness));
+  const tag = (p?: SeriesPoint) => p?.exactness === "exact" ? " 정확" : p?.exactness === "estimate" ? " 추정" : "";
   const labelled = rounds.filter((_, i) => rounds.length <= 12 || i % 2 === 0);
 
   return <div className="review-chart" role="group" aria-label={label + " 그래프"}>
@@ -34,7 +37,12 @@ export function ProgressChart({ label, unit, series, steps, rounds, selected, ch
       <b>{rounds.filter(({ index }) => index <= selected).pop()?.round ?? rounds[0]?.round}라운드</b>{" "}
       {current.map(({ line, point }) => <span key={line.key} className={"review-legend tone-" + line.tone}>
         <i aria-hidden="true" />{line.label} {point ? `${point.value.toFixed(unit === "점" ? 1 : 2)}${unit}` : "—"}
+        {point?.exactness && <b className={"review-flag " + point.exactness}>{point.exactness === "exact" ? "정확 종반" : "모델 추정"}</b>}
       </span>)}
+      {marked && <span className="review-exactness-key" aria-label="점 모양 설명">
+        {kinds.has("estimate") && <span><svg viewBox="0 0 22 10" aria-hidden="true"><line x1="0" x2="22" y1="5" y2="5" className="estimate" /><circle cx="11" cy="5" r="3" className="estimate" /></svg>모델 추정</span>}
+        {kinds.has("exact") && <span><svg viewBox="0 0 22 10" aria-hidden="true"><line x1="0" x2="22" y1="5" y2="5" className="exact" /><rect x="8" y="2" width="6" height="6" className="exact" /></svg>정확 종반</span>}
+      </span>}
     </output>
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby={id} onPointerUp={pick}>
       <title id={id}>{label} 그래프. 점을 누르면 해당 행동으로 이동해요.</title>
@@ -49,11 +57,22 @@ export function ProgressChart({ label, unit, series, steps, rounds, selected, ch
       </g>)}
       <line className="review-cursor" x1={x(selected)} x2={x(selected)} y1={TOP - 4} y2={BOTTOM} />
       {series.map((line) => <g key={line.key} className={"review-series tone-" + line.tone}>
-        <polyline points={line.points.map((p) => `${x(p.x)},${y(p.value)}`).join(" ")} />
-        {line.points.map((p) => <circle key={p.index} cx={x(p.x)} cy={y(p.value)} r={p.index === selected ? 4.5 : 2}
-          className={p.index === selected ? "chosen" : undefined}>
-          <title>{p.round}라운드 · {p.value.toFixed(2)}{unit}</title>
-        </circle>)}
+        {line.points.slice(1).map((p, i) => {
+          const from = line.points[i];
+          // A segment is solid only when both ends are exact values.
+          const kind = from.exactness === "estimate" || p.exactness === "estimate" ? "estimate" : "exact";
+          return <line key={p.index} className={"review-seg-" + kind} x1={x(from.x)} y1={y(from.value)} x2={x(p.x)} y2={y(p.value)} />;
+        })}
+        {line.points.map((p) => {
+          const chosen = p.index === selected;
+          const className = [chosen ? "chosen" : "", p.exactness ?? ""].join(" ").trim() || undefined;
+          const title = <title>{p.round}라운드 · {p.value.toFixed(2)}{unit}{tag(p)}</title>;
+          if (p.exactness === "exact") {
+            const r = chosen ? 4.5 : 2.6;
+            return <rect key={p.index} x={x(p.x) - r} y={y(p.value) - r} width={r * 2} height={r * 2} className={className}>{title}</rect>;
+          }
+          return <circle key={p.index} cx={x(p.x)} cy={y(p.value)} r={chosen ? 4.5 : p.exactness ? 2.4 : 2} className={className}>{title}</circle>;
+        })}
       </g>)}
       <text className="review-axis" x={RIGHT} y={H - 1} textAnchor="end">라운드</text>
     </svg>

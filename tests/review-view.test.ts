@@ -60,6 +60,9 @@ describe("A5 review view model", () => {
     const values = [value(0, m.steps[0], 0.7, 0.4), value(1, m.steps[1], 0.2, 0.5)];
     expect(winSeries(m, values, 0).map(({ value }) => Math.round(value))).toEqual([70, 80]);
     expect(winSeries(m, values, 1).map(({ value }) => Math.round(value))).toEqual([30, 20]);
+    expect(winSeries(m, values, 0).map(({ exactness }) => exactness)).toEqual(["estimate", "estimate"]);
+    const exact = [{ ...values[0], exactness: "exact" as const }, values[1]];
+    expect(winSeries(m, exact, 0).map(({ exactness }) => exactness)).toEqual(["exact", "estimate"]);
     expect(scoreSeries(m, 0)).toHaveLength(1);
     expect(scoreSeries(m, 0)[0].value).toBeGreaterThan(0);
   });

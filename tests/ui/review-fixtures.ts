@@ -81,9 +81,9 @@ async function put(page: Page, database: string, record: unknown) {
   }, { database, record });
 }
 
-export async function seedReplays(page: Page, { ai = [], solo = [] }: { ai?: Replay[]; solo?: MultiReplay[] }) {
+export async function seedReplays(page: Page, { ai = [], multi = [] }: { ai?: Replay[]; multi?: MultiReplay[] }) {
   await page.goto("#records");
   for (const replay of ai) await put(page, "YachtLabReplays", replay);
-  for (const replay of solo) await put(page, "YachtLabMultiReplays", replay);
+  for (const replay of multi) await put(page, "YachtLabMultiReplays", replay);
   await page.getByRole("button", { name: "새로고침" }).click();
 }

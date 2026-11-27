@@ -9,12 +9,17 @@ const dir = process.env.REVIEW_SHOTS!;
 for (const kind of ["ai", "solo", "same"] as const) test(`shot ${kind}`, async ({ page }, info) => {
   test.setTimeout(120_000);
   const ai = kind === "ai" ? [aiReplay()] : kind === "same" ? [aiReplay(["요트", "요트"], "same-names", 91)] : [];
-  await seedReplays(page, { ai, solo: kind === "solo" ? [soloReplay()] : [] });
+  await seedReplays(page, { ai, multi: kind === "solo" ? [soloReplay()] : [] });
   await page.getByRole("button", { name: "게임 리뷰" }).first().click();
   const review = page.getByRole("dialog", { name: "게임 리뷰" });
   await expect(review.getByText(/분석 완료|저장된 분석/)).toBeVisible({ timeout: 90_000 });
   const p = info.project.name;
   await page.screenshot({ path: `${dir}/${kind}-${p}-top.png`, fullPage: false });
+  if (kind !== "solo") {
+    await review.getByRole("button", { name: "마지막", exact: true }).click();
+    await review.getByRole("region", { name: "경기 전체 분석" }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${dir}/${kind}-${p}-endgame.png` });
+  }
   const mistake = review.getByRole("region", { name: "주요 장면" }).locator(".mistakes button").first();
   if (await mistake.count()) await mistake.click();
   await review.locator(".review-position").scrollIntoViewIfNeeded();

@@ -141,9 +141,20 @@
 .review-series { --tone: #555; }
 .review-series.tone-me { --tone: var(--tone-me); }
 .review-series.tone-opp { --tone: var(--tone-opp); }
-.review-series polyline { fill: none; stroke: var(--tone); stroke-width: 1.6; }
-.review-series circle { fill: var(--tone); }
-.review-series circle.chosen { fill: #fff; stroke: var(--tone); stroke-width: 2.5; }
+.review-series line { stroke: var(--tone); stroke-width: 1.6; }
+.review-series line.review-seg-estimate { stroke-dasharray: 4 3; stroke-width: 1.3; }
+.review-series :is(circle, rect) { fill: var(--tone); }
+/* Model estimates are hollow on a dashed line; exact endgame values are solid squares on a solid line. */
+.review-series circle.estimate { fill: #fff; stroke: var(--tone); stroke-width: 1.3; }
+.review-series :is(circle, rect).chosen { fill: #fff; stroke: var(--tone); stroke-width: 2.5; }
+.review-series rect.exact.chosen { fill: var(--tone); stroke: #1f1d24; }
+.review-exactness-key { display: inline-flex; gap: 10px; color: var(--muted); font-size: 11.5px; }
+.review-exactness-key > span { display: inline-flex; align-items: center; gap: 3px; }
+.review-exactness-key svg { width: 22px; height: 10px; }
+.review-exactness-key line { stroke: #555; stroke-width: 1.4; }
+.review-exactness-key line.estimate { stroke-dasharray: 3 2; }
+.review-exactness-key circle { fill: #fff; stroke: #555; stroke-width: 1.3; }
+.review-exactness-key rect { fill: #555; }
 .review-bars rect.luck-plus { fill: var(--luck-plus); }
 .review-bars rect.luck-minus { fill: var(--luck-minus); }
 .review-bars rect.loss { fill: var(--loss); }

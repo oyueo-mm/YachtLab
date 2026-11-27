@@ -152,12 +152,12 @@ test("기본 대전 리뷰는 중반 추정과 정확 종반을 구분하고 값
   const review = page.getByRole("dialog", { name: "게임 리뷰" });
   const win = review.getByRole("group", { name: "승리점수율 그래프" });
   await expect(win).toBeVisible({ timeout: 35_000 });
-  await expect(review.getByText("모델 추정", { exact: true })).toBeVisible();
+  await expect(review.getByLabel("판단 평가").getByText("모델 추정", { exact: true })).toBeVisible();
   await review.getByText("분석 정보", { exact: true }).click();
   await expect(review.getByText(/내 선택의 예상 승리 .* 무승부 .* 패배/)).toBeVisible();
   await review.getByRole("radio", { name: "손실·운" }).click();
   await expect(review.getByRole("group", { name: /라운드별 판단 손실과 주사위 운 그래프/ }).getByRole("button").first()).toHaveAttribute("aria-label", /%p/);
   await review.getByRole("button", { name: "마지막", exact: true }).click();
-  await expect(review.getByText("정확 종반", { exact: true })).toBeVisible();
+  await expect(review.getByLabel("판단 평가").getByText("정확 종반", { exact: true })).toBeVisible();
   await expect(review.getByText(/내 선택의 예상 승리 .* 무승부 .* 패배/)).toHaveCount(0);
 });

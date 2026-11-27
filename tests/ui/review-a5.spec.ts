@@ -5,7 +5,7 @@ import { aiReplay, seedReplays, soloReplay } from "./review-fixtures";
 test.use({ serviceWorkers: "block" });
 
 test("1인 리뷰는 기대점수(점) 단위의 한 명만 보여 주고 분석 실패와 재시도를 구분한다", async ({ page }) => {
-  await seedReplays(page, { solo: [soloReplay()] });
+  await seedReplays(page, { multi: [soloReplay()] });
   const workerModule = "**/assets/review-worker-*.js";
   await page.route(workerModule, (route) => route.abort());
   await page.getByRole("button", { name: "게임 리뷰" }).click();
@@ -60,6 +60,12 @@ test("필터·하이라이트·그래프가 같은 행동을 가리키고 동명
   await review.getByRole("group", { name: /라운드별 판단 손실과 주사위 운 그래프/ }).getByRole("button", { name: /^5라운드/ }).click();
   await expect(review.locator(".review-current strong")).toContainText("5라운드");
   await expect(review.getByRole("button", { name: /5라운드/ }).and(timeline.locator("[aria-current=step]"))).toHaveCount(1);
+  // The current action stays visible inside the timeline's own scroll area.
+  await review.getByRole("button", { name: "마지막", exact: true }).click();
+  await expect.poll(() => timeline.evaluate((list) => {
+    const item = list.querySelector("[aria-current=step]")!.getBoundingClientRect(), box = list.getBoundingClientRect();
+    return item.top >= box.top - 1 && item.bottom <= box.bottom + 1;
+  })).toBe(true);
   await review.getByRole("radio", { name: "점수", exact: true }).click();
   await expect(review.getByRole("group", { name: "라운드별 점수 그래프" })).toContainText("요트 (후공)");
   expect(await review.evaluate((surface) => surface.scrollWidth)).toBeLessThanOrEqual(await review.evaluate((surface) => surface.clientWidth));

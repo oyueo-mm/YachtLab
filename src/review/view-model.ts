@@ -152,7 +152,8 @@ export function goodMoments(match: ReviewMatch, report: ReviewReport, values: re
   return rows.sort((a, b) => gradeOrder.indexOf(a.grade) - gradeOrder.indexOf(b.grade) || b.margin - a.margin).slice(0, limit);
 }
 
-export type SeriesPoint = { x: number; index: number; round: number; value: number };
+/** `exactness` is set only where the series mixes exact and estimated values (2인 승리점수율). */
+export type SeriesPoint = { x: number; index: number; round: number; value: number; exactness?: "exact" | "estimate" };
 
 /** Running total after each recorded category, from the public card of that moment. */
 export function scoreSeries(match: ReviewMatch, seat: number): SeriesPoint[] {
@@ -172,7 +173,8 @@ export function winSeries(match: ReviewMatch, values: readonly Assessment[], ref
     const credit = row.actual.winCredit;
     if (credit === undefined) return [];
     const { player, round } = match.steps[row.index].before;
-    return [{ x: row.index, index: row.index, round, value: player === reference ? credit * 100 : 100 - credit * 100 }];
+    return [{ x: row.index, index: row.index, round, value: player === reference ? credit * 100 : 100 - credit * 100,
+      exactness: row.exactness === "exact" ? "exact" as const : "estimate" as const }];
   });
 }
 

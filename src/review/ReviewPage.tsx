@@ -116,7 +116,7 @@ function MatchAnalysis({ match }: { match: ReviewMatch }) {
     const container = list.current;
     const item = container?.querySelector<HTMLElement>("[aria-current=step]");
     if (!container || !item) return;
-    const top = item.offsetTop - container.offsetTop;
+    const top = item.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
     if (top < container.scrollTop) container.scrollTop = top - 28;
     else if (top + item.offsetHeight > container.scrollTop + container.clientHeight)
       container.scrollTop = top + item.offsetHeight - container.clientHeight + 8;
