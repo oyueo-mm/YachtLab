@@ -99,6 +99,7 @@
     "competitive-research.yml",
     "confirm-v2.yml",
     "context-sync.yml",
+    "context-wiki.yml",
     "deploy-online-worker.yml",
     "deploy.yml",
     "discovered-external.yml",
@@ -133,6 +134,26 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "d6151f1",
+      "date": "2026-11-28",
+      "subject": "Merge pull request #128 from oyueo-mm/claude/ci-1-context-sync-protection"
+    },
+    {
+      "sha": "dff4bfb",
+      "date": "2026-11-27",
+      "subject": "docs(ci-1): record live dispatch verification (ci-result success, deploy skipped off main)"
+    },
+    {
+      "sha": "263f388",
+      "date": "2026-11-27",
+      "subject": "ci: explain the PR-creation admin setting, test the real scope step, record live verification"
+    },
+    {
+      "sha": "63d265a",
+      "date": "2026-11-27",
+      "subject": "ci: CI-1 context sync via automation PR, standalone wiki mirror, protection-ready workflows"
+    },
+    {
       "sha": "db2e17a",
       "date": "2026-11-28",
       "subject": "Merge pull request #117 from oyueo-mm/claude/a2-cosmetics-chat"
@@ -161,46 +182,20 @@
       "sha": "d6dcd3a",
       "date": "2026-11-27",
       "subject": "wip: stage look follows player on turn; member e2e harness; CI test fixes"
-    },
-    {
-      "sha": "74bfcd8",
-      "date": "2026-11-27",
-      "subject": "Guard item upgrades against legacy Worker catalog capabilities"
-    },
-    {
-      "sha": "a69bd71",
-      "date": "2026-11-27",
-      "subject": "feat(a2.1): solo layout compaction, chat sfx, title marks, emote touch-ups, real-game checks"
-    },
-    {
-      "sha": "1408af0",
-      "date": "2026-11-27",
-      "subject": "docs: place A2 results mid-file to avoid appending conflicts"
-    },
-    {
-      "sha": "22a7806",
-      "date": "2026-11-27",
-      "subject": "Merge origin/main (C2 review, PR #116) into A2"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "c3d6f2b90a",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46036871340"
+      "head": "dff4bfb27d",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46056702107"
     },
     {
-      "name": "SEO IndexNow",
+      "name": "A3 match result preview",
       "status": "success",
-      "head": "0462030dc3",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46036757691"
-    },
-    {
-      "name": "YachtLab gameplay UI targeted smoke",
-      "status": "success",
-      "head": "c5d4d955e5",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46035939115"
+      "head": "133e5778c8",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46045115881"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
