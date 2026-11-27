@@ -46,6 +46,8 @@
   ],
   "documentation": [
     "A1-DICE-BOARD-2026-11-27.md",
+    "A2-C5-CATALOG-PROPOSAL-2026-11-27.md",
+    "A2-COSMETICS-CHAT-2026-11-27.md",
     "AI-REVIEW.md",
     "AUTOMATION.md",
     "C2-GAME-REVIEW.md",
@@ -131,9 +133,34 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "db2e17a",
+      "date": "2026-11-28",
+      "subject": "Merge pull request #117 from oyueo-mm/claude/a2-cosmetics-chat"
+    },
+    {
+      "sha": "c5d4d95",
+      "date": "2026-11-27",
+      "subject": "Merge remote-tracking branch 'origin/main' into claude/a2-cosmetics-chat"
+    },
+    {
+      "sha": "d5791f8",
+      "date": "2026-11-27",
+      "subject": "test(a2): fix member spec settings; docs for A2.2 (stage look, compact multi sheet, bonus moment)"
+    },
+    {
       "sha": "fa22a35",
       "date": "2026-11-28",
       "subject": "Merge pull request #119 from oyueo-mm/codex/hotfix-item-upgrade"
+    },
+    {
+      "sha": "4ab142e",
+      "date": "2026-11-27",
+      "subject": "feat(a2.2): table follows player on turn, compact multi score sheet, upper bonus moment"
+    },
+    {
+      "sha": "d6dcd3a",
+      "date": "2026-11-27",
+      "subject": "wip: stage look follows player on turn; member e2e harness; CI test fixes"
     },
     {
       "sha": "74bfcd8",
@@ -141,58 +168,39 @@
       "subject": "Guard item upgrades against legacy Worker catalog capabilities"
     },
     {
-      "sha": "ef725f6",
+      "sha": "a69bd71",
       "date": "2026-11-27",
-      "subject": "Merge pull request #116 from oyueo-mm/feat/c2-game-review"
+      "subject": "feat(a2.1): solo layout compaction, chat sfx, title marks, emote touch-ups, real-game checks"
     },
     {
-      "sha": "9685063",
+      "sha": "1408af0",
       "date": "2026-11-27",
-      "subject": "Improve game review evaluation and replay linkage"
+      "subject": "docs: place A2 results mid-file to avoid appending conflicts"
     },
     {
-      "sha": "013a0a3",
+      "sha": "22a7806",
       "date": "2026-11-27",
-      "subject": "Merge pull request #115 from oyueo-mm/claude/tender-mendel-q0vocx"
-    },
-    {
-      "sha": "ec9c231",
-      "date": "2026-11-27",
-      "subject": "docs: A1 merge, Pages deploy and live-site verification record (Worker not deployed)"
-    },
-    {
-      "sha": "ff1cf4b",
-      "date": "2026-11-27",
-      "subject": "Merge pull request #114 from oyueo-mm/claude/tender-mendel-q0vocx"
-    },
-    {
-      "sha": "4e797e6",
-      "date": "2026-11-27",
-      "subject": "A1: post-deploy live verification script (read-only for production data)"
-    },
-    {
-      "sha": "126ce9c",
-      "date": "2026-11-27",
-      "subject": "docs: place A1 context entries away from C1 (#113) edit points to avoid merge conflicts (content unchanged)"
-    },
-    {
-      "sha": "e2f4c06",
-      "date": "2026-11-27",
-      "subject": "A1.1: three-version perf comparison (main / A1 08c507b / A1.1) and context docs (D-083)"
+      "subject": "Merge origin/main (C2 review, PR #116) into A2"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "74bfcd86d5",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46018302968"
+      "head": "c3d6f2b90a",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46036871340"
     },
     {
       "name": "SEO IndexNow",
       "status": "success",
-      "head": "0e9a211e27",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46009322210"
+      "head": "0462030dc3",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46036757691"
+    },
+    {
+      "name": "YachtLab gameplay UI targeted smoke",
+      "status": "success",
+      "head": "c5d4d955e5",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46035939115"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

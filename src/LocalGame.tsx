@@ -1,4 +1,5 @@
 import { MatchResult } from "./ui/MatchResult";
+import { BonusMoments } from "./bonus-moment";
 import ReviewLauncher from "./review/ReviewLauncher";
 import { fromMultiReplay } from "./review/sources";
 import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./play/Tutorial";
@@ -6,6 +7,7 @@ import { nearYacht, ScoreTotal } from "./ui/GameMoments";
 import { useEffect, useRef, useState } from "react";
 import { Dices, History, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { DiceArea } from "./DiceArea";
+import "./play/multi-compact.css";
 import { MultiScoreboard, MultiStandings } from "./MultiScoreboard";
 import { createMultiGame, multiStandings, type MultiGame } from "./multi-engine";
 import { appendMultiAction, newMultiReplay, type MultiReplay } from "./multi-replay";
@@ -158,7 +160,7 @@ export default function LocalGame({
         </button>
         </>}
       </div>
-      <div className={"game-grid multi-game-grid " + (count <= 4 ? "multi-small" : count <= 8 ? "multi-medium" : "multi-wide")}>
+      <div className={"game-grid multi-game-grid " + (count <= 4 ? "multi-small" : count <= 8 ? "multi-medium" : "multi-wide")} style={{ "--np": count } as React.CSSProperties}>
         <div className="game-left">
           <div className="multi-player-strip" aria-label="참가자 점수 요약" ref={railRef}>
             {state.cards.map((card, i) => (
@@ -173,6 +175,7 @@ export default function LocalGame({
           </div>
           <section className={"game-board throw-tray " + (state.rolls === 0 ? "multi-dice-ready" : "") + (canAct && nearYacht(state.dice, state.rolls, state.cards[state.player]) ? " yacht-near" : "") + theme.className} style={theme.style} ref={boardRef} aria-label="사람 vs 사람 게임 보드" {...gesture}>
             <Celebrate value={celebration} />
+            <BonusMoments scope={String(state.seed)} players={state.cards.map((c, i) => ({ id: "s" + i, name: names[i], card: c, mine: false, look }))} />
             <BoardFx itemId={look.board} level={look.boardLv ?? 1} host={boardRef} />
             <SynergyFx dice={look.dice} board={look.board} level={Math.min(look.diceLv ?? 1, look.boardLv ?? 1)} host={boardRef} />
             <div className="board-top">
@@ -238,7 +241,7 @@ export default function LocalGame({
               </button>
             </div>
           )}
-          <MultiScoreboard state={state} labels={names} focused={count >= 9 && !allScores} select={canAct ? recordScore : undefined} />
+          <MultiScoreboard state={state} labels={names} compact focused={count >= 9 && !allScores} select={canAct ? recordScore : undefined} />
           {count >= 9 && <MultiStandings state={state} labels={names} />}
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Bot, Box, Coins, FlaskConical, Trophy, type LucideIcon } from "lucide-react";
+import { Bot, Box, Coins, FlaskConical, Sparkles, Trophy, type LucideIcon } from "lucide-react";
 import DiceLab from "./DiceLab";
 import HomeDemo from "../HomeDemo";
 import type { Match } from "../match";
@@ -10,6 +10,7 @@ import { Analysis, Spectator, Tournament } from "./LabPages";
 
 // The economy study (simulator + results) is its own lazily loaded chunk.
 const EconomyLab = lazy(() => import("./EconomyLab"));
+const CosmeticsLab = lazy(() => import("./CosmeticsLab"));
 
 /**
  * Research lab entry (lazy-loaded chunk). Everything here is an advanced/research tool,
@@ -40,6 +41,12 @@ export default function LabScreen({
   if (route === "tournament") return <Tournament openReplay={openReplay} />;
   if (route === "analysis") return <Analysis initial={analysisSource} />;
   if (route === "dice-lab") return <DiceLab />;
+  if (route === "cosmetics-lab")
+    return (
+      <Suspense fallback={<p className="lab-loading" role="status">미리보기를 불러오는 중…</p>}>
+        <CosmeticsLab />
+      </Suspense>
+    );
   if (route === "economy-lab")
     return (
       <Suspense fallback={<p className="lab-loading" role="status">경제 연구실을 불러오는 중…</p>}>
@@ -51,6 +58,7 @@ export default function LabScreen({
     { id: "tournament", icon: Trophy, text: "여러 알고리즘을 같은 시드로 겨루게 해 승률과 점수를 비교해요." },
     { id: "analysis", icon: FlaskConical, text: "특정 상황에서 전략별 기대 점수를 DP로 비교해요." },
     { id: "dice-lab", icon: Box, text: "3D 물리 주사위 프로토타입을 기존 2.5D 연출과 비교하고 검증해요." },
+    { id: "cosmetics-lab", icon: Sparkles, text: "채팅 38종·말풍선·이모티콘·닉네임·칭호·프레임·특수 효과를 실제 게임과 같은 컴포넌트로 재생해 봐요(저장·전송 없음)." },
     { id: "economy-lab", icon: Coins, text: "코인·보석 경제 후보 모델을 게임 데이터 기반 시뮬레이션으로 비교해요(연구용, 실제 재화 없음)." },
   ];
   return (

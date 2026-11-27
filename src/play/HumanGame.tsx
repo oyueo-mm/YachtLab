@@ -1,4 +1,5 @@
 import { BrandMark } from "../ui/BrandLoading";
+import { BonusMoments } from "../bonus-moment";
 import { MatchResult } from "../ui/MatchResult";
 import { ShareResultButton } from "../ui/ShareResult";
 import ReviewLauncher from "../review/ReviewLauncher";
@@ -271,6 +272,7 @@ export default function HumanGame({
           </div>
           <section className={"game-board throw-tray" + (state.rolls === 0 ? " dice-ready" : "") + (can && nearYacht(state.dice, state.rolls, state.cards[humanSeat]) ? " yacht-near" : "") + theme.className} style={theme.style} ref={boardRef} aria-label="게임 보드" {...gesture}>
             <Celebrate value={celebration} />
+            <BonusMoments scope={String(state.seed ?? 0)} players={state.cards.map((c, i) => ({ id: "s" + i, name: labels[i], card: c, mine: i === humanSeat, look: i === humanSeat ? look : null }))} />
             <BoardFx itemId={look.board} level={look.boardLv ?? 1} host={boardRef} />
             <SynergyFx dice={state.player === humanSeat ? look.dice : undefined} board={look.board} level={Math.min(look.diceLv ?? 1, look.boardLv ?? 1)} host={boardRef} />
             <div className="board-top">
