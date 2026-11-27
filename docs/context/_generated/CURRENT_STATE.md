@@ -119,6 +119,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [013a0a3](https://github.com/oyueo-mm/YachtLab/commit/013a0a3) | 2026-11-27 | Merge pull request #115 from oyueo-mm/claude/tender-mendel-q0vocx |
+| [ec9c231](https://github.com/oyueo-mm/YachtLab/commit/ec9c231) | 2026-11-27 | docs: A1 merge, Pages deploy and live-site verification record (Worker not deployed) |
 | [ff1cf4b](https://github.com/oyueo-mm/YachtLab/commit/ff1cf4b) | 2026-11-27 | Merge pull request #114 from oyueo-mm/claude/tender-mendel-q0vocx |
 | [4e797e6](https://github.com/oyueo-mm/YachtLab/commit/4e797e6) | 2026-11-27 | A1: post-deploy live verification script (read-only for production data) |
 | [126ce9c](https://github.com/oyueo-mm/YachtLab/commit/126ce9c) | 2026-11-27 | docs: place A1 context entries away from C1 (#113) edit points to avoid merge conflicts (content unchanged) |
@@ -127,8 +129,6 @@
 | [e017a73](https://github.com/oyueo-mm/YachtLab/commit/e017a73) | 2026-11-27 | A1.1: adaptive effect quality from measured throw frames |
 | [a3083fb](https://github.com/oyueo-mm/YachtLab/commit/a3083fb) | 2026-11-27 | A1.1: no layout read in fxBudget, one transform per particle, banded synergy paths |
 | [d80a257](https://github.com/oyueo-mm/YachtLab/commit/d80a257) | 2026-11-27 | A1.1: no forced layouts during throws, cached motion queries, cheaper meadow |
-| [ede35f3](https://github.com/oyueo-mm/YachtLab/commit/ede35f3) | 2026-11-27 | A1.1: prepare throw physics in a Web Worker; dice first frames before decorative layers |
-| [08c507b](https://github.com/oyueo-mm/YachtLab/commit/08c507b) | 2026-11-27 | A1: before/after perf tables and results |
 
 ## 최근 GitHub Actions 상태
 
@@ -136,9 +136,9 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/45997138923) | success | 4e797e6ec2 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/46000345101) | success | ec9c2318fc |
+| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45999576447) | success | 6e734fc510 |
 | [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45997138823) | success | 4e797e6ec2 |
-| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/45979178829) | success | b6ebf72847 |
 
 ## 다음 채팅과 작업의 시작점
 

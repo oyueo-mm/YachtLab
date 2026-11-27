@@ -130,6 +130,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "013a0a3",
+      "date": "2026-11-27",
+      "subject": "Merge pull request #115 from oyueo-mm/claude/tender-mendel-q0vocx"
+    },
+    {
+      "sha": "ec9c231",
+      "date": "2026-11-27",
+      "subject": "docs: A1 merge, Pages deploy and live-site verification record (Worker not deployed)"
+    },
+    {
       "sha": "ff1cf4b",
       "date": "2026-11-27",
       "subject": "Merge pull request #114 from oyueo-mm/claude/tender-mendel-q0vocx"
@@ -168,36 +178,26 @@
       "sha": "d80a257",
       "date": "2026-11-27",
       "subject": "A1.1: no forced layouts during throws, cached motion queries, cheaper meadow"
-    },
-    {
-      "sha": "ede35f3",
-      "date": "2026-11-27",
-      "subject": "A1.1: prepare throw physics in a Web Worker; dice first frames before decorative layers"
-    },
-    {
-      "sha": "08c507b",
-      "date": "2026-11-27",
-      "subject": "A1: before/after perf tables and results"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "4e797e6ec2",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45997138923"
+      "head": "ec9c2318fc",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46000345101"
+    },
+    {
+      "name": "SEO IndexNow",
+      "status": "success",
+      "head": "6e734fc510",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45999576447"
     },
     {
       "name": "YachtLab gameplay UI targeted smoke",
       "status": "success",
       "head": "4e797e6ec2",
       "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45997138823"
-    },
-    {
-      "name": "SEO IndexNow",
-      "status": "success",
-      "head": "b6ebf72847",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45979178829"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
