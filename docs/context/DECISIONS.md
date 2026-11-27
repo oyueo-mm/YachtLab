@@ -376,6 +376,7 @@ GitHub Pages의 `/YachtLab/` 스코프와 매니페스트를 사용한다. 서�
 2. Vitest와 빌드는 병렬, Playwright는 4샤드(각 workers=2). 파일 내부 순서 의존 때문에 `fullyParallel`은 켜지 않는다.
 3. 배포는 `ci-result`(필수 작업 모두 success)를 통과한 main push에서만. 실패·건너뛴 검증으로 배포하지 않는다.
 4. 매일 03:17 KST 전체 회귀(배포 없음). 같은 ref의 새 실행이 이전 실행을 취소한다.
+5. C4.1(2026-11-28)부터 모든 워크플로 변경에 전체 CI를 적용한다. Worker 배포는 최신 main 커밋 검토, Free 확인, 운영 Environment 승인, Pages 빌드와 활성 Worker 버전 대조를 거친다. [운영 절차](../operations/C4-1-WORKER-DEPLOY-READINESS.md)
 
 ## D-062. 검색용 정적 페이지는 생성기 하나로 관리한다 (2026-11-26)
 

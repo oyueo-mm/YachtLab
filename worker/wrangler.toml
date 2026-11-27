@@ -9,12 +9,18 @@ workers_dev = true
 preview_urls = false
 
 
-# Workers Logs (included in Workers Free: 200k log events/day, 3-day retention; no paid resource).
-# Turned on to find the cause of the YachtRoom error count seen on the dashboard (2026-11-24).
-# Nothing personal is logged (no tokens, ids or IPs).
+# Keep application error codes. Suppress request/response invocation records and redact URL queries
+# in observability metadata. Verify the effective collection and exports after an approved deploy.
 [observability]
 enabled = true
-head_sampling_rate = 1
+redact_query_string = true
+
+[observability.logs]
+enabled = true
+invocation_logs = false
+
+[observability.traces]
+enabled = false
 
 [[durable_objects.bindings]]
 name = "ROOMS"

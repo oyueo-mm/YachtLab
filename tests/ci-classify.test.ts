@@ -7,8 +7,13 @@ describe("CI change classification (D-061)", () => {
     expect(classify([])).toBe("full");
     expect(classify(["", "  "])).toBe("full");
   });
-  it("skips the site pipeline for documentation and research workflows only", () => {
-    expect(classify(["docs/context/RESULTS.md", "README.md", ".github/workflows/v5-apex-research.yml"])).toBe("docs");
+  it("skips the site pipeline for documentation only", () => {
+    expect(classify(["docs/context/RESULTS.md", "README.md"])).toBe("docs");
+  });
+  it("runs the full pipeline for every workflow change", () => {
+    expect(classify([".github/workflows/deploy-online-worker.yml"])).toBe("full");
+    expect(classify(["public/sitemap.xml", ".github/workflows/v5-apex-research.yml"])).toBe("full");
+    expect(classify(["docs/a.md", ".github/workflows/deploy.yaml"])).toBe("full");
   });
   it("never treats the site workflow, code, data or the app shell as documentation", () => {
     expect(classify(["docs/a.md", ".github/workflows/deploy.yml"])).toBe("full");
