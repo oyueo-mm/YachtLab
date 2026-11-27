@@ -8,7 +8,7 @@
 
 > **게임 리뷰**는 [제품 복기의 수치 기준과 데이터 경계](./AI-REVIEW.md)에서 시작한다. 브라우저 Web Worker에서 DP Expert와 작은 v5 종반 범위를 사용한다.
 
-> **주사위 물리·보드판 강화 단계·시너지·효과 성능(A1, 2026-11-27)** → [A1-DICE-BOARD-2026-11-27](./A1-DICE-BOARD-2026-11-27.md), D-079~D-082. 코드: 물리 `src/dice3d/physics.ts`(`impulse`), 이동 `carryPose`(`src/dice3d/table.ts`), 표면음 `SURFACES`(`src/sound.ts`), 보드 장면 `src/play/board-scene.ts`·`BoardFxLayer.tsx`, 시너지 `src/play/board-synergy.ts`, 측정 `scripts/measure-board-fx-perf.mjs`.
+> **주사위 물리·보드판 강화 단계·시너지·효과 성능(A1, 2026-11-27)** → [A1-DICE-BOARD-2026-11-27](./A1-DICE-BOARD-2026-11-27.md), D-079~D-083. 코드: 물리 `src/dice3d/physics.ts`(`impulse`), 사전 계산 워커 `src/dice3d/physics-worker.ts`, 적응형 효과 품질 `src/fx-quality.ts`, 이동 `carryPose`(`src/dice3d/table.ts`), 표면음 `SURFACES`(`src/sound.ts`), 보드 장면 `src/play/board-scene.ts`·`BoardFxLayer.tsx`, 시너지 `src/play/board-synergy.ts`, 측정 `scripts/measure-board-fx-perf.mjs`.
 >
 > **1인 플레이·프로필·컬렉션·시너지·한정판·상점 안내·오디오 믹스(2026-11-27)** → [COLLECTIONS-2026-11-27](./COLLECTIONS-2026-11-27.md), [STREAK-REVIEW-2026-11-27](./STREAK-REVIEW-2026-11-27.md), [오디오 믹스](../audio/MIX.md), D-074~D-078. 코드: 1인 플레이 `src/play/SoloGame.tsx`·`src/solo/`(기록·동기화), 오프라인 장착 `src/play/own-look.ts`, 프로필 `src/shell/ProfileSections.tsx`, 컬렉션 `src/economy/live/collections.ts`, 시너지 `src/play/board-synergy.ts`, 2.5D 효과 `src/dice3d/Dice25Fx.tsx`·`src/play/tray-attach.ts`, 안내 `src/ui/Coach.tsx`, 믹스 `src/sound.ts`(버스·`volumeCurve`)·`src/audio/bgm-render.ts`(`normalize`). **워커 배포 전**에는 1인 기록 계정 보관과 신규 11종 판매가 꺼져 있다(의도된 안전 동작).
 >
