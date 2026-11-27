@@ -144,3 +144,40 @@ node scripts/ci/audit-workflows.mjs --strict   # exit 0 이어야 함
 - 연구 PR이 쌓이면 사람이 병합해야 `main`에 반영됩니다(이전에는 자동 반영). 병합하지 않은 보고서는 `main` 문서에서 보이지 않습니다.
 - (해소) 병합·PR이 연구를 시작하던 위험은 트리거 제거로 없앴습니다(§6.2). 대신 이전에 push로 자동 재실행되던 연구는 이제 사람이 dispatch해야 합니다.
 - 서로 다른 두 연구가 나중에 같은 보고서 파일을 게시하도록 바뀌면 PR 병합 시 충돌합니다(테스트가 현재 중복을 막음).
+
+## 부록. PR이 실행하는 잡과 dispatch 전용 잡 (CI-1.2)
+
+`scripts/ci/audit-workflows.mjs`의 `pullRequestJobs`로 계산한 목록입니다. "PR 실행"에 있는 잡은 기존 경량 검증(테스트·빌드·`--smoke`)이며 쓰기 권한이 없습니다. "dispatch 전용"에 있는 잡(대규모 실험·보고서 게시)은 `workflow_dispatch`에서만 실행됩니다. 단일 잡 워크플로(`sweep`, `selfplay`, `train`, `research`)는 같은 잡 안에서 `--smoke` 단계만 PR에서, 전체 실험 단계는 dispatch에서만 실행되도록 단계 조건이 나뉘어 있습니다.
+
+| 워크플로 | PR 실행 | dispatch 전용 |
+|---|---|---|
+| `algorithm-zoo.yml` | `sweep`, `rl` | `publish-report` |
+| `br-error-enumeration.yml` | `verify` | `enumerate`, `summarize` |
+| `br-research.yml` | `verify` | `exact`, `counterfactual`, `checkpoint`, `distill`, `summarize` |
+| `competitive-research.yml` | (PR 트리거 없음 — dispatch 전용) | `benchmark` |
+| `confirm-v2.yml` | (PR 트리거 없음 — dispatch 전용) | `confirm`, `qr_dqn_extended` |
+| `discovered-external.yml` | `verify` | `duel`, `summarize` |
+| `external-championship.yml` | `verify` | `duel`, `summarize` |
+| `followup-ablations.yml` | `validate` | `train-opponent-models`, `train-psro`, `train-ablation`, `select-ablation`, `duel-v33`, `duel-v34`, `duel-v4`, `report-v33`, `report-v34`, `report-v4` |
+| `foundation-v4-tournament.yml` | `validate` | `duel`, `report` |
+| `frontier-200k.yml` | `validate` | `train-v33`, `train-psro`, `train-v4`, `select-v4`, `duel`, `report` |
+| `full-selfplay.yml` | `selfplay`, `three_turn` | `publish-report` |
+| `integrated-research.yml` | `league`, `qr_dqn` |  |
+| `native12-dqn.yml` | `verify` | `duel`, `summarize` |
+| `neural-selfplay.yml` | `train` | `publish-report` |
+| `offpolicy-ppo-expanded.yml` | `verify-and-offpolicy`, `prepare-psro`, `ppo-twofold`, `aggregate` | `publish-report` |
+| `psro-extended.yml` | `psro-oracle`, `scorecard-pmf`, `ppo`, `aggregate` | `publish-report` |
+| `psro-ppo.yml` | `research` | `publish-report` |
+| `qr-20k.yml` | `verify` | `train-20k`, `summarize` |
+| `qr-autoresearch.yml` | `verify` | `screen`, `select-screen`, `develop`, `select-develop`, `confirm`, `report` |
+| `qr-deep-research.yml` | `verify` | `full-research`, `aggregate` |
+| `qr-followup.yml` | `verify` | `reproduce-54`, `train`, `summarize` |
+| `qr-four-pillars.yml` | `verify` | `train-factorial`, `consolidate` |
+| `research-50k-league.yml` | `validate` | `budget`, `league`, `report-budget`, `report-league` |
+| `sota-attack-lab.yml` | `verify` | `comparison`, `summarize-comparison`, `rl-train`, `summarize-rl` |
+| `sota-independent-confirm.yml` | `validate` | `duel`, `summarize` |
+| `tabular-zoo.yml` | `tabular` |  |
+| `v31-large.yml` | `validate` | `duel`, `summarize` |
+| `v31-research.yml` | `validate` | `duel`, `summarize` |
+| `v32-research.yml` | `validate` | `duel`, `report` |
+| `yahtzeerl-transfer.yml` | `verify` | `duel`, `summarize` |
