@@ -30,7 +30,7 @@ export type ClientMessage =
   /** Leave a finished room for good (no rematch with this seat any more). */
   | { t: "bye" }
   /** Player: allow or stop spectators for this room (needs every seated player's consent). */
-  | { t: "spectate"; allow: boolean }
+  | { t: "spectate"; allow: boolean; visibility?: "invite" | "public" | "private" }
   /** Spectator: first frame instead of `hello`. The key comes from a player's watch link. */
   | { t: "watch"; key: string; since?: number }
   /** Lobby: any player marks ready / not ready. */
@@ -84,7 +84,7 @@ export type RematchState = { requests: string[]; declinedBy: string | null; depa
  * Spectating is off until every seated player turns it on. `key` (players only) is the secret part of
  * the watch link; it is replaced whenever spectating is turned off, so old links stop working.
  */
-export type SpectateState = { allow: Record<string, boolean>; active: boolean; key: string | null; spectators: number; max: number; public?: boolean };
+export type SpectateState = { allow: Record<string, boolean>; active: boolean; key: string | null; spectators: number; max: number; public?: boolean; visibility?: "private" | "invite" | "public"; preferences?: Record<string, "private" | "invite" | "public"> };
 /** The server AI seat of an AI match (shown as AI, never as a person). */
 export type AiSeat = { playerId: string; level: string };
 
@@ -146,7 +146,8 @@ export function parseClientMessage(data: string): ClientMessage | null {
       return { t: "host", to: raw.to as string };
     case "spectate":
       if (typeof raw.allow !== "boolean") return null;
-      return { t: "spectate", allow: raw.allow };
+      if (raw.visibility !== undefined && raw.visibility !== "private" && raw.visibility !== "invite" && raw.visibility !== "public") return null;
+      return { t: "spectate", allow: raw.allow, ...(raw.visibility ? { visibility: raw.visibility } : {}) };
     case "watch":
       if (typeof raw.key !== "string" || raw.key.length < 16 || raw.key.length > 64) return null;
       if (raw.since !== undefined && (!Number.isSafeInteger(raw.since) || (raw.since as number) < 0)) return null;

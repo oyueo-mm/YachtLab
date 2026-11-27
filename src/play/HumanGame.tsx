@@ -42,6 +42,7 @@ import { diceLookOf, diceMaterialOf, useBoardTheme } from "./Looks";
  */
 export default function HumanGame({
   config,
+  suspended = false,
   onBranch,
   onAnalyze,
   onChangeSetup,
@@ -49,6 +50,7 @@ export default function HumanGame({
   onProgress,
 }: {
   config: AiMatchConfig;
+  suspended?: boolean;
   onBranch: (r: Replay, index: number) => void;
   onAnalyze: (s: AnalysisSource) => void;
   onChangeSetup: () => void;
@@ -160,7 +162,7 @@ export default function HumanGame({
     setPreviewScore: setAiPreviewCategory,
     setModelStatus,
     skipTrial,
-    paused: !!viewReplay,
+    paused: !!viewReplay || suspended,
     pausedRef,
     aiSeat,
     speed: aiSpeedScale[config.speed],
@@ -199,7 +201,7 @@ export default function HumanGame({
     setAiPreviewCategory(null);
   };
   const guarded = (action: Exclude<PendingAction, null>) => (inProgress ? setPending(action) : action.run());
-  const can = state.player === humanSeat && !state.done && !busy && !rolling;
+  const can = !suspended && state.player === humanSeat && !state.done && !busy && !rolling;
   const gesture = useThrowGesture(can && state.rolls < 3, () => act({ type: "roll" }));
   const yachtReady = useYachtReady(state.dice, state.rolls, state.player === humanSeat && !state.done && state.cards[humanSeat].yacht === undefined);
   const outcome = state.done ? (state.winner === "draw" ? "draw" : state.winner === humanSeat ? "win" : "lose") : null;

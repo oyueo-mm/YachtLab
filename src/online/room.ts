@@ -111,7 +111,7 @@ export type RoomRecord = {
   /** Players who left the finished room for good. */
   departed?: string[];
   /** Spectating consent per player and the current watch key (null = off / revoked). */
-  spectate?: { allow: Record<string, boolean>; key: string | null };
+  spectate?: { allow: Record<string, boolean>; key: string | null; publicAllow?: Record<string, boolean> };
   /** Seats taken by signed-in players: playerId → account id (verified by the host at join time). */
   identities?: Record<string, { userId: string }>;
   /** Server-verified results not yet delivered to the players' accounts (retried; idempotent). */
@@ -132,7 +132,7 @@ export type RoomRecord = {
   hostId?: string;
 };
 /** A seat given by the matchmaker (or the AI starter): name, verified account and its validated look. */
-export type SeatSpec = { name: string; identity?: { userId: string } | null; look?: PublicLook | null; ai?: boolean };
+export type SeatSpec = { name: string; identity?: { userId: string } | null; look?: PublicLook | null; ai?: boolean; token?: string };
 
 export type RoomDeps = {
   now: () => number;
@@ -147,7 +147,8 @@ export type RoomDeps = {
    * May one more match start in this room? Returns null when it may, otherwise a message for the
    * players. The Durable Object host counts it toward the daily cap (rooms + rematches).
    */
-  allowMatch?: (weight: number, matchNo: number) => Promise<string | null> | string | null;
+  releaseMatch?: (matchNo: number) => void | Promise<void>;
+  allowMatch?: (weight: number, matchNo: number, users: string[]) => Promise<string | null> | string | null;
 };
 
 /** A live socket, as seen by the room. `playerId` is set only after a successful `hello`. */
@@ -362,7 +363,7 @@ export class OnlineRoom {
       const name = checked.ok ? normalizeName(checked.name) : null;
       if (!name) throw Error("닉네임을 확인해 주세요.");
       const playerId = "p_" + base64url(room.random(new Uint8Array(12)));
-      const token = base64url(room.random(new Uint8Array(32)));
+      const token = seat.token ?? base64url(room.random(new Uint8Array(32)));
       const joined = applyCommand(state, { commandId: `match-join-${i}`, playerId, action: { type: "join", name } }, ctx);
       if (!joined.ok) throw Error(joined.error.message);
       state = joined.state;
@@ -461,6 +462,9 @@ export class OnlineRoom {
       const entry: SeriesEntry = { matchId: next.matchId, finishedAt: finished.at, winners: [...finished.winners], points: Object.fromEntries(finished.standings.map((s) => [s.playerId, s.points])) };
       this.record = { ...this.record, series: [...(this.record.series ?? []), entry].slice(-ROOM_LIMITS.maxMatches), rematch: null, outbox: [...(this.record.outbox ?? []), ...this.accountRecords(next)] };
     }
+    if (finished && this.kind === "friend" && this.record.spectate) {
+      this.record = { ...this.record, spectate: { allow: {}, key: null } };
+    }
     try {
       await this.persist();
     } catch (error) {
@@ -472,7 +476,13 @@ export class OnlineRoom {
     this.armTimer();
     this.broadcast();
     // A finished match changes the room's running score (and opens rematch): tell every screen.
-    if (finished) this.broadcastRematch();
+    if (finished) {
+      this.broadcastRematch();
+      if (this.kind === "friend") {
+        this.enforceSpectate();
+        this.broadcastSpectate();
+      }
+    }
     // Someone new took a seat (who has not agreed to spectators): stop watching now.
     if (events.some((e) => e.type === "playerJoined" || e.type === "playerLeft")) {
       this.enforceSpectate();
@@ -635,7 +645,7 @@ export class OnlineRoom {
     if (msg.t === "say") return this.say(conn, playerId, msg.id);
     if (msg.t === "rematch") return this.rematch(conn, playerId, msg.op);
     if (msg.t === "bye") return this.bye(playerId);
-    if (msg.t === "spectate") return this.setSpectate(conn, playerId, msg.allow);
+    if (msg.t === "spectate") return this.setSpectate(conn, playerId, msg.allow, msg.visibility);
     if (msg.t === "ready" || msg.t === "settings" || msg.t === "host") return this.lobbyChange(conn, playerId, msg);
     if (msg.t === "cmd" && msg.action.type === "start" && this.kind === "friend") return this.startFromLobby(conn, playerId, msg.id);
     if (msg.t === "hold") {
@@ -757,9 +767,10 @@ export class OnlineRoom {
     // Larger matches cost more of the shared daily budget (about one unit per two players; the room
     // creation already used one).
     const extra = Math.ceil(players.length / 2) - 1;
-    if (extra > 0) {
-      const block = (await this.deps.allowMatch?.(extra, this.record.matchNo ?? 1)) ?? null;
-      if (block) return nack("DAILY_LIMIT", block);
+    const users = Object.values(this.members());
+    if (extra > 0 || users.length) {
+      const block = (await this.deps.allowMatch?.(extra, this.matchNumber, users)) ?? null;
+      if (block) return nack("MATCH_UNAVAILABLE", block);
     }
     const ordered = [players.find((p) => p.playerId === playerId)!, ...players.filter((p) => p.playerId !== playerId).sort((a, b) => a.seat - b.seat)];
     const started = this.buildMatch(ordered, `start-${commandId}`);
@@ -770,6 +781,7 @@ export class OnlineRoom {
     } catch {
       this.state = before.state;
       this.record = before.record;
+      await this.deps.releaseMatch?.(this.matchNumber);
       return nack("INVALID_COMMAND", "서버에서 명령을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
     }
     this.lobbyOps = 0;
@@ -805,15 +817,27 @@ export class OnlineRoom {
   /** Spectating is on only while every seated player allows it and a key exists. */
   private spectateActive(): boolean {
     const sp = this.record.spectate;
-    if (!sp?.key || !this.state.players.length) return false;
+    if (!sp?.key || !this.state.players.length || this.closed || (this.kind === "friend" && this.state.status === "finished")) return false;
     return this.state.players.every((p) => sp.allow[p.playerId] === true);
+  }
+
+  publicSpectating(): boolean {
+    return this.spectateActive() && (this.isPublic ||
+      (this.kind === "friend" && this.state.players.every((p) => this.record.spectate?.publicAllow?.[p.playerId] === true)));
   }
 
   spectateState(): SpectateState {
     const sp = this.record.spectate ?? { allow: {}, key: null };
     const active = this.spectateActive();
     const allow = Object.fromEntries(this.state.players.map((p) => [p.playerId, sp.allow[p.playerId] === true]));
-    return { allow, active, key: active ? sp.key : null, spectators: this.spectators().length, max: ROOM_LIMITS.maxSpectators, public: this.isPublic && active };
+    const preferences = Object.fromEntries(this.state.players.map(({ playerId }) => [
+      playerId, allow[playerId] ? (this.isPublic || sp.publicAllow?.[playerId] ? "public" as const : "invite" as const) : "private" as const,
+    ]));
+    return {
+      allow, active, key: active ? sp.key : null, spectators: this.spectators().length, max: ROOM_LIMITS.maxSpectators,
+      public: this.isPublic && active, visibility: !active ? "private" : this.publicSpectating() ? "public" : "invite",
+      ...(this.kind === "friend" ? { preferences } : {}),
+    };
   }
 
   private broadcastSpectate() {
@@ -837,7 +861,10 @@ export class OnlineRoom {
 
   private spectateAt = new Map<string, number>();
   /** A player turns spectating on or off. Off by anyone revokes the link (a new key next time). */
-  private async setSpectate(conn: RoomConnection, playerId: string, allow: boolean) {
+  private async setSpectate(conn: RoomConnection, playerId: string, allow: boolean, visibility?: "private" | "invite" | "public") {
+    if (this.kind === "friend" && this.state.status === "finished") return conn.send({ t: "error", code: "SPECTATE", message: "이 경기는 관전이 종료됐어요." });
+    const wantsPublic = visibility === "public";
+    allow = visibility === undefined ? allow : visibility !== "private";
     if (this.record.ai) return conn.send({ t: "error", code: "SPECTATE", message: "AI 대전은 관전할 수 없어요." });
     // Quick matches are public by rule (D-045): nobody can switch spectating off during the match.
     if (this.isPublic) {
@@ -845,14 +872,16 @@ export class OnlineRoom {
       return conn.send({ t: "spectate", spectate: this.spectateState() });
     }
     const sp = this.record.spectate ?? { allow: {}, key: null };
-    if ((sp.allow[playerId] === true) === allow && (!allow || sp.key)) return conn.send({ t: "spectate", spectate: this.spectateState() });
+    if ((sp.allow[playerId] === true) === allow && (sp.publicAllow?.[playerId] === true) === wantsPublic && (!allow || sp.key)) return conn.send({ t: "spectate", spectate: this.spectateState() });
     // Turning spectating OFF is a privacy action: always honoured at once. Only turning it on (a new
     // key) is paced, which also bounds on/off write loops to one pair per second per player.
     const now = this.deps.now();
     if (allow && now - (this.spectateAt.get(playerId) ?? -Infinity) < ROOM_LIMITS.rematchCooldownMs) return conn.send({ t: "error", code: "SPECTATE", message: "잠시 후 다시 눌러 주세요." });
     if (allow) this.spectateAt.set(playerId, now);
-    const key = allow ? (sp.key ?? base64url(this.random(new Uint8Array(18)))) : null;
-    await this.saveRecord({ ...this.record, spectate: { allow: { ...sp.allow, [playerId]: allow }, key } });
+    const publicAllow = { ...sp.publicAllow, [playerId]: wantsPublic };
+    const publicityChanged = wantsPublic !== (sp.publicAllow?.[playerId] === true);
+    const key = allow ? (!publicityChanged && sp.key ? sp.key : base64url(this.random(new Uint8Array(18)))) : null;
+    await this.saveRecord({ ...this.record, spectate: { allow: { ...sp.allow, [playerId]: allow }, publicAllow, key } });
     this.enforceSpectate();
     this.broadcastSpectate();
   }
@@ -900,6 +929,9 @@ export class OnlineRoom {
   looks(): Record<string, PublicLook> {
     return Object.fromEntries(this.state.players.map((p) => [p.playerId, this.lookOf(p.playerId)]));
   }
+  get matchNumber() {
+    return this.record.matchNo ?? 1;
+  }
   get kind(): MatchKind {
     return this.record.kind ?? "friend";
   }
@@ -908,10 +940,10 @@ export class OnlineRoom {
   }
 
   /** Public list entry while a public match is being played and spectating is on, else null. */
-  publicEntry(): { code: string; players: { name: string; score: number; look: PublicLook }[]; round: number; spectators: number; max: number } | null {
-    if (!this.isPublic || this.closed || this.state.status !== "playing" || !this.spectateActive()) return null;
+  publicEntry(): { code: string; kind: "random" | "friend"; status: "playing"; participants: number; rounds: number; players: { name: string; score: number; look: PublicLook }[]; round: number; spectators: number; max: number } | null {
+    if (this.kind === "ai" || this.closed || this.state.status !== "playing" || !this.publicSpectating()) return null;
     const players = [...this.state.players].sort((a, b) => a.seat - b.seat);
-    return { code: this.code, players: players.map((p) => ({ name: p.name, score: total(p.card), look: this.lookOf(p.playerId) })), round: this.state.turn?.round ?? 12, spectators: this.spectators().length, max: ROOM_LIMITS.maxSpectators };
+    return { code: this.code, kind: this.kind, status: "playing", participants: players.length, rounds: 12, players: players.map((p) => ({ name: p.name, score: total(p.card), look: this.lookOf(p.playerId) })), round: this.state.round ?? this.state.turn?.round ?? 12, spectators: this.spectators().length, max: ROOM_LIMITS.maxSpectators };
   }
   /** The watch key for someone who picked this room from the public list (only while it is listed). */
   publicWatchKey(): string | null {
@@ -1088,7 +1120,8 @@ export class OnlineRoom {
   private async startRematch(requests: string[]) {
     const joining = this.state.players.filter((p) => requests.includes(p.playerId));
     const matchNo = (this.record.matchNo ?? 1) + 1;
-    const block = (await this.deps.allowMatch?.(Math.max(1, Math.ceil(joining.length / 2)), matchNo)) ?? null;
+    const users = joining.flatMap(({ playerId }) => this.record.identities?.[playerId]?.userId ?? []);
+    const block = (await this.deps.allowMatch?.(Math.max(1, Math.ceil(joining.length / 2)), matchNo, users)) ?? null;
     if (block) {
       this.rematchBlocked = block;
       await this.saveRecord({ ...this.record, rematch: null });
@@ -1108,6 +1141,7 @@ export class OnlineRoom {
     } catch (error) {
       this.state = before.state;
       this.record = before.record;
+      await this.deps.releaseMatch?.(matchNo);
       throw error;
     }
     this.rematchOps = 0;

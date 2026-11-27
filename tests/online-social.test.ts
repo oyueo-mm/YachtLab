@@ -294,7 +294,7 @@ describe("실시간 관전 (읽기 전용)", () => {
     expect(w.last("said")!.id).toBe("emote.clap");
   });
 
-  it("관전자 수 제한, 동의 철회 시 즉시 종료·이전 링크 무효, 재대결도 이어서 관전", async () => {
+  it("친구 관전자 수 제한, 종료 시 토큰 폐기, 재대결에서 새 동의와 철회", async () => {
     const { room, a, b, cmd, playOut, clock } = await setup();
     await room.message(a, JSON.stringify({ t: "spectate", allow: true }));
     await room.message(b, JSON.stringify({ t: "spectate", allow: true }));
@@ -309,17 +309,47 @@ describe("실시간 관전 (읽기 전용)", () => {
     await room.message(a, JSON.stringify({ t: "rematch", op: "request" }));
     clock.advance(1100);
     await room.message(b, JSON.stringify({ t: "rematch", op: "request" }));
-    expect(ws[0].last("view")!.view.matchId).toBe(room.match.matchId);
-    expect(ws[0].last("view")!.view.status).toBe("playing");
-    clock.advance(1100);
-    await room.message(b, JSON.stringify({ t: "spectate", allow: false }));
+    expect(room.match.status).toBe("playing");
     expect(ws.every((w) => w.closed === 4003)).toBe(true);
     expect((await watcher(room, key)).closed).toBe(4003);
+    await room.message(a, JSON.stringify({ t: "spectate", allow: true }));
+    await room.message(b, JSON.stringify({ t: "spectate", allow: true }));
+    const newLink = a.last("spectate")!.spectate.key!;
+    const rematchViewer = await watcher(room, newLink);
+    expect(rematchViewer.closed).toBeNull();
+    clock.advance(1100);
+    await room.message(b, JSON.stringify({ t: "spectate", allow: false }));
+    expect(rematchViewer.closed).toBe(4003);
+    expect((await watcher(room, newLink)).closed).toBe(4003);
     clock.advance(1100);
     await room.message(b, JSON.stringify({ t: "spectate", allow: true }));
     const fresh = a.last("spectate")!.spectate.key!;
     expect(fresh).not.toBe(key);
     expect((await watcher(room, fresh)).closed).toBeNull();
+  });
+
+  it("친구 대전은 공개 전원 동의 후에만 목록과 공개 키를 제공하고, 범위 축소 시 키를 회전한다", async () => {
+    const { room, a, b, cmd, clock } = await setup();
+    await cmd(a, { type: "start" });
+    expect(room.publicEntry()).toBeNull();
+    await room.message(a, JSON.stringify({ t: "spectate", allow: true, visibility: "public" }));
+    await room.message(b, JSON.stringify({ t: "spectate", allow: true, visibility: "invite" }));
+    expect(room.publicWatchKey()).toBeNull();
+    const inviteKey = a.last("spectate")!.spectate.key!;
+    expect((await watcher(room, inviteKey)).closed).toBeNull();
+    clock.advance(1100);
+    await room.message(b, JSON.stringify({ t: "spectate", allow: true, visibility: "public" }));
+    expect(room.publicEntry()).toMatchObject({ kind: "friend", status: "playing", participants: 2, round: 1, spectators: 0 });
+    const publicKey = room.publicWatchKey()!;
+    expect(publicKey).not.toBe(inviteKey);
+    const spectator = await watcher(room, publicKey);
+    expect(spectator.closed).toBeNull();
+    clock.advance(1100);
+    await room.message(a, JSON.stringify({ t: "spectate", allow: true, visibility: "invite" }));
+    expect(room.publicEntry()).toBeNull();
+    expect(spectator.closed).toBe(4003);
+    expect((await watcher(room, publicKey)).closed).toBe(4003);
+    expect(a.last("spectate")!.spectate.visibility).toBe("invite");
   });
 
   it("대기실에 새 플레이어가 들어오면(동의 전) 관전이 멈춘다", async () => {

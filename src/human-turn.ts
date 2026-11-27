@@ -84,6 +84,7 @@ export function useHumanTurn({
           await playbackDelay(T.reroll, signal);
           await waitForDice(signal);
         }
+        if (!valid()) return;
         if (!stateRef.current.rolls) {
           commit({ type: "roll" });
           setCaption("주사위를 굴렸습니다");
@@ -175,6 +176,10 @@ export function useHumanTurn({
         if (valid()) setBusy(false);
       }
     })();
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      job.current?.cancel();
+      job.current = null;
+    };
   }, [trigger, retry, algorithm, paused, aiSeat]);
 }

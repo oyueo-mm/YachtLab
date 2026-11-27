@@ -86,7 +86,7 @@ function recordOnDevice(view: PlayerView, me: string) {
   });
 }
 
-export default function OnlineGame({ server, code, quickIntro = false, onLeave, onProgress, onFinished }: { server: string; code: string; quickIntro?: boolean; onFinished?: (matchId: string) => void; onLeave: (message?: string, destination?: "home") => void; onProgress?: (inProgress: boolean) => void }) {
+export default function OnlineGame({ server, code, quickIntro = false, onEntered, entryTimeoutMs, onLeave, onProgress, onFinished }: { server: string; code: string; quickIntro?: boolean; onEntered?: () => void; entryTimeoutMs?: number; onFinished?: (matchId: string) => void; onLeave: (message?: string, destination?: "home") => void; onProgress?: (inProgress: boolean) => void }) {
   const seat = useMemo(() => savedSeat(code), [code]);
   const [view, setView] = useState<PlayerView | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
@@ -145,6 +145,10 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
       return;
     }
     clearScoreFx();
+    const entryTimeout = entryTimeoutMs === undefined ? undefined : window.setTimeout(
+      () => onLeave("경기 연결을 확인하지 못했어요. 다시 연결할 수 있어요."),
+      entryTimeoutMs,
+    );
     const c = new OnlineConnection(server, code, seat.token, {
       onView(next, live, hold) {
         const prev = viewRef.current;
@@ -290,13 +294,18 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
       onStatus(next) {
         setStatus(next);
         // A new socket has a fresh server-side rate bucket; a pending send on the old one is lost.
-        if (next === "online") chat.reset();
+        if (next === "online") {
+          chat.reset();
+          window.clearTimeout(entryTimeout);
+          onEntered?.();
+        }
       },
       onFatal: (message) => onLeave(message),
     });
     conn.current = c;
     c.start();
     return () => {
+      window.clearTimeout(entryTimeout);
       c.stop();
       conn.current = null;
     };
@@ -515,7 +524,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           <input className="online-invite-link" aria-label="초대 링크" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
         </div>
         <div className="online-lobby-tools">
-          <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />
+          <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} onVisibility={(visibility) => conn.current?.spectate(visibility !== "private", visibility)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />
         </div>
         <LobbyPanel
           lobby={lobby}
@@ -571,7 +580,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
     <>
             {/* Room settings (chat and emotes are in the bar under the board). */}
             <div className="online-tool-group online-room-tools">
-              {!aiSeat && <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />}
+              {!aiSeat && <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} onVisibility={(visibility) => conn.current?.spectate(visibility !== "private", visibility)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />}
               {playing && (
                 <button
                   type="button"

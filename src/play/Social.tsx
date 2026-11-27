@@ -6,7 +6,7 @@ import type { SpectateState } from "../online/wire";
  * Players: allow spectators. A watch link exists only while every player allows it; anyone turning it
  * off revokes the link at once (watchers are disconnected, the old link stops working).
  */
-export function SpectateControl({ state, me, onToggle, linkFor, disabled }: { state: SpectateState | null; me: string; onToggle: (allow: boolean) => void; linkFor: (key: string) => string; disabled?: boolean }) {
+export function SpectateControl({ state, me, onToggle, onVisibility, linkFor, disabled }: { state: SpectateState | null; me: string; onToggle: (allow: boolean) => void; onVisibility?: (visibility: "private" | "invite" | "public") => void; linkFor: (key: string) => string; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   /** Shown until the server answers (a switch must move when tapped). */
@@ -50,7 +50,20 @@ export function SpectateControl({ state, me, onToggle, linkFor, disabled }: { st
       {open && (
         <div className="social-panel" role="dialog" aria-label="관전 설정">
           {/* Quick matches are always public (D-045): no switch, only the link and the count. */}
-          {!state.public && (
+          {state.preferences && onVisibility ? (
+            <label className="spectate-switch">
+              관전 범위
+              <select value={state.preferences[me] ?? "private"} onChange={(event) => {
+                const value = event.target.value;
+                if (value === "private" || value === "invite" || value === "public") onVisibility(value);
+              }}>
+                <option value="private">비공개</option>
+                <option value="invite">링크로 초대</option>
+                <option value="public">관전방에 공개</option>
+              </select>
+              <span>모든 참가자가 동의해야 선택한 범위로 관전할 수 있어요.</span>
+            </label>
+          ) : !state.public && (
             <label className="spectate-switch">
               <input type="checkbox" role="switch" checked={mine} onChange={(e) => {
                   setOptimistic(e.target.checked);
@@ -65,6 +78,7 @@ export function SpectateControl({ state, me, onToggle, linkFor, disabled }: { st
               <p className="spectate-note">
                 {state.public
                   ? `빠른 대전은 관전방에 공개돼요. 관전자는 보기만 할 수 있어요 (${state.spectators}/${state.max}명).`
+                  : state.visibility === "public" ? "모든 참가자가 동의해 관전방에 공개된 경기예요."
                   : `관전 링크가 있는 사람은 이 경기를 볼 수만 있어요 (${state.spectators}/${state.max}명). 끄면 링크가 바로 막혀요.`}
               </p>
               <div className="spectate-link">

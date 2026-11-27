@@ -95,14 +95,17 @@ export class YachtRoom extends DurableObject<Env> {
       },
       // Each rematch reuses this room and reserves the daily budget once.
       deliverRecord: async (userId, record) => env.USERS.get(env.USERS.idFromName(userId)).recordMatch(record),
-      allowMatch: async (code, weight, matchNo) => {
-        const verdict = await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).allocateMatch(code, matchNo, weight);
+      releaseMatch: async (code, matchNo) => env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).releaseMatch(code, matchNo),
+      allowMatch: async (code, weight, matchNo, users) => {
+        const verdict = await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).allocateMatch(code, matchNo, weight, users);
         return verdict.ok ? null : verdict.message;
       },
       publish: async (code, entry) => {
         const hub = env.HUB.get(env.HUB.idFromName("hub"));
         await (entry ? hub.publish(entry) : hub.unpublish(code));
       },
+      yachts: async (id, events) => env.HUB.get(env.HUB.idFromName("hub")).yachts(id, events),
+      activity: async (code, info) => env.HUB.get(env.HUB.idFromName("hub")).observeRoom(code, info),
       matchEnded: async (code) => env.HUB.get(env.HUB.idFromName("hub")).ended(code),
       // Friends see "경기 중" (memory only on each account object; no storage write).
       memberStatus: async (userIds, room) => {
@@ -111,7 +114,10 @@ export class YachtRoom extends DurableObject<Env> {
       finished: async (info) => {
         const hub = env.HUB.get(env.HUB.idFromName("hub"));
         await hub.count(`finished.${info.kind}.${info.completed ? "completed" : "forfeit"}`);
-        if (info.completed) await hub.count(`duration.${info.kind}.totalSec`, Math.round(info.durationMs / 1000));
+        if (info.completed) {
+          await hub.completed(info.matchId, info.at);
+          await hub.count(`duration.${info.kind}.totalSec`, Math.round(info.durationMs / 1000));
+        }
       },
     });
     // Keep-alive pings are answered by the runtime without waking the object (no duration, no request).
@@ -202,6 +208,10 @@ export class RoomDirectory extends DurableObject<Env> {
     ctx.blockConcurrencyWhile(async () => {
       this.sql.exec("CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, created_at INTEGER NOT NULL)");
       this.sql.exec("CREATE TABLE IF NOT EXISTS daily (day INTEGER PRIMARY KEY, rooms INTEGER NOT NULL)");
+      this.sql.exec("CREATE TABLE IF NOT EXISTS match_allocations (id TEXT PRIMARY KEY, code TEXT NOT NULL)");
+      this.sql.exec("CREATE INDEX IF NOT EXISTS match_allocations_code ON match_allocations (code)");
+      this.sql.exec("CREATE TABLE IF NOT EXISTS playing_users (user_id TEXT PRIMARY KEY, code TEXT NOT NULL, match_no INTEGER NOT NULL)");
+      this.sql.exec("CREATE INDEX IF NOT EXISTS playing_users_code ON playing_users (code)");
       this.sql.exec("CREATE TABLE IF NOT EXISTS match_budget (code TEXT NOT NULL, match_no INTEGER NOT NULL, units INTEGER NOT NULL, PRIMARY KEY(code, match_no))");
       if ((await ctx.storage.getAlarm()) === null) await ctx.storage.setAlarm(Date.now() + 6 * 3600_000);
     });
@@ -246,7 +256,21 @@ export class RoomDirectory extends DurableObject<Env> {
    * invite room, without the per-IP creation limit (the matchmaker paces it). `kind` "ai" also has
    * its own daily sub-budget so AI matches can never use up the whole day.
    */
-  async allocateFor(kind: "random" | "ai"): Promise<Verdict & { code?: string }> {
+  async allocateFor(kind: "random" | "ai", users: string[] = [], assignmentId?: string): Promise<Verdict & { code?: string }> {
+    return this.storage.transactionSync(() => {
+      if (assignmentId) {
+        const allocation = this.sql.exec<{ code: string }>("SELECT code FROM match_allocations WHERE id = ?", assignmentId).toArray()[0];
+        if (allocation) return { ok: true, code: allocation.code };
+      }
+      const conflict = this.playingConflict(users);
+      if (conflict) return conflict;
+      const slot = this.allocateMatchRoom(kind, users);
+      if (slot.ok && assignmentId) this.sql.exec("INSERT INTO match_allocations (id, code) VALUES (?, ?)", assignmentId, slot.code!);
+      return slot;
+    });
+  }
+
+  private allocateMatchRoom(kind: "random" | "ai", users: string[]): Verdict & { code?: string } {
     const day = Math.floor(Date.now() / 86_400_000);
     const today = this.sql.exec<{ rooms: number }>("SELECT rooms FROM daily WHERE day = ?", day).toArray()[0]?.rooms ?? 0;
     if (today >= this.config.dailyRoomLimit) return { ok: false, status: 503, code: "DAILY_LIMIT", message: "오늘은 온라인 경기를 더 만들 수 없어요. 내일 다시 시도해 주세요." };
@@ -265,6 +289,7 @@ export class RoomDirectory extends DurableObject<Env> {
       this.sql.exec("INSERT INTO rooms (code, created_at) VALUES (?, ?)", code, Date.now());
       this.sql.exec("INSERT INTO daily (day, rooms) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET rooms = rooms + 1", day);
       if (kind === "ai") this.sql.exec("INSERT INTO daily_ai (day, rooms) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET rooms = rooms + 1", day);
+      this.reservePlayers(users, code, 1);
       return { ok: true, code };
     }
     return { ok: false, status: 503, code: "ROOM_LIMIT", message: "방 코드를 만들지 못했어요." };
@@ -278,26 +303,51 @@ export class RoomDirectory extends DurableObject<Env> {
     return { ok: true };
   }
 
+  private playingConflict(users: string[], code?: string): Extract<Verdict, { ok: false }> | null {
+    if (new Set(users).size !== users.length) return { ok: false, status: 409, code: "DUPLICATE", message: "같은 계정은 한 좌석에서만 경기할 수 있어요." };
+    for (const id of users) {
+      const active = this.sql.exec<{ code: string }>("SELECT code FROM playing_users WHERE user_id = ?", id).toArray()[0];
+      if (active && active.code !== code) return { ok: false, status: 409, code: "IN_MATCH", message: "이미 다른 온라인 경기에 참가 중인 계정이 있어요." };
+    }
+    return null;
+  }
+
+  private reservePlayers(users: string[], code: string, matchNo: number) {
+    for (const id of users) {
+      this.sql.exec("INSERT INTO playing_users (user_id, code, match_no) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET code = excluded.code, match_no = excluded.match_no", id, code, matchNo);
+    }
+  }
+
+  async releaseMatch(code: string, matchNo: number) {
+    this.sql.exec("DELETE FROM playing_users WHERE code = ? AND match_no = ?", code, matchNo);
+  }
+
   /**
    * One more match in an existing room (rematch). Shares the daily cap with room creation, so the
    * daily budget still bounds this service's share of the free plan; no new room code or object.
    */
-  async allocateMatch(code: string, matchNo: number, weight: number): Promise<Verdict> {
-    const units = Math.max(1, Math.min(10, Math.floor(weight)));
+  async allocateMatch(code: string, matchNo: number, weight: number, users: string[] = []): Promise<Verdict> {
+    const units = Math.max(0, Math.min(10, Math.floor(weight)));
     return this.storage.transactionSync(() => {
       if (!this.sql.exec("SELECT 1 FROM rooms WHERE code = ?", code).toArray().length)
         return { ok: false, status: 404, code: "ROOM_NOT_FOUND", message: "방을 찾을 수 없어요." };
+      const conflict = this.playingConflict(users, code);
+      if (conflict) return conflict;
       const reserved = this.sql.exec<{ units: number }>("SELECT units FROM match_budget WHERE code = ? AND match_no = ?", code, matchNo).toArray()[0]?.units ?? 0;
       // If a retry includes more seats, reserve only the additional units. A smaller roster
       // can still start using the units previously reserved for this logical match.
       const extra = units - reserved;
-      if (extra <= 0) return { ok: true };
+      if (extra <= 0) {
+        this.reservePlayers(users, code, matchNo);
+        return { ok: true };
+      }
       const day = Math.floor(Date.now() / 86_400_000);
       const today = this.sql.exec<{ rooms: number }>("SELECT rooms FROM daily WHERE day = ?", day).toArray()[0]?.rooms ?? 0;
       if (today + extra > this.config.dailyRoomLimit)
         return { ok: false, status: 503, code: "DAILY_LIMIT", message: "오늘은 온라인 경기를 더 할 수 없어요. 내일 다시 시도해 주세요." };
       this.sql.exec("INSERT INTO daily (day, rooms) VALUES (?, ?) ON CONFLICT(day) DO UPDATE SET rooms = rooms + ?", day, extra, extra);
       this.sql.exec("INSERT INTO match_budget (code, match_no, units) VALUES (?, ?, ?) ON CONFLICT(code, match_no) DO UPDATE SET units = excluded.units", code, matchNo, units);
+      this.reservePlayers(users, code, matchNo);
       return { ok: true };
     });
   }
@@ -310,8 +360,14 @@ export class RoomDirectory extends DurableObject<Env> {
   async release(code: string) {
     this.storage.transactionSync(() => {
       this.sql.exec("DELETE FROM match_budget WHERE code = ?", code);
+      this.sql.exec("DELETE FROM match_allocations WHERE code = ?", code);
+      this.sql.exec("DELETE FROM playing_users WHERE code = ?", code);
       this.sql.exec("DELETE FROM rooms WHERE code = ?", code);
     });
+  }
+
+  async liveCodes() {
+    return this.sql.exec<{ code: string }>("SELECT code FROM rooms").toArray().map((row) => row.code);
   }
 
   async count() {
@@ -333,6 +389,8 @@ export class RoomDirectory extends DurableObject<Env> {
     this.storage.transactionSync(() => {
       this.sql.exec("DELETE FROM rooms WHERE created_at < ?", now - this.config.maxAgeMs - 3600_000);
       this.sql.exec("DELETE FROM match_budget WHERE code NOT IN (SELECT code FROM rooms)");
+      this.sql.exec("DELETE FROM playing_users WHERE code NOT IN (SELECT code FROM rooms)");
+      this.sql.exec("DELETE FROM match_allocations WHERE code NOT IN (SELECT code FROM rooms)");
     });
     this.sql.exec("DELETE FROM daily WHERE day < ?", Math.floor(now / 86_400_000) - 2);
     this.sql.exec("CREATE TABLE IF NOT EXISTS daily_ai (day INTEGER PRIMARY KEY, rooms INTEGER NOT NULL)");
@@ -661,6 +719,7 @@ export class MatchHub extends DurableObject<Env> {
       sockets: () => ctx.getWebSockets() as unknown as HostSocket[],
       sql: ctx.storage.sql as unknown as HubSql,
       setAlarm: (at) => void ctx.storage.setAlarm(at),
+      transaction: (run) => ctx.storage.transactionSync(run),
       auth: async (session) => {
         const m = /^s1\.(u_[A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{43})$/.exec(session);
         if (!m || !authConfig(env)) return null;
@@ -668,13 +727,13 @@ export class MatchHub extends DurableObject<Env> {
       },
       createMatch: async (a: QueueSeat, b: QueueSeat, options) => {
         const directory = env.DIRECTORY.get(env.DIRECTORY.idFromName("directory"));
-        const slot = await directory.allocateFor("random");
+        const slot = await directory.allocateFor("random", [a, b].flatMap((seat) => seat.userId ?? []), options.assignmentId);
         if (!slot.ok) return { ok: false, message: slot.message };
         const seats: SeatSpec[] = [];
-        for (const p of [a, b]) {
+        for (const [i, p] of [a, b].entries()) {
           // Members: the account nickname (validated when it was set) and the validated look.
           const info = p.userId ? await env.USERS.get(env.USERS.idFromName(p.userId)).seat().catch(() => null) : null;
-          seats.push({ name: info?.nickname ?? p.name, identity: p.userId ? { userId: p.userId } : null, look: info?.look ?? null });
+          seats.push({ name: info?.nickname ?? p.name, identity: p.userId ? { userId: p.userId } : null, look: info?.look ?? null, token: options.secrets[i] });
         }
         const made = await env.ROOMS.get(env.ROOMS.idFromName(slot.code!)).createMatched(slot.code!, seats, { kind: "random", public: options.public });
         if (!made.ok) {
@@ -721,6 +780,18 @@ export class MatchHub extends DurableObject<Env> {
   }
   async ended(code: string) {
     this.core.ended(code);
+  }
+  async observeRoom(code: string, info: Parameters<HubCore["observeRoom"]>[1]) {
+    this.core.observeRoom(code, info);
+  }
+  async yachts(id: string, events: { seq: number; at: number }[]) {
+    this.core.yachts(id, events);
+  }
+  async completed(id: string, at: number) {
+    this.core.completed(id, at);
+  }
+  async activity(liveCodes: string[]) {
+    return this.core.activity(liveCodes);
   }
   async list() {
     return this.core.list();
@@ -845,7 +916,11 @@ export default {
       }
       // What this server offers (the page hides what is not available).
       if (url.pathname === "/api/features" && request.method === "GET")
-        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, createSettings: true, defaultTurnTimeoutMs: config.turnTimeoutMs, serverAi: !!auth && env.SERVER_AI !== "off", economy: !!auth && env.ECONOMY === "on" }, allowed, "public, max-age=60");
+        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, createSettings: true, defaultTurnTimeoutMs: config.turnTimeoutMs, backgroundMatch: true, activity: true, friendPublicSpectate: true, serverAi: !!auth && env.SERVER_AI !== "off", economy: !!auth && env.ECONOMY === "on" }, allowed, "public, max-age=60");
+      if (url.pathname === "/api/activity" && request.method === "GET") {
+        if (isolateLimited("activity:" + (await clientKey(request)), 15)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
+        return json(200, await hub().activity(await directory.liveCodes()), allowed, "public, max-age=15");
+      }
       // Public spectating list: cheap, cached briefly; no tokens, no keys, no account ids in it.
       if (url.pathname === "/api/spectate/rooms" && request.method === "GET") {
         if (await directory.hit("list:" + (await clientKey(request)), 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
@@ -882,7 +957,7 @@ export default {
         if (!nick.ok) return fail(400, "INVALID_COMMAND", nick.message, allowed);
         const started = await user.startAi();
         if (!started.ok) return fail(429, started.code, started.message, allowed);
-        const slot = await directory.allocateFor("ai");
+        const slot = await directory.allocateFor("ai", [me.userId]);
         if (!slot.ok) return fail(slot.status, slot.code, slot.message, allowed);
         const human: SeatSpec = { name: nick.name, identity: { userId: me.userId }, look: info?.look ?? null };
         const bot: SeatSpec = { name: "AI (보통)", ai: true };

@@ -133,3 +133,30 @@ test("닉네임은 프로필에서만 바꾸고, 온라인 화면에는 입력�
   await expect(p.getByLabel("닉네임")).toHaveCount(0);
   await expect(p.locator(".online-nick strong")).toHaveText("새닉네임");
 });
+
+
+test("사이트에서 이동해도 한 번만 대기하고, 자동 입장 실패 뒤 1인 게임이 그대로 돌아온다", async ({ browser }, testInfo) => {
+  test.skip(testInfo.project.name === "mobile", "두 기기를 테스트에서 직접 만든다");
+  const a = await device(browser, "desktop");
+  const b = await device(browser, "phone");
+  let queueSockets = 0;
+  a.on("websocket", (ws) => { if (ws.url().endsWith("/ws/match")) queueSockets++; });
+  await quick(a, "계속대기", true);
+  await expect(a.getByText("상대를 찾는 중이에요")).toBeVisible();
+  await a.getByRole("button", { name: "최소화" }).click();
+  for (const route of ["shop", "inventory", "quests", "achievements", "records", "solo"]) {
+    await a.evaluate((to) => { location.hash = to; }, route);
+    await expect(a.locator(`main.page-${route}`)).toBeVisible();
+    await expect(a.getByRole("button", { name: "빠른 대전 상태 보기" })).toBeVisible();
+  }
+  await a.locator(".roll-button").click();
+  await expect(a.locator(".roll-button")).toContainText("2회 남음");
+  await a.routeWebSocket(/\/ws\/[A-Z2-9]{6}$/, (socket) => socket.close({ code: 4001 }));
+  await quick(b, "자동입장", true);
+  await expect(b.locator(".roll-button")).toBeVisible();
+  await expect(a).toHaveURL(/#solo$/);
+  await expect(a.locator("aside").getByText(/다시 들어갈 수 없어요/)).toBeVisible();
+  await expect(a.locator(".roll-button")).toContainText("2회 남음");
+  await expect(a.getByRole("button", { name: "진행 중인 경기로 돌아가기" })).toBeVisible();
+  expect(queueSockets).toBe(1);
+});

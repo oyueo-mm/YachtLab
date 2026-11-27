@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef } from "react";
+import { ActivityVisible } from "../shell/activity-visible";
+import { useContext, useEffect, useId, useRef } from "react";
 
 /** Modal confirmation used before abandoning or resetting a game in progress. */
 export function ConfirmDialog({
@@ -18,14 +19,15 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const visible = useContext(ActivityVisible);
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal?.();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
+    if (open && visible && !dialog.open) dialog.showModal?.();
+    if ((!open || !visible) && dialog.open) dialog.close();
+  }, [open, visible]);
   return (
     <dialog
       ref={ref}

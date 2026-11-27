@@ -122,6 +122,34 @@ describe("경제 통합 시나리오 (wrangler dev + 가짜 로컬 로그인)", 
     expect(cfg?.provider.tokenEndpoint).toBe("https://oauth2.googleapis.com/token");
   });
 
+  it("같은 회원은 친구 대전 중 다른 방에서 경기하거나 빠른 대전에 배정되지 않는다", async () => {
+    const a = await login("c3-cross-mode-a"), b = await login("c3-cross-mode-b"), c = await login("c3-cross-mode-c");
+    async function lobby(opponent: typeof b) {
+      const created = await call(a.session, "/api/rooms", { name: "동시대전", maxPlayers: 2 });
+      expect(created.status).toBe(201);
+      const { code, token } = created.body;
+      const joined = await call(opponent.session, `/api/rooms/${code}/join`, { name: "친구대전" });
+      expect(joined.status).toBe(201);
+      const host = new Client(worker.url, code);
+      const guest = new Client(worker.url, code);
+      await host.hello(token);
+      await guest.hello(joined.body.token);
+      return host;
+    }
+    const [first, second] = await Promise.all([lobby(b), lobby(c)]);
+    const starts = await Promise.all([first.cmd({ type: "start" }), second.cmd({ type: "start" })]);
+    expect(starts.filter((result) => result.ok)).toHaveLength(1);
+    const host = starts[0].ok ? first : second;
+    const [member, guest] = await Promise.all([queue(a.session, "동시대전", 81), queue(null, "매칭상대", 82)]);
+    expect(member).toMatchObject({ t: "error", code: "UNAVAILABLE" });
+    expect(guest).toMatchObject({ t: "error", code: "UNAVAILABLE" });
+    const blocked = await call(a.session, "/api/ai/start", { name: "동시대전" });
+    expect(blocked.status).toBe(409);
+    expect((await host.cmd({ type: "resign" })).ok).toBe(true);
+    const waiter = starts[0].ok ? second : first;
+    await expect.poll(async () => (await waiter.cmd({ type: "start" })).ok).toBe(true);
+  }, 30_000);
+
   it("회원 복기는 완료된 본인 전적에서만 읽고 일반 목록과 분리한다", async () => {
     const a = await login("review-alice");
     const b = await login("review-bob");

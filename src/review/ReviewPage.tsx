@@ -17,7 +17,7 @@ import "./review.css";
 const fmt = (value: number) => value.toFixed(2);
 const asGame = (position: Position): Game => ({ ...createGame(0), ...position });
 
-export default function ReviewPage({ source, close }: { source: ReviewSource; close: () => void }) {
+export default function ReviewPage({ source, close, position }: { source: ReviewSource; close: () => void; position: { current: number } }) {
   const dialog = useRef<HTMLDialogElement>(null);
   useBgmScene("review", 2);
   useEffect(() => {
@@ -36,20 +36,21 @@ export default function ReviewPage({ source, close }: { source: ReviewSource; cl
           <button type="button" className="secondary" onClick={close}><ArrowLeft size={18} /> 돌아가기</button>
           <h1 id="review-title">게임 리뷰</h1>
         </header>
-        {typeof source === "string" ? <p role="status">{source}</p> : <MatchAnalysis match={source} />}
+        {typeof source === "string" ? <p role="status">{source}</p> : <MatchAnalysis match={source} position={position} />}
       </main>
     </dialog>
   );
 }
 
-function MatchAnalysis({ match }: { match: ReviewMatch }) {
+function MatchAnalysis({ match, position }: { match: ReviewMatch; position: { current: number } }) {
   const { model: analysisModel, values, status, fallback, cancel, retry } = useReviewAnalysis(match);
   const report = status.state === "complete" ? status.report : undefined;
   const actions = useMemo(() => new Map(report?.players.flatMap(({ rounds }) =>
     rounds.flatMap(({ actions }) => actions.map((action) => [action.index, action] as const)))), [report]);
   const criterion = match.solo ? "score" : "win";
   const unit = match.solo ? "점" : "%p";
-  const [selected, setSelected] = useState(0);
+  const [selected, setSelected] = useState(position.current);
+  useEffect(() => { position.current = selected; }, [position, selected]);
   const [detailed, setDetailed] = useState(false);
   const [basicSeat, setBasicSeat] = useState<0 | 1>(() => match.me ?? match.steps[0]?.before.player ?? 0);
   // Seat colours (D-060): me red, opponent blue; without a known seat, seat 0 red / seat 1 blue.
