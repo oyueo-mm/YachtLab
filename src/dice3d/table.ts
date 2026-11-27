@@ -3,7 +3,7 @@ import { diceFx, type DiceFxProfile } from "./dice-fx";
 import { emitFx } from "../fx-bus";
 import { fxBudget } from "../settings";
 import * as THREE from "three";
-import { MATERIAL_ORDER, canonicalOrientation, finalValue, prepareThrow, throwKey, qAxisAngle, qDot, qMul, qSlerp, simulateThrow, topFace, type PreparedThrow, type Quat, type SimResult } from "./physics";
+import { MATERIAL_ORDER, canonicalOrientation, finalValue, playRate, prepareThrow, throwKey, qAxisAngle, qDot, qMul, qSlerp, simulateThrow, topFace, type PreparedThrow, type Quat, type SimResult } from "./physics";
 import { CLASSIC_DICE, blobTexture, faceTexture, glowTexture, type DiceColors, type Quality } from "./stage";
 
 /**
@@ -18,7 +18,7 @@ import { CLASSIC_DICE, blobTexture, faceTexture, glowTexture, type DiceColors, t
  * the hold shelf is z ∈ [trayH, totalH]. The camera maps the top-face plane (y = 1) 1:1 to CSS pixels,
  * so DOM hit targets can be placed exactly over each die.
  */
-export { simulateThrow, prepareThrow, throwKey, finalValue, canonicalOrientation, topFace };
+export { simulateThrow, prepareThrow, throwKey, finalValue, canonicalOrientation, topFace, playRate };
 export type { PreparedThrow };
 
 /**
@@ -77,6 +77,29 @@ const easeOutBack = (t: number) => {
   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 };
 const smooth = (t: number) => t * t * (3 - 2 * t);
+
+/**
+ * Hold / release carry (5th pass): picked up, carried in an arc that rises with the distance, tipped a
+ * few degrees toward the direction of travel (≤ 7°, so the top face stays readable), then set down with a
+ * short touchdown dip instead of gliding in at constant height. Ends exactly at `to`.
+ */
+export function carryPose(from: Pose, to: Pose, t: number): Pose {
+  const dx = to.x - from.x, dz = to.z - from.z, dist = Math.hypot(dx, dz);
+  // ease: quick pick-up, slower set-down
+  const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2.2) / 2;
+  const lift = Math.sin(Math.PI * Math.min(1, t / 0.92)) * Math.min(0.7, 0.22 + dist * 0.09);
+  // touchdown: the last 8 % press 0.03 into the felt and come back (reads as weight)
+  const dip = t > 0.92 ? -Math.sin(((t - 0.92) / 0.08) * Math.PI) * 0.03 : 0;
+  const base = qSlerp(from.quat, to.quat, smooth(t));
+  let quat = base;
+  if (dist > 0.05) {
+    const tilt = Math.sin(Math.PI * t) * Math.min(0.12, dist * 0.04);
+    // axis = up × travel direction: the leading edge dips, as when a die is carried by its top
+    quat = qMul(qAxisAngle([dz / dist, 0, -dx / dist], tilt), base);
+  }
+  if (t >= 1) return { ...to };
+  return { x: from.x + dx * e, y: from.y + (to.y - from.y) * e + lift + dip, z: from.z + dz * e, quat };
+}
 
 export type CelebrateOptions = {
   /** Dice (ids) that make the combination. They come toward the camera; the rest stay down. */
@@ -483,7 +506,9 @@ export class DiceTable {
     const fx = this.ensureFx();
     let lastTrail = started;
     let lastBurst = started;
-    let lastBus = 0;
+    const lastBus = new Map<number, number>();
+    let lastTrailBus = 0;
+    const landStrength = new Map<number, number>();
     emitFx({ type: "roll" });
     const stop = this.loop((now) => {
       this.frameTimes.push(now - last);
@@ -508,16 +533,19 @@ export class DiceTable {
       }
       while (next < impacts.length && impacts[next].frame <= f) {
         const hit = impacts[next++];
+        if (hit.kind === "floor") landStrength.set(hit.id, hit.strength); // the last floor hit before rest
         const m = this.meshes.get(hit.id);
         opts.onImpact?.({ strength: hit.strength, kind: hit.kind, x: m ? m.position.x / this.width : 0.5 });
         if (fx && hit.strength > 1.5 && now - lastBurst >= 110) {
           lastBurst = now;
           this.burstAt(hit.id, "impact");
         }
-        if (hit.strength > 2 && hit.kind !== "die" && now - lastBus > 120) {
-          lastBus = now;
+        // The board reacts where a die really hits the floor / rim, sized by the real impact speed
+        // (each die at most every 90 ms; dice knocking each other do not touch the board).
+        if (hit.strength > 1.6 && hit.kind !== "die" && now - (lastBus.get(hit.id) ?? 0) > 90) {
+          lastBus.set(hit.id, now);
           const c = this.client(hit.id);
-          if (c) emitFx({ type: "impact", x: c.x, y: c.y, strength: hit.strength });
+          if (c) emitFx({ type: "impact", x: c.x, y: c.y, strength: hit.strength, id: hit.id });
         }
       }
       // Rolling rumble: the fastest die that is on the floor right now.
@@ -534,13 +562,22 @@ export class DiceTable {
           opts.onRoll(Math.min(1, level / 9));
         }
       }
+      // Synergy layers follow the dice paths across the board (~30 Hz, only dice near the floor).
+      if (now - lastTrailBus > 32) {
+        lastTrailBus = now;
+        for (const t of result.tracks) {
+          if (t.frames[i * 7 + 1] > 1.4) continue;
+          const c = this.client(t.id);
+          if (c) emitFx({ type: "trail", x: c.x, y: c.y, id: t.id });
+        }
+      }
       fx?.frame(now);
       opts.onFrame?.();
       if (f >= result.frameCount - 1) {
         if (fx) for (const { id } of result.tracks) this.burstAt(id, "land");
         for (const { id } of result.tracks) {
           const c = this.client(id);
-          if (c) emitFx({ type: "land", x: c.x, y: c.y, strength: 1 });
+          if (c) emitFx({ type: "land", x: c.x, y: c.y, strength: landStrength.get(id) ?? 6, id });
         }
         this.drainFx();
         this.adapt(this.frameTimes);
@@ -569,10 +606,8 @@ export class DiceTable {
         this.trailAt(id, now, 0.5);
       }
       fx?.frame(now);
-      const t = Math.max(0, Math.min(1, (now - started) / ms)),
-        e = smooth(t),
-        lift = Math.sin(Math.PI * t) * 0.35;
-      this.apply(id, { x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e + lift, z: from.z + (to.z - from.z) * e, quat: qSlerp(from.quat, to.quat, e) });
+      const t = Math.max(0, Math.min(1, (now - started) / ms));
+      this.apply(id, carryPose(from, to, t));
       if (t >= 1) {
         this.moves.delete(id);
         if (fx) this.drainFx();

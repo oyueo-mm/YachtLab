@@ -6,6 +6,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import type { Game } from "./engine";
 import { beginDiceMotion, isDiceBusy, takeThrowDirection } from "./dice-motion";
 import { playSfx } from "./sound";
+import { surfaceAt } from "./play/surface";
 import { emitFx } from "./fx-bus";
 import { getScoreFx, useScoreFx } from "./score-fx";
 import type { DiceTableModule } from "./dice3d-loader";
@@ -343,9 +344,10 @@ export function PhysicalDice({
     const result = mod.simulateThrow(input, ready);
     for (const d of moving) tray.current.delete(d.id);
     setFlying(new Set(moving.map((d) => d.id)));
-    const rate = 1.25;
+    const rate = mod.playRate();
     const done = beginDiceMotion(((result.frameCount / result.fps) * 1000) / rate + 2000);
     sound("throw", { material });
+    const surface = surfaceAt(root.current);
     let lastHit = -Infinity,
       hits = 0,
       firstFrameAt = 0;
@@ -354,7 +356,7 @@ export function PhysicalDice({
       onFrame: () => {
         if (!firstFrameAt) firstFrameAt = performance.now();
       },
-      onRoll: (level) => sound("roll", { material, intensity: level, pan: 0 }),
+      onRoll: (level) => sound("roll", { material, surface, intensity: level, pan: 0 }),
       onImpact: ({ strength, kind, x }) => {
         // Sound follows the rendered collision: louder and heavier for harder hits, dice knock drier.
         const now = performance.now();
@@ -362,7 +364,7 @@ export function PhysicalDice({
         lastHit = now;
         hits++;
         const intensity = Math.min(1, 0.1 + strength / 9) * (kind === "wall" ? 0.65 : 1);
-        sound(kind === "die" ? "clack" : "impact", { material, intensity, pan: (x - 0.5) * 1.2 });
+        sound(kind === "die" ? "clack" : "impact", { material, surface: kind === "floor" ? surface : undefined, intensity, pan: (x - 0.5) * 1.2 });
       },
       onDone: () => {
         const last = (result.frameCount - 1) * 7;
@@ -379,7 +381,7 @@ export function PhysicalDice({
           } else tray.current.set(tr.id, pose);
         }
         pending.forEach((run) => run());
-        sound("settle", { material, intensity: 0.35 });
+        sound("settle", { material, surface, intensity: 0.35 });
         const land = colors?.fxLevel === 3 && !reducedEffects ? mod.landSoundOf(colors.fx) : null;
         if (land && fxBudget() > 0) sound("diceFx", { land, delay: 0.04 });
         setFlying(new Set());

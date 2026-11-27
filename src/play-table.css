@@ -167,9 +167,7 @@
   background: transparent !important;
   aspect-ratio: auto;
 }
-.die-button.die-hit:hover:enabled {
-  border-color: rgba(242, 140, 40, 0.55);
-}
+/* No hover frame on dice / the hold shelf (A1): selection (.held) and :focus-visible remain. */
 .die-button.die-hit.held {
   border-color: transparent;
 }

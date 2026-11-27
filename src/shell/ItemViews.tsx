@@ -156,7 +156,8 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
       setReplay((n) => n + 1);
       playEmoteSfx(item.id, level);
     }
-    if (item.category === "dice" && motionLevel() === "full") {
+    // Dice: every level re-throws. Boards: Lv.2 is visible at rest; Lv.3 throws so the reactions show.
+    if ((item.category === "dice" || (item.category === "board" && level === 3)) && motionLevel() === "full") {
       setDice((d) => d.map((x) => ({ ...x, held: false })));
       setRolls((r) => (r >= 3 ? 1 : r + 1));
       setRollEvent((n) => n + 1);
@@ -172,14 +173,16 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
     const partner = pair && collection ? itemById(item.category === "dice" ? collection.boards[0] : collection.dice[0]) : null;
     const boardItem = item.category === "board" ? item : partner;
     const diceItem = item.category === "dice" ? item : partner;
-    const diceLook = diceItem ? lookAt(diceItem, diceItem === item ? level : 3).dice ?? null : null;
-    const theme = boardItem ? boardTheme(boardItem, boardItem === item ? level : 3, motionLevel(settings) === "full") : { className: "" };
+    // The pair is shown at the chosen level on both sides (the game uses the lower of the two levels).
+    const partnerLv = (other: ItemDef) => Math.min(level, other.maxLevel);
+    const diceLook = diceItem ? lookAt(diceItem, diceItem === item ? level : partnerLv(diceItem)).dice ?? null : null;
+    const theme = boardItem ? boardTheme(boardItem, boardItem === item ? level : partnerLv(boardItem), motionLevel(settings) === "full") : { className: "" };
     return (
       <div className="item-stage">
         <section ref={boardRef} className={"game-board throw-tray stage-board" + theme.className} style={theme.style} aria-label="미리보기 보드">
           <DiceArea key={partner?.id ?? "solo"} state={state} forceRenderer={renderer} colors={diceLook} material={diceMaterial(diceItem?.id ?? item.id, diceLook ?? undefined)} interactive animate rollEvent={rollEvent} onToggle={(id) => setDice((previous) => previous.map((die) => die.id === id ? { ...die, held: !die.held } : die))} />
-          {boardItem && <BoardFx itemId={boardItem.id} level={boardItem === item ? level : 3} host={boardRef} />}
-          {partner && diceItem && boardItem && <SynergyFx dice={diceItem.id} board={boardItem.id} level={Math.min(3, level + 1)} host={boardRef} />}
+          {boardItem && <BoardFx itemId={boardItem.id} level={boardItem === item ? level : partnerLv(boardItem)} host={boardRef} />}
+          {partner && diceItem && boardItem && <SynergyFx dice={diceItem.id} board={boardItem.id} level={level} host={boardRef} />}
         </section>
         {collection && (
           <label className="stage-pair">

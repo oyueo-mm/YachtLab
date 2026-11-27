@@ -696,9 +696,7 @@ small {
   fill: var(--soft);
   stroke: transparent;
 }
-.die-button:hover:enabled {
-  border-color: var(--muted);
-}
+/* No hover frame on dice / the hold shelf (A1): selection (.held) and :focus-visible remain. */
 .hold-label {
   font-size: 10px;
   margin-top: 9px;
@@ -1816,9 +1814,7 @@ input[type="range"],
   fill: #fff;
   stroke: transparent;
 }
-.die-button:hover:enabled {
-  border-color: var(--orange);
-}
+/* No hover frame on dice / the hold shelf (A1): selection (.held) and :focus-visible remain. */
 .hold-label {
   color: #f4a04e;
 }

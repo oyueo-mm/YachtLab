@@ -64,7 +64,46 @@ export type SfxOptions = {
   emote?: EmoteSound;
   land?: LandSound;
   voice?: string;
+  /** Board surface under the dice (floor hits, rolling, settling). Absent = the default matte tray. */
+  surface?: Surface;
 };
+
+/**
+ * Board surfaces (A1, 2026-11-27). The die's own material (`material`) sets the click of the die;
+ * the surface filters it and adds the floor's answer: felt swallows the highs, wood knocks, stone and
+ * ice are hard and bright, metal rings, water and grass are soft. Harder hits open the filter (a strong
+ * hit is brighter, not only louder). Rendered with the same buses, limiter and volume as before.
+ */
+export type Surface = "matte" | "felt" | "wood" | "leather" | "stone" | "ice" | "metal" | "water" | "sand" | "grass" | "acrylic";
+type SurfaceVoice = { cutoff: number; gain: number; body?: [number, number, number]; ring?: [number, number, number][]; texture?: [BiquadFilterType, number, number, number] };
+export const SURFACES: Record<Surface, SurfaceVoice> = {
+  matte: { cutoff: 0, gain: 1 },
+  felt: { cutoff: 2600, gain: 0.82, body: [118, 0.07, 0.16], texture: ["lowpass", 700, 0.03, 0.06] },
+  wood: { cutoff: 7200, gain: 1, body: [205, 0.05, 0.2], ring: [[410, 0.02, 0.07], [690, 0.012, 0.04]], texture: ["bandpass", 1300, 0.012, 0.05] },
+  leather: { cutoff: 3600, gain: 0.9, body: [150, 0.055, 0.17], texture: ["bandpass", 900, 0.018, 0.04] },
+  stone: { cutoff: 11000, gain: 1.05, body: [260, 0.025, 0.12], ring: [[2350, 0.01, 0.07], [3900, 0.006, 0.04]], texture: ["highpass", 4200, 0.006, 0.07] },
+  ice: { cutoff: 13000, gain: 1, body: [320, 0.02, 0.08], ring: [[2900, 0.03, 0.06], [4700, 0.018, 0.035]], texture: ["highpass", 6200, 0.008, 0.05] },
+  metal: { cutoff: 12000, gain: 0.95, body: [180, 0.04, 0.1], ring: [[1540, 0.09, 0.05], [2310, 0.06, 0.03], [3590, 0.04, 0.018]] },
+  water: { cutoff: 2100, gain: 0.78, body: [96, 0.09, 0.14], texture: ["lowpass", 520, 0.07, 0.07] },
+  sand: { cutoff: 3000, gain: 0.8, body: [130, 0.05, 0.12], texture: ["bandpass", 2600, 0.05, 0.05] },
+  grass: { cutoff: 2300, gain: 0.8, body: [110, 0.06, 0.13], texture: ["highpass", 3200, 0.06, 0.035] },
+  acrylic: { cutoff: 9000, gain: 1, body: [240, 0.03, 0.12], ring: [[1980, 0.016, 0.05]] },
+};
+/** Board item → surface (presentation only). */
+export function surfaceOf(boardId?: string | null): Surface {
+  const id = (boardId ?? "").replace(/^board\./, "");
+  if (!id || id === "charcoal") return "matte";
+  if (id.startsWith("felt")) return "felt";
+  if (id.startsWith("wood") || id === "sakura" || id === "christmas") return "wood";
+  if (id.startsWith("leather")) return "leather";
+  if (id === "marble" || id === "volcano" || id === "storm") return "stone";
+  if (id === "ice") return "ice";
+  if (id === "gold_table") return "metal";
+  if (id === "ocean" || id === "deep_sea" || id === "navy") return "water";
+  if (id === "desert") return "sand";
+  if (id === "meadow" || id === "flower_field" || id === "forest") return "grass";
+  return "acrylic"; // space, neon, aurora: a smooth synthetic top
+}
 
 type LogEntry = { name: Sfx; delay: number; played: boolean; at: number; pack?: string };
 /** Small diagnostic ring buffer (also read by browser tests to verify sync and mute). */
@@ -790,8 +829,41 @@ function trimmed(audio: BaseAudioContext, out: AudioNode, db: number | undefined
   return g;
 }
 
+/** Route a floor sound through the board surface and add the surface's own answer (see SURFACES). */
+function surfaced(audio: BaseAudioContext, out: AudioNode, name: Sfx, surface: Surface | undefined, t: number, k: number): AudioNode {
+  const s = surface ? SURFACES[surface] : null;
+  if (!s || surface === "matte" || (name !== "impact" && name !== "roll" && name !== "settle")) return out;
+  const g = audio.createGain();
+  g.gain.value = s.gain;
+  let head: AudioNode = g;
+  if (s.cutoff) {
+    const lp = audio.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = Math.min(16000, s.cutoff * (0.45 + 0.75 * k));
+    lp.Q.value = 0.5;
+    lp.connect(g);
+    head = lp;
+  }
+  g.connect(out);
+  if (name === "impact") {
+    if (s.body) tone(audio, out, t, s.body[0] * jitter(0.08), s.body[1] * (0.6 + 0.6 * k), s.body[2] * k, "sine", s.body[0] * 0.7);
+    if (s.ring) modes(audio, out, t, s.ring.map(([f, d, a]) => [f * jitter(0.03), d, a * k * (0.5 + 0.5 * k)]));
+    if (s.texture) burst(audio, out, t, s.texture[2] * (0.7 + 0.6 * k), s.texture[3] * k, s.texture[0], s.texture[1]);
+  } else if (name === "roll" && s.texture) burst(audio, out, t, s.texture[2] * 1.4, s.texture[3] * 0.5 * k, s.texture[0], s.texture[1]);
+  return head;
+}
+
 type Admit = (name: Sfx, start: number, length: number, k: number) => boolean;
-function dispatch(audio: BaseAudioContext, out: AudioNode, name: Sfx, options: SfxOptions, t: number, k: number, admit: Admit) {
+function dispatch(audio: BaseAudioContext, rawOut: AudioNode, name: Sfx, options: SfxOptions, t: number, k: number, admit: Admit) {
+  // Collision sounds below the audible floor are skipped before any node is created.
+  if (name === "impact" && k < 0.18) return;
+  let out = rawOut;
+  if (options.surface && options.surface !== "matte" && (name === "impact" || name === "roll" || name === "settle")) {
+    // Admit once here (the surface adds its own voices), then let the die's voice through.
+    if (!admit(name, t, name === "settle" ? 0.25 : 0.12, k)) return;
+    out = surfaced(audio, rawOut, name, options.surface, t, k);
+    admit = () => true;
+  }
   if (name === "diceFx" || name === "boardFx") {
     if (!admit(name, t, 0.4, k)) return;
     const land = options.land ?? "chime";

@@ -20,7 +20,7 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
 export class FxCanvas {
   readonly canvas = document.createElement("canvas");
-  private g = this.canvas.getContext("2d");
+  private g: CanvasRenderingContext2D | null = this.canvas.getContext("2d");
   private pool: P[] = [];
   private rings: R[] = [];
   private lines: L[] = [];
@@ -31,10 +31,12 @@ export class FxCanvas {
   private ratio = 1;
   budget = 1;
 
-  constructor(host: HTMLElement, className = "dice-trail-canvas") {
+  /** `host` null: no canvas of its own — the owner draws the effects into its canvas with `drawInto`. */
+  constructor(host: HTMLElement | null, className = "dice-trail-canvas") {
     this.canvas.className = className;
     this.canvas.setAttribute("aria-hidden", "true");
-    host.appendChild(this.canvas);
+    if (host) host.appendChild(this.canvas);
+    else this.g = null;
   }
 
   layout(width: number, height: number) {
@@ -138,10 +140,15 @@ export class FxCanvas {
       this.clear();
       return false;
     }
-    const dt = this.last ? Math.min(0.05, (now - this.last) / 1000) : 0.016;
-    this.last = now;
     g.setTransform(this.ratio, 0, 0, this.ratio, 0, 0);
     g.clearRect(0, 0, this.w, this.h);
+    return this.drawInto(g, now);
+  }
+
+  /** Advance and draw into another context (already transformed to CSS px). No clearing. */
+  drawInto(g: CanvasRenderingContext2D, now: number) {
+    const dt = this.last ? Math.min(0.05, (now - this.last) / 1000) : 0.016;
+    this.last = now;
     // streaks
     for (const s of this.streaks.values()) {
       const life = s.spec.life * 1000;
