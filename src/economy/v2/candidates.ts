@@ -168,3 +168,33 @@ export const ABUSE: Persona[] = [
   persona(1440, { modeMix: { random: 1 }, matchMinutes: { ...MM, random: 8 }, queue: { meanWaitSec: 30, patienceSec: 600, fallback: "ai" }, questFocus: 1, spend: "saver", startHour: 0 }, "bot-random-24h"),
   persona(1440, { modeMix: { friend: 1 }, matchMinutes: { ...MM, friend: 4 }, winRate: { random: 0.5, friend: 0.5, ai: 0.5 }, questFocus: 1, spend: "saver", startHour: 0 }, "bot-friend-trade"),
 ];
+
+/** New research points. Existing ids retain the definitions above. */
+export const AUDIT_CANDIDATES = [
+  ...[0.5, 0.6, 0.7, 0.8].flatMap((common) => [0.55, 0.7, 0.85].map((rare) =>
+    cand(`C1-A${Math.round(common * 100)}-${Math.round(rare * 100)}`, "가격 단독 탐색", "일반·고급 가격만", {
+      priceMult: tiers(common, rare, 1, 1, 1),
+    }))),
+  cand("C1-SAFE", "보수 개선", "일반 70%, 고급 80%", { priceMult: tiers(0.7, 0.8, 1, 1, 1) }),
+  cand("C1-PRICE", "가격 최적화", "일반 55%, 고급 70%, 영웅 90%", { priceMult: tiers(0.55, 0.7, 0.9, 1, 1) }),
+  cand("C1-PRICE-R", "가격과 확정 재분류", "가격 우선과 확정 재분류", { priceMult: tiers(0.55, 0.7, 0.9, 1, 1), tierMap: "confirmed" }),
+  cand("C1-QUEST", "가격과 일일 퀘스트", "가격 우선과 일일 ×1.25", (b) => ({
+    priceMult: tiers(0.55, 0.7, 0.9, 1, 1), quests: q(b, 1.25, 1),
+  })),
+  cand("C1-QUEST-MIX", "가격과 일일·주간 퀘스트", "일일 ×1.5, 주간 ×1.25, 경기 ×1.1, 첫 할인", (b) => ({
+    priceMult: tiers(0.55, 0.7, 0.9, 1, 1), quests: q(b, 1.5, 1.25), match: scaleMatch(b, 1.1),
+    starter: { ...STARTER, freeDraws: 0 },
+  })),
+  cand("C1-LOOP", "획득과 강화", "가격 우선과 일반·고급 강화 비용 조정", {
+    priceMult: tiers(0.55, 0.7, 0.9, 1, 1), upgradeMult: tiers(0.65, 0.75, 1, 1, 1),
+    secondUpgradeMult: tiers(0.8, 0.9, 1, 1, 1),
+  }),
+  cand("C1-LONG", "수집과 장기 목표", "컬렉션·연승·업적·신규 할인 및 1회 무료 뽑기", {
+    priceMult: tiers(0.65, 0.8, 1, 1, 1), streakWeekly: STREAK_D, achievementMult: 1.1,
+    collectionReward: { coins: 150, gems: 5 }, starter: { firstPurchaseDiscountPct: 25, maxTier: "rare", freeDraws: 1 },
+  }),
+  cand("C1-COMBO", "가격·확정 재분류·강화", "가격 우선·확정 재분류·하위 강화·퀘스트", (b) => ({
+    priceMult: tiers(0.55, 0.7, 0.9, 1, 1), upgradeMult: tiers(0.65, 0.75, 1, 1, 1), tierMap: "confirmed",
+    secondUpgradeMult: tiers(0.8, 0.9, 1, 1, 1), quests: q(b, 1.25, 1),
+  })),
+];

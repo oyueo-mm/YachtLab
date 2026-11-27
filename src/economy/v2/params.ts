@@ -58,6 +58,7 @@ export type V2Params = {
   priceMult: Record<PricedTier, number>;
   /** Upgrade-cost multiplier per tier on the live upgrade cost. */
   upgradeMult: Record<PricedTier, number>;
+  secondUpgradeMult?: Record<PricedTier, number>;
   draw: { cost: number; duplicateCoins: number; dailyLimit: number };
   /** Weekly best random-queue streak reward (STREAK-REVIEW option D). */
   streakWeekly: null | { thresholds: number[]; coins: number[] };

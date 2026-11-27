@@ -5,24 +5,38 @@
  * aggregated results to docs/economy/v2/results/*.json and per-user raw rows to
  * docs/economy/v2/raw/*.csv.gz. Deterministic: seeds are fixed below (development seeds, not a holdout).
  */
-import { Worker, isMainThread, parentPort, workerData } from "node:worker_threads";
-import { cpus } from "node:os";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { Worker, isMainThread, parentPort } from "node:worker_threads";
+import { availableParallelism, cpus } from "node:os";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { parseArgs } from "node:util";
 import { gzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { ABUSE, BOOSTERS, INTERACTION, MAIN_PERSONAS, POLICIES, POPULATION, SENSITIVITY, SINGLE, persona } from "../../../src/economy/v2/candidates";
 import { baselineParams, PRICED_TIERS, type V2Params } from "../../../src/economy/v2/params";
+import { auditJobs, type Job } from "./audit-plan";
+import { survivalTimes } from "./survival";
 import { simulateUser, type Persona, type UserResult } from "../../../src/economy/v2/sim";
 
-const QUICK = process.argv.includes("--quick");
+const { values: options } = parseArgs({ options: {
+  quick: { type: "boolean" },
+  exp: { type: "string", multiple: true },
+  candidate: { type: "string", multiple: true },
+  seed: { type: "string" },
+  workers: { type: "string" },
+  out: { type: "string" },
+  rev: { type: "string" },
+} });
+const QUICK = options.quick ?? false;
 const OUT = new URL("../../../docs/economy/v2/", import.meta.url);
 /** KST midnight of Monday 2026-11-30 (economy weeks start on Monday). */
 const T0 = Date.UTC(2026, 10, 29, 15, 0, 0);
 const SEED = 20261127;
 const HORIZONS = [1, 7, 30, 90];
+const AUDIT_HORIZONS = [...HORIZONS, 180];
+const BASE = baselineParams();
 const WARMUP = 60;
-
-type Job = { t0?: number; exp: string; cell: string; params: V2Params; persona: Persona; users: number; seed: number; warmupDays: number; days: number; raw: boolean; tag: Record<string, string> };
 
 /* ------------------------------------------------------------- aggregation ------------------------------------------------------------- */
 const q = (xs: number[], p: number) => {
@@ -108,6 +122,38 @@ function aggregate(rs: UserResult[]) {
       lv3By: share(rs.map((r) => r.firstLv3Day !== null && r.firstLv3Day < h)),
       tierBy: Object.fromEntries(PRICED_TIERS.map((t) => [t, share(rs.map((r) => r.firstTierDay[t] !== null && r.firstTierDay[t]! < h))])),
     };
+    if (s0.audit) {
+      const samples = ss.map((s) => s.audit!);
+      const fields = ["ownedValueFixed", "buyable", "affordableWithGems", "netCoins", "netGems", "aiDenied", "waitMin",
+        "boostedSessions", "boosterSessions", "potentialAiStarts", "eligibleAiStarts", "purchases"] as const;
+      const keyStats = (key: "modes" | "grantsByGems" | "forbids" | "ownedByTier") =>
+        Object.fromEntries([...new Set(samples.flatMap((x) => Object.keys(x[key])))].sort()
+          .map((k) => [k, stat(samples.map((x) => (x[key] as Record<string, number>)[k] ?? 0))]));
+      const elapsed = (f: (a: typeof samples[number], r: UserResult) => number | null) =>
+        survivalTimes(samples.map((a, i) => ({ event: f(a, rs[i]), censor: ss[i].minutes })));
+      const reach = (f: (a: typeof samples[number]) => number | null) => share(samples.map((x) => f(x) !== null && f(x)! < h));
+      const maxGap = (days: number[]) => {
+        const events = [0, ...days.filter((d) => d < h), h];
+        return Math.max(...events.slice(1).map((d, i) => d - events[i]));
+      };
+      Object.assign(hs[h] as object, {
+        audit: {
+          ...Object.fromEntries(fields.map((k) => [k, stat(samples.map((a) => a[k]))])),
+          modes: keyStats("modes"), grantsByGems: keyStats("grantsByGems"), forbids: keyStats("forbids"), ownedByTier: keyStats("ownedByTier"),
+          firstDirect: elapsed((_, r) => r.firstBuyDay === null || r.firstBuyDay >= h ? null : r.firstBuyMin),
+          firstAny: elapsed((_, r) => r.firstObtainDay === null || r.firstObtainDay >= h ? null : r.firstObtainMin),
+          secondDirect: elapsed((a) => a.purchaseDays[1] < h ? a.purchaseTimes[1] : null),
+          desired: elapsed((a) => a.desiredDay !== null && a.desiredDay < h ? a.desiredTime : null),
+          noBuy: share(samples.map((x) => !x.purchaseDays.some((d) => d < h))),
+          maxGapDays: stat(samples.map((x) => maxGap(x.purchaseDays))),
+          gap30: share(samples.map((x) => maxGap(x.purchaseDays) >= 30)),
+          intervalAfterFirst: stat(samples.flatMap((a) => a.purchaseDays[1] < h ? [a.purchaseTimes[1] - a.purchaseTimes[0]] : [])),
+          lv2By: reach((a) => a.firstLevel2Day),
+          lv3By: share(rs.map((r) => r.firstLv3Day !== null && r.firstLv3Day < h)),
+          desiredBy: reach((a) => a.desiredDay),
+        },
+      });
+    }
   }
   out.h = hs;
   return out;
@@ -122,8 +168,30 @@ const RAW_HEADER = "exp,cell,candidate,persona,user,seed,idx,firstObtainMin,firs
 
 function runJob(job: Job) {
   const rs: UserResult[] = [];
-  for (let i = 0; i < job.users; i++) rs.push(simulateUser(job.persona, job.params, job.seed, i, { days: job.days, warmupDays: job.warmupDays, warmupParams: baselineParams(), snapshots: HORIZONS.filter((h) => h <= job.days), includeRev2: true, t0: job.t0 ?? T0 }));
-  return { agg: aggregate(rs), raw: job.raw ? rawRows(job, rs) : [], earned: rs.map((r) => r.snapshots[r.snapshots.length - 1].coinsEarned), firstObtain: rs.map((r) => r.firstObtainMin) };
+  const horizons = job.audit ? AUDIT_HORIZONS : HORIZONS;
+  const opts = { days: job.days, warmupDays: job.warmupDays, warmupParams: BASE,
+    snapshots: horizons.filter((h) => h <= job.days),
+    includeRev2: job.audit?.revision ? job.audit.revision === 2 : options.rev !== "1",
+    t0: job.t0 ?? T0, ...job.audit, audited: !!job.audit };
+  for (let i = 0; i < job.users; i++) rs.push(simulateUser(job.persona, job.params, job.seed, i, opts));
+  const sample = (r: UserResult) => {
+    const end = r.snapshots.at(-1)!;
+    const d30 = r.snapshots.find((s) => s.day === 30) ?? end;
+    return {
+      direct: r.firstBuyMin, any: r.firstObtainMin, censor: end.minutes,
+      coin: end.coinsEarned, net: end.audit!.netCoins, balance: end.coins,
+      desired30: d30.audit!.desiredDay !== null && d30.audit!.desiredDay < 30,
+      buy7: r.firstBuyDay !== null && r.firstBuyDay < 7,
+      any7: r.firstObtainDay !== null && r.firstObtainDay < 7,
+      buy30: r.firstBuyDay !== null && r.firstBuyDay < 30,
+      lv3: r.firstLv3Day !== null && r.firstLv3Day < 90, owned: end.owned,
+      lateGap30: (end.audit!.purchaseDays.filter((d) => d < end.day).at(-1) ?? 0) <= end.day - 30,
+      fixedValue: end.audit!.ownedValueFixed,
+    };
+  };
+  return { agg: aggregate(rs), raw: job.raw ? rawRows(job, rs) : [],
+    earned: rs.map((r) => r.snapshots.at(-1)!.coinsEarned), firstObtain: rs.map((r) => r.firstObtainMin),
+    samples: job.exp === "H1" ? rs.map(sample) : [] };
 }
 
 /* ------------------------------------------------------------- experiments ------------------------------------------------------------- */
@@ -172,57 +240,112 @@ function jobs(): Job[] {
 if (!isMainThread) {
   parentPort!.on("message", (job: Job) => parentPort!.postMessage({ cell: job.cell, exp: job.exp, ...runJob(job) }));
 } else {
-  const all = jobs();
+  const seed = options.seed === undefined ? undefined : Number(options.seed);
+  if (seed !== undefined && (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffffffff - 1)) throw new Error("Invalid --seed");
+  if (options.rev && !["1", "2"].includes(options.rev)) throw new Error("Invalid --rev");
+  const requestedWorkers = Number(options.workers ?? Math.min(4, availableParallelism()));
+  if (!Number.isInteger(requestedWorkers) || requestedWorkers < 1 || requestedWorkers > availableParallelism()) {
+    throw new Error(`--workers must be between 1 and ${availableParallelism()}`);
+  }
+  const audit = options.exp?.some((exp) => exp === "H1" || /^E(?:[89]|1[0-3])$/.test(exp));
+  if (options.exp?.includes("H1") && seed !== undefined) throw new Error("H1 seeds are pre-specified");
+  const all = (audit ? [...jobs(), ...auditJobs(QUICK)] : jobs())
+    .filter((job) => (!options.exp || options.exp.includes(job.exp)) && (!options.candidate || options.candidate.includes(job.params.id)))
+    .map((job) => seed === undefined ? job : { ...job, seed: seed + (job.exp === "E7" ? 1 : 0) });
+  if (!all.length) throw new Error("No matching jobs");
+  const sha = (data: string | Buffer) => createHash("sha256").update(data).digest("hex");
+  const root = new URL("../../../", import.meta.url);
+  const codePaths = ["src", "scripts/economy/v2"].flatMap((dir) =>
+    readdirSync(new URL(dir + "/", root), { recursive: true, encoding: "utf8" })
+      .filter((file) => /\.(ts|json)$/.test(file)).map((file) => dir + "/" + file),
+  ).sort();
+  const codeHash = sha(JSON.stringify(codePaths.map((p) => [p, sha(readFileSync(new URL(p, root)))])));
+  const settingsHash = sha(JSON.stringify({ all, T0, HORIZONS, rev: options.rev ?? "2" }));
+  const dir = resolve(options.out ?? fileURLToPath(new URL(QUICK ? "results-quick/" : "replay/", OUT)));
+  const cacheDir = resolve(dir, ".jobs", codeHash + "-" + process.version + "-rev" + (options.rev ?? "2"));
+  mkdirSync(cacheDir, { recursive: true });
+  const atomic = (path: string, data: string | Buffer) => {
+    const temp = path + "." + process.pid + ".tmp";
+    writeFileSync(temp, data);
+    renameSync(temp, path);
+  };
+  type Result = ReturnType<typeof runJob>;
+  const outputs = new Map<Job, Result>();
+  const checkpoint = (job: Job) => resolve(cacheDir, sha(JSON.stringify(job)) + ".json");
   const started = performance.now();
-  const threads = Math.max(1, cpus().length);
-  console.log(`economy-v2: ${all.length} jobs, ${all.reduce((a, j) => a + j.users, 0)} simulated players, ${threads} threads${QUICK ? " (quick)" : ""}`);
+  const cost = (j: Job) => j.users * (j.warmupDays + j.days) * Math.max(1, j.persona.minutesPerDay / 60);
+  const order = all.filter((job) => {
+    const path = checkpoint(job);
+    if (!existsSync(path)) return true;
+    outputs.set(job, JSON.parse(readFileSync(path, "utf8")) as Result);
+    return false;
+  }).sort((a, b) => cost(b) - cost(a));
+  const threads = Math.min(order.length, requestedWorkers);
+  let next = 0;
+  let done = outputs.size;
+  console.log(`economy-v2: ${all.length} jobs, ${done} resumed, ${threads} workers`);
+  const pool: Worker[] = [];
+  const file = fileURLToPath(import.meta.url);
+  try {
+    await Promise.all(Array.from({ length: threads }, () => new Promise<void>((resolve, reject) => {
+      const w = new Worker(file, { execArgv: ["--import", "tsx"] });
+      pool.push(w);
+      let job: Job | undefined;
+      const feed = () => {
+        job = order[next++];
+        if (!job) return resolve();
+        w.postMessage(job);
+      };
+      const fail = (error: unknown) => reject(new Error(`${job?.exp ?? "worker"} ${job?.cell ?? ""}`, { cause: error }));
+      w.on("error", fail);
+      w.on("exit", (code) => { if (job) fail(new Error(`worker exited (${code})`)); });
+      w.on("message", (m: Result & { cell: string; exp: string }) => {
+        try {
+          if (!job || m.exp !== job.exp || m.cell !== job.cell) throw new Error("Unexpected worker result");
+          const { agg, raw, earned, firstObtain } = m;
+          const output = { agg, raw, earned, firstObtain, samples: m.samples };
+          atomic(checkpoint(job), JSON.stringify(output));
+          outputs.set(job, output);
+          if (++done % 50 === 0 || done === all.length) console.log(`  ${done}/${all.length} (${((performance.now() - started) / 1000).toFixed(0)} s)`);
+          feed();
+        } catch (e) { fail(e); }
+      });
+      feed();
+    })));
+  } finally {
+    await Promise.all(pool.map((worker) => worker.terminate()));
+  }
+  const seconds = (performance.now() - started) / 1000;
   const results: Record<string, Record<string, unknown>> = {};
   const raw: string[] = [];
   const pops: Record<string, { earned: number[]; firstObtain: (number | null)[] }> = {};
-  let next = 0;
-  let done = 0;
-  const cost = (j: Job) => j.users * (j.warmupDays + j.days) * Math.max(1, j.persona.minutesPerDay / 60);
-  const order = [...all.keys()].sort((a, b) => cost(all[b]) - cost(all[a]));
-  await new Promise<void>((resolve) => {
-    const file = fileURLToPath(import.meta.url);
-    for (let t = 0; t < threads; t++) {
-      const w = new Worker(file, { execArgv: ["--import", "tsx"] });
-      const feed = () => {
-        if (next >= order.length) return void w.terminate();
-        w.postMessage(all[order[next++]]);
-      };
-      w.on("message", (m: { cell: string; exp: string; agg: Record<string, unknown>; raw: string[]; earned: number[]; firstObtain: (number | null)[] }) => {
-        const job = all.find((j) => j.cell === m.cell && j.exp === m.exp)!;
-        (results[m.exp] ??= {})[m.cell] = { candidate: job.params.id, label: job.params.label, group: job.params.group, persona: job.persona.id, minutesPerDay: job.persona.minutesPerDay, user: job.warmupDays ? "existing" : "new", seed: job.seed, ...job.tag, ...m.agg };
-        raw.push(...m.raw);
-        if (m.exp === "E6") {
-          const k = `${job.params.id}|${job.warmupDays ? "existing" : "new"}`;
-          const pp = (pops[k] ??= { earned: [], firstObtain: [] });
-          pp.earned.push(...m.earned);
-          pp.firstObtain.push(...m.firstObtain);
-        }
-        if (++done % 50 === 0 || done === all.length) console.log(`  ${done}/${all.length} (${((performance.now() - started) / 1000).toFixed(0)} s)`);
-        if (done === all.length) resolve();
-        feed();
-      });
-      feed();
+  for (const job of [...all].sort((a, b) => a.exp.localeCompare(b.exp) || a.cell.localeCompare(b.cell))) {
+    const m = outputs.get(job)!;
+    (results[job.exp] ??= {})[job.cell] = { candidate: job.params.id, label: job.params.label, group: job.params.group, persona: job.persona.id, minutesPerDay: job.persona.minutesPerDay, user: job.warmupDays ? "existing" : "new", seed: job.seed, ...job.tag, ...m.agg };
+    raw.push(...m.raw);
+    if (job.exp === "E6") {
+      const key = `${job.params.id}|${job.warmupDays ? "existing" : "new"}`;
+      const pp = (pops[key] ??= { earned: [], firstObtain: [] });
+      pp.earned.push(...m.earned);
+      pp.firstObtain.push(...m.firstObtain);
     }
-  });
-  const seconds = (performance.now() - started) / 1000;
+  }
   const popSummary = Object.fromEntries(Object.entries(pops).map(([k, v]) => {
     const s = [...v.earned].sort((a, b) => b - a);
     const tot = s.reduce((a, b) => a + b, 0);
     return [k, { n: s.length, gini: +gini(v.earned).toFixed(4), top10Share: +(s.slice(0, Math.ceil(s.length / 10)).reduce((a, b) => a + b, 0) / tot).toFixed(4), bottom50Share: +(s.slice(Math.floor(s.length / 2)).reduce((a, b) => a + b, 0) / tot).toFixed(4), p90p10: +(q(v.earned, 0.9) / Math.max(1, q(v.earned, 0.1))).toFixed(2), meanEarned90: +mean(v.earned).toFixed(0) }];
   }));
-  const dir = fileURLToPath(new URL(QUICK ? "results-quick/" : "results/", OUT));
-  mkdirSync(dir, { recursive: true });
-  const meta = { generatedBy: "scripts/economy/v2/run.ts", config: "M3i-W30@2 baseline (src/economy/live/config.ts)", seed: SEED, seedNote: "development seeds; SEED+1 = E7 stability block; not a holdout", t0: new Date(T0).toISOString(), horizons: HORIZONS, warmupDays: WARMUP, jobs: all.length, players: all.reduce((a, j) => a + j.users, 0), threads, seconds: +seconds.toFixed(1), node: process.version, cpu: cpus()[0]?.model, quick: QUICK };
-  for (const [exp, cells] of Object.entries(results)) writeFileSync(dir + `${exp}.json`, JSON.stringify({ meta, cells }, null, 0));
-  writeFileSync(dir + "population.json", JSON.stringify({ meta, populations: popSummary }, null, 1));
-  writeFileSync(dir + "meta.json", JSON.stringify(meta, null, 1));
-  if (!QUICK) {
-    mkdirSync(fileURLToPath(new URL("raw/", OUT)), { recursive: true });
-    writeFileSync(fileURLToPath(new URL("raw/E1-users.csv.gz", OUT)), gzipSync([RAW_HEADER, ...raw].join("\n")));
+  const meta = { generatedBy: "scripts/economy/v2/run.ts", config: "M3i-W30@2 baseline (src/economy/live/config.ts)", codeHash, settingsHash, seed: seed ?? SEED, seedNote: "E0–E7 development runs; E7 uses seed+1", rev: Number(options.rev ?? 2), t0: new Date(T0).toISOString(), horizons: HORIZONS, warmupDays: WARMUP, jobs: all.length, players: all.reduce((a, j) => a + j.users, 0), node: process.version, quick: QUICK };
+  for (const [exp, cells] of Object.entries(results)) atomic(resolve(dir, exp + ".json"), JSON.stringify({ meta, cells }));
+  if (results.E6) atomic(resolve(dir, "population.json"), JSON.stringify({ meta, populations: popSummary }, null, 1));
+  const sampled = [...outputs].filter(([, m]) => m.samples.length).sort(([a], [b]) => a.cell.localeCompare(b.cell));
+  if (sampled.length) atomic(resolve(dir, "H1-samples.json.gz"), gzipSync(JSON.stringify(Object.fromEntries(sampled.map(([j, m]) => [j.cell, m.samples])))));
+  if (audit) {
+    const configuration = [...all].sort((a, b) => a.exp.localeCompare(b.exp) || a.cell.localeCompare(b.cell))
+      .map((j) => ({ exp: j.exp, cell: j.cell, settings: j.params, cohort: j.persona, audit: j.audit, seed: j.seed, days: j.days, users: j.users, warmupDays: j.warmupDays, t0: j.t0 ?? T0 }));
+    atomic(resolve(dir, "job-settings.json.gz"), gzipSync(JSON.stringify(configuration)));
   }
+  if (raw.length) atomic(resolve(dir, "E1-users.csv.gz"), gzipSync([RAW_HEADER, ...raw].join("\n")));
+  atomic(resolve(dir, "meta.json"), JSON.stringify(meta, null, 1));
   console.log(`done in ${seconds.toFixed(1)} s → ${dir}`);
 }

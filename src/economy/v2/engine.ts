@@ -11,7 +11,7 @@
  * deterministic quest picks are identical.
  */
 import { categories, type Card } from "../../engine";
-import { ACHIEVEMENTS, economyWeek, questById } from "../live/config";
+import { ACHIEVEMENTS, ECONOMY, economyWeek, questById } from "../live/config";
 import { rollover, unlockAchievements, type EconState, type Grant, type QuestSlot, type RewardInput } from "../live/rewards";
 import type { V2Params } from "./params";
 
@@ -20,7 +20,7 @@ export type V2Ext = { streakWeek: number; streakCur: number; streakBest: number;
 export const newExt = (): V2Ext => ({ streakWeek: -1, streakCur: 0, streakBest: 0, streakPaid: 0, boostDay: -1, boostExtraToday: 0 });
 
 export type BoostCtx = { mult: number; dailyExtraCap: number; day: number; budgetLeft?: number } | null;
-export type V2Grant = Grant | { key: string; kind: "booster" | "streak" | "collection"; coins: number; gems: number; label: string };
+export type V2Grant = Grant | { key: string; kind: "booster" | "streak" | "collection" | "draw-duplicate"; coins: number; gems: number; label: string };
 export type V2Outcome = {
   state: EconState;
   ext: V2Ext;
@@ -42,7 +42,7 @@ function questGain(metric: string, m: { win: boolean; card: Card; newDay: boolea
   return ((m.card as Record<string, number | undefined>)[metric] ?? 0) > 0 ? 1 : 0;
 }
 
-export function applyMatchV2(prev: EconState, prevExt: V2Ext, input: RewardInput, account: { userId: string; createdAt: number }, p: V2Params, boost: BoostCtx = null): V2Outcome {
+export function applyMatchV2(prev: EconState, prevExt: V2Ext, input: RewardInput, account: { userId: string; createdAt: number }, p: V2Params, boost: BoostCtx = null, events: Readonly<typeof ECONOMY.events> = ECONOMY.events): V2Outcome {
   let state = rollover(prev, account.userId, input.endedAt);
   let ext = prevExt;
   const grants: V2Grant[] = [];
@@ -71,6 +71,7 @@ export function applyMatchV2(prev: EconState, prevExt: V2Ext, input: RewardInput
       const base = mode.complete + (completed ? (win ? mode.win : input.outcome === "draw" ? mode.draw : 0) : 0);
       coins = base;
       if (input.endedAt < account.createdAt + p.newUser.boostDays * 86_400_000) coins += p.newUser.boostPerMatch;
+      for (const ev of events) if (input.endedAt >= ev.start && input.endedAt < ev.end) coins += ev.perMatch;
       if (boost && boost.mult > 1) {
         if (ext.boostDay !== boost.day) ext = { ...ext, boostDay: boost.day, boostExtraToday: 0 };
         let extra = Math.round(base * (boost.mult - 1));
@@ -84,6 +85,14 @@ export function applyMatchV2(prev: EconState, prevExt: V2Ext, input: RewardInput
     else reason = "daily-cap";
     if (coins > 0) grants.push({ key: `m:${input.matchId}`, kind: "match", coins, gems: 0, label: input.kind === "ai" ? "AI 대전 완료" : input.kind === "friend" ? "친구 대전 완료" : "무작위 대전 완료" });
     if (boostCoins > 0) grants.push({ key: `b:${input.matchId}`, kind: "booster", coins: boostCoins, gems: 0, label: "부스터(연구)" });
+    for (const ev of events) {
+      if (input.endedAt < ev.start || input.endedAt >= ev.end) continue;
+      const cur = state.events[ev.id] ?? { matches: 0, paid: false };
+      const matches = cur.matches + 1;
+      const paidNow = !cur.paid && matches >= ev.minMatches;
+      if (paidNow) grants.push({ key: `e:${ev.id}`, kind: "event", ...ev.reward, label: ev.label });
+      state = { ...state, events: { ...state.events, [ev.id]: { matches, paid: cur.paid || paidNow } } };
+    }
   }
 
   const newDay = state.lastPlayDay !== state.day;
@@ -164,11 +173,15 @@ export function applyMatchV2(prev: EconState, prevExt: V2Ext, input: RewardInput
     ext = { ...ext, streakCur: cur, streakBest: best, streakPaid: paid };
   }
 
+  const unlocked = unlockV2Achievements(state, p);
+  return { state: unlocked.state, ext, grants: [...grants, ...unlocked.grants], countable: true, rewarded: rewarded && position !== null && position <= p.daily.reducedUntil, position, reason, boostCoins };
+}
+
+export function unlockV2Achievements(state: EconState, p: V2Params) {
   const unlocked = unlockAchievements(state);
-  const ach = unlocked.grants.map((g) =>
+  return { state: unlocked.state, grants: unlocked.grants.map((g) =>
     p.achievementMult === 1 || hiddenIds.has(g.key.slice(2)) ? g : { ...g, coins: Math.round(g.coins * p.achievementMult), gems: Math.round(g.gems * p.achievementMult) },
-  );
-  return { state: unlocked.state, ext, grants: [...grants, ...ach], countable: true, rewarded: rewarded && position !== null && position <= p.daily.reducedUntil, position, reason, boostCoins };
+  ) };
 }
 
 /** Welcome grant (once per account) under a candidate. */

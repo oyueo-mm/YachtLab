@@ -8,6 +8,8 @@
  * `upgradeCost` (tested).
  */
 import { ITEMS, priceOf, upgradeCost, type ItemDef } from "../live/catalog";
+import { SOCIAL_ITEMS } from "../../social/catalog";
+import { PROPOSED_CHAT, PROPOSED_DEFAULTS } from "./chat-proposal";
 import { COLLECTIONS } from "../live/collections";
 import { TIER_PRICES, UPGRADE_COINS, type TierId } from "../live/config";
 import { HANDS, drawHand, type DrawTier } from "../live/draw";
@@ -42,10 +44,12 @@ export type PricedItem = {
   coins: number | null;
   gems: number | null;
   /** Coins for Lv.1→2 and Lv.2→3 (null when not upgradable). */
-  up: [number, number] | null;
+  up: [number, number | null] | null;
   drawable: boolean;
   season?: string;
   rev: number;
+  maxLevel: number;
+  defaultOwned?: true;
 };
 
 const roundDown = (amount: number, unit: number) => Math.max(unit, Math.floor(amount / unit) * unit);
@@ -66,39 +70,85 @@ function retieredPrice(item: ItemDef, tier: PricedTier, currency: "coins" | "gem
   const ratio = live / TIER_PRICES[item.tier as PricedTier][currency];
   return roundDown(TIER_PRICES[tier][currency] * ratio, currency === "coins" ? 5 : 1);
 }
-function retieredUpgrade(item: ItemDef, tier: PricedTier): [number, number] | null {
+// Transcribed from upgradeCost in 54c1367. Other Rev.1 economic fields were checked against that source.
+const REV1_LEVEL_ONE_BOARDS = new Set([
+  "board.christmas", "board.felt_red", "board.felt_blue", "board.felt_purple", "board.felt_sand",
+  "board.wood_oak", "board.wood_walnut", "board.leather_brown", "board.leather_black",
+]);
+const liveSocial = new Map(SOCIAL_ITEMS.map((item) => [item.id, item]));
+function tierPercent(item: ItemDef) {
+  if (item.category === "dice") return 100;
+  if (item.category === "board") return 90;
+  const social = liveSocial.get(item.id);
+  if (!social || social.style !== "default") return 100;
+  return item.category === "chat" ? 55 : 75;
+}
+const scaled = (amount: number, percent: number, unit: number) => Math.max(unit, Math.floor(amount * percent / (100 * unit)) * unit);
+type CatalogOptions = { revision?: 1 | 2; proposedChat?: boolean; audited?: boolean };
+function retieredUpgrade(item: ItemDef, tier: PricedTier, audited: boolean): PricedItem["up"] {
   const a = upgradeCost(item, 1);
   const b = upgradeCost(item, 2);
-  if (a === null || b === null) return null;
+  if (a === null || (!audited && b === null)) return null;
   if (item.tier === tier) return [a, b];
+  if (audited) return [
+    scaled(UPGRADE_COINS[tier][0], tierPercent(item), 5),
+    b === null ? null : scaled(UPGRADE_COINS[tier][1], tierPercent(item), 5),
+  ];
   const ratio = a / UPGRADE_COINS[item.tier as PricedTier][0];
   return [roundDown(UPGRADE_COINS[tier][0] * ratio, 5), roundDown(UPGRADE_COINS[tier][1] * ratio, 5)];
 }
 
-export function pricedCatalog(p: V2Params): PricedItem[] {
-  return ITEMS.filter((i) => !i.retired).map((i) => {
-    const tier = tierOf(i, p.tierMap);
+export function pricedCatalog(p: V2Params, options: CatalogOptions = {}): PricedItem[] {
+  const audited = options.audited ?? false;
+  const items = ITEMS.filter((i) => !i.retired && (i.rev ?? 1) <= (options.revision ?? 2)).map((i) => {
+    const item = options.revision === 1 && REV1_LEVEL_ONE_BOARDS.has(i.id) ? { ...i, maxLevel: 1 } : i;
+    const tier = tierOf(item, p.tierMap);
     const priced = tier !== "basic" && tier !== "special";
-    const pm = priced ? p.priceMult[tier as PricedTier] : 1;
-    const um = priced ? p.upgradeMult[tier as PricedTier] : 1;
-    const base = (cur: "coins" | "gems") => (priced ? retieredPrice(i, tier as PricedTier, cur) : null);
+    const pm = priced ? p.priceMult[tier] : 1;
+    const um = priced ? p.upgradeMult[tier] : 1;
+    const um2 = priced ? p.secondUpgradeMult?.[tier] ?? um : 1;
+    const base = (cur: "coins" | "gems") => {
+      if (!priced) return null;
+      const price = priceOf(item, cur);
+      if (audited && price !== null && tier !== item.tier) return scaled(TIER_PRICES[tier][cur], tierPercent(item), cur === "coins" ? 5 : 1);
+      return retieredPrice(item, tier, cur);
+    };
     const c = base("coins");
     const g = base("gems");
-    const up = priced ? retieredUpgrade(i, tier as PricedTier) : null;
-    return {
-      id: i.id,
-      category: i.category,
-      liveTier: i.tier,
-      tier,
+    const up = priced ? retieredUpgrade(item, tier, audited) : null;
+    const price: PricedItem = {
+      id: item.id, category: item.category, liveTier: item.tier, tier,
       coins: c === null ? null : pm === 1 ? c : roundDown(c * pm, 5),
       gems: g === null ? null : pm === 1 ? g : roundDown(g * pm, 1),
-      up: up === null ? null : um === 1 ? up : [roundDown(up[0] * um, 5), roundDown(up[1] * um, 5)],
-      // same filter as live drawItems: either/coins, not retired, not drawExcluded
-      drawable: priced && !i.drawExcluded && (i.acquisition === "either" || i.acquisition === "coins"),
-      ...(i.season ? { season: i.season } : {}),
-      rev: i.rev ?? 1,
+      up: up === null ? null : [um === 1 ? up[0] : roundDown(up[0] * um, 5), up[1] === null || um2 === 1 ? up[1] : roundDown(up[1] * um2, 5)],
+      drawable: priced && !item.drawExcluded && (item.acquisition === "either" || item.acquisition === "coins"),
+      ...(item.season ? { season: item.season } : {}),
+      ...(item.acquisition === "default" ? { defaultOwned: true } : {}),
+      maxLevel: item.maxLevel, rev: item.rev ?? 1,
     };
+    return price;
   });
+  if (!options.proposedChat) return items;
+  const byId = new Map(items.map((item) => [item.id, item]));
+  // Keep legacy entries addressable for existing instances and loadouts; close new sale and draws.
+  for (const item of items) if (item.category === "chat" && !item.season && !item.defaultOwned) {
+    Object.assign(item, { coins: null, gems: null, drawable: false });
+  }
+  for (const { id, tier } of PROPOSED_CHAT) {
+    const prev = byId.get(id);
+    const coins = roundDown(scaled(TIER_PRICES[tier].coins, 55, 5) * p.priceMult[tier], 5);
+    const gems = roundDown(scaled(TIER_PRICES[tier].gems, 55, 1) * p.priceMult[tier], 1);
+    const price: PricedItem = {
+      id, category: "chat", liveTier: prev?.liveTier ?? tier, tier, coins, gems,
+      up: null, drawable: true, rev: 2, maxLevel: 1,
+    };
+    if (prev) Object.assign(prev, price);
+    else items.push(price);
+  }
+  for (const { id } of PROPOSED_DEFAULTS) if (!byId.has(id)) {
+    items.push({ id, category: "chat", liveTier: "basic", tier: "basic", coins: null, gems: null, up: null, drawable: false, rev: 2, maxLevel: 1, defaultOwned: true });
+  }
+  return items;
 }
 
 /** Probability of each draw tier: exact enumeration of the 7,776 ordered dice (live `drawHand`). */
