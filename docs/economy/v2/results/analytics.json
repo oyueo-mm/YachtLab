@@ -1,0 +1,1227 @@
+{
+ "generatedBy": "scripts/economy/v2/analytics.ts",
+ "changed": [
+  {
+   "id": "dice.royal",
+   "name": "로열",
+   "category": "dice",
+   "status": "확정",
+   "from": "mythic",
+   "to": "legendary",
+   "coins": [
+    25000,
+    10000
+   ],
+   "gems": [
+    1200,
+    600
+   ],
+   "fullUpgrade": [
+    37000,
+    15000
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.laugh",
+   "name": "웃음",
+   "category": "emote",
+   "status": "확정",
+   "from": "common",
+   "to": "rare",
+   "coins": [
+    225,
+    750
+   ],
+   "gems": [
+    30,
+    90
+   ],
+   "fullUpgrade": [
+    335,
+    1095
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.wow",
+   "name": "놀람",
+   "category": "emote",
+   "status": "확정",
+   "from": "common",
+   "to": "rare",
+   "coins": [
+    225,
+    750
+   ],
+   "gems": [
+    30,
+    90
+   ],
+   "fullUpgrade": [
+    335,
+    1095
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.cry",
+   "name": "아쉬움",
+   "category": "emote",
+   "status": "확정",
+   "from": "common",
+   "to": "rare",
+   "coins": [
+    225,
+    750
+   ],
+   "gems": [
+    30,
+    90
+   ],
+   "fullUpgrade": [
+    335,
+    1095
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.dice",
+   "name": "주사위",
+   "category": "emote",
+   "status": "확정",
+   "from": "rare",
+   "to": "common",
+   "coins": [
+    750,
+    225
+   ],
+   "gems": [
+    90,
+    30
+   ],
+   "fullUpgrade": [
+    1125,
+    335
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.sparkles",
+   "name": "반짝",
+   "category": "emote",
+   "status": "확정",
+   "from": "epic",
+   "to": "common",
+   "coins": [
+    2250,
+    225
+   ],
+   "gems": [
+    225,
+    30
+   ],
+   "fullUpgrade": [
+    3375,
+    335
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.cool",
+   "name": "멋짐",
+   "category": "emote",
+   "status": "확정",
+   "from": "common",
+   "to": "rare",
+   "coins": [
+    225,
+    750
+   ],
+   "gems": [
+    30,
+    90
+   ],
+   "fullUpgrade": [
+    335,
+    1095
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.think",
+   "name": "고민",
+   "category": "emote",
+   "status": "확정",
+   "from": "common",
+   "to": "rare",
+   "coins": [
+    225,
+    750
+   ],
+   "gems": [
+    30,
+    90
+   ],
+   "fullUpgrade": [
+    335,
+    1095
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.please",
+   "name": "부탁",
+   "category": "emote",
+   "status": "확정",
+   "from": "common",
+   "to": "rare",
+   "coins": [
+    225,
+    750
+   ],
+   "gems": [
+    30,
+    90
+   ],
+   "fullUpgrade": [
+    335,
+    1095
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.sleepy",
+   "name": "졸림",
+   "category": "emote",
+   "status": "확정",
+   "from": "common",
+   "to": "legendary",
+   "coins": [
+    225,
+    7500
+   ],
+   "gems": [
+    30,
+    450
+   ],
+   "fullUpgrade": [
+    335,
+    10995
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.fired_up",
+   "name": "의욕",
+   "category": "emote",
+   "status": "확정",
+   "from": "common",
+   "to": "rare",
+   "coins": [
+    225,
+    750
+   ],
+   "gems": [
+    30,
+    90
+   ],
+   "fullUpgrade": [
+    335,
+    1095
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.clover",
+   "name": "행운",
+   "category": "emote",
+   "status": "확정",
+   "from": "rare",
+   "to": "common",
+   "coins": [
+    750,
+    225
+   ],
+   "gems": [
+    90,
+    30
+   ],
+   "fullUpgrade": [
+    1125,
+    335
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.target",
+   "name": "명중",
+   "category": "emote",
+   "status": "확정",
+   "from": "rare",
+   "to": "common",
+   "coins": [
+    750,
+    225
+   ],
+   "gems": [
+    90,
+    30
+   ],
+   "fullUpgrade": [
+    1125,
+    335
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.hundred",
+   "name": "백점",
+   "category": "emote",
+   "status": "확정",
+   "from": "rare",
+   "to": "common",
+   "coins": [
+    750,
+    225
+   ],
+   "gems": [
+    90,
+    30
+   ],
+   "fullUpgrade": [
+    1125,
+    335
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.rocket",
+   "name": "로켓",
+   "category": "emote",
+   "status": "확정",
+   "from": "rare",
+   "to": "common",
+   "coins": [
+    750,
+    225
+   ],
+   "gems": [
+    90,
+    30
+   ],
+   "fullUpgrade": [
+    1125,
+    335
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.rainbow",
+   "name": "무지개",
+   "category": "emote",
+   "status": "확정",
+   "from": "rare",
+   "to": "common",
+   "coins": [
+    750,
+    225
+   ],
+   "gems": [
+    90,
+    30
+   ],
+   "fullUpgrade": [
+    1125,
+    335
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.whale",
+   "name": "고래",
+   "category": "emote",
+   "status": "확정",
+   "from": "epic",
+   "to": "common",
+   "coins": [
+    2250,
+    225
+   ],
+   "gems": [
+    225,
+    30
+   ],
+   "fullUpgrade": [
+    3375,
+    335
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.bolt",
+   "name": "번개",
+   "category": "emote",
+   "status": "확정",
+   "from": "epic",
+   "to": "common",
+   "coins": [
+    2250,
+    225
+   ],
+   "gems": [
+    225,
+    30
+   ],
+   "fullUpgrade": [
+    3375,
+    335
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.cake",
+   "name": "케이크",
+   "category": "emote",
+   "status": "확정",
+   "from": "epic",
+   "to": "common",
+   "coins": [
+    2250,
+    225
+   ],
+   "gems": [
+    225,
+    30
+   ],
+   "fullUpgrade": [
+    3375,
+    335
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.question",
+   "name": "물음표 한 개",
+   "category": "emote",
+   "status": "확정",
+   "from": "rare",
+   "to": "epic",
+   "coins": [
+    750,
+    2250
+   ],
+   "gems": [
+    90,
+    225
+   ],
+   "fullUpgrade": [
+    1125,
+    3375
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "emote.exclaim",
+   "name": "느낌표 한 개",
+   "category": "emote",
+   "status": "확정",
+   "from": "rare",
+   "to": "epic",
+   "coins": [
+    750,
+    2250
+   ],
+   "gems": [
+    90,
+    225
+   ],
+   "fullUpgrade": [
+    1125,
+    3375
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "dice.lava",
+   "name": "용암",
+   "category": "dice",
+   "status": "확정",
+   "from": "legendary",
+   "to": "mythic",
+   "coins": [
+    10000,
+    25000
+   ],
+   "gems": [
+    600,
+    1200
+   ],
+   "fullUpgrade": [
+    15000,
+    37000
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "dice.galaxy",
+   "name": "은하",
+   "category": "dice",
+   "status": "확정",
+   "from": "legendary",
+   "to": "mythic",
+   "coins": [
+    10000,
+    25000
+   ],
+   "gems": [
+    600,
+    1200
+   ],
+   "fullUpgrade": [
+    15000,
+    37000
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "dice.hologram",
+   "name": "홀로그램",
+   "category": "dice",
+   "status": "확정",
+   "from": "mythic",
+   "to": "legendary",
+   "coins": [
+    25000,
+    10000
+   ],
+   "gems": [
+    1200,
+    600
+   ],
+   "fullUpgrade": [
+    37000,
+    15000
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "dice.gold",
+   "name": "황금",
+   "category": "dice",
+   "status": "확정",
+   "from": "mythic",
+   "to": "legendary",
+   "coins": [
+    25000,
+    10000
+   ],
+   "gems": [
+    1200,
+    600
+   ],
+   "fullUpgrade": [
+    37000,
+    15000
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "dice.thunder",
+   "name": "번개",
+   "category": "dice",
+   "status": "확정",
+   "from": "legendary",
+   "to": "mythic",
+   "coins": [
+    10000,
+    25000
+   ],
+   "gems": [
+    600,
+    1200
+   ],
+   "fullUpgrade": [
+    15000,
+    37000
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "dice.sakura",
+   "name": "벚꽃",
+   "category": "dice",
+   "status": "확정",
+   "from": "legendary",
+   "to": "mythic",
+   "coins": [
+    10000,
+    25000
+   ],
+   "gems": [
+    600,
+    1200
+   ],
+   "fullUpgrade": [
+    15000,
+    37000
+   ],
+   "confirmedOnly": true
+  },
+  {
+   "id": "board.space",
+   "name": "우주",
+   "category": "board",
+   "status": "제안",
+   "from": "legendary",
+   "to": "mythic",
+   "coins": [
+    9000,
+    22500
+   ],
+   "gems": [
+    540,
+    1080
+   ],
+   "fullUpgrade": [
+    13500,
+    33300
+   ],
+   "confirmedOnly": false
+  },
+  {
+   "id": "board.gold_table",
+   "name": "황금 테이블",
+   "category": "board",
+   "status": "제안",
+   "from": "mythic",
+   "to": "legendary",
+   "coins": [
+    22500,
+    9000
+   ],
+   "gems": [
+    1080,
+    540
+   ],
+   "fullUpgrade": [
+    33300,
+    13500
+   ],
+   "confirmedOnly": false
+  },
+  {
+   "id": "board.storm",
+   "name": "폭풍 번개",
+   "category": "board",
+   "status": "제안",
+   "from": "legendary",
+   "to": "mythic",
+   "coins": [
+    9000,
+    22500
+   ],
+   "gems": [
+    540,
+    1080
+   ],
+   "fullUpgrade": [
+    13500,
+    33300
+   ],
+   "confirmedOnly": false
+  },
+  {
+   "id": "board.sakura",
+   "name": "벚꽃길",
+   "category": "board",
+   "status": "제안",
+   "from": "legendary",
+   "to": "mythic",
+   "coins": [
+    9000,
+    22500
+   ],
+   "gems": [
+    540,
+    1080
+   ],
+   "fullUpgrade": [
+    13500,
+    33300
+   ],
+   "confirmedOnly": false
+  },
+  {
+   "id": "board.volcano",
+   "name": "화산",
+   "category": "board",
+   "status": "제안",
+   "from": "legendary",
+   "to": "mythic",
+   "coins": [
+    9000,
+    22500
+   ],
+   "gems": [
+    540,
+    1080
+   ],
+   "fullUpgrade": [
+    13500,
+    33300
+   ],
+   "confirmedOnly": false
+  }
+ ],
+ "itemProbChange": [
+  {
+   "id": "dice.royal",
+   "live": 0.0000643,
+   "confirmed": 0.001729,
+   "proposed": 0.001729
+  },
+  {
+   "id": "emote.laugh",
+   "live": 0.007039,
+   "confirmed": 0.008209,
+   "proposed": 0.008209
+  },
+  {
+   "id": "emote.wow",
+   "live": 0.007039,
+   "confirmed": 0.008209,
+   "proposed": 0.008209
+  },
+  {
+   "id": "emote.cry",
+   "live": 0.007039,
+   "confirmed": 0.008209,
+   "proposed": 0.008209
+  },
+  {
+   "id": "emote.dice",
+   "live": 0.008038,
+   "confirmed": 0.006801,
+   "proposed": 0.006801
+  },
+  {
+   "id": "emote.sparkles",
+   "live": 0.003523,
+   "confirmed": 0.006801,
+   "proposed": 0.006801
+  },
+  {
+   "id": "emote.cool",
+   "live": 0.007039,
+   "confirmed": 0.008209,
+   "proposed": 0.008209
+  },
+  {
+   "id": "emote.think",
+   "live": 0.007039,
+   "confirmed": 0.008209,
+   "proposed": 0.008209
+  },
+  {
+   "id": "emote.please",
+   "live": 0.007039,
+   "confirmed": 0.008209,
+   "proposed": 0.008209
+  },
+  {
+   "id": "emote.sleepy",
+   "live": 0.007039,
+   "confirmed": 0.001729,
+   "proposed": 0.001729
+  },
+  {
+   "id": "emote.fired_up",
+   "live": 0.007039,
+   "confirmed": 0.008209,
+   "proposed": 0.008209
+  },
+  {
+   "id": "emote.clover",
+   "live": 0.008038,
+   "confirmed": 0.006801,
+   "proposed": 0.006801
+  },
+  {
+   "id": "emote.target",
+   "live": 0.008038,
+   "confirmed": 0.006801,
+   "proposed": 0.006801
+  },
+  {
+   "id": "emote.hundred",
+   "live": 0.008038,
+   "confirmed": 0.006801,
+   "proposed": 0.006801
+  },
+  {
+   "id": "emote.rocket",
+   "live": 0.008038,
+   "confirmed": 0.006801,
+   "proposed": 0.006801
+  },
+  {
+   "id": "emote.rainbow",
+   "live": 0.008038,
+   "confirmed": 0.006801,
+   "proposed": 0.006801
+  },
+  {
+   "id": "emote.whale",
+   "live": 0.003523,
+   "confirmed": 0.006801,
+   "proposed": 0.006801
+  },
+  {
+   "id": "emote.bolt",
+   "live": 0.003523,
+   "confirmed": 0.006801,
+   "proposed": 0.006801
+  },
+  {
+   "id": "emote.cake",
+   "live": 0.003523,
+   "confirmed": 0.006801,
+   "proposed": 0.006801
+  },
+  {
+   "id": "emote.question",
+   "live": 0.008038,
+   "confirmed": 0.003683,
+   "proposed": 0.003683
+  },
+  {
+   "id": "emote.exclaim",
+   "live": 0.008038,
+   "confirmed": 0.003683,
+   "proposed": 0.003683
+  },
+  {
+   "id": "dice.lava",
+   "live": 0.001858,
+   "confirmed": 0.00007015,
+   "proposed": 0.00007015
+  },
+  {
+   "id": "dice.galaxy",
+   "live": 0.001858,
+   "confirmed": 0.00007015,
+   "proposed": 0.00007015
+  },
+  {
+   "id": "dice.hologram",
+   "live": 0.0000643,
+   "confirmed": 0.001729,
+   "proposed": 0.001729
+  },
+  {
+   "id": "dice.gold",
+   "live": 0.0000643,
+   "confirmed": 0.001729,
+   "proposed": 0.001729
+  },
+  {
+   "id": "dice.thunder",
+   "live": 0,
+   "confirmed": 0,
+   "proposed": 0
+  },
+  {
+   "id": "dice.sakura",
+   "live": 0,
+   "confirmed": 0,
+   "proposed": 0
+  },
+  {
+   "id": "board.space",
+   "live": 0.001858,
+   "confirmed": 0.001729,
+   "proposed": 0.00007015
+  },
+  {
+   "id": "board.gold_table",
+   "live": 0.0000643,
+   "confirmed": 0.00007015,
+   "proposed": 0.001729
+  },
+  {
+   "id": "board.storm",
+   "live": 0,
+   "confirmed": 0,
+   "proposed": 0
+  },
+  {
+   "id": "board.sakura",
+   "live": 0,
+   "confirmed": 0,
+   "proposed": 0
+  },
+  {
+   "id": "board.volcano",
+   "live": 0,
+   "confirmed": 0,
+   "proposed": 0
+  }
+ ],
+ "draws": {
+  "live": {
+   "per": {
+    "common": {
+     "items": 57,
+     "pTier": 0.401235,
+     "pItem": 0.0070392,
+     "meanCoins": 213
+    },
+    "rare": {
+     "items": 48,
+     "pTier": 0.385802,
+     "pItem": 0.0080376,
+     "meanCoins": 755
+    },
+    "epic": {
+     "items": 46,
+     "pTier": 0.162037,
+     "pItem": 0.0035225,
+     "meanCoins": 2514
+    },
+    "legendary": {
+     "items": 27,
+     "pTier": 0.050154,
+     "pItem": 0.0018576,
+     "meanCoins": 8704
+    },
+    "mythic": {
+     "items": 12,
+     "pTier": 0.000772,
+     "pItem": 0.0000643,
+     "meanCoins": 21875
+    }
+   },
+   "expectedListValuePerDraw": 1238,
+   "valuePerCoin": 4.95
+  },
+  "confirmed": {
+   "per": {
+    "common": {
+     "items": 59,
+     "pTier": 0.401235,
+     "pItem": 0.0068006,
+     "meanCoins": 213
+    },
+    "rare": {
+     "items": 47,
+     "pTier": 0.385802,
+     "pItem": 0.0082086,
+     "meanCoins": 755
+    },
+    "epic": {
+     "items": 44,
+     "pTier": 0.162037,
+     "pItem": 0.0036827,
+     "meanCoins": 2526
+    },
+    "legendary": {
+     "items": 29,
+     "pTier": 0.050154,
+     "pItem": 0.0017295,
+     "meanCoins": 8707
+    },
+    "mythic": {
+     "items": 11,
+     "pTier": 0.000772,
+     "pItem": 0.000070146,
+     "meanCoins": 21591
+    }
+   },
+   "expectedListValuePerDraw": 1239,
+   "valuePerCoin": 4.96
+  },
+  "confirmed+proposed": {
+   "per": {
+    "common": {
+     "items": 59,
+     "pTier": 0.401235,
+     "pItem": 0.0068006,
+     "meanCoins": 213
+    },
+    "rare": {
+     "items": 47,
+     "pTier": 0.385802,
+     "pItem": 0.0082086,
+     "meanCoins": 755
+    },
+    "epic": {
+     "items": 44,
+     "pTier": 0.162037,
+     "pItem": 0.0036827,
+     "meanCoins": 2526
+    },
+    "legendary": {
+     "items": 29,
+     "pTier": 0.050154,
+     "pItem": 0.0017295,
+     "meanCoins": 8707
+    },
+    "mythic": {
+     "items": 11,
+     "pTier": 0.000772,
+     "pItem": 0.000070146,
+     "meanCoins": 21591
+    }
+   },
+   "expectedListValuePerDraw": 1239,
+   "valuePerCoin": 4.96
+  }
+ },
+ "catalogTotals": {
+  "live": {
+   "coinItems": 201,
+   "coins": 732620,
+   "upgrades": 983790,
+   "all": 1716410,
+   "byTier": {
+    "common": {
+     "n": 57,
+     "coins": 12120
+    },
+    "rare": {
+     "n": 54,
+     "coins": 36250
+    },
+    "epic": {
+     "n": 54,
+     "coins": 129750
+    },
+    "legendary": {
+     "n": 35,
+     "coins": 292000
+    },
+    "mythic": {
+     "n": 12,
+     "coins": 262500
+    }
+   }
+  },
+  "confirmed": {
+   "coinItems": 201,
+   "coins": 750320,
+   "upgrades": 1009370,
+   "all": 1759690,
+   "byTier": {
+    "common": {
+     "n": 59,
+     "coins": 12570
+    },
+    "rare": {
+     "n": 53,
+     "coins": 35500
+    },
+    "epic": {
+     "n": 52,
+     "coins": 125250
+    },
+    "legendary": {
+     "n": 35,
+     "coins": 289500
+    },
+    "mythic": {
+     "n": 13,
+     "coins": 287500
+    }
+   }
+  },
+  "confirmed+proposed": {
+   "coinItems": 201,
+   "coins": 790820,
+   "upgrades": 1068770,
+   "all": 1859590,
+   "byTier": {
+    "common": {
+     "n": 59,
+     "coins": 12570
+    },
+    "rare": {
+     "n": 53,
+     "coins": 35500
+    },
+    "epic": {
+     "n": 52,
+     "coins": 125250
+    },
+    "legendary": {
+     "n": 32,
+     "coins": 262500
+    },
+    "mythic": {
+     "n": 16,
+     "coins": 355000
+    }
+   }
+  },
+  "V2-CONS": {
+   "coinItems": 201,
+   "coins": 721645,
+   "upgrades": 983790,
+   "all": 1705435,
+   "byTier": {
+    "common": {
+     "n": 57,
+     "coins": 8395
+    },
+    "rare": {
+     "n": 54,
+     "coins": 29000
+    },
+    "epic": {
+     "n": 54,
+     "coins": 129750
+    },
+    "legendary": {
+     "n": 35,
+     "coins": 292000
+    },
+    "mythic": {
+     "n": 12,
+     "coins": 262500
+    }
+   }
+  },
+  "V2-BAL": {
+   "coinItems": 201,
+   "coins": 697280,
+   "upgrades": 935265,
+   "all": 1632545,
+   "byTier": {
+    "common": {
+     "n": 57,
+     "coins": 7175
+    },
+    "rare": {
+     "n": 54,
+     "coins": 25365
+    },
+    "epic": {
+     "n": 54,
+     "coins": 110240
+    },
+    "legendary": {
+     "n": 35,
+     "coins": 292000
+    },
+    "mythic": {
+     "n": 12,
+     "coins": 262500
+    }
+   }
+  },
+  "V2-EXP": {
+   "coinItems": 201,
+   "coins": 632045,
+   "upgrades": 819890,
+   "all": 1451935,
+   "byTier": {
+    "common": {
+     "n": 57,
+     "coins": 5955
+    },
+    "rare": {
+     "n": 54,
+     "coins": 18125
+    },
+    "epic": {
+     "n": 54,
+     "coins": 97265
+    },
+    "legendary": {
+     "n": 35,
+     "coins": 248200
+    },
+    "mythic": {
+     "n": 12,
+     "coins": 262500
+    }
+   }
+  }
+ },
+ "chatProposal": {
+  "common": {
+   "lines": 9,
+   "unitCoins": 165
+  },
+  "rare": {
+   "lines": 8,
+   "unitCoins": 550
+  },
+  "epic": {
+   "lines": 9,
+   "unitCoins": 1650
+  },
+  "legendary": {
+   "lines": 7,
+   "unitCoins": 5500
+  },
+  "mythic": {
+   "lines": 5,
+   "unitCoins": 13750
+  }
+ },
+ "chatTotals": {
+  "liveLines": 36,
+  "liveCoins": 64790,
+  "proposedLines": 38,
+  "proposedCoins": 127985
+ },
+ "maxima": {
+  "BASE": {
+   "random": 270,
+   "ai": 230,
+   "friend": 180,
+   "newUserBoost": 50,
+   "weeklyQuests": 370
+  },
+  "V2-CONS": {
+   "random": 381,
+   "ai": 321,
+   "friend": 271,
+   "newUserBoost": 50,
+   "weeklyQuests": 370
+  },
+  "V2-BAL": {
+   "random": 481,
+   "ai": 401,
+   "friend": 321,
+   "newUserBoost": 50,
+   "weeklyQuests": 464
+  },
+  "V2-EXP": {
+   "random": 780,
+   "ai": 630,
+   "friend": 410,
+   "newUserBoost": 75,
+   "weeklyQuests": 555
+  }
+ },
+ "slots": [
+  {
+   "coins": 500,
+   "gems": 25
+  },
+  {
+   "coins": 1000,
+   "gems": 50
+  },
+  {
+   "coins": 1500,
+   "gems": 80
+  },
+  {
+   "coins": 2500,
+   "gems": 120
+  }
+ ]
+}
