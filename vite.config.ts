@@ -61,7 +61,8 @@ const offlineFiles = (): Plugin => ({
 export default defineConfig({
   base: "/YachtLab/",
   plugins: [react(), tailwindcss(), versionFile(), offlineFiles()],
-  define: { __BUILD_ID__: JSON.stringify(BUILD_ID) },
+  // C4.3: draft policy pages are only in dev and in test builds made with LEGAL_PREVIEW=1.
+  define: { __BUILD_ID__: JSON.stringify(BUILD_ID), __LEGAL_PREVIEW__: JSON.stringify(process.env.LEGAL_PREVIEW === "1") },
   worker: { format: "es" },
   test: { include: ["tests/**/*.test.ts"], testTimeout: 60000 },
 } as Parameters<typeof defineConfig>[0]);

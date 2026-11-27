@@ -83,7 +83,11 @@ jobs:
         run: node scripts/seo/build-pages.mjs --check
       # Tests run against a build without a server address, so both states stay covered:
       # the "준비 중" screen, and the online UI through the loopback ?online-server= parameter.
+      # C4.3: the test build includes the draft policy pages (LEGAL_PREVIEW) so the browser checks can
+      # review them; the Pages build below never does until src/legal/release.ts releases them.
       - run: npm run build
+        env:
+          LEGAL_PREVIEW: "1"
       - uses: actions/upload-artifact@v4
         with:
           name: dist-test
@@ -96,6 +100,12 @@ jobs:
         run: |
           npx vite build --outDir dist-pages --emptyOutDir
           grep -rqF "$VITE_ONLINE_SERVER_URL" dist-pages/assets
+      # C4.3: unreleased policy drafts must not be published (src/legal/release.ts LEGAL_RELEASED).
+      - name: No unreleased policy drafts in the Pages build
+        run: |
+          if grep -q "LEGAL_RELEASED = true" src/legal/release.ts; then echo "policy texts released"; exit 0; fi
+          if grep -rlF "검토용 초안" dist-pages; then echo "draft policy text found in the Pages build"; exit 1; fi
+          ls dist-pages/assets | grep -q "^LicensesPage-" || { echo "license notice chunk missing"; exit 1; }
       # D-067: HTTP status, canonical, noindex, metadata and page resources of every sitemap URL, on the
       # exact files that will be published (IndexNow submits only after the same check passes on the live site).
       - name: Verify search pages of the Pages build

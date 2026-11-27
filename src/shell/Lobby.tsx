@@ -1,5 +1,6 @@
 import { ArrowRight, BookOpen, Bot, Dices, Globe, Smartphone, Trophy, UsersRound } from "lucide-react";
 import type { Route } from "../routes";
+import { LegalNav } from "../legal/LegalNav";
 
 type Go = (route: Route) => void;
 
@@ -39,6 +40,7 @@ export function Lobby({ navigate }: { navigate: Go }) {
         <a className="lobby-guide" href={`${import.meta.env.BASE_URL}guide/`}> <BookOpen size={17} aria-hidden="true" /> 규칙</a>
         <a href={`${import.meta.env.BASE_URL}faq/`}>자주 묻는 질문</a>
       </nav>
+      <LegalNav className="lobby-legal" />
     </section>
   );
 }

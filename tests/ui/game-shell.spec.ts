@@ -21,10 +21,23 @@ test("사이드바는 닫기 전환을 마친 뒤 포커스를 되돌리고 현�
   await expect(menu.getByRole("button", { name: "메뉴 닫기" })).toBeFocused();
   await expect(menu.getByRole("button", { name: "오프라인 대전" })).toHaveAttribute("aria-current", "page");
   expect(await menu.evaluate((el) => [getComputedStyle(el).animationDuration, getComputedStyle(el, "::backdrop").animationDuration])).toEqual(["0.24s", "0.24s"]);
+  // The closing phase lasts ~0.26 s. Reading it after the key press races the transition on a busy CI
+  // runner, so record every phase/open change from inside the page instead (same assertions, no race).
+  await menu.evaluate((el: HTMLDialogElement) => {
+    const start = performance.now();
+    const log: [number, boolean, string | undefined][] = [];
+    (window as unknown as { __menuPhases: typeof log }).__menuPhases = log;
+    new MutationObserver(() => log.push([performance.now() - start, el.open, el.dataset.phase])).observe(el, { attributes: true, attributeFilter: ["data-phase", "open"] });
+  });
   await page.keyboard.press("Escape");
-  expect(await menu.evaluate((el: HTMLDialogElement) => [el.open, el.dataset.phase])).toEqual([true, "closing"]);
   await expect(menu).toHaveCount(0);
   await expect(trigger).toBeFocused();
+  const phases = await page.evaluate(() => (window as unknown as { __menuPhases: [number, boolean, string | undefined][] }).__menuPhases);
+  // First the dialog stays open in the closing phase, then it closes only after the transition ran.
+  expect(phases[0].slice(1)).toEqual([true, "closing"]);
+  expect(phases.at(-1)!.slice(1)).toEqual([false, "closed"]);
+  const closedAt = phases.find(([, open]) => !open)![0];
+  expect(closedAt - phases[0][0]).toBeGreaterThanOrEqual(200);
 
   await trigger.click();
   await page.mouse.click(page.viewportSize()!.width - 4, 120);

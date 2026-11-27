@@ -12,6 +12,8 @@ import { ConfirmDialog, type PendingAction } from "../ui/ConfirmDialog";
 import { GUEST_LOOK, itemById } from "../economy/live/catalog";
 import { achievementById } from "../economy/live/config";
 import { SoloRecordsSection } from "../play/SoloRecordsSection";
+import { LEGAL_VISIBLE } from "../legal/release";
+import { LegalNav } from "../legal/LegalNav";
 import { Achievements, CollectionProgress, EquippedLooks, RecentMatches, StreakFacts, usePinnedAchievements, VersusSummary } from "./ProfileSections";
 
 const date = (t: number) => new Date(t).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
@@ -195,6 +197,7 @@ export default function Profile({ server, notice, snapshot, accountSettings = fa
               <LogIn size={16} /> Google로 로그인
             </button>
             <p className="profile-fine">Google 계정의 식별자만 사용하고 이메일·이름·사진은 받지 않아요.</p>
+            {LEGAL_VISIBLE && <p className="profile-fine profile-legal">로그인 전에 <a href="#terms">이용약관</a>과 <a href="#privacy">개인정보 처리방침</a>을 확인해 주세요.</p>}
           </>
         ) : (
           <p className="profile-note">회원 로그인은 준비 중이에요. 지금은 이 기기에만 기록이 저장돼요.</p>
@@ -234,6 +237,7 @@ export default function Profile({ server, notice, snapshot, accountSettings = fa
               </button>
             </div>
       </section>}
+      <LegalNav />
       <ConfirmDialog
         open={!!confirm}
         title={confirm?.title ?? ""}
