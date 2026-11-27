@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { DatabaseSync } from "node:sqlite";
 import { ACHIEVEMENTS, ECONOMY, QUESTS, economyDay, economyWeek, nextDayStart } from "../src/economy/live/config";
 import { applyMatch, matchStats, newEconState, replaceQuests, rerollDaily, type RewardInput } from "../src/economy/live/rewards";
-import { DEFAULT_LOADOUT, DEFAULT_SLOTS, ITEMS, itemById, lookAt, priceOf, slotPrice, upgradeCost, validateLoadout, sanitizeLook } from "../src/economy/live/catalog";
+import { DEFAULT_LOADOUT, DEFAULT_SLOTS, ITEMS, itemById, lookAt, priceOf, slotPrice, upgradeCost, upgradeSupportedOn, validateLoadout, sanitizeLook } from "../src/economy/live/catalog";
 import { EconomyStore, type EconSql } from "../worker/src/economy";
 import { categories, type Card } from "../src/engine";
 
@@ -296,6 +296,18 @@ describe("재화 원장 (계정 저장소, node:sqlite)", () => {
     expect(store.verify().ok).toBe(true);
   });
 
+  it("강화 카탈로그 호환성은 기존 보드의 판매와 주사위의 기존 강화를 막지 않는다", () => {
+    const oldBoard = itemById("board.felt_red")!;
+    const oldDice = itemById("dice.mint")!;
+    const newBoard = itemById("board.meadow")!;
+    expect(priceOf(oldBoard, "coins")).not.toBeNull();
+    expect(upgradeSupportedOn(oldBoard, undefined)).toBe(false);
+    expect(upgradeSupportedOn(oldBoard, 2)).toBe(true);
+    expect(upgradeSupportedOn(oldDice, undefined)).toBe(true);
+    expect(upgradeSupportedOn(newBoard, 1)).toBe(false);
+    expect(upgradeSupportedOn(newBoard, 2)).toBe(true);
+  });
+
   it("강화는 코인으로만, 실패·하락 없이 한 단계씩, 최대 단계 이후 거부 / 보석으로 산 아이템도 코인으로 강화", () => {
     const { db, store } = setup();
     store.welcome(U, now, null);
@@ -310,6 +322,24 @@ describe("재화 원장 (계정 저장소, node:sqlite)", () => {
     const snap = store.snapshot(U, now);
     expect(snap.inventory.find((i) => i.id === "emote.fire")?.level).toBe(3);
     expect(snap.wallet).toEqual({ coins: 1200 - 110 - 225, gems: 1020 - 30 });
+    expect(store.verify().ok).toBe(true);
+  });
+
+  it("강화 단계 저장이 실패하면 코인 차감과 원장도 롤백하고 같은 요청을 한 번만 적용한다", () => {
+    const { db, store } = setup();
+    store.welcome(U, now, null);
+    db.exec("INSERT INTO inventory VALUES ('board.felt_red', 1, 'test-fixture', 0)");
+    const before = store.snapshot(U, now);
+    db.exec("CREATE TRIGGER fail_inventory AFTER UPDATE OF level ON inventory BEGIN SELECT RAISE(ABORT, 'test inventory write failure'); END");
+    expect(() => store.upgrade(U, "board.felt_red", "upgrade-fixture", now)).toThrow("test inventory write failure");
+    expect(store.snapshot(U, now)).toEqual(before);
+    db.exec("DROP TRIGGER fail_inventory");
+    expect(store.upgrade(U, "board.felt_red", "upgrade-fixture", now)).toMatchObject({ ok: true, duplicate: false });
+    expect(store.upgrade(U, "board.felt_red", "upgrade-fixture", now)).toMatchObject({ ok: true, duplicate: true });
+    const after = store.snapshot(U, now);
+    expect(after.inventory[0].level).toBe(2);
+    expect(after.wallet.coins).toBe(before.wallet.coins - 135);
+    expect(after.ledger.filter(({ kind }) => kind === "upgrade")).toHaveLength(1);
     expect(store.verify().ok).toBe(true);
   });
 

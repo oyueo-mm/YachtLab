@@ -69,6 +69,8 @@ export type ItemDef = {
   season?: SeasonId;
   /** Catalog revision that introduced the item (absent = 1, the launch catalog). */
   rev?: number;
+  /** Revision that added upgrade support to an existing item. */
+  upgradeRev?: number;
   /** Shop only: never in a random draw pool. */
   drawExcluded?: true;
 };
@@ -76,6 +78,8 @@ export type ItemDef = {
 export const CATALOG_REV = 2;
 /** Can this server sell the item yet? Older servers report no revision (= 1). */
 export const sellableOn = (item: ItemDef, serverRev: number | undefined) => (item.rev ?? 1) <= (serverRev ?? 1);
+export const upgradeSupportedOn = (item: ItemDef, serverRev: number | undefined) =>
+  sellableOn(item, serverRev) && (item.upgradeRev ?? 1) <= (serverRev ?? 1);
 
 const EMOTE_LEVELS = ["정적인 이모티콘", "애니메이션", "특수 효과·전용 사운드"];
 const social: ItemDef[] = SOCIAL_ITEMS.map((s) => ({
@@ -164,7 +168,7 @@ function withBoardLevels(entry: ItemDef): ItemDef {
   const text = BOARD_FX_TEXT[entry.id];
   if (!text) return entry;
   const base = entry.look.css || (entry.id === "board.navy" ? "bd-navy" : entry.id === "board.felt" ? "bd-felt" : "bd-charcoal");
-  return { ...entry, maxLevel: 3, levels: ["기본 보드", ...text], levelLooks: [{ css: base + " bd-lv2" }, { css: base + " bd-lv3" }] };
+  return { ...entry, ...(entry.maxLevel === 1 ? { upgradeRev: 2 } : {}), maxLevel: 3, levels: ["기본 보드", ...text], levelLooks: [{ css: base + " bd-lv2" }, { css: base + " bd-lv3" }] };
 }
 
 export const ITEMS: readonly ItemDef[] = items.map((entry) => {

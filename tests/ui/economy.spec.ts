@@ -162,6 +162,49 @@ test("상점: 강화형 상품은 사기 전에 Lv.1~3 차이를 미리 보고, 
   await expect(page.getByRole("list", { name: "닉네임 효과 상품" })).toBeVisible();
 });
 
+test("구 Worker의 보드 강화는 준비 중으로 표시하고, 기존 주사위 강화 오류는 상세 창에 표시한다", async ({ page }) => {
+  const acc = await open(page, "inventory");
+  acc.snap.inventory = [
+    { id: "board.felt_red", level: 1, via: "coins", at: 1 },
+    { id: "dice.mint", level: 1, via: "coins", at: 2 },
+  ];
+  await page.reload();
+  const attempts: string[] = [];
+  let success = false;
+  await page.route(SERVER + "/api/me/shop/upgrade", async (route) => {
+    const { itemId, requestId } = route.request().postDataJSON() as { itemId: string; requestId: string };
+    expect(requestId).toMatch(/^[A-Za-z0-9_-]{8,}$/);
+    attempts.push(itemId);
+    const headers = { "access-control-allow-origin": "*" };
+    if (!success) return route.fulfill({ status: 400, headers, json: { error: { code: "MAX_LEVEL", message: "서버에서 이 단계를 강화할 수 없어요." } } });
+    acc.snap.inventory[1].level = 2;
+    acc.snap.wallet.coins = 1350;
+    return route.fulfill({ headers, json: { snapshot: acc.snap, duplicate: false } });
+  });
+  await page.getByRole("tab", { name: /^보드판/ }).click();
+  await page.getByRole("button", { name: "레드 펠트 자세히" }).click();
+  const board = page.getByRole("dialog", { name: "레드 펠트 상세" });
+  await expect(board.getByText("현재 서버에서는 이 단계의 강화를 준비 중이에요.")).toBeVisible();
+  await expect(board.getByRole("button", { name: "레드 펠트 Lv.2 강화" })).toHaveCount(0);
+  expect(attempts).toEqual([]);
+  await page.keyboard.press("Escape");
+  await page.getByRole("tab", { name: /^주사위/ }).click();
+  await page.getByRole("button", { name: "민트 자세히" }).click();
+  const dice = page.getByRole("dialog", { name: "민트 상세" });
+  const tryUpgrade = async () => {
+    await dice.getByRole("button", { name: "민트 Lv.2 강화" }).click();
+    await page.getByRole("dialog", { name: "강화할까요?" }).getByRole("button", { name: "강화", exact: true }).click();
+  };
+  await tryUpgrade();
+  await expect(dice.getByRole("alert")).toHaveText("서버에서 이 단계를 강화할 수 없어요.");
+  await expect(dice.getByText(/보유 Lv\.1/)).toBeVisible();
+  success = true;
+  await tryUpgrade();
+  await expect(dice.getByText(/민트 Lv\.2 강화 완료/)).toBeVisible();
+  await expect(dice.getByText(/보유 Lv\.2/)).toBeVisible();
+  expect(attempts).toEqual(["dice.mint", "dice.mint"]);
+});
+
 test("인벤토리: 장착 미리보기·상품군 탭·기본 이모티콘 4·채팅 6, 순서 변경 후 저장", async ({ page }) => {
   const acc = await open(page, "inventory");
   await expect(page.getByRole("region", { name: "장착 미리보기" }).or(page.locator(".loadout-preview"))).toBeVisible();
