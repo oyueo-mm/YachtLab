@@ -99,6 +99,7 @@
     "competitive-research.yml",
     "confirm-v2.yml",
     "context-sync.yml",
+    "context-wiki.yml",
     "deploy-online-worker.yml",
     "deploy.yml",
     "discovered-external.yml",
@@ -132,6 +133,11 @@
     "yahtzeerl-transfer.yml"
   ],
   "recentSourceCommits": [
+    {
+      "sha": "63d265a",
+      "date": "2026-11-27",
+      "subject": "ci: CI-1 context sync via automation PR, standalone wiki mirror, protection-ready workflows"
+    },
     {
       "sha": "db2e17a",
       "date": "2026-11-28",
@@ -176,31 +182,20 @@
       "sha": "1408af0",
       "date": "2026-11-27",
       "subject": "docs: place A2 results mid-file to avoid appending conflicts"
-    },
-    {
-      "sha": "22a7806",
-      "date": "2026-11-27",
-      "subject": "Merge origin/main (C2 review, PR #116) into A2"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "c3d6f2b90a",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46036871340"
+      "head": "ea0070cd09",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46052383369"
     },
     {
-      "name": "SEO IndexNow",
+      "name": "A3 match result preview",
       "status": "success",
-      "head": "0462030dc3",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46036757691"
-    },
-    {
-      "name": "YachtLab gameplay UI targeted smoke",
-      "status": "success",
-      "head": "c5d4d955e5",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46035939115"
+      "head": "133e5778c8",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46045115881"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",

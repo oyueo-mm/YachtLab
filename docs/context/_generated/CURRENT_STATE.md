@@ -37,6 +37,7 @@
 - [competitive-research.yml](../../../.github/workflows/competitive-research.yml)
 - [confirm-v2.yml](../../../.github/workflows/confirm-v2.yml)
 - [context-sync.yml](../../../.github/workflows/context-sync.yml)
+- [context-wiki.yml](../../../.github/workflows/context-wiki.yml)
 - [deploy-online-worker.yml](../../../.github/workflows/deploy-online-worker.yml)
 - [deploy.yml](../../../.github/workflows/deploy.yml)
 - [discovered-external.yml](../../../.github/workflows/discovered-external.yml)
@@ -122,6 +123,7 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [63d265a](https://github.com/oyueo-mm/YachtLab/commit/63d265a) | 2026-11-27 | ci: CI-1 context sync via automation PR, standalone wiki mirror, protection-ready workflows |
 | [db2e17a](https://github.com/oyueo-mm/YachtLab/commit/db2e17a) | 2026-11-28 | Merge pull request #117 from oyueo-mm/claude/a2-cosmetics-chat |
 | [c5d4d95](https://github.com/oyueo-mm/YachtLab/commit/c5d4d95) | 2026-11-27 | Merge remote-tracking branch 'origin/main' into claude/a2-cosmetics-chat |
 | [d5791f8](https://github.com/oyueo-mm/YachtLab/commit/d5791f8) | 2026-11-27 | test(a2): fix member spec settings; docs for A2.2 (stage look, compact multi sheet, bonus moment) |
@@ -131,7 +133,6 @@
 | [74bfcd8](https://github.com/oyueo-mm/YachtLab/commit/74bfcd8) | 2026-11-27 | Guard item upgrades against legacy Worker catalog capabilities |
 | [a69bd71](https://github.com/oyueo-mm/YachtLab/commit/a69bd71) | 2026-11-27 | feat(a2.1): solo layout compaction, chat sfx, title marks, emote touch-ups, real-game checks |
 | [1408af0](https://github.com/oyueo-mm/YachtLab/commit/1408af0) | 2026-11-27 | docs: place A2 results mid-file to avoid appending conflicts |
-| [22a7806](https://github.com/oyueo-mm/YachtLab/commit/22a7806) | 2026-11-27 | Merge origin/main (C2 review, PR #116) into A2 |
 
 ## 최근 GitHub Actions 상태
 
@@ -139,9 +140,8 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/46036871340) | success | c3d6f2b90a |
-| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/46036757691) | success | 0462030dc3 |
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/46035939115) | success | c5d4d955e5 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/46052383369) | success | ea0070cd09 |
+| [A3 match result preview](https://github.com/oyueo-mm/YachtLab/actions/runs/46045115881) | success | 133e5778c8 |
 
 ## 다음 채팅과 작업의 시작점
 
