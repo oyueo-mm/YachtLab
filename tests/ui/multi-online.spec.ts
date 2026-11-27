@@ -226,6 +226,9 @@ for (const simultaneous of [false, true]) {
     await expect(player.locator(".board-top b")).toHaveText("0");
     await player.keyboard.press("Space");
     await expect(player.locator(".board-top b")).toHaveText("1");
+    // The roll is shown before the turn is actionable again: dice keys and arrows act only while `can`
+    // holds (server ack received, dice settled) — the same condition that enables the die buttons.
+    await expect(player.locator("button[data-die-id]:enabled, [data-die-id] > button:enabled")).toHaveCount(5);
 
     const kept = player.locator('[data-die-id][aria-pressed="true"], [data-die-id] [aria-pressed="true"]');
     await player.keyboard.press("1");

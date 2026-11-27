@@ -87,14 +87,11 @@ test("빠른 대전: 두 기기가 자동으로 매칭되어 경기 화면으로
   await current.evaluate(() => (document.activeElement as HTMLElement)?.blur());
   await current.keyboard.press("Space");
   await expect(current.locator(".board-top b")).toHaveText("1");
-  // The roll is shown before the turn is actionable again (`can` waits for the server ack and for the
-  // dice to settle). Arrow keys in that window are ignored, and the choice resets when the turn becomes
-  // actionable, by design. So retry from a cleared choice until ArrowDown selects the first category.
-  await expect(async () => {
-    await current.keyboard.press("Escape");
-    await current.keyboard.press("ArrowDown");
-    await expect(current.locator("tr.score-row-selected")).toHaveAttribute("data-category", "aces", { timeout: 1000 });
-  }).toPass({ timeout: 10_000 });
+  // The roll is shown before the turn is actionable again: dice keys and arrows act only while `can`
+  // holds (server ack received, dice settled) — the same condition that enables the die buttons.
+  await expect(current.locator("button[data-die-id]:enabled, [data-die-id] > button:enabled")).toHaveCount(5);
+  await current.keyboard.press("ArrowDown");
+  await expect(current.locator("tr.score-row-selected")).toHaveAttribute("data-category", "aces");
   await current.keyboard.press("Enter");
   await expect(current.locator(".board-top b")).toHaveText("0");
   await expect(waiting.locator(".roll-button")).toBeEnabled();
