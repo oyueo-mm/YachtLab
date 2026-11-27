@@ -436,11 +436,16 @@ describe("빠른 대전 방 (RoomHost)", () => {
     expect(host.room!.match.status).toBe("playing");
     expect(host.room!.kind).toBe("random");
     expect((await host.join("수아")).ok).toBe(false);
-    expect(published.at(-1)).toMatchObject({ code: "ABCDEF", round: 1, spectators: 0, max: 5 });
+    // PR118-01: the entry is addressed by a spectate id, never the room code
+    const listed = published.at(-1) as { id: string; code: string };
+    expect(listed).toMatchObject({ round: 1, spectators: 0, max: 5 });
+    expect(listed.id).toMatch(/^[A-Z2-9]{10}$/);
+    expect(listed.code).toBe(listed.id);
+    expect(JSON.stringify(published)).not.toContain("ABCDEF");
     expect(JSON.stringify(published)).not.toContain("tok");
     expect(host.publicWatch()).toBeTruthy();
     // the list entry carries no seat token, watch key or account id
-    for (const e of published) expect(Object.keys(e as object).sort()).toEqual(["code", "kind", "max", "participants", "players", "round", "rounds", "spectators", "status"]);
+    for (const e of published) expect(Object.keys(e as object).sort()).toEqual(["code", "id", "kind", "max", "participants", "players", "round", "rounds", "spectators", "status"]);
     expect(JSON.stringify(published)).not.toContain(made.seats[0].token);
     // a player cannot switch the public match off (refused, the entry and key stay)
     const [a] = [new Sock()];

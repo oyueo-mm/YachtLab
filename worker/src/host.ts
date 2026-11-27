@@ -58,6 +58,8 @@ export type HostEvents = {
   /** A rematch wants to start: null = allowed (and counted), otherwise the reason it is not. */
   allowMatch?: (code: string, weight: number, matchNo: number, users: string[]) => Promise<string | null> | string | null;
   releaseMatch?: (code: string, matchNo: number) => void | Promise<void>;
+  /** Make a spectate id resolve to this room (the directory). Throws when it cannot be stored. */
+  registerSpectate?: (code: string, sid: string) => void | Promise<void>;
   /** Deliver a server-verified result to an account; true when stored (or already there). */
   deliverRecord?: (userId: string, record: MatchRecord) => Promise<boolean>;
   /** Public spectating list: the room's entry (or null to remove it). Best effort. */
@@ -122,7 +124,7 @@ export class RoomHost {
     private readonly events: HostEvents = {},
   ) {}
 
-  private deps() {
+  private deps(code?: string) {
     return {
       now: this.now,
       dice: this.dice,
@@ -138,6 +140,11 @@ export class RoomHost {
         // A rematch needs time to finish before the room's retention limit removes it.
         if (matchNo > 1 && this.now() > room.createdAt + this.config.maxAgeMs - 2 * 3600_000) return "이 방은 곧 정리돼요. 새 방을 만들어 주세요.";
         return this.events.allowMatch?.(room.code, weight, matchNo, users) ?? null;
+      },
+      registerSpectate: (sid: string) => {
+        const room = code ?? this.room?.code;
+        if (!room) throw Error("no room");
+        return this.events.registerSpectate?.(room, sid);
       },
     };
   }
@@ -197,7 +204,7 @@ export class RoomHost {
   /** First seat of a brand-new room (called once by the Worker after the directory allocated the code). */
   async create(code: string, name: unknown, identity?: { userId: string } | null, look?: PublicLook | null, maxPlayers = 2, settings?: RoomSettings): Promise<JoinResult> {
     if (this.room) return { ok: false, status: 409, error: { code: "ROOM_CLOSED", message: "이미 사용 중인 방 코드입니다." } };
-    const room = OnlineRoom.create(code, this.deps(), { turnTimeoutMs: this.config.turnTimeoutMs, seats: maxPlayers, settings });
+    const room = OnlineRoom.create(code, this.deps(code), { turnTimeoutMs: this.config.turnTimeoutMs, seats: maxPlayers, settings });
     const joined = await room.join(name, identity, look);
     if (joined.ok) {
       this.room = room;
@@ -242,7 +249,7 @@ export class RoomHost {
 
   private async createMatchedOnce(code: string, seats: SeatSpec[], options: { kind: MatchKind; public: boolean }) {
     try {
-      const made = await OnlineRoom.createMatched(code, this.deps(), { turnTimeoutMs: this.config.turnTimeoutMs, kind: options.kind, public: options.public }, seats);
+      const made = await OnlineRoom.createMatched(code, this.deps(code), { turnTimeoutMs: this.config.turnTimeoutMs, kind: options.kind, public: options.public }, seats);
       this.room = made.room;
       this.rearm();
       await this.publishIfChanged();
@@ -254,8 +261,9 @@ export class RoomHost {
   }
 
   /** Watch key for a viewer coming from the public list (null when the room is not listed / full). */
-  publicWatch(): string | null {
-    return this.room && !this.deleted ? this.room.publicWatchKey() : null;
+  publicWatch(sid?: string): string | null {
+    if (!this.room || this.deleted || (sid !== undefined && this.room.spectateId !== sid)) return null;
+    return this.room.publicWatchKey();
   }
 
   private published = "";
@@ -356,6 +364,10 @@ export class RoomHost {
     this.rearm();
   }
 
+  /** PR118-03: a missing or deleted room holds nobody; otherwise the room decides. */
+  holdsAccount(userId: string, matchNo: number): boolean {
+    return !!this.room && !this.deleted && this.room.holdsAccount(userId, matchNo);
+  }
   summary(): RoomSummary | null {
     return this.room && !this.deleted ? this.room.summary() : null;
   }

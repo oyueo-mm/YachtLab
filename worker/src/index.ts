@@ -2,7 +2,7 @@ import type { SoloRecord } from "../../src/solo/records";
 import type { DrawPool } from "../../src/economy/live/draw";
 import type { MatchEconomyResult } from "./economy";
 import { DurableObject } from "cloudflare:workers";
-import { newRoomCode, normalizeCode, parseRoomSettings, ROOM_LIMITS, type RoomRecord, type RoomSettings } from "../../src/online/room";
+import { newRoomCode, normalizeCode, normalizeSpectateId, parseRoomSettings, ROOM_LIMITS, type RoomRecord, type RoomSettings } from "../../src/online/room";
 import { readConfig, type ConfigVars, type OnlineConfig } from "./config";
 import { RoomHost, type HostSocket, type HostStorage } from "./host";
 import { AccountStore, type Sql } from "./account";
@@ -22,6 +22,7 @@ import type { SeatSpec } from "../../src/online/room";
 import type { PublicLook } from "../../src/economy/live/catalog";
 import type { MatchKind } from "../../src/economy/live/config";
 import { HubCore, type HubSql, type QueueSeat } from "./hub";
+import { clearStaleReservations, migrateReservations, reserve, type ReservationSql } from "./reservations";
 
 /**
  * YachtLab Online — Cloudflare Worker + SQLite-backed Durable Objects (Phase 3).
@@ -96,13 +97,14 @@ export class YachtRoom extends DurableObject<Env> {
       // Each rematch reuses this room and reserves the daily budget once.
       deliverRecord: async (userId, record) => env.USERS.get(env.USERS.idFromName(userId)).recordMatch(record),
       releaseMatch: async (code, matchNo) => env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).releaseMatch(code, matchNo),
+      registerSpectate: async (code, sid) => env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).registerSpectate(code, sid),
       allowMatch: async (code, weight, matchNo, users) => {
         const verdict = await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).allocateMatch(code, matchNo, weight, users);
         return verdict.ok ? null : verdict.message;
       },
       publish: async (code, entry) => {
         const hub = env.HUB.get(env.HUB.idFromName("hub"));
-        await (entry ? hub.publish(entry) : hub.unpublish(code));
+        await (entry ? hub.publish(entry, code) : hub.unpublish(code));
       },
       yachts: async (id, events) => env.HUB.get(env.HUB.idFromName("hub")).yachts(id, events),
       activity: async (code, info) => env.HUB.get(env.HUB.idFromName("hub")).observeRoom(code, info),
@@ -143,8 +145,9 @@ export class YachtRoom extends DurableObject<Env> {
   async createMatched(code: string, seats: SeatSpec[], options: { kind: MatchKind; public: boolean }) {
     return this.host.createMatched(code, seats, options);
   }
-  async publicWatch() {
-    return this.host.publicWatch();
+  /** Public-list watch key, only when `sid` is this room's spectate id (the caller never knows the room code). */
+  async publicWatch(sid: string) {
+    return this.host.publicWatch(sid);
   }
   /** Friend invites: is this account seated in this friend room, and is there a free seat in the waiting room? */
   async inviteState(userId: string) {
@@ -152,6 +155,9 @@ export class YachtRoom extends DurableObject<Env> {
   }
   async summary() {
     return this.host.summary();
+  }
+  async holdsAccount(userId: string, matchNo: number) {
+    return this.host.holdsAccount(userId, matchNo);
   }
 
   /** WebSocket upgrade (must be an HTTP request, not RPC). */
@@ -210,8 +216,10 @@ export class RoomDirectory extends DurableObject<Env> {
       this.sql.exec("CREATE TABLE IF NOT EXISTS daily (day INTEGER PRIMARY KEY, rooms INTEGER NOT NULL)");
       this.sql.exec("CREATE TABLE IF NOT EXISTS match_allocations (id TEXT PRIMARY KEY, code TEXT NOT NULL)");
       this.sql.exec("CREATE INDEX IF NOT EXISTS match_allocations_code ON match_allocations (code)");
-      this.sql.exec("CREATE TABLE IF NOT EXISTS playing_users (user_id TEXT PRIMARY KEY, code TEXT NOT NULL, match_no INTEGER NOT NULL)");
-      this.sql.exec("CREATE INDEX IF NOT EXISTS playing_users_code ON playing_users (code)");
+      migrateReservations(this.sql as unknown as ReservationSql);
+      // PR118-01: spectate id → room code. Watch links and the public list carry only the id.
+      this.sql.exec("CREATE TABLE IF NOT EXISTS spectate_ids (sid TEXT PRIMARY KEY, code TEXT NOT NULL)");
+      this.sql.exec("CREATE INDEX IF NOT EXISTS spectate_ids_code ON spectate_ids (code)");
       this.sql.exec("CREATE TABLE IF NOT EXISTS match_budget (code TEXT NOT NULL, match_no INTEGER NOT NULL, units INTEGER NOT NULL, PRIMARY KEY(code, match_no))");
       if ((await ctx.storage.getAlarm()) === null) await ctx.storage.setAlarm(Date.now() + 6 * 3600_000);
     });
@@ -257,6 +265,12 @@ export class RoomDirectory extends DurableObject<Env> {
    * its own daily sub-budget so AI matches can never use up the whole day.
    */
   async allocateFor(kind: "random" | "ai", users: string[] = [], assignmentId?: string): Promise<Verdict & { code?: string }> {
+    const first = this.allocateForOnce(kind, users, assignmentId);
+    if (first.ok || first.code !== "IN_MATCH" || !(await this.clearStaleReservations(users))) return first;
+    return this.allocateForOnce(kind, users, assignmentId);
+  }
+
+  private allocateForOnce(kind: "random" | "ai", users: string[], assignmentId?: string): Verdict & { code?: string } {
     return this.storage.transactionSync(() => {
       if (assignmentId) {
         const allocation = this.sql.exec<{ code: string }>("SELECT code FROM match_allocations WHERE id = ?", assignmentId).toArray()[0];
@@ -313,9 +327,12 @@ export class RoomDirectory extends DurableObject<Env> {
   }
 
   private reservePlayers(users: string[], code: string, matchNo: number) {
-    for (const id of users) {
-      this.sql.exec("INSERT INTO playing_users (user_id, code, match_no) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET code = excluded.code, match_no = excluded.match_no", id, code, matchNo);
-    }
+    reserve(this.sql as unknown as ReservationSql, users, code, matchNo, Date.now());
+  }
+
+  /** PR118-03: before refusing with IN_MATCH, drop reservations their room no longer holds. */
+  private clearStaleReservations(users: string[], except?: string): Promise<boolean> {
+    return clearStaleReservations(this.sql as unknown as ReservationSql, users, (code, userId, matchNo) => this.env.ROOMS.get(this.env.ROOMS.idFromName(code)).holdsAccount(userId, matchNo), Date.now(), except);
   }
 
   async releaseMatch(code: string, matchNo: number) {
@@ -327,6 +344,12 @@ export class RoomDirectory extends DurableObject<Env> {
    * daily budget still bounds this service's share of the free plan; no new room code or object.
    */
   async allocateMatch(code: string, matchNo: number, weight: number, users: string[] = []): Promise<Verdict> {
+    const first = this.allocateMatchOnce(code, matchNo, weight, users);
+    if (first.ok || first.code !== "IN_MATCH" || !(await this.clearStaleReservations(users, code))) return first;
+    return this.allocateMatchOnce(code, matchNo, weight, users);
+  }
+
+  private allocateMatchOnce(code: string, matchNo: number, weight: number, users: string[]): Verdict {
     const units = Math.max(0, Math.min(10, Math.floor(weight)));
     return this.storage.transactionSync(() => {
       if (!this.sql.exec("SELECT 1 FROM rooms WHERE code = ?", code).toArray().length)
@@ -357,8 +380,24 @@ export class RoomDirectory extends DurableObject<Env> {
     return this.limited(key, perMinute);
   }
 
+  /** A room's spectate id (one row per room that ever allowed spectators; removed with the room). */
+  async registerSpectate(code: string, sid: string) {
+    if (!this.sql.exec("SELECT 1 FROM rooms WHERE code = ?", code).toArray().length) throw Error("room not found");
+    this.sql.exec("INSERT INTO spectate_ids (sid, code) VALUES (?, ?) ON CONFLICT(sid) DO NOTHING", sid, code);
+    const row = this.sql.exec<{ code: string }>("SELECT code FROM spectate_ids WHERE sid = ?", sid).toArray()[0];
+    if (row?.code !== code) throw Error("spectate id taken");
+  }
+
+  /** Rate-limited lookup of a spectate id (watch links, the public list). Never reveals the code to the caller's client. */
+  async resolveSpectate(client: string, sid: string): Promise<(Verdict & { code?: string })> {
+    if (this.limited(`peek:${client}`, this.config.joinPerMinute * 4)) return { ok: false, status: 429, code: "RATE_LIMITED", message: "잠시 후 다시 시도해 주세요." };
+    const row = this.sql.exec<{ code: string }>("SELECT s.code AS code FROM spectate_ids s JOIN rooms r ON r.code = s.code WHERE s.sid = ?", sid).toArray()[0];
+    return row ? { ok: true, code: row.code } : { ok: false, status: 404, code: "ROOM_NOT_FOUND", message: "경기를 찾을 수 없어요." };
+  }
+
   async release(code: string) {
     this.storage.transactionSync(() => {
+      this.sql.exec("DELETE FROM spectate_ids WHERE code = ?", code);
       this.sql.exec("DELETE FROM match_budget WHERE code = ?", code);
       this.sql.exec("DELETE FROM match_allocations WHERE code = ?", code);
       this.sql.exec("DELETE FROM playing_users WHERE code = ?", code);
@@ -391,6 +430,7 @@ export class RoomDirectory extends DurableObject<Env> {
       this.sql.exec("DELETE FROM match_budget WHERE code NOT IN (SELECT code FROM rooms)");
       this.sql.exec("DELETE FROM playing_users WHERE code NOT IN (SELECT code FROM rooms)");
       this.sql.exec("DELETE FROM match_allocations WHERE code NOT IN (SELECT code FROM rooms)");
+      this.sql.exec("DELETE FROM spectate_ids WHERE code NOT IN (SELECT code FROM rooms)");
     });
     this.sql.exec("DELETE FROM daily WHERE day < ?", Math.floor(now / 86_400_000) - 2);
     this.sql.exec("CREATE TABLE IF NOT EXISTS daily_ai (day INTEGER PRIMARY KEY, rooms INTEGER NOT NULL)");
@@ -772,8 +812,8 @@ export class MatchHub extends DurableObject<Env> {
     this.core.flush();
   }
   /* RPC from rooms and the Worker */
-  async publish(entry: unknown) {
-    this.core.publish(entry);
+  async publish(entry: unknown, room?: string) {
+    this.core.publish(entry, room);
   }
   async unpublish(code: string) {
     this.core.unpublish(code);
@@ -790,8 +830,28 @@ export class MatchHub extends DurableObject<Env> {
   async completed(id: string, at: number) {
     this.core.completed(id, at);
   }
-  async activity(liveCodes: string[]) {
-    return this.core.activity(liveCodes);
+  /**
+   * PR118-02: one aggregate shared by every caller for `activityCacheMs`. The directory is asked for
+   * the live room codes at most once per window (was: once per request, plus this call).
+   */
+  private activityCache: { at: number; value: ReturnType<HubCore["activity"]> } | null = null;
+  private activityLoad: Promise<ReturnType<HubCore["activity"]>> | null = null;
+  async activity(liveCodes?: string[]) {
+    if (liveCodes) return this.core.activity(liveCodes);
+    const ttl = readConfig(this.env).activityCacheMs;
+    const cached = this.activityCache;
+    if (cached && Date.now() - cached.at < ttl) return cached.value;
+    this.activityLoad ??= (async () => {
+      try {
+        const codes = await this.env.DIRECTORY.get(this.env.DIRECTORY.idFromName("directory")).liveCodes();
+        const value = this.core.activity(codes);
+        this.activityCache = { at: Date.now(), value };
+        return value;
+      } finally {
+        this.activityLoad = null;
+      }
+    })();
+    return this.activityLoad;
   }
   async list() {
     return this.core.list();
@@ -825,6 +885,8 @@ const fail = (status: number, code: string, message: string, origin: string | nu
 
 /** Soft per-isolate fixed-window limiter (no storage, no Durable Object request). */
 const isolateHits = new Map<string, { window: number; count: number }>();
+/** PR118-02: last `/api/activity` answer in this isolate (memory only, no storage, no Cache API). */
+let isolateActivity: { at: number; value: unknown } | null = null;
 function isolateLimited(key: string, perMinute: number): boolean {
   const window = Math.floor(Date.now() / 60_000);
   const row = isolateHits.get(key);
@@ -919,20 +981,25 @@ export default {
         return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, createSettings: true, defaultTurnTimeoutMs: config.turnTimeoutMs, backgroundMatch: true, activity: true, friendPublicSpectate: true, serverAi: !!auth && env.SERVER_AI !== "off", economy: !!auth && env.ECONOMY === "on" }, allowed, "public, max-age=60");
       if (url.pathname === "/api/activity" && request.method === "GET") {
         if (isolateLimited("activity:" + (await clientKey(request)), 15)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
-        return json(200, await hub().activity(await directory.liveCodes()), allowed, "public, max-age=15");
+        // PR118-02: one hub call (the hub caches the directory lookup), and this isolate reuses the
+        // answer for half the hub window. Data is at most about 1.5 × ACTIVITY_CACHE_MS old.
+        const ttl = config.activityCacheMs / 2;
+        if (!isolateActivity || Date.now() - isolateActivity.at >= ttl) isolateActivity = { at: Date.now(), value: await hub().activity() };
+        return json(200, isolateActivity.value, allowed, `public, max-age=${Math.max(1, Math.round(config.activityCacheMs / 1000))}`);
       }
       // Public spectating list: cheap, cached briefly; no tokens, no keys, no account ids in it.
       if (url.pathname === "/api/spectate/rooms" && request.method === "GET") {
         if (await directory.hit("list:" + (await clientKey(request)), 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
         return json(200, { rooms: await hub().list() }, allowed, "public, max-age=5");
       }
+      // Public list → watch key. Addressed by the spectate id only; the room code is never returned (PR118-01).
       if (parts[0] === "api" && parts[1] === "spectate" && parts.length === 4 && parts[3] === "watch" && request.method === "POST") {
-        const code = normalizeCode(parts[2]);
-        if (!code) return fail(404, "ROOM_NOT_FOUND", "경기를 찾을 수 없어요.", allowed);
-        const verdict = await directory.check(await clientKey(request), code, "peek");
+        const sid = normalizeSpectateId(parts[2]);
+        if (!sid) return fail(404, "ROOM_NOT_FOUND", "경기를 찾을 수 없어요.", allowed);
+        const verdict = await directory.resolveSpectate(await clientKey(request), sid);
         if (!verdict.ok) return fail(verdict.status, verdict.code, verdict.message, allowed);
-        const key = await roomStub(code).publicWatch();
-        return key ? json(200, { code, key }, allowed) : fail(409, "NOT_PUBLIC", "지금은 이 경기를 관전할 수 없어요. 끝났거나 관전 인원이 가득 찼어요.", allowed);
+        const key = await roomStub(verdict.code!).publicWatch(sid);
+        return key ? json(200, { id: sid, code: sid, key }, allowed) : fail(409, "NOT_PUBLIC", "지금은 이 경기를 관전할 수 없어요. 끝났거나 관전 인원이 가득 찼어요.", allowed);
       }
       // Operations metrics (administrator only: a Worker secret, never in the web bundle).
       if (parts[0] === "api" && parts[1] === "admin") {
@@ -974,11 +1041,13 @@ export default {
       if (parts[0] === "ws" && parts.length === 2) {
         if (request.headers.get("Upgrade") !== "websocket") return new Response("expected websocket", { status: 426 });
         if (!allowed) return new Response("forbidden", { status: 403 });
+        // /ws/:code (players; legacy watch links) or /ws/:sid (watch links and the public list).
         const code = normalizeCode(parts[1]);
-        if (!code) return new Response("not found", { status: 404 });
-        const verdict = await directory.check(await clientKey(request), code, "peek");
+        const sid = code ? null : normalizeSpectateId(parts[1]);
+        if (!code && !sid) return new Response("not found", { status: 404 });
+        const verdict = code ? await directory.check(await clientKey(request), code, "peek") : await directory.resolveSpectate(await clientKey(request), sid!);
         if (!verdict.ok) return new Response(null, { status: verdict.status });
-        return roomStub(code).fetch(request);
+        return roomStub(code ?? (verdict as unknown as { code: string }).code).fetch(request);
       }
       // Friends & invites (I/J): members only; players are addressed by friend code.
       const friendPath = url.pathname.startsWith("/api/me/friends") || url.pathname === "/api/me/inbox" || url.pathname.startsWith("/api/me/invites");

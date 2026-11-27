@@ -84,7 +84,13 @@ export type RematchState = { requests: string[]; declinedBy: string | null; depa
  * Spectating is off until every seated player turns it on. `key` (players only) is the secret part of
  * the watch link; it is replaced whenever spectating is turned off, so old links stop working.
  */
-export type SpectateState = { allow: Record<string, boolean>; active: boolean; key: string | null; spectators: number; max: number; public?: boolean; visibility?: "private" | "invite" | "public"; preferences?: Record<string, "private" | "invite" | "public"> };
+export type SpectateMode = "private" | "invite" | "public";
+/**
+ * `visibility` is the range in force. Friend rooms (D-095): `hostControl` is set and only `host` may
+ * change it; `sid` is the spectate id used in watch links (never the room code). `allow` mirrors the
+ * range per seat for older pages. `preferences` was a C3 draft field (never deployed).
+ */
+export type SpectateState = { allow: Record<string, boolean>; active: boolean; key: string | null; spectators: number; max: number; public?: boolean; visibility?: SpectateMode; hostControl?: boolean; host?: string | null; sid?: string; preferences?: Record<string, SpectateMode> };
 /** The server AI seat of an AI match (shown as AI, never as a person). */
 export type AiSeat = { playerId: string; level: string };
 

@@ -50,7 +50,7 @@ export function inviteLink(code: string): string {
 }
 
 /**
- * Watch (spectator) link: `?watch=CODE&k=KEY#spectate`. The key is a read-only credential the players
+ * Watch (spectator) link: `?watch=SID&k=KEY#spectate` (SID = spectate id, never the invite code; older links used CODE). The key is a read-only credential the players
  * created by allowing spectators; it never gives a seat and stops working when they turn spectating off.
  */
 export function watchLink(code: string, key: string): string {
@@ -68,7 +68,8 @@ export function watchFromUrl(): { code: string; key: string } | null {
   const q = new URLSearchParams(location.search);
   const code = q.get("watch"),
     key = q.get("k");
-  return code && key && /^[A-Z2-9]{6}$/i.test(code) && /^[A-Za-z0-9_-]{16,64}$/.test(key) ? { code: code.toUpperCase(), key } : null;
+  // `watch` is a spectate id (10 characters, PR118-01) or, in links made by older pages, the room code.
+  return code && key && /^(?:[A-Z2-9]{6}|[A-Z2-9]{10})$/i.test(code) && /^[A-Za-z0-9_-]{16,64}$/.test(key) ? { code: code.toUpperCase(), key } : null;
 }
 
 /** Room code from the current URL (`?room=`), if any. */
@@ -212,7 +213,7 @@ export type ServerActivity = {
 };
 export const serverActivity = (base: string) => call<ServerActivity>(base, "/api/activity");
 
-export type PublicRoom = { kind?: "random" | "friend"; status?: "playing"; participants?: number; rounds?: number; code: string; players: { name: string; score: number; look: PublicLook }[]; round: number; spectators: number; max: number };
+export type PublicRoom = { /** Spectate id; `code` repeats it (never the invite code). */ id?: string; kind?: "random" | "friend"; status?: "playing"; participants?: number; rounds?: number; code: string; players: { name: string; score: number; look: PublicLook }[]; round: number; spectators: number; max: number };
 export const publicRooms = (base: string) => call<{ rooms: PublicRoom[] }>(base, "/api/spectate/rooms").then((r) => r.rooms);
 /** Ask for the watch key of a listed match (only while it is listed and has room for one more viewer). */
 export const publicWatchKey = (base: string, code: string) => call<{ code: string; key: string }>(base, `/api/spectate/${code}/watch`, {});

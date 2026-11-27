@@ -39,6 +39,8 @@ export type QueueSeat = { name: string; userId: string | null; key: string };
 type Assignment = { id: string; seats: [Waiter, Waiter]; secrets: [string, string]; at: number };
 export type MatchResult = { ok: true; code: string; seats: [{ playerId: string; token: string }, { playerId: string; token: string }] } | { ok: false; message: string };
 export type PublicEntry = {
+  /** Spectate id (PR118-01). `code` repeats it for older pages; neither is the room (= invite) code. */
+  id?: string;
   code: string;
   kind?: "random" | "friend";
   status?: "playing";
@@ -520,12 +522,18 @@ export class HubCore {
 
   /* --------------------------------------------------------- public spectating --------------------------------------------------------- */
 
-  publish(raw: unknown) {
+  /**
+   * `room` is the room code, used only as the internal key (unpublish, ended); the listed id is the
+   * entry's spectate id. Without `room` (older callers) the entry's own code is the key.
+   */
+  publish(raw: unknown, room?: string) {
     const e = raw as PublicEntry;
     if (!e || typeof e.code !== "string" || !Array.isArray(e.players) || e.players.length < 2 || e.players.length > 20) return;
-    if (!this.publicList.has(e.code) && this.publicList.size >= HUB_LIMITS.maxPublic) return;
+    const id = typeof e.id === "string" ? e.id : e.code;
+    const key = room ?? e.code;
+    if (!this.publicList.has(key) && this.publicList.size >= HUB_LIMITS.maxPublic) return;
     const players = e.players.map((p) => ({ name: String(p.name).slice(0, 40), score: Number(p.score) | 0, look: sanitizeLook(p.look) }));
-    this.publicList.set(e.code, { code: e.code, players, kind: e.kind === "friend" ? "friend" : "random", status: "playing", participants: players.length, rounds: 12, round: Math.max(1, Math.min(12, Number(e.round) | 0)), spectators: Number(e.spectators) | 0, max: Number(e.max) | 0, at: this.deps.now() });
+    this.publicList.set(key, { id, code: id, players, kind: e.kind === "friend" ? "friend" : "random", status: "playing", participants: players.length, rounds: 12, round: Math.max(1, Math.min(12, Number(e.round) | 0)), spectators: Number(e.spectators) | 0, max: Number(e.max) | 0, at: this.deps.now() });
   }
   unpublish(code: string) {
     this.publicList.delete(code);

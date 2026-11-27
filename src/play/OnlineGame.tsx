@@ -528,7 +528,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onEntered
           <input className="online-invite-link" aria-label="초대 링크" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
         </div>
         <div className="online-lobby-tools">
-          <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} onVisibility={(visibility) => conn.current?.spectate(visibility !== "private", visibility)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />
+          <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} onVisibility={(visibility) => conn.current?.spectate(visibility !== "private", visibility)} linkFor={(key, sid) => watchLink(sid ?? code, key)} disabled={status !== "online"} />
         </div>
         <LobbyPanel
           lobby={lobby}
@@ -584,7 +584,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onEntered
     <>
             {/* Room settings (chat and emotes are in the bar under the board). */}
             <div className="online-tool-group online-room-tools">
-              {!aiSeat && <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} onVisibility={(visibility) => conn.current?.spectate(visibility !== "private", visibility)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />}
+              {!aiSeat && <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} onVisibility={(visibility) => conn.current?.spectate(visibility !== "private", visibility)} linkFor={(key, sid) => watchLink(sid ?? code, key)} disabled={status !== "online"} />}
               {playing && (
                 <button
                   type="button"

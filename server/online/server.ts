@@ -2,7 +2,8 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { WebSocketServer, type WebSocket } from "ws";
-import { OnlineRoom, ROOM_LIMITS, newRoomCode, normalizeCode, parseRoomSettings, type RoomConnection, type RoomRecord } from "../../src/online/room";
+import { OnlineRoom, ROOM_LIMITS, newRoomCode, normalizeCode,
+  normalizeSpectateId, parseRoomSettings, type RoomConnection, type RoomRecord } from "../../src/online/room";
 import type { DiceSource } from "../../src/online/dice-source";
 import type { ServerMessage } from "../../src/online/wire";
 
@@ -242,7 +243,9 @@ export async function startOnlineServer(options: OnlineServerOptions = {}): Prom
     const origin = req.headers.origin;
     const parts = new URL(req.url ?? "/", "http://local").pathname.split("/").filter(Boolean);
     const code = parts[0] === "ws" && parts.length === 2 ? normalizeCode(parts[1]) : null;
-    const room = code ? rooms.get(code) : undefined;
+    // Watch links carry a spectate id instead of the room (= invite) code (PR118-01).
+    const sid = !code && parts[0] === "ws" && parts.length === 2 ? normalizeSpectateId(parts[1]) : null;
+    const room = code ? rooms.get(code) : sid ? [...rooms.values()].find((r) => r.spectateId === sid) : undefined;
     const reject = (status: number, text: string) => {
       socket.write(`HTTP/1.1 ${status} ${text}\r\nConnection: close\r\n\r\n`);
       socket.destroy();

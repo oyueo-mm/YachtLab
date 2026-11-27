@@ -275,18 +275,28 @@ for (const kind of ["node", "workers"] as const) {
         await expect(a.locator(".board-top b")).toHaveText("1");
       });
 
-      test("관전: 두 플레이어 동의 후 링크로 읽기 전용 관전, 새로고침 유지, 동의 철회 시 종료·링크 무효", async ({ browser }, testInfo) => {
+      test("관전: 방장만 범위를 정하고 링크로 읽기 전용 관전, 새로고침 유지, 방장의 비공개 전환 시 종료·링크 무효·참가자 안내", async ({ browser }, testInfo) => {
         test.skip(testInfo.project.name === "mobile", "두 기기를 직접 만든다");
         test.setTimeout(120_000);
-        const { a, b } = await createAndJoin(browser);
-        await a.getByRole("button", { name: "관전 설정" }).click();
-        await a.getByLabel("관전 범위").selectOption("invite");
-        await expect(a.getByText("상대도 관전을 허용하면 관전 링크가 만들어져요.")).toBeVisible();
+        const { a, b, code } = await createAndJoin(browser);
+        // the guest sees the range but cannot change it
         await b.getByRole("button", { name: "관전 설정" }).click();
-        await b.getByLabel("관전 범위").selectOption("invite");
+        await expect(b.getByRole("dialog", { name: "관전 설정" }).getByRole("combobox")).toHaveCount(0);
+        await expect(b.getByLabel("현재 관전 범위")).toContainText("비공개");
+        await b.keyboard.press("Escape");
+        await b.locator("h1").click();
+        await a.getByRole("button", { name: "관전 설정" }).click();
+        await expect(a.getByLabel("관전 범위")).toHaveValue("private");
+        await expect(a.getByText("외부 사람은 이 경기를 볼 수 없어요.")).toBeVisible();
+        await a.getByLabel("관전 범위").selectOption("invite");
         const link = await a.getByLabel("관전 링크").inputValue();
         expect(link).toContain("watch=");
         expect(link).not.toContain("room=");
+        // PR118-01: the watch link carries a spectate id, not the invite code
+        const watchId = new URL(link).searchParams.get("watch")!;
+        expect(watchId).toMatch(/^[A-Z2-9]{10}$/);
+        expect(link).not.toContain(code);
+        await expect(b.getByRole("status").filter({ hasText: "방장이 관전 범위를 '링크 관전'(으)로 바꿨어요." })).toBeVisible();
         await a.keyboard.press("Escape");
         await a.locator("h1").click();
         await a.getByRole("button", { name: "게임 시작" }).click();
@@ -306,10 +316,12 @@ for (const kind of ["node", "workers"] as const) {
         await w.reload();
         await expect(w.locator(".board-top b")).toHaveText("1");
         await expect(a.getByRole("button", { name: "관전 설정" })).toContainText("관전 1");
-        // b withdraws consent: the spectator is disconnected and the old link stops working
-        await b.getByRole("button", { name: "관전 설정" }).click();
-        await b.getByLabel("관전 범위").selectOption("private");
+        // the host closes it during the match: the spectator is disconnected, the old link stops working,
+        // and the other player is told
+        await a.getByRole("button", { name: "관전 설정" }).click();
+        await a.getByLabel("관전 범위").selectOption("private");
         await expect(w.getByText(/관전이 종료되었어요/)).toBeVisible();
+        await expect(b.getByRole("status").filter({ hasText: "방장이 관전 범위를 '비공개'(으)로 바꿨어요." })).toBeVisible();
         await w.goto(link);
         await expect(w.getByText(/관전이 종료되었어요/)).toBeVisible();
       });
@@ -318,10 +330,10 @@ for (const kind of ["node", "workers"] as const) {
         test.skip(testInfo.project.name === "mobile", "세 기기를 직접 만든다");
         test.setTimeout(240_000);
         const { a, b } = await createAndJoin(browser);
-        for (const p of [a, b]) {
-          await p.getByRole("button", { name: "관전 설정" }).click();
-          await p.getByLabel("관전 범위").selectOption("invite");
-        }
+        await a.getByRole("button", { name: "관전 설정" }).click();
+        await a.getByLabel("관전 범위").selectOption("invite");
+        // every player gets the link once the host opens it
+        await b.getByRole("button", { name: "관전 설정" }).click();
         const link = await b.getByLabel("관전 링크").inputValue();
         for (const p of [a, b]) await p.keyboard.press("Escape");
         await a.locator("h1").click();

@@ -153,14 +153,15 @@ test("3인 동시 진행 관전: 모두 허용하면 관전 링크가 생기고,
     players.push(g);
   }
   await host.getByText("동시 진행").click();
-  // friend rooms keep consent-based spectating: every player switches it on
-  for (const p of players) {
+  // D-095: the host alone sets the friend room's spectating range; the others see it read-only
+  for (const p of players.slice(1)) {
     await p.getByRole("button", { name: "관전 설정" }).click();
-    await p.getByLabel("관전 범위").selectOption("invite");
-    await p.keyboard.press("Escape");
+    await expect(p.getByRole("dialog", { name: "관전 설정" }).getByRole("combobox")).toHaveCount(0);
+    await expect(p.getByLabel("현재 관전 범위")).toContainText("비공개");
     await p.locator("body").click({ position: { x: 5, y: 5 } });
   }
   await host.getByRole("button", { name: "관전 설정" }).click();
+  await host.getByLabel("관전 범위").selectOption("invite");
   const link = await host.getByLabel("관전 링크").inputValue();
   await host.locator("body").click({ position: { x: 5, y: 5 } });
   await host.getByRole("button", { name: /게임 시작/ }).click();
