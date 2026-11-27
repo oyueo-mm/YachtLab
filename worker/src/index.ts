@@ -1004,7 +1004,7 @@ export default {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       if (msg === "too large" || error instanceof SyntaxError || error instanceof TypeError) return fail(400, "INVALID_COMMAND", "요청 형식이 올바르지 않습니다.", allowed);
-      console.error("online worker error", msg);
+      console.error("ONLINE_WORKER_UNEXPECTED");
       return fail(500, "SERVER", "서버 오류가 발생했어요.", allowed);
     }
   },
