@@ -31,6 +31,7 @@ GitHub에 있는 정보를 다음 채팅에서 다시 설명할 필요 없이 �
 - [Context sync](../../.github/workflows/context-sync.yml) · [Context wiki](../../.github/workflows/context-wiki.yml)
 - 이벤트: main Push(생성물만 바뀐 병합은 제외) / 매일 00:20 UTC / 수동 workflow_dispatch.
 - Push/Schedule: 스크립트가 코드·Git 기록에서 현재 상태 문서를 생성하고, **main에 push하지 않고** `automation/context-sync` 브랜치의 단일 PR로 올린다(CI-1, D-CI1-1). 변경이 없으면 아무것도 하지 않고, 열린 PR이 있으면 갱신한다. 그 PR의 필수 체크 `ci-result`는 `deploy.yml`을 workflow_dispatch로 시작해 만든다.
+- 연구 보고서(`docs/context/_generated/*-LATEST.md` 등): 각 연구 워크플로가 `automation/research-…` 브랜치의 PR로 올리며(CI-1.1, [가이드](../operations/CI-1-1-RESEARCH-PUBLISH.md)) main에 직접 push하지 않는다.
 - PR: 문법 및 문서 링크 검증.
 - GitHub Wiki: `Context wiki` 워크플로가 **병합된 main**의 docs/context를 미러한다. Wiki 저장소가 초기화되지 않았거나 쓰기가 막히면 이 워크플로가 실패로 표시된다(원본 docs/context는 영향 없음).
 - 권한·보호 규칙·복구 절차: [CI-1 운영 가이드](../operations/CI-1-CONTEXT-SYNC-PROTECTION.md).

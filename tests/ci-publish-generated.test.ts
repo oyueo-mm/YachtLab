@@ -3,6 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, wr
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { FAKE_GH } from "./helpers/fake-gh";
 // @ts-expect-error plain ESM scripts without types
 import { assertAutomationBranch, isAllowedPath, sameWithoutKeys } from "../scripts/ci/publish-generated.mjs";
 
@@ -16,46 +17,16 @@ const ALLOW = "docs/context/_generated/";
 const MANIFEST = "docs/context/_generated/manifest.json";
 const STATE = "docs/context/_generated/CURRENT_STATE.md";
 
-const FAKE_GH = `#!/usr/bin/env node
-const fs = require("fs");
-const { execFileSync } = require("child_process");
-const file = process.env.FAKE_GH_STATE;
-const state = JSON.parse(fs.readFileSync(file, "utf8"));
-const args = process.argv.slice(2);
-const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
-const save = () => fs.writeFileSync(file, JSON.stringify(state));
-const real = process.env.REAL_GIT;
-state.calls.push(args.slice(0, 2).join(" ") + (args[0] === "workflow" ? " ref=" + opt("--ref") + " " + args.slice(args.indexOf("-f") + 1).join(" ") : ""));
-if (args[0] === "pr" && args[1] === "list") { console.log(JSON.stringify(state.prs.map(({ number, url }) => ({ number, url })))); }
-else if (args[0] === "pr" && args[1] === "create" && process.env.FAKE_GH_REFUSE_CREATE) {
-  console.error("pull request create failed: GraphQL: GitHub Actions is not permitted to create or approve pull requests (createPullRequest)"); process.exit(1);
-} else if (args[0] === "pr" && args[1] === "create") {
-  const number = state.nextPr++; const url = "https://example.test/pull/" + number;
-  state.prs.push({ number, url, head: opt("--head"), title: opt("--title"), body: fs.readFileSync(opt("--body-file"), "utf8") });
-  console.log("created " + url); console.log(url);
-} else if (args[0] === "pr" && args[1] === "edit") {
-  const pr = state.prs.find((p) => String(p.number) === args[2]); pr.title = opt("--title"); pr.body = fs.readFileSync(opt("--body-file"), "utf8");
-} else if (args[0] === "pr" && args[1] === "close") {
-  const pr = state.prs.find((p) => String(p.number) === args[2]);
-  state.closed.push({ number: pr.number, comment: opt("--comment") });
-  if (args.includes("--delete-branch")) execFileSync(real, ["push", "--quiet", "origin", "--delete", pr.head]);
-  state.prs = state.prs.filter((p) => p !== pr);
-} else if (args[0] === "run" && args[1] === "list") { console.log(JSON.stringify(state.runs)); }
-else if (args[0] === "workflow" && args[1] === "run") {
-  if (!process.env.FAKE_GH_NO_RUN) {
-    const line = execFileSync(real, ["ls-remote", "origin", "refs/heads/" + opt("--ref")], { encoding: "utf8" });
-    state.runs.push({ databaseId: 100 + state.runs.length, headSha: line.split(/\\s+/)[0], event: "workflow_dispatch", status: "queued", conclusion: null });
-  }
-} else { console.error("fake gh: unsupported " + args.join(" ")); process.exit(2); }
-save();
-`;
-
 // A git shim that lets a competing writer move the automation branch right after `ls-remote` read it (a concurrent run).
 const GIT_SHIM = `#!/bin/bash
 "$REAL_GIT" "$@"; rc=$?
 if [ "$1" = "ls-remote" ] && [ -n "$RACE_FLAG" ] && [ -f "$RACE_FLAG" ]; then
   rm -f "$RACE_FLAG"
-  ( cd "$RACE_CLONE" && "$REAL_GIT" -c user.name=racer -c user.email=r@example.test commit --allow-empty -qm "competing writer" && "$REAL_GIT" push -q -f origin HEAD:refs/heads/automation/context-sync ) >/dev/null 2>&1
+  if [ -n "$RACE_FILE" ]; then
+    ( cd "$RACE_CLONE" && mkdir -p "$(dirname "$RACE_FILE")" && echo "from a parallel job" > "$RACE_FILE" && "$REAL_GIT" add -A && "$REAL_GIT" -c user.name=racer -c user.email=r@example.test commit -qm "parallel job report" && "$REAL_GIT" push -q origin "HEAD:refs/heads/\${RACE_BRANCH}" ) >/dev/null 2>&1
+  else
+    ( cd "$RACE_CLONE" && "$REAL_GIT" -c user.name=racer -c user.email=r@example.test commit --allow-empty -qm "competing writer" && "$REAL_GIT" push -q -f origin HEAD:refs/heads/automation/context-sync ) >/dev/null 2>&1
+  fi
 fi
 exit $rc
 `;
@@ -359,5 +330,199 @@ describe("ensure-ci (the required check must exist on the PR head commit)", () =
     expect(run("ensure-ci", ["--branch", "main", "--sha", SHA]).status).toBe(1);
     expect(run("ensure-ci", ["--branch", "automation/context-sync", "--sha", "HEAD"]).status).toBe(1);
     expect(existsSync(stateFile)).toBe(true);
+  });
+});
+
+/**
+ * CI-1.1 — research reports: history-preserving publish (no force push), scoped to the files a job may publish.
+ */
+describe("research publish (--preserve-history --scope-to-allow)", () => {
+  const R_A = "docs/context/_generated/ALPHA-LATEST.md";
+  const R_B = "docs/context/_generated/BETA-LATEST.md";
+  const R_C = "docs/context/_generated/GAMMA-LATEST.md";
+  const research = (branch: string, allow: string[], title = "chore(research): publish report", env: Record<string, string> = {}, extra: string[] = []) =>
+    run("publish", ["--branch", branch, ...allow.flatMap((a) => ["--allow", a]), "--scope-to-allow", "--preserve-history", "--title", title, ...extra], { PUBLISH_GENERATED_RETRY_MS: "5", ...env });
+  const fetchAll = () => git(work, "fetch", "-q", "origin", "+refs/heads/*:refs/remotes/origin/*");
+  const show = (ref: string, file: string) => git(work, "show", `${ref}:${file}`);
+  const isAncestor = (a: string, b: string) => { try { git(work, "merge-base", "--is-ancestor", a, b); return true; } catch { return false; } };
+  const advanceMain = (file: string, text: string) => {
+    const other = path.join(root, "other-" + Math.random().toString(16).slice(2));
+    git(root, "clone", "-q", origin, other);
+    mkdirSync(path.dirname(path.join(other, file)), { recursive: true });
+    writeFileSync(path.join(other, file), text);
+    git(other, "add", "-A");
+    git(other, "commit", "-qm", "main moved: " + file);
+    git(other, "push", "-q", "origin", "HEAD:main");
+  };
+
+  it("glob entries match one file name, never other directories or other prefixes", () => {
+    const allow = ["docs/context/_generated/FRONTIER-*.md"];
+    expect(isAllowedPath("docs/context/_generated/FRONTIER-200K-LATEST.md", allow)).toBe(true);
+    for (const bad of ["docs/context/_generated/FRONTIER-.json", "docs/context/_generated/x/FRONTIER-a.md", "docs/context/_generated/OTHER-a.md", "docs/context/DECISIONS.md", "docs/context/_generated/FRONTIER-../a.md"]) expect(isAllowedPath(bad, allow)).toBe(false);
+  });
+
+  it("1. publishes only the job's own files (everything else in a full checkout is ignored) on a PR branch based on main", () => {
+    write(R_A, "alpha run 1\n");
+    write("training/results/big.json", "{}\n"); // downloaded artifact, not publishable
+    write("docs/context/_generated/UNRELATED-LATEST.md", "another job's file\n");
+    write("docs/context/DECISIONS.md", "# hand edited in the runner\n");
+    const mainBefore = remoteSha("refs/heads/main");
+    const r = research("automation/research-alpha", [R_A]);
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.outputs.action).toBe("created");
+    expect(remoteSha("refs/heads/main")).toBe(mainBefore);
+    fetchAll();
+    const tip = remoteSha("refs/heads/automation/research-alpha");
+    expect(git(work, "rev-parse", `${tip}^`)).toBe(mainBefore);
+    expect(git(work, "diff", "--name-status", mainBefore, tip)).toBe(`A\t${R_A}`);
+    expect(gh().prs[0].title).toBe("chore(research): publish report");
+  });
+
+  it("2. a consecutive run of the same workflow adds a commit on top — no force push, the earlier unmerged result stays in the PR history", () => {
+    write(R_A, "alpha run 1\n");
+    research("automation/research-alpha", [R_A]);
+    fetchAll();
+    const first = remoteSha("refs/heads/automation/research-alpha");
+    write(R_A, "alpha run 2 (new seed)\n");
+    const second = research("automation/research-alpha", [R_A]);
+    expect(second.status, second.stderr).toBe(0);
+    expect(second.outputs.action).toBe("updated");
+    fetchAll();
+    const tip = remoteSha("refs/heads/automation/research-alpha");
+    expect(isAncestor(first, tip)).toBe(true); // fast-forward: nothing was rewritten
+    expect(show(first, R_A)).toBe("alpha run 1");
+    expect(show(tip, R_A)).toBe("alpha run 2 (new seed)");
+    expect(gh().prs).toHaveLength(1);
+  });
+
+  it("3. different research workflows use separate branches and PRs and cannot touch each other", () => {
+    write(R_A, "alpha\n");
+    research("automation/research-alpha", [R_A]);
+    git(work, "checkout", "-q", "--", ".");
+    rmSync(path.join(work, R_A), { force: true });
+    write(R_B, "beta\n");
+    const b = research("automation/research-beta", [R_B]);
+    expect(b.outputs.action).toBe("created");
+    fetchAll();
+    expect(git(work, "diff", "--name-only", "origin/main", "origin/automation/research-alpha")).toBe(R_A);
+    expect(git(work, "diff", "--name-only", "origin/main", "origin/automation/research-beta")).toBe(R_B);
+    expect(gh().prs.map((p: { head: string }) => p.head).sort()).toEqual(["automation/research-alpha", "automation/research-beta"]);
+  });
+
+  it("4. latest main is merged into the branch (up to date) and the unmerged result survives", () => {
+    write(R_A, "alpha run 1\n");
+    research("automation/research-alpha", [R_A]);
+    fetchAll();
+    const first = remoteSha("refs/heads/automation/research-alpha");
+    advanceMain("src/app.ts", "export const x = 99;\n");
+    const newMain = remoteSha("refs/heads/main");
+    write(R_B, "beta from another job of the same run\n");
+    const r = research("automation/research-alpha", [R_A, R_B]);
+    expect(r.status, r.stderr).toBe(0);
+    fetchAll();
+    const tip = remoteSha("refs/heads/automation/research-alpha");
+    expect(git(work, "rev-list", "--parents", "-n1", tip).split(" ").slice(1)).toEqual([first, newMain]);
+    expect(show(tip, R_A)).toBe("alpha run 1");
+    expect(show(tip, R_B)).toContain("beta");
+    expect(show(tip, "src/app.ts")).toContain("99");
+    expect(isAncestor(newMain, tip)).toBe(true);
+  });
+
+  it("4b. with only main moved (nothing new to publish) the branch is brought up to date without rewriting it", () => {
+    write(R_A, "alpha run 1\n");
+    research("automation/research-alpha", [R_A]);
+    fetchAll();
+    const first = remoteSha("refs/heads/automation/research-alpha");
+    advanceMain("src/other.ts", "export const y = 1;\n");
+    git(work, "checkout", "-q", "--", ".");
+    rmSync(path.join(work, R_A), { force: true }); // this run has no file of its own
+    const r = research("automation/research-alpha", [R_A]);
+    expect(r.outputs.action).toBe("updated");
+    fetchAll();
+    const tip = remoteSha("refs/heads/automation/research-alpha");
+    expect(isAncestor(first, tip)).toBe(true);
+    expect(isAncestor(remoteSha("refs/heads/main"), tip)).toBe(true);
+    expect(show(tip, R_A)).toBe("alpha run 1");
+    expect(research("automation/research-alpha", [R_A]).outputs.action).toBe("unchanged");
+  });
+
+  it("5. two jobs publishing to the same branch at the same moment: the second retries on top of the first and both reports survive", () => {
+    write(R_A, "alpha\n");
+    research("automation/research-alpha", [R_A]);
+    const racer = path.join(root, "racer");
+    git(root, "clone", "--quiet", "-b", "automation/research-alpha", origin, racer);
+    const flag = path.join(root, "race.flag");
+    writeFileSync(flag, "1");
+    writeFileSync(path.join(bin, "git"), GIT_SHIM);
+    chmodSync(path.join(bin, "git"), 0o755);
+    write(R_A, "alpha run 2\n");
+    const r = research("automation/research-alpha", [R_A], "t", { RACE_FLAG: flag, RACE_CLONE: racer, RACE_FILE: R_C, RACE_BRANCH: "automation/research-alpha" });
+    expect(r.status, r.stderr).toBe(0);
+    fetchAll();
+    const tip = remoteSha("refs/heads/automation/research-alpha");
+    expect(show(tip, R_C)).toBe("from a parallel job");
+    expect(show(tip, R_A)).toBe("alpha run 2");
+    expect(git(work, "log", "--format=%s", `origin/main..${tip}`)).toContain("parallel job report");
+    expect(gh().prs).toHaveLength(1);
+  });
+
+  it("6. main and the unmerged branch changed the same file differently: stop, change nothing, explain", () => {
+    write(R_A, "alpha from the branch\n");
+    research("automation/research-alpha", [R_A]);
+    fetchAll();
+    const before = remoteSha("refs/heads/automation/research-alpha");
+    advanceMain(R_A, "alpha merged elsewhere\n");
+    write(R_B, "beta\n");
+    const r = research("automation/research-alpha", [R_B]);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain("아무것도 덮어쓰지 않고 중단");
+    expect(remoteSha("refs/heads/automation/research-alpha")).toBe(before);
+  });
+
+  it("7. after the PR was merged (merge commit or squash) a lingering branch is reused fast-forward; identical content is a no-op", () => {
+    write(R_A, "alpha\n");
+    research("automation/research-alpha", [R_A]);
+    fetchAll();
+    const tip = remoteSha("refs/heads/automation/research-alpha");
+    // squash-style merge: same content on main, branch history not an ancestor
+    advanceMain(R_A, "alpha\n");
+    const state = gh();
+    state.prs = [];
+    writeFileSync(stateFile, JSON.stringify(state));
+    const same = research("automation/research-alpha", [R_A]);
+    expect(same.outputs.action).toBe("noop");
+    // next experiment: new content on top of the lingering branch, as a fast-forward
+    write(R_A, "alpha next experiment\n");
+    const next = research("automation/research-alpha", [R_A]);
+    expect(next.outputs.action).toBe("created");
+    fetchAll();
+    const newTip = remoteSha("refs/heads/automation/research-alpha");
+    expect(isAncestor(tip, newTip)).toBe(true);
+    expect(git(work, "diff", "--name-only", "origin/main", newTip)).toBe(R_A);
+  });
+
+  it("8. works from a shallow checkout (the default for research jobs)", () => {
+    write(R_A, "alpha\n");
+    research("automation/research-alpha", [R_A]);
+    advanceMain("src/more.ts", "export const z = 3;\n");
+    const shallow = path.join(root, "shallow");
+    git(root, "clone", "-q", "--depth", "1", `file://${origin}`, shallow);
+    writeFileSync(path.join(shallow, R_B), "beta\n");
+    const result = spawnSync("node", [SCRIPT, "publish", "--branch", "automation/research-alpha", "--allow", R_A, "--allow", R_B, "--scope-to-allow", "--preserve-history", "--title", "t"], {
+      cwd: shallow, encoding: "utf8", env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, FAKE_GH_STATE: stateFile, REAL_GIT, GITHUB_OUTPUT: outFile },
+    });
+    expect(result.status, result.stderr).toBe(0);
+    fetchAll();
+    const tip = remoteSha("refs/heads/automation/research-alpha");
+    expect(show(tip, R_A)).toBe("alpha");
+    expect(show(tip, R_B)).toBe("beta");
+  });
+
+  it("a job whose files are not under its allowance publishes nothing and the branch is never main", () => {
+    write(R_A, "alpha\n");
+    const wrong = research("automation/research-alpha", ["docs/context/_generated/ELSEWHERE.md"]);
+    expect(wrong.outputs.action).toBe("noop");
+    expect(remoteSha("refs/heads/automation/research-alpha")).toBe("");
+    expect(research("main", [R_A]).status).toBe(1);
   });
 });

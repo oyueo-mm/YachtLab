@@ -141,12 +141,9 @@ describe("workflow contracts for branch protection (static)", () => {
     expect(deploy).toMatch(/pull_request:\n/);
     expect(deploy).toMatch(/workflow_dispatch:/);
   });
-  it("only the documented research workflows still push to main; the protected-path workflows never do", () => {
-    const pushers = findMainPushers(path.join(repoRoot, ".github/workflows")).map((e: { workflow: string }) => e.workflow);
-    for (const name of ["context-sync.yml", "context-wiki.yml", "deploy.yml", "deploy-online-worker.yml", "seo-indexnow.yml", "online-live-check.yml", "gameplay-ui-smoke.yml"]) expect(pushers).not.toContain(name);
-    // inventory guard: a NEW workflow must not add a direct main push (use scripts/ci/publish-generated.mjs)
-    const legacy = read("docs/operations/CI-1-CONTEXT-SYNC-PROTECTION.md");
-    for (const name of pushers) expect(legacy, `${name} must be listed in the CI-1 guide inventory`).toContain(name);
+  it("no workflow pushes to main any more (CI-1.1): audit --strict would exit 0", () => {
+    expect(findMainPushers(path.join(repoRoot, ".github/workflows"))).toEqual([]);
+    for (const name of workflows) expect(read(`.github/workflows/${name}`), name).not.toMatch(/\[skip ci\]|\[ci skip\]/i);
   });
 });
 
@@ -197,5 +194,53 @@ describe("deploy.yml scope step for a manual run on the automation branch (the r
   });
   it("a forced-full manual run stays full", () => {
     expect(scope(["docs/context/_generated/a.md"], { EVENT: "workflow_dispatch", GITHUB_REF: "refs/heads/automation/context-sync", FORCE_FULL: "true" })).toBe("mode=full");
+  });
+});
+
+describe("research workflows publish through automation PRs (CI-1.1, static contract)", () => {
+  const files = readdirSync(path.join(repoRoot, ".github/workflows")).filter((f) => /\.ya?ml$/.test(f));
+  type Step = { file: string; job: string; branch: string; allow: string[]; text: string };
+  const steps: Step[] = [];
+  for (const file of files) {
+    if (file === "context-sync.yml") continue;
+    const text = read(`.github/workflows/${file}`);
+    const jobs = text.split(/\n(?=  [A-Za-z0-9_-]+:\n)/);
+    for (const job of jobs) {
+      if (!job.includes("publish-generated.mjs publish")) continue;
+      const branch = /--branch (automation\/research-[a-z0-9-]+) \\/.exec(job)?.[1] ?? "";
+      const allow = [...job.matchAll(/--allow "([^"]+)"/g)].map((m) => m[1]);
+      steps.push({ file, job: /^\s*([A-Za-z0-9_-]+):/.exec(job)?.[1] ?? "?", branch, allow, text: job });
+    }
+  }
+  it("finds the 30 migrated publish steps of 26 research workflows", () => {
+    expect(steps).toHaveLength(30);
+    expect(new Set(steps.map((s) => s.file)).size).toBe(26);
+  });
+  it("every step publishes on its own automation/research-* branch, without force and without main", () => {
+    expect(steps.every((s) => /^automation\/research-[a-z0-9-]+$/.test(s.branch))).toBe(true);
+    expect(new Set(steps.map((s) => s.branch)).size).toBe(steps.length);
+    for (const s of steps) {
+      expect(s.text, s.file).toContain("--scope-to-allow --preserve-history");
+      expect(s.text, s.file).not.toMatch(/git push|HEAD:main|--force/);
+      expect(s.text, s.file).toMatch(new RegExp(`ensure-ci --branch ${s.branch} --sha "\\$HEAD_SHA" --workflow deploy.yml`));
+    }
+  });
+  it("each step may publish only named files under docs/context/_generated/ (no directories, one wildcard family)", () => {
+    for (const s of steps) {
+      expect(s.allow.length, s.file).toBeGreaterThan(0);
+      for (const a of s.allow) {
+        expect(a, s.file).toMatch(/^docs\/context\/_generated\/[A-Za-z0-9._*-]+\.(?:md|json)$/);
+        if (a.includes("*")) expect(a).toBe("docs/context/_generated/FRONTIER-*.md");
+      }
+    }
+    const all = steps.flatMap((s) => s.allow);
+    expect(new Set(all).size, "no file is published by two different research PRs").toBe(all.length);
+  });
+  it("the publishing job has exactly contents/pull-requests/actions write", () => {
+    for (const s of steps) {
+      const perms = /\n    permissions:\n((?:      .+\n)+)/.exec(s.text)?.[1] ?? "";
+      const keys = [...perms.matchAll(/^ {6}([a-z-]+): (\w+)/gm)].map((m) => `${m[1]}:${m[2]}`).sort();
+      expect(keys, `${s.file}/${s.job}`).toEqual(["actions:write", "contents:write", "pull-requests:write"]);
+    }
   });
 });

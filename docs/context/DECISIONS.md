@@ -459,6 +459,13 @@ GitHub Pages의 `/YachtLab/` 스코프와 매니페스트를 사용한다. 서�
 4. Wiki는 별도 워크플로가 **병합된 main**을 미러하며, 실패는 숨기지 않는다(전에는 `continue-on-error`로 감춰진 채 매번 실패 중이었다).
 5. 보호 규칙(PR 필수·`ci-result` 필수·최신 base·강제 푸시/삭제 금지·우회 없음)은 호환되도록 준비만 했고 적용하지 않았다. 독립 리뷰어 승인과 merge queue는 요구하지 않는다. 연구 워크플로 26개의 직접 push는 후속(CI-1.1)에서 같은 구조로 옮긴다. 절차서: [CI-1](../operations/CI-1-CONTEXT-SYNC-PROTECTION.md).
 
+## D-CI1-2. 연구 보고서도 main에 직접 push하지 않고 연구별 자동화 PR로 올린다 (2026-11-27, CI-1.1)
+
+1. 26개 연구 워크플로의 게시 단계 30개를 `scripts/ci/publish-generated.mjs publish --scope-to-allow --preserve-history`로 옮겼다. 연구 알고리즘·설정·시드·경기 수·평가 기준·결과·아티팩트 보존은 바꾸지 않았다.
+2. 허용 파일은 단계별 정확한 파일명(`docs/context/_generated/…`), 브랜치는 단계마다 `automation/research-…`, 권한은 게시 잡 한정 `contents`/`pull-requests`/`actions: write`.
+3. Context sync(D-CI1-1)와 달리 연구 브랜치는 **강제 푸시 없이 기록을 쌓는다**: 같은 연구의 연속 실행은 이전 미병합 결과를 PR 기록에 남기고, 동시 push는 재시도·병합하며, main과 미병합 브랜치가 같은 파일을 다르게 바꾸면 덮어쓰지 않고 중단한다.
+4. 병합 push는 25개 연구 워크플로의 `push(main)` 트리거에 걸리므로 병합 커밋에 `[skip ci]`를 쓰거나 시작된 실행을 취소한다. 절차서: [CI-1.1](../operations/CI-1-1-RESEARCH-PUBLISH.md).
+
 ## D-068. 설정은 공통 Sheet(PC 가운데 모달, 휴대폰 아래 시트)와 소리 2계층 (2026-11-26)
 
 1. 설정·단축키 안내 등 모달은 `src/ui/kit.tsx` `Sheet`를 쓴다. `<dialog>` 중앙 정렬은 CSS 리셋 때문에 사라지므로 `margin: auto`를 명시한다.

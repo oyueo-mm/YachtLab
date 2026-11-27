@@ -369,7 +369,8 @@
 ### 2026-11-27: CI-1 개발 인프라 안정화 (D-CI1-1, [운영 가이드](../operations/CI-1-CONTEXT-SYNC-PROTECTION.md))
 
 - ✅ Context sync를 자동화 브랜치의 단일 PR로 전환, 필수 CI 자동 시작, Wiki 별도 워크플로, 직접 push 인벤토리와 보호 규칙 가이드. 병합·관리자 설정 적용은 Work·운영자 승인 대기.
-- ⏭ **CI-1.1**: 연구 워크플로 26개의 `git push origin HEAD:main`을 `publish-generated.mjs`로 이전(보호 규칙을 켜기 전 선행). 관리자: PR 생성 허용 설정과 Wiki 첫 페이지 생성.
+- ✅ **CI-1.1**: 연구 워크플로 26개의 main 직접 push를 자동화 PR로 이전(D-CI1-2, [가이드](../operations/CI-1-1-RESEARCH-PUBLISH.md)). 병합·적용은 승인 대기.
+- ⏭ 관리자: PR 생성 허용 설정과 Wiki 첫 페이지 생성, 병합 뒤 연구 워크플로 하나로 실제 게시 확인.
 
 ### 검색 의도와 공개 연구
 
