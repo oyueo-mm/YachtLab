@@ -120,6 +120,8 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
+| [fa22a35](https://github.com/oyueo-mm/YachtLab/commit/fa22a35) | 2026-11-28 | Merge pull request #119 from oyueo-mm/codex/hotfix-item-upgrade |
+| [74bfcd8](https://github.com/oyueo-mm/YachtLab/commit/74bfcd8) | 2026-11-27 | Guard item upgrades against legacy Worker catalog capabilities |
 | [ef725f6](https://github.com/oyueo-mm/YachtLab/commit/ef725f6) | 2026-11-27 | Merge pull request #116 from oyueo-mm/feat/c2-game-review |
 | [9685063](https://github.com/oyueo-mm/YachtLab/commit/9685063) | 2026-11-27 | Improve game review evaluation and replay linkage |
 | [013a0a3](https://github.com/oyueo-mm/YachtLab/commit/013a0a3) | 2026-11-27 | Merge pull request #115 from oyueo-mm/claude/tender-mendel-q0vocx |
@@ -128,8 +130,6 @@
 | [4e797e6](https://github.com/oyueo-mm/YachtLab/commit/4e797e6) | 2026-11-27 | A1: post-deploy live verification script (read-only for production data) |
 | [126ce9c](https://github.com/oyueo-mm/YachtLab/commit/126ce9c) | 2026-11-27 | docs: place A1 context entries away from C1 (#113) edit points to avoid merge conflicts (content unchanged) |
 | [e2f4c06](https://github.com/oyueo-mm/YachtLab/commit/e2f4c06) | 2026-11-27 | A1.1: three-version perf comparison (main / A1 08c507b / A1.1) and context docs (D-083) |
-| [466f2e6](https://github.com/oyueo-mm/YachtLab/commit/466f2e6) | 2026-11-27 | A1.1: A1 (08c507b) desktop re-measurement, 3-version table script |
-| [e017a73](https://github.com/oyueo-mm/YachtLab/commit/e017a73) | 2026-11-27 | A1.1: adaptive effect quality from measured throw frames |
 
 ## 최근 GitHub Actions 상태
 
@@ -137,9 +137,8 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/46005087533) | success | 96850635e3 |
-| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/46000891567) | success | 0939a27010 |
-| [YachtLab gameplay UI targeted smoke](https://github.com/oyueo-mm/YachtLab/actions/runs/45997138823) | success | 4e797e6ec2 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/46018302968) | success | 74bfcd86d5 |
+| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/46009322210) | success | 0e9a211e27 |
 
 ## 다음 채팅과 작업의 시작점
 

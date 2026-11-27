@@ -131,6 +131,16 @@
   ],
   "recentSourceCommits": [
     {
+      "sha": "fa22a35",
+      "date": "2026-11-28",
+      "subject": "Merge pull request #119 from oyueo-mm/codex/hotfix-item-upgrade"
+    },
+    {
+      "sha": "74bfcd8",
+      "date": "2026-11-27",
+      "subject": "Guard item upgrades against legacy Worker catalog capabilities"
+    },
+    {
       "sha": "ef725f6",
       "date": "2026-11-27",
       "subject": "Merge pull request #116 from oyueo-mm/feat/c2-game-review"
@@ -169,36 +179,20 @@
       "sha": "e2f4c06",
       "date": "2026-11-27",
       "subject": "A1.1: three-version perf comparison (main / A1 08c507b / A1.1) and context docs (D-083)"
-    },
-    {
-      "sha": "466f2e6",
-      "date": "2026-11-27",
-      "subject": "A1.1: A1 (08c507b) desktop re-measurement, 3-version table script"
-    },
-    {
-      "sha": "e017a73",
-      "date": "2026-11-27",
-      "subject": "A1.1: adaptive effect quality from measured throw frames"
     }
   ],
   "recentWorkflowRuns": [
     {
       "name": "Test and deploy YachtLab",
       "status": "success",
-      "head": "96850635e3",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46005087533"
+      "head": "74bfcd86d5",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46018302968"
     },
     {
       "name": "SEO IndexNow",
       "status": "success",
-      "head": "0939a27010",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46000891567"
-    },
-    {
-      "name": "YachtLab gameplay UI targeted smoke",
-      "status": "success",
-      "head": "4e797e6ec2",
-      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/45997138823"
+      "head": "0e9a211e27",
+      "url": "https://github.com/oyueo-mm/YachtLab/actions/runs/46009322210"
     }
   ],
   "workflowQuery": "GitHub Actions에서 완료된 실행 중 워크플로별 최근 1건을 조회",
