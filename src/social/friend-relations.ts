@@ -1,103 +1,141 @@
-import { publicProfile as fetchPublicProfile, type PublicProfile } from "../identity/account-client";
-import { friendAction, friendProfile, friends as loadFriends, searchFriends, type FriendProfile, type SearchResult } from "../identity/friends-client";
+import { session } from "../identity/account-client";
 
 /**
- * Friend requests from anywhere in the game (A4): an opponent's profile in a match, the recent-opponents
- * list, and (reusable by the match result screen) a button — one shared behaviour.
+ * Friend requests from anywhere in the game (A4): one behaviour for an opponent's profile in a match,
+ * the recent-opponents list and (A3) the match result screen.
  *
- * Contract note: the Worker friend API addresses people by FRIEND CODE only (random, not derivable from
- * the account id) and the game knows opponents by account id (`members`, server records). Until a
- * request-by-profile endpoint exists (proposed in docs/context/A4-CONTRACT-CANDIDATES-2026-11-27.md; the
- * friend API is C4.2's and is NOT changed here) the code is resolved through the EXISTING endpoints:
- * the opponent's public profile → exact-nickname search → if several people share the nickname, compare
- * the public profile numbers (join date and server-verified totals) with `friends/profile`. A person who
- * cannot be told apart safely is reported as "unresolved" and nothing is sent.
+ * SAFETY RULE (review of #127): a friend request is sent ONLY to a person whose account id is bound to
+ * a friend code by the SERVER. The existing Worker friend API cannot do that: it addresses people by
+ * friend code only, a code is not derivable from an account id, a member without a code is absent from
+ * the search index, searches are capped, nicknames are not unique and can change, and public numbers
+ * are not an identity proof. Nickname search / public-stat matching is therefore NEVER used to decide
+ * whom to ask. Without a verified mapping the result is "unresolved": nothing is looked up, nothing is
+ * sent, and the UI points to manual friend-code entry on the friends page.
+ *
+ * The verified mapping is an optional adapter capability (`relationByUserId`). The live adapter has none
+ * until the server offers it (contract candidates A/B in docs/context/A4-CONTRACT-CANDIDATES-2026-11-27.md,
+ * to be built with C4.2); the state machine below is complete and tested against a fake verified adapter.
+ *
+ * Account isolation: cached relations, in-flight lookups and in-flight sends belong to the signed-in
+ * account that started them. Switching or signing out clears the cache and invalidates everything in
+ * flight; a late answer for the previous account is dropped, never shown, cached or acted on.
  */
 export type Relation = "self" | "friend" | "incoming" | "outgoing" | "blocked" | "none" | "unresolved";
 export type Resolved = { relation: Relation; code?: string; nickname: string };
+export type VerifiedRelation = { relation: Exclude<Relation, "unresolved">; code: string; nickname: string };
 export type FriendApi = {
-  profile(userId: string): Promise<PublicProfile>;
-  search(query: string): Promise<SearchResult[]>;
-  friendProfile(code: string): Promise<FriendProfile>;
-  action(action: "request", code: string): Promise<{ status?: string }>;
+  /** Server-verified binding of an account id to a friend code and the relation. ABSENT on today's Worker. */
+  relationByUserId?(userId: string): Promise<VerifiedRelation>;
+  /** Existing endpoint: request by friend code (only ever called with a code from `relationByUserId`). */
+  request(code: string): Promise<{ status?: string }>;
 };
-export const liveApi = (server: string): FriendApi => ({
-  profile: (userId) => fetchPublicProfile(server, userId),
-  search: (query) => searchFriends(server, query),
-  friendProfile: (code) => friendProfile(server, code),
-  action: (action, code) => friendAction(server, action, code),
+/** The live Worker: no verified mapping exists, so lookups resolve to "unresolved" without any network call. */
+export const liveApi = (_server: string): FriendApi => ({
+  request: async () => {
+    throw new Error("서버가 계정과 친구 코드의 대응을 보증하지 않아 보낼 수 없어요.");
+  },
 });
 
-const sameNumbers = (a: PublicProfile, b: FriendProfile) =>
-  a.joinedAt === b.joinedAt && a.online.games === b.online.games && a.online.wins === b.online.wins && a.online.losses === b.online.losses && a.online.draws === b.online.draws && a.online.best === b.online.best;
-
-/** Who is this account id in friend terms (relation + code), or "unresolved" when it cannot be told safely. */
-export async function resolveRelation(api: FriendApi, userId: string): Promise<Resolved> {
-  const profile = await api.profile(userId);
-  const found = (await api.search(profile.nickname)).filter((r) => r.nickname === profile.nickname);
-  if (found.length === 0) return { relation: "unresolved", nickname: profile.nickname };
-  if (found.length === 1) return { relation: found[0].relation, code: found[0].code, nickname: profile.nickname };
-  // Same nickname, several people: only the one whose public numbers match is accepted.
-  const matches: SearchResult[] = [];
-  for (const r of found) {
-    if (r.relation === "self") continue;
-    try {
-      if (sameNumbers(profile, await api.friendProfile(r.code))) matches.push(r);
-    } catch {
-      /* a profile that cannot be read cannot be matched */
-    }
-  }
-  return matches.length === 1 ? { relation: matches[0].relation, code: matches[0].code, nickname: profile.nickname } : { relation: "unresolved", nickname: profile.nickname };
-}
-
-/* ------------------------------------------------------------ shared state (cache, in-flight, events) ------------------------------------------------------------ */
-const TTL = 8_000; // short: reopening a profile after the other person answered shows the new state
+/* ------------------------------------------------------------ account scope ------------------------------------------------------------ */
+const accountOfSession = () => {
+  const s = session();
+  return s ? s.split(".")[1] ?? null : null;
+};
+let scopeProvider: () => string | null = accountOfSession;
+let currentScope: string | null | undefined;
+let epoch = 0;
 const cache = new Map<string, { at: number; value: Resolved }>();
 const inflight = new Map<string, Promise<unknown>>();
 const listeners = new Set<() => void>();
-const key = (server: string, userId: string) => server + "|" + userId;
 const notify = () => listeners.forEach((l) => l());
 export const subscribeRelations = (l: () => void) => (listeners.add(l), () => void listeners.delete(l));
-export const peekRelation = (server: string, userId: string) => cache.get(key(server, userId))?.value ?? null;
-/** Tests / account switch. */
+
+/** Detects an account change (sign-out, switch) and drops everything that belonged to the old account. */
+function syncScope(): number {
+  const now = scopeProvider();
+  if (currentScope !== now) {
+    const first = currentScope === undefined;
+    currentScope = now;
+    if (!first) {
+      epoch++;
+      cache.clear();
+      inflight.clear();
+      notify();
+    }
+  }
+  return epoch;
+}
+/** Tests: replace how the signed-in account is read. */
+export function setScopeProvider(fn: () => string | null) {
+  scopeProvider = fn;
+  syncScope();
+}
+if (typeof window !== "undefined") {
+  window.addEventListener("yachtlab-session", () => syncScope());
+  window.addEventListener("storage", () => syncScope());
+}
+const key = (server: string, userId: string) => `${currentScope ?? "-"}|${server}|${userId}`;
+export function peekRelation(server: string, userId: string): Resolved | null {
+  syncScope();
+  return cache.get(key(server, userId))?.value ?? null;
+}
 export function resetRelations() {
   cache.clear();
   inflight.clear();
+  epoch++;
+  currentScope = undefined;
+  syncScope();
 }
 
-/** Cached lookup; concurrent callers share one network round (no double search). */
-export function loadRelation(server: string, userId: string, api: FriendApi = liveApi(server), force = false): Promise<Resolved> {
+const TTL = 8_000;
+const UNRESOLVED = (nickname = ""): Resolved => ({ relation: "unresolved", nickname });
+
+/** Cached lookup of a person's relation. Never guesses: without the verified capability it is "unresolved" with no network call. */
+export async function loadRelation(server: string, userId: string, api: FriendApi = liveApi(server), force = false): Promise<Resolved> {
+  const start = syncScope();
+  if (!api.relationByUserId) return UNRESOLVED();
   const k = key(server, userId);
   const hit = cache.get(k);
-  if (!force && hit && Date.now() - hit.at < TTL) return Promise.resolve(hit.value);
+  if (!force && hit && Date.now() - hit.at < TTL) return hit.value;
   const running = inflight.get(k);
   if (running) return running as Promise<Resolved>;
-  const p = resolveRelation(api, userId)
-    .then((value) => {
+  const p = api
+    .relationByUserId(userId)
+    .then((v): Resolved => {
+      if (syncScope() !== start) return UNRESOLVED(); // the account changed while this was in flight: drop it
+      const value: Resolved = { relation: v.relation, code: v.code, nickname: v.nickname };
       cache.set(k, { at: Date.now(), value });
       notify();
       return value;
     })
-    .finally(() => inflight.delete(k));
+    .finally(() => {
+      if (inflight.get(k) === p) inflight.delete(k);
+    });
   inflight.set(k, p);
   return p;
 }
 
 export type SendOutcome = { ok: true; relation: "friend" | "outgoing" | "incoming" | "blocked" | "self" | "none"; sent: boolean } | { ok: false; message: string };
+export const MANUAL_ADD_MESSAGE = "친구 요청은 상대의 친구 코드로 보낼 수 있어요. 친구 화면에서 코드를 입력해 주세요.";
 /**
- * Send ONE friend request. Never sends when the person is already a friend, already asked (either
- * way), blocked, unresolved or yourself; a second tap while the first is running does nothing.
+ * Send ONE friend request, only to a server-verified person who is currently "none". Never sends when
+ * the person is already a friend, already asked (either way), blocked, yourself or unresolved; a second
+ * tap while the first is running does nothing; nothing is sent (or recorded) for a different account.
  */
 export async function sendFriendRequest(server: string, userId: string, api: FriendApi = liveApi(server)): Promise<SendOutcome> {
+  const start = syncScope();
   const k = key(server, userId) + "|send";
   const running = inflight.get(k);
   if (running) return running as Promise<SendOutcome>;
-  const p = (async (): Promise<SendOutcome> => {
+  const slot: { p?: Promise<SendOutcome> } = {};
+  const p = (slot.p = (async (): Promise<SendOutcome> => {
     try {
       const now = await loadRelation(server, userId, api, true); // fresh: someone may have asked meanwhile
-      if (now.relation === "unresolved" || !now.code) return { ok: false, message: "이 사람을 안전하게 찾지 못했어요. 친구 코드로 추가해 주세요." };
+      if (syncScope() !== start) return { ok: false, message: "계정이 바뀌어 요청을 보내지 않았어요." };
+      if (now.relation === "unresolved" || !now.code) return { ok: false, message: MANUAL_ADD_MESSAGE };
       if (now.relation !== "none") return { ok: true, relation: now.relation, sent: false };
-      const r = await api.action("request", now.code);
+      const r = await api.request(now.code);
+      if (syncScope() !== start) return { ok: false, message: "계정이 바뀌어 결과를 반영하지 않았어요." }; // late answer of the old account
       const relation = r.status === "friends" ? "friend" : "outgoing";
       cache.set(key(server, userId), { at: Date.now(), value: { ...now, relation } });
       notify();
@@ -105,22 +143,15 @@ export async function sendFriendRequest(server: string, userId: string, api: Fri
     } catch (e) {
       return { ok: false, message: e instanceof Error ? e.message : "친구 요청을 보내지 못했어요." };
     } finally {
-      inflight.delete(k);
+      if (inflight.get(k) === slot.p) inflight.delete(k);
     }
-  })();
+  })());
   inflight.set(k, p);
   return p;
 }
 
-/**
- * A member becomes findable (friend code registered) only when their own account first uses the friends
- * API. The inbox poll does not do that, so once per page load a signed-in client reads its own friend
- * list: the cheapest existing call that registers it. Without this most opponents could not be found.
- * (Proposed server-side fix: register at sign-in — see the A4 contract candidates; the Worker is C4.2's.)
- */
-const registered = new Set<string>();
-export function ensureSelfRegistered(server: string | null) {
-  if (!server || registered.has(server)) return;
-  registered.add(server);
-  void loadFriends(server).catch(() => registered.delete(server));
-}
+/** The signed-in account id ("" when signed out), reactive: components re-run their loads when it changes. */
+export const accountKey = () => {
+  syncScope();
+  return currentScope ?? "";
+};

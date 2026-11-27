@@ -2,18 +2,18 @@ import { returningVisitorState } from "./visitor";
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { startLocalWorker, type LocalWorker } from "../helpers/wrangler";
 import { fakeLogin, startFakeIdp, type FakeIdp } from "../helpers/fake-idp";
-import { apiCall } from "../helpers/member-look";
+import { apiCall, playMatchBetween } from "../helpers/member-look";
 
 /**
- * A4 friend requests from a real match (isolated local Worker + fake sign-in, two members): the
- * opponent's profile shows the right state, one tap sends ONE request, pending/friend/blocked are
- * respected and shown, and the other account sees the request in its inbox. The Worker friend API is
- * used as is (nothing was changed there).
+ * A4 friend requests from a real match (isolated local Worker + fake sign-in, two members). The Worker
+ * cannot bind an account id to a friend code, so nothing may be guessed from nicknames or public numbers:
+ * the profile and the recent-opponents list send NOTHING and say how to add the person by friend code.
+ * Also: switching accounts in the same tab shows only the new account's data, even when the previous
+ * account's answer arrives late. The Worker friend API is used as is (nothing was changed there).
  */
 const ORIGIN = "http://127.0.0.1:5173";
 let worker: LocalWorker;
 let idp: FakeIdp;
-const sessions: string[] = [];
 const contexts: BrowserContext[] = [];
 test.beforeAll(async ({}, info) => {
   if (info.project.name === "mobile") return;
@@ -26,7 +26,7 @@ test.afterAll(async () => { await worker?.stop(); idp?.close(); });
 const entry = () => `?online-server=${encodeURIComponent(worker.url)}#online`;
 async function device(browser: Browser, session: string, size = { width: 1280, height: 800 }): Promise<Page> {
   const ctx = await browser.newContext({ storageState: returningVisitorState(), viewport: size, baseURL: ORIGIN + "/YachtLab/", reducedMotion: "reduce" });
-  await ctx.addInitScript((s) => { localStorage.setItem("yachtlab.session.v1", s); localStorage.setItem("yachtlab.settings.v1", JSON.stringify({ muted: true, diceQuality: "2.5d" })); }, session);
+  await ctx.addInitScript((s) => { if (!localStorage.getItem("yachtlab.session.v1")) localStorage.setItem("yachtlab.session.v1", s); localStorage.setItem("yachtlab.settings.v1", JSON.stringify({ muted: true, diceQuality: "2.5d" })); }, session);
   contexts.push(ctx);
   return ctx.newPage();
 }
@@ -35,79 +35,61 @@ async function openOpponentProfile(p: Page) {
   await p.getByRole("button", { name: /프로필 보기/ }).click();
   return p.getByRole("dialog", { name: "상대 프로필" });
 }
+const friendState = async (session: string) => (await apiCall(worker, session, "/api/me/friends")).body;
 
-test("경기 중 상대 프로필에서 친구 요청: 한 번만 보내지고, 대기·친구·차단 상태를 존중해 표시한다", async ({ browser }, info) => {
+test("경기 중 상대 프로필: 닉네임·전적으로 추정하지 않고 요청을 보내지 않으며 친구 코드로 추가하도록 안내한다", async ({ browser }, info) => {
   test.skip(info.project.name === "mobile", "두 기기를 한 테스트에서 직접 만든다");
   test.setTimeout(180_000);
-  sessions[0] = await fakeLogin(worker.url, idp, "a4-one", ORIGIN);
-  sessions[1] = await fakeLogin(worker.url, idp, "a4-two", ORIGIN);
-  const [a, b] = [await device(browser, sessions[0]), await device(browser, sessions[1])];
+  const s1 = await fakeLogin(worker.url, idp, "a4-one", ORIGIN);
+  const s2 = await fakeLogin(worker.url, idp, "a4-two", ORIGIN);
+  // Both accounts have used the friends feature (so they ARE in the search index): even then nothing is guessed.
+  await friendState(s1);
+  await friendState(s2);
+  const [a, b] = [await device(browser, s1), await device(browser, s2)];
   for (const p of [a, b]) { await p.goto(entry()); await p.getByRole("button", { name: "빠른 대전 시작" }).click(); }
   for (const p of [a, b]) await expect(p.locator(".roll-button")).toBeVisible({ timeout: 20_000 });
-
-  // A: opponent profile → one request
-  const dialogA = await openOpponentProfile(a);
-  const add = dialogA.getByRole("button", { name: /친구 추가/ });
-  await expect(add).toBeVisible();
-  await add.dblclick(); // a double tap must still send exactly one request
-  await expect(dialogA.getByText("친구 요청을 보냈어요")).toBeVisible();
-  if (process.env.A4_SHOTS) await dialogA.screenshot({ path: `docs/ui/a4-mobile/${process.env.A4_SHOTS}-friend-pending.png` });
-  await expect(dialogA.getByRole("button", { name: /친구 추가/ })).toHaveCount(0);
-  const inbox = await apiCall(worker, sessions[1], "/api/me/friends");
-  expect(inbox.body.incoming).toHaveLength(1);
-  const outgoing = await apiCall(worker, sessions[0], "/api/me/friends");
-  expect(outgoing.body.outgoing).toHaveLength(1);
-
-  // B sees that A already asked (no second request possible from here either)
-  const dialogB = await openOpponentProfile(b);
-  await expect(dialogB.getByText("상대가 먼저 요청했어요")).toBeVisible();
-  await expect(dialogB.getByRole("button", { name: /친구 추가/ })).toHaveCount(0);
-
-  // B accepts through the API (the friends page flow is covered by the existing friends tests); A reopens the profile
-  const code = inbox.body.incoming[0].code as string;
-  expect((await apiCall(worker, sessions[1], "/api/me/friends/accept", { code })).status).toBe(200);
-  await a.getByRole("button", { name: "닫기" }).click();
-  await a.waitForTimeout(8500); // the shared relation cache is short-lived
-  const again = await openOpponentProfile(a);
-  await expect(again.getByText("이미 친구예요")).toBeVisible();
-  if (process.env.A4_SHOTS) await again.screenshot({ path: `docs/ui/a4-mobile/${process.env.A4_SHOTS}-friend-already.png` });
-  await expect(again.getByRole("button", { name: /친구 추가/ })).toHaveCount(0);
-
-  // blocked: A removes B, then blocks B → the profile says so and offers no button
-  await apiCall(worker, sessions[0], "/api/me/friends/remove", { code: inbox.body.me ? (await apiCall(worker, sessions[0], "/api/me/friends")).body.friends[0].code : code });
-  const peer = (await apiCall(worker, sessions[0], "/api/me/friends")).body;
-  void peer;
-  const bCode = (await apiCall(worker, sessions[1], "/api/me/friends")).body.me.code as string;
-  expect((await apiCall(worker, sessions[0], "/api/me/friends/block", { code: bCode })).status).toBe(200);
-  await a.getByRole("button", { name: "닫기" }).click();
-  await a.waitForTimeout(8500);
-  const blocked = await openOpponentProfile(a);
-  await expect(blocked.getByText("차단한 사용자예요")).toBeVisible();
-  if (process.env.A4_SHOTS) await blocked.screenshot({ path: `docs/ui/a4-mobile/${process.env.A4_SHOTS}-friend-blocked.png` });
-  await expect(blocked.getByRole("button", { name: /친구 추가/ })).toHaveCount(0);
+  for (const p of [a, b]) {
+    const dialog = await openOpponentProfile(p);
+    await expect(dialog.getByText(/친구 코드로 보낼 수 있어요/)).toBeVisible();
+    await expect(dialog.getByRole("button", { name: /친구 추가/ })).toHaveCount(0);
+    await expect(dialog.getByText(/이미 친구|요청을 보냈어요|차단/)).toHaveCount(0); // no state is invented either
+    if (process.env.A4_SHOTS && p === a) await dialog.screenshot({ path: `docs/ui/a4-mobile/${process.env.A4_SHOTS}-friend-manual-code.png` });
+    await dialog.getByRole("link", { name: "친구 화면 열기" }).click();
+    await expect(p).toHaveURL(/#friends$/);
+    await p.goBack();
+    await p.waitForTimeout(200);
+  }
+  // the server saw no request from either side
+  for (const s of [s1, s2]) {
+    const st = await friendState(s);
+    expect(st.outgoing).toHaveLength(0);
+    expect(st.incoming).toHaveLength(0);
+  }
 });
 
-test("친구 화면의 최근 대전 상대에서도 같은 버튼으로 친구를 추가한다(손님·AI 제외)", async ({ browser }, info) => {
+test("최근 대전 상대: 버튼 없이 친구 코드 안내만 보이고, 계정을 바꾸면 이전 계정의 목록·늦은 응답이 섞이지 않는다", async ({ browser }, info) => {
   test.skip(info.project.name === "mobile", "두 기기를 한 테스트에서 직접 만든다");
   test.setTimeout(240_000);
   const s1 = await fakeLogin(worker.url, idp, "a4-three", ORIGIN);
   const s2 = await fakeLogin(worker.url, idp, "a4-four", ORIGIN);
-  // play one full quick match through the real protocol so both accounts have a server-verified record
-  const { playMatchBetween } = await import("../helpers/member-look");
-  await playMatchBetween(worker, s1, s2);
+  await playMatchBetween(worker, s1, s2); // A plays as "가" (its opponent is "나"); B's opponent is "가"
   const a = await device(browser, s1);
+  // A's records answer slowly: a late answer must not appear after the account was switched
+  await a.route(/\/api\/me\/records/, async (route) => {
+    const auth = route.request().headers()["authorization"] ?? "";
+    if (auth.includes(s1)) await new Promise((r) => setTimeout(r, 2500));
+    await route.continue();
+  });
   await a.goto(`?online-server=${encodeURIComponent(worker.url)}#friends`);
+  // switch to B right away, in the same tab (what a sign-out / sign-in does)
+  await a.evaluate((s) => { localStorage.setItem("yachtlab.session.v1", s); window.dispatchEvent(new Event("yachtlab-session")); }, s2);
   const list = a.getByRole("list", { name: "최근 대전 상대" });
   await expect(list.locator("li")).toHaveCount(1, { timeout: 15_000 });
-  // The opponent never opened the app yet, so they have no friend code: nothing is sent, the row says how to add them.
-  await expect(list.getByText(/친구 코드로 추가할 수 있어요/)).toBeVisible({ timeout: 15_000 });
+  await a.waitForTimeout(3500); // A's slow answer has arrived by now
+  await expect(list).toContainText("가"); // B's opponent
+  await expect(list).not.toContainText("나"); // A's opponent never shows under B
+  await expect(list.getByText(/친구 코드로 보낼 수 있어요/)).toBeVisible();
   await expect(list.getByRole("button", { name: /친구 추가/ })).toHaveCount(0);
-  // Once that account has used the friends feature (the app does this on its own at sign-in), the button appears.
-  await apiCall(worker, s2, "/api/me/friends");
-  await a.reload();
-  await expect(list.locator("li")).toHaveCount(1, { timeout: 15_000 });
-  await list.getByRole("button", { name: /친구 추가/ }).click();
-  await expect(list.getByText("친구 요청을 보냈어요")).toBeVisible();
   if (process.env.A4_SHOTS) await a.screenshot({ path: `docs/ui/a4-mobile/${process.env.A4_SHOTS}-friends-recent-opponents.png` });
-  await expect(a.getByRole("list", { name: "보낸 친구 요청" }).locator("li")).toHaveCount(1, { timeout: 15_000 });
+  for (const s of [s1, s2]) expect((await friendState(s)).outgoing).toHaveLength(0); // nothing was sent
 });
