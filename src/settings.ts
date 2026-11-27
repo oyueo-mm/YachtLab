@@ -85,18 +85,38 @@ export function useSettings(): Settings {
 export type MotionLevel = "full" | "lite" | "none";
 
 /** System "reduce motion" always wins; low-end hardware or the user setting selects the lighter motion. */
+// One live MediaQueryList (its `.matches` follows the system setting); creating a new query on every
+// call cost a style recalculation each time, and effect layers ask on every render (A1.1 profile).
+let reduceQuery: MediaQueryList | null | undefined;
+const reducedMotionQuery = () => {
+  if (reduceQuery === undefined) reduceQuery = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  return reduceQuery;
+};
 export function motionLevel(settings: Settings = current): MotionLevel {
   if (typeof window === "undefined") return "none";
-  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return "none";
-  const nav = navigator as Navigator & { deviceMemory?: number };
-  const lowEnd = (nav.hardwareConcurrency ?? 8) <= 2 || (nav.deviceMemory ?? 8) <= 2;
-  return settings.reducedEffects || lowEnd ? "lite" : "full";
+  if (reducedMotionQuery()?.matches) return "none";
+  return settings.reducedEffects || isLowEndDevice() ? "lite" : "full";
 }
 
+/**
+ * innerWidth < 560, kept up to date by `resize`. Reading innerWidth when the DOM has just changed (as at
+ * the start of a throw) forces a synchronous layout; the profile showed it on the tap → first-frame path.
+ */
+let narrowCache: boolean | undefined;
+function isNarrowViewport() {
+  if (typeof window === "undefined") return false;
+  if (narrowCache === undefined) {
+    narrowCache = window.innerWidth < 560;
+    window.addEventListener("resize", () => (narrowCache = window.innerWidth < 560), { passive: true });
+  }
+  return narrowCache;
+}
+let lowEndCache: boolean | undefined;
 export const isLowEndDevice = () => {
   if (typeof navigator === "undefined") return false;
+  if (lowEndCache !== undefined) return lowEndCache;
   const nav = navigator as Navigator & { deviceMemory?: number };
-  return (nav.hardwareConcurrency ?? 8) <= 2 || (nav.deviceMemory ?? 8) <= 2;
+  return (lowEndCache = (nav.hardwareConcurrency ?? 8) <= 2 || (nav.deviceMemory ?? 8) <= 2);
 };
 let webgl: boolean | null = null;
 /** WebGL availability, probed once (a throwaway canvas). */
@@ -139,7 +159,7 @@ export function fxBudget(settings: Settings = current): number {
   if (level === "none") return 0;
   if (settings.fxQuality === "low") return 0.4;
   if (settings.fxQuality === "high") return level === "lite" ? 0.6 : 1;
-  const narrow = typeof window !== "undefined" && window.innerWidth < 560;
+  const narrow = isNarrowViewport();
   return level === "lite" ? 0.4 : narrow ? 0.7 : 1;
 }
 /** Listen to settings changes outside React (audio engine). */

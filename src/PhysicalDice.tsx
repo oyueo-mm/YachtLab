@@ -6,6 +6,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import type { Game } from "./engine";
 import { beginDiceMotion, isDiceBusy, takeThrowDirection } from "./dice-motion";
 import { playSfx } from "./sound";
+import { surfaceAt } from "./play/surface";
 import { emitFx } from "./fx-bus";
 import { getScoreFx, useScoreFx } from "./score-fx";
 import type { DiceTableModule } from "./dice3d-loader";
@@ -192,8 +193,8 @@ export function PhysicalDice({
       const el = hitEls.current.get(id),
         d = dimsRef.current;
       if (el && d) {
-        el.style.left = `${p.x * d.size - d.size / 2}px`;
-        el.style.top = `${p.z * d.size - d.size / 2}px`;
+        // transform, not left/top: moving five buttons every frame must not dirty layout (A1.1)
+        el.style.transform = `translate3d(${p.x * d.size - d.size / 2}px, ${p.z * d.size - d.size / 2}px, 0)`;
       }
     };
     table.current.layout(dims.w, dims.h, dims.size);
@@ -286,35 +287,46 @@ export function PhysicalDice({
       dice: moving.map((die) => ({ id: die.id, value: die.value, held: false, x: starts[die.id]?.x ?? d.W / 2, z: starts[die.id]?.z ?? d.trayH / 2 })),
     };
   };
-  // While the dice are at rest, run the physics of the next throw in idle time; the roll then only
+  // While the dice are at rest, run the physics of the next throw ahead of time; the roll then only
   // applies the values the engine/server decided (no simulation delay between the tap and the throw).
+  // A1.1: in a Web Worker as soon as the dice stop (fading particles no longer postpone it); the old
+  // idle-time main-thread path remains for browsers without workers.
   const prepared = useRef<PreparedThrow | null>(null);
+  const pendingKey = useRef("");
   const lastHeldKey = useRef("");
   const heldKey = state.dice.map((d) => (d.held ? 1 : 0)).join("");
   useEffect(() => {
     if (!dims || flying.size || state.rolls >= 3 || state.dice.every((d) => d.held)) return;
     const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+    const offThread = mod.offThreadPhysics();
     const run = () => {
-      // Never during an animation (score effect, slides): a long task there would drop frames.
-      if (isDiceBusy() || (table.current?.animating ?? false)) {
+      // Only real dice motion (a slide, a score effect) changes the starting poses; particles do not.
+      if (isDiceBusy() || (table.current?.moving ?? false) || (!offThread && (table.current?.animating ?? false))) {
         idle = 0;
-        timer = window.setTimeout(schedule, 400);
+        timer = window.setTimeout(schedule, offThread ? 120 : 400);
         return;
       }
       const input = throwInput((rollEvent + 1) % 2 ? 1 : -1, crypto.getRandomValues(new Uint32Array(1))[0]);
       if (!input || !input.dice.length) return;
-      if (prepared.current?.key === mod.throwKey(input)) return;
-      prepared.current = mod.prepareThrow(input);
+      const key = mod.throwKey(input);
+      if (prepared.current?.key === key || pendingKey.current === key) return;
+      if (offThread) {
+        pendingKey.current = key;
+        void mod.prepareOffThread(input).then((p) => {
+          if (pendingKey.current === key) pendingKey.current = "";
+          // stored even if this effect has re-run: the throw reuses it only when its key still matches
+          if (p) prepared.current = p;
+        });
+      } else prepared.current = mod.prepareThrow(input);
     };
     let idle = 0;
-    // Idle time (at most ~250 ms later), once hold/release slides have finished (final starting poses).
-    // Right after a throw lands nothing is sliding, so preparation starts almost at once: a quick
-    // re-roll without holding anything no longer has to simulate on the tap.
+    // Off-thread: right away (40 ms, or once hold / release slides have finished). Main thread: idle
+    // time, at most ~250 ms later.
     const schedule = () => {
-      if (w.requestIdleCallback) idle = w.requestIdleCallback(run, { timeout: 250 });
+      if (!offThread && w.requestIdleCallback) idle = w.requestIdleCallback(run, { timeout: 250 });
       else run();
     };
-    const sliding = table.current?.animating ?? false;
+    const sliding = table.current?.moving ?? false;
     let timer = window.setTimeout(schedule, sliding || heldKey !== lastHeldKey.current ? MOVE_MS + 60 : 40);
     lastHeldKey.current = heldKey;
     return () => {
@@ -340,12 +352,16 @@ export function PhysicalDice({
     // Physics prepared while the dice were at rest is reused when nothing relevant changed since.
     const ready = prepared.current;
     prepared.current = null;
+    const inputKey = mod.throwKey(input);
+    // diagnostics: was the prepared physics usable, still being computed, or for other poses?
+    const prep = ready?.key === inputKey ? "hit" : pendingKey.current === inputKey ? "pending" : ready ? "stale" : "none";
     const result = mod.simulateThrow(input, ready);
     for (const d of moving) tray.current.delete(d.id);
     setFlying(new Set(moving.map((d) => d.id)));
-    const rate = 1.25;
+    const rate = mod.playRate();
     const done = beginDiceMotion(((result.frameCount / result.fps) * 1000) / rate + 2000);
     sound("throw", { material });
+    const surface = surfaceAt(root.current);
     let lastHit = -Infinity,
       hits = 0,
       firstFrameAt = 0;
@@ -354,7 +370,7 @@ export function PhysicalDice({
       onFrame: () => {
         if (!firstFrameAt) firstFrameAt = performance.now();
       },
-      onRoll: (level) => sound("roll", { material, intensity: level, pan: 0 }),
+      onRoll: (level) => sound("roll", { material, surface, intensity: level, pan: 0 }),
       onImpact: ({ strength, kind, x }) => {
         // Sound follows the rendered collision: louder and heavier for harder hits, dice knock drier.
         const now = performance.now();
@@ -362,7 +378,7 @@ export function PhysicalDice({
         lastHit = now;
         hits++;
         const intensity = Math.min(1, 0.1 + strength / 9) * (kind === "wall" ? 0.65 : 1);
-        sound(kind === "die" ? "clack" : "impact", { material, intensity, pan: (x - 0.5) * 1.2 });
+        sound(kind === "die" ? "clack" : "impact", { material, surface: kind === "floor" ? surface : undefined, intensity, pan: (x - 0.5) * 1.2 });
       },
       onDone: () => {
         const last = (result.frameCount - 1) * 7;
@@ -379,7 +395,7 @@ export function PhysicalDice({
           } else tray.current.set(tr.id, pose);
         }
         pending.forEach((run) => run());
-        sound("settle", { material, intensity: 0.35 });
+        sound("settle", { material, surface, intensity: 0.35 });
         const land = colors?.fxLevel === 3 && !reducedEffects ? mod.landSoundOf(colors.fx) : null;
         if (land && fxBudget() > 0) sound("diceFx", { land, delay: 0.04 });
         setFlying(new Set());
@@ -398,7 +414,8 @@ export function PhysicalDice({
           firstFrameAt,
           attempts: result.attempts,
           corrected: result.corrected,
-          prepared: !!ready && ready.key === mod.throwKey(input),
+          prepared: !!ready && ready.key === inputKey,
+          prep,
           pixelRatio: t.pixelRatio,
           ok: result.ok,
           frameMs: times.length ? { avg: times.reduce((a, b) => a + b, 0) / times.length, p95: times[Math.floor(times.length * 0.95)] ?? 0, max: times.at(-1) ?? 0 } : undefined,
@@ -558,7 +575,7 @@ export function PhysicalDice({
               data-die-id={id}
               data-key={id + 1}
               data-zone={d.held ? "hold" : "tray"}
-              style={t ? { left: t.cx - dims.size / 2, top: t.cy - dims.size / 2, width: dims.size, height: dims.size } : { display: "none" }}
+              style={t ? { transform: `translate3d(${t.cx - dims.size / 2}px, ${t.cy - dims.size / 2}px, 0)`, width: dims.size, height: dims.size } : { display: "none" }}
               disabled={!interactive || busy || !state.rolls || (focusDie !== undefined && id !== focusDie)}
               aria-pressed={d.held}
               aria-label={`주사위 ${id + 1}, ${d.value}, ${d.held ? "고정됨" : "고정 안 됨"}`}

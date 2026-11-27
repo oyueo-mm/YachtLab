@@ -167,8 +167,15 @@
   background: transparent !important;
   aspect-ratio: auto;
 }
-.die-button.die-hit:hover:enabled {
-  border-color: rgba(242, 140, 40, 0.55);
+/* No hover frame on dice / the hold shelf (A1): selection (.held) and :focus-visible remain. */
+/* A1.1: the 3D hit targets are invisible and follow the drawn dice by transform (no layout per frame);
+   the 2.5D tumble animation must not run on them (it cost every frame of a throw and fought the transform). */
+.die-button.die-hit,
+.die-button.die-hit.dice-animating {
+  animation: none !important;
+  will-change: auto;
+  left: 0;
+  top: 0;
 }
 .die-button.die-hit.held {
   border-color: transparent;

@@ -237,6 +237,15 @@ Sixes·Choice 조건은 정책마다 50,000번 Monte Carlo 검산. **근거:** [
 - 기존 브라우저 번들과 새 로컬 workerd 조합에서 5개 통과·1개 건너뜀(320px 테스트는 동일 실행에서 데스크톱으로 제한). 12라운드 완주, 관전·채팅, 재접속, 재대결과 두 경기 기록 분리를 확인했다. 별도 시험에서 이전 Worker의 SQLite에 남긴 저장 데이터와 두 좌석 토큰을 새 Worker가 읽었고, 기존 주사위와 굴림 횟수에서 점수를 기록해 다음 턴으로 진행했다. [릴리스 PR](https://github.com/oyueo-mm/YachtLab/pull/71)
 - Worker 배포와 단위 402개가 통과했다. 이전 공개 클라이언트에서 운영 Worker와 초대 경기, 굴림·새로고침 후 복원·기록·종료를 확인했다. 새 기능 플래그가 있고 비인증 보상 조회는 HTTP 401이다. [Worker 배포](https://github.com/oyueo-mm/YachtLab/actions/runs/45567699361) · [라이브 체크](https://github.com/oyueo-mm/YachtLab/actions/runs/45567970811)
 - 통합 PR의 단위 402개·Playwright 347개 통과·53개 건너뜀과 빌드가 통과했다. Pages 실행 및 공개 브라우저 결과는 릴리스 기록에 연결했다. [통합 CI](https://github.com/oyueo-mm/YachtLab/actions/runs/45564029603) · [Pages](https://github.com/oyueo-mm/YachtLab/actions/runs/45568048965) · [릴리스 PR](https://github.com/oyueo-mm/YachtLab/pull/71)
+## 2026-11-27 A1 주사위 물리·보드 효과 성능 — 게임 AI 결과가 아님
+
+- 물리(Node, 80회): `impulse` vs `vigorous` 데스크톱 트레이 물리 최고 속도 20.8 vs 16.7, 충돌 99 vs 64, 화면 길이 중앙값 1.05 vs 1.11 s, 정상 착지·눈 일치 80/80. [DICE-3D §8](../ui/DICE-3D.md)
+- 효과 비용(헤드리스 Chromium + SwiftShader, main `d8a24a8` vs A1 브랜치, 같은 스크립트 `scripts/measure-board-fx-perf.mjs`, 2회 × 9굴림): 폰 에뮬레이션 4× CPU 번개 시너지 평균 프레임 116.8 → 28.8 ms, 용암 시너지 88.3 → 30.8 ms, 폭풍 Lv.3 32.1 → 22.3 ms; 초원 Lv.3 18.0 → 20.5 ms(악화), 시너지 탭→첫 프레임 81~90 → 102~122 ms(악화). **실기기 측정 아님.** 원자료 `docs/perf/a1-*.json`, 표 [A1-DICE-BOARD §5](./A1-DICE-BOARD-2026-11-27.md).
+
+## 2026-11-27 A1.1 효과 성능 최적화 — 게임 AI 결과가 아님
+
+헤드리스 Chromium + SwiftShader 에뮬레이션(실기기 아님), 같은 스크립트·같은 컨테이너, main `d8a24a8` → A1 `08c507b` → A1.1, 2회 × 9굴림. 폰(Pixel 7 에뮬레이션, CPU 4×): 번개 시너지 평균 프레임 116.8 → 25.0 → **22.1 ms**, 용암 시너지 88.3 → 26.3 → **21.6 ms**, 초원 시너지 26.0 → 24.3 → **19.3 ms**, 벚꽃 시너지 27.9 → 24.5 → **20.7 ms**, 초원 Lv.3 18.0 → 20.1 → **18.1 ms**. 시너지 탭→첫 프레임 p50 81~92 → 57~115 → **51~61 ms**. 용암 조합 물리 사전 계산 성공 main 6/18, A1 12/18 → A1.1 18/18(탭→첫 프레임 중앙값 84 / 79 → 56 ms). 데스크톱 모든 조합 평균 16.6~17.1 ms. 폰 Lv.3/시너지는 18~22 ms로 60 fps 미달. 원자료 `docs/perf/a11-*.json`, `docs/perf/a1-08c507b-*.json`, 표 [A1-DICE-BOARD §8.4](./A1-DICE-BOARD-2026-11-27.md).
+
 ## 2026-11-25 Win DP v5 — 정확 PMF 롤아웃·정확 2인 종반 (연구 브랜치)
 
 상세·방법·한계: [V5-APEX-RESEARCH](./V5-APEX-RESEARCH.md). 규칙 12칸 YachtLab-12, `createGame(seed, true)`, 시드마다 좌석 교대 2경기, 승 1/무 0.5/패 0, 시드쌍 단위 99% 정규 근사 CI. 모델 커밋: 브랜치 `ccr-4b6d4930-6rem08`(코드 `f9093a3` 이후 알고리즘 불변, 이후 커밋은 평가·문서). 상대 v3 = `winDPv3Decision ?? DP Expert`(기본 Gaussian), v4-D = `src/ai.ts` 등록 구성(v3.3 pack 없음).

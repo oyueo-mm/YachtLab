@@ -111,7 +111,7 @@ test("상점 미리보기: 네온 주사위 Lv.3 효과·보드 반응·이모�
   await page.getByRole("button", { name: "심해 자세히" }).click();
   dialog = page.getByRole("dialog", { name: "심해 상세" });
   await dialog.getByRole("tab", { name: /^Lv\.3/ }).click();
-  await expect(dialog.locator(".board-fx-canvas")).toHaveCount(2);
+  await expect(dialog.locator(".board-fx-canvas")).toHaveCount(1); // one canvas: scene + particles (A1)
   await dialog.getByRole("button", { name: "승리 반응" }).click();
   await expect.poll(() => fxEvents(page)).toContain("win");
   await page.keyboard.press("Escape");

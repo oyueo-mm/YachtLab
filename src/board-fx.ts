@@ -4,27 +4,23 @@ import type { LandSound } from "./dice3d/dice-fx";
 /**
  * Board upgrade effects (2026-11-26), one profile per board item. Data only (also read by the catalog).
  *
- *  Lv.1  the board's own surface (CSS) — unchanged.
- *  Lv.2  a living environment: slow ambient motion drawn under the dice (`ambient`, `drift`).
- *  Lv.3  Lv.2 plus reactions to the game: a roll, each die landing, holding a die, a large straight,
- *        a yacht and a win (`react`), some with a quiet accent sound.
+ *  Lv.1  the board's own surface (CSS).
+ *  Lv.2  a living environment — src/play/board-scene.ts (each board its own procedural motion).
+ *  Lv.3  Lv.2 plus local reactions at the real collision point and strength (board-scene.ts), and the
+ *        big moments here: holding a die, a large straight, a yacht and a win (`react`), with quiet
+ *        accent sounds.
  *
  * The layer sits under the dice canvas, never over pips, buttons or the score sheet, keeps a low
  * contrast, and is scaled by the effect budget (none for reduced motion; paused off screen / hidden).
  */
-export type Ambient =
-  | "caustics" | "rays" | "grid" | "aurora" | "sweep" | "twinkle" | "lamp" | "dunes" | "frost" | "sheen" | "storm" | "grass" | "canopy" | "magma" | "none";
 export type BoardReaction = { burst?: Emitter[]; ring?: Ring[]; lines?: Lines[]; sound?: LandSound };
+import { BOARD_FX_TEXT as TEXT } from "./fx-texts";
 export type BoardFxProfile = {
   lv2: string;
   lv3: string;
-  /** Background motion drawn every frame (~30 fps). */
-  ambient: Ambient;
-  ambientColor: string;
-  /** Particles that keep drifting across the surface (per second; spawn area). */
-  drift?: { spec: Emitter; perSecond: number; from: "top" | "bottom" | "any" };
+  /** Lv.2 environment and Lv.3 local reactions: procedural, per board, in src/play/board-scene.ts. */
   react: {
-    roll?: BoardReaction;
+    /** Only the accent sound (once per throw); the visual landing reaction is the board's scene. */
     land?: BoardReaction;
     hold?: BoardReaction;
     grand: BoardReaction;
@@ -36,13 +32,10 @@ const e = (shape: Emitter["shape"], colors: string[], n: number, o: Partial<Emit
 const ring = (color: string, radius: number, o: Partial<Ring> = {}): Ring => ({ color, radius, width: 1.5, life: 0.7, ...o });
 
 const feltDust = (color: string) => e("dot", [color, "#ffffff"], 1, { speed: [2, 6], life: [3, 5], size: [1, 1.8], alpha: 0.25, drag: 0.1 });
-const felt = (name: string, color: string, accent: string): BoardFxProfile => ({
-  lv2: `${name} 위로 조명이 천천히 흐르고 먼지가 떠다녀요`,
-  lv3: "착지 자국이 펠트에 남고 족보·승리에 조명이 반짝여요",
-  ambient: "lamp", ambientColor: accent,
-  drift: { spec: feltDust(accent), perSecond: 1.2, from: "any" },
+const felt = (id: string, color: string, accent: string): BoardFxProfile => ({
+  lv2: TEXT[id][0],
+  lv3: TEXT[id][1],
   react: {
-    land: { ring: [ring("rgba(0,0,0,0.35)", 14, { width: 4, life: 0.9, fill: "rgba(0,0,0,0.12)" })] },
     hold: { burst: [e("dot", [accent], 3, { speed: [10, 30], life: [0.3, 0.5], alpha: 0.6 })] },
     grand: { burst: [e("star", [accent, "#ffffff"], 10, { speed: [40, 120], glow: true, life: [0.6, 1] })], ring: [ring(accent, 80, { width: 2, glow: true, life: 1 })], sound: "chime" },
     win: { burst: [e("star", [accent, "#ffffff", color], 18, { speed: [60, 160], glow: true, life: [0.8, 1.3] })], sound: "bell" },
@@ -50,171 +43,129 @@ const felt = (name: string, color: string, accent: string): BoardFxProfile => ({
 });
 
 export const BOARD_FX: Record<string, BoardFxProfile> = {
-  "board.felt": felt("녹색 펠트", "#1f4a36", "#b7f0cf"),
+  "board.felt": felt("board.felt", "#1f4a36", "#b7f0cf"),
   "board.navy": {
-    lv2: "남색 수면에 달빛이 일렁여요", lv3: "주사위가 떨어진 자리에 잔물결이 퍼져요",
-    ambient: "sheen", ambientColor: "#a6c7ff",
-    drift: { spec: e("dot", ["#cfe0ff"], 1, { speed: [2, 5], life: [3, 5], size: [1, 1.6], alpha: 0.3 }), perSecond: 1, from: "any" },
+    lv2: "달빛이 수면에서 반짝이며 길을 만들어요", lv3: "떨어진 자리에서 물결이 퍼지고 물결이 지나간 달빛이 반짝여요",
     react: {
-      land: { ring: [ring("#a6c7ff", 20, { life: 0.8 })] },
       hold: { ring: [ring("#a6c7ff", 10, { life: 0.4 })] },
       grand: { ring: [ring("#cfe0ff", 90, { width: 2, glow: true, life: 1.1 }), ring("#a6c7ff", 60, { delay: 0.15, life: 1 })], sound: "chime" },
       win: { burst: [e("star", ["#cfe0ff", "#ffffff"], 16, { speed: [60, 150], glow: true, life: [0.8, 1.3] })], sound: "bell" },
     },
   },
   "board.christmas": {
-    lv2: "선착장 위로 눈이 내려요", lv3: "착지하면 눈이 흩날리고 요트·승리에 종이 울려요",
-    ambient: "twinkle", ambientColor: "#fff9dc",
-    drift: { spec: e("snow", ["#ffffff", "#e8f6ff"], 1, { speed: [6, 14], life: [4, 6], size: [2, 3.5], gravity: 6, spin: 1, alpha: 0.75 }), perSecond: 4, from: "top" },
+    lv2: "눈이 내리고 위쪽 전구가 차례로 반짝여요", lv3: "착지하면 눈이 튀고 작은 눈더미가 남아요. 세게 치면 전구가 번쩍여요",
     react: {
-      land: { burst: [e("snow", ["#ffffff"], 3, { speed: [20, 50], life: [0.6, 1], spin: 2 })] },
       hold: { burst: [e("star", ["#ffe6a0"], 2, { speed: [10, 30], glow: true })] },
       grand: { burst: [e("snow", ["#ffffff", "#ffe6a0", "#e05a74"], 16, { speed: [50, 140], spin: 3, life: [0.8, 1.2] })], sound: "bell" },
       win: { burst: [e("snow", ["#ffffff", "#ffe6a0", "#7fd3a0", "#e05a74"], 26, { speed: [60, 180], spin: 3, life: [1, 1.6] })], sound: "bell" },
     },
   },
-  "board.felt_red": felt("레드 펠트", "#5a1d1d", "#ffc4b5"),
-  "board.felt_blue": felt("블루 펠트", "#1d2f5a", "#bcd2ff"),
-  "board.felt_purple": felt("퍼플 펠트", "#3b2152", "#e2c6ff"),
-  "board.felt_sand": felt("베이지 펠트", "#6b5a3e", "#ffe9c2"),
+  "board.felt_red": felt("board.felt_red", "#5a1d1d", "#ffc4b5"),
+  "board.felt_blue": felt("board.felt_blue", "#1d2f5a", "#bcd2ff"),
+  "board.felt_purple": felt("board.felt_purple", "#3b2152", "#e2c6ff"),
+  "board.felt_sand": felt("board.felt_sand", "#6b5a3e", "#ffe9c2"),
   "board.wood_oak": {
-    lv2: "따뜻한 램프 빛과 나뭇결 위 먼지", lv3: "착지하면 나무 먼지가 일고 승리에 낙엽이 흩날려요",
-    ambient: "lamp", ambientColor: "#ffd9a0",
-    drift: { spec: e("dot", ["#ffe2b8"], 1, { speed: [2, 6], life: [3, 5], size: [1, 1.8], alpha: 0.3 }), perSecond: 1.2, from: "any" },
+    lv2: "비스듬한 햇살 속에서 먼지가 떠다녀요", lv3: "부딪힌 자리에서 나뭇결을 따라 울림이 퍼져요",
     react: {
-      land: { burst: [e("smoke", ["#c79a6c"], 2, { speed: [5, 15], life: [0.5, 0.8], size: [4, 6], grow: 2, alpha: 0.25 })], sound: "thud" },
+      land: { sound: "thud" },
       hold: { burst: [e("dot", ["#ffd9a0"], 3, { speed: [10, 25], life: [0.3, 0.5] })] },
       grand: { burst: [e("leaf", ["#e8a23c", "#c4632a", "#a9dd67"], 14, { speed: [50, 130], spin: 5, gravity: 40, life: [0.9, 1.3] })], sound: "whoosh" },
       win: { burst: [e("leaf", ["#e8a23c", "#c4632a", "#a9dd67", "#f2d06b"], 22, { speed: [60, 160], spin: 5, gravity: 40, life: [1, 1.6] })], sound: "chime" },
     },
   },
   "board.wood_walnut": {
-    lv2: "짙은 원목에 촛불 같은 빛이 일렁여요", lv3: "착지하면 묵직한 울림과 먼지, 승리에 불빛이 퍼져요",
-    ambient: "lamp", ambientColor: "#ffb870",
-    drift: { spec: e("ember", ["#ffb870"], 1, { speed: [2, 6], life: [3, 5], size: [0.8, 1.5], alpha: 0.35, gravity: -3, glow: true }), perSecond: 0.8, from: "bottom" },
+    lv2: "촛불 빛이 일렁이고 가끔 불씨가 올라가요", lv3: "부딪히면 나뭇결로 울림이 퍼지고 촛불이 흔들려요",
     react: {
-      land: { ring: [ring("rgba(0,0,0,0.4)", 16, { width: 4, life: 0.8, fill: "rgba(0,0,0,0.15)" })], sound: "thud" },
+      land: { sound: "thud" },
       hold: { burst: [e("ember", ["#ffb870"], 2, { speed: [10, 25], glow: true })] },
       grand: { burst: [e("ember", ["#ffb870", "#ffe0b8"], 14, { speed: [40, 120], glow: true, gravity: -40, life: [0.8, 1.2] })], sound: "fire" },
       win: { burst: [e("ember", ["#ffb870", "#ffe0b8", "#ffffff"], 22, { speed: [60, 160], glow: true, gravity: -40, life: [1, 1.6] })], sound: "chime" },
     },
   },
   "board.leather_brown": {
-    lv2: "가죽 결을 따라 은은한 광택이 지나가요", lv3: "착지하면 가죽이 살짝 눌리고 족보에 스티치가 빛나요",
-    ambient: "sheen", ambientColor: "#f3d1a8",
+    lv2: "광택이 오가고 바느질을 따라 빛이 돌아요", lv3: "부딪힌 자리가 눌리고 가까운 바느질이 빛나요",
     react: {
-      land: { ring: [ring("rgba(0,0,0,0.35)", 12, { width: 5, life: 0.9, fill: "rgba(0,0,0,0.15)" })] },
       hold: { ring: [ring("#f3d1a8", 9, { life: 0.35, dashed: true })] },
       grand: { ring: [ring("#f3d1a8", 70, { dashed: true, width: 2, glow: true, life: 1, square: true })], sound: "chime" },
       win: { ring: [ring("#f3d1a8", 110, { dashed: true, width: 2, glow: true, life: 1.4, square: true }), ring("#ffffff", 80, { delay: 0.15, dashed: true, glow: true, square: true })], burst: [e("star", ["#f3d1a8", "#ffffff"], 12, { speed: [60, 140], glow: true })], sound: "bell" },
     },
   },
   "board.leather_black": {
-    lv2: "검은 가죽 위로 은빛 광택이 흘러요", lv3: "착지 자국과 은빛 스티치, 승리에 은빛 섬광",
-    ambient: "sheen", ambientColor: "#d8dde6",
+    lv2: "은빛 광택이 흐르고 바느질을 따라 은빛이 돌아요", lv3: "부딪힌 자리가 눌리고 가까운 은빛 바느질이 빛나요",
     react: {
-      land: { ring: [ring("rgba(0,0,0,0.5)", 12, { width: 5, life: 0.9, fill: "rgba(0,0,0,0.2)" })] },
       hold: { ring: [ring("#d8dde6", 9, { life: 0.35, dashed: true })] },
       grand: { ring: [ring("#d8dde6", 70, { dashed: true, width: 2, glow: true, life: 1, square: true })], sound: "coin" },
       win: { burst: [e("star", ["#ffffff", "#d8dde6"], 16, { speed: [60, 150], glow: true })], ring: [ring("#d8dde6", 110, { dashed: true, glow: true, square: true, life: 1.3 })], sound: "bell" },
     },
   },
   "board.marble": {
-    lv2: "대리석 결 위로 빛줄기가 미끄러져요", lv3: "착지하면 결을 따라 빛이 번지고 족보에 결이 빛나요",
-    ambient: "sweep", ambientColor: "#e6defb",
+    lv2: "대리석 결을 따라 빛이 미끄러져요", lv3: "부딪힌 자리에서 가까운 결을 따라 빛이 번져요",
     react: {
-      land: { lines: [{ kind: "crack", color: "rgba(230,222,251,0.6)", n: 3, length: 22, life: 0.8, width: 1 }] },
       hold: { ring: [ring("#d4c7ff", 10, { life: 0.4 })] },
       grand: { lines: [{ kind: "crack", color: "#d4c7ff", n: 8, length: 90, life: 1.2, width: 1.5, glow: true }], sound: "crack" },
       win: { lines: [{ kind: "crack", color: "#efe8ff", n: 12, length: 140, life: 1.5, width: 1.5, glow: true }], burst: [e("star", ["#ffffff", "#d4c7ff"], 10, { speed: [40, 120], glow: true })], sound: "chime" },
     },
   },
   "board.ocean": {
-    lv2: "물결 무늬 빛이 바닥에 일렁여요", lv3: "주사위가 떨어진 곳에 물결과 물보라가 일어요",
-    ambient: "caustics", ambientColor: "#8de5f4",
-    drift: { spec: e("bubble", ["#bff3ff"], 1, { speed: [2, 6], gravity: -12, life: [3, 4], size: [1.5, 3], alpha: 0.4 }), perSecond: 1, from: "bottom" },
+    lv2: "얕은 물 밑에서 물결 빛 무늬가 일렁여요", lv3: "떨어진 자리에 물보라가 튀고 물결이 빛 무늬를 흔들어요",
     react: {
-      roll: { ring: [ring("#72e0ff", 40, { life: 0.9 })] },
-      land: { ring: [ring("#9ff0ff", 22, { width: 1.5, life: 0.9 }), ring("#72e0ff", 34, { delay: 0.12, life: 0.9 })], burst: [e("drop", ["#bff3ff", "#ffffff"], 3, { speed: [30, 70], gravity: 160, life: [0.3, 0.5] })] },
       hold: { ring: [ring("#9ff0ff", 10, { life: 0.4 })] },
       grand: { ring: [ring("#9ff0ff", 120, { width: 2.5, life: 1.3, glow: true }), ring("#72e0ff", 90, { delay: 0.2, width: 2, life: 1.2 })], sound: "whoosh" },
       win: { burst: [e("bubble", ["#bff3ff", "#ffffff"], 24, { speed: [30, 90], gravity: -60, life: [1, 1.6], size: [2, 5] })], ring: [ring("#9ff0ff", 150, { width: 2, glow: true, life: 1.5 })], sound: "whoosh" },
     },
   },
   "board.desert": {
-    lv2: "모래 물결 위로 모래 바람이 불어요", lv3: "착지하면 모래가 튀고 족보에 신기루가 일렁여요",
-    ambient: "dunes", ambientColor: "#ffcd78",
-    drift: { spec: e("dot", ["#ffd99a", "#e8b86a"], 1, { speed: [30, 50], life: [1.5, 2.5], size: [0.8, 1.5], alpha: 0.4, drag: 0 }), perSecond: 6, from: "any" },
+    lv2: "모래 물결이 움직이고 모래바람이 지나가요", lv3: "떨어진 자리가 패이고 모래가 튀며 주변 모래 물결이 밀려나요",
     react: {
-      land: { burst: [e("dot", ["#e8b86a", "#ffd99a"], 6, { speed: [30, 80], gravity: 160, life: [0.3, 0.5], size: [1, 2] })] },
       hold: { burst: [e("dot", ["#ffd99a"], 3, { speed: [10, 30] })] },
       grand: { burst: [e("smoke", ["#ffd99a", "#e8b86a"], 10, { speed: [40, 100], grow: 2.5, alpha: 0.25, size: [8, 12], life: [0.9, 1.3] })], sound: "whoosh" },
       win: { burst: [e("star", ["#fff0c2", "#ffd99a"], 16, { speed: [60, 150], glow: true })], sound: "chime" },
     },
   },
   "board.ice": {
-    lv2: "서리가 반짝이며 차가운 김이 흘러요", lv3: "착지하면 얼음에 금이 가고 승리에 결정이 피어요",
-    ambient: "frost", ambientColor: "#dafbff",
-    drift: { spec: e("smoke", ["#e6f9ff"], 1, { speed: [4, 10], life: [3, 4], size: [10, 16], grow: 1.6, alpha: 0.08 }), perSecond: 0.8, from: "bottom" },
+    lv2: "가장자리 서리가 자랐다 줄어들고 냉기가 흘러요", lv3: "세게 부딪히면 얼음에 금이 가고 착지한 자리에 결정이 피어요",
     react: {
-      land: { lines: [{ kind: "crack", color: "rgba(220,250,255,0.75)", n: 4, length: 26, life: 1, width: 1 }], sound: "ice" },
+      land: { sound: "ice" },
       hold: { burst: [e("crystal", ["#dafbff"], 2, { speed: [10, 25], glow: true })] },
       grand: { burst: [e("snow", ["#ffffff", "#c7f8ff"], 14, { speed: [50, 130], spin: 2 })], lines: [{ kind: "crack", color: "#c7f8ff", n: 8, length: 90, life: 1.3, width: 1.4, glow: true }], sound: "ice" },
       win: { burst: [e("snow", ["#ffffff", "#c7f8ff"], 24, { speed: [60, 170], spin: 2, life: [1, 1.5] })], sound: "ice" },
     },
   },
   "board.space": {
-    lv2: "별이 반짝이고 성운이 천천히 흘러요", lv3: "착지하면 중력파가 퍼지고 족보에 유성이 떨어져요",
-    ambient: "twinkle", ambientColor: "#c6a3ff",
-    drift: { spec: e("star", ["#ffffff", "#c6a3ff"], 1, { speed: [1, 3], life: [1.5, 3], size: [1.5, 2.5], glow: true, alpha: 0.7 }), perSecond: 2, from: "any" },
+    lv2: "별이 반짝이고 성운이 흐르며 가끔 유성이 지나가요", lv3: "부딪힌 자리에서 중력파가 퍼져 별빛이 휘어요",
     react: {
-      roll: { burst: [e("star", ["#ffffff"], 4, { speed: [80, 160], life: [0.3, 0.5], glow: true })] },
-      land: { ring: [ring("#c6a3ff", 28, { glow: true, life: 0.9, fill: "rgba(140,100,255,0.06)" })] },
       hold: { burst: [e("star", ["#c6a3ff"], 2, { speed: [10, 25], glow: true })] },
       grand: { burst: [e("spark", ["#ffffff", "#c6a3ff"], 10, { speed: [180, 320], life: [0.4, 0.7], glow: true, gravity: 60 })], ring: [ring("#c6a3ff", 110, { width: 2, glow: true, life: 1.2 })], sound: "cosmic" },
       win: { burst: [e("star", ["#ffffff", "#c6a3ff", "#fddea6"], 28, { speed: [60, 180], glow: true, life: [1, 1.6] })], sound: "cosmic" },
     },
   },
   "board.neon": {
-    lv2: "발광 격자에 전류가 흘러요", lv3: "충돌 지점에서 빛이 격자를 따라 퍼져요",
-    ambient: "grid", ambientColor: "#ff70d4",
+    lv2: "회로를 따라 빛 신호가 흘러요", lv3: "부딪힌 자리에서 전자기 파동이 퍼지고 회로 접점이 켜져요",
     react: {
-      roll: { lines: [{ kind: "arc", color: "#57dcff", n: 2, length: 60, life: 0.2, width: 1.2, glow: true }] },
-      land: { ring: [ring("#ff70d4", 24, { square: true, glow: true, life: 0.7 }), ring("#57dcff", 36, { square: true, delay: 0.1, glow: true, life: 0.7 })] },
       hold: { ring: [ring("#57dcff", 10, { square: true, glow: true, life: 0.35 })] },
       grand: { ring: [ring("#ff70d4", 120, { square: true, width: 2.5, glow: true, life: 1.1 }), ring("#57dcff", 90, { square: true, delay: 0.12, width: 2, glow: true, life: 1 })], lines: [{ kind: "arc", color: "#ffc4f0", n: 6, length: 90, life: 0.35, width: 1.5, glow: true }], sound: "zap" },
       win: { lines: [{ kind: "arc", color: "#ffc4f0", n: 10, length: 140, life: 0.5, width: 1.6, glow: true }], ring: [ring("#57dcff", 160, { square: true, glow: true, life: 1.4 })], sound: "zap" },
     },
   },
   "board.aurora": {
-    lv2: "오로라 커튼이 천천히 일렁여요", lv3: "착지하면 빛의 물결이 일고 승리에 오로라가 타올라요",
-    ambient: "aurora", ambientColor: "#7dffcb",
-    drift: { spec: e("star", ["#ffffff"], 1, { speed: [1, 3], life: [1.5, 3], size: [1.2, 2], glow: true, alpha: 0.6 }), perSecond: 1, from: "top" },
+    lv2: "오로라 빛줄기가 옆으로 물결쳐요", lv3: "부딪힌 자리로 오로라가 휘고 무지갯빛 고리가 퍼져요",
     react: {
-      land: { ring: [ring("#7dffcb", 24, { glow: true, life: 0.8 })] },
       hold: { burst: [e("glow", ["#7dffcb"], 2, { speed: [10, 20], glow: true, size: [3, 5] })] },
       grand: { burst: [e("glow", ["#7dffcb", "#9d8cff"], 12, { speed: [30, 90], gravity: -40, glow: true, hue: true, size: [4, 8] })], sound: "cosmic" },
       win: { burst: [e("glow", ["#7dffcb", "#9d8cff", "#46e6b4"], 22, { speed: [40, 120], gravity: -50, glow: true, hue: true, size: [4, 9], life: [1.2, 1.8] })], sound: "cosmic" },
     },
   },
   "board.gold_table": {
-    lv2: "금빛 표면 위로 반사광이 지나가요", lv3: "착지하면 금빛 파동, 족보와 승리에 금화가 쏟아져요",
-    ambient: "sweep", ambientColor: "#ffe0a1",
-    drift: { spec: e("star", ["#fff4c2"], 1, { speed: [1, 3], life: [0.8, 1.4], size: [1.5, 2.5], glow: true, alpha: 0.7 }), perSecond: 1.5, from: "any" },
+    lv2: "반사광이 지나가며 금빛이 반짝여요", lv3: "부딪힌 자리가 녹은 금처럼 출렁여요",
     react: {
-      land: { ring: [ring("#ffe0a1", 22, { glow: true, life: 0.8 })] },
       hold: { burst: [e("star", ["#fff4c2"], 2, { speed: [10, 25], glow: true })] },
       grand: { burst: [e("flake", ["#ffd75e", "#fff0b3", "#c09226"], 18, { speed: [60, 160], spin: 10, gravity: 220, life: [0.8, 1.2] })], sound: "coin" },
       win: { burst: [e("flake", ["#ffd75e", "#fff0b3", "#c09226"], 30, { speed: [80, 200], spin: 12, gravity: 240, life: [1, 1.6] })], ring: [ring("#ffe0a1", 150, { glow: true, width: 2.5, life: 1.4 })], sound: "coin" },
     },
   },
   "board.deep_sea": {
-    lv2: "심해로 빛줄기가 내려오고 기포가 올라가요", lv3: "착지하면 굴절된 물결과 기포, 승리에 발광 생물이 모여요",
-    ambient: "rays", ambientColor: "#74e7dc",
-    drift: { spec: e("bubble", ["#a9fff6", "#ffffff"], 1, { speed: [2, 6], gravity: -18, life: [3, 5], size: [1.5, 3.5], alpha: 0.45 }), perSecond: 1.6, from: "bottom" },
+    lv2: "빛줄기가 내려오고 바다눈과 기포가 떠다녀요", lv3: "부딪힌 자리 주변 플랑크톤이 빛나고 기포가 올라가요",
     react: {
-      roll: { burst: [e("bubble", ["#a9fff6"], 4, { speed: [10, 30], gravity: -60, life: [0.8, 1.2] })] },
-      land: { ring: [ring("#74e7dc", 20, { life: 1 }), ring("#a9fff6", 32, { delay: 0.15, life: 1 })], burst: [e("bubble", ["#a9fff6", "#ffffff"], 3, { speed: [10, 30], gravity: -50, life: [0.8, 1.2] })] },
       hold: { burst: [e("bubble", ["#a9fff6"], 2, { speed: [5, 15], gravity: -50 })] },
       grand: { burst: [e("glow", ["#74e7dc", "#a9fff6", "#c6a3ff"], 14, { speed: [20, 70], glow: true, size: [3, 6], life: [1, 1.5] })], ring: [ring("#a9fff6", 120, { width: 2, glow: true, life: 1.3 })], sound: "whoosh" },
       win: { burst: [e("glow", ["#74e7dc", "#a9fff6", "#c6a3ff"], 26, { speed: [30, 110], glow: true, size: [3, 7], life: [1.3, 2] }), e("bubble", ["#ffffff"], 10, { speed: [20, 60], gravity: -60 })], sound: "whoosh" },
@@ -222,68 +173,50 @@ export const BOARD_FX: Record<string, BoardFxProfile> = {
   },
   /* ---------------- nature & element collection (2026-11-27) ---------------- */
   "board.storm": {
-    lv2: "먹구름 속에서 마른번개가 번쩍여요", lv3: "충돌 지점에 전기가 튀고 요트·승리에 낙뢰가 내리쳐요",
-    ambient: "storm", ambientColor: "#a9c6ff",
-    drift: { spec: e("drop", ["#b9cdf5", "#8ea6d6"], 1, { speed: [80, 120], gravity: 260, life: [0.5, 0.8], size: [1, 1.8], alpha: 0.45 }), perSecond: 9, from: "top" },
+    lv2: "비가 내리고 먹구름 속에서 마른번개가 번쩍여요", lv3: "부딪힌 자리에서 세기만큼 번개가 갈라져 방전돼요",
     react: {
-      roll: { lines: [{ kind: "arc", color: "#cfe0ff", n: 2, length: 60, life: 0.25, width: 1.5, glow: true }] },
-      land: { lines: [{ kind: "arc", color: "#a9c6ff", n: 3, length: 34, life: 0.3, width: 1.4, glow: true }], ring: [ring("#a9c6ff", 18, { life: 0.35, glow: true })], sound: "zap" },
+      land: { sound: "zap" },
       hold: { burst: [e("spark", ["#e6eeff"], 3, { speed: [30, 70], glow: true, life: [0.15, 0.3] })] },
       grand: { lines: [{ kind: "arc", color: "#ffffff", n: 7, length: 150, life: 0.5, width: 2.2, glow: true }], ring: [ring("#a9c6ff", 120, { width: 2.5, glow: true, life: 0.8 })], sound: "zap" },
       win: { lines: [{ kind: "arc", color: "#ffffff", n: 10, length: 200, life: 0.6, width: 2.5, glow: true }], burst: [e("spark", ["#ffffff", "#a9c6ff"], 20, { speed: [80, 220], glow: true, life: [0.3, 0.6] })], sound: "zap" },
     },
   },
   "board.meadow": {
-    lv2: "바람에 풀잎이 일렁이고 홀씨가 날려요", lv3: "착지하면 풀잎이 튀고 족보·승리에 나비가 날아올라요",
-    ambient: "grass", ambientColor: "#8cc152",
-    drift: { spec: e("glow", ["#ffffff", "#f4ffd6"], 1, { speed: [10, 22], life: [3, 5], size: [1.5, 2.5], gravity: -4, alpha: 0.6 }), perSecond: 1.5, from: "bottom" },
+    lv2: "보드 가득한 풀이 바람결에 물결쳐요", lv3: "부딪힌 자리의 풀이 눕고 다시 일어나요",
     react: {
-      land: { burst: [e("leaf", ["#8cc152", "#b7e07c", "#5f9a36"], 4, { speed: [30, 70], gravity: 120, spin: 6, life: [0.4, 0.7], size: [2.5, 4] })] },
       hold: { burst: [e("glow", ["#f4ffd6"], 2, { speed: [10, 25] })] },
       grand: { burst: [e("petal", ["#ffe36b", "#ffffff", "#ffb3c8"], 14, { speed: [40, 120], spin: 6, gravity: -10, life: [0.9, 1.4] })], sound: "whoosh" },
       win: { burst: [e("petal", ["#ffe36b", "#ffffff", "#ffb3c8", "#b7e07c"], 24, { speed: [50, 160], spin: 6, gravity: -14, life: [1.1, 1.7] })], sound: "chime" },
     },
   },
   "board.flower_field": {
-    lv2: "꽃잎이 천천히 흩날리고 햇빛이 머물러요", lv3: "착지하면 꽃잎이 일고 족보·승리에 꽃보라가 쏟아져요",
-    ambient: "lamp", ambientColor: "#ffe2b8",
-    drift: { spec: e("petal", ["#ff9fbd", "#ffd36b", "#ffffff"], 1, { speed: [8, 18], life: [3, 5], size: [2.5, 4], gravity: 8, spin: 3, alpha: 0.8 }), perSecond: 2, from: "top" },
+    lv2: "꽃들이 흔들리고 꽃가루가 날려요", lv3: "멈춘 자리에 꽃이 피고 부딪힌 주변 꽃이 흔들려요",
     react: {
-      land: { burst: [e("petal", ["#ff9fbd", "#ffd36b"], 4, { speed: [30, 60], spin: 5, gravity: 30, life: [0.5, 0.8] })] },
       hold: { burst: [e("flower", ["#ffb3c8"], 1, { speed: [5, 10], life: [0.5, 0.7], size: [4, 6] })] },
       grand: { burst: [e("flower", ["#ff8fb0", "#ffd36b", "#c9a0ff"], 10, { speed: [40, 120], spin: 2, life: [0.9, 1.3], size: [5, 8] })], sound: "chime" },
       win: { burst: [e("petal", ["#ff8fb0", "#ffd36b", "#ffffff", "#c9a0ff"], 30, { speed: [50, 170], spin: 6, gravity: 20, life: [1.2, 1.8] })], sound: "bell" },
     },
   },
   "board.sakura": {
-    lv2: "벚꽃잎이 바람을 타고 흩날려요", lv3: "착지하면 꽃잎이 소용돌이치고 승리에 꽃비가 내려요",
-    ambient: "sheen", ambientColor: "#ffc4d6",
-    drift: { spec: e("petal", ["#ffc4d6", "#ffe3ea", "#ff9fba"], 1, { speed: [16, 30], life: [3.5, 5.5], size: [2.5, 4], gravity: 10, spin: 4, alpha: 0.85 }), perSecond: 3, from: "top" },
+    lv2: "꽃잎이 흩날리다 바닥에 내려앉아요", lv3: "부딪히면 바닥의 꽃잎이 세기만큼 흩어져요",
     react: {
-      roll: { burst: [e("petal", ["#ffc4d6", "#ffe3ea"], 5, { speed: [80, 150], spin: 6, life: [0.6, 0.9], drag: 0.5 })] },
-      land: { ring: [ring("#ffc4d6", 18, { dashed: true, life: 0.6 })], burst: [e("petal", ["#ff9fba", "#ffe3ea"], 3, { speed: [20, 50], spin: 5, life: [0.6, 0.9] })] },
       hold: { burst: [e("petal", ["#ffe3ea"], 2, { speed: [10, 25], spin: 4 })] },
       grand: { burst: [e("petal", ["#ffc4d6", "#ffffff", "#ff9fba"], 20, { speed: [60, 160], spin: 7, life: [1, 1.5], drag: 0.4 })], sound: "chime" },
       win: { burst: [e("petal", ["#ffc4d6", "#ffffff", "#ff9fba"], 34, { speed: [60, 190], spin: 7, gravity: 25, life: [1.4, 2] })], sound: "bell" },
     },
   },
   "board.forest": {
-    lv2: "나뭇잎 사이로 햇살이 흔들려요", lv3: "착지하면 낙엽이 일고 족보·승리에 반딧불이 모여요",
-    ambient: "canopy", ambientColor: "#d9f5a8",
-    drift: { spec: e("leaf", ["#6fae6a", "#a9dd67", "#d0b15a"], 1, { speed: [6, 14], life: [3.5, 5], size: [2.5, 4], gravity: 10, spin: 3, alpha: 0.75 }), perSecond: 1.2, from: "top" },
+    lv2: "나뭇잎 사이 햇살이 흔들리고 반딧불이가 날아다녀요", lv3: "착지한 자리에 새싹이 돋고 빛이 퍼지며 반딧불이가 흩어져요",
     react: {
-      land: { burst: [e("leaf", ["#6fae6a", "#d0b15a"], 3, { speed: [30, 60], spin: 6, gravity: 60, life: [0.5, 0.8] }), e("smoke", ["#9bb88a"], 2, { speed: [10, 20], grow: 2, alpha: 0.2, size: [5, 8], life: [0.5, 0.8] })] },
       hold: { burst: [e("glow", ["#eaff9e"], 2, { speed: [8, 20], glow: true })] },
       grand: { burst: [e("glow", ["#eaff9e", "#fff6b0"], 16, { speed: [20, 80], glow: true, gravity: -20, life: [1.2, 1.8], size: [2, 3.5] })], sound: "chime" },
       win: { burst: [e("glow", ["#eaff9e", "#fff6b0"], 26, { speed: [30, 120], glow: true, gravity: -25, life: [1.4, 2.2], size: [2, 4] }), e("leaf", ["#6fae6a", "#a9dd67", "#d0b15a"], 12, { speed: [60, 150], spin: 6, gravity: 40 })], sound: "bell" },
     },
   },
   "board.volcano": {
-    lv2: "현무암 틈으로 용암빛이 숨 쉬듯 일렁여요", lv3: "착지하면 불씨가 튀고 족보·승리에 용암이 분출해요",
-    ambient: "magma", ambientColor: "#ff6a1a",
-    drift: { spec: e("ember", ["#ff9a3c", "#ffd08a"], 1, { speed: [8, 18], life: [1.5, 2.5], size: [1.2, 2.2], gravity: -18, glow: true, alpha: 0.8 }), perSecond: 3, from: "bottom" },
+    lv2: "균열을 따라 용암이 흐르고 불씨가 올라가요", lv3: "부딪힌 자리가 갈라져 하얗게 달아올랐다 식어요",
     react: {
-      land: { burst: [e("ember", ["#ff9a3c", "#ffd08a"], 5, { speed: [40, 90], gravity: 140, glow: true, life: [0.4, 0.7] })], lines: [{ kind: "crack", color: "#ff7a2a", n: 3, length: 22, life: 0.9, width: 1.4, glow: true }], sound: "fire" },
+      land: { sound: "fire" },
       hold: { burst: [e("ember", ["#ffb067"], 2, { speed: [15, 30], glow: true })] },
       grand: { burst: [e("flame", ["#ff6a1a", "#ffb067", "#ffe0a8"], 14, { speed: [80, 200], gravity: 220, glow: true, life: [0.6, 1] })], lines: [{ kind: "crack", color: "#ff7a2a", n: 8, length: 90, life: 1.3, width: 1.8, glow: true }], sound: "fire" },
       win: { burst: [e("flame", ["#ff6a1a", "#ffb067", "#ffe0a8"], 24, { speed: [100, 240], gravity: 240, glow: true, life: [0.7, 1.2] }), e("smoke", ["#4a2a20"], 8, { speed: [20, 50], grow: 2.5, alpha: 0.3, size: [8, 12], life: [1, 1.5] })], sound: "fire" },

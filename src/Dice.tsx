@@ -2,6 +2,7 @@ import type { DiceMaterial } from "./sound-packs";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { beginDiceMotion, planThrow, takeThrowDirection, type ThrowPlan } from "./dice-motion";
 import { diceRenderer, getSettings, motionLevel, useSettings, type DiceRenderer } from "./settings";
+import { surfaceAt } from "./play/surface";
 import { playSfx } from "./sound";
 import { emitFx } from "./fx-bus";
 
@@ -20,7 +21,7 @@ export function preloadDice3D() {
 }
 const stages = new WeakMap<HTMLElement, InstanceType<Dice3D["DiceStage"]>>();
 type RollMode = { token: number; mode: "3d" | "2.5d" | "none" };
-export type DebugRoll = { mode: RollMode["mode"]; token: number; targets: Record<number, number>; finals?: Record<number, number>; frames?: number; simMs?: number; startedAfterMs?: number; attempts?: number; corrected?: number; ok?: boolean; frameMs?: { avg: number; p95: number; max: number }; endedAt?: number; prepared?: boolean; pixelRatio?: number; effectStartAt?: number; firstFrameAt?: number };
+export type DebugRoll = { mode: RollMode["mode"]; token: number; targets: Record<number, number>; finals?: Record<number, number>; frames?: number; simMs?: number; startedAfterMs?: number; attempts?: number; corrected?: number; ok?: boolean; frameMs?: { avg: number; p95: number; max: number }; endedAt?: number; prepared?: boolean; /** A1.1: prepared physics hit / still computing / for other poses / none */ prep?: "hit" | "pending" | "stale" | "none"; pixelRatio?: number; effectStartAt?: number; firstFrameAt?: number };
 const debug = (info: DebugRoll) => {
   (window as unknown as { __yachtlabDice?: { last: DebugRoll; history: DebugRoll[] } }).__yachtlabDice ??= { last: info, history: [] };
   const box = (window as unknown as { __yachtlabDice: { last: DebugRoll; history: DebugRoll[] } }).__yachtlabDice;
@@ -338,6 +339,7 @@ export function Dice({
     if (mode === "2.5d" && plans.size) {
       // Sound is scheduled from the same plan, so impacts are heard when the dice visibly land.
       sound("throw", { material });
+      const surface = surfaceAt(rowRef.current);
       const hits: { at: number; intensity: number; pan: number }[] = [];
       plans.forEach((plan, id) => {
         const pan = (state.order.indexOf(id) - 2) * 0.25;
@@ -348,10 +350,10 @@ export function Dice({
       for (const hit of hits) {
         if (hit.at - last < 28) continue; // merge near-simultaneous clacks
         last = hit.at;
-        sound("impact", { material, delay: hit.at / 1000, intensity: hit.intensity, pan: hit.pan });
+        sound("impact", { material, surface, delay: hit.at / 1000, intensity: hit.intensity, pan: hit.pan });
       }
       const end = Math.max(...[...plans.values()].map((p) => p.endAt));
-      sound("settle", { material, delay: end / 1000, intensity: 0.4 });
+      sound("settle", { material, surface, delay: end / 1000, intensity: 0.4 });
       // Presentation events for boards, synergy and 2.5D item effects (the same bus as the 3D table).
       emitFx({ type: "roll" });
       const at = (id: number) => {
@@ -361,7 +363,7 @@ export function Dice({
       plans.forEach((plan, id) => {
         const strongest = plan.impacts.reduce((best, hit) => (hit.intensity > (best?.intensity ?? 0) ? hit : best), plan.impacts[0]);
         if (strongest) {
-          const timer = window.setTimeout(() => emitFx({ type: "impact", ...at(id), strength: strongest.intensity }), strongest.at);
+          const timer = window.setTimeout(() => emitFx({ type: "impact", ...at(id), strength: strongest.intensity * 14 }), strongest.at);
           cleanups.push(() => window.clearTimeout(timer));
         }
         const landed = window.setTimeout(() => emitFx({ type: "land", ...at(id), strength: 1 }), plan.endAt);

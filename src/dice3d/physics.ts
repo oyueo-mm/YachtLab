@@ -158,13 +158,61 @@ function randomQuat(r: () => number): Quat {
 
 export type SimDie = { id: number; value: number; held: boolean; x: number; z: number };
 /** Physical feel. `legacy` = 3rd pass (kept so before/after can be measured); `vigorous` = 4th pass default. */
-export type ThrowProfile = "legacy" | "vigorous";
-export const THROW_PROFILES = {
+export type ThrowProfile = "legacy" | "vigorous" | "impulse";
+/**
+ * Optional fields (5th pass, "impulse"): `chamfer` rounds the cube corners (a die rolls over its
+ * edges instead of sliding flat), `tumble` is the share of the spin that turns *with* the direction of
+ * travel (a thrown die tumbles forward; the rest stays random), `rollDamp` is rolling resistance
+ * while touching the floor (per second, on top of the damping), `rate` the playback speed.
+ */
+type ProfileExtra = { chamfer?: number; tumble?: number; rollDamp?: number; rate?: number };
+export const THROW_PROFILES: Record<ThrowProfile, {
+  gravity: number; floor: { friction: number; restitution: number }; wall: { friction: number; restitution: number }; dice: { friction: number; restitution: number };
+  linDamp: number; angDamp: number; height: number; forward: readonly [number, number]; lift: readonly [number, number]; side: readonly [number, number]; spin: readonly [number, number, number];
+  perDie: readonly [number, number]; reroll: { lift: readonly [number, number]; side: readonly [number, number] }; maxFrames: number;
+} & ProfileExtra> = {
   legacy: { gravity: 52, floor: { friction: 0.4, restitution: 0.3 }, wall: { friction: 0.08, restitution: 0.5 }, dice: { friction: 0.2, restitution: 0.3 }, linDamp: 0.2, angDamp: 0.26, height: 1.25, forward: [4.2, 2.6], lift: [0.6, 1.4], side: [1.2, 2.4], spin: [30, 18, 30], perDie: [1, 0], reroll: { lift: [3, 1.6], side: [0.8, 1.6] }, maxFrames: 96 },
-  vigorous: { gravity: 60, floor: { friction: 0.34, restitution: 0.42 }, wall: { friction: 0.06, restitution: 0.58 }, dice: { friction: 0.18, restitution: 0.44 }, linDamp: 0.1, angDamp: 0.17, height: 2.3, forward: [4.2, 2.8], lift: [1.8, 2.6], side: [1.6, 3.6], spin: [52, 30, 52], perDie: [0.8, 0.45], reroll: { lift: [5.2, 2.4], side: [1.6, 2.6] }, maxFrames: 118 },
-} as const;
+  vigorous: { gravity: 60, floor: { friction: 0.34, restitution: 0.42 }, wall: { friction: 0.06, restitution: 0.58 }, dice: { friction: 0.18, restitution: 0.44 }, linDamp: 0.1, angDamp: 0.17, height: 2.3, forward: [4.2, 2.8], lift: [1.8, 2.6], side: [1.6, 3.6], spin: [52, 30, 52], perDie: [0.8, 0.45], reroll: { lift: [5.2, 2.4], side: [1.6, 2.6] }, maxFrames: 118, rate: 1.25 },
+  /**
+   * 5th pass (A1, 2026-11-27): a hard throw that hits, bounces, rolls over its edges and brakes.
+   * Faster release (forward ×1.45), heavier gravity, rounded corners, spin coupled to the direction of
+   * travel, livelier walls, then felt-like rolling resistance so the dice brake instead of drifting.
+   * Played at real time (rate 1): the extra speed comes from the throw, not from fast-forwarding.
+   */
+  impulse: { gravity: 92, floor: { friction: 0.42, restitution: 0.4 }, wall: { friction: 0.1, restitution: 0.62 }, dice: { friction: 0.16, restitution: 0.5 }, linDamp: 0.06, angDamp: 0.12, height: 1.3, forward: [7.2, 2.6], lift: [-3.2, 1.6], side: [2.8, 1.8], spin: [34, 20, 34], perDie: [0.85, 0.4], reroll: { lift: [6.4, 2.6], side: [2.4, 3.2] }, maxFrames: 108, chamfer: 0.1, tumble: 0.7, rollDamp: 3.2, rate: 1 },
+};
+/** Playback speed of a profile (1 = the simulated time). */
+export const playRate = (profile: ThrowProfile = DEFAULT_PROFILE) => THROW_PROFILES[profile].rate ?? 1.2;
+export const DEFAULT_PROFILE: ThrowProfile = "impulse";
+
+/** A cube with its corners cut by `c` (die edge 1): 24 vertices, 6 octagons + 8 triangles. */
+function chamferedCube(c: number) {
+  const h = 0.5;
+  const verts: CANNON.Vec3[] = [];
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) {
+    verts.push(new CANNON.Vec3(sx * (h - c), sy * h, sz * h), new CANNON.Vec3(sx * h, sy * (h - c), sz * h), new CANNON.Vec3(sx * h, sy * h, sz * (h - c)));
+  }
+  const normals: Vec3[] = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) normals.push([sx / Math.sqrt(3), sy / Math.sqrt(3), sz / Math.sqrt(3)]);
+  const faces: number[][] = [];
+  for (const n of normals) {
+    const d = Math.max(...verts.map((v) => v.x * n[0] + v.y * n[1] + v.z * n[2]));
+    const on = verts.map((v, i) => [i, v.x * n[0] + v.y * n[1] + v.z * n[2]] as const).filter(([, k]) => k > d - 1e-6).map(([i]) => i);
+    // order counter-clockwise around the outward normal
+    const cx = on.reduce((a, i) => a + verts[i].x, 0) / on.length, cy = on.reduce((a, i) => a + verts[i].y, 0) / on.length, cz = on.reduce((a, i) => a + verts[i].z, 0) / on.length;
+    const u: Vec3 = Math.abs(n[0]) < 0.9 ? cross(n, [1, 0, 0]) : cross(n, [0, 1, 0]);
+    const ul = Math.hypot(...u);
+    const uu: Vec3 = [u[0] / ul, u[1] / ul, u[2] / ul], vv = cross(n, uu);
+    on.sort((a, b) => {
+      const pa: Vec3 = [verts[a].x - cx, verts[a].y - cy, verts[a].z - cz], pb: Vec3 = [verts[b].x - cx, verts[b].y - cy, verts[b].z - cz];
+      return Math.atan2(dot(pa, vv), dot(pa, uu)) - Math.atan2(dot(pb, vv), dot(pb, uu));
+    });
+    faces.push(on);
+  }
+  return new CANNON.ConvexPolyhedron({ vertices: verts, faces });
+}
 export type SimInput = {
-  /** Default "vigorous". */
+  /** Default "impulse" (5th pass). */
   profile?: ThrowProfile;
   width: number;
   height: number;
@@ -220,7 +268,7 @@ type RawRun = {
 function runOnce(input: SimInput, seed: number): RawRun {
   const r = mulberry(seed);
   const { width: W, height: H } = input;
-  const T = THROW_PROFILES[input.profile ?? "vigorous"];
+  const T = THROW_PROFILES[input.profile ?? DEFAULT_PROFILE];
   const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -T.gravity, 0) });
   world.allowSleep = false;
   (world.solver as CANNON.GSSolver).iterations = 14;
@@ -266,7 +314,7 @@ function runOnce(input: SimInput, seed: number): RawRun {
   const span = Math.max(0, Math.min(W - 1.6, (n - 1) * 1.25));
   moving.forEach((d, i) => {
     const crowdK = crowd > 0.5 ? 1.5 : 1;
-    const body = new CANNON.Body({ mass: 1, material: dieMat, shape: new CANNON.Box(half), linearDamping: T.linDamp * crowdK, angularDamping: T.angDamp * crowdK });
+    const body = new CANNON.Body({ mass: 1, material: dieMat, shape: T.chamfer ? chamferedCube(T.chamfer) : new CANNON.Box(half), linearDamping: T.linDamp * crowdK, angularDamping: T.angDamp * crowdK });
     const start = input.starts?.[d.id];
     // Every die gets its own strength so they leave the hand at different speeds and spins.
     const power = T.perDie[0] + r() * T.perDie[1] || 1;
@@ -281,15 +329,30 @@ function runOnce(input: SimInput, seed: number): RawRun {
       body.velocity.set((toCenterX + input.direction * (T.reroll.side[0] + r() * T.reroll.side[1])) * power, T.reroll.lift[0] + r() * T.reroll.lift[1], (toCenterZ + (r() - 0.5) * 2.4) * speed * power);
     } else {
       const x = W / 2 - span / 2 + (n > 1 ? (span * i) / (n - 1) : 0) - input.direction * 0.25 + (r() - 0.5) * 0.2;
-      const layer = span < (n - 1) * 1.15 ? i % 2 : 0; // narrow trays: alternate heights
-      body.position.set(Math.min(W - 0.8, Math.max(0.8, x)), T.height + layer * 1.2 + r() * 0.4, H - 0.75 - r() * 0.25);
+      if (T.tumble) {
+        // 5th pass: a hand-sized cluster with no overlap at release — neighbours alternate height by
+        // 1.8 (> the cube diagonal 1.73) so randomly turned cubes never start inside each other or a wall
+        // (before, they did and were shot apart on frame 1, which randomised their spin).
+        const layer = i % 2;
+        body.position.set(Math.min(W - 0.9, Math.max(0.9, x)), T.height + layer * 1.8 + r() * 0.3, H - 0.95 - r() * 0.15);
+      } else {
+        const layer = span < (n - 1) * 1.15 ? i % 2 : 0; // narrow trays: alternate heights
+        body.position.set(Math.min(W - 0.8, Math.max(0.8, x)), T.height + layer * 1.2 + r() * 0.4, H - 0.75 - r() * 0.25);
+      }
       const q = randomQuat(r);
       body.quaternion.set(q[0], q[1], q[2], q[3]);
       body.velocity.set(input.direction * (T.side[0] + r() * T.side[1]) * power, T.lift[0] + r() * T.lift[1], -(T.forward[0] + r() * T.forward[1]) * speed * power);
     }
     // A different spin axis mix per die: some tumble end over end, some barrel-roll.
     const spinK = power * (0.8 + r() * 0.4);
-    body.angularVelocity.set((r() - 0.5) * T.spin[0] * spinK, (r() - 0.5) * T.spin[1] * spinK, (r() - 0.5) * T.spin[2] * spinK);
+    let wx = (r() - 0.5) * T.spin[0] * spinK, wy = (r() - 0.5) * T.spin[1] * spinK, wz = (r() - 0.5) * T.spin[2] * spinK;
+    if (T.tumble) {
+      // Forward tumble: ω = up × v / r (r = half an edge) — the die leaves the hand rolling the way it flies.
+      const v = body.velocity, k = T.tumble * (0.7 + r() * 0.6) * 2;
+      wx = wx * (1 - T.tumble) + v.z * k;
+      wz = wz * (1 - T.tumble) - v.x * k;
+    }
+    body.angularVelocity.set(wx, wy, wz);
     body.addEventListener("collide", (e: { body: CANNON.Body; contact: CANNON.ContactEquation }) => {
       const strength = Math.abs(e.contact.getImpactVelocityAlongNormal());
       if (strength < 0.6) return;
@@ -312,6 +375,27 @@ function runOnce(input: SimInput, seed: number): RawRun {
     settled = false;
   for (frame = 1; frame <= T.maxFrames; frame++) {
     for (let s = 0; s < SUBSTEPS; s++) world.step(1 / (FPS * SUBSTEPS));
+    if (T.rollDamp) {
+      // Rolling resistance on the felt: only while the die touches the floor, so flight is untouched.
+      const keepFast = Math.exp(-T.rollDamp / FPS), keepSlow = Math.exp((-T.rollDamp * 2.4) / FPS);
+      bodies.forEach((b) => {
+        if (b.position.y > 0.62) return;
+        // a slow die loses its last roll quickly (tipping over an edge costs more than it gives back)
+        const keep = b.velocity.length() < 2.2 ? keepSlow : keepFast;
+        b.angularVelocity.scale(keep, b.angularVelocity);
+        b.velocity.x *= keep;
+        b.velocity.z *= keep;
+        // Static friction catches a die that is flat on a face and nearly still: it stops crisply
+        // instead of creeping for another half second (cannon has no rolling friction of its own).
+        if (b.velocity.lengthSquared() < 0.16 && b.angularVelocity.lengthSquared() < 1.2 && b.position.y < 0.53) {
+          const flat = topFace([b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w]).flatness;
+          if (flat > 0.995) {
+            b.velocity.scale(0.5, b.velocity);
+            b.angularVelocity.scale(0.5, b.angularVelocity);
+          }
+        }
+      });
+    }
     record();
     let allStill = true;
     bodies.forEach((b, id) => {
@@ -354,7 +438,7 @@ const r3 = (n: number) => Math.round(n * 1000) / 1000;
 export function throwKey(input: SimInput): string {
   const dice = input.dice.map((d) => [d.id, d.held ? 1 : 0, r3(d.x), r3(d.z)]);
   const starts = Object.entries(input.starts ?? {}).map(([id, s]) => [id, r3(s.x), r3(s.z), ...(s.quat ?? []).map(r3)]);
-  return JSON.stringify([input.profile ?? "vigorous", r3(input.width), r3(input.height), input.direction, input.maxAttempts ?? 10, dice, starts]);
+  return JSON.stringify([input.profile ?? DEFAULT_PROFILE, r3(input.width), r3(input.height), input.direction, input.maxAttempts ?? 10, dice, starts]);
 }
 
 function chooseRun(input: SimInput): { run: RawRun; attempts: number } {
