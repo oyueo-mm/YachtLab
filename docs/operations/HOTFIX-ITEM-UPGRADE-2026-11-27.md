@@ -48,3 +48,10 @@
 - 다음 Worker 수정 후보는 선택적 `expectedLevel`을 받아 같은 SQLite 트랜잭션에서 현재 단계와 대조하는 것이다. 응답 유실 시 원래 요청을 같은 ID로 조회하거나 재시도하는 경로와, 이미 쓰인 요청 ID가 다른 아이템에 연결될 때 거절하는 계약을 함께 정의한다. 현재 브랜치는 Worker 코드와 경제·등급·가격을 그대로 사용한다.
 - A2는 인증된 새 방에서 `welcome.looks`의 `dice/diceLv/board/boardLv`를 화면과 대조할 수 있다. 1:1은 본인 보드와 현재 굴린 좌석의 주사위를 사용한다. 다인전과 관전에서는 기존 방 스냅샷과 표시 로직을 구분한다. [A2 PR](https://github.com/oyueo-mm/YachtLab/pull/117)
 - 실제 신고 계정, 운영 실기기, 현재 Cloudflare 활성 버전 및 롤백 권한은 미확인이다. 운영 Worker 배포 보류를 유지한다. [C0 운영 점검](https://github.com/oyueo-mm/YachtLab/pull/112)
+
+## 병합·배포 결과 (2026-11-27)
+
+- PR #119를 `74bfcd8`의 PR CI 통과(run 46018302968) 후 main에 병합했다(`fa22a35`). main push CI(run 46035799537)의 unit·build·browser 4샤드가 통과했고 Pages `deploy`가 성공했다. 공개 `version.json`은 `fa22a35-mwz7mtg3`.
+- 운영 Worker는 바뀌지 않았다. `/healthz` 200, `/api/features`에 `catalogRev`·C3 플래그가 없다(구 Worker 유지). C0 Worker 배포 보류는 그대로다.
+- 비파괴 확인: 운영 Pages 번들에서 `?online-server=` 대체 주소와 브라우저 안의 모의 경제 API로 `tests/ui/economy.spec.ts`의 강화 관련 6건(데스크톱·모바일)을 실행해 통과했다. 기존 보드 Lv.2 강화 버튼이 없고 "준비 중" 안내가 표시되며 요청이 0건, 기존 주사위 강화는 상세 창 오류 표시 후 재시도로 Lv.2가 됐다. 실제 계정·재화·운영 Worker 상태를 바꾸는 요청은 보내지 않았다.
+- 이것은 구 Worker 기능 차이를 안내하는 임시 조치다. 기존 보드 Lv.2·3 강화와 신규 카탈로그 판매는 Rev.2 Worker 배포 전까지 열리지 않는다. 다른 요청 ID로 동시에 두 번 강화하면 두 단계가 결제되는 문제(`expectedLevel` 후보)는 남아 있다.
