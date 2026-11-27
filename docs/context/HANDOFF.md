@@ -6,7 +6,7 @@
 
 > **공개 검색·연구 콘텐츠**는 [검색 의도 조사](./SEARCH-INTENT-2026-11-26.md), [SEO 자동화](./SEO-AUTOMATION.md), `scripts/seo/research-content.mjs`에서 시작한다. 공개 한국어·영어 보고서는 동일한 실험 표와 출처를 사용한다.
 
-> **게임 리뷰**는 [제품 복기의 수치 기준과 데이터 경계](./AI-REVIEW.md)에서 시작한다. 브라우저 Web Worker에서 DP Expert와 작은 v5 종반 범위를 사용한다.
+> **게임 리뷰**는 [제품 복기의 수치 기준과 데이터 경계](./AI-REVIEW.md)에서 시작한다. C2의 모델 선택, 첫 굴림·재굴림 운, 기보 연결 및 A5 계약은 [C2 게임 리뷰](./C2-GAME-REVIEW.md)에 있다.
 
 > **1인 플레이·프로필·컬렉션·시너지·한정판·상점 안내·오디오 믹스(2026-11-27)** → [COLLECTIONS-2026-11-27](./COLLECTIONS-2026-11-27.md), [STREAK-REVIEW-2026-11-27](./STREAK-REVIEW-2026-11-27.md), [오디오 믹스](../audio/MIX.md), D-074~D-078. 코드: 1인 플레이 `src/play/SoloGame.tsx`·`src/solo/`(기록·동기화), 오프라인 장착 `src/play/own-look.ts`, 프로필 `src/shell/ProfileSections.tsx`, 컬렉션 `src/economy/live/collections.ts`, 시너지 `src/play/board-synergy.ts`, 2.5D 효과 `src/dice3d/Dice25Fx.tsx`·`src/play/tray-attach.ts`, 안내 `src/ui/Coach.tsx`, 믹스 `src/sound.ts`(버스·`volumeCurve`)·`src/audio/bgm-render.ts`(`normalize`). **워커 배포 전**에는 1인 기록 계정 보관과 신규 11종 판매가 꺼져 있다(의도된 안전 동작).
 >
@@ -49,7 +49,7 @@
 
 ## 게임 리뷰 제품 화면
 
-사용자에게 표시되는 명칭은 게임 리뷰다. 과거 기보 · 캐시 · 회원 리뷰 API는 호환된다. [게임 리뷰](./AI-REVIEW.md)의 정확도 공식과 분석 범위를 확인한다.
+사용자에게 표시되는 명칭은 게임 리뷰다. 기존 기보·회원 리뷰 API를 읽고, 새 분석은 버전을 구분한 캐시에 저장한다. A5는 `useReviewAnalysis`의 상태와 `yachtlab-review-a5-v1` 결과를 사용한다. [게임 리뷰](./AI-REVIEW.md)
 
 ## 제품 업데이트 인수인계
 

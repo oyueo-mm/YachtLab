@@ -18,7 +18,7 @@ import MobileQuickScore from "../MobileQuickScore";
 import { useHumanTurn } from "../human-turn";
 import MobileScoreSheet, { MobileScoreButton } from "../MobileScoreSheet";
 import { saveReplay } from "../replay-storage";
-import { newRecordId, saveLocalRecord } from "../identity/local";
+import { saveLocalRecord } from "../identity/local";
 import { RULES_ID } from "../identity/records";
 import { newSeed, errorText, Thinking, ErrorMessage, DecisionView } from "../ui/common";
 import { useGameSounds, useThrowGesture } from "../game-feel";
@@ -121,7 +121,7 @@ export default function HumanGame({
         comeback: next.winner === humanSeat && updated.frames.some((frame) => behindAfterNine(frame.state.cards, humanSeat)),
       });
       saveLocalRecord({
-        recordId: newRecordId(),
+        recordId: updated.metadata.id,
         mode: "ai",
         rules: RULES_ID,
         source: "device",

@@ -6,7 +6,7 @@ import type { Position, ReviewMatch, Situation } from "./model";
 
 export const missingOnlineReview = "이 경기에는 양쪽의 전체 굴림과 점수 기록이 저장되지 않았어요.";
 
-export function fromOnline(view: PlayerView, history: readonly OnlineEvent[], looks?: Record<string, PublicLook>): ReviewMatch | string {
+export function fromOnline(view: PlayerView, history: readonly OnlineEvent[], looks?: Record<string, PublicLook>, includeRollContext = false): ReviewMatch | string {
   if (view.status !== "finished" || !view.you) return "완료한 본인 경기에서 리뷰할 수 있어요.";
   if (view.players.length !== 2) return "1:1 경기를 분석할 수 있어요.";
   const ordered = [...history].sort((a, b) => a.seq - b.seq);
@@ -15,13 +15,22 @@ export function fromOnline(view: PlayerView, history: readonly OnlineEvent[], lo
   const playerIds = view.players.map((player) => player.playerId);
   const cards: [Card, Card] = [{}, {}];
   const positions: [Position | null, Position | null] = [null, null];
+  const firstRolls: [Position?, Position?] = [];
   const simultaneously = view.mode === "simultaneous";
   const visibleCards = (): [Card, Card] => [{ ...cards[0] }, { ...cards[1] }];
   let round = 1;
   const steps: Situation[] = [];
+  const unpairedFirstRolls: Position[] = [];
+  function preserveFirstRoll(seat: number) {
+    const roll = firstRolls[seat];
+    if (roll) unpairedFirstRolls.push(roll);
+    firstRolls[seat] = undefined;
+  }
   for (const event of ordered) {
     if (event.type === "turnStarted" || event.type === "roundStarted") {
       positions[0] = positions[1] = null;
+      preserveFirstRoll(0);
+      preserveFirstRoll(1);
       round = event.round;
     }
     if (event.type === "diceRolled") {
@@ -34,21 +43,32 @@ export function fromOnline(view: PlayerView, history: readonly OnlineEvent[], lo
         rolls: event.roll, round, player: seat === 0 ? 0 : 1,
       };
       const position = positions[seat];
-      if (position) steps.push({ before: { ...position, cards: visibleCards(), dice: position.dice.map((die) => ({ ...die, held: event.kept.includes(die.id) })) },
-        action: { type: "reroll", ids: [...event.kept] }, afterRoll: next });
+      if (includeRollContext && event.roll === 1) firstRolls[seat] = next;
+      if (position) {
+        steps.push({ before: { ...position, cards: visibleCards(), dice: position.dice.map((die) => ({ ...die, held: event.kept.includes(die.id) })) },
+        action: { type: "reroll", ids: [...event.kept] }, afterRoll: next, ...(firstRolls[seat] ? { firstRoll: firstRolls[seat] } : {}) });
+        firstRolls[seat] = undefined;
+      }
       positions[seat] = next;
     }
     if (event.type === "categoryScored") {
       const seat = playerIds.indexOf(event.playerId);
       if (seat < 0) return missingOnlineReview;
       const position = positions[seat];
-      if (position && !event.auto) steps.push({ before: { ...position, cards: visibleCards() }, action: { type: "score", category: event.category } });
+      if (position && (!event.auto || includeRollContext)) steps.push({
+        before: { ...position, cards: visibleCards() },
+        action: { type: "score", category: event.category },
+        ...(firstRolls[seat] ? { firstRoll: firstRolls[seat] } : {}), ...(event.auto ? { automatic: true } : {}),
+      });
+      firstRolls[seat] = undefined;
       cards[seat][event.category] = event.points;
       positions[seat] = null;
     }
   }
-  if (!steps.length) return "분석할 확정 행동이 없어요.";
+  preserveFirstRoll(0);
+  preserveFirstRoll(1);
+  if (!steps.length && !unpairedFirstRolls.length) return "분석할 확정 행동이 없어요.";
   return { id: view.matchId, players: [view.players[0].name, view.players[1].name], scores: [view.players[0].total, view.players[1].total],
     ...(looks ? { looks: [looks[playerIds[0]], looks[playerIds[1]]] } : {}), winners: view.winners.map((winner) => winner === playerIds[0] ? 0 : 1),
-    me: view.you.playerId === playerIds[0] ? 0 : 1, steps };
+    me: view.you.playerId === playerIds[0] ? 0 : 1, steps, ...(unpairedFirstRolls.length ? { unpairedFirstRolls } : {}) };
 }
