@@ -464,7 +464,7 @@ GitHub Pages의 `/YachtLab/` 스코프와 매니페스트를 사용한다. 서�
 1. 26개 연구 워크플로의 게시 단계 30개를 `scripts/ci/publish-generated.mjs publish --scope-to-allow --preserve-history`로 옮겼다. 연구 알고리즘·설정·시드·경기 수·평가 기준·결과·아티팩트 보존은 바꾸지 않았다.
 2. 허용 파일은 단계별 정확한 파일명(`docs/context/_generated/…`), 브랜치는 단계마다 `automation/research-…`, 권한은 게시 잡 한정 `contents`/`pull-requests`/`actions: write`.
 3. Context sync(D-CI1-1)와 달리 연구 브랜치는 **강제 푸시 없이 기록을 쌓는다**: 같은 연구의 연속 실행은 이전 미병합 결과를 PR 기록에 남기고, 동시 push는 재시도·병합하며, main과 미병합 브랜치가 같은 파일을 다르게 바꾸면 덮어쓰지 않고 중단한다.
-4. 병합 push는 25개 연구 워크플로의 `push(main)` 트리거에 걸리므로 병합 커밋에 `[skip ci]`를 쓰거나 시작된 실행을 취소한다. 절차서: [CI-1.1](../operations/CI-1-1-RESEARCH-PUBLISH.md).
+4. 대규모 연구는 `workflow_dispatch`로만 시작한다(CI-1.2): 연구 워크플로의 `push`·`schedule` 트리거를 없앴고, PR은 기존 경량 검증·스모크만 실행하며 쓰기 권한을 받지 않는다(게시는 dispatch 전용 `publish-report` 잡). 일반 병합 절차를 쓰며 `[skip ci]`는 필요 없다. `audit-workflows.mjs --strict`가 이를 점검한다. 절차서: [CI-1.1](../operations/CI-1-1-RESEARCH-PUBLISH.md).
 
 ## D-068. 설정은 공통 Sheet(PC 가운데 모달, 휴대폰 아래 시트)와 소리 2계층 (2026-11-26)
 

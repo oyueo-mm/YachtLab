@@ -87,6 +87,7 @@
 | 와일드카드(`FRONTIER-*.md`)와 허용 경로 규칙 | 단위 |
 | 30개 단계의 정적 계약: 고유 브랜치, 정확한 허용 파일, 권한 3종, `ensure-ci`, main push·`[skip ci]` 없음 | 정적 테스트 |
 | 26개 YAML 파싱, `audit-workflows.mjs --strict` exit 0 | 실제(로컬) |
+| 연구 시작 조건(CI-1.2): push/schedule 트리거 없음, PR 잡 쓰기 권한 없음, 게시 잡 dispatch 전용 | 정적 테스트 + `audit-workflows.mjs --strict`(이전 커밋 대비 6개 PR-쓰기 잡·30개 push 트리거를 정확히 검출함을 확인) |
 | 필수 CI(`ci-result`) | 최종 커밋은 GitHub CI(PR Checks). 자동 연구 PR에서의 `ensure-ci`는 **병합 뒤 첫 연구 실행**에서 확인해야 함 |
 | 대규모 연구 26개 실제 실행 | **하지 않음**(요구사항). 실제 연구 실행으로 PR이 만들어지는 흐름은 미검증 |
 
@@ -94,26 +95,26 @@
 
 ## 6. 적용 절차 (Work)
 
-### 6.1 병합 순서와 base 변경
-이 PR의 base는 `#128`(`claude/ci-1-context-sync-protection`)입니다. 이 브랜치는 #128의 마지막 커밋 `dff4bfb` 위에 쌓여 있습니다.
+### 6.1 base 변경 (완료)
+#128은 merge commit으로 main에 병합되었고 #129(자동 스냅샷)도 병합되었습니다. 이 PR의 base는 `main`으로 변경했고, 브랜치에는 최신 `main`을 병합 커밋으로 합쳤습니다(강제 푸시 없음). #128의 기존 변경은 그대로입니다.
 
-1. #128 병합(필요 설정 포함, CI-1 §8 선행 작업).
-2. 이 PR의 base를 `main`으로 변경: PR 화면 → **Edit** → base branch `main`. #128이 **merge commit**이나 **rebase**로 병합되었다면 이 PR의 diff는 자동으로 CI-1.1 변경만 남습니다.
-3. #128을 **squash**로 병합했다면 기록이 달라 이 PR에 #128의 커밋이 중복되어 보입니다. 이때는 아래로 정리합니다(강제 푸시가 필요한 작업이므로 이 브랜치에 한해 담당자와 합의 후):
-   ```bash
-   git fetch origin
-   git rebase --onto origin/main dff4bfb claude/ci-1-1-research-publish
-   git push --force-with-lease origin claude/ci-1-1-research-publish
-   ```
-   (`dff4bfb`는 #128의 마지막 커밋, 즉 이 브랜치의 분기점.)
-4. base 변경과 재푸시 후 PR의 `ci-result`를 확인합니다.
+### 6.2 연구 워크플로의 실행 조건 (CI-1.2로 해소)
+초기 CI-1.1은 26개 워크플로 파일을 모두 바꾸므로, 파일이 각자의 `paths`에 들어 있는 한 PR을 열거나 main에 병합하는 것만으로 연구가 시작될 수 있었습니다(PR을 열었을 때 실제로 확인했고 실행을 취소했음). 이를 근본적으로 없앴습니다.
 
-### 6.2 이 PR을 병합할 때 — 연구 워크플로 25개가 push로 시작됩니다
-이 PR은 26개 워크플로 파일을 모두 바꾸고, 그 파일들은 각자의 `push(main)`·`pull_request` `paths`에 들어 있습니다. 그래서
-- **PR을 열고 갱신할 때마다** 그 워크플로가 `pull_request`로 시작합니다(`duel` 같은 대형 잡은 이미 `!= pull_request` 조건으로 제외되지만, 일부 워크플로는 PR에서도 실험 잡을 실행하도록 만들어져 있음). 이 PR에서는 불필요한 대규모 실행을 만들지 않도록 실행 직후 취소했습니다(보고서의 "최종 CI" 참고).
-- **main에 병합되면** `push(main)` 필터에 걸린 **25개**(`qr-deep-research.yml`만 제외)가 실제 연구 실험으로 시작될 수 있습니다.
+| | 전 | 후 |
+|---|---|---|
+| main 병합(`push`) | 25개가 `paths`에 걸려 대규모 실험 시작, v31-research는 주간 `schedule`도 | **트리거 제거.** 연구는 `workflow_dispatch`로만 시작 |
+| 대규모 잡의 조건 | `github.event_name != 'pull_request'`(push·schedule·dispatch에서 실행) | `github.event_name == 'workflow_dispatch'` |
+| PR 실행 | 검증/스모크 + 일부 대형 잡(`qr-followup`의 `reproduce-54` 12000경기 등) | 기존 **경량 검증·스모크만**(`validate`/`verify`, `--smoke` 단계). `reproduce-54`는 dispatch 전용 |
+| PR에서 실행되는 잡의 권한 | 게시 단계를 가진 6개 잡(`algorithm-zoo/sweep`, `full-selfplay/selfplay`, `neural-selfplay/train`, `offpolicy-ppo-expanded/aggregate`, `psro-extended/aggregate`, `psro-ppo/research`)이 `contents/pull-requests/actions: write`를 받음 | **PR 잡은 쓰기 권한 없음.** 6개 잡에서 게시를 `publish-report` 잡으로 분리(`needs` + `if: workflow_dispatch`, 쓰기 권한은 이 잡만). 보고서 파일은 산출 잡이 아티팩트(`research-report-…`, 90일)로 넘김 |
+| 게시 잡 | 일부는 `needs`가 건너뛰어져 PR에서 실행되지 않는 데 의존 | 모든 게시 잡에 `if: github.event_name == 'workflow_dispatch'` 명시 |
+| 병합 절차 | 병합 커밋에 `[skip ci]` 필요(CI-1.1 초안) | **일반 병합 절차 그대로.** `[skip ci]` 불필요 |
 
-권장: 병합 커밋(또는 스쿼시) 메시지에 **`[skip ci]`** 를 넣어 병합 push로는 워크플로가 시작되지 않게 합니다. 이 PR의 필수 CI는 이미 PR에서 통과한 상태이고, 병합 변경은 사이트·Pages에 영향이 없습니다. 이를 지키지 못했다면 Actions 탭에서 시작된 연구 실행을 취소(Cancel)하세요. 병합 뒤 실제 연구는 평소처럼 `workflow_dispatch`로 실행합니다.
+같은 조건을 연구 시작 점검 대상 4개(`competitive-research`, `confirm-v2`, `integrated-research`, `tabular-zoo`; 게시는 하지 않지만 push로 시작되던 연구)에도 적용했습니다(push 트리거 제거, PR 스모크 유지). `competitive-research.yml`의 `if: github.event_name == 'push'` 확증 단계(2만 경기)는 push 트리거가 없어져 자동으로는 실행되지 않으며, dispatch로 실행할 때는 입력한 `games` 실행만 돕니다(필요하면 별도 결정으로 dispatch 입력에 연결). `v5-apex-research.yml`은 push가 main이 아닌 과거 연구 브랜치 3개에만 걸려 main 병합·PR로 대규모 실행이 시작되지 않으므로 그대로 두었습니다.
+
+이제 `node scripts/ci/audit-workflows.mjs --strict`는 위 조건(push/schedule 트리거 없음, PR 잡에 쓰기 권한 없음, 게시 잡은 dispatch 전용)도 함께 점검합니다.
+
+PR을 열거나 갱신하면 각 워크플로의 **경량 검증**(`npm test`, 빌드, `--smoke`)은 여전히 돕니다. 대규모 연구는 시작되지 않습니다. 실제 연구는 Actions → 해당 워크플로 → Run workflow(`workflow_dispatch`)로 실행합니다.
 
 ### 6.3 보호 규칙을 켜기 전 확인
 ```bash
@@ -141,5 +142,5 @@ node scripts/ci/audit-workflows.mjs --strict   # exit 0 이어야 함
 
 - 실제 연구 실행으로 PR을 만드는 흐름과 `ensure-ci` 결과는 병합 후 확인 전까지 **모의**입니다.
 - 연구 PR이 쌓이면 사람이 병합해야 `main`에 반영됩니다(이전에는 자동 반영). 병합하지 않은 보고서는 `main` 문서에서 보이지 않습니다.
-- PR 병합 시 워크플로 push 트리거(§6.2) — 운영 절차(`[skip ci]` 또는 취소)에 의존합니다.
+- (해소) 병합·PR이 연구를 시작하던 위험은 트리거 제거로 없앴습니다(§6.2). 대신 이전에 push로 자동 재실행되던 연구는 이제 사람이 dispatch해야 합니다.
 - 서로 다른 두 연구가 나중에 같은 보고서 파일을 게시하도록 바뀌면 PR 병합 시 충돌합니다(테스트가 현재 중복을 막음).

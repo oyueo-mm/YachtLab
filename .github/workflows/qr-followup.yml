@@ -6,13 +6,6 @@ on:
       - "scripts/train-qr-followup.mjs"
       - "scripts/summarize-qr-followup.mjs"
       - ".github/workflows/qr-followup.yml"
-  push:
-    branches: [main]
-    paths:
-      - "scripts/recheck-richstable-54.mjs"
-      - "scripts/train-qr-followup.mjs"
-      - "scripts/summarize-qr-followup.mjs"
-      - ".github/workflows/qr-followup.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -45,6 +38,7 @@ jobs:
           done
   reproduce-54:
     needs: verify
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -72,7 +66,7 @@ jobs:
           retention-days: 90
   train:
     needs: verify
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     strategy:
@@ -108,7 +102,7 @@ jobs:
           retention-days: 90
   summarize:
     needs: [train, reproduce-54]
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

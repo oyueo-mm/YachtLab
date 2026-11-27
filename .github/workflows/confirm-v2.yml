@@ -1,10 +1,5 @@
 name: Confirm Win DP v2 and long QR-DQN on fresh seeds
 on:
-  push:
-    branches: [main]
-    paths:
-      - "scripts/confirm-v2.mjs"
-      - ".github/workflows/confirm-v2.yml"
   workflow_dispatch:
     inputs:
       games:

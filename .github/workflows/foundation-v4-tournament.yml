@@ -6,13 +6,6 @@ on:
       - scripts/summarize-foundation-v4.mjs
       - .github/workflows/foundation-v4-tournament.yml
       - docs/context/FOUNDATION-V4-TOURNAMENT.md
-  push:
-    branches: [main]
-    paths:
-      - scripts/bench-foundation-v4.mjs
-      - scripts/summarize-foundation-v4.mjs
-      - .github/workflows/foundation-v4-tournament.yml
-      - docs/context/FOUNDATION-V4-TOURNAMENT.md
   workflow_dispatch:
 permissions:
   contents: read
@@ -55,7 +48,7 @@ jobs:
             node scripts/bench-foundation-v4.mjs --smoke --left "$left" --right "$right" --shard 7001
           done
   duel:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 120
@@ -93,6 +86,7 @@ jobs:
           if-no-files-found: error
   report:
     needs: duel
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     permissions:

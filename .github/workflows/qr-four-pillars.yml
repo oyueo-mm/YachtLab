@@ -8,15 +8,6 @@ on:
       - "scripts/summarize-qr-factorial.mjs"
       - "tests/qr-factorial-gate.test.ts"
       - ".github/workflows/qr-four-pillars.yml"
-  push:
-    branches: [main]
-    paths:
-      - "src/qr-extensions.ts"
-      - "src/qr-safety-gate.ts"
-      - "scripts/train-qr-factorial.mjs"
-      - "scripts/summarize-qr-factorial.mjs"
-      - "tests/qr-factorial-gate.test.ts"
-      - ".github/workflows/qr-four-pillars.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -47,7 +38,7 @@ jobs:
           done
   train-factorial:
     needs: verify
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     strategy:
@@ -83,7 +74,7 @@ jobs:
           retention-days: 90
   consolidate:
     needs: train-factorial
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:

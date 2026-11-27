@@ -5,12 +5,6 @@ on:
       - "scripts/enumerate-br-lastturn.mjs"
       - "scripts/summarize-br-enumeration.mjs"
       - ".github/workflows/br-error-enumeration.yml"
-  push:
-    branches: [main]
-    paths:
-      - "scripts/enumerate-br-lastturn.mjs"
-      - "scripts/summarize-br-enumeration.mjs"
-      - ".github/workflows/br-error-enumeration.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -38,7 +32,7 @@ jobs:
         run: node scripts/enumerate-br-lastturn.mjs --shard 0 --smoke
   enumerate:
     needs: verify
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     strategy:
@@ -64,6 +58,7 @@ jobs:
           retention-days: 90
   summarize:
     needs: enumerate
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

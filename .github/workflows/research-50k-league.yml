@@ -6,13 +6,6 @@ on:
       - scripts/summarize-50k-league.mjs
       - training/research-archive/v4-reinforce-seed1-frozen.json
       - .github/workflows/research-50k-league.yml
-  push:
-    branches: [main]
-    paths:
-      - scripts/bench-50k-league.mjs
-      - scripts/summarize-50k-league.mjs
-      - training/research-archive/v4-reinforce-seed1-frozen.json
-      - .github/workflows/research-50k-league.yml
   workflow_dispatch:
 permissions:
   contents: read
@@ -59,7 +52,7 @@ jobs:
             node scripts/bench-50k-league.mjs --smoke --mode league --left "$a" --right "$b" --shard 6001
           done
   budget:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 180
@@ -92,7 +85,7 @@ jobs:
           retention-days: 90
           if-no-files-found: error
   league:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 180
@@ -130,6 +123,7 @@ jobs:
           if-no-files-found: error
   report-budget:
     needs: budget
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     permissions:
@@ -177,6 +171,7 @@ jobs:
         run: node scripts/ci/publish-generated.mjs ensure-ci --branch automation/research-50k-league-budget --sha "$HEAD_SHA" --workflow deploy.yml
   report-league:
     needs: league
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     permissions:

@@ -5,12 +5,6 @@ on:
       - "scripts/train-qr-20k.mjs"
       - "scripts/summarize-qr-20k.mjs"
       - ".github/workflows/qr-20k.yml"
-  push:
-    branches: [main]
-    paths:
-      - "scripts/train-qr-20k.mjs"
-      - "scripts/summarize-qr-20k.mjs"
-      - ".github/workflows/qr-20k.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -38,7 +32,7 @@ jobs:
         run: node scripts/train-qr-20k.mjs --smoke --seed-index 0
   train-20k:
     needs: verify
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     strategy:
@@ -73,7 +67,7 @@ jobs:
           retention-days: 90
   summarize:
     needs: train-20k
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

@@ -15,22 +15,6 @@ on:
       - scripts/summarize-upgrades.mjs
       - tests/research-followup.test.ts
       - .github/workflows/followup-ablations.yml
-  push:
-    branches: [main]
-    paths:
-      - src/research-opponent-belief.ts
-      - src/research-v33-belief.ts
-      - src/research-v33.ts
-      - src/competitive-v3.ts
-      - src/research-v34.ts
-      - src/research-v34-adaptive.ts
-      - scripts/train-v33-belief.mjs
-      - scripts/train-v4-ablation.mjs
-      - scripts/select-v4-ablation.mjs
-      - scripts/bench-upgrades.mjs
-      - scripts/summarize-upgrades.mjs
-      - tests/research-followup.test.ts
-      - .github/workflows/followup-ablations.yml
   workflow_dispatch:
 permissions:
   contents: read
@@ -81,7 +65,7 @@ jobs:
             node scripts/bench-upgrades.mjs --smoke --candidate "$candidate" --opponent "Win DP v2" --shard 2000
           done
   train-opponent-models:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 100
@@ -104,7 +88,7 @@ jobs:
             training/results/v33-belief-pack.json
           retention-days: 90
   train-psro:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 90
@@ -284,6 +268,7 @@ jobs:
           retention-days: 90
   report-v33:
     needs: duel-v33
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -329,6 +314,7 @@ jobs:
         run: node scripts/ci/publish-generated.mjs ensure-ci --branch automation/research-followup-ablations-v33 --sha "$HEAD_SHA" --workflow deploy.yml
   report-v34:
     needs: duel-v34
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -374,6 +360,7 @@ jobs:
         run: node scripts/ci/publish-generated.mjs ensure-ci --branch automation/research-followup-ablations-v34 --sha "$HEAD_SHA" --workflow deploy.yml
   report-v4:
     needs: duel-v4
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     permissions:

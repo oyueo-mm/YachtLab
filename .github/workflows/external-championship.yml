@@ -7,14 +7,6 @@ on:
       - "scripts/external-championship.mjs"
       - "scripts/summarize-external-championship.mjs"
       - ".github/workflows/external-championship.yml"
-  push:
-    branches: [main]
-    paths:
-      - "src/external-challengers.ts"
-      - "tests/external-challengers.test.ts"
-      - "scripts/external-championship.mjs"
-      - "scripts/summarize-external-championship.mjs"
-      - ".github/workflows/external-championship.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -46,7 +38,7 @@ jobs:
           done
   duel:
     needs: verify
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     strategy:
@@ -73,6 +65,7 @@ jobs:
           retention-days: 90
   summarize:
     needs: duel
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

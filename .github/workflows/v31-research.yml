@@ -7,17 +7,7 @@ on:
       - scripts/bench-v31.mjs
       - scripts/summarize-v31.mjs
       - .github/workflows/v31-research.yml
-  push:
-    branches: [main]
-    paths:
-      - src/research-v31.ts
-      - tests/research-v31.test.ts
-      - scripts/bench-v31.mjs
-      - scripts/summarize-v31.mjs
-      - .github/workflows/v31-research.yml
   workflow_dispatch:
-  schedule:
-    - cron: "0 12 * * 0"
 permissions:
   contents: read
 concurrency:
@@ -47,7 +37,7 @@ jobs:
           node scripts/bench-v31.mjs --candidate v31-hybrid --opponent "DP Expert" --shard 1 --smoke
           node scripts/bench-v31.mjs --candidate v3-unmodified --opponent "Win DP v2" --shard 1 --smoke
   duel:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 180
@@ -89,6 +79,7 @@ jobs:
           if-no-files-found: warn
   summarize:
     needs: duel
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

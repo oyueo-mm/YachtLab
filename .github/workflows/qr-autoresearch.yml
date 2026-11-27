@@ -6,13 +6,6 @@ on:
       - "scripts/select-qr-autoresearch.mjs"
       - "scripts/summarize-qr-autoresearch.mjs"
       - ".github/workflows/qr-autoresearch.yml"
-  push:
-    branches: [main]
-    paths:
-      - "scripts/train-qr-autoresearch.mjs"
-      - "scripts/select-qr-autoresearch.mjs"
-      - "scripts/summarize-qr-autoresearch.mjs"
-      - ".github/workflows/qr-autoresearch.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -45,7 +38,7 @@ jobs:
           done
   screen:
     needs: verify
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     strategy:
@@ -174,6 +167,7 @@ jobs:
           retention-days: 90
   report:
     needs: confirm
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:

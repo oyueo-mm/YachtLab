@@ -12,19 +12,6 @@ on:
       - scripts/summarize-frontier.mjs
       - tests/research-frontier.test.ts
       - .github/workflows/frontier-200k.yml
-  push:
-    branches: [main]
-    paths:
-      - src/research-v33.ts
-      - src/research-v34.ts
-      - src/research-v4.ts
-      - scripts/train-v33.mjs
-      - scripts/train-v4.mjs
-      - scripts/select-v4.mjs
-      - scripts/bench-frontier.mjs
-      - scripts/summarize-frontier.mjs
-      - tests/research-frontier.test.ts
-      - .github/workflows/frontier-200k.yml
   workflow_dispatch:
     inputs:
       scale:
@@ -74,7 +61,7 @@ jobs:
           node scripts/bench-frontier.mjs --candidate v34-adaptive --opponent "Win DP v2" --shard 1201 --smoke --compact
           node scripts/bench-frontier.mjs --candidate v4-league --opponent "Win DP v2" --shard 1201 --smoke --compact
   train-v33:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 120
@@ -93,7 +80,7 @@ jobs:
           path: training/results/v33-pack.json
           retention-days: 90
   train-psro:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 90
@@ -206,6 +193,7 @@ jobs:
           if-no-files-found: error
   report:
     needs: duel
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     permissions:

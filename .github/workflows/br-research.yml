@@ -9,16 +9,6 @@ on:
       - "scripts/distill-exact-br.mjs"
       - "scripts/summarize-br-research.mjs"
       - ".github/workflows/br-research.yml"
-  push:
-    branches: [main]
-    paths:
-      - "src/research-last-turn-br.ts"
-      - "tests/research-last-turn-br.test.ts"
-      - "scripts/research-best-response.mjs"
-      - "scripts/train-qr-checkpoint-audit.mjs"
-      - "scripts/distill-exact-br.mjs"
-      - "scripts/summarize-br-research.mjs"
-      - ".github/workflows/br-research.yml"
   workflow_dispatch:
 permissions:
   contents: read
@@ -54,7 +44,7 @@ jobs:
         run: node scripts/train-qr-checkpoint-audit.mjs --config wide128Hybrid --seed-index 0 --tier confirm --smoke
   exact:
     needs: verify
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     strategy:
@@ -80,7 +70,7 @@ jobs:
           retention-days: 90
   counterfactual:
     needs: verify
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     strategy:
@@ -107,7 +97,7 @@ jobs:
           retention-days: 90
   checkpoint:
     needs: verify
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     strategy:
@@ -158,6 +148,7 @@ jobs:
           retention-days: 90
   summarize:
     needs: [exact, counterfactual, checkpoint, distill]
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

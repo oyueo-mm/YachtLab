@@ -5,12 +5,6 @@ on:
       - scripts/bench-v31.mjs
       - scripts/summarize-v31-large.mjs
       - .github/workflows/v31-large.yml
-  push:
-    branches: [main]
-    paths:
-      - scripts/bench-v31.mjs
-      - scripts/summarize-v31-large.mjs
-      - .github/workflows/v31-large.yml
   workflow_dispatch:
 permissions:
   contents: read
@@ -39,7 +33,7 @@ jobs:
           node scripts/bench-v31.mjs --candidate v21-conditional --opponent "Win DP v2" --shard 901 --smoke --compact
           node scripts/bench-v31.mjs --candidate v31-hybrid --opponent "Win DP v3" --shard 901 --smoke --compact
   duel:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 80
@@ -134,6 +128,7 @@ jobs:
           if-no-files-found: error
   summarize:
     needs: duel
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

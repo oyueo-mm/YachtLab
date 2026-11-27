@@ -6,13 +6,6 @@ on:
       - scripts/benchmark-native12-dqn.mjs
       - scripts/summarize-native12-dqn.mjs
       - .github/workflows/native12-dqn.yml
-  push:
-    branches: [main]
-    paths:
-      - scripts/native12-dqn-bridge.py
-      - scripts/benchmark-native12-dqn.mjs
-      - scripts/summarize-native12-dqn.mjs
-      - .github/workflows/native12-dqn.yml
   workflow_dispatch:
 permissions:
   contents: read
@@ -58,7 +51,7 @@ jobs:
           THE7EVEN_PYTHON: python
         run: node scripts/benchmark-native12-dqn.mjs --shard 0 --smoke
   duel:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -100,6 +93,7 @@ jobs:
           retention-days: 90
   summarize:
     needs: duel
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
