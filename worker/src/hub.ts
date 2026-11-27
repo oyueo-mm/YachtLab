@@ -447,7 +447,7 @@ export class HubCore {
   }
 
   private sendReceipt(ws: HostSocket, ticket: string, owner: string) {
-    const stored = this.deps.sql.exec<{ data: string }>("SELECT data FROM results JOIN result_owners USING(ticket) WHERE ticket = ? AND results.expires > ? AND owner = ?",
+    const stored = this.deps.sql.exec<{ data: string }>("SELECT results.data FROM results LEFT JOIN result_owners USING(ticket) WHERE ticket = ? AND results.expires > ? AND (owner = ? OR owner IS NULL)",
       ticket, this.deps.now(), owner).toArray()[0];
     if (!stored) return false;
     this.send(ws, { t: "matched", ...JSON.parse(stored.data) });

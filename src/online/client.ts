@@ -116,7 +116,8 @@ export function saveSeat(seat: SavedSeat) {
   // keep the 10 most recent rooms
   const kept = Object.values(seats).sort((a, b) => b.at - a.at).slice(0, 10);
   writeSeats(Object.fromEntries(kept.map((s) => [s.code, s])));
-  if (!readSeats()[seat.code]) tabSeats.set(seat.code, seat);
+  if (readSeats()[seat.code]?.token !== seat.token) tabSeats.set(seat.code, seat);
+  else tabSeats.delete(seat.code);
 }
 export function forgetSeat(code: string) {
   tabSeats.delete(code);
