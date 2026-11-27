@@ -329,7 +329,7 @@ class Player {
       .sort((a, b) => (this.priority.get(a) ?? 0) - (this.priority.get(b) ?? 0)).slice(0, 1));
   }
 
-  grant(gs: V2Grant[]) {
+  grant(gs: readonly V2Grant[]) {
     for (const g of gs) {
       if (this.measuring) this.opts.recordGrant?.(g, this.day);
       if (this.opts.audited && "item" in g && g.item) this.achievementItems.add(g.item);

@@ -1,0 +1,7 @@
+economy-v2: 12 jobs, 0 resumed, 1 workers
+  E1 complete
+  12/12 (23 s)
+done in 23.0 s → /workspace/work/runner-restart-check
+economy-v2: 12 jobs, 12 resumed, 0 workers
+done in 0.1 s → /workspace/work/runner-restart-check
+../runner-restart-check/E1.json: OK

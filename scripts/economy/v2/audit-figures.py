@@ -12,7 +12,7 @@ args = parser.parse_args()
 root = args.source
 figures = root / "figures"
 figures.mkdir(exist_ok=True)
-mpl.rcParams.update({"svg.hashsalt": "yachtlab-c1", "font.size": 10, "axes.spines.right": False, "axes.spines.top": False})
+mpl.rcParams.update({"svg.hashsalt": "yachtlab-c1", "svg.fonttype": "none", "font.size": 10, "axes.spines.right": False, "axes.spines.top": False})
 
 
 def load(path):
@@ -20,7 +20,9 @@ def load(path):
 
 
 def save(fig, filename):
-    fig.savefig(figures / filename, bbox_inches="tight", metadata={"Date": None})
+    path = figures / filename
+    fig.savefig(path, bbox_inches="tight", metadata={"Date": None})
+    path.write_text("\n".join(line.rstrip() for line in path.read_text().splitlines()) + "\n")
     plt.close(fig)
 
 
@@ -32,13 +34,14 @@ offsets = {
     "V2-CONS": (8, -7), "V2-BAL": (8, -8), "V2-EXP": (-53, 5),
 }
 fig, ax = plt.subplots(figsize=(8.1, 4.45))
-front = holdout["pareto"]["existingDesiredVersusIssue"]
+front = sorted(holdout["pareto"]["existingDesiredVersusIssue"], key=lambda name: points[name]["issue90"])
 ax.plot([points[k]["issue90"] for k in front], [100 * points[k]["desired30"] for k in front],
         color="#147f87", linewidth=1.35, alpha=0.6, zorder=0)
 for name, p in points.items():
     color = "#a0491a" if name == "C1-PRICE" else "#0d646e" if name in front else "#606e83"
     ax.scatter(p["issue90"], 100 * p["desired30"], c=color, s=30)
-    ax.annotate(name, (p["issue90"], 100 * p["desired30"]), xytext=offsets[name], textcoords="offset points", color=color, fontsize=8)
+    ax.annotate(name, (p["issue90"], 100 * p["desired30"]), xytext=offsets[name], textcoords="offset points", color=color, fontsize=8,
+                arrowprops={"arrowstyle": "-", "color": color, "alpha": 0.45, "lw": 0.6})
 ax.set(xlabel="90-day gross coins per account (equal mean of four cohorts)",
        ylabel="Existing players obtaining their target by day 30 (%)", xlim=(13200, 36500), ylim=(9, 26))
 ax.grid(alpha=0.2)
