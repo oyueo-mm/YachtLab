@@ -198,13 +198,13 @@ GitHub 정책상 `GITHUB_TOKEN`으로 push/PR을 만들면 `push`·`pull_request
 | 5 | 자동 PR 병합 후 재실행 | **모의**(머지 커밋 병합 후 같은 출력 → `noop`), 생성기 안정성은 임시 저장소에서 실제 `update-context.mjs`로 확인(머지/스쿼시 제목 모두 변경 0) | 실제 병합 **미검증** |
 | 6 | 무한 반복 방지 | `paths-ignore`·제목 제외·volatile 건너뛰기: **모의/정적** | 실제 push 이벤트 **미검증**(병합 필요) |
 | 7 | 허용 경로 밖 변경 차단 | **모의**(사람이 쓴 문서·untracked·삭제·잘못된 브랜치 이름 모두 exit 1, 아무것도 생성되지 않음). 실제 실행에서도 허용 경로만 커밋됨(시나리오 1) | |
-| 8 | 필수 CI 실행·결과 | **실제**: `deploy.yml`을 `workflow_dispatch`로 비-main 브랜치(내 PR 브랜치)에서 실행(run 46055629404) → `scope`·`build`·`unit`·`browser` 체크가 PR #128 head 커밋에 pull_request 실행과 나란히 붙음. 최종 `ci-result` 결과는 아래 "최종 CI" 참고. docs 전용 변경의 `docs` 모드 판정은 **실제 step 텍스트를 임시 저장소에서 실행**해 확인(모의) | 자동화 브랜치의 `ensure-ci`는 병합 전 시험하면 구 `deploy.yml`(ref 가드 없음)이 실행되므로 **일부러 실행하지 않음**(운영 Pages 배포 금지) → **병합 후 첫 실행에서 확인 필요** |
+| 8 | 필수 CI 실행·결과 | **실제**: `deploy.yml`을 `workflow_dispatch`로 비-main 브랜치(내 PR 브랜치)에서 실행(run 46055629404) → `scope`·`build`·`unit`·`browser` 체크가 PR #128 head 커밋에 pull_request 실행과 나란히 붙음. `ci-result` 잡 **성공**, `deploy` 잡은 `main`이 아니므로 **skipped**(운영 배포 없음) — run 46055629404, 커밋 63d265a. docs 전용 변경의 `docs` 모드 판정은 **실제 step 텍스트를 임시 저장소에서 실행**해 확인(모의) | 자동화 브랜치의 `ensure-ci`는 병합 전 시험하면 구 `deploy.yml`(ref 가드 없음)이 실행되므로 **일부러 실행하지 않음**(운영 Pages 배포 금지) → **병합 후 첫 실행에서 확인 필요** |
 | 9 | Wiki 갱신 | **모의**(로컬 bare wiki: 부트스트랩 → 변경 없음 → 병합 변경 반영, 존재하지 않는 Wiki는 명확히 실패). **실제** 확인: 기존 방식은 매번 "Repository not found"로 실패하고 있었음 | 실제 Wiki push **미검증**(Wiki 첫 페이지 필요) |
 | 10 | 실패 후 안전한 재실행 | **실제**: PR 생성 거부 후 브랜치는 남고 오류가 설정 경로를 안내. **모의**: 설정 후 재실행은 새 커밋 없이 PR만 생성 | |
 | 11 | 병렬 PR과의 호환 | **실제 git**: 9개 PR 헤드 각각과 `git merge-tree`로 병합 시뮬레이션 → CI-1과 충돌 0. #123과는 `deploy.yml` 동일 줄 → 합쳐짐 | 병합 순서·충돌은 §9 |
 | 12 | 기존 테스트·빌드 회귀 | **실제(로컬)**: `npm test` 70개 파일 중 CI-1 신규·기존 모두 통과, `npm run build` exit 0. **실제(GitHub CI)**: PR #128의 `unit`·`build`·`browser`·`ci-result` | 아래 "최종 CI" |
 
-최종 CI: FINAL_CI
+최종 CI: PR #128의 Checks 탭(`unit`·`build`·`browser`·`ci-result`)이 최신 커밋의 결과입니다. 이 문서는 결과 수치를 복제하지 않습니다.
 
 ## 12. 롤백
 
