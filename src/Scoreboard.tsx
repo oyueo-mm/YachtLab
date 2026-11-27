@@ -1,4 +1,6 @@
 import { ScoreTotal } from "./ui/GameMoments";
+import { useJustAchieved } from "./use-just-achieved";
+import "./bonus-moment.css";
 import { useYachtReady } from "./yacht-moment";
 import { Star, Shapes, Sigma } from "lucide-react";
 import {
@@ -15,7 +17,20 @@ import {
 import { DieIcon } from "./Dice";
 import { CategoryHelp } from "./CategoryHelp";
 import type { PlayerTone } from "./play/Looks";
-export function BonusProgress({card}:{card:Card}) { const points=upper(card),remaining=Math.max(0,63-points),achieved=bonus(card)>0,finished=categories.slice(0,6).every(c=>card[c]!==undefined); return <div className={"bonus-progress"+(achieved?" achieved":"")}><strong>{achieved?"+35":points+" / 63"}</strong><small>{achieved?"달성!":finished?remaining+"점 부족":remaining+"점 남음"}</small><div className="bonus-track" role="progressbar" aria-label="상단 보너스 진행도" aria-valuemin={0} aria-valuemax={63} aria-valuenow={Math.min(63,points)}><i style={{width:Math.min(100,points/63*100)+"%"}}/></div></div>; }
+export function BonusProgress({ card }: { card: Card }) {
+  const points = upper(card), remaining = Math.max(0, 63 - points), achieved = bonus(card) > 0, finished = categories.slice(0, 6).every((c) => card[c] !== undefined);
+  // The cell and its bar light up for a moment when this card earns the bonus while the sheet is open.
+  const just = useJustAchieved(achieved);
+  return (
+    <div className={"bonus-progress" + (achieved ? " achieved" : "") + (just ? " just" : "")}>
+      <strong>{achieved ? "+35" : points + " / 63"}</strong>
+      <small>{achieved ? "달성!" : finished ? remaining + "점 부족" : remaining + "점 남음"}</small>
+      <div className="bonus-track" role="progressbar" aria-label="상단 보너스 진행도" aria-valuemin={0} aria-valuemax={63} aria-valuenow={Math.min(63, points)}>
+        <i style={{ width: Math.min(100, (points / 63) * 100) + "%" }} />
+      </div>
+    </div>
+  );
+}
 export function CategoryIcon({ category }: { category: Category }) {
   const index = categories.indexOf(category);
   const patterns: Partial<Record<Category, number[]>> = {

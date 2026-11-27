@@ -1,0 +1,101 @@
+import { returningVisitorState } from "./visitor";
+import { expect, test, devices, type BrowserContext, type Browser, type Page } from "@playwright/test";
+import { startLocalWorker, type LocalWorker } from "../helpers/wrangler";
+import { nick } from "./helpers";
+
+/**
+ * A2 in the real online game (isolated local Worker, two guests): chat lines get their meaning-based
+ * motion class, bubbles hang under the seat chips without covering dice / roll button / scoreboard, and a
+ * heavy cosmetic combination (frame + name effect + equipped bubble + dice rolling on the real 3D table)
+ * keeps the frame rate. Guests own no cosmetics, so the cosmetic classes are applied to the live seat DOM
+ * (real layout and game loop; the items themselves are covered by the preview page tests).
+ * Frame figures are headless Chromium + SwiftShader emulation, not a real device.
+ */
+let worker: LocalWorker;
+const ORIGIN = "http://127.0.0.1:5173";
+const contexts: BrowserContext[] = [];
+test.beforeAll(async ({}, info) => {
+  if (info.project.name === "mobile") return;
+  test.setTimeout(120_000);
+  worker = await startLocalWorker({ ALLOWED_ORIGINS: ORIGIN, TURN_TIMEOUT_MS: "0", CREATE_PER_MINUTE: "500", JOIN_PER_MINUTE: "500" });
+});
+test.afterEach(async () => { await Promise.all(contexts.splice(0).map((c) => c.close().catch(() => undefined))); });
+test.afterAll(async () => { await worker?.stop(); });
+const entry = () => `?online-server=${encodeURIComponent(worker.url)}#online`;
+async function device(browser: Browser, phone: boolean): Promise<Page> {
+  const ctx = await browser.newContext({ storageState: returningVisitorState(), ...(phone ? devices["Pixel 7"] : { viewport: { width: 1366, height: 900 } }), baseURL: ORIGIN + "/YachtLab/", reducedMotion: "no-preference" });
+  contexts.push(ctx);
+  return ctx.newPage();
+}
+const hit = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+test("온라인 대전: 채팅 문구가 의미별 움직임·말풍선 레이어로 표시되고 점수판·주사위를 가리지 않으며, 고부하 꾸미기 조합에서도 프레임이 유지된다", async ({ browser }, info) => {
+  test.skip(info.project.name === "mobile", "두 기기를 한 테스트에서 직접 만든다");
+  test.setTimeout(240_000);
+  const pc = await device(browser, false);
+  const phone = await device(browser, true);
+  for (const [p, n] of [[pc, "피씨"], [phone, "폰"]] as const) {
+    await p.goto(entry());
+    await nick(p, n);
+    await p.getByRole("button", { name: "빠른 대전 시작" }).click();
+  }
+  for (const p of [pc, phone]) await expect(p.locator(".roll-button")).toBeVisible({ timeout: 15_000 });
+
+  // chat: "화이팅!" (cheer). The receiver's seat feed carries the mood class and tier class; the bubble layer is separate.
+  await pc.getByRole("button", { name: "채팅·이모티콘" }).click();
+  const sheet = pc.getByRole("dialog", { name: "채팅·이모티콘" });
+  await expect(sheet.locator(".social-tier").first()).toBeVisible();
+  await sheet.getByRole("button", { name: "화이팅!", exact: true }).click();
+  const received = phone.locator(".anchored-feed .feed-msg.chat").filter({ hasText: "화이팅!" });
+  await expect(received).toBeVisible({ timeout: 8000 });
+  await expect(received).toHaveClass(/chat-m-cheer/);
+  await expect(received).toHaveClass(/chat-t-basic/);
+  expect(await received.evaluate((n) => /bubble-/.test(n.className))).toBe(false);
+
+  // no cover: bubble vs roll button, kept-dice slots, scoreboard (both screens)
+  for (const p of [pc, phone]) {
+    const o = await p.evaluate(() => {
+      const box = (q: string) => document.querySelector(q)?.getBoundingClientRect() ?? null;
+      const feed = [...document.querySelectorAll(".anchored-feed .feed-msg")].map((n) => n.getBoundingClientRect());
+      // The 3D tray itself is the existing design (bubbles hang from the seat chip over its top corner, D-060); what must stay clear is the roll button, the kept-dice slots and the scoreboard.
+      const targets = [".roll-button", ".dice-hold-area, .game-board .die-button", ".scoreboard"].map(box);
+      const hit = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      return feed.some((f) => targets.some((t) => t && hit(f, t)));
+    });
+    expect(o).toBe(false);
+  }
+
+  // Heavy combination on the live seat DOM (guests own nothing; the items themselves are checked with
+  // real member accounts in a2-members.spec.ts). Same-run comparison: the SAME page and the same kind of
+  // roll without, then with, the cosmetics — an absolute frame budget would only measure the CI machine.
+  const pages = [pc, phone];
+  let rollerIdx = -1;
+  await expect.poll(async () => { for (const [i, p] of pages.entries()) if (await p.locator(".roll-button").isEnabled().catch(() => false)) { rollerIdx = i; return true; } return false; }, { timeout: 15_000 }).toBe(true);
+  const roller = pages[rollerIdx];
+  await roller.locator(".roll-button").click(); // warm-up throw (shaders, chunks): not judged
+  await roller.waitForTimeout(2500);
+  const measure = async () => {
+    for (const p of pages) await p.evaluate(() => { const w = window as unknown as { __f: number[]; __stop?: boolean }; w.__f = []; w.__stop = false; let last = performance.now(); const loop = (t: number) => { w.__f.push(t - last); last = t; if (!w.__stop) requestAnimationFrame(loop); }; requestAnimationFrame(loop); });
+    await roller.locator(".roll-button").click();
+    await roller.waitForTimeout(3500);
+    return Promise.all(pages.map((p) => p.evaluate(() => { const w = window as unknown as { __f: number[]; __stop: boolean }; w.__stop = true; const f = w.__f.slice(5).sort((a, b) => a - b); return { n: f.length, avg: f.reduce((a, b) => a + b, 0) / f.length, p95: f[Math.floor(f.length * 0.95)], slow: f.filter((x) => x > 33.5).length }; })));
+  };
+  const base = await measure();
+  for (const p of pages) {
+    await p.evaluate(() => {
+      document.querySelectorAll(".seat-chip .player-icon").forEach((n) => n.classList.add("pf-ring-holo", "pf-lv3"));
+      document.querySelectorAll(".seat-chip .player-name").forEach((n) => n.classList.add("namefx-neon", "fx-lv3"));
+      document.querySelectorAll(".anchored-feed .feed-msg").forEach((n) => n.classList.add("bubble-holo", "bubble-lv3"));
+    });
+    await expect(p.locator(".seat-chip .player-icon.pf-ring-holo").first()).toBeVisible();
+  }
+  const heavy = await measure();
+  console.log("A2-ONLINE-PERF", JSON.stringify({ base, heavy }));
+  // Not worse than the same screen without cosmetics by more than 30 % (+3 ms) on average.
+  for (const i of [0, 1]) {
+    expect(heavy[i].avg, `screen ${i} average frame`).toBeLessThanOrEqual(base[i].avg * 1.3 + 3);
+    expect(heavy[i].slow, `screen ${i} slow frames`).toBeLessThanOrEqual(base[i].slow + Math.ceil(heavy[i].n * 0.1));
+  }
+  await pc.screenshot({ path: "docs/ui/a2-2026-11/after/online-desktop-heavy.png" });
+  await phone.screenshot({ path: "docs/ui/a2-2026-11/after/online-phone-heavy.png" });
+});
