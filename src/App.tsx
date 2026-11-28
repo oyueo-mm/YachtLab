@@ -45,6 +45,7 @@ import { aiMatchConfig, finalizeNames, getAiSetup, getLocalSetup, type AiMatchCo
 // Research tools are a separate, lazily loaded chunk (see routes.ts "lab" tier).
 const LabScreen = lazy(() => import("./lab/LabScreen"));
 const ItemsPage = lazy(() => import("./shell/EconomyPages").then((module) => ({ default: module.ItemsPage })));
+const DailyPage = lazy(() => import("./daily/DailyPage"));
 const QuestsPage = lazy(() => import("./shell/EconomyPages").then((module) => ({ default: module.QuestsPage })));
 
 type LocalConfig = { players: string[]; order: LocalOrder };
@@ -410,6 +411,7 @@ export default function App() {
             achievements={page === "achievements" || (page !== "quests" && suspended?.route === "achievements")} />)}
         </Suspense>
         {page === "friends" && <FriendsPage server={onlineServer} go={navigate} />}
+        {page === "daily" && <Suspense fallback={<p className="econ-note" role="status"><BrandMark /> 불러오는 중…</p>}><DailyPage server={onlineServer} go={navigate} /></Suspense>}
         {page === "spectate" && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "spectate" && onlineServer && (watchTarget ? <OnlineWatch key={watchTarget.code + watchTarget.key} server={onlineServer} code={watchTarget.code} watchKey={watchTarget.key} onLeave={() => navigate("home")} /> : (
           <p className="online-connecting" role="alert">

@@ -2,6 +2,8 @@
 
 > **SEC-1 CI 후속(D-102):** 실패 잠금 강화(SEC-1-03), 빌드·운영 토큰 분리(SEC-1-04), CI Low 3건 정리. 남은 운영자 조치: 구형 저장소 Cloudflare 시크릿 폐기(SEC-1-02). [SEC-1 CI 후속](../operations/SEC-1-CI-FOLLOWUP.md)
 
+> **LIVE-1 오늘의 요트·전략 퍼즐·일일 랭킹(담당 05)**: ✅ 개발 완료, INT-1 인계([인계 문서](./LIVE-1-HANDOFF-INT-1.md)). 구현·검증(브랜치 `claude/funny-hamilton-5aavn9`, 운영 비공개 `DAILY=off`). 통합 계약 반영(ADMIN-1 확장 라우트·C5 `dailyContentDone` 어댑터, 공유 토큰 경로 제거). 남은 일: INT-1 등록·마이그레이션 번호 확정, Worker 수동 배포(보호 입력), `DAILY_SECRET` 설정(날짜 지정 교체), 비공개 경로 1주 관찰, 01 로비 진입점 협의, 퍼즐 은행 연장(2027-02-22 뒤 다시 보는 퍼즐). [LIVE-1](./DAILY-LIVE-1.md) (D-LIVE1-1~D-LIVE1-6)
+
 > **CI-1.2 Worker 자동 배포(D-100):** main 파이프라인 성공 뒤 Worker 입력이 바뀐 경우만 자동 배포, 보호 입력·롤백·실패 시 정지 → 수동. [운영 문서](../operations/CI-1-2-WORKER-AUTO-DEPLOY.md)
 
 > **2026-11-28 제품 통합 출시(#134):** C3·A3·A5·A4·C4.2 통합, A3 온라인 계정 갱신·보상 알림 연결 완료. 후속: 온라인 결과 카드 `MatchResultPanel` 교체(관전·다인전 포함), C3.1 대기실 분리, C4.2 잔존 정리 7일 dry-run(별도 승인), #126 정책 공개. [출시 기록](../operations/RELEASE-2026-11-28.md)
