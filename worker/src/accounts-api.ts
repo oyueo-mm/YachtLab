@@ -3,7 +3,7 @@ import type { ReviewMatch } from "../../src/review/model";
 import type { MatchReceipt } from "../../src/economy/live/receipt";
 import { sanitizeRecord, type MatchRecord } from "../../src/identity/records";
 import { sanitizeSoloRecord, type SoloRecord } from "../../src/solo/records";
-import { GOOGLE, OidcError, USER_ID, beginLogin, finishLogin, seal, sha256, unseal, userIdFor, type LoginState, type OidcProvider } from "./oidc";
+import { GOOGLE, OidcError, USER_ID, beginLogin, finishLogin, requireFreshAuth, seal, sha256, unseal, userIdFor, type LoginState, type OidcProvider } from "./oidc";
 import type { PrivateProfile, PublicProfile } from "./account";
 
 /**
@@ -47,6 +47,8 @@ export interface UserApi {
   ensureAndCode(userId: string, provider: string, clientStateHash: string): Promise<string>;
   exchange(code: string, clientState: string): Promise<string | null>;
   authenticate(session: string): Promise<boolean>;
+  /** ADMIN-1: authentication plus the account's sanction standing in ONE call (no extra request). */
+  authenticateStanding?(session: string): Promise<{ ok: boolean; suspended: boolean; restricted: boolean; until: number | null }>;
   me(): Promise<PrivateProfile | null>;
   records(limit: number): Promise<MatchRecord[]>;
   matchReview?(matchId: string): Promise<{ review: ReviewMatch | null } | null>;
@@ -83,6 +85,11 @@ export type AccountBackends = {
   limited(key: string, perMinute: number): Promise<boolean>;
   fetcher: typeof fetch;
   now(): number;
+  /**
+   * ADMIN-1: after a Google re-authentication (`purpose=admin`), a one-time ticket for an admin session —
+   * null when this account is not an administrator. Never creates an account.
+   */
+  adminReauth?(userId: string, clientStateHash: string, authTime: number): Promise<string | null>;
 };
 
 const COOKIE = "__Host-yl_oidc";
@@ -111,12 +118,20 @@ async function body(request: Request, max: number): Promise<Record<string, unkno
 }
 
 /** The signed-in user of this request, or null (no / invalid / expired session). */
-export async function sessionUser(request: Request, b: AccountBackends): Promise<{ userId: string; secret: string } | null> {
+export async function sessionUser(request: Request, b: AccountBackends): Promise<SessionUser | null> {
   const m = SESSION.exec((request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, ""));
   if (!m) return null;
-  const ok = await b.user(m[1]).authenticate(m[2]).catch(() => false);
-  return ok ? { userId: m[1], secret: m[2] } : null;
+  const user = b.user(m[1]);
+  if (user.authenticateStanding) {
+    const r = await user.authenticateStanding(m[2]).catch(() => null);
+    return r?.ok ? { userId: m[1], secret: m[2], suspended: r.suspended, restricted: r.restricted, until: r.until } : null;
+  }
+  const ok = await user.authenticate(m[2]).catch(() => false);
+  return ok ? { userId: m[1], secret: m[2], suspended: false, restricted: false, until: null } : null;
 }
+/** A signed-in request. `suspended` / `restricted` come from the account's own sanction records (ADMIN-1). */
+export type SessionUser = { userId: string; secret: string; suspended: boolean; restricted: boolean; until: number | null };
+export const SUSPENDED_MESSAGE = "이용이 정지된 계정이에요. 알림함에서 사유를 확인하고 이의제기할 수 있어요.";
 
 /**
  * Handle an account route, or return null when the path is not one. `client` is the hashed client
@@ -136,7 +151,8 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
     const cs = url.searchParams.get("cs") ?? "";
     if (!CS_HASH.test(cs)) return new Response("bad request", { status: 400 });
     const redirectUri = url.origin + "/auth/google/callback";
-    const { url: to, login } = await beginLogin({ provider: cfg.provider, clientId: cfg.clientId, redirectUri, clientStateHash: cs, now: b.now() });
+    const purpose = url.searchParams.get("purpose") === "admin" && b.adminReauth ? ("admin" as const) : undefined;
+    const { url: to, login } = await beginLogin({ provider: cfg.provider, clientId: cfg.clientId, redirectUri, clientStateHash: cs, now: b.now(), purpose });
     return new Response(null, {
       status: 302,
       headers: {
@@ -158,18 +174,25 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
     const state = url.searchParams.get("state") ?? "";
     // Without our own cookie with the same state this callback was not started by this browser (login CSRF).
     if (!login || login.exp < b.now() || login.state !== state) return back("login-error=state");
-    if (url.searchParams.get("error")) return back("login-error=cancelled");
+    const err = (reason: string) => back((login.purpose === "admin" ? "admin-reauth-error=" : "login-error=") + reason);
+    if (url.searchParams.get("error")) return err("cancelled");
     const code = url.searchParams.get("code");
-    if (!code || code.length > 2048) return back("login-error=code");
+    if (!code || code.length > 2048) return err("code");
     try {
       const claims = await finishLogin({ provider: cfg.provider, clientId: cfg.clientId, clientSecret: cfg.clientSecret, redirectUri: url.origin + "/auth/google/callback", code, login, now: b.now(), fetcher: b.fetcher });
       const userId = await userIdFor(cfg.provider.name, claims.sub);
+      if (login.purpose === "admin") {
+        // ADMIN-1 re-authentication: fresh auth_time required, no account is created, non-admins get the same error
+        const authTime = requireFreshAuth(claims, login);
+        const ticket = b.adminReauth ? await b.adminReauth(userId, login.cs, authTime) : null;
+        return back(ticket ? `admin-reauth=${ticket}` : "admin-reauth-error=denied");
+      }
       const oneTime = await b.user(userId).ensureAndCode(userId, cfg.provider.name, login.cs);
       return back(`login=${userId}.${oneTime}`);
     } catch (error) {
       // Never log tokens or claims; only the error kind.
       console.warn("sign-in failed", error instanceof OidcError ? error.code : "unexpected");
-      return back("login-error=verify");
+      return back(login.purpose === "admin" ? "admin-reauth-error=verify" : "login-error=verify");
     }
   }
 
@@ -227,6 +250,8 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
   if (path === "/api/me/economy" && method === "GET" && user.economy) return econ(await user.economy());
   if (path === "/api/me/shop/draw" && method === "GET" && user.drawStatus) return econ(await user.drawStatus());
   if (method !== "POST") return fail(404, "NOT_FOUND", "없는 주소입니다.");
+  // ADMIN-1: a suspended account may still read, sign out and delete itself — nothing else.
+  if (me.suspended && path !== "/api/me/logout" && path !== "/api/me/logout-all" && path !== "/api/me/delete") return fail(403, "SUSPENDED", SUSPENDED_MESSAGE);
   if (path.startsWith("/api/me/shop/") || path === "/api/me/loadout" || path === "/api/me/quests/reroll") {
     if (!user.buy) return fail(404, "ECONOMY_OFF", "재화 기능은 아직 준비 중이에요.");
     const input = await body(request, 4096);
