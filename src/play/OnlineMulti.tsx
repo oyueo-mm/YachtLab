@@ -231,7 +231,7 @@ export function MultiTable(p: {
   const theme = stage.theme;
   const boardRef = useRef<HTMLElement | null>(null);
   const finished = view.status === "finished";
-  const [all, setAll] = useState(false);
+  const [all, setAll] = useState(true);
   const game: MultiGame = { dice: p.dice, order: [0, 1, 2, 3, 4], cards: players.map((x) => x.card), player: turnIndex, round: view.round || 12, rolls: p.rolls, done: finished, winners: [], seed: 0, rng: [], actions: view.version };
   const labels = players.map((x) => x.name);
   const myTurn = !!view.legal;
@@ -312,10 +312,10 @@ export function MultiTable(p: {
       <div className="multi-scores online-multi-scores">
         {players.length > 8 && (
           <div className="multi-view-switch">
-            <button type="button" className={!all ? "active" : ""} onClick={() => setAll(false)}>
+            <button type="button" className={!all ? "active" : ""} aria-pressed={!all} onClick={() => setAll(false)}>
               {simultaneous ? "내 점수판" : "현재 차례"}
             </button>
-            <button type="button" className={all ? "active" : ""} onClick={() => setAll(true)}>
+            <button type="button" className={all ? "active" : ""} aria-pressed={all} onClick={() => setAll(true)}>
               전체 점수판
             </button>
           </div>
@@ -325,6 +325,7 @@ export function MultiTable(p: {
           labels={labels}
           compact
           focused={players.length > 8 && !all}
+          pinned={meIndex}
           select={p.can ? p.onSelectScore : undefined}
           selected={p.can ? p.selectedScore : null}
           onConfirm={() => {

@@ -1,0 +1,200 @@
+/*
+ * UI-1 (2026-11-28) — shared N-player score sheet for local, online, solo and replay screens.
+ * One definitive layer on top of the earlier per-screen rules (styles.css, multi-compact.css,
+ * mobile-a4.css, table-v4.css): the repeated `.ui1-sheet` class only raises specificity so this
+ * file wins regardless of load order. Column widths come from `sheetLayout()` (src/ui/sheet-layout.ts)
+ * through --ui1-cat / --ui1-col / --ui1-cols.
+ */
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet {
+  container: ui1-sheet / inline-size;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .score-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet.compact .score-title { display: none; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet.compact.ui1-scrolls .score-title { display: flex; padding: 8px 12px 4px; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet.compact.ui1-scrolls .score-title h2 { font-size: 13px; margin: 0; }
+.ui1-scroll-hint { color: var(--muted); font-size: 11px; white-space: nowrap; }
+
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .multi-score-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-height: none;
+  width: 100%;
+  max-width: 100%;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet.ui1-fits .multi-score-scroll { overflow-x: hidden; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet table {
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 0;
+  width: max(100%, calc(var(--ui1-cat, 156px) + var(--ui1-cols, 2) * var(--ui1-col, 72px)));
+}
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet col.ui1-col-category { width: var(--ui1-cat, 156px); }
+
+/* cells */
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet :is(th, td) {
+  box-sizing: border-box;
+  height: 40px;
+  padding: 3px 6px;
+  vertical-align: middle;
+}
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet td {
+  width: auto;
+  min-width: var(--ui1-col, 72px);
+  max-width: none;
+  text-align: center;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet :is(tbody th, thead th:first-child) {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  width: var(--ui1-cat, 156px);
+  min-width: var(--ui1-cat, 156px);
+  max-width: var(--ui1-cat, 156px);
+  overflow: hidden;
+  padding-left: 12px;
+  background: #fff;
+  text-align: left;
+}
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .section-row th {
+  position: static;
+  width: auto;
+  max-width: none;
+  height: 24px;
+  padding: 2px 12px !important;
+  background: #f8f7f6;
+  color: var(--muted);
+  font-size: 11px !important;
+}
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .category-cell { display: flex; align-items: center; gap: 4px; min-width: 0; width: 100%; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .category-label {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  white-space: nowrap;
+  text-align: left;
+}
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .ui1-cat-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .category-label small { flex: none; color: var(--muted); font-size: 10px; }
+/* multi-die patterns (포커, 풀 하우스, 스트레이트, 요트) take ~100px: the name alone is clearer in a sheet */
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .category-pattern { display: none; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .category-icon { flex: none; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .category-help { flex: none; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet tbody th svg { flex: none; width: 15px; height: 15px; }
+
+/* player header: name (ellipsis) + rank/turn */
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet thead th {
+  height: auto;
+  padding: 7px 4px 5px;
+  border-bottom: 2px solid var(--line);
+  font-size: 12px;
+  line-height: 1.25;
+  vertical-align: bottom;
+}
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet thead th:not(:first-child) { overflow: hidden; max-width: none; text-align: center; white-space: nowrap; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet thead .col-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 650; color: var(--ink); }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet thead .col-meta { display: block; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-size: 10.5px; font-weight: 600; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet thead th.current { background: #fff1ec; border-bottom: 3px solid var(--red, #d7352f); }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet thead th.current .col-name,
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet thead th.current .col-meta { color: var(--red-deep, #b3261e); }
+.ui1-turn-badge { font-weight: 750; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .multi-current-cell { background: #fff8f6; }
+
+/* pinned seat while scrolling */
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .ui1-pinned {
+  position: sticky;
+  left: var(--ui1-cat, 156px);
+  z-index: 2;
+  background: #fff;
+  box-shadow: 8px 0 8px -8px rgba(33, 18, 18, 0.28);
+}
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .ui1-pinned.multi-current-cell,
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet thead th.ui1-pinned.current { background: #fff3ef; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet thead th.ui1-pinned { z-index: 4; }
+
+/* score buttons always fill the cell and keep a 44×36 target */
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .score-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 44px;
+  max-width: 104px;
+  min-height: 36px;
+  margin: 0 auto;
+  padding: 0 4px;
+  border: 1px solid #dca8a0;
+  border-radius: 8px;
+  background: #fff3ef;
+  color: var(--red-deep, #b3261e);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .score-option:hover { background: #ffe6de; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .score-option[aria-pressed="true"] { border-color: var(--red, #d7352f); background: var(--red, #d7352f); color: #fff; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .fixed-score { display: inline-block; font-weight: 650; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .empty-score { color: #c9c4c2; }
+
+/* bonus + total */
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .bonus-row :is(th, td) { height: 44px; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .bonus-progress { min-width: 0; width: 100%; text-align: center; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .bonus-progress strong { display: block; font-size: 11.5px; white-space: nowrap; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .bonus-progress small { display: block; overflow: hidden; text-overflow: ellipsis; font-size: 10px; white-space: nowrap; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .bonus-track { width: 100%; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .total-row :is(th, td) { height: 44px; font-size: 15px; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .total-row th { background: #fff; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .total-row td { background: #262626; color: #fff; font-weight: 750; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .total-row td:is(.multi-current-cell, .ui1-pinned) { background: #4b1f1c; color: #fff; }
+
+/* medium sheets: drop the die icons so names like "에이스 (1)" fit the category column */
+@container ui1-sheet (max-width: 759px) {
+  .ui1-sheet .category-icon, .ui1-sheet tbody th svg { display: none !important; }
+}
+/* narrow sheets (phones, many columns): text only, no help icons */
+@container ui1-sheet (max-width: 479px) {
+  .ui1-sheet .category-icon, .ui1-sheet .category-help, .ui1-sheet tbody th svg { display: none !important; }
+  .ui1-sheet .category-label { font-size: 12px !important; }
+  .ui1-sheet .bonus-progress small, .ui1-sheet .category-label small { display: none !important; }
+  .ui1-sheet :is(th, td) { padding-left: 3px !important; padding-right: 3px !important; }
+  .ui1-sheet :is(tbody th, thead th:first-child) { padding-left: 8px !important; }
+  .ui1-scroll-hint { font-size: 10px; }
+}
+
+/* ---- N-player game grid (local + online multi) ---- */
+/* 2–4 players on a wide screen: board beside the sheet; the sheet's width follows the player count. */
+@media (min-width: 1100px) {
+  .app-shell .multi-local-game .multi-game-grid.multi-small,
+  .app-shell .online-multi.game-grid {
+    grid-template-columns: minmax(400px, 1fr) minmax(0, calc(156px + var(--np, 2) * 100px));
+    align-items: start;
+  }
+}
+/* 5+ players, or narrower screens: board on top, the sheet below at full width */
+@media (min-width: 761px) {
+  .app-shell .multi-local-game .multi-game-grid:is(.multi-medium, .multi-wide) { grid-template-columns: minmax(0, 1fr); }
+  .app-shell .multi-local-game .multi-game-grid:is(.multi-medium, .multi-wide) .game-board { min-height: clamp(280px, 40vh, 420px); }
+}
+@media (min-width: 761px) and (max-width: 1099px) {
+  .app-shell .multi-local-game .multi-game-grid.multi-small { grid-template-columns: minmax(0, 1fr); }
+  .app-shell .multi-local-game .multi-game-grid.multi-small .game-board { min-height: clamp(280px, 40vh, 420px); }
+}
+.app-shell .multi-local-game .multi-player-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell .multi-local-game .multi-player-chip.selected { box-shadow: inset 0 0 0 1px var(--red, #d7352f); }
+.multi-standing-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui1-sheet-switch { display: flex; width: 100%; margin: 0 0 10px; }
+.ui1-sheet-switch > button { flex: 1 1 0; min-height: 40px; }
+.mobile-score-scroll .ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet { border: 1px solid var(--line); border-radius: 12px; }

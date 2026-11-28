@@ -11,7 +11,9 @@ import { GUEST_LOOK } from "../economy/live/catalog";
 import { PlayerTag } from "../play/Looks";
 import type { useProfileEconomy } from "./profile-economy";
 import "./navigation.css";
+import "./header-ui1.css";
 import { useInbox } from "./Friends";
+import { FriendsButton, FriendsPanel } from "./FriendsPanel";
 
 export function FullscreenToggle() {
   const supported = typeof document !== "undefined" && !!document.fullscreenEnabled && !!document.documentElement.requestFullscreen;
@@ -292,6 +294,8 @@ export function TopBar({ route, server, profile, navigate, openSettings }: {
   const wallet = profile.snapshot?.wallet;
   const shopLinks = [{ route: "shop", title: "상점", Icon: Store }, { route: "inventory", title: "인벤토리", Icon: Backpack }] as const;
   const compactBalance = new Intl.NumberFormat("ko-KR", { notation: "compact", maximumFractionDigits: 1 });
+  const [friendsOpen, setFriendsOpen] = useState(false);
+  useEffect(() => { setFriendsOpen(false); }, [route]);
   return (
     <header className={`shell-top shell-top-${info.shell}`} inert={route === "tutorial"}>
       <div className="shell-top-left">
@@ -308,6 +312,7 @@ export function TopBar({ route, server, profile, navigate, openSettings }: {
             <Icon size={19} aria-hidden="true" /><span>{title}</span>
           </button>
         ))}
+        <FriendsButton open={friendsOpen} current={route === "friends"} signedIn={profile.signedIn} onOpen={() => setFriendsOpen(true)} />
         {profile.signedIn && <div className="top-wallet" aria-label="보유 재화">
           {([{ label: "코인", value: wallet?.coins, Icon: Coins, kind: "coin" }, { label: "보석", value: wallet?.gems, Icon: Gem, kind: "gem" }]).map(({ label, value, Icon, kind }) => (
             <span key={kind} className={kind} role="group" title={`${label} ${value?.toLocaleString() ?? "–"}`} aria-label={`${label} ${value?.toLocaleString() ?? "–"}`}>
@@ -320,6 +325,7 @@ export function TopBar({ route, server, profile, navigate, openSettings }: {
         <button type="button" className="icon-button shell-icon" aria-label="설정" title="설정" aria-haspopup="dialog" onClick={openSettings}><Settings size={20} /></button>
         <ProfileMenu route={route} server={server} profile={profile} navigate={navigate} />
       </div>
+      <FriendsPanel open={friendsOpen} onClose={() => setFriendsOpen(false)} server={server} navigate={navigate} />
     </header>
   );
 }

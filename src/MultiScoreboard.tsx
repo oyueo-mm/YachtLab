@@ -1,13 +1,42 @@
-import { Fragment } from "react";
+import { Fragment, useLayoutEffect, useRef, useState } from "react";
 import { ScoreTotal } from "./ui/GameMoments";
 import { Star, Sigma } from "lucide-react";
 import { categories, names, score, total, type Category } from "./engine";
 import { CategoryIcon, BonusProgress } from "./Scoreboard";
 import { CategoryHelp } from "./CategoryHelp";
 import { multiStandings, type MultiGame } from "./multi-engine";
+import { sheetLayout, type SheetLayout } from "./ui/sheet-layout";
+import "./ui/scoreboard-ui1.css";
 
+/** Width of the scroll area, measured so the sheet can decide between "all columns fit" and "pin + scroll". */
+function useWidth<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    setWidth(node.clientWidth);
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => setWidth(node.clientWidth));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, width] as const;
+}
+
+/**
+ * Common N-player score sheet (UI-1, 2026-11-28) for local, online, AI replay and solo screens.
+ *
+ * - Every column has a minimum width (category ≥ 96px, player ≥ 60px) and every score button fills its
+ *   cell (≥ 44×36 px), so buttons never shrink into the category names (local 2–8 bug before UI-1).
+ * - When all columns fit, players keep their seat order. When they don't (many players, narrow
+ *   screens), the `pinned` player (me online, the current player locally) moves next to the sticky
+ *   category column and stays visible while the other columns scroll horizontally.
+ * - The current player's column carries a coloured header band, a "차례" badge and a tinted column.
+ * - Long names are cut with an ellipsis in the header; the full name is in `title`.
+ */
 export function MultiScoreboard({
-  state, labels, select, selected = null, onConfirm, onClear, focused = false, compact = false,
+  state, labels, select, selected = null, onConfirm, onClear, focused = false, compact = false, pinned,
 }: {
   state: MultiGame;
   labels: string[];
@@ -16,29 +45,45 @@ export function MultiScoreboard({
   onConfirm?: () => void;
   onClear?: () => void;
   focused?: boolean;
-  /** Multi-player desktop layout: width follows the player count, one row per combination, header with rank and turn. */
+  /** Multi-player layout: header with rank and turn. */
   compact?: boolean;
+  /** Seat kept visible next to the category column when the sheet has to scroll (defaults to the current player). */
+  pinned?: number;
 }) {
-  const indices = focused ? [state.player] : state.cards.map((_, i) => i);
+  const [scrollRef, width] = useWidth<HTMLDivElement>();
   const current = state.player;
+  const seats = focused ? [current] : state.cards.map((_, i) => i);
+  const layout: SheetLayout = sheetLayout({ width, seats, pinned: focused ? undefined : pinned ?? current });
+  const indices = layout.order;
   const chosen = (index: number, category: Category) =>
     Boolean(select) && index === current && state.rolls > 0 && !state.done && state.cards[index][category] === undefined;
   const rankOf = compact ? new Map(multiStandings(state).map((x) => [x.player, x.rank])) : null;
+  const turnOf = (i: number) => current === i && !state.done && state.cards.length > 1;
+  const cellClass = (i: number) => [i === current && !state.done ? "multi-current-cell" : "", layout.scroll && i === layout.pinned ? "ui1-pinned" : ""].filter(Boolean).join(" ") || undefined;
   return (
-    <section className={"scoreboard panel multi-scoreboard" + (compact ? " compact" : "")} aria-label="점수판">
+    <section
+      className={"scoreboard panel multi-scoreboard ui1-sheet" + (compact ? " compact" : "") + (layout.scroll ? " ui1-scrolls" : " ui1-fits")}
+      aria-label="점수판"
+      data-players={state.cards.length}
+      style={{ "--ui1-cols": indices.length, "--ui1-cat": layout.category + "px", "--ui1-col": layout.column + "px" } as React.CSSProperties}
+    >
       <div className="score-title">
         <h2>{focused ? labels[current] + " 점수판" : "점수판"}</h2>
-
+        {layout.scroll && <span className="ui1-scroll-hint" aria-hidden="true">옆으로 밀어 다른 플레이어 보기 →</span>}
       </div>
-      <div className="multi-score-scroll" tabIndex={0} aria-label="점수표 스크롤 영역">
+      <div className="multi-score-scroll" tabIndex={0} aria-label="점수표 스크롤 영역" ref={scrollRef}>
         <table>
+          <colgroup>
+            <col className="ui1-col-category" />
+            {indices.map((i) => <col key={i} />)}
+          </colgroup>
           <thead>
             <tr>
               <th scope="col">카테고리</th>
               {indices.map((i) => (
-                <th scope="col" className={current === i && !state.done ? "current" : ""} key={i} title={labels[i]}>
+                <th scope="col" className={[turnOf(i) ? "current" : "", layout.scroll && i === layout.pinned ? "ui1-pinned" : ""].filter(Boolean).join(" ") || undefined} key={i} title={labels[i]} data-seat={i}>
                   <span className="col-name">{labels[i]}</span>
-                  {rankOf && <span className="col-meta">{rankOf.get(i)}위{current === i && !state.done ? " · 차례" : ""}</span>}
+                  {rankOf && <span className="col-meta">{rankOf.get(i)}위{turnOf(i) ? <b className="ui1-turn-badge"> · 차례</b> : ""}</span>}
                 </th>
               ))}
             </tr>
@@ -50,7 +95,7 @@ export function MultiScoreboard({
             ))}
             <tr className="total-row">
               <th><Sigma size={17} /> 총점</th>
-              {indices.map((i) => <td key={i}><ScoreTotal value={total(state.cards[i])} /></td>)}
+              {indices.map((i) => <td key={i} className={cellClass(i)}><ScoreTotal value={total(state.cards[i])} /></td>)}
             </tr>
           </tbody>
         </table>
@@ -70,9 +115,9 @@ export function MultiScoreboard({
         {categoryIndex === 6 && (
           <>
             <tr className="bonus-row">
-              <th><span className="category-cell"><span className="category-label"><Star size={16} /> 상단 보너스 <small>+35</small></span><CategoryHelp topic="bonus" /></span></th>
+              <th><span className="category-cell"><span className="category-label"><Star size={16} /> <span className="ui1-cat-name">상단 보너스</span> <small>+35</small></span><CategoryHelp topic="bonus" /></span></th>
               {indices.map((i) => (
-                <td key={i}>
+                <td key={i} className={cellClass(i)}>
                   <BonusProgress card={state.cards[i]}/>
                 </td>
               ))}
@@ -81,11 +126,12 @@ export function MultiScoreboard({
           </>
         )}
         <tr data-category={category} className={selected === category ? "score-row-selected" : ""}>
-          <th scope="row"><span className="category-cell">{chosen(current, category) ? <button type="button" className="category-label score-category-select" aria-pressed={selected === category} onClick={() => select?.(category)}><CategoryIcon category={category} /><span>{names[category]}</span></button> : <span className="category-label"><CategoryIcon category={category} /><span>{names[category]}</span></span>}<CategoryHelp topic={category} /></span></th>
+          <th scope="row" title={names[category]}><span className="category-cell">{chosen(current, category) ? <button type="button" className="category-label score-category-select" aria-pressed={selected === category} onClick={() => select?.(category)}><CategoryIcon category={category} /><span className="ui1-cat-name">{names[category]}</span></button> : <span className="category-label"><CategoryIcon category={category} /><span className="ui1-cat-name">{names[category]}</span></span>}<CategoryHelp topic={category} /></span></th>
           {indices.map((i) => (
-            <td key={i} className={i === current ? "multi-current-cell" : ""}>
+            <td key={i} className={cellClass(i)}>
               {chosen(i, category) ? (
                 <button
+                  type="button"
                   className="score-option"
                   aria-pressed={selected === category}
                   aria-label={names[category] + " " + score(state.dice.map((d) => d.value), category) + (onConfirm ? "점 선택" : "점 기록")}
@@ -113,7 +159,7 @@ export function MultiStandings({ state, labels }: { state: MultiGame; labels: st
         {ordered.map((item) => (
           <div key={item.player} className={"multi-standing-row " + (!state.done && item.player === state.player ? "active" : "")} data-player={item.player}>
             <span className="multi-rank">{item.rank}위</span>
-            <span className="multi-standing-name">{labels[item.player]}</span>
+            <span className="multi-standing-name" title={labels[item.player]}>{labels[item.player]}</span>
             <span className="multi-standing-progress">{item.finished}/12</span>
             <strong><ScoreTotal value={item.points} />점</strong>
           </div>

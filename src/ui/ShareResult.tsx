@@ -1,6 +1,6 @@
-import { ActivityVisible } from "../shell/activity-visible";
-import { useContext, useEffect, useRef, useState } from "react";
-import { Download, Link2, Share2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Download, Link2, Share2 } from "lucide-react";
+import { Sheet } from "./kit";
 
 /**
  * Match result card for sharing (Phase 8.1, D-064): final score, result, yachts, match type, the brand
@@ -25,50 +25,76 @@ export function drawResultCard(canvas: HTMLCanvasElement, facts: ShareFacts, sho
   const g = canvas.getContext("2d");
   if (!g) return;
   const font = (w: number, s: number) => `${w} ${s}px system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
-  g.fillStyle = "#1f1f1f";
+  const round = (x: number, y: number, w: number, h: number, r: number) => {
+    g.beginPath();
+    g.moveTo(x + r, y);
+    g.arcTo(x + w, y, x + w, y + h, r);
+    g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r);
+    g.arcTo(x, y, x + w, y, r);
+    g.closePath();
+  };
+  // UI-1 card: dark table felt, the result as a headline, two score panels (the winner's lit up).
+  const bg = g.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, "#2b2b2b");
+  bg.addColorStop(1, "#171717");
+  g.fillStyle = bg;
   g.fillRect(0, 0, W, H);
   g.fillStyle = "#d93636";
   g.fillRect(0, 0, W, 10);
+  g.textBaseline = "alphabetic";
+  g.textAlign = "left";
   g.fillStyle = "#fff";
   g.font = font(800, 40);
-  g.textBaseline = "alphabetic";
-  g.fillText("Online", 64, 92);
+  g.fillText("Online", 64, 90);
   const online = g.measureText("Online ").width;
   g.fillStyle = "#ff5a5a";
-  g.fillText("Yacht", 64 + online, 92);
-  g.fillStyle = "#bdbdbd";
-  g.font = font(600, 28);
-  g.textAlign = "right";
-  g.fillText(facts.kind, W - 64, 90);
+  g.fillText("Yacht", 64 + online, 90);
+  // match type as a pill on the right
+  g.font = font(650, 26);
+  const kindWidth = g.measureText(facts.kind).width + 40;
+  round(W - 64 - kindWidth, 56, kindWidth, 46, 23);
+  g.fillStyle = "rgba(255,255,255,0.1)";
+  g.fill();
+  g.fillStyle = "#d9d9d9";
   g.textAlign = "center";
+  g.fillText(facts.kind, W - 64 - kindWidth / 2, 88);
   const title = facts.outcome === "win" ? "승리" : facts.outcome === "lose" ? "패배" : "무승부";
-  g.fillStyle = facts.outcome === "win" ? "#ffd166" : "#ffffff";
-  g.font = font(900, 92);
-  g.fillText(title, W / 2, 232);
-  const side = (x: number, label: string, total: number, yachts: number, color: string) => {
+  g.fillStyle = facts.outcome === "win" ? "#ffd166" : facts.outcome === "draw" ? "#e8e8e8" : "#cfcfcf";
+  g.font = font(900, 84);
+  g.fillText(title, W / 2, 200);
+  const clip = (s: string) => (s.length > 12 ? s.slice(0, 11) + "…" : s);
+  const panel = (x: number, label: string, total: number, yachts: number, color: string, lead: boolean) => {
+    const w = 400, h = 300, y = 240;
+    round(x - w / 2, y, w, h, 28);
+    g.fillStyle = lead ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.05)";
+    g.fill();
+    g.lineWidth = lead ? 4 : 2;
+    g.strokeStyle = lead ? color : "rgba(255,255,255,0.12)";
+    g.stroke();
     g.fillStyle = color;
     g.beginPath();
-    g.arc(x, 330, 14, 0, Math.PI * 2);
+    g.arc(x, y + 52, 12, 0, Math.PI * 2);
     g.fill();
-    g.fillStyle = "#e6e6e6";
+    g.fillStyle = "#ececec";
     g.font = font(700, 32);
-    g.fillText(label, x, 392);
+    g.fillText(label, x, y + 112);
     g.fillStyle = "#fff";
-    g.font = font(900, 112);
-    g.fillText(String(total), x, 506);
+    g.font = font(900, 120);
+    g.fillText(String(total), x, y + 236);
     g.fillStyle = "#bdbdbd";
     g.font = font(600, 26);
-    g.fillText(yachts ? `요트 ${yachts}회` : " ", x, 548);
+    g.fillText(yachts ? `요트 ${yachts}회` : " ", x, y + 278);
   };
-  const clip = (s: string) => (s.length > 12 ? s.slice(0, 11) + "…" : s);
-  side(W * 0.3, showNames ? clip(facts.me.name) : "나", facts.me.total, facts.me.yachts, "#d93636");
-  side(W * 0.7, showNames ? clip(facts.opponent.name) : "상대", facts.opponent.total, facts.opponent.yachts, "#2f6fde");
-  g.fillStyle = "#777";
-  g.font = font(800, 64);
-  g.fillText(":", W / 2, 490);
+  const meLead = facts.outcome === "win", oppLead = facts.outcome === "lose";
+  panel(W * 0.29, showNames ? clip(facts.me.name) : "나", facts.me.total, facts.me.yachts, "#ff5a5a", meLead);
+  panel(W * 0.71, showNames ? clip(facts.opponent.name) : "상대", facts.opponent.total, facts.opponent.yachts, "#5b8ff0", oppLead);
+  g.fillStyle = "#8a8a8a";
+  g.font = font(800, 40);
+  g.fillText("VS", W / 2, 404);
   g.fillStyle = "#9a9a9a";
   g.font = font(600, 24);
-  g.fillText("oyueo-mm.github.io/YachtLab · 무료 온라인 요트다이스", W / 2, 606);
+  g.fillText("oyueo-mm.github.io/YachtLab · 무료 온라인 요트다이스", W / 2, 600);
 }
 
 export function ShareResultButton({ facts }: { facts: ShareFacts }) {
@@ -80,15 +106,9 @@ export function ShareResultButton({ facts }: { facts: ShareFacts }) {
 }
 
 function ShareSheet({ facts, onClose }: { facts: ShareFacts; onClose: () => void }) {
-  const visible = useContext(ActivityVisible);
-  const dialog = useRef<HTMLDialogElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [showNames, setShowNames] = useState(false);
   const [note, setNote] = useState("");
-  useEffect(() => {
-    if (visible && !dialog.current?.open) dialog.current?.showModal();
-    else if (!visible && dialog.current?.open) dialog.current.close();
-  }, [visible]);
   useEffect(() => {
     if (canvas.current) drawResultCard(canvas.current, facts, showNames);
   }, [facts, showNames]);
@@ -123,11 +143,9 @@ function ShareSheet({ facts, onClose }: { facts: ShareFacts; onClose: () => void
     }
   };
   return (
-    <dialog ref={dialog} className="modal share-sheet" aria-label="결과 공유" onCancel={(e) => { e.preventDefault(); onClose(); }}>
-      <div className="share-head">
-        <h2>결과 공유</h2>
-        <button type="button" className="icon-button" aria-label="닫기" onClick={onClose}><X size={18} /></button>
-      </div>
+    // UI-1: the common Sheet (centred modal on PC, bottom sheet on phones, backdrop, Esc, focus return).
+    // The old bare <dialog> lost its `margin: auto` to the CSS reset and opened in the top-left corner.
+    <Sheet open onClose={onClose} title="결과 공유" className="share-sheet">
       <canvas ref={canvas} className="share-canvas" role="img" aria-label={`${text} 결과 이미지`} />
       <label className="share-names"><input type="checkbox" checked={showNames} onChange={(e) => setShowNames(e.target.checked)} /> 닉네임 표시</label>
       <div className="share-actions">
@@ -136,6 +154,6 @@ function ShareSheet({ facts, onClose }: { facts: ShareFacts; onClose: () => void
         {typeof navigator.share === "function" && <button type="button" className="secondary" onClick={() => void share()}><Share2 size={16} aria-hidden="true" /> 공유</button>}
       </div>
       <p className="share-note" role="status">{note}</p>
-    </dialog>
+    </Sheet>
   );
 }

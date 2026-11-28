@@ -55,6 +55,8 @@ export type MatchResultPanelProps = {
   /** 결과 아래의 모드 고유 정보(예: 1인 플레이 횟수·평균). */
   children?: ReactNode;
   className?: string;
+  /** 상대가 재대결을 요청했을 때 다시 열기 버튼에 알린다(온라인 1:1). */
+  invitation?: boolean;
 };
 
 const questFromConfig: QuestLookup = (id) => {
@@ -93,7 +95,7 @@ function useCountUp(target: number, enabled: boolean, ms = 900) {
   return value;
 }
 
-export function MatchResultPanel({ input, actions, avatars = {}, waiting = false, sound = "accent", motion, questLookup = questFromConfig, effect, effectSound = false, visible = true, children, className = "" }: MatchResultPanelProps) {
+export function MatchResultPanel({ input, actions, avatars = {}, waiting = false, sound = "accent", motion, questLookup = questFromConfig, effect, effectSound = false, visible = true, children, className = "", invitation = false }: MatchResultPanelProps) {
   const id = useId();
   const summary = useMemo(() => summarize(input), [input]);
   const rewards = useMemo(() => rewardView(input.rewards, questLookup), [input.rewards, questLookup]);
@@ -143,7 +145,7 @@ export function MatchResultPanel({ input, actions, avatars = {}, waiting = false
 
   return <>
     {shown && <button ref={trigger} type="button" className="secondary a3-result-reopen" onClick={() => setOpened(true)}>
-      <Trophy size={16} aria-hidden="true" /> 경기 결과
+      <Trophy size={16} aria-hidden="true" /> {invitation ? "경기 결과 · 재대결 요청" : "경기 결과"}
     </button>}
     <dialog ref={dialog} className={`a3-result-dialog ${className}`} aria-labelledby={id} data-tone={tone} data-drama={summary.drama ?? "none"} data-motion={level} data-effect={effect ? "item" : "default"}
       onCancel={(event) => { event.preventDefault(); setOpened(false); }}>

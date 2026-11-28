@@ -27,6 +27,7 @@ import { useGameShortcuts } from "./ui/shortcuts";
 import { useGameSounds, useThrowGesture } from "./game-feel";
 import { Celebrate } from "./ui/Celebrate";
 import { ConfirmDialog, type PendingAction } from "./ui/ConfirmDialog";
+import { Segmented } from "./ui/kit";
 import { orderPlayers, type LocalOrder } from "./setup";
 import { useDiceBusy } from "./useDiceBusy";
 import { announceScore, clearScoreFx } from "./score-fx";
@@ -61,8 +62,10 @@ export default function LocalGame({
   const [state, setState] = useState<MultiGame>(() => createMultiGame(count, newSeed()));
   const [error, setError] = useState("");
   const [viewReplay, setViewReplay] = useState<MultiReplay | null>(null);
-  const [allScores, setAllScores] = useState(false);
+  // UI-1: every column by default (the sheet pins the current player and scrolls when it can't fit).
+  const [allScores, setAllScores] = useState(true);
   const [mobileScoreOpen, setMobileScoreOpen] = useState(false);
+  const [sheetView, setSheetView] = useState<"quick" | "table">("quick");
   const [showGuide, setShowGuide] = useState(() => !hasRecordedFirstScore());
   const [gameFeedback, setGameFeedback] = useState("");
   const [rollEvent, setRollEvent] = useState(0);
@@ -235,7 +238,11 @@ export default function LocalGame({
           <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : state.rolls} canScore={canAct} yacht={yachtReady} />
           {mobileScoreOpen && (
             <MobileScoreSheet onClose={() => setMobileScoreOpen(false)}>
-              <MobileQuickScore cards={state.cards} dice={state.dice} rolls={rolling ? 0 : state.rolls} current={state.player} labels={names} canScore={canAct} onScore={recordScore} />
+              <Segmented label="점수판 보기 방식" className="ui1-sheet-switch" value={sheetView} onChange={setSheetView}
+                options={[{ value: "quick", label: "현재 차례" }, { value: "table", label: "전체 점수표" }]} />
+              {sheetView === "quick"
+                ? <MobileQuickScore cards={state.cards} dice={state.dice} rolls={rolling ? 0 : state.rolls} current={state.player} labels={names} canScore={canAct} onScore={recordScore} />
+                : <MultiScoreboard state={state} labels={names} compact pinned={state.player} select={canAct ? recordScore : undefined} />}
             </MobileScoreSheet>
           )}
           {gameFeedback && (
@@ -253,15 +260,15 @@ export default function LocalGame({
         <div className="multi-scores">
           {count >= 9 && (
             <div className="multi-view-switch">
-              <button className={!allScores ? "active" : ""} onClick={() => setAllScores(false)}>
-                내 점수판
+              <button type="button" className={!allScores ? "active" : ""} aria-pressed={!allScores} onClick={() => setAllScores(false)}>
+                현재 차례만
               </button>
-              <button className={allScores ? "active" : ""} onClick={() => setAllScores(true)}>
+              <button type="button" className={allScores ? "active" : ""} aria-pressed={allScores} onClick={() => setAllScores(true)}>
                 전체 점수표
               </button>
             </div>
           )}
-          <MultiScoreboard state={state} labels={names} compact focused={count >= 9 && !allScores} select={canAct ? recordScore : undefined} />
+          <MultiScoreboard state={state} labels={names} compact focused={count >= 9 && !allScores} pinned={state.player} select={canAct ? recordScore : undefined} />
           {count >= 9 && <MultiStandings state={state} labels={names} />}
         </div>
       </div>
