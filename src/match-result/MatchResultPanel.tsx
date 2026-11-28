@@ -9,7 +9,7 @@ import { QUESTS } from "../economy/live/config";
 import { motionLevel, type MotionLevel } from "../settings";
 import { useScoreFx } from "../score-fx";
 import { useBgmScene } from "../audio/useBgm";
-import { rewardView, summarize, type Highlight, type QuestLookup, type ResultInput, type ResultSummary } from "./model";
+import { forfeitLabel, rewardView, summarize, type Highlight, type QuestLookup, type ResultInput, type ResultSummary } from "./model";
 import { playResultSounds, resultSoundPlan } from "./result-sfx";
 import "./match-result-a3.css";
 
@@ -55,6 +55,8 @@ export type MatchResultPanelProps = {
   /** 결과 아래의 모드 고유 정보(예: 1인 플레이 횟수·평균). */
   children?: ReactNode;
   className?: string;
+  /** 상대가 재대결을 요청했을 때 다시 열기 버튼에 알린다(온라인 1:1). */
+  invitation?: boolean;
 };
 
 const questFromConfig: QuestLookup = (id) => {
@@ -93,7 +95,7 @@ function useCountUp(target: number, enabled: boolean, ms = 900) {
   return value;
 }
 
-export function MatchResultPanel({ input, actions, avatars = {}, waiting = false, sound = "accent", motion, questLookup = questFromConfig, effect, effectSound = false, visible = true, children, className = "" }: MatchResultPanelProps) {
+export function MatchResultPanel({ input, actions, avatars = {}, waiting = false, sound = "accent", motion, questLookup = questFromConfig, effect, effectSound = false, visible = true, children, className = "", invitation = false }: MatchResultPanelProps) {
   const id = useId();
   const summary = useMemo(() => summarize(input), [input]);
   const rewards = useMemo(() => rewardView(input.rewards, questLookup), [input.rewards, questLookup]);
@@ -143,9 +145,9 @@ export function MatchResultPanel({ input, actions, avatars = {}, waiting = false
 
   return <>
     {shown && <button ref={trigger} type="button" className="secondary a3-result-reopen" onClick={() => setOpened(true)}>
-      <Trophy size={16} aria-hidden="true" /> 경기 결과
+      <Trophy size={16} aria-hidden="true" /> {invitation ? "경기 결과 · 재대결 요청" : "경기 결과"}
     </button>}
-    <dialog ref={dialog} className={`a3-result-dialog ${className}`} aria-labelledby={id} data-tone={tone} data-drama={summary.drama ?? "none"} data-motion={level} data-effect={effect ? "item" : "default"}
+    <dialog ref={dialog} className={`a3-result-dialog ${className}`} aria-labelledby={id} data-tone={tone} data-kind={summary.outcome.kind} data-drama={summary.drama ?? "none"} data-motion={level} data-effect={effect ? "item" : "default"}
       onCancel={(event) => { event.preventDefault(); setOpened(false); }}>
       <section className="a3-result">
         <button type="button" className="icon-button a3-result-close" aria-label="결과 닫기" onClick={() => setOpened(false)}><X size={20} aria-hidden="true" /></button>
@@ -195,16 +197,17 @@ function ResultHeader({ id, summary }: { id: string; summary: ResultSummary }) {
 
 function Standings({ summary, avatars, animate, solo }: { summary: ResultSummary; avatars: Record<string, ReactNode>; animate: boolean; solo: boolean }) {
   const rows = summary.standings;
+  const shared = (rank: number) => rows.filter((r) => r.rank === rank).length > 1;
   return (
-    <ol className={"a3-standings" + (solo ? " solo" : rows.length > 2 ? " field" : " duel")} aria-label={solo ? "최종 점수" : "최종 순위"}>
+    <ol className={"a3-standings" + (solo ? " solo" : rows.length > 2 ? " field" : " duel") + (rows.length > 8 ? " many" : "")} aria-label={solo ? "최종 점수" : "최종 순위"}>
       {rows.map((row) => (
-        <li key={row.seat.id} className={(row.you ? "you " : "") + (row.winner ? "winner" : "")}>
-          {!solo && <span className="a3-rank" aria-label={`${row.rank}위`}>{row.rank}</span>}
+        <li key={row.seat.id} className={(row.you ? "you " : "") + (row.winner ? "winner " : "") + (row.seat.forfeited ? "forfeited" : "")}>
+          {!solo && <span className="a3-rank" aria-label={`${shared(row.rank) ? "공동 " : ""}${row.rank}위`}>{row.rank}</span>}
           <span className="a3-avatar" aria-hidden="true">{avatars[row.seat.id] ?? <i>{[...row.seat.name][0] ?? "?"}</i>}</span>
           <span className="a3-name">
             <b>{row.seat.name}{row.you && <small className="a3-you"> · 나</small>}</b>
             {row.seat.title && <small className="a3-title">{row.seat.title}</small>}
-            {row.seat.forfeited && <small className="a3-forfeit">기권</small>}
+            {row.seat.forfeited && <small className="a3-forfeit" data-reason={row.seat.forfeited}>{forfeitLabel(row.seat.forfeited)}</small>}
           </span>
           <Score value={row.total} animate={animate && row.you} />
         </li>

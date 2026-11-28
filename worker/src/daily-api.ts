@@ -1,0 +1,264 @@
+import { addDays, closesAt, dayPhase, DAILY_EPOCH, DAILY_RULES, daysBetween, isDailyDate, kstDate } from "../../src/daily/calendar";
+import { commitmentOf } from "../../src/daily/tape";
+import { toHex } from "../../src/daily/sha256";
+import { boardName, type BoardEntry, type Visibility } from "../../src/daily/ranking";
+import { grade, questionOf, type Puzzle, type PuzzleBank, type PuzzleKey, type PuzzleResult } from "../../src/daily/puzzles/types";
+import { NO_DAILY_REWARDS, type DailyAdminReport } from "../../src/daily/contract";
+import type { AttemptView, DailyError, Mode } from "./daily";
+import { dayKeyFor } from "./daily";
+import bankJson from "../../src/daily/puzzles/bank.json";
+
+/**
+ * 오늘의 요트 / 오늘의 퍼즐 HTTP API (LIVE-1). Behind the `DAILY` flag ("off" in production until the
+ * operator turns it on together with the `DAILY_SECRET` Worker secret).
+ *
+ *   GET  /api/daily/today                         date (KST), phase, dice commitment, my status
+ *   POST /api/daily/start      { date, mode }     official (once) / practice (after the official)
+ *   POST /api/daily/play       { date, mode, seq, step }   one step, server-verified
+ *   GET  /api/daily/attempt?date=&mode=           reconnect / refresh
+ *   GET  /api/daily/history                       my official records, best, streak inputs
+ *   GET  /api/daily/ranking?date=&offset=&limit=  everyone (public entries, blocks applied)
+ *   GET  /api/daily/ranking/friends?date=         friends + me
+ *   GET  /api/daily/reveal?date=                  closed days only: day key (+ my own log when signed in)
+ *   GET  /api/daily/puzzles?date=                 questions; keys only once answered or the day is closed
+ *   POST /api/daily/puzzles/answer { date, puzzleId, answer }
+ *   POST /api/daily/visibility { visibility }     public | friends | private
+ *
+ * Heavy work is never done here: puzzle keys come precomputed from bank.json, a step is one HMAC and
+ * one row write on the member's own object.
+ */
+export const bank = bankJson as unknown as PuzzleBank;
+
+export type DailyUserApi = {
+  dailyStart(date: string, mode: Mode): Promise<{ ok: true; attempt: AttemptView; created: boolean } | DailyError>;
+  dailyAct(date: string, mode: Mode, seq: unknown, step: unknown): Promise<{ ok: true; attempt: AttemptView; duplicate: boolean; finished: boolean } | DailyError>;
+  dailyAttempt(date: string, mode: Mode): Promise<AttemptView | null>;
+  dailyHistory(): Promise<unknown>;
+  dailyVisibility(v?: Visibility): Promise<Visibility>;
+  dailyHidden(): Promise<string[]>;
+  dailyFriendIds(): Promise<string[]>;
+  dailyPuzzleResults(ids: string[]): Promise<PuzzleResult[]>;
+  dailyAnswer(date: string, result: PuzzleResult): Promise<{ result: PuzzleResult; first: boolean }>;
+  dailyLog(date: string): Promise<unknown>;
+  dailyPracticeLeft(date: string): Promise<number>;
+  /** SEC-1 2차 INT-5: the five reads of GET /api/daily/today in one call (optional for test fakes). */
+  dailyToday?(date: string, puzzleIds: string[]): Promise<{ official: AttemptView | null; practice: AttemptView | null; practiceLeft: number; puzzleResults: PuzzleResult[]; visibility: Visibility }>;
+};
+/** INT-5: puzzle withdrawals change rarely; one board read per isolate per date per FLAGS_CACHE_MS. */
+const FLAGS_CACHE_MS = 30_000;
+const flagCache = new Map<string, { at: number; flags: Record<string, boolean> }>();
+async function cachedFlags(board: DailyBoardApi, date: string, now: number) {
+  const hit = flagCache.get(date);
+  if (hit && Math.abs(now - hit.at) < FLAGS_CACHE_MS) return hit.flags;
+  const flags = await board.puzzleFlags().catch(() => ({} as Record<string, boolean>));
+  if (flagCache.size > 8) flagCache.clear();
+  flagCache.set(date, { at: now, flags });
+  return flags;
+}
+/** Admin writes clear this isolate's copy at once (other isolates follow within FLAGS_CACHE_MS). */
+export const forgetDailyFlags = (date: string) => void flagCache.delete(date);
+export type DailyBoardApi = {
+  page(offset: number, limit: number): Promise<{ total: number; entries: (BoardEntry & { rank: number })[] }>;
+  entriesFor(ids: string[]): Promise<(BoardEntry & { rank: number })[]>;
+  total(): Promise<number>;
+  stats(): Promise<ReturnType<import("./daily").DailyBoardCore["stats"]>>;
+  puzzleAnswered(id: string, correct: boolean): Promise<void>;
+  puzzleFlags(): Promise<Record<string, boolean>>;
+  setPuzzleFlag(id: string, disabled: boolean): Promise<void>;
+  setVisibility(userId: string, v: Visibility): Promise<void>;
+};
+export type DailyDeps = {
+  /** Worker secret for a date (dailySecrets: dated rotation). */
+  secretFor(date: string): string;
+  now(): number;
+  /** `suspended`: INT-1 — a suspended account may read but never play, answer or change settings (no C5 activity). */
+  me(): Promise<{ userId: string; suspended?: boolean } | null>;
+  user(id: string): DailyUserApi;
+  board(date: string): DailyBoardApi;
+  limited(key: string, perMinute: number): boolean;
+  clientKey(): Promise<string>;
+  reply(status: number, body: unknown, cache?: string): Response;
+};
+
+const fail = (deps: DailyDeps, status: number, code: string, message: string, extra: Record<string, unknown> = {}) => deps.reply(status, { error: { code, message }, ...extra });
+const MODES: readonly Mode[] = ["official", "practice"];
+
+/* -------------------------------------------------------------------- puzzles -------------------------------------------------------------------- */
+/**
+ * Puzzle run-out (LIVE-1): the bank is scheduled up to `lastScheduledDate()`. A later date gets a
+ * deterministic RE-RUN of an earlier day's three puzzles (date index modulo the schedule length), under
+ * new ids `rerun:<date>:<original id>` — answers are separate records, the title says it is a re-run —
+ * so the service never shows an empty puzzle card. A fresh bank (`--days` up) replaces re-runs.
+ */
+const scheduledDates = Object.keys(bank.schedule).sort();
+export const lastScheduledDate = () => scheduledDates[scheduledDates.length - 1];
+const RERUN = /^rerun:(\d{4}-\d{2}-\d{2}):(.+)$/;
+export function rerunSource(date: string): string | null {
+  if (bank.schedule[date] || date <= lastScheduledDate() || date < bank.epoch) return null;
+  return scheduledDates[daysBetween(scheduledDates[0], date) % scheduledDates.length];
+}
+const rerun = (date: string, p: Puzzle): Puzzle => ({ ...p, id: `rerun:${date}:${p.id}`, title: p.title + " · 다시 보는 퍼즐", source: p.source + " (rerun)" });
+export function puzzlesOf(date: string): Puzzle[] {
+  const direct = bank.schedule[date];
+  if (direct) return direct.map((id) => bank.puzzles[id]).filter(Boolean);
+  const from = rerunSource(date);
+  return from ? bank.schedule[from].map((id) => rerun(date, bank.puzzles[id])).filter(Boolean) : [];
+}
+export function puzzleById(id: string): Puzzle | null {
+  const m = RERUN.exec(id);
+  if (!m) return bank.puzzles[id] ?? null;
+  const original = bank.puzzles[m[2]];
+  return original ? rerun(m[1], original) : null;
+}
+/** Days of scheduled (non-re-run) puzzles left after `today` (ops warning below 14). */
+export const puzzleRunway = (today: string) => Math.max(0, daysBetween(today, lastScheduledDate()));
+const keyView = (k: PuzzleKey) => ({ best: k.best, values: k.values, unit: k.unit, explanation: k.explanation, ...(k.expected ? { expected: k.expected } : {}), model: k.model });
+
+/*
+ * D-141 (owner decision, 2026-11-28): 오늘의 요트 is a NON-competitive daily content. Everyone still gets the same
+ * dice, one official attempt per account per day, personal score and history — but there is no ranking: no
+ * ranking API, no board entries written, no rank in any answer or share. The DailyBoard keeps participants (daily
+ * cap, re-join guard), puzzle statistics and withdrawals, and its old `entries` table is left in place (unused).
+ */
+const RANKING_REMOVED = "오늘의 요트는 순위 없이 내 기록만 남기는 콘텐츠로 바뀌었어요.";
+
+/* --------------------------------------------------------------------- routes --------------------------------------------------------------------- */
+export async function handleDailyRoute(request: Request, url: URL, deps: DailyDeps, readJson: () => Promise<Record<string, unknown>>): Promise<Response | null> {
+  const path = url.pathname;
+  if (!path.startsWith("/api/daily/")) return null;
+  const now = deps.now();
+  const today = kstDate(now);
+  const method = request.method;
+  const dateParam = (v: unknown) => (isDailyDate(v) && v >= DAILY_EPOCH && dayPhase(v, now) !== "future" ? v : null);
+  // INT-1: the account-wide suspension (ADMIN-1) also covers daily content — an official completion would
+  // otherwise count as a C5 activity day (activity-streak rewards) for a suspended account.
+  if (method !== "GET" && (await deps.me())?.suspended) return fail(deps, 403, "SUSPENDED", "이용이 정지된 계정이에요. 알림함에서 사유를 확인할 수 있어요.");
+
+  if (path === "/api/daily/today" && method === "GET") {
+    if (deps.limited("daily-today:" + (await deps.clientKey()), 60)) return fail(deps, 429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
+    const key = dayKeyFor(deps.secretFor(today), today);
+    const me = await deps.me();
+    const flags = await cachedFlags(deps.board(today), today, Date.now());
+    const puzzles = puzzlesOf(today).filter((p) => !flags[p.id]).map((p) => ({ id: p.id, level: p.level, kind: p.kind, title: p.title }));
+    const base = { now, date: today, rules: DAILY_RULES, phase: dayPhase(today, now), closesAt: closesAt(today), nextDate: addDays(today, 1), commitment: commitmentOf(key), puzzles, epoch: DAILY_EPOCH };
+    if (!me) return deps.reply(200, { ...base, me: null }, "private, max-age=30");
+    const u = deps.user(me.userId);
+    if (u.dailyToday) {
+      const t = await u.dailyToday(today, puzzles.map((p) => p.id));
+      return deps.reply(200, { ...base, me: { official: t.official, practice: t.practice, practiceLeft: t.practiceLeft, puzzleResults: t.puzzleResults, visibility: t.visibility } }, "private, no-store");
+    }
+    const [official, practice, practiceLeft, results, visibility] = await Promise.all([
+      u.dailyAttempt(today, "official"), u.dailyAttempt(today, "practice"), u.dailyPracticeLeft(today), u.dailyPuzzleResults(puzzles.map((p) => p.id)), u.dailyVisibility(),
+    ]);
+    return deps.reply(200, { ...base, me: { official, practice, practiceLeft, puzzleResults: results, visibility } }, "private, no-store");
+  }
+
+  if (path === "/api/daily/reveal" && method === "GET") {
+    const date = dateParam(url.searchParams.get("date"));
+    if (!date) return fail(deps, 404, "NOT_FOUND", "없는 날짜예요.");
+    // SEC-1 2차 DLY-6: one extra minute after the close, so no account object's clock can still accept a step
+    if (dayPhase(date, now) !== "closed" || now < closesAt(date) + 60_000) return fail(deps, 403, "NOT_REVEALED", "주사위 키는 그날 도전이 끝난 뒤(한국 시간 자정 + 30분)에 공개돼요.");
+    const key = dayKeyFor(deps.secretFor(date), date);
+    const me = await deps.me();
+    const log = me ? await deps.user(me.userId).dailyLog(date) : null;
+    return deps.reply(200, { date, rules: DAILY_RULES, key: toHex(key), commitment: commitmentOf(key), log }, me ? "private, max-age=300" : "public, max-age=86400");
+  }
+
+  // D-141: the competitive ranking is gone (both the public and the friends list); old pages get a clear 410
+  if ((path === "/api/daily/ranking" || path === "/api/daily/ranking/friends") && method === "GET") return fail(deps, 410, "RANKING_REMOVED", RANKING_REMOVED);
+
+
+  if (path === "/api/daily/puzzles" && method === "GET") {
+    const date = dateParam(url.searchParams.get("date") ?? today);
+    if (!date) return fail(deps, 404, "NOT_FOUND", "없는 날짜예요.");
+    // SEC-1 2차 INT-5: the per-client limit comes BEFORE any Durable Object call, a date without puzzles never
+    // touches its board, and the withdrawals are read from the isolate cache
+    if (deps.limited("daily-pz:" + (await deps.clientKey()), 30)) return fail(deps, 429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
+    const scheduled = puzzlesOf(date);
+    const flags = scheduled.length ? await cachedFlags(deps.board(date), date, Date.now()) : {};
+    const list = scheduled.filter((p) => !flags[p.id]);
+    const viewer = await deps.me();
+    const results = viewer ? await deps.user(viewer.userId).dailyPuzzleResults(list.map((p) => p.id)) : [];
+    const closed = dayPhase(date, now) === "closed";
+    return deps.reply(200, {
+      date, closed,
+      puzzles: list.map((p) => {
+        const result = results.find((r) => r.puzzleId === p.id) ?? null;
+        return { question: questionOf(p), result, key: result || closed ? keyView(p.key) : null };
+      }),
+    }, viewer ? "private, no-store" : closed ? "public, max-age=3600" : "public, max-age=60");
+  }
+
+  if (path === "/api/daily/puzzles/answer" && method === "POST") {
+    if (deps.limited("daily-ans:" + (await deps.clientKey()), 60)) return fail(deps, 429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
+    const input = await readJson();
+    const date = dateParam(input.date);
+    const p = typeof input.puzzleId === "string" ? puzzleById(input.puzzleId) : null;
+    if (!date || !p || !puzzlesOf(date).some((x) => x.id === p.id) || typeof input.answer !== "string") return fail(deps, 400, "INVALID_COMMAND", "요청 형식이 올바르지 않아요.");
+    const open = dayPhase(date, now) !== "closed";
+    const viewer = open ? await deps.me() : null;
+    if (open && !viewer) return fail(deps, 401, "UNAUTHENTICATED", "오늘의 퍼즐 기록은 로그인한 회원만 남길 수 있어요. 지난 퍼즐은 누구나 풀 수 있어요.");
+    if ((await deps.board(date).puzzleFlags().catch(() => ({} as Record<string, boolean>)))[p.id]) return fail(deps, 410, "PUZZLE_WITHDRAWN", "운영자가 내린 문제예요.");
+    const g = grade(p.key, input.answer);
+    if (!g) return fail(deps, 400, "INVALID_ANSWER", "이 문제에서 고를 수 없는 행동이에요.");
+    // Only today's puzzles are participation records; a closed day is practice (answer shown, nothing stored).
+    if (!open || !viewer) return deps.reply(200, { result: { puzzleId: p.id, answer: input.answer, ...g, at: now }, first: false, recorded: false, key: keyView(p.key) });
+    if (deps.limited("daily:" + viewer.userId, 150)) return fail(deps, 429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
+    const stored = await deps.user(viewer.userId).dailyAnswer(date, { puzzleId: p.id, answer: input.answer, ...g, at: now });
+    if (stored.first) await deps.board(date).puzzleAnswered(p.id, stored.result.correct).catch(() => undefined);
+    void NO_DAILY_REWARDS; // 07 contract: no grant for puzzles (DAILY_REWARDS_APPROVED = false)
+    return deps.reply(200, { result: stored.result, first: stored.first, recorded: true, key: keyView(p.key) });
+  }
+
+  // Everything below needs a member.
+  const me = await deps.me();
+  if (!me) return fail(deps, 401, "UNAUTHENTICATED", "오늘의 요트 공식 기록은 로그인한 회원만 남길 수 있어요.");
+  if (deps.limited("daily:" + me.userId, 150)) return fail(deps, 429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
+  const u = deps.user(me.userId);
+
+
+
+  if (path === "/api/daily/history" && method === "GET") return deps.reply(200, { today, history: await u.dailyHistory() }, "private, no-store");
+
+  if (path === "/api/daily/attempt" && method === "GET") {
+    const date = dateParam(url.searchParams.get("date"));
+    const mode = url.searchParams.get("mode") as Mode;
+    if (!date || !MODES.includes(mode)) return fail(deps, 400, "INVALID_COMMAND", "요청 형식이 올바르지 않아요.");
+    return deps.reply(200, { attempt: await u.dailyAttempt(date, mode) }, "private, no-store");
+  }
+
+  // D-141: ranking visibility has nothing left to control
+  if (path === "/api/daily/visibility" && method === "POST") return fail(deps, 410, "RANKING_REMOVED", RANKING_REMOVED);
+
+
+  if ((path === "/api/daily/start" || path === "/api/daily/play") && method === "POST") {
+    const input = await readJson();
+    // SEC-1 2차 DLY-3: any valid date reaches the account, which admits a participant only on an OPEN day
+    // (future / closed dates keep their DAILY_NOT_OPEN / DAILY_CLOSED answers and create no board object)
+    const date = isDailyDate(input.date) ? input.date : null;
+    const mode = input.mode as Mode;
+    if (!date || !MODES.includes(mode)) return fail(deps, 400, "INVALID_COMMAND", "요청 형식이 올바르지 않아요.");
+    const r = path === "/api/daily/start" ? await u.dailyStart(date, mode) : await u.dailyAct(date, mode, input.seq, input.step);
+    if (!r.ok) return fail(deps, r.status, r.code, r.message, r.state ? { attempt: r.state } : {});
+    return deps.reply(200, r, "private, no-store");
+  }
+
+  return fail(deps, 404, "NOT_FOUND", "없는 주소입니다.");
+}
+
+/* ---------------------------------------------------------------- admin (06) ---------------------------------------------------------------- */
+export async function dailyAdminReport(deps: Pick<DailyDeps, "board" | "now">, date: string): Promise<DailyAdminReport> {
+  const s = await deps.board(date).stats();
+  return {
+    date, rules: DAILY_RULES, phase: dayPhase(date, deps.now()),
+    official: { started: s.started, completed: s.completed, ranked: s.ranked, completionRate: s.started ? s.completed / s.started : null, scoreBuckets: s.buckets, average: s.average, best: s.best },
+    practice: { games: s.practice },
+    puzzleBank: { lastScheduledDate: lastScheduledDate(), runwayDays: puzzleRunway(kstDate(deps.now())), rerun: !!rerunSource(date) },
+    puzzles: puzzlesOf(date).map((p) => {
+      const st = s.puzzles[p.id] ?? { answered: 0, correct: 0 };
+      return { id: p.id, level: p.level, kind: p.kind, answered: st.answered, correct: st.correct, correctRate: st.answered ? st.correct / st.answered : null, disabled: !!s.flags[p.id] };
+    }),
+  };
+}
+
+export { boardName };

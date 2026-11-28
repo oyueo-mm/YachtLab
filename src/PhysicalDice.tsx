@@ -361,6 +361,9 @@ export function PhysicalDice({
     const rate = mod.playRate();
     const done = beginDiceMotion(((result.frameCount / result.fps) * 1000) / rate + 2000);
     sound("throw", { material });
+    // Theme layer (Lv.3): the effect wakes up with the throw; the physical sound above stays in front.
+    const rollAccent = colors?.fxLevel === 3 && !reducedEffects ? mod.landSoundOf(colors.fx) : null;
+    if (rollAccent && fxBudget() > 0) sound("diceFxRoll", { land: rollAccent, delay: 0.03, intensity: 0.8 });
     const surface = surfaceAt(root.current);
     let lastHit = -Infinity,
       hits = 0,

@@ -1,0 +1,29 @@
+/* UI-1 friends panel: right drawer on PC, bottom sheet on phones (Sheet already does the phone part). */
+@media (min-width: 641px) {
+  .ui-sheet.ui1-friends-panel {
+    width: min(400px, calc(100vw - 24px));
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0 0 0 auto;
+    border-radius: 18px 0 0 18px;
+  }
+  .ui-sheet.ui1-friends-panel[open] { animation: ui1-drawer-in 0.2s ease-out; }
+}
+@keyframes ui1-drawer-in { from { transform: translateX(24px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ui-sheet.ui1-friends-panel[open] { animation: none; } }
+.ui1-friends-panel .ui-sheet-body { flex: 1 1 auto; padding-bottom: 16px; }
+/* the embedded friends screen: its own page title duplicates the sheet title */
+.ui1-friends-content .friends-page { width: 100%; max-width: none; margin: 0; padding: 0; }
+.ui1-friends-content .econ-head { flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.ui1-friends-content .econ-head h1, .ui1-friends-content .friends-page > h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.ui1-friends-content .friend-search { display: flex; gap: 6px; }
+.ui1-friends-content .friend-search input { flex: 1 1 auto; min-width: 0; }
+.ui1-friends-content .friend-list li { flex-wrap: wrap; }
+.ui1-friends-content .friend-name { min-width: 0; }
+.ui1-friends-content .friend-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui1-friends-more { align-self: center; min-height: 44px; margin-top: 8px; }
+.header-friends { position: relative; }
+.header-badge {
+  position: absolute; top: 4px; right: 2px; min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 999px; background: var(--red, #d7352f); color: #fff; font-size: 10.5px; line-height: 17px; text-align: center;
+}

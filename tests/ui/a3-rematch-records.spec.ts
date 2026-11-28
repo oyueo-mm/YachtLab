@@ -82,10 +82,10 @@ test("재대결 두 경기: 방 안 재화가 경기마다 서버 값으로 갱�
       await a.getByRole("button", { name: "한 번 더 플레이", exact: true }).click();
       await expect(b.getByText("가람 님이 재대결을 요청했어요.")).toBeVisible();
       await b.getByRole("button", { name: "수락" }).click();
-      for (const p of [a, b]) await expect(p.locator(".game-result")).toHaveCount(0);
+      for (const p of [a, b]) await expect(p.locator(".a3-result:visible")).toHaveCount(0);
     }
     for (let t = 0; t < 24; t++) await playTurn([a, b]);
-    await expect(a.locator(".game-result")).toBeVisible({ timeout: 15_000 });
+    await expect(a.locator(".a3-result")).toBeVisible({ timeout: 15_000 });
     const finishedAt = Date.now();
 
     // 1) 서버: 계정 기록과 보상 receipt가 언제 생기는가
@@ -105,7 +105,7 @@ test("재대결 두 경기: 방 안 재화가 경기마다 서버 값으로 갱�
     if (game > 1) await expect(a.locator(".online-series")).toContainText("이 방 전적");
     // 2) 결과 창: 서버 receipt를 읽어 이번 경기 보상을 표시(정상)
     const gained = receipt.after.coins - receipt.before.coins;
-    if (gained > 0) await expect(a.locator(".game-result")).toContainText(`+${gained}코인`);
+    if (gained > 0) await expect(a.locator(".a3-result")).toContainText(`+${gained}코인`);
 
     // 3) 방 안 상단 재화: receipt 확정 뒤 서버 값으로 갱신 (H-A3-1)
     await expect.poll(() => shownCoins(a), { timeout: 10_000 }).toBe(serverCoins);

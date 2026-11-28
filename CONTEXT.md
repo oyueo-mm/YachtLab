@@ -13,7 +13,17 @@
 
 ## 맥락 읽는 순서
 
+> **관리자 페이지·사용자 제안·운영 보상(ADMIN-1/FEEDBACK-1, 2026-11-28)** → [ADMIN-FEEDBACK](docs/admin/ADMIN-FEEDBACK.md) (D-107~D-111). 쓰기·게시판 기본 꺼짐, SEC-1 검증 전 활성 금지.
+
+> **오늘의 요트·오늘의 전략 퍼즐·일일 랭킹(LIVE-1, 운영 비공개)** → [DAILY-LIVE-1](docs/context/DAILY-LIVE-1.md) (D-117~D-122).
+
+> **제품 방향·백로그·병렬 트랙·아이디어 보관(2026-11-28)** → [PRODUCT-PLAN](docs/context/PRODUCT-PLAN.md) · [PRODUCT-BACKLOG](docs/context/PRODUCT-BACKLOG.md) · [PARALLEL-PLAN](docs/context/PARALLEL-PLAN.md) · [IDEAS](docs/context/IDEAS.md). 게임 UI/UX 품질(UI-1): [UI-1 기록](docs/context/UI-1-GAME-UX-2026-11-28.md) (D-129, 임시).
+>
 > **온라인 요트다이스 제품 개편** → [브랜드, 메뉴, 검색 및 배포 인수인계](docs/context/ONLINE-YACHT-PRODUCT.md).
+>
+> **주사위 재질·움직임 반응·사운드·미리보기 인터페이스(FX-1, 2026-11-28)**: 재질 11종(렌더러와 충돌음 공용 표), 둥근 모서리·음각 눈·반사, Lv.2 움직임 반응 발광, 라운드로빈 충돌음, 보드 Lv.1 재질, 재질 단계(저사양), 상점·경기 공용 `FxPreview` → [FX1-DICE-BOARD-SOUND](docs/context/FX1-DICE-BOARD-SOUND-2026-11-28.md), [UI-2 연동](docs/context/FX1-PREVIEW-INTEGRATION.md) (D-134~D-137 (임시 번호, INT-1 통합 시 최종 번호 부여)).
+
+> **상점·뽑기·인벤토리 개편(UI-2, 2026-11-28): 캐러셀·사이드바·검색/필터·2열 상세·프리셋·컬렉션 진행도, FX-1 FxPreview 연동 계획** → [UI-2-SHOP-INVENTORY](docs/context/UI-2-SHOP-INVENTORY.md) (D-130~D-133).
 >
 > **콘텐츠 확장(2026-11-27): 1인 플레이·개인 기록, 게임 프로필, 테마 컬렉션 10종·신규 11종·시너지, 기간 한정, 상점·뽑기 안내, 오디오 믹스, 모바일** → [COLLECTIONS-2026-11-27](docs/context/COLLECTIONS-2026-11-27.md), [연승 검토](docs/context/STREAK-REVIEW-2026-11-27.md), [오디오 믹스](docs/audio/MIX.md) (D-074~D-078). 워커 수동 배포 전에는 1인 기록 계정 보관·신규 상품 판매가 대기 상태.
 >
@@ -29,6 +39,8 @@
 > **AI 승률 연구(Win DP v7, 상대 반응 정지가치)** → [V7-APEX-RESEARCH](docs/context/V7-APEX-RESEARCH.md) (연구 브랜치, 기본 AI 불변, D-V7-1). v7-I1RO vs v6-P: 9531 50.091%(Holm 미달)·재현 9541 50.136%(유의).
 > **AI 연구 현황(2026-11-26): 잠정 종료** — 매우 어려움 v4-D 유지, v5-R·I2RO1 교체 보류(D-V7-6). 최종 후보 I2RO1은 v4-D 대비 확증(50.55%), v5-R과는 대국상 동등. → [V7-APEX-RESEARCH](docs/context/V7-APEX-RESEARCH.md) §9–11, [V7-PRODUCT-HANDOFF](docs/context/V7-PRODUCT-HANDOFF.md).
 > **AI 제품 통합(v5-R·WASM 은행·분석 API v6)** → [V6-INTEGRATION-HANDOFF](docs/context/V6-INTEGRATION-HANDOFF.md).
+>
+> **재방문 보상(출석·일일 경기·연속 활동·연승)·공통 보상 지급 엔진·SEC-1 경제 항목** → [C5 연구](docs/economy/C5-RETENTION-RESEARCH.md), [지급 계약](docs/economy/c5/REWARD-GRANT-CONTRACT.md) (D-103, 금액 미승인·비활성).
 >
 > **재화·상점·퀘스트·업적을 다룬다면** [실서비스 경제](docs/economy/LIVE-ECONOMY.md)부터(M3i-W30 실제 구현·원장·가격표·퀘스트·업적, 결정 D-040~D-042). 연구 배경: [경제 연구 보고서](docs/economy/ECONOMY-RESEARCH.md)(D-029~D-037).
 >

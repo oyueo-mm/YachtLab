@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Award, Dices, Flame, LayoutGrid, Medal, Pin, Sparkles, Trophy, X } from "lucide-react";
 import { ITEMS, itemById, type ItemCategory, type PublicLook } from "../economy/live/catalog";
 import { achievementById } from "../economy/live/config";
@@ -111,26 +111,61 @@ export const localPinStore: PinStore = {
   },
 };
 export const MAX_PINS = 3;
-export function usePinnedAchievements(earned: string[], store: PinStore = localPinStore) {
+/**
+ * SOC-1: the server copy (`GET|PUT /api/me/profile/pins`) when signed in to a Worker that has it. The
+ * server checks "earned", duplicates and the limit, and is the value every device sees; this device's
+ * copy is only the first paint / the fallback for an older Worker (404) or no connection.
+ */
+export type RemotePins = { load(): Promise<string[]>; save(ids: string[]): Promise<string[]> };
+export function usePinnedAchievements(earned: string[], store: PinStore = localPinStore, remote?: RemotePins | null) {
   const [pins, setPins] = useState(store.load);
+  const [synced, setSynced] = useState(false);
+  const [error, setError] = useState("");
+  const live = useRef(remote);
+  live.current = remote;
+  useEffect(() => {
+    if (!remote) return void setSynced(false);
+    let alive = true;
+    remote
+      .load()
+      .then((ids) => {
+        if (!alive) return;
+        setPins(ids);
+        store.save(ids);
+        setSynced(true);
+      })
+      .catch(() => alive && setSynced(false));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!remote]);
   const valid = pins.filter((id) => earned.includes(id));
   const toggle = (id: string) => {
     const next = valid.includes(id) ? valid.filter((x) => x !== id) : [...valid, id].slice(-MAX_PINS);
+    const before = valid;
     setPins(next);
     store.save(next);
+    setError("");
+    if (live.current && synced)
+      live.current.save(next).then(
+        (saved) => (setPins(saved), store.save(saved)),
+        (e: Error) => (setPins(before), store.save(before), setError(e.message || "대표 업적을 저장하지 못했어요.")),
+      );
   };
-  return { pins: valid, toggle };
+  return { pins: valid, toggle, synced, error };
 }
 
 /** Three fixed slots + the achievements to choose from; "미리보기" shows what the header will say. */
-export function Achievements({ earned, pins, toggle }: { earned: string[]; pins: string[]; toggle: (id: string) => void }) {
+export function Achievements({ earned, pins, toggle, synced = false, error = "" }: { earned: string[]; pins: string[]; toggle: (id: string) => void; synced?: boolean; error?: string }) {
   const list = earned.map((id) => achievementById(id)).filter((a): a is NonNullable<typeof a> => !!a);
   return (
     <section className="profile-card profile-achievements" aria-label="업적">
       <h2><Award size={17} aria-hidden="true" /> 업적 <small>{list.length}개 달성</small></h2>
       {list.length === 0 ? <p className="profile-empty">달성한 업적이 아직 없어요. 로그인 후 온라인 경기에서 달성돼요.</p> : (
         <>
-          <h3>대표 업적 <small className="profile-fine">{pins.length}/{MAX_PINS} · 이 기기에 저장돼요</small></h3>
+          <h3>대표 업적 <small className="profile-fine">{pins.length}/{MAX_PINS} · {synced ? "계정에 저장돼요 · 프로필에 표시" : "이 기기에 저장돼요"}</small></h3>
+          {error && <p className="error-message" role="alert">{error}</p>}
           <ol className="pin-slots" aria-label="대표 업적 슬롯">
             {Array.from({ length: MAX_PINS }, (_, i) => {
               const a = pins[i] ? achievementById(pins[i]) : null;

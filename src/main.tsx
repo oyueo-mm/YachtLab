@@ -18,6 +18,7 @@ import "./onboarding.css";
 import "./table-v4.css";
 import "./mobile-2026-11.css";
 import "./mobile-a4.css";
+import "./ui/ui1-common.css";
 import { captureAttribution } from "./analytics/attribution";
 import { registerVisit } from "./play/tutorial-progress";
 

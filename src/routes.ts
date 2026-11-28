@@ -5,7 +5,7 @@
  * The tier is a structural boundary only (lab screens live in src/lab and load lazily) so they
  * could become an optional plan later. No payment, subscription or access control exists.
  */
-export type Route = "home" | "tutorial" | "practice" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "solo" | "records" | "profile" | "account" | "shop" | "draw" | "inventory" | "quests" | "achievements" | "friends" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab" | "economy-lab" | "cosmetics-lab";
+export type Route = "home" | "tutorial" | "practice" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "solo" | "records" | "profile" | "account" | "shop" | "draw" | "inventory" | "quests" | "achievements" | "rewards" | "friends" | "suggestions" | "mailbox" | "admin" | "daily" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab" | "economy-lab" | "cosmetics-lab";
 export type Shell = "lobby" | "game" | "lab" | "page";
 
 export const routes: Record<Route, { title: string; shell: Shell; tier: "core" | "lab" }> = {
@@ -29,7 +29,16 @@ export const routes: Record<Route, { title: string; shell: Shell; tier: "core" |
   inventory: { title: "인벤토리", shell: "page", tier: "core" },
   quests: { title: "퀘스트", shell: "page", tier: "core" },
   achievements: { title: "업적", shell: "page", tier: "core" },
+  rewards: { title: "출석·보상", shell: "page", tier: "core" },
   friends: { title: "친구", shell: "page", tier: "core" },
+  // FEEDBACK-1: reachable by link (#suggestions, #mailbox); menu entries are added by the shell owner.
+  suggestions: { title: "서비스 제안", shell: "page", tier: "core" },
+  mailbox: { title: "알림함", shell: "page", tier: "core" },
+  // ADMIN-1: a lazily loaded console. Hiding it is NOT access control — every /api/admin call is checked on the server.
+  admin: { title: "관리자", shell: "page", tier: "core" },
+  // LIVE-1: independent page at #daily; it stays a "준비 중" notice until the server reports features.daily.
+  // Lobby cards / navigation entry are for the shell owner (01) to add.
+  daily: { title: "오늘의 요트", shell: "page", tier: "core" },
   lab: { title: "연구실", shell: "lab", tier: "lab" },
   watch: { title: "AI 대전 관전", shell: "lab", tier: "lab" },
   tournament: { title: "AI 토너먼트", shell: "lab", tier: "lab" },
@@ -45,6 +54,8 @@ export const isRoute = (value: string): value is Route => Object.prototype.hasOw
 export const currentRoute = (): Route => {
   const id = location.hash.slice(1);
   if (id !== "tutorial" && isRoute(id)) return id;
+  // ADMIN-1: return from the Google re-authentication (the console consumes and removes the ticket)
+  if (id.startsWith("admin-reauth=") || id.startsWith("admin-reauth-error=")) return "admin";
   // A watch link whose #spectate was dropped still opens the spectator screen.
   if (new URLSearchParams(location.search).get("watch")) return "spectate";
   // An invite link whose #online was dropped by a messenger still opens the online screen.

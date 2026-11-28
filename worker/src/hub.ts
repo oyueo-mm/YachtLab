@@ -74,6 +74,11 @@ export type HubDeps = {
   auth(session: string): Promise<string | null>;
   /** Create and start a two-player room (first seat moves first). */
   createMatch(a: QueueSeat, b: QueueSeat, options: { public: boolean; assignmentId: string; secrets: [string, string] }): Promise<MatchResult>;
+  /**
+   * SOC-1-F1 (INT-1): true when either member blocks the other. Asked only for two signed-in members, after
+   * they are chosen and before any room is made; a failed check keeps them apart (fail closed).
+   */
+  blocked?(a: string, b: string): Promise<boolean>;
   setAlarm?(at: number): void;
   transaction?(run: () => void): void;
 };
@@ -90,6 +95,8 @@ type Counters = Record<string, number>;
 
 export class HubCore {
   private recent = new Map<string, number>();
+  /** SOC-1-F1: member pairs not to pair (block relation, or a failed block check) until the stored time. */
+  private avoid = new Map<string, number>();
   private pairing = new Map<string, { waiter: Waiter; socket: HostSocket; check?: { id: string; received?: boolean; resolve: (ready: boolean) => void } }>();
   private detached = new Map<string, Waiter>();
   private recovering = new Map<string, Promise<MatchResult>>();
@@ -290,6 +297,8 @@ export class HubCore {
     this.detached.delete(ticket);
     ws.serializeAttachment(w);
     this.count("queue.join");
+    // ADMIN-1: hourly demand (UTC hour only, no ids)
+    this.count("queue.hour." + String(new Date(t).getUTCHours()).padStart(2, "0"));
     this.send(ws, { t: "queued", since: w.since, waiting: this.waiting() });
     await this.pairAll();
   }
@@ -339,6 +348,7 @@ export class HubCore {
 
   private compatible(a: Waiter, b: Waiter, now: number) {
     if (this.overlaps(a, b)) return false;
+    if (a.userId && b.userId && (this.avoid.get(avoidKey(a.userId, b.userId)) ?? 0) > now) return false;
     for (const other of this.pairing.values()) if (this.overlaps(a, other.waiter) || this.overlaps(b, other.waiter)) return false;
     const pair = [this.identity(a), this.identity(b)].sort().join("|");
     const last = this.recent.get(pair);
@@ -381,6 +391,25 @@ export class HubCore {
   }
 
   private async pair(a: { s: HostSocket; w: Waiter }, b: { s: HostSocket; w: Waiter }) {
+    // SOC-1-F1: two members who block each other (either way) are never matched. They keep waiting, in order,
+    // and are offered to other players; a failed check keeps them apart for a short while (fail closed).
+    if (a.w.userId && b.w.userId && this.deps.blocked) {
+      let blocked: boolean;
+      try {
+        blocked = await this.deps.blocked(a.w.userId, b.w.userId);
+      } catch {
+        blocked = true;
+      }
+      if (blocked) {
+        const now = this.deps.now();
+        for (const [k, until] of this.avoid) if (until <= now) this.avoid.delete(k);
+        this.avoid.set(avoidKey(a.w.userId, b.w.userId), now + HUB_LIMITS.rePairAfterMs);
+        this.count("queue.blockedSkip");
+        const live = this.open();
+        for (const x of [a, b]) if (live.includes(x.s)) x.s.serializeAttachment(x.w);
+        return;
+      }
+    }
     if (a.w.v === 2 || b.w.v === 2) {
       const id = crypto.randomUUID();
       const both = [a, b];
@@ -668,3 +697,5 @@ export class HubCore {
     };
   }
 }
+
+const avoidKey = (a: string, b: string) => (a < b ? a + "|" + b : b + "|" + a);

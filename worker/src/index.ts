@@ -6,7 +6,10 @@ import { newRoomCode, normalizeCode, normalizeSpectateId, parseRoomSettings, ROO
 import { readConfig, type ConfigVars, type OnlineConfig } from "./config";
 import { RoomHost, type HostSocket, type HostStorage } from "./host";
 import { AccountStore, type Sql } from "./account";
-import { EconomyStore, type EconSql } from "./economy";
+import { EconomyStore, type EconSql, type Quote } from "./economy";
+import { RewardGrants, type GrantRecord } from "./grants";
+import { RetentionStore, type DailyContentActivity } from "./retention";
+import type { RewardInput } from "../../src/economy/live/rewards";
 import { ECONOMY } from "../../src/economy/live/config";
 import { itemById } from "../../src/economy/live/catalog";
 
@@ -14,8 +17,11 @@ import { itemById } from "../../src/economy/live/catalog";
 const bucket = (c: number) => (c < 100 ? "0-99" : c < 500 ? "100-499" : c < 2000 ? "500-1999" : c < 10000 ? "2000-9999" : c < 50000 ? "10k-49k" : "50k+");
 import { validateNickname } from "../../src/identity/nickname";
 import { ABSENT_ACCOUNT, FriendIndexStore, FriendStore, Presence, type FriendSql } from "./friends";
-import { handleFriendRoute, sendInvites, type FriendDeps, type FriendUser, type ResidueMode } from "./friends-api";
-import { CLEANUP_PARKED_CHECK_MS, CleanupQueue, INDEX_TARGET, runCleanup, type CleanupJob } from "./account-cleanup";
+import { INVITE_ID, challenge, handleFriendRoute, sendInvites, type FriendDeps, type FriendUser, type ResidueMode } from "./friends-api";
+import { CLEANUP_PARKED_CHECK_MS, CleanupQueue, EXT_CLEANUP_TABLE, INDEX_TARGET, runCleanup, type CleanupJob, type CleanupRun } from "./account-cleanup";
+/** ADMIN-1 / FEEDBACK-1 cleanup targets (account ids start with "u_", so these never collide). */
+const ADMIN_TARGET = "@admin";
+const BOARD_TARGET = "@board";
 import { sameText } from "./oidc";
 import { authConfig, handleAccountRoute, sessionUser, type AccountBackends, type GuestApi, type UserApi } from "./accounts-api";
 import type { MatchRecord } from "../../src/identity/records";
@@ -23,7 +29,22 @@ import type { SeatSpec } from "../../src/online/room";
 import type { PublicLook } from "../../src/economy/live/catalog";
 import type { MatchKind } from "../../src/economy/live/config";
 import { HubCore, type HubSql, type QueueSeat } from "./hub";
+import { PresenceHub, SocialStore, type SocialSql } from "./social";
+import { BODY_LIMITS, readJsonObject } from "./limits";
 import { clearStaleReservations, migrateReservations, reserve, type ReservationSql } from "./reservations";
+import { adminSettings, legacyTokenRoutes } from "./admin/roles";
+import { AdminCore, utcDay, type ActivityReport, type AdminSql, type InboxItem } from "./admin/store";
+import { MemberOps, type MemberSql } from "./admin/member";
+import { GrantRefused, claimAdminItem, deliverAdminItem, redeemAdminItem, revokeAdminItem, type AdminGrantContext } from "./admin/grant-port";
+import { handleAdminRoute, handleEngagementRoute, type AdminBackends, type AdminUserApi } from "./admin/api";
+import { BoardCore, type BoardSql } from "./feedback/board";
+import { DailyBoardCore, DailyPlayStore, dailyClock, dailySecrets, dayKeyFor, flushPending, entryFrom, rankEligible, verifyState, type DailySql, type Mode as DailyMode } from "./daily";
+import { handleDailyRoute, type DailyBoardApi, type DailyUserApi } from "./daily-api";
+import { activityFor, reportCompletion, type DailyContentSink } from "./daily-activity";
+import { dailyAdminRoutes } from "./daily-admin";
+import { boardName, type BoardEntry, type Visibility } from "../../src/daily/ranking";
+import { DAILY_RULES, closesAt, dayPhase, isDailyDate } from "../../src/daily/calendar";
+import type { PuzzleResult } from "../../src/daily/puzzles/types";
 
 /**
  * YachtLab Online — Cloudflare Worker + SQLite-backed Durable Objects (Phase 3).
@@ -45,9 +66,38 @@ export interface Env extends ConfigVars {
   /** Phase 4.5: one global object — quick-match queue, public spectating list, operations counters. */
   HUB: DurableObjectNamespace<MatchHub>;
   FRIENDS: DurableObjectNamespace<FriendIndex>;
+  /** LIVE-1: one ranking object per (rules, date). */
+  DAILY_BOARDS: DurableObjectNamespace<DailyBoard>;
+  /** LIVE-1 feature flag: "on" opens 오늘의 요트 / 오늘의 퍼즐 (also needs DAILY_SECRET and sign-in). Default off. */
+  DAILY?: string;
+  /** Worker secret (≥ 32 chars) from which each day's dice key is derived. Never in wrangler.toml. */
+  DAILY_SECRET?: string;
+  /** Dated rotation (dailySecrets): the former secret, used for dates before DAILY_SECRET_FROM. Worker secret. */
+  DAILY_SECRET_PREVIOUS?: string;
+  /** YYYY-MM-DD from which DAILY_SECRET applies (set to a future date when rotating). */
+  DAILY_SECRET_FROM?: string;
+  /** Official participants per day (service cap; default 500). */
+  DAILY_PARTICIPANT_LIMIT?: string;
+  /** Same-day practice games per member after the official attempt (default 5). */
+  DAILY_PRACTICE_PER_DAY?: string;
+  /** "on": accounts created on the day itself are ranked too (default off: they play, but rank from the next day). */
+  DAILY_NEW_ACCOUNTS_RANKED?: string;
+  /** Local tests only (see dailyClock): shifts the daily clock; ignored unless APP_URL is loopback. */
+  DAILY_TEST_OFFSET_MS?: string;
   /** "on" enables official coins/gems/quests/achievements/shop (feature flag). */
   ECONOMY?: string;
   DICE_DRAW?: string;
+  /**
+   * C5-CORE retention rewards (attendance, activity streak, weekly best streak) and the reward inbox:
+   * "on" pays them (needs ECONOMY="on"); anything else — the default — keeps them off. Operational
+   * activation is a separate owner approval (docs/economy/C5-RETENTION-RESEARCH.md §11).
+   */
+  RETENTION?: string;
+  /**
+   * Purchase-like requests (buy / upgrade / slot / draw): "required" refuses requests without the quote
+   * fields (CLIENT_UPDATE_REQUIRED); anything else — the default — accepts them (older pages).
+   */
+  ECONOMY_QUOTE?: string;
   /** "off" disables server AI matches (kill switch, default on). */
   SERVER_AI?: string;
   /**
@@ -62,6 +112,28 @@ export interface Env extends ConfigVars {
   ACCOUNT_CLEANUP_RETRY_EPOCH?: string;
   /** Operations metrics endpoint (`GET /api/admin/metrics`), off unless this secret (≥ 32 chars) is set. */
   ADMIN_TOKEN?: string;
+  /** ADMIN-1: one global object — admin sessions, audit log, member index, campaigns, codes, notices, reports, sanctions. */
+  ADMIN: DurableObjectNamespace<AdminHub>;
+  /** FEEDBACK-1: one global object — the service suggestion board. */
+  FEEDBACK: DurableObjectNamespace<SuggestionBoard>;
+  /** ADMIN-1 Worker SECRET: `u_…:role,…` (viewer | support | operator | owner). Unset = no admin console. */
+  ADMIN_ACCOUNTS?: string;
+  /** "on" allows admin writes (drafts, approvals, execution). Default off. */
+  ADMIN_WRITES?: string;
+  /** "self" lets an owner approve their own drafts; default needs a second administrator. */
+  ADMIN_APPROVAL?: string;
+  /** ADMIN-1: "google" (default) re-authentication for admin sessions; "off" honoured only for a loopback APP_URL (tests). */
+  ADMIN_REAUTH?: string;
+  /** ADMIN-1: approved reward-amount policy version. Unset = reward/code/adoption-reward drafts refused. */
+  ADMIN_REWARD_POLICY?: string;
+  /** D-115: legacy ADMIN_TOKEN routes — "metrics,ledger" (default), "metrics", "off". */
+  ADMIN_TOKEN_ROUTES?: string;
+  /** "on" opens the suggestion board, reports and appeals to members. Default off. */
+  FEEDBACK_BOARD?: string;
+  /** INT-1: "on" shows the member mailbox (admin messages) entry. Default off. */
+  MAILBOX?: string;
+  /** INT-1: "on" shows public important notices in the shell. Default off. */
+  NOTICES?: string;
   /** Sign-in (all four must be set, as Worker secrets / vars, or sign-in stays off). */
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
@@ -122,11 +194,14 @@ export class YachtRoom extends DurableObject<Env> {
       matchEnded: async (code) => env.HUB.get(env.HUB.idFromName("hub")).ended(code),
       // Friends see "경기 중" (memory only on each account object; no storage write).
       memberStatus: async (userIds, room) => {
+        // SOC-1: one call to the central presence; the per-account memory mark is kept for older readers.
+        await env.FRIENDS.get(env.FRIENDS.idFromName("index")).setPlaying(userIds, room).catch(() => undefined);
         await Promise.all(userIds.map((id) => env.USERS.get(env.USERS.idFromName(id)).setPlaying(room).catch(() => undefined)));
       },
       finished: async (info) => {
         const hub = env.HUB.get(env.HUB.idFromName("hub"));
         await hub.count(`finished.${info.kind}.${info.completed ? "completed" : "forfeit"}`);
+        if (info.players) await hub.count(`players.${Math.min(20, info.players)}`);
         if (info.completed) {
           await hub.completed(info.matchId, info.at);
           await hub.count(`duration.${info.kind}.totalSec`, Math.round(info.durationMs / 1000));
@@ -163,6 +238,12 @@ export class YachtRoom extends DurableObject<Env> {
   /** Friend invites: is this account seated in this friend room, and is there a free seat in the waiting room? */
   async inviteState(userId: string) {
     return this.host.inviteState(userId);
+  }
+  async sharesRoom(a: string, b: string) {
+    return this.host.sharesRoom(a, b);
+  }
+  async memberAccountIds() {
+    return this.host.memberAccountIds();
   }
   async summary() {
     return this.host.summary();
@@ -453,36 +534,243 @@ export class RoomDirectory extends DurableObject<Env> {
 
 /* ---------------------------------------------------------------- accounts ---------------------------------------------------------------- */
 
+/** What the page sees of a grant (no user id, no fingerprint). */
+const publicGrant = (g: GrantRecord) => ({ txId: g.txId, source: g.source, coins: g.coins, gems: g.gems, items: g.items, label: g.label, status: g.status, createdAt: g.createdAt, expiresAt: g.expiresAt });
+/** Operations counters of C5 grants (no ids): count and coins / gems per source. */
+function grantCounts(grants: readonly GrantRecord[]): [string, number][] {
+  const out = new Map<string, number>();
+  const add = (k: string, n: number) => n > 0 && out.set(k, (out.get(k) ?? 0) + n);
+  for (const g of grants) {
+    add(`grant.${g.source}`, 1);
+    add(`grant.${g.source}.coins`, g.coins);
+    add(`grant.${g.source}.gems`, g.gems);
+    add("econ.coins", g.coins);
+    add("econ.gems", g.gems);
+  }
+  return [...out];
+}
+
 /** One account (Phase 4): profile, hashed sessions, match records. Addressed by `idFromName(userId)`. */
 export class UserStore extends DurableObject<Env> implements UserApi {
   private store: AccountStore;
   private econ: EconomyStore;
+  private grants: RewardGrants;
+  private retention: RetentionStore;
   private friends: FriendStore;
   private cleanup: CleanupQueue;
+  /** SEC-1 2차 INT-7: admin-index / board jobs in a table an older Worker never reads (rollback-safe). */
+  private extCleanup: CleanupQueue;
+  private member: MemberOps;
+  private dailyStore: DailyPlayStore;
   private presenceState = new Presence();
+  private socialStore: SocialStore;
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
+    this.socialStore = new SocialStore(ctx.storage.sql as unknown as SocialSql);
     this.store = new AccountStore(ctx.storage.sql as unknown as Sql);
+    this.member = new MemberOps(ctx.storage.sql as unknown as MemberSql);
+    this.dailyStore = new DailyPlayStore(this.econSql() as unknown as DailySql);
     this.econ = new EconomyStore(this.econSql());
+    // C5: only the approved C5-CORE sources can pay (operator, suggestion, daily content, redeem codes: off)
+    this.grants = new RewardGrants(this.econSql(), this.econ);
+    this.retention = new RetentionStore(this.econSql(), this.grants);
     this.friends = new FriendStore(this.econSql() as unknown as FriendSql);
     this.cleanup = new CleanupQueue(ctx.storage.sql as unknown as Sql);
+    this.extCleanup = new CleanupQueue(ctx.storage.sql as unknown as Sql, EXT_CLEANUP_TABLE);
     ctx.blockConcurrencyWhile(async () => {
       this.store.init();
       this.econ.init();
+      this.grants.init();
+      this.retention.init();
       this.friends.init();
       this.cleanup.init();
+      this.extCleanup.init();
+      this.member.init();
+      this.dailyStore.init();
     });
   }
+  /* ------------------------------------------------- 오늘의 요트 (LIVE-1): member side ------------------------------------------------- */
+  private dailyNow = dailyClock(this.env);
+  private dailyBoard(date: string) {
+    return this.env.DAILY_BOARDS.get(this.env.DAILY_BOARDS.idFromName(boardName(DAILY_RULES, date)));
+  }
+  private dailyKey(date: string) {
+    const secrets = dailySecrets(this.env);
+    if (!secrets.ok) throw Error("daily secret configuration");
+    return dayKeyFor(secrets.secretFor(date), date);
+  }
+  private dailyLimits() {
+    const n = Number(this.env.DAILY_PRACTICE_PER_DAY ?? 5);
+    return { practicePerDay: Number.isInteger(n) && n >= 0 ? n : 5 };
+  }
+  /**
+   * After a finished official attempt (retried on later calls): 1) the ranking board, 2) the C5
+   * continuous-activity report (`dailyContentDone`, present once C5 is merged; a no-op before). Each step
+   * is marked done on its own. Practice / archive / puzzles never get here.
+   */
+  private async dailyFlush() {
+    const p = this.store.profile();
+    if (!p) return;
+    await flushPending(this.dailyStore, {
+      // defence in depth: the stored state must be exactly what its own log replays to
+      verify: (state, date) => verifyState(state, this.dailyKey(date)),
+      onVerifyFailed: () => console.error("DAILY_VERIFY_FAILED"),
+      // D-141: no ranking — a finished official attempt only counts toward the day's completion statistics
+      // (one counter row; no nickname, score or account id is written to the shared board)
+      board: async (a) => {
+        const board = this.dailyBoard(a.date);
+        const score = Math.max(0, Math.floor(Number(a.score) || 0));
+        await board.count("completed");
+        await board.count(`score.${Math.floor(score / 25) * 25}`); // anonymous distribution for the operator report
+        await board.count("score.sum", score);
+      },
+      // C5 (#140) adds UserStore.dailyContentDone; until then the sink is absent and this is a no-op
+      activity: async (a) => {
+        await reportCompletion(this as unknown as Partial<DailyContentSink>, activityFor({ mode: "official", status: "finished", finishedAt: a.finishedAt }, p.userId, a.date, DAILY_RULES, a.score, a.ranked));
+      },
+    });
+  }
+  async dailyStart(date: string, mode: DailyMode) {
+    const p = this.store.profile();
+    if (!p) return { ok: false as const, status: 404, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+    if (!isDailyDate(date)) return { ok: false as const, status: 400, code: "INVALID_COMMAND", message: "잘못된 날짜예요." };
+    const now = this.dailyNow();
+    // SEC-1 2차 DLY-3: only an OPEN day admits a new official participant (no board object, no participant row
+    // for future, grace or closed dates — the store then answers DAILY_NOT_OPEN / DAILY_CLOSED as before)
+    if (mode === "official" && dayPhase(date, now) === "open" && !this.dailyStore.attempt(date, "official", now)) {
+      if (this.dailyUsedBeforeRejoin(date, now)) return { ok: false as const, status: 409, code: "DAILY_USED", message: "오늘의 공식 도전은 이미 했어요. 내일 다시 도전해 주세요." };
+      const limit = Number(this.env.DAILY_PARTICIPANT_LIMIT ?? 500);
+      const admitted = await this.dailyBoard(date).admit(p.userId, Number.isInteger(limit) && limit > 0 ? limit : 500, now);
+      if (!admitted.ok) return { ok: false as const, status: 503, code: "DAILY_FULL", message: "오늘의 요트 참가 인원이 가득 찼어요. 내일 다시 도전해 주세요." };
+    }
+    const ranked = rankEligible(p.createdAt, date, this.env.DAILY_NEW_ACCOUNTS_RANKED === "on");
+    const r = this.dailyStore.start(date, mode, this.dailyKey(date), now, { ranked, limits: this.dailyLimits() });
+    if (r.ok && r.created && mode === "practice") await this.dailyBoard(date).count("practice").catch(() => undefined);
+    if (r.ok && r.created) await this.hub().count(`daily.${mode}.started`).catch(() => undefined);
+    return r;
+  }
+  /** DLY-2: an official challenge of this date was taken before a deletion of this account (still open). */
+  private dailyUsedBeforeRejoin(date: string, now: number) {
+    if (!this.ctx.storage.sql.exec<{ n: number }>("SELECT count(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'daily_used'").toArray()[0].n) return false;
+    return this.ctx.storage.sql.exec("SELECT 1 FROM daily_used WHERE date = ? AND closes_at > ?", date, now).toArray().length > 0;
+  }
+  async dailyAct(date: string, mode: DailyMode, seq: unknown, step: unknown) {
+    if (!this.store.profile()) return { ok: false as const, status: 404, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+    if (!isDailyDate(date)) return { ok: false as const, status: 400, code: "INVALID_COMMAND", message: "잘못된 날짜예요." };
+    const r = this.dailyStore.act(date, mode, seq, step, this.dailyKey(date), this.dailyNow());
+    if (r.ok && r.finished) {
+      if (mode === "official") await this.dailyFlush();
+      await this.hub().count(`daily.${mode}.completed`).catch(() => undefined);
+    }
+    return r;
+  }
+  async dailyAttempt(date: string, mode: DailyMode) {
+    await this.dailyFlush();
+    return isDailyDate(date) ? this.dailyStore.attempt(date, mode, this.dailyNow()) : null;
+  }
+  /** SEC-1 2차 INT-5: GET /api/daily/today reads in one call (same answers as the separate RPCs). */
+  async dailyToday(date: string, puzzleIds: string[]) {
+    await this.dailyFlush();
+    const now = this.dailyNow();
+    const ok = isDailyDate(date);
+    return {
+      official: ok ? this.dailyStore.attempt(date, "official", now) : null,
+      practice: ok ? this.dailyStore.attempt(date, "practice", now) : null,
+      practiceLeft: await this.dailyPracticeLeft(date),
+      puzzleResults: this.dailyStore.puzzleResults(puzzleIds.slice(0, 10)),
+      visibility: this.dailyStore.visibility(),
+    };
+  }
+  async dailyPracticeLeft(date: string) {
+    const used = (this.ctx.storage.sql.exec<{ games: number }>("SELECT games FROM daily_practice WHERE date = ?", date).toArray()[0]?.games ?? 0);
+    return Math.max(0, this.dailyLimits().practicePerDay - used);
+  }
+  async dailyHistory() {
+    await this.dailyFlush();
+    return { ...this.dailyStore.history(this.dailyNow()), puzzles: this.dailyStore.puzzleSummary(), visibility: this.dailyStore.visibility() };
+  }
+  async dailyVisibility(v?: Visibility) {
+    return v ? this.dailyStore.setVisibility(v) : this.dailyStore.visibility();
+  }
+  /** SEC-1 2차 SOC-3: is any of these accounts blocked by me, or blocking me? (one call, both directions) */
+  async blockedWithAny(ids: string[]) {
+    if (!this.store.exists() || !ids.length) return false;
+    const list = ids.slice(0, 32);
+    const marks = list.map(() => "?").join(",");
+    return this.ctx.storage.sql.exec(`SELECT 1 FROM fr_blocks WHERE user_id IN (${marks}) UNION SELECT 1 FROM fr_blocked_by WHERE user_id IN (${marks}) LIMIT 1`, ...list, ...list).toArray().length > 0;
+  }
+  /** Accounts hidden from me in daily lists: those I block and those who block me. Internal ids only. */
+  async dailyHidden() {
+    return this.ctx.storage.sql.exec<{ user_id: string }>("SELECT user_id FROM fr_blocks UNION SELECT user_id FROM fr_blocked_by").toArray().map((r) => r.user_id);
+  }
+  async dailyFriendIds() {
+    return this.friends.friendIds();
+  }
+  async dailyPuzzleResults(ids: string[]) {
+    return this.dailyStore.puzzleResults(ids.slice(0, 10));
+  }
+  async dailyAnswer(date: string, result: PuzzleResult) {
+    return this.dailyStore.answerPuzzle(date, result);
+  }
+  async dailyLog(date: string) {
+    return this.dailyStore.log(date, "official");
+  }
   /* ---------------------------------------------- friends (I/J): one generic RPC over FriendStore ---------------------------------------------- */
-  private static FR_OPS = new Set(["code", "setCode", "spend", "isFriend", "isBlocking", "relation", "friendIds", "peerId", "lists", "canRequest", "recordOutgoing", "addFriend", "removeFriend", "cancelOutgoing", "declineIncoming", "dropIncoming", "incomingPeer", "block", "unblock", "receiveRequest", "outgoingDeclined", "incomingCancelled", "blockedBy", "unblockedBy", "acceptedBy", "forget", "forgetMany", "retiredCodes", "residuePairs", "refresh", "receiveInvite", "invites", "takeInvite", "inboxCount"]);
+  private static FR_OPS = new Set(["code", "setCode", "spend", "isFriend", "isBlocking", "relation", "friendIds", "peerId", "lists", "canRequest", "recordOutgoing", "addFriend", "removeFriend", "cancelOutgoing", "declineIncoming", "dropIncoming", "incomingPeer", "block", "unblock", "receiveRequest", "outgoingDeclined", "incomingCancelled", "blockedBy", "unblockedBy", "acceptedBy", "forget", "forgetMany", "retiredCodes", "residuePairs", "refresh", "receiveInvite", "invites", "takeInvite", "inboxCount", "friendPeers", "takeInviteFrom", "dropInvite"]);
   async fr(op: string, ...args: unknown[]) {
     if (!UserStore.FR_OPS.has(op)) throw Error("unknown op");
     // an account that does not exist (never created, or deleted) answers neutrally and stores nothing
     if (!this.store.exists()) return ABSENT_ACCOUNT[op];
+    // SOC-1: forgetting a deleted account (or blocking / being blocked) also drops my sent invites to it.
+    if (op === "forget" || op === "block" || op === "blockedBy") this.socialStore.forgetRecipient(op === "block" ? (args[0] as { userId: string }).userId : String(args[0]));
     return (this.friends as unknown as Record<string, (...a: unknown[]) => unknown>)[op](...args);
   }
   async nickname() {
     return this.store.profile()?.nickname ?? null;
+  }
+  /* ------------------------------------------- SOC-1: settings, pins, sent invites (SocialStore) ------------------------------------------- */
+  private static SOC_OPS = new Set(["settings", "setSettings", "pins", "setPins", "recordSent", "answerSent", "cancelSent", "pendingChallenge", "sent"]);
+  private static SOC_ABSENT: Record<string, unknown> = { settings: { presence: "friends", pinsVisibility: "public" }, setSettings: { ok: false, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." }, pins: [], setPins: { ok: false, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." }, cancelSent: null, pendingChallenge: null, sent: [] };
+  async social(op: string, ...args: unknown[]) {
+    if (!UserStore.SOC_OPS.has(op)) throw Error("unknown op");
+    if (!this.store.exists()) return UserStore.SOC_ABSENT[op];
+    return (this.socialStore as unknown as Record<string, (...a: unknown[]) => unknown>)[op](...args);
+  }
+  /** Achievements this account earned (server economy state; empty when the economy is off). */
+  async earned(): Promise<string[]> {
+    const p = this.store.profile();
+    if (!p) return [];
+    try {
+      return [...this.econ.snapshot(p.userId, Date.now(), 1).state.achievements];
+    } catch {
+      return [];
+    }
+  }
+  /** Pins this viewer may see: visibility setting, blocks (a blocked viewer sees none), earned only. */
+  async showcase(viewer: string | null): Promise<string[]> {
+    if (!this.store.exists()) return [];
+    if (viewer && this.friends.isBlocking(viewer)) return [];
+    const vis = this.socialStore.settings().pinsVisibility;
+    if (vis === "private" && viewer !== this.store.profile()?.userId) return [];
+    if (vis === "friends" && (!viewer || (!this.friends.isFriend(viewer) && viewer !== this.store.profile()?.userId))) return [];
+    return this.socialStore.pins(await this.earned());
+  }
+  async versus(userId: string) {
+    return this.store.exists() ? this.store.versus(userId) : { games: 0, wins: 0, losses: 0, draws: 0 };
+  }
+  async playedWith(userId: string) {
+    return this.store.playedWith(userId);
+  }
+  /** Friend code at sign-in (SOC-1): new accounts are findable by code at once; existing ones on their next sign-in. */
+  private async ensureFriendCode() {
+    const p = this.store.profile();
+    if (!p || this.friends.code()) return;
+    try {
+      const code = await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).register(p.userId, p.nickname ?? "이름 없음", this.friends.retiredCodes());
+      this.friends.setCode(code);
+    } catch {
+      /* the friend page registers it later */
+    }
   }
   /** Friends' view of this account (memory only, never stored) — only for a viewer this account lists as a friend. */
   async presence(viewer?: string) {
@@ -491,6 +779,15 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   }
   async ping() {
     this.presenceState.ping(Date.now());
+  }
+  /**
+   * INT-1 (Workers Free): the inbox heartbeat in ONE call — ping + request count + invites + sent invites
+   * (was four separate calls to this object per tab per minute). Same answers as the separate operations.
+   */
+  async inboxBeat(now: number) {
+    this.presenceState.ping(now);
+    const [box, invites, sent] = await Promise.all([this.fr("inboxCount", now), this.fr("invites", now), this.social("sent", now)]);
+    return { box: box as { requests: number; invites: number }, invites: invites as unknown[], sent: sent as unknown[] };
   }
   async setPlaying(room: string | null) {
     this.presenceState.setPlaying(room, Date.now());
@@ -516,6 +813,9 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   private get economyOn() {
     return this.env.ECONOMY === "on";
   }
+  private get retentionOn() {
+    return this.economyOn && this.env.RETENTION === "on";
+  }
   private hub() {
     return this.env.HUB.get(this.env.HUB.idFromName("hub"));
   }
@@ -539,28 +839,37 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     if (g.length) await this.hub().count("econ.welcome").catch(() => undefined);
     return { ok: true as const, snapshot: this.econ.snapshot(p.userId, Date.now()) };
   }
-  private async econAction<T extends { ok: true; duplicate?: boolean; snapshot: unknown } | { ok: false; code: string; message: string }>(kind: string, fn: (userId: string, now: number) => T, metric?: (r: { ok: true; duplicate?: boolean }) => string | null) {
+  private async econAction<T extends { ok: true; duplicate?: boolean; snapshot: unknown } | { ok: false; code: string; message: string }>(kind: string, fn: (userId: string, now: number) => T, metric?: (r: T & { ok: true; duplicate?: boolean }) => string | (string | [string, number])[] | null) {
     if (!this.economyOn) return { ok: false as const, code: "ECONOMY_OFF", message: "재화 기능은 아직 준비 중이에요." };
     const p = this.store.profile();
     if (!p) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
     this.welcome(Date.now());
+    const before = this.econ.balance();
     const r = fn(p.userId, Date.now());
     if (r.ok && !r.duplicate) {
-      const m = metric?.(r);
-      if (m) await this.hub().count(m).catch(() => undefined);
+      const m = metric?.(r as T & { ok: true });
+      // ADMIN-1: spending is counted as the balance drop of the action (no ids, privacy-light)
+      const after = this.econ.balance();
+      const counts: [string, number][] = [...(m === null || m === undefined ? [] : Array.isArray(m) ? m : [m]).map((x): [string, number] => (typeof x === "string" ? [x, 1] : x)),
+        ["spend.coins", Math.max(0, before.coins - after.coins)], ["spend.gems", Math.max(0, before.gems - after.gems)]];
+      const hub = this.hub();
+      await Promise.all(counts.filter(([, n]) => n > 0).map(([k, n]) => hub.count(k, n))).catch(() => undefined);
     }
     void kind;
     return r;
   }
-  async buy(itemId: unknown, currency: unknown, requestId: string) {
+  async buy(itemId: unknown, currency: unknown, requestId: string, quote: Quote = {}) {
     const tier = itemById(itemId)?.tier ?? "unknown";
-    return this.econAction("buy", (u, n) => this.econ.buy(u, itemId, currency, requestId, n), () => `buy.${tier}.${currency === "gems" ? "gems" : "coins"}`);
+    return this.econAction("buy", (u, n) => this.econ.buy(u, itemId, currency, requestId, n, quote), () => [`buy.${tier}.${currency === "gems" ? "gems" : "coins"}`, ...(itemById(itemId) ? [`item.${itemById(itemId)!.id}`] : [])]);
   }
-  async upgrade(itemId: unknown, requestId: string) {
-    return this.econAction("upgrade", (u, n) => this.econ.upgrade(u, itemId, requestId, n), () => "upgrade");
+  async upgrade(itemId: unknown, requestId: string, quote: Quote = {}) {
+    return this.econAction("upgrade", (u, n) => this.econ.upgrade(u, itemId, requestId, n, quote), () => {
+      const level = itemById(itemId) ? this.econ.owned().get(itemById(itemId)!.id) : undefined;
+      return ["upgrade", ...(level ? [`upgrade.level.${level}`] : [])];
+    });
   }
-  async buySlot(kind: unknown, currency: unknown, requestId: string) {
-    return this.econAction("slot", (u, n) => this.econ.buySlot(u, kind, currency, requestId, n), () => `slot.${kind === "chat" ? "chat" : "emote"}`);
+  async buySlot(kind: unknown, currency: unknown, requestId: string, quote: Quote = {}) {
+    return this.econAction("slot", (u, n) => this.econ.buySlot(u, kind, currency, requestId, n, quote), () => `slot.${kind === "chat" ? "chat" : "emote"}`);
   }
   async setLoadout(loadout: unknown) {
     return this.econAction("loadout", (u, n) => this.econ.setLoadout(u, loadout, n));
@@ -574,13 +883,95 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       ok: true as const, snapshot: this.econ.snapshot(userId, now), draw: this.econ.drawStatus(now),
     }));
   }
-  async draw(pool: DrawPool, requestId: string) {
+  async draw(pool: DrawPool, requestId: string, quote: Quote = {}) {
     if (this.env.DICE_DRAW !== "on") return { ok: false as const, code: "ECONOMY_OFF", message: "뽑기는 아직 준비 중이에요." };
-    return this.econAction("draw", (u, n) => this.econ.draw(u, pool, requestId, n), () => "shop.draw");
+    return this.econAction("draw", (u, n) => this.econ.draw(u, pool, requestId, n, quote), (r) => {
+      const receipt = (r as { receipt?: { hand: string; duplicateCoins: number } }).receipt;
+      return ["shop.draw", ...(receipt ? [`draw.hand.${receipt.hand}`, ...(receipt.duplicateCoins ? ["draw.duplicate"] : [])] : [])];
+    });
   }
-  /** Ledger ↔ balance check (administrator). */
+  /** Ledger ↔ balance check (administrator), including the grant records (C5). */
   async verifyLedger() {
-    return this.econ.verify();
+    const ledger = this.econ.verify();
+    const grants = this.grants.verify();
+    return { ...ledger, ok: ledger.ok && grants.ok, grants: grants.grants, problems: [...ledger.problems, ...grants.problems] };
+  }
+
+  /* --------------------------------------------- C5 rewards: attendance, streaks, inbox, codes --------------------------------------------- */
+
+  /** `snapshot` on changes only, so the page's wallet updates through the usual economy event. */
+  private rewardsView(userId: string, now: number, changed = false) {
+    return {
+      status: this.retention.status(now),
+      inbox: this.grants.inbox(now).map(publicGrant),
+      history: this.grants.history(20).map(publicGrant),
+      // SEC-1 2차 ECO-2: the reward page coupon form opens only when redeem-code grants may pay (owner approval)
+      redeem: this.grants.isEnabled("redeem-code"),
+      wallet: this.econ.balance(),
+      ...(changed ? { snapshot: this.econ.snapshot(userId, now) } : {}),
+    };
+  }
+  private retentionGate(): { ok: false; code: string; message: string } | null {
+    if (!this.retentionOn) return { ok: false, code: "RETENTION_OFF", message: "출석·연속 활동 보상은 아직 준비 중이에요." };
+    return this.store.profile() ? null : { ok: false, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+  }
+  /** GET /api/me/rewards — status of attendance, activity and weekly streak, the inbox and recent grants. */
+  async rewards() {
+    const gate = this.retentionGate();
+    if (gate) return gate;
+    const p = this.store.profile()!;
+    const now = Date.now();
+    this.welcome(now);
+    this.grants.expire(now);
+    return { ok: true as const, ...this.rewardsView(p.userId, now) };
+  }
+  /** POST /api/me/rewards/attendance — once per KST day. */
+  async claimAttendance() {
+    const gate = this.retentionGate();
+    if (gate) return gate;
+    const p = this.store.profile()!;
+    const now = Date.now();
+    this.welcome(now);
+    const r = this.retention.claimAttendance(p.userId, now);
+    if (!r.ok) return r;
+    await Promise.all(grantCounts(r.granted).map(([k, n]) => this.hub().count(k, n))).catch(() => undefined);
+    return { ok: true as const, granted: r.granted.map(publicGrant), ...this.rewardsView(p.userId, now, true) };
+  }
+  /** POST /api/me/rewards/claim — one inbox entry or "all". */
+  async claimReward(txId: string | "all") {
+    const gate = this.retentionGate();
+    if (gate) return gate;
+    const p = this.store.profile()!;
+    const now = Date.now();
+    let claimed: GrantRecord[];
+    if (txId === "all") claimed = this.grants.claimAll(now).claimed;
+    else {
+      const r = this.grants.claim(txId, now);
+      if (!r.ok) return r;
+      claimed = r.duplicate ? [] : [r.record];
+    }
+    await Promise.all(grantCounts(claimed).map(([k, n]) => this.hub().count(k, n))).catch(() => undefined);
+    return { ok: true as const, granted: claimed.map(publicGrant), ...this.rewardsView(p.userId, now, true) };
+  }
+  /**
+   * POST /api/me/rewards/redeem — redeem codes need the global code directory of ADMIN-1 (#141) and an
+   * approved amount; until both exist the route answers REDEEM_OFF and never pays.
+   */
+  async redeemCode(_code: string) {
+    const gate = this.retentionGate();
+    if (gate) return gate;
+    return { ok: false as const, code: "REDEEM_OFF", message: "교환 코드는 아직 준비 중이에요." };
+  }
+  /** LIVE-1 (#142) hook: an approved daily content completion counts as an active day (no daily-content coins). */
+  async dailyContentDone(activity: DailyContentActivity) {
+    if (!this.retentionOn) return [];
+    const p = this.store.profile();
+    if (!p) return [];
+    const now = Date.now();
+    // INT-1: a suspended account earns no activity day (the daily API also refuses its writes)
+    if (this.member.standing(now).suspended) return [];
+    this.welcome(now);
+    return this.retention.onDailyContent(p.userId, activity, now).map(publicGrant);
   }
   /** Count a server AI match start against this account's daily limit. */
   async startAi() {
@@ -589,17 +980,141 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     return this.econ.startAi(p.userId, Date.now());
   }
   async ensureAndCode(userId: string, provider: string, clientStateHash: string) {
-    this.store.ensureUser(userId, provider, Date.now());
+    const isNew = !this.store.exists();
+    if (isNew) {
+      // SEC-1 2차 INT-6: sanctions still in force follow a re-join (D-113). Read them BEFORE the account exists
+      // and fail closed: if the admin index cannot answer, no account and no login code are created (the user
+      // retries), so a re-join during an outage never starts without its suspension.
+      const carried = this.env.ADMIN ? ((await this.admin().op("signup", userId, Date.now())) as { id: string; kind: "restrict" | "suspend"; reason: string; until: number | null }[]) : [];
+      this.ctx.storage.transactionSync(() => {
+        this.store.ensureUser(userId, provider, Date.now());
+        for (const c of carried) this.member.applySanction(c, Date.now());
+      });
+    } else this.store.ensureUser(userId, provider, Date.now());
     return this.store.createLoginCode(clientStateHash, Date.now());
   }
   async exchange(code: string, clientState: string) {
     const session = await this.store.exchange(code, clientState, Date.now());
     // the alarm removes the session once expired, even if the account never comes back (SEC-04)
     if (session) await this.scheduleAlarm();
+    if (session) await this.ensureFriendCode();
     return session;
   }
   async authenticate(session: string) {
-    return this.store.authenticate(session, Date.now());
+    const ok = await this.store.authenticate(session, Date.now());
+    if (ok) this.reportActivity();
+    return ok;
+  }
+  /** ADMIN-1: authentication and sanction standing in one call (enforced by the Worker routes). */
+  async authenticateStanding(session: string) {
+    const ok = await this.authenticate(session);
+    const s = this.member.standing(Date.now());
+    return { ok, suspended: s.suspended, restricted: s.restricted, until: s.suspendedUntil ?? s.restrictedUntil };
+  }
+  private admin(): { op(name: string, ...args: unknown[]): Promise<unknown> } {
+    return this.env.ADMIN.get(this.env.ADMIN.idFromName("admin")) as unknown as { op(name: string, ...args: unknown[]): Promise<unknown> };
+  }
+  /**
+   * First authenticated request of a KST day queues an activity report; the whole unacknowledged queue
+   * (oldest first, one call, one at a time) goes to the admin index and is removed only on success, so a
+   * failure is retried at a later request (at most once a minute). The index counts each day once.
+   */
+  private activitySending = false;
+  private activityTriedAt = 0;
+  private reportActivity() {
+    const p = this.store.profile();
+    if (!p || !this.env.ADMIN) return;
+    const fresh = this.member.activity(p, Date.now());
+    if (this.activitySending || (!fresh && Date.now() - this.activityTriedAt < 60_000)) return;
+    const queue = this.member.outbox();
+    if (!queue.length) return;
+    this.activitySending = true;
+    this.activityTriedAt = Date.now();
+    this.ctx.waitUntil(this.admin().op("activityBatch", queue satisfies ActivityReport[])
+      .then(() => this.member.ack(queue.map((r) => r.day)))
+      .catch(() => undefined)
+      .finally(() => (this.activitySending = false)));
+  }
+  /* ------------------------------------------------------------- ADMIN-1 (admin console RPC) ------------------------------------------------------------- */
+  async adminView() {
+    const account = this.store.adminSummary();
+    if (!account) return null;
+    const now = Date.now();
+    const snap = this.econ.snapshot(account.userId, now, 20);
+    return {
+      account,
+      lastActiveDay: this.member.lastActiveDay() === null ? null : new Date(this.member.lastActiveDay()! * 86_400_000).toISOString().slice(0, 10),
+      economy: { enabled: this.economyOn, wallet: snap.wallet, items: snap.inventory.length, topItems: [...snap.inventory].sort((a, b) => b.level - a.level).slice(0, 10), achievements: Object.keys(snap.state.achievements ?? {}).length, slots: snap.slots, loadout: snap.loadout, recentLedger: snap.ledger },
+      ledger: this.econ.verify(),
+      standing: this.member.standing(now),
+      sanctions: this.member.sanctions(),
+      inbox: this.member.inbox(now, 20),
+    };
+  }
+  async adminRecord(matchId: string) {
+    return this.store.exists() ? this.store.adminRecord(matchId) : null;
+  }
+  /** INT-1: the admin delivery paths on this account (C5 RewardGrants is the only crediting path). */
+  private adminGrants(): AdminGrantContext | null {
+    const p = this.store.profile();
+    return p ? { userId: p.userId, grants: this.grants, member: this.member, transaction: (fn) => this.econSql().transaction(fn), rewardsOn: this.retentionOn } : null;
+  }
+  async deliver(item: InboxItem) {
+    const c = this.adminGrants();
+    if (!c) return "absent" as const;
+    // a reward needs the economy; a refused grant throws (the admin action fails, nothing is delivered)
+    const now = Date.now();
+    if (item.coins > 0 || item.gems > 0) {
+      if (!this.economyOn) throw new GrantRefused("ECONOMY_OFF", "재화 기능이 꺼져 있어요.");
+      this.welcome(now); // a C5 grant needs the account's economy row (same as claim / redeem)
+    }
+    return deliverAdminItem(c, item, now);
+  }
+  async revokeItem(id: string, actor?: string) {
+    const c = this.adminGrants();
+    if (!c) return false;
+    // a reward lives in the C5 inbox (txId = mailbox id); a message is hidden in the mailbox
+    return revokeAdminItem(c, id, actor && /^u_[A-Za-z0-9_-]{22}$/.test(actor) ? "admin:" + actor : "admin:console", Date.now()); // ECO-5: the revoking administrator
+  }
+  async applySanction(s: { id: string; kind: "warning" | "nickname_reset" | "restrict" | "suspend"; reason: string; until: number | null }) {
+    const p = this.store.profile();
+    if (!p) return "absent" as const;
+    const now = Date.now();
+    this.ctx.storage.transactionSync(() => {
+      if (this.member.applySanction(s, now) && s.kind === "nickname_reset") this.store.resetNickname(now);
+    });
+    if (s.kind === "nickname_reset") await this.admin().op("nicknameChanged", p.userId, null).catch(() => undefined);
+    return "ok" as const;
+  }
+  async liftSanction(id: string) {
+    return this.store.exists() && this.member.liftSanction(id, Date.now());
+  }
+  async inbox() {
+    const now = Date.now();
+    // INT-1: claimable rewards live in the C5 reward inbox (single source); the mailbox lists messages
+    return this.store.exists() ? { items: this.member.inbox(now), unclaimed: this.grants.inbox(now).length } : { items: [], unclaimed: 0 };
+  }
+  async mySanctions() {
+    return this.store.exists() ? this.member.sanctions() : [];
+  }
+  /** Mailbox claim (compatibility route) = C5 claim of the same txId — one crediting path, never twice. */
+  async claim(id: string) {
+    const c = this.adminGrants();
+    if (!c) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+    if (!this.economyOn) return { ok: false as const, code: "ECONOMY_OFF", message: "재화 기능은 아직 준비 중이에요." };
+    const now = Date.now();
+    this.welcome(now);
+    const r = claimAdminItem(c, id, now);
+    return r.ok ? { ...r, snapshot: this.econ.snapshot(c.userId, now) } : r;
+  }
+  /** Redeem code: a direct C5 grant keyed by the redemption id (`code:<id>[:<n>]`) — a retry never credits twice. */
+  async redeemGrant(item: InboxItem) {
+    const c = this.adminGrants();
+    if (!c) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+    if (!this.economyOn) return { ok: false as const, code: "ECONOMY_OFF", message: "재화 기능은 아직 준비 중이에요." };
+    const now = Date.now();
+    this.welcome(now);
+    return redeemAdminItem(c, item, now);
   }
   async me() {
     return this.store.profile();
@@ -615,6 +1130,7 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   }
   async setNickname(nickname: unknown) {
     const r = this.store.setNickname(nickname, Date.now());
+    if (r.ok && this.store.profile()) await this.admin().op("nicknameChanged", this.store.profile()!.userId, r.nickname).catch(() => undefined);
     // Keep the friend search index in step (only for accounts that already have a friend code).
     const p = this.store.profile();
     // `keep`: if the index lost this account's entry, it is restored with the SAME code (never a new one).
@@ -651,11 +1167,19 @@ export class UserStore extends DurableObject<Env> implements UserApi {
    */
   async deleteAccount() {
     const guests = this.store.exists() ? this.store.guests() : [];
+    // LIVE-1: the member's daily results leave every board they are on (best effort, before the tables go)
+    const dailyDates = this.store.exists() ? (this.dailyStore.history(Date.now(), 400).records.map((r) => r.date)) : [];
+    const dailyOwner = this.store.profile()?.userId;
+    if (dailyOwner) await Promise.all(dailyDates.map((d) => this.dailyBoard(d).remove(dailyOwner).catch(() => undefined)));
+    // SEC-1 2차 DLY-2: dates whose official challenge was already taken and that are still open — a re-join on
+    // the same day must not get a second official attempt with dice already seen. Dates only, in the deletion
+    // record this object already keeps (no id, score or log), and useless once the day closes.
+    const usedDays = this.store.exists() ? this.ctx.storage.sql.exec<{ date: string }>("SELECT DISTINCT date FROM daily_attempts WHERE mode = 'official'").toArray().map((r) => r.date).filter((d) => closesAt(d) > this.dailyNow()) : [];
     const owner = this.store.profile()?.userId ?? null;
     const plan = owner ? this.friends.deletionPlan() : { code: null, peers: [] };
     const now = Date.now();
     const sql = this.ctx.storage.sql;
-    const keep = new Set(["tomb", "acct_cleanup", "fr_retired"]);
+    const keep = new Set(["tomb", "acct_cleanup", EXT_CLEANUP_TABLE, "fr_retired", "daily_used"]);
     this.ctx.storage.transactionSync(() => {
       const tables = sql.exec<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table'").toArray().map((r) => r.name);
       for (const t of tables) if (!keep.has(t) && !t.startsWith("_cf_") && !t.startsWith("sqlite_")) sql.exec(`DROP TABLE IF EXISTS "${t.replace(/"/g, '""')}"`);
@@ -663,17 +1187,40 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       sql.exec("INSERT OR REPLACE INTO tomb (id, deleted_at) VALUES (1, ?)", now);
       sql.exec("CREATE TABLE IF NOT EXISTS fr_retired (code TEXT PRIMARY KEY, at INTEGER NOT NULL)");
       if (plan.code) sql.exec("INSERT OR IGNORE INTO fr_retired (code, at) VALUES (?, ?)", plan.code, now);
+      sql.exec("CREATE TABLE IF NOT EXISTS daily_used (date TEXT PRIMARY KEY, closes_at INTEGER NOT NULL)");
+      sql.exec("DELETE FROM daily_used WHERE closes_at <= ?", this.dailyNow());
+      for (const d of usedDays) sql.exec("INSERT OR IGNORE INTO daily_used (date, closes_at) VALUES (?, ?)", d, closesAt(d));
       this.cleanup.init();
-      if (owner && (plan.code || plan.peers.length)) this.cleanup.enqueue(owner, [INDEX_TARGET, ...plan.peers], plan.code, now);
+      this.extCleanup.init();
+      // ADMIN-1/FEEDBACK-1 (D-114): the admin index and the board are cleanup targets too — durable, retried,
+      // generation-safe (they act only on data from before `now`). SEC-1 2차 INT-7: they go to their own queue
+      // table, because the pre-INT-1 Worker (a rollback target) would treat "@admin"/"@board" as account ids,
+      // get a neutral answer from a non-existent account and mark the job done without doing it.
+      if (owner) {
+        if (plan.code || plan.peers.length) this.cleanup.enqueue(owner, [INDEX_TARGET, ...plan.peers], plan.code, now);
+        this.extCleanup.enqueue(owner, [ADMIN_TARGET, BOARD_TARGET], plan.code, now);
+      }
     });
     // Fresh, empty objects over the (re-created) empty tables; presence is forgotten too.
     this.store = new AccountStore(sql as unknown as Sql);
     this.store.init();
     this.econ = new EconomyStore(this.econSql());
     this.econ.init();
+    // SEC-1 2차 ECO-1: the C5 stores too (their tables were dropped, and they hold the old EconomyStore)
+    this.grants = new RewardGrants(this.econSql(), this.econ);
+    this.grants.init();
+    this.retention = new RetentionStore(this.econSql(), this.grants);
+    this.retention.init();
     this.friends = new FriendStore(this.econSql() as unknown as FriendSql);
     this.friends.init();
+    this.socialStore.reset();
     this.presenceState = new Presence();
+    this.member = new MemberOps(sql as unknown as MemberSql);
+    this.member.init();
+    this.dailyStore = new DailyPlayStore(this.econSql() as unknown as DailySql);
+    this.dailyStore.init();
+    // friends stop seeing this account at once (memory + stored playing / hidden rows)
+    await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).forgetPresence(owner ?? "").catch(() => undefined);
     await this.runCleanup();
     await this.scheduleAlarm();
     return guests;
@@ -681,9 +1228,18 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   private async runCleanup() {
     const send = async (job: CleanupJob, userId: string) => {
       if (job.target === INDEX_TARGET) await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).removeCode(userId, job.code);
+      else if (job.target === ADMIN_TARGET || job.target === BOARD_TARGET) {
+        // generation bound: the deletion time of THIS deletion record (a later re-join is never touched)
+        const deletedAt = this.ctx.storage.sql.exec<{ deleted_at: number }>("SELECT deleted_at FROM tomb WHERE id = 1").toArray()[0]?.deleted_at;
+        if (deletedAt === undefined) return; // record already ended: nothing left to bound the cleanup → done
+        if (job.target === ADMIN_TARGET) await this.admin().op("deleted", userId, deletedAt);
+        else await (this.env.FEEDBACK.get(this.env.FEEDBACK.idFromName("board")) as unknown as { op(n: string, ...a: unknown[]): Promise<unknown> }).op("forget", userId, deletedAt);
+      }
       else await (this.env.USERS.get(this.env.USERS.idFromName(job.target)) as unknown as FriendUser).fr("forget", userId, job.code);
     };
-    const run = await runCleanup(this.cleanup, send, Date.now);
+    const runs: CleanupRun[] = [];
+    for (const q of [this.cleanup, this.extCleanup]) if (q.pending()) runs.push(await runCleanup(q, send, Date.now));
+    const run = runs.reduce((a, r) => ({ done: a.done + r.done, failed: a.failed + r.failed, gaveUp: a.gaveUp + r.gaveUp, remaining: a.remaining + r.remaining }), { done: 0, failed: 0, gaveUp: 0, remaining: 0 });
     if (run.failed || run.gaveUp) await this.cleanupReport({ retry: run.failed, gaveUp: run.gaveUp, remaining: run.remaining });
     return run;
   }
@@ -701,18 +1257,28 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     const until = this.rejoinBlockedUntil();
     const expiry = this.store.exists() ? this.store.nextSessionExpiry() : null;
     // parked cleanup: look for an operator retry request weekly, until the deletion record ends
-    const parkedCheck = this.cleanup.parked() ? Date.now() + CLEANUP_PARKED_CHECK_MS : null;
+    const parkedCheck = this.cleanup.parked() + this.extCleanup.parked() ? Date.now() + CLEANUP_PARKED_CHECK_MS : null;
+    const nextRetry = [this.cleanup.nextAt(), this.extCleanup.nextAt()].filter((t): t is number => t !== null);
+    const retryAt = nextRetry.length ? Math.min(...nextRetry) : null;
     // a deletion record already past its end waits for the active retries (handled in the same alarm run
     // as the last one), so it never schedules on its own — otherwise the alarm would fire every second
-    const end = until === null ? null : until + 60_000 > Date.now() || this.cleanup.nextAt() === null ? until + 60_000 : null;
-    const times = [expiry === null ? null : expiry + 60_000, this.cleanup.nextAt(), parkedCheck, end].filter((t): t is number => t !== null);
+    const end = until === null ? null : until + 60_000 > Date.now() || retryAt === null ? until + 60_000 : null;
+    const times = [expiry === null ? null : expiry + 60_000, retryAt, parkedCheck, end].filter((t): t is number => t !== null);
     if (!times.length) return;
     const want = Math.max(Math.min(...times), Date.now() + 1000);
     const current = await this.ctx.storage.getAlarm();
     if (current === null || current > want) await this.ctx.storage.setAlarm(want);
   }
-  async publicProfile() {
-    return this.store.publicProfile();
+  /**
+   * Public profile. With `viewer` (SOC-1): null for a viewer this account blocks (B-26), pins shown per
+   * the pins visibility. Called without arguments (friend routes, older callers) it is the plain profile.
+   */
+  async publicProfile(viewer?: string | null) {
+    const p = this.store.publicProfile();
+    if (!p || viewer === undefined) return p;
+    if (viewer && this.friends.isBlocking(viewer)) return null;
+    const pins = await this.showcase(viewer);
+    return { ...p, pins };
   }
   /** What other players see of this account in a match (validated equipped items; null = default look). */
   async look(): Promise<PublicLook | null> {
@@ -728,17 +1294,24 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     const now = Date.now();
     // The record and its rewards are stored in ONE transaction, keyed by the match id: a repeated
     // delivery finds the record and grants nothing; a crash leaves neither.
-    const settlement: { current: MatchEconomyResult | null } = { current: null };
+    const settlement: { current: MatchEconomyResult | null; retention?: GrantRecord[] } = { current: null };
     this.econSql().transaction(() => this.store.recordMatch(record, () => {
       if (!p || !this.economyOn) return undefined;
       this.welcome(now);
-      settlement.current = this.econ.applyMatch(
-        p.userId,
-        p.createdAt,
-        { matchId: record.recordId, kind: record.kind ?? "friend", outcome: record.outcome, endReason: record.endReason, score: record.score, card: record.card, opponentUserId: record.opponent.userId, stats: record.stats, endedAt: record.endedAt },
-        now,
-      );
+      const input: RewardInput = { matchId: record.recordId, kind: record.kind ?? "friend", outcome: record.outcome, endReason: record.endReason, score: record.score, card: record.card, opponentUserId: record.opponent.userId, stats: record.stats, endedAt: record.endedAt };
+      settlement.current = this.econ.applyMatch(p.userId, p.createdAt, input, now);
       const receipt = settlement.current.receipt;
+      // C5-CORE: activity streak + weekly best streak, same transaction (server-verified records only)
+      // SEC-1 2차 ECO-8: a suspended account earns no activity / streak grant from a match (same rule as daily content)
+      if (this.retentionOn && !this.member.standing(now).suspended) {
+        const countable = settlement.current.reason !== "own-forfeit" && settlement.current.reason !== "too-short";
+        const paid = this.retention.onMatch(p.userId, record, input, { countable, reason: settlement.current.reason }, now);
+        if (paid.length) {
+          receipt.grants.push(...paid.map((g) => ({ kind: g.source, label: g.label, coins: g.coins, gems: g.gems })));
+          receipt.after = this.econ.balance();
+          settlement.retention = paid;
+        }
+      }
       return receipt.quests.length || receipt.grants.length ? receipt : undefined;
     }));
     const result = settlement.current;
@@ -755,6 +1328,9 @@ export class UserStore extends DurableObject<Env> implements UserApi {
         ["quest.allDaily", result.grants.filter((g) => g.key.startsWith("qb:daily")).length],
         ["achievement.unlock", result.grants.filter((g) => g.kind === "achievement").length],
         ["dau.members", result.firstToday ? 1 : 0],
+        ...grantCounts(settlement.retention ?? []),
+        ...result.grants.filter((g) => g.kind === "quest").map((g): [string, number] => [`quest.id.${g.key.split(":")[3] ?? "unknown"}`, 1]),
+        ...result.grants.filter((g) => g.kind === "achievement").map((g): [string, number] => [`achievement.id.${g.key.slice(2)}`, 1]),
       ];
       await Promise.all(counts.filter(([, n]) => n > 0).map(([k, n]) => hub.count(k, n))).catch(() => undefined);
       if (result.firstToday && result.wallet) await hub.count("balance." + bucket(result.wallet.coins)).catch(() => undefined);
@@ -767,14 +1343,15 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     // Expired sessions / login codes go even if the account never signs in again (SEC-04).
     if (this.store.exists()) this.store.pruneSessions(now);
     // Deletion cleanup retries (SEC-03); parked jobs restart when the operator deploys a new retry epoch.
-    const requeued = this.cleanup.requeue(this.env.ACCOUNT_CLEANUP_RETRY_EPOCH ?? "", now);
+    const epoch = this.env.ACCOUNT_CLEANUP_RETRY_EPOCH ?? "";
+    const requeued = this.cleanup.requeue(epoch, now) + this.extCleanup.requeue(epoch, now);
     if (requeued) await this.cleanupReport({ requeued });
-    if (this.cleanup.pending()) await this.runCleanup();
+    if (this.cleanup.pending() || this.extCleanup.pending()) await this.runCleanup();
     // Forget the deletion timestamp once the re-join cooldown is over (and the cleanup has finished;
     // jobs still parked then are dropped — the peer-side residue check is the remaining path).
     const until = this.rejoinBlockedUntil();
-    if (until !== null && now >= until && this.cleanup.parked() === this.cleanup.pending()) {
-      const expired = this.cleanup.expireParked();
+    if (until !== null && now >= until && this.cleanup.parked() === this.cleanup.pending() && this.extCleanup.parked() === this.extCleanup.pending()) {
+      const expired = this.cleanup.expireParked() + this.extCleanup.expireParked();
       if (expired) await this.cleanupReport({ expired });
       if (!this.store.exists()) {
         await this.ctx.storage.deleteAll();
@@ -782,6 +1359,7 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       }
       this.ctx.storage.sql.exec("DELETE FROM tomb WHERE id = 1");
       this.ctx.storage.sql.exec("DELETE FROM fr_retired");
+      this.ctx.storage.sql.exec("DROP TABLE IF EXISTS daily_used");
     }
     await this.scheduleAlarm();
   }
@@ -789,12 +1367,93 @@ export class UserStore extends DurableObject<Env> implements UserApi {
 
 /** Which account linked a guest's device records (first claim wins). Addressed by `idFromName(guestId)`. */
 /** Friend code → account, exact nickname → accounts (one small SQLite object; never exposed directly). */
+/* ---------------------------------------------------------------- daily board ---------------------------------------------------------------- */
+
+/** LIVE-1: one object per (rules, date) — first official results, participation counters, puzzle statistics. */
+export class DailyBoard extends DurableObject<Env> implements DailyBoardApi {
+  private core: DailyBoardCore;
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    const sql = ctx.storage.sql;
+    this.core = new DailyBoardCore({
+      exec: (q: string, ...p: unknown[]) => sql.exec(q, ...(p as SqlStorageValue[])) as unknown as { toArray(): never[] },
+      transaction: <T>(fn: () => T) => ctx.storage.transactionSync(fn),
+    } as DailySql);
+    ctx.blockConcurrencyWhile(async () => this.core.init());
+  }
+  async admit(userId: string, limit: number, now: number) {
+    return this.core.admit(userId, limit, now);
+  }
+  async submit(entry: BoardEntry) {
+    return this.core.submit(entry);
+  }
+  async count(name: string, by = 1) {
+    this.core.count(name, Math.max(0, Math.min(400, Math.floor(by) || 0)));
+  }
+  async remove(userId: string) {
+    this.core.remove(userId);
+  }
+  async page(offset: number, limit: number) {
+    return this.core.page(offset, limit);
+  }
+  async entriesFor(ids: string[]) {
+    return this.core.entriesFor(ids);
+  }
+  async total() {
+    return this.core.total();
+  }
+  async stats() {
+    return this.core.stats();
+  }
+  async puzzleAnswered(id: string, correct: boolean) {
+    this.core.puzzleAnswered(id, correct);
+  }
+  async puzzleFlags() {
+    return this.core.puzzleFlags();
+  }
+  async setPuzzleFlag(id: string, disabled: boolean) {
+    this.core.setPuzzleFlag(id, disabled);
+  }
+  async setVisibility(userId: string, v: Visibility) {
+    this.core.setVisibility(userId, v);
+  }
+}
+
 export class FriendIndex extends DurableObject<Env> {
   private core: FriendIndexStore;
+  /** SOC-1: central friend presence (online in memory; playing / hidden stored, rarely written). */
+  private presence: PresenceHub;
+  private sweptAt = 0;
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.core = new FriendIndexStore(ctx.storage.sql as unknown as FriendSql);
-    ctx.blockConcurrencyWhile(async () => this.core.init());
+    this.presence = new PresenceHub(ctx.storage.sql as unknown as SocialSql, Date.now());
+    ctx.blockConcurrencyWhile(async () => {
+      this.core.init();
+      this.presence.init(Date.now());
+    });
+  }
+  private tidy(now: number) {
+    if (now - this.sweptAt < 60_000) return;
+    this.sweptAt = now;
+    this.presence.sweep(now);
+  }
+  async statuses(userIds: string[]) {
+    const now = Date.now();
+    this.tidy(now);
+    return this.presence.statuses(userIds, now);
+  }
+  async beat(userId: string, device: string, state: "online" | "offline" = "online") {
+    this.presence.beat(userId, device, Date.now(), state);
+  }
+  async setHidden(userId: string, hidden: boolean) {
+    this.presence.setHidden(userId, hidden);
+  }
+  async setPlaying(userIds: string[], room: string | null) {
+    this.presence.setPlaying(userIds, room, Date.now());
+  }
+  async forgetPresence(userId: string) {
+    if (userId) this.presence.forget(userId, Date.now());
   }
   async register(userId: string, nickname: string, avoid?: string[], keep?: string | null) {
     return this.core.register(userId, nickname, avoid ?? [], keep ?? null);
@@ -835,6 +1494,70 @@ export class GuestLink extends DurableObject<Env> implements GuestApi {
   }
 }
 
+/* ------------------------------------------------------------- admin (ADMIN-1) ------------------------------------------------------------- */
+
+/** Allowlisted AdminCore methods callable over RPC (one generic method keeps the shell thin). */
+const ADMIN_OPS = new Set(["audited", "createSession", "checkSession", "endSession", "endSessionsOf", "audit", "auditLog", "activity", "activityBatch", "signup", "deleted", "purgeRetention", "createReauth", "consumeReauth", "useSelfApproval", "nicknameChanged", "activityReport", "searchMembers", "draft", "action", "actions", "decide", "decideSelf", "finishAction", "beginExecution", "finishExecution", "checkReward", "previewReward", "scheduleCampaign", "campaigns", "cancelCampaign", "retryFailed", "createCode", "code", "codes", "setCodeStatus", "redemptions", "redeem", "confirmRedeem", "saveNotice", "endNotice", "notices", "createReport", "reports", "report", "updateReport", "checkSanction", "recordSanction", "sanctions", "liftSanction", "createAppeal", "appeals", "answerAppeal"]);
+
+/**
+ * ADMIN-1: one object for the service (`idFromName("admin")`). Only the Worker and account objects
+ * call it; it is never reachable from a browser except through the checked routes in admin/api.ts.
+ * Its alarm sends due reward deliveries in small batches and expires time-limited sanctions.
+ */
+export class AdminHub extends DurableObject<Env> {
+  private core: AdminCore;
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    const sql = ctx.storage.sql;
+    this.core = new AdminCore({
+      exec: (q: string, ...p: unknown[]) => sql.exec(q, ...(p as SqlStorageValue[])) as unknown as { toArray(): never[] },
+      transaction: <T>(fn: () => T) => ctx.storage.transactionSync(fn),
+    } as AdminSql);
+    ctx.blockConcurrencyWhile(async () => this.core.init());
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structured-clone values; typed at the call sites (admin/api.ts)
+  async op(name: string, ...args: unknown[]): Promise<any> {
+    if (!ADMIN_OPS.has(name)) throw Error("unknown op");
+    return (this.core as unknown as Record<string, (...a: unknown[]) => unknown>)[name](...args);
+  }
+  async schedule() {
+    const next = this.core.nextWorkAt();
+    const want = Math.max(Date.now() + 1000, next ?? Date.now() + 6 * 3600_000);
+    const current = await this.ctx.storage.getAlarm();
+    if (current === null || current > want) await this.ctx.storage.setAlarm(want);
+  }
+  async alarm() {
+    const now = Date.now();
+    await this.core.process(now, async (userId, item) => this.env.USERS.get(this.env.USERS.idFromName(userId)).deliver(item));
+    this.core.expireSanctions(now);
+    this.core.pruneSessions(now, adminSettings(this.env).absoluteMs);
+    this.core.purgeRetention(now);
+    const next = this.core.nextWorkAt();
+    // idle: wake every 6 hours for sanction expiry / session pruning; busy: as soon as work is due
+    await this.ctx.storage.setAlarm(Math.max(now + 1000, Math.min(next ?? Infinity, now + 6 * 3600_000)));
+  }
+}
+
+const BOARD_OPS = new Set(["create", "list", "get", "vote", "report", "setCredit", "contributors", "moderate", "rewardTarget", "reserveReward", "releaseReward", "markReward", "history", "forget", "stats"]);
+/** FEEDBACK-1: the suggestion board (`idFromName("board")`). */
+export class SuggestionBoard extends DurableObject<Env> {
+  private core: BoardCore;
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    const sql = ctx.storage.sql;
+    this.core = new BoardCore({
+      exec: (q: string, ...p: unknown[]) => sql.exec(q, ...(p as SqlStorageValue[])) as unknown as { toArray(): never[] },
+      transaction: <T>(fn: () => T) => ctx.storage.transactionSync(fn),
+    } as BoardSql);
+    ctx.blockConcurrencyWhile(async () => this.core.init());
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see AdminHub.op
+  async op(name: string, ...args: unknown[]): Promise<any> {
+    if (!BOARD_OPS.has(name)) throw Error("unknown op");
+    return (this.core as unknown as Record<string, (...a: unknown[]) => unknown>)[name](...args);
+  }
+}
+
 /* ------------------------------------------------------------------ hub ------------------------------------------------------------------ */
 
 /**
@@ -856,7 +1579,17 @@ export class MatchHub extends DurableObject<Env> {
       auth: async (session) => {
         const m = /^s1\.(u_[A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{43})$/.exec(session);
         if (!m || !authConfig(env)) return null;
-        return (await env.USERS.get(env.USERS.idFromName(m[1])).authenticate(m[2])) ? m[1] : null;
+        // ADMIN-1: a restricted / suspended account cannot queue as a member
+        const r = await env.USERS.get(env.USERS.idFromName(m[1])).authenticateStanding(m[2]);
+        return r.ok && !r.restricted ? m[1] : null;
+      },
+      // SOC-1-F1 (INT-1): a block in either direction keeps two members out of the same quick match
+      blocked: async (a, b) => {
+        const [x, y] = await Promise.all([
+          env.USERS.get(env.USERS.idFromName(a)).fr("isBlocking", b) as Promise<unknown>,
+          env.USERS.get(env.USERS.idFromName(b)).fr("isBlocking", a) as Promise<unknown>,
+        ]);
+        return !!x || !!y;
       },
       createMatch: async (a: QueueSeat, b: QueueSeat, options) => {
         const directory = env.DIRECTORY.get(env.DIRECTORY.idFromName("directory"));
@@ -980,6 +1713,9 @@ const fail = (status: number, code: string, message: string, origin: string | nu
 const isolateHits = new Map<string, { window: number; count: number }>();
 /** PR118-02: last `/api/activity` answer in this isolate (memory only, no storage, no Cache API). */
 let isolateActivity: { at: number; value: unknown } | null = null;
+/** SEC-1 2차 INT-4: last public notices answer in this isolate (memory only), at most NOTICES_CACHE_MS old. */
+let isolateNotices: { at: number; value: unknown } | null = null;
+const NOTICES_CACHE_MS = 30_000;
 function isolateLimited(key: string, perMinute: number): boolean {
   const window = Math.floor(Date.now() / 60_000);
   const row = isolateHits.get(key);
@@ -996,12 +1732,8 @@ async function clientKey(request: Request): Promise<string> {
 }
 
 async function readBody(request: Request): Promise<{ name?: unknown; maxPlayers?: unknown; settings?: unknown }> {
-  const length = Number(request.headers.get("content-length") ?? "0");
-  if (length > MAX_BODY) throw new Error("too large");
-  const text = await request.text();
-  if (text.length > MAX_BODY) throw new Error("too large");
-  const body = JSON.parse(text || "{}") as { name?: unknown; maxPlayers?: unknown; settings?: unknown };
-  return body ?? {};
+  // SEC-1: the declared length and the bytes actually read are both capped before parsing.
+  return (await readJsonObject(request, MAX_BODY)) as { name?: unknown; maxPlayers?: unknown; settings?: unknown };
 }
 async function readName(request: Request): Promise<unknown> {
   return (await readBody(request)).name;
@@ -1023,7 +1755,7 @@ export default {
         status: 204,
         headers: {
           ...(allowed ? { "access-control-allow-origin": allowed, vary: "Origin" } : {}),
-          "access-control-allow-methods": "GET, POST",
+          "access-control-allow-methods": "GET, POST, PUT",
           "access-control-allow-headers": "content-type, authorization",
           "access-control-max-age": "600",
         },
@@ -1042,12 +1774,17 @@ export default {
       // 2026-11-24 dashboard). Limits by IP (login, exchange, profiles) stay global in the directory.
       limited: (key, perMinute) => (key.startsWith("me:") ? Promise.resolve(isolateLimited(key, perMinute)) : directory.hit(key, perMinute)),
       fetcher: (input, init) => fetch(input, init),
+      // ADMIN-1: Google re-authentication → one-time admin ticket, only for accounts in ADMIN_ACCOUNTS
+      adminReauth: env.ADMIN ? async (userId, cs, authTime) => (adminSettings(env).accounts.has(userId) ? ((await (env.ADMIN.get(env.ADMIN.idFromName("admin")) as unknown as { op(n: string, ...a: unknown[]): Promise<unknown> }).op("createReauth", userId, cs, authTime, Date.now())) as string) : null) : undefined,
       now: Date.now,
+      quoteRequired: env.ECONOMY_QUOTE === "required",
     };
     /** Signed-in identity for a seat (an invalid or expired session simply plays as a guest). */
     const seatIdentity = async () => {
       if (!auth) return null;
       const user = await sessionUser(request, backends);
+      // ADMIN-1: a restricted / suspended member cannot take an account seat (enforced in the catch below)
+      if (user?.restricted) throw new Error("SANCTIONED");
       return user ? { userId: user.userId } : null;
     };
     /**
@@ -1061,6 +1798,11 @@ export default {
     };
 
     const hub = () => env.HUB.get(env.HUB.idFromName("hub"));
+    // LIVE-1: daily content is off unless the flag, the secret and sign-in are all configured.
+    const secrets = dailySecrets(env);
+    if (env.DAILY === "on" && !secrets.ok) console.error("DAILY_SECRET_CONFIG", secrets.reason); // the reason never contains a secret value
+    const dailyOn = env.DAILY === "on" && secrets.ok && !!auth;
+    const dailyBoard = (date: string) => env.DAILY_BOARDS.get(env.DAILY_BOARDS.idFromName(boardName(DAILY_RULES, date))) as unknown as DailyBoardApi;
     try {
       // Quick match queue (Phase 4.5): one hibernatable socket per waiting player on the hub object.
       if (url.pathname === "/ws/match") {
@@ -1071,7 +1813,9 @@ export default {
       }
       // What this server offers (the page hides what is not available).
       if (url.pathname === "/api/features" && request.method === "GET")
-        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, createSettings: true, defaultTurnTimeoutMs: config.turnTimeoutMs, backgroundMatch: true, activity: true, friendPublicSpectate: true, serverAi: !!auth && env.SERVER_AI !== "off", economy: !!auth && env.ECONOMY === "on" }, allowed, "public, max-age=60");
+        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, createSettings: true, defaultTurnTimeoutMs: config.turnTimeoutMs, backgroundMatch: true, activity: true, friendPublicSpectate: true, lobbyWatch: true, social: !!auth, serverAi: !!auth && env.SERVER_AI !== "off", economy: !!auth && env.ECONOMY === "on", daily: dailyOn,
+          // INT-1 entry flags (src/shell/entries.ts): every member feature is hidden unless its own variable is "on".
+          retention: !!auth && env.ECONOMY === "on" && env.RETENTION === "on", feedback: !!auth && env.FEEDBACK_BOARD === "on", mailbox: !!auth && env.MAILBOX === "on", notices: env.NOTICES === "on" }, allowed, "public, max-age=60");
       if (url.pathname === "/api/activity" && request.method === "GET") {
         if (isolateLimited("activity:" + (await clientKey(request)), 15)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
         // PR118-02: one hub call (the hub caches the directory lookup), and this isolate reuses the
@@ -1094,14 +1838,65 @@ export default {
         const key = await roomStub(verdict.code!).publicWatch(sid);
         return key ? json(200, { id: sid, code: sid, key }, allowed) : fail(409, "NOT_PUBLIC", "지금은 이 경기를 관전할 수 없어요. 끝났거나 관전 인원이 가득 찼어요.", allowed);
       }
+      // ADMIN-1 / FEEDBACK-1 backends (Durable Object stubs; admin/api.ts holds every check).
+      const engagement = (): AdminBackends => ({
+        settings: adminSettings(env),
+        admin: { op: (name, ...args) => (env.ADMIN.get(env.ADMIN.idFromName("admin")) as unknown as { op(n: string, ...a: unknown[]): Promise<never> }).op(name, ...args), schedule: () => env.ADMIN.get(env.ADMIN.idFromName("admin")).schedule() },
+        board: { op: (name, ...args) => (env.FEEDBACK.get(env.FEEDBACK.idFromName("board")) as unknown as { op(n: string, ...a: unknown[]): Promise<never> }).op(name, ...args) },
+        user: (id) => env.USERS.get(env.USERS.idFromName(id)) as unknown as AdminUserApi,
+        sessionUser: (r) => (auth ? sessionUser(r, backends) : Promise.resolve(null)),
+        hubReport: (d) => hub().report(d) as never,
+        usage: () => directory.usage(),
+        liveActivity: () => hub().activity(),
+        flags: { signIn: !!auth, economy: env.ECONOMY === "on", diceDraw: env.DICE_DRAW === "on", serverAi: env.SERVER_AI !== "off", adminWrites: env.ADMIN_WRITES === "on", approval: adminSettings(env).approval /* SEC-1 2차 ADM-8: the policy the router applies */, feedback: env.FEEDBACK_BOARD === "on", attachments: false, friendResidueCleanup: env.FRIEND_RESIDUE_CLEANUP ?? "off" },
+        limited: (key, perMinute) => directory.hit(key, perMinute),
+        count: (name, n) => hub().count(name, n),
+        client: "",
+        now: Date.now,
+        feedback: !!auth && env.FEEDBACK_BOARD === "on",
+        economy: !!auth && env.ECONOMY === "on",
+        rewards: !!auth && env.ECONOMY === "on" && env.RETENTION === "on",
+        // INT-1: LIVE-1 daily operations as admin console extensions (stats.read / content.write + audit).
+        // The shared ADMIN_TOKEN path for daily routes stays removed.
+        extensions: dailyAdminRoutes({ board: dailyBoard, now: dailyClock(env) }),
+      });
+      if (parts[0] === "api" && (parts[1] === "notices" || parts[1] === "suggestions" || parts[1] === "reports" || (parts[1] === "me" && (["mailbox", "redeem", "sanctions", "appeals"].includes(parts[2] ?? "") || (parts[2] === "rewards" && parts[3] === "redeem" && parts.length === 4))))) {
+        if (request.method !== "GET" && !allowed) return fail(403, "ORIGIN", "허용되지 않은 출처입니다.", null);
+        const reply = (status: number, body: unknown) => json(status, body, allowed, parts[1] === "notices" && status === 200 ? "public, max-age=60" : "no-store");
+        if (parts[1] === "notices" && (!env.ADMIN || env.NOTICES !== "on")) return reply(200, { notices: [] }); // INT-4: flag off → no admin index call
+        if (parts[1] === "notices" && request.method === "GET") {
+          // INT-4: a public, unauthenticated route — one admin index read per isolate per NOTICES_CACHE_MS, and a per-client limit
+          if (isolateLimited("notices:" + (await clientKey(request)), 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
+          if (isolateNotices && Date.now() - isolateNotices.at < NOTICES_CACHE_MS) return reply(200, isolateNotices.value);
+        }
+        const routed = await handleEngagementRoute(request, url, { ...engagement(), client: await clientKey(request) }, reply);
+        if (routed && parts[1] === "notices" && routed.status === 200) isolateNotices = { at: Date.now(), value: await routed.clone().json() };
+        if (routed) return routed;
+      }
       // Operations metrics (administrator only: a Worker secret, never in the web bundle).
       if (parts[0] === "api" && parts[1] === "admin") {
         const token = env.ADMIN_TOKEN;
         const given = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-        if (!token || token.length < 32 || given.length !== token.length || !sameText(given, token)) return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
-        if (url.pathname === "/api/admin/metrics" && request.method === "GET") return json(200, { usage: await directory.usage(), hub: await hub().report(Math.min(60, Number(url.searchParams.get("days") ?? 14) || 14)) }, null);
-        if (parts[2] === "ledger" && parts.length === 4 && /^u_[A-Za-z0-9_-]{22}$/.test(parts[3])) return json(200, await env.USERS.get(env.USERS.idFromName(parts[3])).verifyLedger(), null);
-        return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
+        const legacy = !!token && token.length >= 32 && given.length === token.length && sameText(given, token);
+        // ADMIN-1 console: member session → admin session, role from the ADMIN_ACCOUNTS secret (admin/api.ts).
+        if (!legacy) {
+          if (!env.ADMIN || !auth) return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
+          return handleAdminRoute(request, url, { ...engagement(), client: await clientKey(request) }, (status, body) => json(status, body, allowed));
+        }
+        // Legacy shared token (D-115): read-only allowlist, rate-limited, every use in the admin audit log.
+        // No write and no new route may be served here — modules register console routes instead.
+        const routes = legacyTokenRoutes(env.ADMIN_TOKEN_ROUTES);
+        const route = url.pathname === "/api/admin/metrics" ? "metrics" : parts[2] === "ledger" && parts.length === 4 && /^u_[A-Za-z0-9_-]{22}$/.test(parts[3]) ? "ledger" : null;
+        if (request.method !== "GET" || !route || !routes.has(route)) return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
+        if (await directory.hit("admin-legacy:" + (await clientKey(request)), 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", null);
+        // SEC-1 2차 ADM-2: no audit row, no answer (the legacy token is never served unlogged)
+        const logged = await (env.ADMIN?.get(env.ADMIN.idFromName("admin")) as unknown as { op(n: string, ...a: unknown[]): Promise<unknown> } | undefined)?.op("audit", { at: Date.now(), actor: "token:ADMIN_TOKEN", role: "legacy-token", action: "legacy." + route, target: route === "ledger" ? parts[3] : "", result: "ok", client: await clientKey(request) }).then(() => true, () => false);
+        if (!logged) {
+          console.warn("ADMIN_LEGACY_AUDIT_FAILED");
+          return fail(503, "AUDIT_UNAVAILABLE", "잠시 후 다시 시도해 주세요.", null);
+        }
+        if (route === "metrics") return json(200, { usage: await directory.usage(), hub: await hub().report(Math.min(60, Number(url.searchParams.get("days") ?? 14) || 14)) }, null);
+        return json(200, await env.USERS.get(env.USERS.idFromName(parts[3])).verifyLedger(), null);
       }
       // Server-verified AI match (Phase 4.5): members only, the room plays the AI seat itself.
       if (url.pathname === "/api/ai/start" && request.method === "POST") {
@@ -1110,6 +1905,7 @@ export default {
         if (!auth) return fail(404, "AUTH_DISABLED", "회원 로그인은 아직 준비 중이에요.", allowed);
         const me = await sessionUser(request, backends);
         if (!me) return fail(401, "UNAUTHENTICATED", "서버 AI 대전은 로그인한 회원만 할 수 있어요.", allowed);
+        if (me.restricted) return fail(403, "SANCTIONED", "이용 제한 중에는 온라인 대전을 할 수 없어요.", allowed);
         if (await directory.hit("ai:" + me.userId, 6)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
         const user = env.USERS.get(env.USERS.idFromName(me.userId));
         const info = await user.seat().catch(() => null);
@@ -1142,14 +1938,34 @@ export default {
         if (!verdict.ok) return new Response(null, { status: verdict.status });
         return roomStub(code ?? (verdict as unknown as { code: string }).code).fetch(request);
       }
+      // 오늘의 요트 / 오늘의 퍼즐 (LIVE-1): behind the DAILY flag.
+      if (url.pathname.startsWith("/api/daily/")) {
+        if (!dailyOn) return fail(404, "DAILY_OFF", "오늘의 요트는 아직 준비 중이에요.", allowed);
+        if (!allowed && request.method !== "GET") return fail(403, "ORIGIN", "허용되지 않은 출처입니다.", null);
+        // SEC-1 2차 INT-1: same limited reader as every other route (declared length and streamed bytes)
+        const readJson = () => readJsonObject(request, BODY_LIMITS.daily);
+        let identity: Promise<{ userId: string; suspended: boolean } | null> | null = null;
+        const res = await handleDailyRoute(request, url, {
+          secretFor: (date) => (secrets as Extract<typeof secrets, { ok: true }>).secretFor(date),
+          now: dailyClock(env),
+          me: () => (identity ??= sessionUser(request, backends).then((u) => (u ? { userId: u.userId, suspended: u.suspended } : null))),
+          user: (id) => env.USERS.get(env.USERS.idFromName(id)) as unknown as DailyUserApi,
+          board: dailyBoard,
+          limited: isolateLimited,
+          clientKey: () => clientKey(request),
+          reply: (status, body, cache) => json(status, body, allowed, cache),
+        }, readJson);
+        if (res) return res;
+      }
       // Friends & invites (I/J): members only; players are addressed by friend code.
-      const friendPath = url.pathname.startsWith("/api/me/friends") || url.pathname === "/api/me/inbox" || url.pathname.startsWith("/api/me/invites");
+      const friendPath = url.pathname.startsWith("/api/me/friends") || url.pathname === "/api/me/inbox" || url.pathname.startsWith("/api/me/invites") || url.pathname === "/api/me/presence" || url.pathname === "/api/me/profile/pins";
       const roomInvite = parts[0] === "api" && parts[1] === "rooms" && parts.length === 4 && parts[3] === "invite" && request.method === "POST";
       if (friendPath || roomInvite) {
         if (!allowed && request.method !== "GET") return fail(403, "ORIGIN", "허용되지 않은 출처입니다.", null);
         if (!auth) return fail(404, "AUTH_DISABLED", "회원 로그인은 아직 준비 중이에요.", allowed);
         const me = await sessionUser(request, backends);
         if (!me) return fail(401, "UNAUTHENTICATED", "친구 기능은 로그인한 회원만 쓸 수 있어요.", allowed);
+        if (me.suspended || (me.restricted && request.method !== "GET")) return fail(403, "SANCTIONED", "이용 제한 중에는 친구 기능을 쓸 수 없어요.", allowed);
         if (isolateLimited("me:" + me.userId, 120)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
         const deps: FriendDeps = {
           user: (id) => env.USERS.get(env.USERS.idFromName(id)) as unknown as FriendUser,
@@ -1161,16 +1977,15 @@ export default {
             console.log("FRIEND_RESIDUE", JSON.stringify({ [key]: n })); // counts only, no ids
             return hub().count(key, n).catch(() => undefined);
           },
+          presence: env.FRIENDS.get(env.FRIENDS.idFromName("index")) as unknown as FriendDeps["presence"],
+          sharesRoom: async (room, a, b) => {
+            const c = normalizeCode(room);
+            return c ? roomStub(c).sharesRoom(a, b) : false;
+          },
         };
-        const readJson = async () => {
-          // SEC-15 (C4 B-31): refuse an oversized declared body before reading it, as the other routes do.
-          if (Number(request.headers.get("content-length") ?? "0") > 4096) throw new Error("too large");
-          const text = await request.text();
-          if (text.length > 4096) throw new Error("too large");
-          const v = JSON.parse(text || "{}");
-          if (typeof v !== "object" || v === null || Array.isArray(v)) throw new SyntaxError("object expected");
-          return v as Record<string, unknown>;
-        };
+        // SEC-15 (C4 B-31) / SEC-1: oversized declared bodies are refused before reading, and bodies without a
+        // declared length are read through a byte cap (worker/src/limits.ts) — never buffered whole.
+        const readJson = () => readJsonObject(request, BODY_LIMITS.social);
         if (roomInvite) {
           const code = normalizeCode(parts[2]);
           if (!code) return fail(404, "ROOM_NOT_FOUND", "방을 찾을 수 없어요.", allowed);
@@ -1182,10 +1997,35 @@ export default {
           const results = await sendInvites(me, codes.slice(0, Math.max(0, state.seats - state.players) + 5), code, deps, () => crypto.randomUUID());
           return json(200, { results }, allowed);
         }
+        // SOC-1: direct challenge from the friend list (a 1:1 friend room + an invite, deduplicated).
+        if (url.pathname === "/api/me/friends/challenge" && request.method === "POST") {
+          const input = await readJson();
+          const key = await clientKey(request);
+          const out = await challenge(me, input.code, deps, {
+            create: async () => {
+              const slot = await directory.allocate(key);
+              if (!slot.ok) return { ok: false, status: slot.status, code: slot.code, message: slot.message };
+              const identity = { userId: me.userId };
+              const seat = await seatInfo(identity, null);
+              const joined = await roomStub(slot.code!).create(slot.code!, seat.name, identity, seat.look, 2);
+              if (!joined.ok) {
+                await directory.release(slot.code!);
+                return { ok: false, status: joined.status, code: joined.error.code, message: joined.error.message };
+              }
+              return { ok: true, code: slot.code!, playerId: joined.playerId, token: joined.token };
+            },
+            open: async (room) => (await roomStub(room).inviteState(me.userId)).ok,
+          }, () => crypto.randomUUID());
+          return json(out.status, out.body, allowed);
+        }
         if (url.pathname === "/api/me/invites/accept" && request.method === "POST") {
           const input = await readJson();
-          const inv = await deps.user(me.userId).fr<{ room: string } | null>("takeInvite", String(input.id ?? ""), Date.now());
+          if (typeof input.id !== "string" || !INVITE_ID.test(input.id)) return fail(400, "INVITE_ID", "초대 정보가 올바르지 않아요.", allowed);
+          if (isolateLimited("finv:" + me.userId, 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
+          const taken = await deps.user(me.userId).fr<{ invite: { id: string; room: string }; fromId: string } | null>("takeInviteFrom", String(input.id ?? ""), Date.now());
+          const inv = taken?.invite ?? null;
           if (!inv) return fail(404, "INVITE_EXPIRED", "초대가 만료되었거나 이미 처리됐어요.", allowed);
+          await deps.user(taken!.fromId).social?.("answerSent", inv.id, "accepted").catch(() => undefined);
           const verdict = await directory.check(await clientKey(request), inv.room, "join");
           if (!verdict.ok) return fail(verdict.status, verdict.code, verdict.message, allowed);
           const identity = { userId: me.userId };
@@ -1238,6 +2078,13 @@ export default {
         return summary ? json(200, summary, allowed) : fail(404, "ROOM_NOT_FOUND", "방을 찾을 수 없어요. 초대 코드를 확인해 주세요.", allowed);
       }
       const identity = await seatIdentity();
+      // SEC-1 2차 SOC-3: a member does not join a friend room where a block stands between them and a member
+      // (either direction). The answer is the generic "cannot join" one, so it does not tell who blocked whom.
+      if (identity?.userId) {
+        const ids = (await room.memberAccountIds()).filter((id) => id !== identity.userId);
+        const blocked = ids.length ? await (env.USERS.get(env.USERS.idFromName(identity.userId)) as unknown as { blockedWithAny(ids: string[]): Promise<boolean> }).blockedWithAny(ids).catch(() => true) : false;
+        if (blocked) return fail(409, "ROOM_UNAVAILABLE", "지금은 이 방에 들어갈 수 없어요.", allowed);
+      }
       const seat = await seatInfo(identity, name);
       const joined = await room.join(seat.name, identity, seat.look);
       if (!joined.ok) {
@@ -1248,7 +2095,10 @@ export default {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       if (msg === "too large" || error instanceof SyntaxError || error instanceof TypeError) return fail(400, "INVALID_COMMAND", "요청 형식이 올바르지 않습니다.", allowed);
+      if (msg === "SANCTIONED") return fail(403, "SANCTIONED", "이용 제한 중에는 온라인 대전을 할 수 없어요.", allowed);
       console.error("ONLINE_WORKER_UNEXPECTED");
+      // ADMIN-1 system status: an error counter only (no request data)
+      await env.HUB.get(env.HUB.idFromName("hub")).count("worker.error").catch(() => undefined);
       return fail(500, "SERVER", "서버 오류가 발생했어요.", allowed);
     }
   },

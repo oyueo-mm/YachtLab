@@ -69,8 +69,8 @@ describe("Online Phase 3 — Workers + SQLite Durable Objects (wrangler dev, loc
     expect((await api(main, `/api/rooms/${code}/join`, { name: "도윤" })).body.error.code).toBe("MATCH_FULL");
     const intruder = new Client(main.url, code);
     expect((await intruder.hello("x".repeat(43))).t).toBe("error");
-    await new Promise((r) => setTimeout(r, 100));
-    expect(intruder.closed?.code).toBe(4001);
+    // wait for the close frame itself (it follows the error message; a fixed sleep raced it under CI load)
+    expect(await intruder.waitForClose()).toBe(4001);
     await a.cmd({ type: "start" });
     await a.settled();
     const forged = await b.cmd({ type: "roll", keep: [], playerId: a.view!.you!.playerId });

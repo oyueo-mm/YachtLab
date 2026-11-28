@@ -31,7 +31,8 @@ export type DrawReceipt = {
   cost: number;
   duplicateCoins: number;
 };
-export type DrawStatus = { now: number; remaining: number; history: DrawReceipt[] };
+/** `odds` is the version of the server's own draw tables (absent on Workers before SEC-10). */
+export type DrawStatus = { now: number; remaining: number; history: DrawReceipt[]; odds?: Partial<Record<DrawPool, string>> };
 export const DRAW_TIERS: readonly DrawTier[] = ["common", "rare", "epic", "legendary", "mythic"];
 
 export function drawHand(dice: number[]): DrawHand {
@@ -69,4 +70,46 @@ export function enumerateDrawHands() {
     counts[drawHand(dice)]++;
   }
   return counts;
+}
+
+/**
+ * The draw table a pool actually uses, as one versioned object (SEC-10 / B-22). The Worker computes it
+ * from its own catalog and reports it with the draw status. The page computes the same thing from its
+ * bundle, shows those odds, and sends the version with a draw. A Worker whose pool differs (Pages and
+ * Worker built from different catalogs) refuses the draw with ODDS_CHANGED, so a player never draws
+ * on odds that differ from the ones shown. Nothing here changes the odds themselves.
+ */
+export type DrawOdds = {
+  version: string;
+  pool: DrawPool;
+  cost: number;
+  duplicateCoins: number;
+  dailyLimit: number;
+  combinations: number;
+  tiers: { tier: DrawTier; combos: number; items: string[] }[];
+};
+const oddsCache = new Map<DrawPool, DrawOdds>();
+let handCounts: Record<DrawHand, number> | null = null;
+function fnvHex(text: string) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+export function drawOdds(pool: DrawPool): DrawOdds {
+  const cached = oddsCache.get(pool);
+  if (cached) return cached;
+  handCounts ??= enumerateDrawHands();
+  const counts = handCounts;
+  const tiers = DRAW_TIERS.map((tier) => ({
+    tier,
+    combos: (Object.keys(HANDS) as DrawHand[]).filter((hand) => HANDS[hand].tier === tier).reduce((sum, hand) => sum + counts[hand], 0),
+    items: drawItems(pool, tier).map((item) => item.id).sort(),
+  }));
+  const body = { pool, cost: DRAW_COST, duplicateCoins: DUPLICATE_COINS, dailyLimit: DRAW_DAILY_LIMIT, combinations: DRAW_COMBINATIONS, tiers };
+  const odds: DrawOdds = { version: `odds1-${fnvHex(JSON.stringify({ ...body, hands: Object.entries(HANDS).map(([hand, h]) => [hand, h.tier, counts[hand as DrawHand]]) }))}`, ...body };
+  oddsCache.set(pool, odds);
+  return odds;
 }

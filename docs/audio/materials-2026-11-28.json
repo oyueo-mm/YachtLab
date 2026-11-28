@@ -1,0 +1,190 @@
+{
+  "floor": {
+    "plastic": {
+      "matte": "-30.7 dB / 182 Hz",
+      "felt": "-31.8 dB / 177 Hz",
+      "wood": "-31.1 dB / 196 Hz",
+      "stone": "-30.4 dB / 181 Hz",
+      "ice": "-31.8 dB / 217 Hz",
+      "metal": "-35.1 dB / 263 Hz",
+      "water": "-33.5 dB / 172 Hz",
+      "grass": "-33.4 dB / 259 Hz"
+    },
+    "resin": {
+      "matte": "-36.8 dB / 315 Hz",
+      "felt": "-38 dB / 250 Hz",
+      "wood": "-38.3 dB / 327 Hz",
+      "stone": "-38.9 dB / 462 Hz",
+      "ice": "-37.4 dB / 714 Hz",
+      "metal": "-38.7 dB / 512 Hz",
+      "water": "-37.6 dB / 207 Hz",
+      "grass": "-37.5 dB / 408 Hz"
+    },
+    "wood": {
+      "matte": "-37.3 dB / 156 Hz",
+      "felt": "-42.2 dB / 522 Hz",
+      "wood": "-37.8 dB / 572 Hz",
+      "stone": "-35.9 dB / 172 Hz",
+      "ice": "-39.5 dB / 421 Hz",
+      "metal": "-40.4 dB / 652 Hz",
+      "water": "-37.2 dB / 104 Hz",
+      "grass": "-39.6 dB / 326 Hz"
+    },
+    "metal": {
+      "matte": "-36.9 dB / 1331 Hz",
+      "felt": "-35.7 dB / 934 Hz",
+      "wood": "-35.7 dB / 1021 Hz",
+      "stone": "-38.2 dB / 919 Hz",
+      "ice": "-36.9 dB / 1334 Hz",
+      "metal": "-39.4 dB / 1539 Hz",
+      "water": "-37.4 dB / 572 Hz",
+      "grass": "-35.9 dB / 788 Hz"
+    },
+    "gold": {
+      "matte": "-36.7 dB / 1199 Hz",
+      "felt": "-37.1 dB / 1086 Hz",
+      "wood": "-36.5 dB / 1022 Hz",
+      "stone": "-35.6 dB / 1364 Hz",
+      "ice": "-36.1 dB / 1268 Hz",
+      "metal": "-36.4 dB / 1242 Hz",
+      "water": "-37.9 dB / 801 Hz",
+      "grass": "-36.9 dB / 1353 Hz"
+    },
+    "glass": {
+      "matte": "-38.1 dB / 1922 Hz",
+      "felt": "-35.8 dB / 1131 Hz",
+      "wood": "-37.6 dB / 1847 Hz",
+      "stone": "-36.1 dB / 1915 Hz",
+      "ice": "-37.4 dB / 1892 Hz",
+      "metal": "-38.1 dB / 1205 Hz",
+      "water": "-37.9 dB / 498 Hz",
+      "grass": "-37.1 dB / 1029 Hz"
+    },
+    "crystal": {
+      "matte": "-36.4 dB / 1881 Hz",
+      "felt": "-35 dB / 1188 Hz",
+      "wood": "-36.2 dB / 1077 Hz",
+      "stone": "-34.6 dB / 1945 Hz",
+      "ice": "-35.5 dB / 1805 Hz",
+      "metal": "-35.4 dB / 1756 Hz",
+      "water": "-36.9 dB / 818 Hz",
+      "grass": "-37.3 dB / 1209 Hz"
+    },
+    "stone": {
+      "matte": "-37 dB / 101 Hz",
+      "felt": "-41.1 dB / 229 Hz",
+      "wood": "-33.8 dB / 155 Hz",
+      "stone": "-36.8 dB / 112 Hz",
+      "ice": "-39.5 dB / 391 Hz",
+      "metal": "-39.7 dB / 730 Hz",
+      "water": "-35.6 dB / 89 Hz",
+      "grass": "-42.1 dB / 2053 Hz"
+    },
+    "ice": {
+      "matte": "-38.1 dB / 1052 Hz",
+      "felt": "-35.7 dB / 887 Hz",
+      "wood": "-34.8 dB / 810 Hz",
+      "stone": "-36.3 dB / 1359 Hz",
+      "ice": "-36.7 dB / 1181 Hz",
+      "metal": "-37 dB / 1609 Hz",
+      "water": "-37.2 dB / 523 Hz",
+      "grass": "-36.2 dB / 910 Hz"
+    },
+    "lava": {
+      "matte": "-37.6 dB / 244 Hz",
+      "felt": "-37.2 dB / 150 Hz",
+      "wood": "-36.1 dB / 277 Hz",
+      "stone": "-36.8 dB / 238 Hz",
+      "ice": "-36.5 dB / 436 Hz",
+      "metal": "-38.9 dB / 582 Hz",
+      "water": "-38.9 dB / 273 Hz",
+      "grass": "-38.7 dB / 377 Hz"
+    },
+    "magic": {
+      "matte": "-38.5 dB / 968 Hz",
+      "felt": "-35.6 dB / 745 Hz",
+      "wood": "-35 dB / 668 Hz",
+      "stone": "-35.9 dB / 1312 Hz",
+      "ice": "-36.3 dB / 1331 Hz",
+      "metal": "-37.6 dB / 931 Hz",
+      "water": "-36.1 dB / 768 Hz",
+      "grass": "-37.9 dB / 844 Hz"
+    },
+    "space": {
+      "matte": "-37.3 dB / 728 Hz",
+      "felt": "-38.5 dB / 584 Hz",
+      "wood": "-35.9 dB / 464 Hz",
+      "stone": "-36.3 dB / 675 Hz",
+      "ice": "-38.3 dB / 837 Hz",
+      "metal": "-37.2 dB / 791 Hz",
+      "water": "-35.6 dB / 286 Hz",
+      "grass": "-36.9 dB / 577 Hz"
+    }
+  },
+  "knock": {
+    "plastic": "-44 dB / 3661 Hz",
+    "resin": "-43.6 dB / 1854 Hz",
+    "wood": "-50.7 dB / 954 Hz",
+    "metal": "-40.4 dB / 2537 Hz",
+    "gold": "-40.8 dB / 1963 Hz",
+    "glass": "-43.4 dB / 4170 Hz",
+    "crystal": "-39.1 dB / 2944 Hz",
+    "stone": "-46.1 dB / 782 Hz",
+    "ice": "-44.6 dB / 3495 Hz",
+    "lava": "-43.2 dB / 584 Hz",
+    "magic": "-42.6 dB / 2242 Hz",
+    "space": "-42.1 dB / 1411 Hz"
+  },
+  "velocity": {
+    "plastic": "soft -36.8 dB 145 Hz → hard -31.1 dB 183 Hz",
+    "resin": "soft -48.5 dB 547 Hz → hard -37.1 dB 363 Hz",
+    "wood": "soft -47 dB 173 Hz → hard -37.5 dB 176 Hz",
+    "metal": "soft -46.8 dB 1068 Hz → hard -38.2 dB 1293 Hz",
+    "gold": "soft -46.1 dB 886 Hz → hard -37 dB 1198 Hz",
+    "glass": "soft -46.4 dB 1253 Hz → hard -36.8 dB 1929 Hz",
+    "crystal": "soft -44.6 dB 1510 Hz → hard -36.9 dB 1593 Hz",
+    "stone": "soft -46.8 dB 131 Hz → hard -37.9 dB 101 Hz",
+    "ice": "soft -46 dB 1213 Hz → hard -37.3 dB 1091 Hz",
+    "lava": "soft -48 dB 190 Hz → hard -38 dB 201 Hz",
+    "magic": "soft -46.3 dB 934 Hz → hard -37.5 dB 1115 Hz",
+    "space": "soft -46.2 dB 683 Hz → hard -37.9 dB 630 Hz"
+  },
+  "accent": {
+    "glass": "throw -42.5 dB, landing -33.5 dB",
+    "fire": "throw -41.8 dB, landing -34.2 dB",
+    "zap": "throw -42.5 dB, landing -34.8 dB",
+    "cosmic": "throw -35.6 dB, landing -32.3 dB",
+    "bell": "throw -35.6 dB, landing -32.1 dB",
+    "ice": "throw -45 dB, landing -33.3 dB"
+  },
+  "stress": {
+    "glass/stone": {
+      "peak": -1.4,
+      "rms": -19.9,
+      "activeRms": -18.5,
+      "admitted": 52,
+      "requested": 54
+    },
+    "metal/metal": {
+      "peak": -2.5,
+      "rms": -20.5,
+      "activeRms": -19.1,
+      "admitted": 52,
+      "requested": 54
+    },
+    "plastic/matte": {
+      "peak": -0.7,
+      "rms": -18.3,
+      "activeRms": -16.8,
+      "admitted": 52,
+      "requested": 54
+    },
+    "wood/wood": {
+      "peak": -2.4,
+      "rms": -22.1,
+      "activeRms": -20.5,
+      "admitted": 52,
+      "requested": 54
+    }
+  }
+}

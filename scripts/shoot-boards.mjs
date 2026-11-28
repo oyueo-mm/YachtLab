@@ -22,7 +22,7 @@ const DICE = arg("dice", "");
 const BASE = `http://127.0.0.1:${PORT}/YachtLab/`;
 const BOARDS = ["board.charcoal", "board.felt", "board.felt_red", "board.felt_blue", "board.felt_purple", "board.felt_sand", "board.navy", "board.christmas", "board.wood_oak", "board.wood_walnut", "board.leather_brown", "board.leather_black", "board.marble", "board.ocean", "board.desert", "board.ice", "board.space", "board.neon", "board.aurora", "board.gold_table", "board.deep_sea", "board.storm", "board.meadow", "board.flower_field", "board.sakura", "board.forest", "board.volcano"];
 mkdirSync(OUT, { recursive: true });
-const preview = await startPreview("dist", PORT);
+const preview = await startPreview(arg("dist", "dist"), PORT);
 const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || undefined });
 const look = (extra) => (l) => {
   const u = "u_" + "a".repeat(22);

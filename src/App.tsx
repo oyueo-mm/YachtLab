@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { installBoardGrain } from "./board-grain";
 import { BrandMark } from "./ui/BrandLoading";
 import { type Match } from "./match";
 import { type AnalysisSource } from "./ReplayViewer";
@@ -13,7 +14,9 @@ import { setOwnLook } from "./play/own-look";
 import { useNickname } from "./identity/display-name";
 import OnlineEntry from "./play/OnlineEntry";
 import { useBackgroundMatch } from "./online/useBackgroundMatch";
+import { countdownFor } from "./online/match-flow";
 import { MatchPopup } from "./play/MatchPopup";
+import { ImportantNotice } from "./shell/ImportantNotice";
 import { ActivityVisible } from "./shell/activity-visible";
 import OnlineGame from "./play/OnlineGame";
 import OnlineWatch from "./play/OnlineWatch";
@@ -45,7 +48,12 @@ import { aiMatchConfig, finalizeNames, getAiSetup, getLocalSetup, type AiMatchCo
 // Research tools are a separate, lazily loaded chunk (see routes.ts "lab" tier).
 const LabScreen = lazy(() => import("./lab/LabScreen"));
 const ItemsPage = lazy(() => import("./shell/EconomyPages").then((module) => ({ default: module.ItemsPage })));
+const AdminConsole = lazy(() => import("./admin/AdminConsole"));
+const SuggestionsPage = lazy(() => import("./engagement/EngagementPages").then((module) => ({ default: module.SuggestionsPage })));
+const MailboxPage = lazy(() => import("./engagement/EngagementPages").then((module) => ({ default: module.MailboxPage })));
+const DailyPage = lazy(() => import("./daily/DailyPage"));
 const QuestsPage = lazy(() => import("./shell/EconomyPages").then((module) => ({ default: module.QuestsPage })));
+const RewardsPage = lazy(() => import("./rewards/RewardsPage"));
 
 type LocalConfig = { players: string[]; order: LocalOrder };
 const localConfig = (): LocalConfig => {
@@ -189,7 +197,7 @@ export default function App() {
     pendingHistory.current = null;
     inProgress.current = false;
     enterRoom(found.code, true);
-  });
+  }, () => countdownFor(inProgress.current && preserve(pageRef.current)));
   const enterWatch = (code: string, key: string) => {
     if (pageRef.current !== "online" || pendingOnline.current) return;
     history.pushState({ idx: ++historyIndex.current }, "", watchLink(code, key));
@@ -253,6 +261,7 @@ export default function App() {
   };
   useEffect(() => {
     installAudioUnlock();
+    installBoardGrain();
     installBgm();
     installShortcuts();
     if (diceRenderer().startsWith("3d")) preloadDiceTableWhenIdle();
@@ -335,7 +344,9 @@ export default function App() {
             </button>
           </p>
         )}
-        <MatchPopup match={match} onAi={() => navigate("play-setup")} onRoom={(code) => enterRoom(code)} offerAfterMs={30_000} />
+        {/* UI-1 §11: ADMIN-1 important notice (flag features.notices), never during a game. */}
+        {(shell === "lobby" || shell === "page") && page !== "tutorial" && <ImportantNotice server={onlineServer} />}
+        <MatchPopup match={match} onAi={() => navigate("play-setup")} onRoom={(code) => enterRoom(code)} offerAfterMs={30_000} practicePaused={inProgress.current && preserve(page)} />
         {suspended && page !== "online-room" && <button type="button" className="secondary" onClick={restoreActivity}>이전 활동으로 돌아가기</button>}
         <InstallBanner active={page === "home"} />
         {page === "home" && onlineServer && noticesFor(pendingRewards, session()).length > 0 && <MatchRewards
@@ -344,7 +355,7 @@ export default function App() {
           pending={noticesFor(pendingRewards, session())}
           consume={(ids) => setPendingRewards((list) => dropNotices(list, ids))}
         />}
-        {page === "home" && <Lobby navigate={navigate} />}
+        {page === "home" && <Lobby navigate={navigate} server={onlineServer} signedIn={profile.signedIn} />}
         {page === "tutorial" && <Tutorial onExit={() => {
           if (tutorialDestination.current) enter(tutorialDestination.current);
           else go("home");
@@ -409,7 +420,16 @@ export default function App() {
           {activity(["quests", "achievements"], <QuestsPage key={session() ?? "guest"} server={onlineServer} go={navigate}
             achievements={page === "achievements" || (page !== "quests" && suspended?.route === "achievements")} />)}
         </Suspense>
-        {page === "friends" && <FriendsPage server={onlineServer} go={navigate} />}
+        {page === "rewards" && <Suspense fallback={null}><RewardsPage key={session() ?? "guest"} server={onlineServer} go={navigate} /></Suspense>}
+        {page === "friends" && <FriendsPage server={onlineServer} go={navigate} onEnterRoom={(code) => enterRoom(code)} />}
+        {(page === "suggestions" || page === "mailbox" || page === "admin") && (
+          <Suspense fallback={<p className="econ-note" role="status"><BrandMark /> 불러오는 중…</p>}>
+            {page === "suggestions" && <SuggestionsPage server={onlineServer} />}
+            {page === "mailbox" && <MailboxPage server={onlineServer} />}
+            {page === "admin" && <AdminConsole server={onlineServer} />}
+          </Suspense>
+        )}
+        {page === "daily" && <Suspense fallback={<p className="econ-note" role="status"><BrandMark /> 불러오는 중…</p>}><DailyPage server={onlineServer} go={navigate} /></Suspense>}
         {page === "spectate" && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "spectate" && onlineServer && (watchTarget ? <OnlineWatch key={watchTarget.code + watchTarget.key} server={onlineServer} code={watchTarget.code} watchKey={watchTarget.key} onLeave={() => navigate("home")} /> : (
           <p className="online-connecting" role="alert">

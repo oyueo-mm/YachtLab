@@ -15,6 +15,8 @@ export interface CleanupSql {
 
 /** The global friend-code index (one per service). Other targets are account ids. */
 export const INDEX_TARGET = "@index";
+/** SEC-1 2차 INT-7: the queue table for targets added after C4.2 (admin index, suggestion board). */
+export const EXT_CLEANUP_TABLE = "acct_cleanup_ext";
 /** Retry delays after the 1st, 2nd, … failure (then the last one), and when to give up. */
 export const CLEANUP_BACKOFF_MS = [60_000, 5 * 60_000, 15 * 60_000, 3600_000, 3 * 3600_000, 6 * 3600_000, 12 * 3600_000, 24 * 3600_000] as const;
 export const CLEANUP_MAX_ATTEMPTS = 16; // ≈ 9.5 days of retries
@@ -30,56 +32,62 @@ export const CLEANUP_BATCH = 40;
 export type CleanupJob = { target: string; code: string | null; attempts: number; nextAt: number };
 
 export class CleanupQueue {
-  constructor(private readonly sql: CleanupSql) {}
+  /**
+   * `table`: the queue's table (and `<table>_epoch`, `<table>_owner`). SEC-1 2차 INT-7: jobs that an older
+   * Worker version would not recognise live in their own table, so a rollback cannot "complete" them.
+   */
+  constructor(private readonly sql: CleanupSql, private readonly table: string = "acct_cleanup") {
+    if (!/^[a-z_]+$/.test(table)) throw Error("table");
+  }
   init() {
     // code '' = the deleted account never had a friend code
-    this.sql.exec("CREATE TABLE IF NOT EXISTS acct_cleanup (target TEXT NOT NULL, code TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, next_at INTEGER NOT NULL, parked INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (target, code))");
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS ${this.table} (target TEXT NOT NULL, code TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, next_at INTEGER NOT NULL, parked INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (target, code))`);
     // the operator's retry request (ACCOUNT_CLEANUP_RETRY_EPOCH) this object last acted on
-    this.sql.exec("CREATE TABLE IF NOT EXISTS acct_cleanup_epoch (id INTEGER PRIMARY KEY CHECK (id = 1), epoch TEXT NOT NULL)");
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS ${this.table}_epoch (id INTEGER PRIMARY KEY CHECK (id = 1), epoch TEXT NOT NULL)`);
     // the deleted account's internal id, kept only while its cleanup is pending (the calls name it)
-    this.sql.exec("CREATE TABLE IF NOT EXISTS acct_cleanup_owner (id INTEGER PRIMARY KEY CHECK (id = 1), user_id TEXT NOT NULL)");
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS ${this.table}_owner (id INTEGER PRIMARY KEY CHECK (id = 1), user_id TEXT NOT NULL)`);
   }
   owner(): string | null {
-    return this.sql.exec<{ user_id: string }>("SELECT user_id FROM acct_cleanup_owner WHERE id = 1").toArray()[0]?.user_id ?? null;
+    return this.sql.exec<{ user_id: string }>(`SELECT user_id FROM ${this.table}_owner WHERE id = 1`).toArray()[0]?.user_id ?? null;
   }
   enqueue(owner: string, targets: string[], code: string | null, now: number) {
-    this.sql.exec("INSERT OR REPLACE INTO acct_cleanup_owner (id, user_id) VALUES (1, ?)", owner);
-    for (const t of new Set(targets)) this.sql.exec("INSERT OR IGNORE INTO acct_cleanup (target, code, attempts, next_at) VALUES (?, ?, 0, ?)", t, code ?? "", now);
+    this.sql.exec(`INSERT OR REPLACE INTO ${this.table}_owner (id, user_id) VALUES (1, ?)`, owner);
+    for (const t of new Set(targets)) this.sql.exec(`INSERT OR IGNORE INTO ${this.table} (target, code, attempts, next_at) VALUES (?, ?, 0, ?)`, t, code ?? "", now);
   }
   due(now: number, limit = CLEANUP_BATCH): CleanupJob[] {
     return this.sql
-      .exec<{ target: string; code: string; attempts: number; next_at: number }>("SELECT target, code, attempts, next_at FROM acct_cleanup WHERE parked = 0 AND next_at <= ? ORDER BY next_at, target LIMIT ?", now, limit)
+      .exec<{ target: string; code: string; attempts: number; next_at: number }>(`SELECT target, code, attempts, next_at FROM ${this.table} WHERE parked = 0 AND next_at <= ? ORDER BY next_at, target LIMIT ?`, now, limit)
       .toArray()
       .map((r) => ({ target: r.target, code: r.code === "" ? null : r.code, attempts: r.attempts, nextAt: r.next_at }));
   }
   done(job: CleanupJob) {
-    this.sql.exec("DELETE FROM acct_cleanup WHERE target = ? AND code = ?", job.target, job.code ?? "");
+    this.sql.exec(`DELETE FROM ${this.table} WHERE target = ? AND code = ?`, job.target, job.code ?? "");
     this.ownerIfEmpty();
   }
   private ownerIfEmpty() {
-    if (!this.pending()) this.sql.exec("DELETE FROM acct_cleanup_owner");
+    if (!this.pending()) this.sql.exec(`DELETE FROM ${this.table}_owner`);
   }
   /** A failed attempt: retry later, or park it (true) after CLEANUP_MAX_ATTEMPTS. */
   failed(job: CleanupJob, now: number): boolean {
     const attempts = job.attempts + 1;
     if (attempts >= CLEANUP_MAX_ATTEMPTS) {
-      this.sql.exec("UPDATE acct_cleanup SET attempts = ?, parked = 1 WHERE target = ? AND code = ?", attempts, job.target, job.code ?? "");
+      this.sql.exec(`UPDATE ${this.table} SET attempts = ?, parked = 1 WHERE target = ? AND code = ?`, attempts, job.target, job.code ?? "");
       return true;
     }
     const wait = CLEANUP_BACKOFF_MS[Math.min(attempts - 1, CLEANUP_BACKOFF_MS.length - 1)];
-    this.sql.exec("UPDATE acct_cleanup SET attempts = ?, next_at = ? WHERE target = ? AND code = ?", attempts, now + wait, job.target, job.code ?? "");
+    this.sql.exec(`UPDATE ${this.table} SET attempts = ?, next_at = ? WHERE target = ? AND code = ?`, attempts, now + wait, job.target, job.code ?? "");
     return false;
   }
   /** Next retry of an active (not parked) job. */
   nextAt(): number | null {
-    return this.sql.exec<{ t: number | null }>("SELECT min(next_at) AS t FROM acct_cleanup WHERE parked = 0").toArray()[0]?.t ?? null;
+    return this.sql.exec<{ t: number | null }>(`SELECT min(next_at) AS t FROM ${this.table} WHERE parked = 0`).toArray()[0]?.t ?? null;
   }
   /** All jobs, active and parked. */
   pending(): number {
-    return this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM acct_cleanup").toArray()[0]?.n ?? 0;
+    return this.sql.exec<{ n: number }>(`SELECT count(*) AS n FROM ${this.table}`).toArray()[0]?.n ?? 0;
   }
   parked(): number {
-    return this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM acct_cleanup WHERE parked = 1").toArray()[0]?.n ?? 0;
+    return this.sql.exec<{ n: number }>(`SELECT count(*) AS n FROM ${this.table} WHERE parked = 1`).toArray()[0]?.n ?? 0;
   }
   /**
    * Operator retry: when `epoch` (the deployed ACCOUNT_CLEANUP_RETRY_EPOCH) differs from the one this
@@ -88,20 +96,20 @@ export class CleanupQueue {
    */
   requeue(epoch: string, now: number): number {
     if (!epoch) return 0;
-    const seen = this.sql.exec<{ epoch: string }>("SELECT epoch FROM acct_cleanup_epoch WHERE id = 1").toArray()[0]?.epoch;
+    const seen = this.sql.exec<{ epoch: string }>(`SELECT epoch FROM ${this.table}_epoch WHERE id = 1`).toArray()[0]?.epoch;
     if (seen === epoch) return 0;
     const n = this.parked();
     if (!n) return 0; // nothing to do: remember nothing (no write)
-    this.sql.exec("UPDATE acct_cleanup SET parked = 0, attempts = 0, next_at = ? WHERE parked = 1", now);
-    this.sql.exec("INSERT OR REPLACE INTO acct_cleanup_epoch (id, epoch) VALUES (1, ?)", epoch);
+    this.sql.exec(`UPDATE ${this.table} SET parked = 0, attempts = 0, next_at = ? WHERE parked = 1`, now);
+    this.sql.exec(`INSERT OR REPLACE INTO ${this.table}_epoch (id, epoch) VALUES (1, ?)`, epoch);
     return n;
   }
   /** End of the 30-day deletion record: parked jobs are dropped (the peer-side residue check remains). */
   expireParked(): number {
     const n = this.parked();
-    if (n) this.sql.exec("DELETE FROM acct_cleanup WHERE parked = 1");
+    if (n) this.sql.exec(`DELETE FROM ${this.table} WHERE parked = 1`);
     this.ownerIfEmpty();
-    if (!this.pending()) this.sql.exec("DELETE FROM acct_cleanup_epoch");
+    if (!this.pending()) this.sql.exec(`DELETE FROM ${this.table}_epoch`);
     return n;
   }
 }

@@ -8,7 +8,7 @@ import type { MultiReplay } from "../multi-replay";
 import { createGameFor, transitionMulti } from "../multi-engine";
 import type { ResultInput, ResultSeat, ScoreStep } from "./model";
 
-type OnlinePlayerLike = { playerId: string; name: string; card: Card; total: number };
+type OnlinePlayerLike = { playerId: string; name: string; card: Card; total: number; status?: string };
 
 /** 서버 이벤트 로그(전체)의 categoryScored 순서가 그대로 채점 순서다. 로그가 일부만 있으면 buildTimeline이 invalid로 판정한다. */
 export function stepsFromOnline(events: readonly OnlineEvent[]): ScoreStep[] {
@@ -19,7 +19,7 @@ export function fromOnline(
   view: { players: readonly OnlinePlayerLike[]; winners: readonly string[] },
   events: readonly OnlineEvent[],
   me: string | null,
-  extra: Partial<Pick<ResultInput, "mode" | "personal" | "streak" | "rewards">> & { titles?: Record<string, string>; members?: Record<string, string> } = {},
+  extra: Partial<Pick<ResultInput, "mode" | "personal" | "streak" | "rewards" | "spectator">> & { titles?: Record<string, string>; members?: Record<string, string> } = {},
 ): ResultInput {
   const forfeits = new Map<string, Extract<OnlineEvent, { type: "playerForfeited" }>["reason"]>();
   for (const e of events) if (e.type === "playerForfeited") forfeits.set(e.playerId, e.reason);
@@ -31,7 +31,8 @@ export function fromOnline(
     title: extra.titles?.[p.playerId],
     card: { ...p.card },
     total: p.total,
-    forfeited: forfeits.get(p.playerId) ?? null,
+    // A spectator or a reloaded screen may not hold the forfeit event: the seat status still says so (reason unknown → "기권").
+    forfeited: forfeits.get(p.playerId) ?? (p.status === "forfeited" ? "resign" : null),
   }));
   return {
     mode: extra.mode ?? "online",
@@ -43,6 +44,7 @@ export function fromOnline(
     personal: extra.personal,
     streak: extra.streak,
     rewards: extra.rewards,
+    spectator: extra.spectator,
   };
 }
 

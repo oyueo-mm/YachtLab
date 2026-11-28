@@ -250,6 +250,10 @@
 .player-title[data-title="title.rookie"] { --g: "☆"; }
 .player-title[data-title="title.dicer"] { --g: "▣"; }
 .player-title[data-title="title.300"] { --g: "◉"; }
+/* C5 activity-streak titles (30 / 100 / 365 days) */
+.player-title[data-title="title.streak30"] { --g: "⚓"; }
+.player-title[data-title="title.streak100"] { --g: "✧"; }
+.player-title[data-title="title.streak365"] { --g: "✹"; }
 .player-title[data-title="title.310"] { --g: "✪"; }
 .player-title[data-title]::before { content: var(--g, none); }
 @media (prefers-reduced-motion: no-preference) {

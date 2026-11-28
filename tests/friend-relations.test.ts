@@ -61,7 +61,7 @@ describe("검증되지 않은 기존 Worker에서는 닉네임·전적으로 추
     expect((await sendFriendRequest("s", "u3", w.api)).ok).toBe(false);
     expect(w.calls.request).toBe(0);
   });
-  it("실제 연결(liveApi)은 어떤 경우에도 요청을 보내지 못한다", async () => {
+  it("실제 연결(liveApi): 서버가 계정-코드 대응을 확인해 주지 못하면(구 Worker 404·네트워크 오류) 요청하지 않는다", async () => {
     const api = liveApi("https://example.invalid");
     expect((await loadRelation("s", "u1", api)).relation).toBe("unresolved");
     expect((await sendFriendRequest("s", "u1", api)).ok).toBe(false);

@@ -69,7 +69,7 @@ export type HostEvents = {
   /** A quick match finished (its players may queue again). */
   matchEnded?: (code: string) => Promise<void> | void;
   /** Operations counters for a finished match (mode, completed or not, duration). No player data. */
-  finished?: (info: { matchId: string; at: number; kind: MatchKind; completed: boolean; durationMs: number; members: number }) => Promise<void> | void;
+  finished?: (info: { matchId: string; at: number; kind: MatchKind; completed: boolean; durationMs: number; members: number; players?: number }) => Promise<void> | void;
   yachts?: (matchId: string, events: { seq: number; at: number }[]) => Promise<void> | void;
   activity?: (code: string, info: { kind: MatchKind; status: OnlineMatchState["status"]; spectators: number; public: boolean } | null) => Promise<void> | void;
 };
@@ -270,6 +270,19 @@ export class RoomHost {
   private activitySignature = "";
   private lastStatus: string | null = null;
   /** Friend invites (J): whether `userId` sits in this friend room's waiting room and seats are left. */
+  /** SOC-1: are both accounts seated in this room right now (friend request from an in-match profile)? */
+  sharesRoom(a: string, b: string): boolean {
+    const room = this.room;
+    if (!room || this.deleted || room.isClosed) return false;
+    const ids = Object.values(room.memberAccounts());
+    return ids.includes(a) && ids.includes(b);
+  }
+  /** SEC-1 2차 SOC-3: signed-in member accounts of this friend room (block checks on code joins). */
+  memberAccountIds(): string[] {
+    const room = this.room;
+    if (!room || this.deleted || room.isClosed) return [];
+    return [...new Set(Object.values(room.memberAccounts()))];
+  }
   inviteState(userId: string): { ok: true; seats: number; players: number } | { ok: false; reason: "not-member" | "started" | "full" | "closed" } {
     const room = this.room;
     if (!room || this.deleted || room.isClosed) return { ok: false, reason: "closed" };
@@ -316,7 +329,7 @@ export class RoomHost {
       const started = log.find((e) => e.type === "matchStarted")?.at ?? log[0]?.at ?? 0;
       const end = log[log.length - 1]?.at ?? started;
       const completed = !log.some((e) => e.type === "playerForfeited");
-      await Promise.resolve(this.events.finished({ matchId: room.match.matchId, at: end, kind: room.kind, completed, durationMs: Math.max(0, end - started), members: Object.keys(room.members()).length })).catch(() => undefined);
+      await Promise.resolve(this.events.finished({ matchId: room.match.matchId, at: end, kind: room.kind, completed, durationMs: Math.max(0, end - started), members: Object.keys(room.members()).length, players: room.match.players.length })).catch(() => undefined);
     }
     if (room.match.status !== this.lastStatus) {
       const before = this.lastStatus;

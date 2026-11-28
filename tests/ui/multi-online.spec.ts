@@ -96,7 +96,7 @@ test("4인 동시 진행: 방 인원 설정 → 초대 링크 입장 → 준비 
   for (const p of all) await expect(p.getByRole("region", { name: "최종 순위" })).toBeVisible({ timeout: 15_000 });
   const ranks = await host.locator(".online-standing-list li").count();
   expect(ranks).toBe(4);
-  await expect(host.locator(".game-result h2")).toHaveText(/위|승리/);
+  await expect(host.locator(".a3-result h2")).toHaveText(/위|승리/);
   // rematch: two players ask, the host starts with them; the others' seats close
   await guests[0].getByRole("button", { name: "한 번 더 플레이", exact: true }).click();
   await expect(host.getByText(/재대결을 원하는 사람 1명/)).toBeVisible();

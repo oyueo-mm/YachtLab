@@ -76,4 +76,25 @@ describe("친구·초대 (wrangler dev + 가짜 로컬 로그인)", () => {
     // invites to a started room are refused
     expect((await call(a, `/api/rooms/${seatA.code}/invite`, { friends: [bCode] })).body.error.code).toBe("INVITE_STARTED");
   }, 90_000);
+
+  it("SEC-1 2차 SOC-3: 차단 관계(어느 쪽이든)인 회원은 방 코드로 친구 방에 들어갈 수 없고, 응답은 누가 차단했는지 드러내지 않는다", async () => {
+    const host = await fakeLogin(worker.url, idp, "soc3-host", ORIGIN);
+    const blockedByHost = await fakeLogin(worker.url, idp, "soc3-x", ORIGIN);
+    const blocker = await fakeLogin(worker.url, idp, "soc3-y", ORIGIN);
+    const other = await fakeLogin(worker.url, idp, "soc3-z", ORIGIN);
+    const xCode = (await call(blockedByHost, "/api/me/friends")).body.me.code as string;
+    const hostCode = (await call(host, "/api/me/friends")).body.me.code as string;
+    expect((await call(host, "/api/me/friends/block", { code: xCode })).status).toBe(200); // host blocks x
+    expect((await call(blocker, "/api/me/friends/block", { code: hostCode })).status).toBe(200); // y blocks host
+    const room = await call(host, "/api/rooms", { name: "방장", maxPlayers: 4 });
+    expect(room.status).toBe(201);
+    const a = await call(blockedByHost, `/api/rooms/${room.body.code}/join`, { name: "엑스" });
+    const b = await call(blocker, `/api/rooms/${room.body.code}/join`, { name: "와이" });
+    expect([a.status, a.body.error?.code]).toEqual([409, "ROOM_UNAVAILABLE"]);
+    expect(b.body).toEqual(a.body); // same answer whichever side blocked
+    expect((await call(other, `/api/rooms/${room.body.code}/join`, { name: "제트" })).status).toBe(201);
+    // a guest is not an account: blocks cannot apply (documented limitation)
+    expect((await call(null, `/api/rooms/${room.body.code}/join`, { name: "손님" })).status).toBe(201);
+  }, 60_000);
 });
+

@@ -1,5 +1,10 @@
 import type { DiceLook } from "./economy/live/catalog";
+import { diceMaterialSpec } from "./dice3d/dice-material";
 
+/**
+ * Base collision voices per die material (modal frequency, decay, body thump, texture band, overtone
+ * ratios). The physical sound layer: theme accents (dice-fx `sound`) are a separate, quieter layer.
+ */
 export const dieSounds = {
   wood: { frequency: 680, decay: .010, body: 165, texture: 1150, overtones: [1, 1.54] },
   metal: { frequency: 1830, decay: .043, body: 125, texture: 3050, overtones: [1, 1.43, 2.07] },
@@ -11,26 +16,21 @@ export const dieSounds = {
   lava: { frequency: 350, decay: .031, body: 68, texture: 830, overtones: [1, 1.94, 3.05] },
   magic: { frequency: 1480, decay: .050, body: 277, texture: 4600, overtones: [1, 1.50, 2.0] },
   space: { frequency: 1047, decay: .043, body: 175, texture: 3800, overtones: [1, 1.25, 2.0] },
+  /** FX-1: cast resin / lacquered (gloss and porcelain-like dice): denser and a little longer than plastic. */
+  resin: { frequency: 1240, decay: .022, body: 190, texture: 2700, overtones: [1, 1.72, 2.6] },
 };
 
 export type DiceMaterial = "plastic" | keyof typeof dieSounds;
 
+/**
+ * Die material for sound. Since FX-1 this is the same table the 3D renderer uses (dice-material.ts),
+ * so a die sounds like what it looks like. Mappings that existed before are unchanged (wood, marble →
+ * stone, ice, carbon / brushed → metal, gems → crystal, lava, aurora / holo → magic, stars / neon →
+ * space, gold, glass, metal); dice that used to fall back to plastic (gloss, lightning, abyss, petals,
+ * sakura, royal) now get the resin voice.
+ */
 export function diceMaterial(itemId?: string, look?: DiceLook | null): DiceMaterial {
-  if (itemId === "dice.gold") return "gold";
-  switch (look?.pattern) {
-    case "wood": return "wood";
-    case "marble": return "stone";
-    case "ice": return "ice";
-    case "carbon":
-    case "brushed": return "metal";
-    case "gem": return "crystal";
-    case "lava": return "lava";
-    case "aurora":
-    case "holo": return "magic";
-    case "stars":
-    case "neon": return "space";
-    default: return look?.finish === "glass" ? "glass" : look?.finish === "metal" ? "metal" : "plastic";
-  }
+  return diceMaterialSpec(look ?? null, itemId).sound;
 }
 
 export type EmoteSound = "clap" | "party" | "fire" | "bolt" | "gem" | "rattle" | "rocket" | "chime" | "wave" | "pop" | "sigh";

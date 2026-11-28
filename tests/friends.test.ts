@@ -196,7 +196,7 @@ describe("접속 상태·초대", () => {
     await w.call("u_h", "POST", "/api/me/friends/request", { code: f });
     await w.call("u_f", "POST", "/api/me/friends/accept", { code: h });
     let n = 0;
-    const send = () => sendInvites({ userId: "u_h" }, [f, s], "ABCDEF", w.deps, () => "inv" + ++n);
+    const send = () => sendInvites({ userId: "u_h" }, [f, s], "ABCDEF", w.deps, () => "inv-" + String(++n).padStart(8, "0")); // UUID-shaped like production (SEC-1 id check)
     expect(await send()).toEqual({ [f]: "sent", [s]: "not-friend" });
     expect(await send()).toEqual({ [f]: "recent", [s]: "not-friend" });
     const box = (await w.call("u_f", "GET", "/api/me/inbox")).body;
