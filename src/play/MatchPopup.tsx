@@ -16,14 +16,22 @@ const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds
  * on this device), minimised to a small pill with the elapsed time and restored. Matching itself
  * (queue, pairing, entry) stays in `useBackgroundMatch` / the server — this only shows its state.
  */
-export function MatchPopup({ match, onAi, onRoom, offerAfterMs }: {
+export function MatchPopup({ match, onAi, onRoom, offerAfterMs, practicePaused = false }: {
   match: MatchController;
   onAi: () => void;
   onRoom: (code: string) => void;
   offerAfterMs?: number;
+  /** SOC-1 #143: a local AI game is kept aside while the online match starts. */
+  practicePaused?: boolean;
 }) {
   const { state, display, setDisplay } = match;
   const since = "since" in state ? state.since : null;
+  // SOC-1 #143 extends the controller (docs/online/SOC-1-SOCIAL.md): "matched" carries `until` (automatic entry
+  // countdown) with enterNow(), and "elsewhere" means another tab owns the wait (cancelOther()). Read structurally
+  // so this file works before and after that PR merges.
+  const ext = match as MatchController & { enterNow?: () => void; cancelOther?: () => void };
+  const phase = state.phase as string;
+  const until = phase === "matched" && typeof (state as unknown as { until?: unknown }).until === "number" ? (state as unknown as { until: number }).until : null;
   const [now, tick] = useState(Date.now);
   const [offer, setOffer] = useState(false);
   const panel = useRef<HTMLElement>(null);
@@ -40,11 +48,11 @@ export function MatchPopup({ match, onAi, onRoom, offerAfterMs }: {
   }, [since, offerAfterMs]);
 
   useEffect(() => {
-    if (since === null || !visible) return;
+    if ((since === null && until === null) || !visible) return;
     tick(Date.now());
-    const timer = setInterval(() => tick(Date.now()), 1000);
+    const timer = setInterval(() => tick(Date.now()), until !== null ? 250 : 1000);
     return () => clearInterval(timer);
-  }, [since, visible]);
+  }, [since, until, visible]);
 
   // Place the panel (saved spot or bottom-right) whenever it appears or changes size, and keep it on screen on resize.
   useLayoutEffect(() => {
@@ -81,10 +89,13 @@ export function MatchPopup({ match, onAi, onRoom, offerAfterMs }: {
     pairing: "두 플레이어의 연결을 확인하고 있어요.",
     matched: "상대를 찾았어요.",
     entering: "경기에 입장 중이에요.",
+    elsewhere: "다른 탭에서 이미 매칭 중이에요.",
     error: "",
-  };
-  const message = state.phase === "error" ? state.message : labels[state.phase];
-  const busy = state.phase === "waiting" || state.phase === "connecting" || state.phase === "reconnecting" || state.phase === "pairing";
+  } as Record<string, string>;
+  const message = state.phase === "error" ? state.message : labels[phase] ?? "";
+  const left = until !== null ? Math.max(0, Math.ceil((until - now) / 1000)) : null;
+  const opponent = "match" in state ? (state.match as { opponent?: string }).opponent : undefined;
+  const busy = state.phase === "waiting" || state.phase === "connecting" || state.phase === "reconnecting" || state.phase === "pairing" || left !== null;
 
   // Drag: listeners on window (not pointer capture) so a fast drag that leaves the panel keeps going and a plain
   // tap still clicks the button under it. A move of < 4px is a tap.
@@ -142,8 +153,8 @@ export function MatchPopup({ match, onAi, onRoom, offerAfterMs }: {
             setDisplay("expanded");
           }}>
           <span className={"ui1-match-dot" + (busy ? " live" : "")} aria-hidden="true" />
-          <span className="ui1-match-pill-text">{state.phase === "error" ? "매칭 확인 필요" : state.phase === "waiting" ? "매칭 중" : labels[state.phase].replace(/[.요]+$/, "")}</span>
-          {since !== null && <span className="ui1-match-pill-time" aria-hidden="true">{clock(elapsed)}</span>}
+          <span className="ui1-match-pill-text">{left !== null ? "상대를 찾았어요" : state.phase === "error" ? "매칭 확인 필요" : state.phase === "waiting" ? "매칭 중" : message.replace(/[.요]+$/, "")}</span>
+          {left !== null ? <span className="ui1-match-pill-time" aria-hidden="true">{left}초</span> : since !== null && <span className="ui1-match-pill-time" aria-hidden="true">{clock(elapsed)}</span>}
         </button>
       </aside>,
       document.body,
@@ -151,7 +162,7 @@ export function MatchPopup({ match, onAi, onRoom, offerAfterMs }: {
   }
 
   return createPortal(
-    <aside ref={panel} className="ui1-match-popup" aria-label="빠른 대전 상태" style={style} {...handlers} data-phase={state.phase}>
+    <aside ref={panel} className="ui1-match-popup" aria-label="빠른 대전 상태" style={style} {...handlers} data-phase={state.phase} data-match-found={left !== null ? "" : undefined}>
       <div className="ui1-match-head">
         <span className="ui1-match-grip" data-drag-handle tabIndex={0} role="button" aria-label="빠른 대전 창 이동 (방향키)" title="끌어서 옮기기">
           <GripHorizontal size={16} aria-hidden="true" />
@@ -164,16 +175,29 @@ export function MatchPopup({ match, onAi, onRoom, offerAfterMs }: {
       <div className="ui1-match-body">
         <span className={"ui1-match-icon" + (busy ? " live" : "")} aria-hidden="true"><Search size={18} /></span>
         <div className="ui1-match-text">
-          <span role="status">{message}</span>
+          {left !== null
+            ? <span role="alert">상대를 찾았어요!{opponent && <> <strong>{opponent}</strong> 님과의 경기</>}</span>
+            : <span role="status">{message}</span>}
           {state.phase === "waiting" && <span role="timer" aria-label="매칭 경과 시간" className="ui1-match-time">{clock(elapsed)}</span>}
+          {left !== null && <span role="timer" aria-label="입장까지 남은 시간" className="ui1-match-time">{left}초</span>}
         </div>
       </div>
+      {left !== null && <p className="ui1-match-note">{practicePaused ? "진행 중인 오프라인 AI 대전은 그대로 저장돼요. " : ""}경기는 이미 시작됐어요. 들어가지 않으면 시간 초과로 기권 처리될 수 있어요.</p>}
       <div className="ui1-match-actions">
-        {since !== null && state.phase !== "cancelling" && (
+        {left !== null && ext.enterNow && (
+          <button type="button" className="primary" onClick={ext.enterNow}>지금 입장</button>
+        )}
+        {phase === "elsewhere" && ext.cancelOther && (
+          <button type="button" className="secondary" onClick={ext.cancelOther}>다른 탭의 매칭 취소</button>
+        )}
+        {phase === "elsewhere" && (
+          <button type="button" className="secondary" onClick={match.cancel}>닫기</button>
+        )}
+        {since !== null && state.phase !== "cancelling" && phase !== "elsewhere" && (
           <button type="button" className="secondary ui1-match-cancel" onClick={match.cancel}><X size={15} aria-hidden="true" /> 매칭 취소</button>
         )}
         {state.phase === "waiting" && offer && (
-          <button type="button" className="secondary" onClick={onAi}>기다리는 동안 오프라인 AI와 대전하기</button>
+          <button type="button" className="secondary" onClick={onAi}>기다리는 동안 오프라인 AI와 대전하기 (매칭은 계속돼요)</button>
         )}
         {state.phase === "error" && state.code === "NETWORK" && (
           <button type="button" className="secondary" onClick={match.reconnect}>매칭 다시 확인</button>

@@ -305,3 +305,20 @@ test.describe("online (local Worker): A3 results for 3+ players and spectators",
     }
   });
 });
+
+test("다른 트랙 기능 진입점은 경로와 서버 플래그가 모두 있을 때만 보인다 (이 빌드: 경로 없음 → 플래그가 켜져도 숨김)", async ({ page }, info) => {
+  test.skip(info.project.name === "mobile", "한 번만");
+  const fake = "http://127.0.0.1:9";
+  await page.route(`${fake}/api/features`, (route) => route.fulfill({ headers: { "access-control-allow-origin": "*" }, json: { quickMatch: true, publicSpectate: true, signIn: true, daily: true, retention: true, mailbox: true, feedback: true, notices: false } }));
+  await page.route(`${fake}/api/notices`, (route) => route.fulfill({ headers: { "access-control-allow-origin": "*" }, json: { notices: [{ id: "n1", title: "중요 공지", important: true }] } }));
+  const featuresSeen = page.waitForResponse(`${fake}/api/features`);
+  await page.goto(`?online-server=${encodeURIComponent(fake)}#home`);
+  expect((await (await featuresSeen).json()).daily).toBe(true); // the flags really reached the page
+  await expect(page.locator(".lobby .mode-card")).toHaveCount(2);
+  await expect(page.locator(".lobby-today")).toHaveCount(0);
+  await expect(page.locator(".ui1-notice")).toHaveCount(0); // notices flag off
+  await page.getByRole("button", { name: "메뉴", exact: true }).click();
+  const menu = page.getByRole("dialog", { name: "메뉴" });
+  for (const name of ["오늘의 요트", "출석·보상", "알림함", "서비스 제안"]) await expect(menu.getByRole("button", { name })).toHaveCount(0);
+  await expect(menu.getByRole("button", { name: "온라인 대전" })).toBeVisible();
+});

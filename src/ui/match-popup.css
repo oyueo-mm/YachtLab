@@ -57,3 +57,4 @@
 @media (prefers-reduced-motion: reduce) {
   .ui1-match-icon.live, .ui1-match-dot.live { animation: none; }
 }
+.ui1-match-note { margin: 0; color: var(--muted, #77706d); font-size: 12.5px; line-height: 1.45; }

@@ -14,6 +14,8 @@ import "./navigation.css";
 import "./header-ui1.css";
 import { useInbox } from "./Friends";
 import { FriendsButton, FriendsPanel } from "./FriendsPanel";
+import { asRoute, useServerFeatures, visibleEntries, type Entry } from "./entries";
+import { Bell, CalendarCheck, Lightbulb, Sun } from "lucide-react";
 
 export function FullscreenToggle() {
   const supported = typeof document !== "undefined" && !!document.fullscreenEnabled && !!document.documentElement.requestFullscreen;
@@ -161,7 +163,9 @@ const groups = [
 
 type HeaderProfile = ReturnType<typeof useProfileEconomy>;
 
-function Sidebar({ route, navigate, profile }: { route: Route; navigate: (r: Route) => void; profile: HeaderProfile }) {
+function Sidebar({ route, navigate, profile, server }: { route: Route; navigate: (r: Route) => void; profile: HeaderProfile; server: string | null }) {
+  // Other tracks' screens appear only with their route merged AND their server flag on (shell/entries.ts).
+  const extra = visibleEntries(useServerFeatures(server), profile.signedIn);
   const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const [phase, setPhase] = useState<"closed" | "open" | "closing">("closed");
@@ -232,10 +236,23 @@ function Sidebar({ route, navigate, profile }: { route: Route; navigate: (r: Rou
             {item === "friends" && alerts > 0 && <b className="menu-badge" aria-label={`새 알림 ${alerts}개`}>{alerts}</b>}
             {item === "quests" && (quests?.dailyAll || quests?.weeklyAll) && <b className="menu-badge" aria-label="퀘스트 묶음 완료">✓</b>}
           </button>)}
+          {extra.filter((e) => e.group === label).map((e) => <EntryButton key={e.id} entry={e} current={current} close={close} />)}
         </section>)}
+        {extra.some((e) => e.group === "소식") && <section className="sidebar-group" aria-label="소식">
+          <h2>소식</h2>
+          {extra.filter((e) => e.group === "소식").map((e) => <EntryButton key={e.id} entry={e} current={current} close={close} />)}
+        </section>}
       </nav>
     </dialog>
   </>;
+}
+
+const ENTRY_ICON = { daily: Sun, rewards: CalendarCheck, mailbox: Bell, suggestions: Lightbulb } as const;
+function EntryButton({ entry, current, close }: { entry: Entry; current: string; close: (r?: Route) => void }) {
+  const Icon = ENTRY_ICON[entry.id];
+  return <button type="button" aria-current={current === entry.id ? "page" : undefined} onClick={() => close(asRoute(entry.id))}>
+    <Icon size={18} aria-hidden="true" />{entry.title}
+  </button>;
 }
 
 function ProfileMenu({ route, server, profile, navigate }: { route: Route; server: string | null; profile: HeaderProfile; navigate: (route: Route) => void }) {
@@ -299,7 +316,7 @@ export function TopBar({ route, server, profile, navigate, openSettings }: {
   return (
     <header className={`shell-top shell-top-${info.shell}`} inert={route === "tutorial"}>
       <div className="shell-top-left">
-        <Sidebar route={route} navigate={navigate} profile={profile} />
+        <Sidebar route={route} navigate={navigate} profile={profile} server={server} />
         <button type="button" className="wordmark" aria-label="홈으로" onClick={() => route !== "home" && navigate("home")}>
           <img src={`${import.meta.env.BASE_URL}icons/online-yacht.svg`} width="32" height="32" alt="" />
           <span>Online <b>Yacht</b></span>

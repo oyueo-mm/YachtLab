@@ -754,10 +754,12 @@ export default function OnlineGame({ server, code, quickIntro = false, onEntered
               // Rewards stay with MatchRewardSummary (server receipt only); nothing is shown before it settles.
               <MatchResultPanel key={view.matchId} className="online-result" waiting={!!celebration || !!yachtFx} visible={screenVisible}
                 invitation={!!rematch?.requests.some((id) => id !== me?.playerId)}
-                input={resultFromOnline(view, [...reviewEvents.current.values()], me?.playerId ?? null)}
+                // No seat (SOC-1 #143 lets room members watch a match): the observer view — no own result, rewards or actions.
+                input={resultFromOnline(view, [...reviewEvents.current.values()], me?.playerId ?? null, { spectator: !me })}
+                sound={me ? "accent" : "off"}
                 effect={winnerFxLook && winnerFxItem ? <FxBurst fx={winnerFxLook} level={winnerFxItem.fxLv} seed={view.matchId} /> : undefined}
                 effectSound={!!winnerFxItem && winnerFxItem.fxLv >= 3}
-                actions={{
+                actions={!me ? { onHome: leaveFinishedMatch, homeLabel: "나가기" } : {
                   rematchSlot: <RematchControls rematch={rematch} me={me?.playerId ?? ""} opponentName={opponent?.name ?? "상대"} onOp={(op) => conn.current?.rematch(op)} />,
                   reviewSlot: reviewButton ?? <ReviewUnavailable />,
                   shareSlot: me && opponent ? <ShareResultButton facts={{
@@ -775,7 +777,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onEntered
                     이 방 전적 {series.wins[me.playerId] ?? 0}승 {series.wins[opponent.playerId] ?? 0}패{series.draws ? ` ${series.draws}무` : ""}
                   </p>
                 )}
-                <MatchRewardSummary key={view.matchId} server={server} matchId={view.matchId} />
+                {me && <MatchRewardSummary key={view.matchId} server={server} matchId={view.matchId} />}
               </MatchResultPanel>
             )}
           </section>

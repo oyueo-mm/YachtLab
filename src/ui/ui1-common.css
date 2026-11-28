@@ -87,3 +87,12 @@ dialog.modal:not(.ui-sheet), dialog.match-result-dialog, dialog.a3-result-dialog
 .a3-result-dialog[data-kind="observer"] .a3-result-head h2 { font-size: clamp(22px, 5vw, 28px); }
 .a3-result-dialog[data-kind="void"] .a3-result { background: #fafafa; }
 .a3-review-unavailable[disabled] { opacity: 0.6; cursor: not-allowed; }
+
+/* ---- entries for other tracks (UI-1 §11) ---- */
+.lobby-today { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.lobby-today-link { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); font-size: 14px; font-weight: 600; }
+.lobby-today-link:hover { background: var(--soft); }
+.ui1-notice { display: flex; align-items: center; gap: 10px; max-width: 1240px; margin: 0 auto 12px; padding: 6px 6px 6px 14px; border: 1px solid #f0d9a8; border-radius: 12px; background: #fffaf0; font-size: 14px; }
+.ui1-notice strong { flex: none; color: #8a5a00; }
+.ui1-notice-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; color: var(--ink); }
+.ui1-notice .icon-button { flex: none; width: 36px; height: 36px; }

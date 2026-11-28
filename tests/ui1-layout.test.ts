@@ -55,3 +55,26 @@ describe("UI-1 floating popup position", () => {
     expect(p.y + box.height).toBeLessThanOrEqual(568);
   });
 });
+
+import { ENTRIES, visibleEntries } from "../src/shell/entries";
+describe("UI-1 entries for other tracks (flag-gated)", () => {
+  const all = () => true;
+  it("hides everything without features, with flags off, or with an old Worker", () => {
+    expect(visibleEntries(null, true, all)).toEqual([]);
+    expect(visibleEntries({}, true, all)).toEqual([]);
+    expect(visibleEntries({ daily: false, retention: false, mailbox: false, feedback: false }, true, all)).toEqual([]);
+    expect(visibleEntries({ daily: "on" as unknown as boolean }, true, all)).toEqual([]); // only literal true counts
+  });
+  it("needs the route to exist in this build (the owning PR merged)", () => {
+    expect(visibleEntries({ daily: true }, true, () => false)).toEqual([]);
+    expect(visibleEntries({ daily: true }, false, (id) => id === "daily").map((e) => e.id)).toEqual(["daily"]);
+  });
+  it("members-only entries need sign-in", () => {
+    const flags = { daily: true, retention: true, mailbox: true, feedback: true };
+    expect(visibleEntries(flags, false, all).map((e) => e.id)).toEqual(["daily"]);
+    expect(visibleEntries(flags, true, all).map((e) => e.id)).toEqual(ENTRIES.map((e) => e.id));
+  });
+  it("only daily features get a home-page link (the game start stays first)", () => {
+    expect(ENTRIES.filter((e) => e.home).map((e) => e.id)).toEqual(["daily", "rewards"]);
+  });
+});
