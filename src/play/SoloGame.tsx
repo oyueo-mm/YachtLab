@@ -180,12 +180,12 @@ export default function SoloGame({ name, server, onLeave, onProgress, onRecords 
             </div>
             <BonusChip card={card} />
           <div className="game-tools solo-tools">
-            <button className="text-button" onClick={() => setViewReplay(record.current!)}>
-              <History size={15} /> 기보 보기
+            <button className="text-button" aria-label="기보 보기" title="기보 보기" onClick={() => setViewReplay(record.current!)}>
+              <History size={15} /> <span className="tool-label">기보 보기</span>
             </button>
             {!state.done && (
-              <button className="text-button" onClick={() => guarded({ title: "처음부터 다시 할까요?", message: "진행 중인 경기는 기록되지 않고 새 경기를 시작해요.", confirmLabel: "다시 시작", run: restart })}>
-                <RotateCcw size={15} /> 다시 시작
+              <button className="text-button" aria-label="다시 시작" title="다시 시작" onClick={() => guarded({ title: "처음부터 다시 할까요?", message: "진행 중인 경기는 기록되지 않고 새 경기를 시작해요.", confirmLabel: "다시 시작", run: restart })}>
+                <RotateCcw size={15} /> <span className="tool-label">다시 시작</span>
               </button>
             )}
           </div>

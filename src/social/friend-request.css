@@ -1,0 +1,10 @@
+.friend-req { display: flex; flex-direction: column; gap: 4px; margin: 8px 0 0; }
+.friend-req.note, .friend-req.state { display: flex; flex-direction: row; align-items: center; flex-wrap: wrap; gap: 5px; margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.friend-req.state.friend { color: #2b8a3e; font-weight: 650; }
+.friend-req.state.pending { color: #8a6d00; font-weight: 650; }
+.friend-req.state.incoming a { color: var(--red); font-weight: 650; }
+.friend-req.state.blocked { color: var(--muted); }
+.friend-req-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 16px; touch-action: manipulation; }
+.friend-req-error { margin: 0; color: #c92a2a; font-size: 12.5px; }
+.friend-req.compact .friend-req-button { min-height: 40px; padding: 0 12px; font-size: 13px; }
+.friend-req.compact { margin: 0; }

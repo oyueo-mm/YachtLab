@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Award, Dices, Flame, LayoutGrid, Medal, Pin, Sparkles, Trophy } from "lucide-react";
+import { Award, Dices, Flame, LayoutGrid, Medal, Pin, Sparkles, Trophy, X } from "lucide-react";
 import { ITEMS, itemById, type ItemCategory, type PublicLook } from "../economy/live/catalog";
 import { achievementById } from "../economy/live/config";
 import { SEASONS } from "../economy/live/seasons";
@@ -62,9 +62,9 @@ export function RecentMatches({ records }: { records: MatchRecord[] }) {
         <ol className="profile-matches">
           {recent.map((r) => (
             <li key={r.recordId} className={"result-" + r.outcome}>
-              <strong className="profile-outcome">{outcomeText[r.outcome]}</strong>
+              <strong className="profile-outcome" aria-label={outcomeText[r.outcome] === "승" ? "승리" : outcomeText[r.outcome] === "패" ? "패배" : "무승부"}>{outcomeText[r.outcome]}</strong>
               <span className="profile-match-main">
-                <span>{r.score} : {r.opponent.score} <small>vs {r.opponent.name}</small></span>
+                <span className="profile-score-line"><b>{r.score}</b><i>:</i><b>{r.opponent.score}</b> <small>vs {r.opponent.name}</small></span>
                 <small>{r.mode === "online" ? (r.field ? `${r.field.players}인 온라인 · ${r.field.rank}위` : "온라인") : `AI${r.aiLevel ? " · " + r.aiLevel : ""}`} · {date(r.endedAt)} · {r.verification === "server-verified" ? "서버 기록" : "기기 기록"}</small>
               </span>
             </li>
@@ -94,22 +94,35 @@ const readPins = (): string[] => {
     return [];
   }
 };
-/** 대표 업적 (up to 3, chosen on this device for now; shown in the profile header). */
-export function usePinnedAchievements(earned: string[]) {
-  const [pins, setPins] = useState(readPins);
-  const valid = pins.filter((id) => earned.includes(id));
-  const toggle = (id: string) => {
-    const next = valid.includes(id) ? valid.filter((x) => x !== id) : [...valid, id].slice(-3);
-    setPins(next);
+/**
+ * 대표 업적 (up to 3). Stored on this device for now. `PinStore` is the seam for the server-side version
+ * (contract candidate: docs/context/A4-CONTRACT-CANDIDATES-2026-11-27.md): a server store only has to
+ * implement `load`/`save`; the editor below does not change.
+ */
+export type PinStore = { load(): string[]; save(ids: string[]): void };
+export const localPinStore: PinStore = {
+  load: readPins,
+  save: (ids) => {
     try {
-      localStorage.setItem(PIN_KEY, JSON.stringify(next));
+      localStorage.setItem(PIN_KEY, JSON.stringify(ids));
     } catch {
       /* ignore */
     }
+  },
+};
+export const MAX_PINS = 3;
+export function usePinnedAchievements(earned: string[], store: PinStore = localPinStore) {
+  const [pins, setPins] = useState(store.load);
+  const valid = pins.filter((id) => earned.includes(id));
+  const toggle = (id: string) => {
+    const next = valid.includes(id) ? valid.filter((x) => x !== id) : [...valid, id].slice(-MAX_PINS);
+    setPins(next);
+    store.save(next);
   };
   return { pins: valid, toggle };
 }
 
+/** Three fixed slots + the achievements to choose from; "미리보기" shows what the header will say. */
 export function Achievements({ earned, pins, toggle }: { earned: string[]; pins: string[]; toggle: (id: string) => void }) {
   const list = earned.map((id) => achievementById(id)).filter((a): a is NonNullable<typeof a> => !!a);
   return (
@@ -117,7 +130,20 @@ export function Achievements({ earned, pins, toggle }: { earned: string[]; pins:
       <h2><Award size={17} aria-hidden="true" /> 업적 <small>{list.length}개 달성</small></h2>
       {list.length === 0 ? <p className="profile-empty">달성한 업적이 아직 없어요. 로그인 후 온라인 경기에서 달성돼요.</p> : (
         <>
-          <p className="profile-fine">핀을 눌러 대표 업적을 최대 3개 고르면 프로필 위쪽에 보여요(이 기기 설정).</p>
+          <h3>대표 업적 <small className="profile-fine">{pins.length}/{MAX_PINS} · 이 기기에 저장돼요</small></h3>
+          <ol className="pin-slots" aria-label="대표 업적 슬롯">
+            {Array.from({ length: MAX_PINS }, (_, i) => {
+              const a = pins[i] ? achievementById(pins[i]) : null;
+              return (
+                <li key={i} className={a ? "filled" : "empty"}>
+                  {a ? (
+                    <button type="button" onClick={() => toggle(a.id)} aria-label={`${a.label} 대표 해제`}><Pin size={13} aria-hidden="true" /> <span>{a.label}</span><X size={13} aria-hidden="true" /></button>
+                  ) : <span>비어 있음</span>}
+                </li>
+              );
+            })}
+          </ol>
+          <h3>달성한 업적에서 고르기</h3>
           <ul className="profile-badges">
             {list.map((a) => (
               <li key={a.id}>
@@ -127,6 +153,7 @@ export function Achievements({ earned, pins, toggle }: { earned: string[]; pins:
               </li>
             ))}
           </ul>
+          <p className="profile-fine">고른 업적은 이 화면의 프로필 위쪽에 보여요. 다른 사람에게 보이게 하는 기능은 서버 저장이 필요해 준비 중이에요.</p>
         </>
       )}
     </section>
@@ -142,16 +169,23 @@ export function EquippedLooks({ look, signedIn }: { look: PublicLook; signedIn: 
   const slots = (Object.keys(SLOT_LABEL) as ItemCategory[]).map((slot) => {
     const id = (look as Record<string, unknown>)[slot] as string;
     const item = itemById(id);
-    return { slot, name: item?.name ?? "기본", lv: lvOf(slot) ?? 1, max: item?.maxLevel ?? 1, basic: !item || item.acquisition === "default" };
+    return { slot, name: item?.name ?? "기본", lv: lvOf(slot) ?? 1, max: item?.maxLevel ?? 1, basic: !item || item.acquisition === "default", tier: item?.tier };
   });
   return (
     <section className="profile-card profile-equipped" aria-label="장착 중인 꾸미기">
       <h2><Sparkles size={17} aria-hidden="true" /> 장착 중</h2>
       <dl className="profile-slots">
         {slots.map((s) => (
-          <div key={s.slot} className={s.basic ? "basic" : ""}>
+          <div key={s.slot} className={(s.basic ? "basic " : "") + (s.tier ? "tier-" + s.tier : "")}>
             <dt>{SLOT_LABEL[s.slot]}</dt>
-            <dd>{s.name}{s.max > 1 && <small> Lv.{s.lv}</small>}</dd>
+            <dd>
+              <span className="slot-name">{s.name}</span>
+              {s.max > 1 && (
+                <span className="lv-pips" role="img" aria-label={`강화 ${s.lv}단계 / 최대 ${s.max}단계`}>
+                  {Array.from({ length: s.max }, (_, i) => <i key={i} className={i < s.lv ? "on" : ""} />)}<small>Lv.{s.lv}</small>
+                </span>
+              )}
+            </dd>
           </div>
         ))}
         <div>
@@ -172,11 +206,18 @@ export function CollectionProgress({ snapshot }: { snapshot: Snapshot | null }) 
   });
   const seasonal = ITEMS.filter((i) => i.season && owned.has(i.id));
   const total = rows.reduce((a, r) => a + r.total, 0), have = rows.reduce((a, r) => a + r.have, 0);
+  const upgraded = (snapshot?.inventory ?? []).filter((i) => i.level > 1).length;
+  const maxed = (snapshot?.inventory ?? []).filter((i) => { const it = itemById(i.id); return !!it && it.maxLevel > 1 && i.level >= it.maxLevel; }).length;
   return (
     <section className="profile-card profile-collection" aria-label="수집 현황">
       <h2><LayoutGrid size={17} aria-hidden="true" /> 수집 현황 <small>{snapshot ? `${have} / ${total}` : "로그인 필요"}</small></h2>
       {!snapshot ? <p className="profile-empty">로그인하면 보유한 꾸미기 아이템과 수집률이 보여요.</p> : (
         <>
+          <p className="profile-own-summary" aria-label="보유 요약">
+            <span><b>{snapshot.inventory.length}</b>개 보유</span>
+            <span><b>{upgraded}</b>개 강화</span>
+            <span><b>{maxed}</b>개 최대 강화</span>
+          </p>
           <ul className="profile-collect">
             {rows.map((r) => (
               <li key={r.cat}>

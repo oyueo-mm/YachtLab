@@ -13,6 +13,8 @@
 
 > **1인 플레이·프로필·컬렉션·시너지·한정판·상점 안내·오디오 믹스(2026-11-27)** → [COLLECTIONS-2026-11-27](./COLLECTIONS-2026-11-27.md), [STREAK-REVIEW-2026-11-27](./STREAK-REVIEW-2026-11-27.md), [오디오 믹스](../audio/MIX.md), D-074~D-078. 코드: 1인 플레이 `src/play/SoloGame.tsx`·`src/solo/`(기록·동기화), 오프라인 장착 `src/play/own-look.ts`, 프로필 `src/shell/ProfileSections.tsx`, 컬렉션 `src/economy/live/collections.ts`, 시너지 `src/play/board-synergy.ts`, 2.5D 효과 `src/dice3d/Dice25Fx.tsx`·`src/play/tray-attach.ts`, 안내 `src/ui/Coach.tsx`, 믹스 `src/sound.ts`(버스·`volumeCurve`)·`src/audio/bgm-render.ts`(`normalize`). **워커 배포 전**에는 1인 기록 계정 보관과 신규 11종 판매가 꺼져 있다(의도된 안전 동작).
 >
+> **모바일 UX·프로필·친구 추가·가이드(A4, 2026-11-27)** → [A4-MOBILE-PROFILE-FRIENDS](./A4-MOBILE-PROFILE-FRIENDS-2026-11-27.md), [서버 계약 후보](./A4-CONTRACT-CANDIDATES-2026-11-27.md), D-091~D-093. 코드: `src/social/`(친구 요청 공용 버튼 — A3가 재사용), `src/mobile-a4.css`, `src/play/multi-compact.css`, `src/ui/feature-guides.ts`. Worker·경제·카탈로그 변경 없음.
+>
 > **꾸미기·채팅 연출(A2, 2026-11-27)** → [A2-COSMETICS-CHAT](./A2-COSMETICS-CHAT-2026-11-27.md), [C5 카탈로그 제안](./A2-C5-CATALOG-PROPOSAL-2026-11-27.md), D-085~D-090. 코드: `src/cosmetics-a2.css`, 공용 렌더러 `src/play/ChatMessage.tsx`, 미리보기 `#cosmetics-lab`(`src/lab/CosmeticsLab.tsx`), 채팅 fixture `src/chat/`. 카탈로그 파일·워커·경제는 건드리지 않았다(C5 담당).
 
 > **경기 종료 화면·0점 기록 연출·재대결 전적 조사(A3, 2026-11-27)** → [A3-MATCH-RESULT-2026-11-27](./A3-MATCH-RESULT-2026-11-27.md), D-A3-1·D-A3-2. 코드: `src/match-result/`(게임 화면 미연결), 미리보기 `npx vite` 후 `/YachtLab/match-result-preview.html`, 테스트 `tests/match-result-a3.test.ts`·`npx playwright test -c playwright.preview.config.ts`. 재대결 전적 Hotfix 후보 H-A3-1~3은 §7.
