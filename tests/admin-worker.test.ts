@@ -127,9 +127,17 @@ describe("admin console and engagement in the Workers runtime", () => {
     expect(audit.body.entries.some((e: any) => e.actor === "token:ADMIN_TOKEN" && e.action === "legacy.metrics")).toBe(true);
     expect(audit.body.entries.map((e: any) => e.action)).toEqual(expect.arrayContaining(["action.execute", "member.view", "appeal.answer", "denied"]));
 
+    // SEC-1 2차 INT-6: a suspension still in force follows the re-join (D-113)
+    const s2 = await call(aa, "/api/admin/sanctions", { userId: ids.member, kind: "suspend", reason: "재가입 승계 시험", days: 1 });
+    await call(ba, `/api/admin/actions/${s2.body.actionId}/approve`, { confirm: s2.body.actionId });
+    expect((await call(m, "/api/me/nickname", { nickname: "또바뀐이름" })).body.error.code).toBe("SUSPENDED");
+
     // account deletion: leaves the index; the post stays anonymous
     expect((await call(m, "/api/me/delete", { confirm: "DELETE" })).status).toBe(200);
     expect((await call(aa, `/api/admin/members?userId=${ids.member}`)).body.total).toBe(0);
     expect((await call(null, `/api/suggestions/${post.body.id}`)).body.suggestion.author).toBe("탈퇴한 사용자");
+    const again = await fakeLogin(worker.url, idp, "member", ORIGIN, "198.51.100.7");
+    expect((await call(again, "/api/me/nickname", { nickname: "새이름" })).body.error.code).toBe("SUSPENDED");
+    expect((await call(again, "/api/me/sanctions")).body.standing.suspended).toBe(true);
   }, 120_000);
 });

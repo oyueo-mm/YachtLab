@@ -237,3 +237,13 @@ describe("SEC-1 2차 ADM-2 · 관리자 작업과 감사 기록의 장애 일관
     expect(w.admin.action(id)!.status).toBe("pending");
   });
 });
+
+describe("SEC-1 2차 INT-6 · 재가입 제재 승계(장애 시 닫힘)", () => {
+  it("진행 중 제재 조회가 실패하면 계정·로그인 코드를 만들지 않는다(빈 목록으로 대체하지 않음), 계정 생성과 제재 적용은 한 트랜잭션", () => {
+    const src = readFileSync("worker/src/index.ts", "utf8");
+    const body = src.slice(src.indexOf("async ensureAndCode("), src.indexOf("async exchange("));
+    expect(body).not.toMatch(/op\("signup"[^;]*\.catch\(/);
+    expect(body.indexOf('op("signup"')).toBeLessThan(body.indexOf("ensureUser(userId, provider"));
+    expect(body).toMatch(/transactionSync\(\(\) => \{\s*this\.store\.ensureUser\(userId, provider, Date\.now\(\)\);\s*for \(const c of carried\) this\.member\.applySanction/);
+  });
+});

@@ -946,11 +946,16 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   }
   async ensureAndCode(userId: string, provider: string, clientStateHash: string) {
     const isNew = !this.store.exists();
-    this.store.ensureUser(userId, provider, Date.now());
     if (isNew) {
-      const carried = await this.admin().op("signup", userId, Date.now()).catch(() => []) as { id: string; kind: "restrict" | "suspend"; reason: string; until: number | null }[];
-      for (const c of carried) this.member.applySanction(c, Date.now());
-    }
+      // SEC-1 2차 INT-6: sanctions still in force follow a re-join (D-113). Read them BEFORE the account exists
+      // and fail closed: if the admin index cannot answer, no account and no login code are created (the user
+      // retries), so a re-join during an outage never starts without its suspension.
+      const carried = this.env.ADMIN ? ((await this.admin().op("signup", userId, Date.now())) as { id: string; kind: "restrict" | "suspend"; reason: string; until: number | null }[]) : [];
+      this.ctx.storage.transactionSync(() => {
+        this.store.ensureUser(userId, provider, Date.now());
+        for (const c of carried) this.member.applySanction(c, Date.now());
+      });
+    } else this.store.ensureUser(userId, provider, Date.now());
     return this.store.createLoginCode(clientStateHash, Date.now());
   }
   async exchange(code: string, clientState: string) {

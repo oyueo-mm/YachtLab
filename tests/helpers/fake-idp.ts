@@ -58,11 +58,12 @@ export async function startFakeIdp(clientId = "test-client"): Promise<FakeIdp> {
 }
 
 /** Sign in through the fake provider with the same server flow as Google; returns the session. */
-export async function fakeLogin(workerUrl: string, idp: FakeIdp, sub: string, origin: string): Promise<string> {
+export async function fakeLogin(workerUrl: string, idp: FakeIdp, sub: string, origin: string, clientIp?: string): Promise<string> {
   idp.next(sub);
   const cs = "client-state-" + sub.padEnd(30, "x");
   const hash = Buffer.from(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(cs))).toString("base64url");
-  const start = await fetch(workerUrl + "/auth/google/start?cs=" + hash, { redirect: "manual" });
+  // `clientIp`: another client for the per-client sign-in rate limit (local runtime only)
+  const start = await fetch(workerUrl + "/auth/google/start?cs=" + hash, { redirect: "manual", headers: clientIp ? { "CF-Connecting-IP": clientIp } : {} });
   const cookie = start.headers.get("set-cookie")!.split(";")[0];
   const auth = await fetch(start.headers.get("location")!, { redirect: "manual" });
   const back = await fetch(auth.headers.get("location")!, { redirect: "manual", headers: { cookie } });
