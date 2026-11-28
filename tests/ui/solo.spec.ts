@@ -39,7 +39,7 @@ test("1인 플레이 12라운드를 끝내면 첫 기록이 저장되고 바로 
   expect(saved).toHaveLength(1);
   expect(saved[0]).toMatchObject({ verification: "client-reported", source: "device" });
   expect(Object.keys(saved[0].card)).toHaveLength(12);
-  await expect(result.locator(".solo-final")).toHaveText(saved[0].score + "점");
+  await expect(result.locator(".a3-score .sr-only")).toHaveText(saved[0].score + "점");
   await expect(result.getByRole("button", { name: /리뷰/ })).toBeVisible();
   await result.getByRole("button", { name: "바로 다시 도전" }).click();
   await expect(result).toBeHidden();

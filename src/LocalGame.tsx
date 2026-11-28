@@ -1,10 +1,15 @@
-import { MatchResult } from "./ui/MatchResult";
+import { MatchResultPanel } from "./match-result/MatchResultPanel";
+import { ZeroScoreToast } from "./match-result/ZeroScoreToast";
+import { useZeroScoreNotice } from "./match-result/useZeroScore";
+import { winEffect } from "./match-result/win-effect";
+import { cardsHistoryFromMulti, stepsFromCards } from "./match-result/adapters";
+import type { ResultInput } from "./match-result/model";
 import { BonusMoments } from "./bonus-moment";
 import ReviewLauncher from "./review/ReviewLauncher";
 import { fromMultiReplay } from "./review/sources";
 import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./play/Tutorial";
 import { nearYacht, ScoreTotal } from "./ui/GameMoments";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dices, History, RotateCcw, SlidersHorizontal } from "lucide-react";
 import { DiceArea } from "./DiceArea";
 import "./play/multi-compact.css";
@@ -129,6 +134,21 @@ export default function LocalGame({
   const gesture = useThrowGesture(canAct && state.rolls < 3, () => act({ type: "roll" }));
   const yachtReady = useYachtReady(state.dice, state.rolls, !state.done && state.cards[state.player]?.yacht === undefined);
   const celebration = useGameSounds(state.cards, state.done, state.done ? "win" : null);
+  // 한 기기에서 여럿이 하므로 0점 알림에 이름을 붙인다.
+  const [zeroNotice, clearZero] = useZeroScoreNotice(state.cards, (seat) => ({ who: count > 1 ? names[seat] : undefined }), record.current!.metadata.id);
+  const resultInput = useMemo<ResultInput | null>(() => {
+    if (!state.done || !record.current) return null;
+    const ids = names.map((_, i) => "s" + i);
+    return {
+      mode: "local",
+      seats: names.map((name, i) => ({ id: ids[i], name, kind: "human" as const, card: { ...state.cards[i] } })),
+      winners: state.winners.map((i) => ids[i]),
+      steps: stepsFromCards(cardsHistoryFromMulti(record.current), ids),
+      startedAt: Date.parse(record.current.metadata.createdAt) || null,
+      endedAt: Date.now(),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.done, record.current?.metadata.id]);
   // LocalGame has no keyboard score preview sheet; Enter records the category chosen with ↑/↓.
   const keys = useGameShortcuts({
     active: canAct && !state.done, dice: state.dice, rolls: state.rolls, canRoll: canAct && state.rolls < 3, roll: () => act({ type: "roll" }),
@@ -175,6 +195,7 @@ export default function LocalGame({
           </div>
           <section className={"game-board throw-tray " + (state.rolls === 0 ? "multi-dice-ready" : "") + (canAct && nearYacht(state.dice, state.rolls, state.cards[state.player]) ? " yacht-near" : "") + theme.className} style={theme.style} ref={boardRef} aria-label="사람 vs 사람 게임 보드" {...gesture}>
             <Celebrate value={celebration} />
+            <ZeroScoreToast notice={zeroNotice} onDone={clearZero} />
             <BonusMoments scope={String(state.seed)} players={state.cards.map((c, i) => ({ id: "s" + i, name: names[i], card: c, mine: false, look }))} />
             <BoardFx itemId={look.board} level={look.boardLv ?? 1} host={boardRef} />
             <SynergyFx dice={look.dice} board={look.board} level={Math.min(look.diceLv ?? 1, look.boardLv ?? 1)} host={boardRef} />
@@ -199,17 +220,16 @@ export default function LocalGame({
               <QuickPicks values={state.dice.map((d) => d.value)} card={state.cards[state.player]} rolls={state.rolls} canScore={canAct && !state.done} onScore={recordScore} />
               {keys.label && <p className="kbd-pick" role="status">{keys.label}</p>}
             </div>
-            {state.done && (
-              <MatchResult waiting={!!celebration} title={state.winners.length === 1 ? names[state.winners[0]] + " 승리!" : count === 2 ? "무승부" : "공동 우승"}
-                actions={<>
-                  {count === 2 && <ReviewLauncher source={() => fromMultiReplay(record.current!)} />}
-                  <button className="primary" onClick={restart}>한 번 더 플레이</button>
-                  <button className="secondary" onClick={onLeave}>나가기</button>
-                </>}>
-                <ol className="match-result-standings">
-                  {standings.map(({ player, points, rank }) => <li key={player}><strong>{rank}위</strong><span>{names[player]}</span><strong>{points}점</strong></li>)}
-                </ol>
-              </MatchResult>
+            {state.done && resultInput && (
+              <MatchResultPanel key={record.current!.metadata.id} waiting={!!celebration} input={resultInput}
+                {...(state.winners.length === 1 ? winEffect(look, record.current!.metadata.id) : null)}
+                actions={{
+                  onRematch: restart,
+                  rematchLabel: "한 번 더 플레이",
+                  reviewSlot: count === 2 ? <ReviewLauncher source={() => fromMultiReplay(record.current!)} /> : undefined,
+                  onHome: onLeave,
+                  homeLabel: "나가기",
+                }} />
             )}
           </section>
           <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : state.rolls} canScore={canAct} yacht={yachtReady} />
