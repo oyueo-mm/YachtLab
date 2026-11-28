@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { publicProfile, type PublicProfile } from "../identity/account-client";
 import { FriendRequestButton } from "./FriendRequestButton";
+import { achievementById } from "../economy/live/config";
 
 /** The opponent's public profile during/after an online match, with the shared friend-request button. */
-export function OpponentProfile({ server, userId, onClose }: { server: string; userId: string; onClose: () => void }) {
+export function OpponentProfile({ server, userId, onClose, room }: { server: string; userId: string; onClose: () => void; room?: string | null }) {
   const [p, setP] = useState<PublicProfile | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -26,7 +27,8 @@ export function OpponentProfile({ server, userId, onClose }: { server: string; u
               {p.online.games}경기 · {p.online.wins}승 {p.online.losses}패{p.online.draws ? ` ${p.online.draws}무` : ""}
               {p.online.best !== null ? ` · 최고 ${p.online.best}점` : ""}
             </p>
-            <FriendRequestButton server={server} userId={userId} nickname={p.nickname} />
+            {p.pins && p.pins.length > 0 && <ul className="profile-pins" aria-label="대표 업적">{p.pins.map((id) => <li key={id}>{achievementById(id)?.label ?? id}</li>)}</ul>}
+            <FriendRequestButton server={server} userId={userId} nickname={p.nickname} room={room} />
           </>
         )}
         <button type="button" className="secondary" onClick={onClose}>

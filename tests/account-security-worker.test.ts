@@ -94,7 +94,8 @@ describe("탈퇴·재가입과 친구 관계 (SEC-03, wrangler dev)", () => {
     expect((await call(b, "/api/me/inbox")).body.invites).toHaveLength(1);
     await del(a);
     expect((await friends(b)).friends).toEqual([]);
-    expect((await call(b, "/api/me/inbox")).body).toEqual({ requests: 0, invites: [] });
+    // SOC-1: `sent` (B's own sent invites) is part of the inbox; nothing about the deleted account remains
+    expect((await call(b, "/api/me/inbox")).body).toEqual({ requests: 0, invites: [], sent: [] });
   });
 
   it("차단: 탈퇴하면 차단 목록에 '탈퇴한 사용자'로만 남고, 재가입해도 차단이 유지된다(차단 회피 불가)", async () => {

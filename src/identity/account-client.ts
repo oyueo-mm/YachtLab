@@ -15,7 +15,7 @@ const SESSION_KEY = "yachtlab.session.v1";
 const LOGIN_STATE_KEY = "yachtlab.login.state";
 
 export type Profile = { userId: string; provider: string; nickname: string | null; createdAt: number };
-export type PublicProfile = { userId: string; nickname: string; joinedAt: number; online: { games: number; wins: number; losses: number; draws: number; best: number | null; average: number | null } };
+export type PublicProfile = { userId: string; nickname: string; joinedAt: number; online: { games: number; wins: number; losses: number; draws: number; best: number | null; average: number | null }; /** SOC-1: showcase achievement ids the viewer may see (newer Worker only). */ pins?: string[] };
 
 const b64url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 async function sha256(text: string) {

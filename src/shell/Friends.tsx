@@ -1,9 +1,10 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { RecentOpponents } from "../social/RecentOpponents";
-import { Ban, Check, Copy, LoaderCircle, Mail, Search, UserMinus, UserPlus, UserRound, X } from "lucide-react";
+import { Ban, Check, Copy, Link2, LoaderCircle, Mail, Search, Swords, UserMinus, UserPlus, UserRound, X } from "lucide-react";
 import { session } from "../identity/account-client";
-import { acceptInvite, declineInvite, friendAction, friendProfile, friends, inbox, inviteFriends, searchFriends, type FriendData, type FriendProfile, type RoomInvite, type SearchResult } from "../identity/friends-client";
-import { saveSeat, savedName } from "../online/client";
+import { acceptInvite, cancelInvite, challengeFriend, declineInvite, friendAction, friendLink, friendProfile, friends, inbox, inviteFriends, linkedFriendCode, presenceGoodbye, searchFriends, setFriendSettings, type FriendData, type FriendProfile, type RoomInvite, type SearchResult, type SentInvite } from "../identity/friends-client";
+import { achievementById } from "../economy/live/config";
+import { saveSeat, savedName, savedSeat } from "../online/client";
 import { ConfirmDialog, type PendingAction } from "../ui/ConfirmDialog";
 import type { Route } from "../routes";
 
@@ -13,8 +14,8 @@ import type { Route } from "../routes";
  * (and when it becomes visible again). That check is also what tells friends "online" — there is no other
  * presence traffic. Guests and signed-out pages never poll.
  */
-type InboxState = { requests: number; invites: RoomInvite[] };
-let state: InboxState = { requests: 0, invites: [] };
+type InboxState = { requests: number; invites: RoomInvite[]; sent: SentInvite[] };
+let state: InboxState = { requests: 0, invites: [], sent: [] };
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 let timer: ReturnType<typeof setInterval> | undefined;
@@ -23,7 +24,7 @@ export async function refreshInbox(server: string) {
   if (!session()) return;
   try {
     const r = await inbox(server);
-    state = { requests: r.requests, invites: r.invites };
+    state = { requests: r.requests, invites: r.invites, sent: r.sent ?? [] };
     emit();
   } catch {
     /* offline: try again on the next tick */
@@ -37,6 +38,8 @@ export function startInbox(server: string | null) {
   timer = setInterval(tick, 60_000);
   document.addEventListener("visibilitychange", tick);
   window.addEventListener("yachtlab-session", tick);
+  // SOC-1: this tab says goodbye when it goes away (other tabs / devices keep the member online).
+  window.addEventListener("pagehide", () => presenceGoodbye(server));
 }
 export function stopInbox() {
   clearInterval(timer);
@@ -121,9 +124,19 @@ export function InviteToasts({ server, onJoined }: { server: string | null; onJo
 
 /* --------------------------------------------------------------- friends page --------------------------------------------------------------- */
 
-const STATUS = { online: "접속 중", playing: "경기 중", offline: "오프라인" } as const;
+const savedSeatFor = (code: string) => {
+  try {
+    return savedSeat(code);
+  } catch {
+    return null;
+  }
+};
 
-export function FriendsPage({ server, go }: { server: string | null; go: (r: Route) => void }) {
+const STATUS = { online: "접속 중", playing: "경기 중", offline: "오프라인", unknown: "상태 확인 불가" } as const;
+const STATUS_ORDER = ["playing", "online", "unknown", "offline"];
+const SENT_STATE = { pending: "응답 기다리는 중", accepted: "수락함", declined: "거절함", expired: "만료됨", cancelled: "취소함" } as const;
+
+export function FriendsPage({ server, go, onEnterRoom }: { server: string | null; go: (r: Route) => void; /** SOC-1: open a friend room (challenge sent). */ onEnterRoom?: (code: string) => void }) {
   const [data, setData] = useState<FriendData | null>(null);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
@@ -133,7 +146,14 @@ export function FriendsPage({ server, go }: { server: string | null; go: (r: Rou
   const [copied, setCopied] = useState(false);
   const [profile, setProfile] = useState<FriendProfile | null>(null);
   const [confirm, setConfirm] = useState<PendingAction>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const box = useInbox();
   const signed = !!session();
+  // A shared friend link (?friend=YL…): fill the search with the code once.
+  useEffect(() => {
+    const linked = linkedFriendCode();
+    if (linked) setQuery(linked);
+  }, []);
   const load = () => {
     if (!server || !session()) return;
     friends(server)
@@ -200,7 +220,34 @@ export function FriendsPage({ server, go }: { server: string | null; go: (r: Rou
       /* the code is shown on screen */
     }
   };
-  const sorted = data ? [...data.friends].sort((a, b) => ["playing", "online", "offline"].indexOf(a.status) - ["playing", "online", "offline"].indexOf(b.status) || a.nickname.localeCompare(b.nickname)) : [];
+  const copyLink = async () => {
+    if (!data) return;
+    const link = friendLink(data.me.code);
+    try {
+      if (navigator.share) await navigator.share({ title: "YachtLab 친구 추가", text: `요트다이스 친구 코드 ${data.me.code}`, url: link });
+      else await navigator.clipboard.writeText(link);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 1500);
+    } catch {
+      /* cancelled share sheet: nothing to do */
+    }
+  };
+  // SOC-1: challenge a friend directly (a 1:1 friend room + invite). A still-open challenge is reused.
+  const challenge = (code: string, nickname: string) =>
+    act(async () => {
+      const r = await challengeFriend(server, code);
+      if (r.status === "pending") {
+        const seat = savedSeatFor(r.invite.room);
+        if (seat && onEnterRoom) return onEnterRoom(r.invite.room);
+        setNote(`${nickname} 님에게 보낸 대전 신청이 아직 응답을 기다리고 있어요.`);
+        return;
+      }
+      saveSeat({ code: r.code, playerId: r.playerId, token: r.token, name: savedName(), at: Date.now() });
+      setNote(`${nickname} 님에게 대전을 신청했어요. 대기실에서 기다려 주세요.`);
+      onEnterRoom?.(r.code);
+    });
+  const sorted = data ? [...data.friends].sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) || a.nickname.localeCompare(b.nickname)) : [];
+  const sent = box.sent.filter((x) => x.kind === "challenge" || x.state !== "pending").slice(0, 8);
   return (
     <section className="econ-page friends-page" aria-labelledby="friends-title">
       <div className="econ-head">
@@ -210,6 +257,11 @@ export function FriendsPage({ server, go }: { server: string | null; go: (r: Rou
             <span>내 친구 코드</span>
             <strong>{data.me.code}</strong>
             <Copy size={14} /> {copied ? "복사됨" : ""}
+          </button>
+        )}
+        {data && (
+          <button type="button" className="text-button" onClick={() => void copyLink()} aria-label="친구 추가 링크 공유">
+            <Link2 size={14} /> {linkCopied ? "링크 복사됨" : "링크 공유"}
           </button>
         )}
       </div>
@@ -303,11 +355,16 @@ export function FriendsPage({ server, go }: { server: string | null; go: (r: Rou
             <ul className="friend-list" aria-label="친구 목록">
               {sorted.map((f) => (
                 <li key={f.code} data-status={f.status}>
-                  <span className={"online-dot" + (f.status !== "offline" ? " on" : "")} aria-hidden="true" />
+                  <span className={"online-dot" + (f.status === "online" || f.status === "playing" ? " on" : "")} aria-hidden="true" />
                   <span className="friend-name">
                     <strong>{f.nickname}</strong>
-                    <small>{STATUS[f.status]}</small>
+                    <small>{STATUS[f.status] ?? STATUS.unknown}</small>
                   </span>
+                  {onEnterRoom && data.presence === "v2" && (
+                    <button type="button" className="text-button" disabled={busy || f.status === "playing"} title={f.status === "playing" ? "경기가 끝나면 신청할 수 있어요" : undefined} onClick={() => void challenge(f.code, f.nickname)} aria-label={`${f.nickname}에게 대전 신청`}>
+                      <Swords size={15} /> 대전
+                    </button>
+                  )}
                   <button type="button" className="text-button" onClick={() => void openProfile(f.code)} aria-label={`${f.nickname} 프로필`}>
                     <UserRound size={15} /> 프로필
                   </button>
@@ -320,6 +377,26 @@ export function FriendsPage({ server, go }: { server: string | null; go: (r: Rou
                 </li>
               ))}
             </ul>
+          )}
+          {sent.length > 0 && (
+            <>
+              <h2 className="econ-sub">보낸 대전 신청·초대</h2>
+              <ul className="friend-list" aria-label="보낸 대전 신청">
+                {sent.map((x) => (
+                  <li key={x.id} data-state={x.state}>
+                    <span className="friend-name">
+                      <strong>{x.to.nickname}</strong>
+                      <small>{SENT_STATE[x.state]}</small>
+                    </span>
+                    {x.state === "pending" && (
+                      <button type="button" className="secondary" disabled={busy} onClick={() => void act(() => cancelInvite(server, x.id), "대전 신청을 취소했어요.")} aria-label={`${x.to.nickname} 대전 신청 취소`}>
+                        취소
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
           <RecentOpponents server={server} />
           {data.outgoing.length > 0 && (
@@ -357,6 +434,12 @@ export function FriendsPage({ server, go }: { server: string | null; go: (r: Rou
               </ul>
             </details>
           )}
+          {data.me.settings && (
+            <label className="friend-setting">
+              <input type="checkbox" checked={data.me.settings.presence === "hidden"} disabled={busy} onChange={(e) => void act(() => setFriendSettings(server, { presence: e.target.checked ? "hidden" : "friends" }), e.target.checked ? "친구에게 오프라인으로 보여요." : "친구에게 접속 상태를 보여 줘요.")} />
+              접속 상태 숨기기 <small>(친구에게 항상 오프라인으로 보여요)</small>
+            </label>
+          )}
           <p className="econ-note">친구 대전 대기실에서 &lsquo;친구 초대&rsquo;로 접속 중인 친구를 바로 부를 수 있어요. 이메일이나 계정 정보는 다른 사람에게 보이지 않아요.</p>
         </>
       )}
@@ -371,6 +454,12 @@ export function FriendsPage({ server, go }: { server: string | null; go: (r: Rou
               {profile.online.games}경기 · {profile.online.wins}승 {profile.online.losses}패{profile.online.draws ? ` ${profile.online.draws}무` : ""}
               {profile.online.best !== null ? ` · 최고 ${profile.online.best}점` : ""}
             </p>
+            {profile.versus && profile.versus.games > 0 && (
+              <p data-versus>
+                나와의 전적 {profile.versus.games}경기 · {profile.versus.wins}승 {profile.versus.losses}패{profile.versus.draws ? ` ${profile.versus.draws}무` : ""}
+              </p>
+            )}
+            {profile.pins && profile.pins.length > 0 && <ul className="profile-pins" aria-label="대표 업적">{profile.pins.map((id) => <li key={id}>{achievementById(id)?.label ?? id}</li>)}</ul>}
             <button type="button" className="secondary" onClick={() => setProfile(null)}>
               닫기
             </button>
@@ -426,7 +515,7 @@ export function FriendInvite({ server, room, freeSeats }: { server: string; room
       setBusy(false);
     }
   };
-  const order = ["online", "playing", "offline"];
+  const order = ["online", "unknown", "playing", "offline"];
   const list = data ? [...data.friends].sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status)) : [];
   const label = (r?: string) => (r === "sent" ? "초대함" : r === "recent" ? "방금 초대함" : r === "not-friend" ? "친구 아님" : "");
   return (
