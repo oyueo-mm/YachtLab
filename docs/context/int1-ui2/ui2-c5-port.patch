@@ -1,0 +1,88 @@
+diff --git a/src/shell/DrawPanel.tsx b/src/shell/DrawPanel.tsx
+index 27dd662..44d2daf 100644
+--- a/src/shell/DrawPanel.tsx
++++ b/src/shell/DrawPanel.tsx
+@@ -4,7 +4,7 @@ import { Coins } from "lucide-react";
+ import { DiceArea } from "../DiceArea";
+ import { waitForDice } from "../dice-motion";
+ import { itemById } from "../economy/live/catalog";
+-import { DRAW_COMBINATIONS, DRAW_COST, DRAW_DAILY_LIMIT, DRAW_TIERS, DUPLICATE_COINS, HANDS, drawAvailable, drawItems, drawPool, enumerateDrawHands, type DrawPool, type DrawReceipt, type DrawStatus } from "../economy/live/draw";
++import { DRAW_COMBINATIONS, DRAW_COST, DRAW_DAILY_LIMIT, DRAW_TIERS, DUPLICATE_COINS, HANDS, drawAvailable, drawItems, drawOdds, drawPool, enumerateDrawHands, type DrawPool, type DrawReceipt, type DrawStatus } from "../economy/live/draw";
+ import { SEASONS, type SeasonId } from "../economy/live/seasons";
+ import { session } from "../identity/account-client";
+ import { drawStatus, EconomyError, economyRequestId, submitDraw, type Snapshot } from "../identity/economy-client";
+@@ -95,7 +95,8 @@ export default function DrawPanel({ server, onWallet }: { server: string; onWall
+     try {
+       sessionStorage.setItem(key, JSON.stringify(request));
+       setPending(request);
+-      const response = await submitDraw(server, request.pool, request.requestId);
++      // SEC-10: the odds shown here are this bundle's table; the server refuses the draw if its own differs
++      const response = await submitDraw(server, request.pool, request.requestId, { expectedPrice: DRAW_COST, oddsVersion: drawOdds(request.pool).version, configVersion: snapshot?.config });
+       setSnapshot(response.snapshot);
+       onWallet(response.snapshot);
+       setStatus(response.draw);
+@@ -107,7 +108,7 @@ export default function DrawPanel({ server, onWallet }: { server: string; onWall
+       }
+     } catch (error) {
+       const message = error instanceof Error ? error.message : "뽑기 요청을 처리하지 못했어요.";
+-      if (error instanceof EconomyError && ["DRAW_CLOSED", "DRAW_LIMIT", "INSUFFICIENT", "DRAW_REQUEST", "INVALID"].includes(error.code)) {
++      if (error instanceof EconomyError && ["DRAW_CLOSED", "DRAW_LIMIT", "INSUFFICIENT", "DRAW_REQUEST", "INVALID", "ODDS_CHANGED", "PRICE_CHANGED", "POLICY_CHANGED", "REQUEST_REUSED", "CLIENT_UPDATE_REQUIRED"].includes(error.code)) {
+         clearPending();
+         setError(message);
+       } else {
+@@ -123,7 +124,10 @@ export default function DrawPanel({ server, onWallet }: { server: string; onWall
+   const season = pool === "standard" ? null : SEASONS[pool];
+   const dice = (receipt?.dice ?? [1, 1, 1, 1, 1]).map((value, id) => ({ id, value, held: false }));
+   const won = itemById(receipt?.itemId);
+-  const canDraw = snapshot && active && status.remaining > 0 && snapshot.wallet.coins >= DRAW_COST;
++  // A server that reports its odds version must match the table shown on this page (older servers report none).
++  const serverOdds = status?.odds?.[pool];
++  const oddsMismatch = !!serverOdds && serverOdds !== drawOdds(pool).version;
++  const canDraw = snapshot && active && status.remaining > 0 && snapshot.wallet.coins >= DRAW_COST && !oddsMismatch;
+   const [revealKey, setRevealKey] = useState(0);
+   useEffect(() => { if (receipt && !animating) setRevealKey((k) => k + 1); }, [receipt, animating]);
+   return <section className="draw-panel" role="tabpanel" aria-label="뽑기">
+@@ -133,6 +137,7 @@ export default function DrawPanel({ server, onWallet }: { server: string; onWall
+           options={[{ value: "standard" as DrawPool, label: "일반 뽑기" }, ...(Object.keys(SEASONS) as SeasonId[]).map((id) => ({ value: id as DrawPool, label: SEASONS[id].name }))]} />
+         {status && <span className="draw-left"><b>{status.remaining}</b>/{DRAW_DAILY_LIMIT}회 남음 <small>매일 00:00 초기화</small></span>}
+       </div>
++      {oddsMismatch && <p className="error-message" role="alert">서버의 뽑기 확률표가 이 화면과 달라요. 페이지를 새로 고친 뒤 확률을 다시 확인해 주세요.</p>}
+       {season && <p className="econ-note">{format.format(season.start)} ~ {format.format(season.end)} (한국 시간){active ? "" : " · 판매 기간 외"}</p>}
+       <section className={"game-board throw-tray stage-board draw-board" + (animating ? " rolling" : "")} aria-label="뽑기 주사위"
+         onClick={() => { if (animating) setAnimating(false); }}>
+diff --git a/src/shell/EconomyPages.tsx b/src/shell/EconomyPages.tsx
+index f4370d5..915a378 100644
+--- a/src/shell/EconomyPages.tsx
++++ b/src/shell/EconomyPages.tsx
+@@ -380,7 +380,7 @@ function ShopPage({ server, go, economyState, active, intent, clearIntent, onInt
+     if (window.scrollY > (top.current?.offsetTop ?? 0)) showTop();
+   };
+   const purchase = async (i: ItemDef, currency: "coins" | "gems") => {
+-    const r = await act(() => buy(server!, i.id, currency), `${i.name}을(를) 샀어요. 인벤토리에서 장착할 수 있어요.`);
++    const r = await act(() => buy(server!, i.id, currency, { expectedPrice: priceOf(i, currency) ?? undefined, configVersion: snap?.config }), `${i.name}을(를) 샀어요. 인벤토리에서 장착할 수 있어요.`);
+     if (r) setNotice(r);
+   };
+   const equipNow = async (i: ItemDef) => {
+@@ -534,10 +534,10 @@ function ShopPage({ server, go, economyState, active, intent, clearIntent, onInt
+                     <span className="shop-owned">최대</span>
+                   ) : (
+                     <span className="shop-buy">
+-                      <button type="button" className="secondary" disabled={busy || !snap || wallet.coins < c} onClick={() => void act(() => buySlot(server!, kind, "coins"))} aria-label={`${kind === "emote" ? "이모티콘" : "채팅"} 슬롯 코인 구매`}>
++                      <button type="button" className="secondary" disabled={busy || !snap || wallet.coins < c} onClick={() => void act(() => buySlot(server!, kind, "coins", { expectedPrice: c, configVersion: snap?.config }))} aria-label={`${kind === "emote" ? "이모티콘" : "채팅"} 슬롯 코인 구매`}>
+                         <Coins size={14} /> {fmt(c)}
+                       </button>
+-                      <button type="button" className="secondary" disabled={busy || !snap || wallet.gems < (g ?? Infinity)} onClick={() => void act(() => buySlot(server!, kind, "gems"))} aria-label={`${kind === "emote" ? "이모티콘" : "채팅"} 슬롯 보석 구매`}>
++                      <button type="button" className="secondary" disabled={busy || !snap || wallet.gems < (g ?? Infinity)} onClick={() => void act(() => buySlot(server!, kind, "gems", { expectedPrice: g ?? undefined, configVersion: snap?.config }))} aria-label={`${kind === "emote" ? "이모티콘" : "채팅"} 슬롯 보석 구매`}>
+                         <Gem size={14} /> {g}
+                       </button>
+                     </span>
+@@ -962,7 +962,8 @@ function InventoryPage({ server, go, economyState, active, intent, clearIntent,
+           setConfirmUp(null);
+           if (!c || !snap || !upgradeSupportedOn(c.item, snap.catalogRev)) return;
+           void act(async () => {
+-            const updated = await upgrade(server!, c.item.id);
++            // SEC-08: the level the player confirmed from; a second tab or a late retry cannot upgrade twice
++            const updated = await upgrade(server!, c.item.id, { expectedLevel: c.to - 1, expectedPrice: c.cost, configVersion: snap.config });
+             if (!updated.inventory.some((entry) => entry.id === c.item.id && entry.level >= c.to)) {
+               throw new EconomyError("UPGRADE_UNCONFIRMED", "강화 결과를 확인하지 못했어요. 보유 단계와 재화 내역을 확인해 주세요.");
+             }

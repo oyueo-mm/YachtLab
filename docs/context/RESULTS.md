@@ -4,7 +4,7 @@
 
 ## UI-2 상점·인벤토리 개편 검증 (2026-11-28, AI 실험 아님)
 
-로컬 컨테이너 Chromium(desktop 1440×1000, Pixel 7), 모의 경제 서버. 신규 단위 8개·UI 14개 통과, 기존 economy·collections·onboarding-shop·a1-board-fx·a2-cosmetics 통과, FX-1 모의 병합 52개 통과. 320~1920px 6개 폭에서 상점·인벤토리·뽑기 가로 넘침 없음. 기존 결함 2건(인벤토리 특수 연출 탭 흰 화면, 안내가 상세 창의 Esc를 가로채는 경쟁) 재현·수정. FPS·메모리 실측과 실 Worker 거래 확인은 미실시. [UI-2](./UI-2-SHOP-INVENTORY.md), [스크린샷](../ui/ui-2-shop/)
+로컬 컨테이너 Chromium(desktop 1440×1000, Pixel 7), 모의 경제 서버. 신규 단위 8개·UI 14개 통과, 기존 economy·collections·onboarding-shop·a1-board-fx·a2-cosmetics 통과, FX-1 모의 병합 52개 통과. 320~1920px 6개 폭에서 상점·인벤토리·뽑기 가로 넘침 없음. 기존 결함 2건(인벤토리 특수 연출 탭 흰 화면, 안내가 상세 창의 Esc를 가로채는 경쟁) 재현·수정. FPS·메모리 실측과 실 Worker 거래 확인은 미실시(통합 검증 항목). 2차: 최신 main 병합 후 PR #145 필수 CI 통과(소유자 확인), 3자 통합 모의(UI-2 + C5 `5d49414` + FX-1 `dbb26f9`) Vitest 870 통과·Playwright 110 통과/0 실패. [UI-2](./UI-2-SHOP-INVENTORY.md) §5·§8, [스크린샷](../ui/ui-2-shop/)
 
 ## C2 리뷰 모델 비교
 

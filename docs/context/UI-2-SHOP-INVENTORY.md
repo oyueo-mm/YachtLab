@@ -58,9 +58,8 @@ POST /api/me/loadout-presets/apply  ← { id, requestId } → Snapshot  (서버�
   - `sound(item, level, cue)`: "소리 듣기/효과음 비교" 버튼용 큐(`roll|land|emote|fx|tap`). 현재는 내장 합성음 사용.
 - 단일 활성 무대 규칙(`claimStage`/`isActiveStage`)을 지켜 달라. 카드마다 WebGL 컨텍스트를 만들지 않는다.
 
-### 담당 07 (QA/릴리스로 이해함 — 범위 확인 필요)
-- 회귀 범위: `tests/ui/economy.spec.ts`, `collections.spec.ts`, `onboarding-shop.spec.ts`, 신규 `tests/ui/ui2-shop.spec.ts`, 단위 `tests/shop-curation.test.ts`.
-- 수동 확인 권장: 실제 Worker(rev 2)에서 캐러셀의 "판매 준비 중" 표시가 사라지는지, 프리셋 불러오기 후 저장이 서버 검증을 통과하는지.
+### C5 (경제 정책·공통 지급 엔진, PR #140) — §7
+- 이전 판의 "07 = QA·릴리스" 가정은 틀렸다. C5는 경제 정책·공통 지급 엔진 담당이며, 상점 개편과의 접점은 견적 필드·409 처리·비매 칭호다(§7).
 
 ## 5. 검증 (2026-11-28, 로컬 컨테이너, Chromium · desktop 1440×1000 + Pixel 7)
 
@@ -70,7 +69,10 @@ POST /api/me/loadout-presets/apply  ← { id, requestId } → Snapshot  (서버�
 | UI `tests/ui/ui2-shop.spec.ts` (캐러셀, 둘러보기/전체 분리, 검색·가격대·정렬, 9개 상품군, 보유·장착 상태, 요트·스트레이트 연출, 특수 연출 탭, 목록 강화, 컬렉션 진행도, 프리셋 검증·계정 분리, 뽑기 공개·중복, 320~1920px 6개 폭 × 3화면 가로 넘침 없음) | 14/14 통과(두 기기) |
 | 기존 UI `economy`·`collections`·`onboarding-shop`·`a1-board-fx`·`a2-cosmetics` | 전부 통과(조건부 skip 3 기존) |
 | FX-1 병합 모의(§6) | 충돌 1파일, 해결 후 tsc·FX-1 `fx1-preview`·UI-2·economy·collections 52 통과 |
-| 전체 `npm test`·`npm run build`·전체 Playwright | 결과는 PR 본문과 [RESULTS.md](./RESULTS.md) |
+| 단위 추가(2차): C5 rev 3 업적 전용 칭호가 신상품·신상품순에 끼지 않음 | 9/9 통과 |
+| UI 추가(2차): 비동기 정지 썸네일 공급자(화면 안 카드만 요청), 409 PRICE_CHANGED·LEVEL_CHANGED 표시·스냅숏 재조회 | 16/16 통과(두 기기) |
+| 최신 main 병합 후 GitHub 필수 CI(PR #145) | 통과(소유자 확인). CI는 빌드 산출물+preview로 돌며, 로컬 개발 서버에서만 실패하던 base 동일 28건(SEO·PWA·증류·리뷰·연구실·정적 첫 화면)은 CI에서 통과 |
+| 3자 통합 모의(UI-2 + C5 #140 `5d49414` + FX-1 #146 `dbb26f9`, §8) | `tsc -b` 통과, Vitest 870 통과/1 skip, Playwright 110 통과/18 skip(fx1-preview·int1-ui2-c5·ui2-shop·economy·collections·rewards·onboarding-shop·a4-profile·a1-board-fx·a2-cosmetics) |
 
 발견·수정한 기존 문제: ① 인벤토리 특수 연출 탭 흰 화면(위 표). ② 첫 방문 인벤토리 안내와 상품 상세 창이 함께 열리면 안내가 Esc를 가로채 상세 창이 닫히지 않던 경쟁 상태 — 안내는 열린 모달이 없을 때까지 시작을 미루고, 모달이 위에 열려 있으면 키를 처리하지 않는다(`src/ui/Coach.tsx`, 공통 UI이므로 01에 공유).
 
@@ -88,5 +90,51 @@ FX-1은 `src/fx-preview`의 `FxPreview`/`FxPreviewHandle`(D-104)을 제공하고
      `export { FxPreview as PreviewStage, previewLevel, type FxPreviewHandle as PreviewStageHandle, type FxMoment as PreviewMoment, type FxPreviewSound as PreviewSound, type FxPreviewProps as PreviewStageProps } from "../../fx-preview";`
    - 그러면 `playSound("accent")`(Lv.3 착지 강조)·`"board"`·재질별 소리·`soundEnabled`가 FX-1 구현으로 살아난다.
    - 모의 병합(위 두 단계 적용)에서 `tsc -b` 통과, `tests/ui/fx1-preview.spec.ts`·`ui2-shop`·`economy`·`collections` 52개 통과(FX-1 자체의 모바일 skip 2).
-4. **카드 썸네일.** 카드는 3D 테이블과 같은 면 페인터(`paintFace`)로 그린 2D 캔버스 한 장이라 색·무늬·눈 배치·Lv.2/3 발광은 실제와 같다. FX-1의 PBR(범프·거칠기·금속·투명·자체 발광 맵)과 둥근 모서리는 2D 썸네일에 없다. 다음 단계: FX-1 병합 뒤 `registerPreviewProvider({ id: "fx1-thumbs", categories: ["dice"], thumbnail })`로 **단일 오프스크린 WebGL 렌더러 하나**가 대기열에서 상품별·단계별 정지 이미지를 차례로 렌더해 메모리(+선택적으로 IndexedDB, 키 = 상품 ID·단계·렌더러 버전)에 캐시하고, 준비 전에는 지금의 2D 썸네일을 보인다. 카드마다 WebGL 컨텍스트를 만들지 않는다는 원칙은 그대로다. 이 렌더러 API는 03(FX-1)의 `table.ts`/`stage.ts`에 정지 프레임 렌더 함수가 필요하므로 FX-1 담당에게 요청한다.
+4. **카드 썸네일(갱신: PR #146 `dbb26f9`).** FX-1이 `loadDiceThumbnail()`(지연 로드) → `diceThumbnail(look, px, { physical? })`를 제공한다: 경기와 같은 재질로 ¾ 시점 주사위 한 개, **공유 WebGL 컨텍스트 1개·직렬 대기열·마지막 요청 8초 뒤 해제**, 메모리 + sessionStorage(≈1.5 MB) 캐시, WebGL 불가 시 `null`. UI-2는 `preview-registry`에 `thumbnailAsync(item, level, px)`를 추가했다(카드가 화면에 들어올 때만 요청, 그 전과 `null`일 때는 2D 썸네일 유지; UI 테스트로 확인). 병합 후 연결은 등록 파일 하나다: [`int1-ui2/fx1-stills.ts.txt`](./int1-ui2/fx1-stills.ts.txt) → `src/shell/shop/fx1-stills.ts`, `ItemViews.tsx`에서 `import "./shop/fx1-stills";`. 제안 B(빌드 시 굽기)는 FX-1 문서대로 미구현이며 상점 첫 화면 성능 측정 뒤 INT-1이 선택한다.
 5. **단일 렌더러.** `FxPreview`는 열린 상세 창(또는 인벤토리 "이 조합으로 굴려 보기" 창) 하나에서만 마운트된다. 캐러셀·레일·그리드·슬롯 요약·프리셋에는 WebGL이 없다(UI 테스트: 둘러보기 화면 `.stage-board` 0개, 상세 1개).
+
+## 7. C5 경제 보호와 상점 개편 (PR #140 `claude/happy-euler-paasea`, 병합하지 않음)
+
+C5는 상점 화면을 바꾸지 않지만 같은 함수에 경제 보호를 넣었다. 상점 개편이 이를 잃지 않도록 다음을 확인했다.
+
+| 보호 | C5 위치 | UI-2 대응 위치(병합 후) | 확인 |
+| --- | --- | --- | --- |
+| `expectedPrice`+`configVersion`(구매) | `ShopPage.purchase` | 같은 이름 함수(UI-2 재작성본) — 상세의 구매 확인에서만 호출 | 모의 병합 UI 테스트: 요청 본문 일치 |
+| 슬롯 구매 `expectedPrice`+`configVersion` | 슬롯 버튼 2개 | 같은 마크업 유지 | 〃 |
+| `expectedLevel`+`expectedPrice`+`configVersion`(강화) | 인벤토리 강화 확인 | 상세 강화 버튼과 **새 목록 카드 강화 버튼이 모두 같은 확인 창 → 같은 호출**을 거침 | 〃(목록 카드 경로로 검증) |
+| `oddsVersion`+`expectedPrice`+`configVersion`(뽑기) | `DrawPanel.draw` | 같은 함수(레이아웃만 2열) | 〃 |
+| 409 처리(`PRICE_CHANGED`·`LEVEL_CHANGED`·`POLICY_CHANGED`·`ODDS_CHANGED`·`REQUEST_REUSED`·`CLIENT_UPDATE_REQUIRED`) | 뽑기 오류 목록·대기 요청 해제 | 뽑기: C5 목록 이식. 구매·강화: `act()`가 서버 문구를 보이고 스냅숏을 다시 불러옴 — **UI-2가 상세 창 안에 오류를 보이도록 고쳤다**(이전엔 모달 뒤 페이지에만 표시) | UI-2 테스트(409 두 종) + 모의 병합 |
+| 확률표 버전 불일치 시 뽑기 차단 | `oddsMismatch` 배너·`canDraw` | UI-2 2열 레이아웃의 같은 위치로 이식 | 모의 병합 UI 테스트 |
+| 신규 비매 칭호 3종(`title.streak30/100/365`, rev 3, 특수·업적 전용, `drawExcluded`) 구매·뽑기 제외 | 카탈로그·Worker `NOT_FOR_SALE`·뽑기 풀 | UI-2: 카드 "업적 보상", 구매 버튼 없음, 구 Worker에서도 "판매 준비 중" 아님, **신상품 레일·신상품순에 넣지 않음**(구매 가능 상품만), 뽑기 확률표에 없음 | 단위(합성 rev 3) + 모의 병합 UI 테스트 |
+
+**INT-1 해결 절차(C5).** 충돌은 `src/shell/EconomyPages.tsx`·`src/shell/DrawPanel.tsx`(+ 결정 문서). 두 코드 파일은 UI-2 쪽을 택하고 [`int1-ui2/ui2-c5-port.patch`](./int1-ui2/ui2-c5-port.patch)를 적용한다(C5 hunk 9개를 UI-2 구조로 옮긴 것, `git apply`). 검증: [`int1-ui2/int1-ui2-c5.spec.ts.txt`](./int1-ui2/int1-ui2-c5.spec.ts.txt)를 `tests/ui/int1-ui2-c5.spec.ts`로 복사(병합 전에는 C5 함수 시그니처가 없어 이 브랜치에 넣지 않음).
+
+## 8. INT-1 통합 순서 (모의 병합으로 확인한 그대로)
+
+1. 최신 main ← UI-2 #145 (현재 main과 충돌 없음).
+2. ← C5 #140: §7 절차. 결정 문서는 양쪽 유지. 검증: `npx tsc -b`, C5 단위(sec1-economy·retention·reward-grants·economy-live·collections), UI(`int1-ui2-c5`·`economy`·`ui2-shop`·`rewards`).
+3. ← FX-1 #146: `src/shell/ItemViews.tsx`는 UI-2 쪽, [`PreviewStage.after-fx1.tsx.txt`](./int1-ui2/PreviewStage.after-fx1.tsx.txt)로 `src/shell/shop/PreviewStage.tsx` 교체, `fx1-stills.ts` 추가(§6.4). `CONTEXT.md`·`DECISIONS.md`·`RESULTS.md`·`TECHNIQUES.md`는 양쪽 유지. 검증: 위 + `fx1-preview`·`a1-board-fx`·`a2-cosmetics`·`collections`.
+4. 결정 번호: main이 이미 D-101·D-102(SEC-1)를 쓰므로 FX-1의 임시 `FX1-D1~D5`, C5의 `D-C5-1~4`, UI-2의 `D-UI2-1~4`는 INT-1이 최종 번호를 부여한다.
+5. 전체 필수 CI(빌드+preview 기반 Playwright 4샤드). 로컬 개발 서버 실행 결과는 SEO·PWA 등 28건이 base에서도 실패하므로 기준으로 쓰지 않는다.
+
+## 9. UI-1(공통 헤더·App·Coach)과의 계약
+
+| 항목 | UI-2가 가정·변경한 것 | UI-1에 요청 |
+| --- | --- | --- |
+| 헤더 높이 | 모바일 카테고리 칩 줄 `position: sticky; top: 56px`, PC 사이드바 `top: 76px`(헤더+여백), `scroll-margin-top: 76px` | 헤더 높이를 `:root { --header-h }`로 노출. 노출되면 UI-2가 `top: var(--header-h, 56px)`로 교체(값이 같으면 시각 변화 없음) |
+| 본문 폭 | `shop.css`가 `.main.page-shop / .page-draw / .page-inventory`만 `max-width: 1680px` | App의 `main.page-<route>` 클래스 규칙 유지. 폭 토큰을 도입하면 상점 3화면만 예외 폭을 갖도록 그 토큰으로 이전 |
+| 모바일 레이아웃 | 상점 내부만: 1000px 이하 1열, 560px 이하 2열 그리드, 320px 가로 넘침 없음(테스트) | 전역 하단 탭/안전 영역을 바꾸면 `tests/ui/ui2-shop.spec.ts` 반응형 테스트로 함께 확인 |
+| 공통 모달 | 기존 `.modal`+`useActivityDialog` 그대로, 상세 폭만 `.item-detail-v2`(980px). Esc는 모달 `onKeyDown`에서도 닫음 | 공통 모달 API를 바꾸면 상세·조합 창 두 곳 갱신 |
+| `src/ui/Coach.tsx` | ① 첫 방문 안내는 열린 `dialog[open]`이 없을 때까지 시작을 미룸 ② 모달이 위에 열려 있으면 안내가 키를 처리하지 않음 | UI-1이 Coach를 바꿀 때 이 두 규칙 유지(회귀: `a4-profile` 인벤토리 가이드, `economy` 구 Worker 강화 테스트) |
+| 상단 탭 | 페이지 안 `상품 관리` 탭(상품·뽑기·인벤토리)은 UI-2 소유, 전역 헤더의 상점·인벤토리 버튼은 UI-1 소유 | 라우트 이름 `#shop/#draw/#inventory` 유지 |
+
+## 10. 확정 상태와 통합 검증 목록
+
+- 상태: UI-2 개발 완료 확정(2026-11-28, 소유자). main 병합·운영 배포는 하지 않았다.
+- 장착 프리셋: **기기 내 저장 유지, 계정 동기화 보류**(§3 계약은 향후 참고용).
+- 통합 검증 목록(미검증, INT-1 이후):
+  1. 실제 Worker(rev 3, C5 견적 필수화 on/off 각각)에서 구매·슬롯·강화·뽑기·장착·프리셋 불러오기 후 저장 — 원장·잔액·보유 단계 일치, 409 경로.
+  2. 실제 Worker에서 캐러셀·신상품의 "판매 준비 중" 표시가 rev에 맞게 사라지는지.
+  3. FPS·메모리 실측(실기기 PC·휴대폰): 상점 둘러보기 스크롤, 상세 열고 닫기 반복(WebGL 컨텍스트 ≤ 1), FX-1 정지 썸네일 생성 중 스크롤.
+  4. 첫 방문 안내 × 상세 창 Esc(실기기 키보드).
+

@@ -2,7 +2,7 @@
 
 > **SEC-1 CI 후속(D-102):** 실패 잠금 강화(SEC-1-03), 빌드·운영 토큰 분리(SEC-1-04), CI Low 3건 정리. 남은 운영자 조치: 구형 저장소 Cloudflare 시크릿 폐기(SEC-1-02). [SEC-1 CI 후속](../operations/SEC-1-CI-FOLLOWUP.md)
 
-> **UI-2 상점·뽑기·인벤토리 개편(D-UI2-1~4):** ✅ 캐러셀·사이드바·검색/필터/정렬·2열 상세·뽑기 공개·인벤토리 장착 요약·프리셋(기기 저장)·컬렉션 진행도·특수 연출 탭 오류 수정. ⏭ FX-1 병합 후 `PreviewStage` → `FxPreview` 재수출, 단일 렌더러 3D 썸네일 캐시, 프리셋 계정 동기화 Worker API. [UI-2](./UI-2-SHOP-INVENTORY.md)
+> **UI-2 상점·뽑기·인벤토리 개편(D-UI2-1~4):** ✅ 개발 완료 확정(2026-11-28, PR #145, 필수 CI 통과). INT-1 인계: FX-1 FxPreview·정적 썸네일, C5 견적·409·비매 칭호, UI-1 헤더·Coach 계약([UI-2 §6–§9](./UI-2-SHOP-INVENTORY.md)). 프리셋 계정 동기화 보류. ⏳ 실 Worker 거래·FPS·메모리 실측은 통합 검증 항목.
 
 > **CI-1.2 Worker 자동 배포(D-100):** main 파이프라인 성공 뒤 Worker 입력이 바뀐 경우만 자동 배포, 보호 입력·롤백·실패 시 정지 → 수동. [운영 문서](../operations/CI-1-2-WORKER-AUTO-DEPLOY.md)
 
