@@ -81,7 +81,10 @@ describe.skipIf(!BASE)("이전 Worker → C4.2 Worker 전환 시 계정·세션�
     expect((await call(a2nd, "/api/me")).status).toBe(200);
     // friend lists exactly as before (same codes, friendships, pending, block)
     const afterB = await friends(b);
-    expect({ ...afterB, friends: afterB.friends.map((f: { status: string }) => ({ ...f, status: "-" })) }).toEqual({ ...beforeB, friends: beforeB.friends.map((f: { status: string }) => ({ ...f, status: "-" })) });
+    // INT-1: SOC-1 adds response fields (me.settings, presence) — everything the previous Worker stored is unchanged
+    const { presence: _p, ...afterRest } = afterB;
+    const { settings: _s, ...afterMe } = afterB.me;
+    expect({ ...afterRest, me: afterMe, friends: afterB.friends.map((f: { status: string }) => ({ ...f, status: "-" })) }).toEqual({ ...beforeB, friends: beforeB.friends.map((f: { status: string }) => ({ ...f, status: "-" })) });
     expect(afterB.friends.map((f: { code: string }) => f.code).sort()).toEqual([code.a, code.e].sort());
     // presence between existing friends, the invite made by the previous Worker, a pending request
     await call(a, "/api/me/inbox");
@@ -101,9 +104,12 @@ describe.skipIf(!BASE)("이전 Worker → C4.2 Worker 전환 시 계정·세션�
     // known limitation (documented): a block made by the previous Worker has no reverse index, so the
     // blocked account's deletion cannot reach it; the residue check (approval) is the path for it
     expect((await call(d, "/api/me/delete", { confirm: "DELETE" })).status).toBe(200);
-    expect((await friends(b)).blocked).toEqual([{ code: code.d, nickname: "업디" }]);
+    // (a base that already has the C4.2 reverse index — e.g. main d775ecb — anonymises it instead: both are safe)
+    const leftBlock = (await friends(b)).blocked as { code: string; nickname: string }[];
+    expect(leftBlock).toHaveLength(1);
+    expect(leftBlock[0].nickname === "탈퇴한 사용자" || (leftBlock[0].code === code.d && leftBlock[0].nickname === "업디")).toBe(true);
     // a block made by THIS Worker is anonymised on deletion
-    await call(b, "/api/me/friends/unblock", { code: code.d });
+    await call(b, "/api/me/friends/unblock", { code: leftBlock[0].code });
     await call(b, "/api/me/friends/block", { code: code.e });
     expect((await call(e, "/api/me/delete", { confirm: "DELETE" })).status).toBe(200);
     expect((await friends(b)).blocked.map((x: { nickname: string }) => x.nickname)).toEqual(["탈퇴한 사용자"]);
