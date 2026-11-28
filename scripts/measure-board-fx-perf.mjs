@@ -44,6 +44,10 @@ export const COMBOS = {
   "thunder-synergy": { dice: "dice.thunder", diceLv: 3, board: "board.storm", boardLv: 3 },
   "meadow-synergy": { dice: "dice.meadow", diceLv: 3, board: "board.meadow", boardLv: 3 },
   "sakura-synergy": { dice: "dice.sakura", diceLv: 3, board: "board.sakura", boardLv: 3 },
+  // FX-1 (2026-11-28): physical dice materials (reflections, clearcoat, iridescence, transparency)
+  "gold-lv1": { dice: "dice.gold", diceLv: 1 },
+  "hologram-lv3": { dice: "dice.hologram", diceLv: 3 },
+  "glass_blue-lv3": { dice: "dice.glass_blue", diceLv: 3 },
 };
 
 const preview = await startPreview(DIST, PORT);

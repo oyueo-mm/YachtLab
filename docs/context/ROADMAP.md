@@ -39,6 +39,14 @@ PR #118(main 병합 대기). 전역 대기, 자동 입장, 활동 복원과 집�
 
 구현·검증 완료, **PR 검토 대기(병합·배포 보류)**: [A4](./A4-MOBILE-PROFILE-FRIENDS-2026-11-27.md). 남은 일: iOS WebKit·실기기 확인, 서버 계약(관계 조회·ID 기반 친구 요청·대표 업적 저장, [후보](./A4-CONTRACT-CANDIDATES-2026-11-27.md)), 모바일 1:1·관전 점수판.
 
+## FX-1 주사위 재질·사운드·미리보기 — 2026-11-28
+
+구현·검증, **PR 검토 대기**: [FX1-DICE-BOARD-SOUND-2026-11-28](./FX1-DICE-BOARD-SOUND-2026-11-28.md), D-101~D-104. 남은 일:
+1. 실기기(저사양 Android·iOS) 프레임·발열과 GPU 비용(특히 MeshPhysicalMaterial), 스피커·이어폰 청취 평가 — 이번엔 에뮬레이션·수치만.
+2. 보드 테마 Lv.2/3 장면의 추가 고도화(이번엔 A1 장면 유지, 주사위 재질·시너지 재사용만).
+3. 01(경기 화면)이 `FxPreview`와 같은 `DiceArea`를 쓰므로 추가 작업 없음; 02는 상세 외 화면(인벤토리 장착 미리보기)에 `FxPreview` 적용 검토.
+4. 2D 썸네일(`paintFace`)에 재질 표현 반영 여부(현재 3D만).
+
 ## A2 꾸미기·채팅 연출 — 2026-11-27
 
 **병합·Pages 배포 완료(PR #117, `db2e17a`, 운영 build `db2e17a-mwz88q0x`)**; 후속 QA 백로그는 [A2 §10](./A2-COSMETICS-CHAT-2026-11-27.md): [A2-COSMETICS-CHAT](./A2-COSMETICS-CHAT-2026-11-27.md). 남은 일: C5 카탈로그 반영(채팅 38종 ID·등급, 선택 속성 — [제안서](./A2-C5-CATALOG-PROPOSAL-2026-11-27.md)), 실기기 성능, 채팅 효과음 후보.
