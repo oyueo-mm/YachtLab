@@ -21,7 +21,12 @@ env:
   ONLINE_ORIGIN: https://oyueo-mm.github.io
 jobs:
   live:
-    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'online-live-check'
+    # SEC-1-08: a label runs the PR's own test code against the live Worker, so only for branches of this
+    # repository (written by people with push access), never for a fork's PR.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.label.name == 'online-live-check' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
