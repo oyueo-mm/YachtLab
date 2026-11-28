@@ -149,11 +149,10 @@ describe("계정 저장소 (UserStore 로직, node:sqlite)", () => {
     expect(JSON.stringify(s.publicProfile())).not.toContain("google");
   });
 
-  it("SEC-1-01: 먼저 올린 기기 기록이 같은 matchId의 서버 검증 결과·정산을 막지 못한다", () => {
+  it("SEC-1-01: 같은 matchId의 기기 기록이 있어도 서버 검증 결과가 우선 저장·정산된다", () => {
     const s = new AccountStore(sqlite());
     s.init();
     s.ensureUser("u_" + "c".repeat(22), "google", 1);
-    // a device copy (claimed draw) uploaded while the match is still running
     expect(s.importRecords([record("m_live1", { outcome: "draw" })], "device", 1)).toEqual({ added: 1, skipped: 0 });
     let settled = 0;
     expect(s.recordMatch(record("m_live1", { outcome: "loss" }), () => (settled++, undefined))).toBe(true);

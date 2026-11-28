@@ -192,9 +192,8 @@ export class AccountStore {
   private insert(r: MatchRecord, reward?: () => MatchReceipt | undefined): boolean {
     const before = this.sql.exec<{ verification: string }>("SELECT verification FROM matches WHERE record_id = ?", r.recordId).toArray()[0];
     if (before) {
-      // SEC-1-01: a device copy (client-reported) must never pre-empt the server's own result of the
-      // same match — otherwise uploading it first would hide a verified loss and skip its settlement.
-      // The server-verified record replaces it; anything else stays idempotent.
+      // SEC-1-01 (D-101): the server's own result of a match outranks a device copy (client-reported)
+      // with the same id — it replaces that row and is settled as usual. Anything else stays idempotent.
       if (!(r.verification === "server-verified" && before.verification !== "server-verified")) return false;
       this.sql.exec("DELETE FROM matches WHERE record_id = ?", r.recordId);
     }
