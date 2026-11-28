@@ -31,6 +31,9 @@ describe("친구·초대 (wrangler dev + 가짜 로컬 로그인)", () => {
     await call(a, "/api/me/nickname", { nickname: "에이" });
     await call(b, "/api/me/nickname", { nickname: "비" });
     expect((await call(null, "/api/me/friends")).status).toBe(401);
+    // SEC-15: an oversized body (declared length over the limit) is refused
+    const big = await fetch(worker.url + "/api/me/friends/search", { method: "POST", headers: { origin: ORIGIN, "content-type": "application/json", authorization: "Bearer " + a }, body: JSON.stringify({ query: "x".repeat(5000) }) });
+    expect(big.status).toBe(400);
     const bCode = (await call(b, "/api/me/friends")).body.me.code as string;
     expect(bCode).toMatch(/^YL[0-9A-Z]{8}$/);
     // exact nickname search works, partial does not

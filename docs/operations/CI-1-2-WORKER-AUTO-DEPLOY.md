@@ -1,5 +1,7 @@
 # CI-1.2 Worker 자동 배포 (2026-11-28)
 
+> **SEC-1 후속(D-102):** 실패 잠금 판정은 [`worker-release-lock.mjs`](../../scripts/ci/worker-release-lock.mjs)로 강화됐고(전체 이력·재실행·배포 중 취소), 빌드는 자격 증명 없는 `prepare` 작업에서만 한다. 아래 표의 해당 행보다 [SEC-1 CI 후속](./SEC-1-CI-FOLLOWUP.md)이 우선한다.
+
 결정 D-100 · 코드 [`deploy-online-worker-auto.yml`](../../.github/workflows/deploy-online-worker-auto.yml), [`auto-deploy-online-worker.mjs`](../../scripts/ci/auto-deploy-online-worker.mjs), [`worker-release-plan.mjs`](../../scripts/ci/worker-release-plan.mjs) · 테스트 `tests/ci-worker-release.test.ts`
 
 > 같은 이름의 연구 워크플로 정리(CI-1.2, `workflow_dispatch` 전용)와는 별개다. 이 문서는 Worker 배포만 다룬다.

@@ -65,20 +65,6 @@ export function deployedCommit(message) {
   return m ? m[1] : null;
 }
 
-/**
- * Stop rule (D-100): any failed Worker release run — automatic or manual — stops the automatic path until a
- * manual release succeeds after it. Successful automatic runs never clear it: they include skips (emergency
- * stop, no Worker change, superseded commit) that released nothing.
- */
-export function stoppedByFailure(autoRuns, manualRuns, currentRunId) {
-  const done = (r) => r.status === "completed" && r.id !== currentRunId;
-  const at = (r) => Date.parse(r.created_at);
-  const lastFailure = [...autoRuns, ...manualRuns].filter((r) => done(r) && r.conclusion === "failure").sort((a, b) => at(b) - at(a))[0];
-  if (!lastFailure) return null;
-  const cleared = manualRuns.some((r) => done(r) && r.conclusion === "success" && at(r) > at(lastFailure));
-  return cleared ? null : lastFailure;
-}
-
 if (import.meta.url === `file://${process.argv[1]}`) {
   const [from, to] = process.argv.slice(2);
   let changed;
