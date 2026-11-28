@@ -13,6 +13,7 @@ import { setOwnLook } from "./play/own-look";
 import { useNickname } from "./identity/display-name";
 import OnlineEntry from "./play/OnlineEntry";
 import { useBackgroundMatch } from "./online/useBackgroundMatch";
+import { countdownFor } from "./online/match-flow";
 import { MatchPopup } from "./play/MatchPopup";
 import { ActivityVisible } from "./shell/activity-visible";
 import OnlineGame from "./play/OnlineGame";
@@ -194,7 +195,7 @@ export default function App() {
     pendingHistory.current = null;
     inProgress.current = false;
     enterRoom(found.code, true);
-  });
+  }, () => countdownFor(inProgress.current && preserve(pageRef.current)));
   const enterWatch = (code: string, key: string) => {
     if (pageRef.current !== "online" || pendingOnline.current) return;
     history.pushState({ idx: ++historyIndex.current }, "", watchLink(code, key));
@@ -340,7 +341,7 @@ export default function App() {
             </button>
           </p>
         )}
-        <MatchPopup match={match} onAi={() => navigate("play-setup")} onRoom={(code) => enterRoom(code)} offerAfterMs={30_000} />
+        <MatchPopup match={match} onAi={() => navigate("play-setup")} onRoom={(code) => enterRoom(code)} offerAfterMs={30_000} practicePaused={inProgress.current && preserve(page)} />
         {suspended && page !== "online-room" && <button type="button" className="secondary" onClick={restoreActivity}>이전 활동으로 돌아가기</button>}
         <InstallBanner active={page === "home"} />
         {page === "home" && onlineServer && noticesFor(pendingRewards, session()).length > 0 && <MatchRewards
@@ -415,7 +416,7 @@ export default function App() {
             achievements={page === "achievements" || (page !== "quests" && suspended?.route === "achievements")} />)}
         </Suspense>
         {page === "rewards" && <Suspense fallback={null}><RewardsPage key={session() ?? "guest"} server={onlineServer} go={navigate} /></Suspense>}
-        {page === "friends" && <FriendsPage server={onlineServer} go={navigate} />}
+        {page === "friends" && <FriendsPage server={onlineServer} go={navigate} onEnterRoom={(code) => enterRoom(code)} />}
         {(page === "suggestions" || page === "mailbox" || page === "admin") && (
           <Suspense fallback={<p className="econ-note" role="status"><BrandMark /> 불러오는 중…</p>}>
             {page === "suggestions" && <SuggestionsPage server={onlineServer} />}

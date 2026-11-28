@@ -1,4 +1,4 @@
-import { session } from "../identity/account-client";
+import { api, session } from "../identity/account-client";
 
 /**
  * Friend requests from anywhere in the game (A4): one behaviour for an opponent's profile in a match,
@@ -29,11 +29,20 @@ export type FriendApi = {
   /** Existing endpoint: request by friend code (only ever called with a code from `relationByUserId`). */
   request(code: string): Promise<{ status?: string }>;
 };
-/** The live Worker: no verified mapping exists, so lookups resolve to "unresolved" without any network call. */
-export const liveApi = (_server: string): FriendApi => ({
-  request: async () => {
-    throw new Error("서버가 계정과 친구 코드의 대응을 보증하지 않아 보낼 수 없어요.");
+/**
+ * The live Worker (SOC-1): `GET /api/me/friends/relation?userId=…[&room=…]` binds the account id to its
+ * friend code on the SERVER (only for my server-verified opponents or a member seated with me in `room`).
+ * An older Worker answers 404 for that path → the lookup fails → "unresolved" (manual code entry), so an
+ * old Worker can never be made to send to a guessed person. Malformed answers are refused the same way.
+ */
+const RELATIONS = new Set(["self", "friend", "incoming", "outgoing", "blocked", "none"]);
+export const liveApi = (server: string, room?: string | null): FriendApi => ({
+  relationByUserId: async (userId) => {
+    const v = await api<VerifiedRelation>(server, `/api/me/friends/relation?userId=${encodeURIComponent(userId)}${room ? `&room=${encodeURIComponent(room)}` : ""}`);
+    if (!v || !RELATIONS.has(v.relation) || typeof v.code !== "string" || !/^YL[0-9A-Z]{8}$/.test(v.code) || typeof v.nickname !== "string") throw new Error(MANUAL_ADD_MESSAGE);
+    return { relation: v.relation, code: v.code, nickname: v.nickname };
   },
+  request: (code) => api<{ status?: string }>(server, "/api/me/friends/request", { body: { code } }),
 });
 
 /* ------------------------------------------------------------ account scope ------------------------------------------------------------ */
@@ -108,6 +117,8 @@ export async function loadRelation(server: string, userId: string, api: FriendAp
       notify();
       return value;
     })
+    // No verified answer (older Worker, network, not my opponent): never guess, never cache.
+    .catch((): Resolved => UNRESOLVED())
     .finally(() => {
       if (inflight.get(k) === p) inflight.delete(k);
     });

@@ -43,7 +43,7 @@ function sqlite(): HubSql {
 const ticket = (n: number) => ("ticket" + n).padEnd(30, "x");
 const device = (n: number) => ("device" + n).padEnd(30, "y");
 
-function harness(opts: { sessions?: Record<string, string>; fail?: string; slow?: boolean; beforeCreate?: () => Promise<void>; afterCreate?: () => void } = {}) {
+function harness(opts: { sessions?: Record<string, string>; fail?: string; slow?: boolean; beforeCreate?: () => Promise<void>; afterCreate?: () => void; blocked?: (a: string, b: string) => Promise<boolean> } = {}) {
   let t = 1_700_000_000_000;
   const open: Sock[] = [];
   const made: { a: QueueSeat; b: QueueSeat; pub: boolean; code: string }[] = [];
@@ -69,6 +69,7 @@ function harness(opts: { sessions?: Record<string, string>; fail?: string; slow?
     sql,
     auth: async (s: string) => opts.sessions?.[s] ?? null,
     createMatch,
+    ...(opts.blocked ? { blocked: opts.blocked } : {}),
   };
   let hub = new HubCore(deps);
   hub.init();
@@ -465,5 +466,51 @@ describe("빠른 대전 방 (RoomHost)", () => {
     // finished → removed from the public list at once
     expect(published.at(-1)).toBeNull();
     expect(host.publicWatch()).toBeNull();
+  });
+});
+
+describe("SOC-1-F1 (INT-1) · 차단 관계인 두 회원은 빠른 대전에서 짝지어지지 않는다", () => {
+  const user = (c: string) => "u_" + c.repeat(22);
+  const session = (c: string) => "s1." + user(c) + "." + "b".repeat(43);
+  const sessions = Object.fromEntries(["a", "b", "c"].map((c) => [session(c), user(c)]));
+
+  it("어느 쪽이 차단했든 그 쌍은 건너뛰고, 둘 다 대기를 유지한 채 다른 상대와 매칭된다", async () => {
+    const asked: string[] = [];
+    const h = harness({ sessions, blocked: async (x, y) => (asked.push([x, y].sort().join("|")), [x, y].includes(user("a")) && [x, y].includes(user("b"))) });
+    const a = h.connect(), b = h.connect(), c = h.connect();
+    await h.queue(a, { name: "가", ticket: ticket(1), device: device(1), session: session("a") });
+    await h.queue(b, { name: "나", ticket: ticket(2), device: device(2), session: session("b") });
+    expect(h.made).toHaveLength(0); // a–b blocked: no room
+    expect(a.closed).toBeNull();
+    expect(b.closed).toBeNull();
+    await h.queue(c, { name: "다", ticket: ticket(3), device: device(3), session: session("c") });
+    expect(h.made).toHaveLength(1);
+    const names = [h.made[0].a.name, h.made[0].b.name].sort();
+    expect(names).toContain("다");
+    expect(names).not.toEqual(["가", "나"]);
+    // the blocked pair was asked about once and then remembered (no repeated checks)
+    expect(asked.filter((k) => k === [user("a"), user("b")].sort().join("|"))).toHaveLength(1);
+  });
+
+  it("차단 확인이 실패하면 짝짓지 않는다(fail closed); 게스트끼리는 확인하지 않는다", async () => {
+    let calls = 0;
+    const h = harness({ sessions, blocked: async () => (calls++, Promise.reject(new Error("down"))) });
+    const a = h.connect(), b = h.connect();
+    await h.queue(a, { name: "가", ticket: ticket(1), device: device(1), session: session("a") });
+    await h.queue(b, { name: "나", ticket: ticket(2), device: device(2), session: session("b") });
+    expect(h.made).toHaveLength(0);
+    const g1 = h.connect(), g2 = h.connect();
+    await h.queue(g1, { name: "손님1", ticket: ticket(5), device: device(5) });
+    await h.queue(g2, { name: "손님2", ticket: ticket(6), device: device(6) });
+    expect(h.made.length).toBeGreaterThan(0);
+    expect(calls).toBe(1);
+  });
+
+  it("차단이 아닌 회원 쌍은 그대로 매칭된다", async () => {
+    const h = harness({ sessions, blocked: async () => false });
+    const a = h.connect(), b = h.connect();
+    await h.queue(a, { name: "가", ticket: ticket(1), device: device(1), session: session("a") });
+    await h.queue(b, { name: "나", ticket: ticket(2), device: device(2), session: session("b") });
+    expect(h.made).toHaveLength(1);
   });
 });

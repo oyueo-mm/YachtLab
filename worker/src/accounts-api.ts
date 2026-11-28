@@ -1,3 +1,4 @@
+import { readJsonObject } from "./limits";
 import { drawPool, type DrawPool, type DrawReceipt, type DrawStatus } from "../../src/economy/live/draw";
 import type { ReviewMatch } from "../../src/review/model";
 import type { MatchReceipt } from "../../src/economy/live/receipt";
@@ -61,7 +62,8 @@ export interface UserApi {
   logout(session: string): Promise<void>;
   logoutAll(): Promise<void>;
   deleteAccount(): Promise<string[]>;
-  publicProfile(): Promise<PublicProfile | null>;
+  /** `viewer` (SOC-1): the signed-in caller — a viewer this account blocks gets null; pins follow its visibility. */
+  publicProfile(viewer?: string | null): Promise<PublicProfile | null>;
   /* Phase 5/6 economy (optional: tests of the account API may omit them) */
   economy?(): Promise<EconResult>;
   buy?(itemId: unknown, currency: unknown, requestId: string, quote?: Quote): Promise<EconResult>;
@@ -144,14 +146,8 @@ function cookieValue(request: Request, name: string) {
   return null;
 }
 
-async function body(request: Request, max: number): Promise<Record<string, unknown>> {
-  if (Number(request.headers.get("content-length") ?? "0") > max) throw new Error("too large");
-  const text = await request.text();
-  if (text.length > max) throw new Error("too large");
-  const parsed = JSON.parse(text || "{}");
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new SyntaxError("object expected");
-  return parsed as Record<string, unknown>;
-}
+/** SEC-1: declared length and streamed bytes are capped before anything is parsed (see limits.ts). */
+const body = (request: Request, max: number) => readJsonObject(request, max);
 
 /** The signed-in user of this request, or null (no / invalid / expired session). */
 export async function sessionUser(request: Request, b: AccountBackends): Promise<SessionUser | null> {
@@ -251,7 +247,9 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
     if (await b.limited("profile:" + client, 60)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
     const id = decodeURIComponent(path.slice("/api/profiles/".length));
     if (!USER_ID.test(id)) return fail(404, "NOT_FOUND", "프로필을 찾을 수 없어요.");
-    const profile = await b.user(id).publicProfile();
+    // SOC-1: a signed-in caller is known (blocks, friends-only pins); anonymous callers see public pins only.
+    const viewer = request.headers.get("authorization") ? await sessionUser(request, b) : null;
+    const profile = await b.user(id).publicProfile(viewer?.userId ?? null);
     return profile ? reply(200, profile) : fail(404, "NOT_FOUND", "프로필을 찾을 수 없어요.");
   }
 

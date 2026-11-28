@@ -39,12 +39,16 @@ export type ClientMessage =
   | { t: "settings"; mode: "turns" | "simultaneous"; timeoutMs: number | null }
   /** Host only: hand the host role to another player in the room. */
   | { t: "host"; to: string }
+  /** C3.1, friend rooms, waiting room only: play the next match, watch it, or undecided. */
+  | { t: "intent"; value: "ready" | "watch" | "idle" }
+  /** C3.1, host, after a match: bring every member back to the waiting room (choose play / watch again). */
+  | { t: "return" }
   | { t: "ping" };
 /** "start": larger rooms — the host starts the next match with everyone who asked. */
 export type RematchOp = "request" | "cancel" | "decline" | "start";
 
 export type ServerMessage =
-  | { t: "welcome"; code: string; playerId: string; view: PlayerView; online: string[]; hold: HoldState | null; rematch?: RematchState; series?: SeriesSummary; spectate?: SpectateState; members?: Record<string, string>; looks?: Record<string, PublicLook>; kind?: MatchKind; ai?: AiSeat | null; lobby?: LobbyState }
+  | { t: "welcome"; code: string; playerId: string; view: PlayerView; online: string[]; hold: HoldState | null; rematch?: RematchState; series?: SeriesSummary; spectate?: SpectateState; members?: Record<string, string>; looks?: Record<string, PublicLook>; kind?: MatchKind; ai?: AiSeat | null; lobby?: LobbyState; role?: "player" | "watcher" }
   /** `hold` is present from servers that keep the shared hold order (older servers omit it). */
   | { t: "view"; view: PlayerView; hold?: HoldState | null }
   | { t: "ack"; id: string; ok: true; duplicate: boolean }
@@ -99,7 +103,18 @@ export type SeriesSummary = { matchNo: number; games: number; draws: number; win
 
 /** Public info for an invite link (no tokens, no player ids). */
 export type RoomSummary = { code: string; status: MatchStatus; seats: number; players: string[]; mode?: "turns" | "simultaneous" };
-export type LobbyState = { hostId: string | null; ready: Record<string, boolean>; settings: { mode: "turns" | "simultaneous"; timeoutMs: number | null }; maxPlayers: number };
+export type LobbyState = {
+  hostId: string | null;
+  ready: Record<string, boolean>;
+  settings: { mode: "turns" | "simultaneous"; timeoutMs: number | null };
+  maxPlayers: number;
+  /** C3.1 (friend rooms, Worker with `features.lobbyWatch`): each waiting member's choice. */
+  intent?: Record<string, "ready" | "watch" | "idle">;
+  /** C3.1: members watching (lobby: the next match; during / after a match: this one), id → name. */
+  watchers?: Record<string, string>;
+  /** C3.1: players needed to start (watchers excluded). */
+  minPlayers?: number;
+};
 
 /** HTTP responses. */
 export type JoinResponse = { code: string; playerId: string; token: string };
@@ -147,6 +162,11 @@ export function parseClientMessage(data: string): ClientMessage | null {
       if (raw.mode !== "turns" && raw.mode !== "simultaneous") return null;
       if (raw.timeoutMs !== null && !Number.isSafeInteger(raw.timeoutMs)) return null;
       return { t: "settings", mode: raw.mode, timeoutMs: raw.timeoutMs as number | null };
+    case "intent":
+      if (raw.value !== "ready" && raw.value !== "watch" && raw.value !== "idle") return null;
+      return { t: "intent", value: raw.value };
+    case "return":
+      return { t: "return" };
     case "host":
       if (!isValidId(raw.to)) return null;
       return { t: "host", to: raw.to as string };

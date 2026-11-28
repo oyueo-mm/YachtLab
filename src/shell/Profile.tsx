@@ -13,6 +13,7 @@ import { ConfirmDialog, type PendingAction } from "../ui/ConfirmDialog";
 import { GUEST_LOOK, itemById } from "../economy/live/catalog";
 import { achievementById } from "../economy/live/config";
 import { SoloRecordsSection } from "../play/SoloRecordsSection";
+import { saveServerPins, serverPins } from "../identity/friends-client";
 import { Achievements, CollectionProgress, EquippedLooks, RecentMatches, StreakFacts, usePinnedAchievements, VersusSummary } from "./ProfileSections";
 
 const date = (t: number) => new Date(t).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
@@ -74,7 +75,9 @@ export default function Profile({ server, notice, snapshot, accountSettings = fa
   const firstPlay = signedIn && account ? account.createdAt : Math.min(g.createdAt, ...local.map((r) => r.startedAt));
   const notImported = signedIn ? local.filter((r) => !importedIds().has(r.recordId)) : [];
   const earned = snapshot?.state.achievements ?? [];
-  const { pins, toggle: togglePin } = usePinnedAchievements(earned);
+  // SOC-1: server pins when signed in (an older Worker answers 404 → this device's copy only).
+  const remotePins = useMemo(() => (signedIn && server ? { load: () => serverPins(server).then((r) => r.pins), save: (ids: string[]) => saveServerPins(server, ids) } : null), [signedIn, server]);
+  const { pins, toggle: togglePin, synced: pinsSynced, error: pinsError } = usePinnedAchievements(earned, undefined, remotePins);
   const titleItem = snapshot ? itemById(snapshot.look.title) : null;
   const titleText = titleItem && titleItem.acquisition !== "default" ? titleItem.look.text ?? titleItem.name : "";
   const titleCss = titleItem?.look.css ?? "";
@@ -173,7 +176,7 @@ export default function Profile({ server, notice, snapshot, accountSettings = fa
         <SoloRecordsSection server={server} />
         <EquippedLooks look={snapshot?.look ?? GUEST_LOOK} signedIn={signedIn} />
         <CollectionProgress snapshot={snapshot} />
-        <Achievements earned={earned} pins={pins} toggle={togglePin} />
+        <Achievements earned={earned} pins={pins} toggle={togglePin} synced={pinsSynced} error={pinsError} />
       </div>
 
       <h2 className="profile-section-title">계정 관리</h2>

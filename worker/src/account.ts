@@ -181,6 +181,22 @@ export class AccountStore {
     };
   }
 
+  /** SOC-1: my server-verified results against one account (friend profile "상대 전적"). */
+  versus(opponentId: string): { games: number; wins: number; losses: number; draws: number } {
+    const r = this.sql
+      .exec<{ games: number; wins: number | null; losses: number | null; draws: number | null }>(
+        "SELECT count(*) AS games, sum(outcome = 'win') AS wins, sum(outcome = 'loss') AS losses, sum(outcome = 'draw') AS draws FROM matches WHERE verification = 'server-verified' AND json_extract(data, '$.opponent.userId') = ?",
+        opponentId,
+      )
+      .toArray()[0];
+    return { games: r?.games ?? 0, wins: r?.wins ?? 0, losses: r?.losses ?? 0, draws: r?.draws ?? 0 };
+  }
+  /** SOC-1: does a server-verified record name this account as my opponent? */
+  playedWith(opponentId: string): boolean {
+    if (!this.exists()) return false;
+    return this.sql.exec("SELECT 1 FROM matches WHERE verification = 'server-verified' AND json_extract(data, '$.opponent.userId') = ? LIMIT 1", opponentId).toArray().length > 0;
+  }
+
   /* ------------------------------------------------------------- records ------------------------------------------------------------- */
 
   /** A server-verified online result from a room (idempotent by matchId). */

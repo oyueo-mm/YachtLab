@@ -270,6 +270,13 @@ export class RoomHost {
   private activitySignature = "";
   private lastStatus: string | null = null;
   /** Friend invites (J): whether `userId` sits in this friend room's waiting room and seats are left. */
+  /** SOC-1: are both accounts seated in this room right now (friend request from an in-match profile)? */
+  sharesRoom(a: string, b: string): boolean {
+    const room = this.room;
+    if (!room || this.deleted || room.isClosed) return false;
+    const ids = Object.values(room.memberAccounts());
+    return ids.includes(a) && ids.includes(b);
+  }
   inviteState(userId: string): { ok: true; seats: number; players: number } | { ok: false; reason: "not-member" | "started" | "full" | "closed" } {
     const room = this.room;
     if (!room || this.deleted || room.isClosed) return { ok: false, reason: "closed" };
