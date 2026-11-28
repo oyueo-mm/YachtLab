@@ -102,8 +102,13 @@ export async function completeSignIn(server: string | null): Promise<{ ok: boole
     const reason = hash.slice("#login-error=".length);
     return { ok: false, message: reason === "cancelled" ? "로그인을 취소했어요." : "로그인을 완료하지 못했어요. 다시 시도해 주세요." };
   }
-  const code = decodeURIComponent(hash.slice("#login=".length));
-  clean(); // the one-time code leaves the address bar immediately
+  clean(); // the one-time code leaves the address bar immediately, even when it is malformed (SEC-1-12)
+  let code: string;
+  try {
+    code = decodeURIComponent(hash.slice("#login=".length));
+  } catch {
+    return { ok: false, message: "로그인을 완료하지 못했어요. 다시 시도해 주세요." };
+  }
   let state: string | null = null;
   try {
     state = sessionStorage.getItem(LOGIN_STATE_KEY);
