@@ -34,7 +34,7 @@ describe("테마 컬렉션 (2026-11-27)", () => {
     for (const id of ["dice.meadow", "dice.flower", "dice.sakura"]) expect(lookAt(itemById(id), 3).dice!.glow, id).toBeUndefined();
     // the random draw pools contain exactly the launch items (odds of existing items unchanged)
     for (const tier of DRAW_TIERS) expect(drawItems("standard", tier).some((i) => i.rev === 2)).toBe(false);
-    expect(CATALOG_REV).toBe(2);
+    expect(CATALOG_REV).toBe(3); // rev 3 = C5 activity-streak titles only (achievement-only, never sold)
     // an older server (no revision) cannot sell them; a revision-2 server can
     const thunder = itemById("dice.thunder")!;
     expect(sellableOn(thunder, undefined)).toBe(false);

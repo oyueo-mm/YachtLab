@@ -3,7 +3,7 @@ import { DatabaseSync } from "node:sqlite";
 import { EconomyStore, STALE_CODES, type EconSql } from "../worker/src/economy";
 import { AccountStore } from "../worker/src/account";
 import { parseQuote } from "../worker/src/accounts-api";
-import { RewardGrants } from "../worker/src/grants";
+import { GRANT_SOURCES, RewardGrants } from "../worker/src/grants";
 import { RULES_ID, type MatchRecord } from "../src/identity/records";
 import { ECONOMY } from "../src/economy/live/config";
 import { itemById, priceOf, upgradeCost } from "../src/economy/live/catalog";
@@ -55,7 +55,7 @@ function rich(coins = 20_000, gems = 2_000) {
   const econ = new EconomyStore(db);
   econ.init();
   econ.welcome(U, T0, null);
-  const grants = new RewardGrants(db);
+  const grants = new RewardGrants(db, econ, { enabled: new Set(GRANT_SOURCES) });
   grants.init();
   let n = 0;
   while (coins > 0 || gems > 0) {
@@ -236,13 +236,13 @@ describe("신규 보상 지급의 멱등성·동시성", () => {
   it("두 기기가 같은 날 출석을 동시에 수령해도(같은 상태에서 계산) 한 번만 지급된다", () => {
     const { econ } = rich(0, 0);
     const db = (econ as unknown as { sql: EconSql }).sql;
-    const grants = new RewardGrants(db);
+    const grants = new RewardGrants(db, econ, { enabled: new Set(GRANT_SOURCES) });
     grants.init();
     const state = newRetentionState();
     const a = claimAttendance(state, ATTENDANCE["ATT-150"], T0).grants[0];
     const b = claimAttendance(state, ATTENDANCE["ATT-150"], T0 + 1000).grants[0];
     expect(a.txId).toBe(b.txId);
-    const req = (g: typeof a) => ({ txId: g.txId, source: "attendance" as const, coins: g.coins, gems: g.gems, policyVersion: "R-C5-CORE@0", label: g.label, actor: "system", delivery: "direct" as const });
+    const req = (g: typeof a) => ({ txId: g.txId, source: "attendance" as const, coins: g.coins, gems: g.gems, policyVersion: "C5-CORE@1", label: g.label, actor: "system", delivery: "direct" as const });
     const r1 = grants.issue(U, req(a), T0);
     const r2 = grants.issue(U, req(b), T0 + 1000);
     expect(r1.ok && !r1.duplicate).toBe(true);
@@ -253,7 +253,7 @@ describe("신규 보상 지급의 멱등성·동시성", () => {
   it("지급과 구매가 섞여도 원장 합계·행별 누적 잔액이 맞는다", () => {
     const { econ } = rich(5000, 100);
     const db = (econ as unknown as { sql: EconSql }).sql;
-    const grants = new RewardGrants(db);
+    const grants = new RewardGrants(db, econ, { enabled: new Set(GRANT_SOURCES) });
     grants.init();
     for (let i = 0; i < 20; i++) {
       grants.issue(U, { txId: `dp:${i}:done`, source: "daily-play", coins: 15, gems: 0, policyVersion: "R-C5-FULL@0", label: "오늘의 경기", actor: "system", delivery: "direct" }, T0 + i);

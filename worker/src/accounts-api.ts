@@ -69,6 +69,21 @@ export interface UserApi {
   rerollQuest?(index: number | "all", period?: "daily" | "weekly", expected?: number): Promise<EconResult>;
   drawStatus?(): Promise<EconResult>;
   draw?(pool: DrawPool, requestId: string, quote?: Quote): Promise<EconResult>;
+  /* C5 rewards (optional: absent on older objects and in account-API tests) */
+  rewards?(): Promise<RewardResult>;
+  claimAttendance?(): Promise<RewardResult>;
+  claimReward?(txId: string | "all"): Promise<RewardResult>;
+  redeemCode?(code: string): Promise<RewardResult>;
+}
+export type RewardResult = ({ ok: true } & Record<string, unknown>) | { ok: false; code: string; message: string };
+/** Status of a refused reward request. */
+const REWARD_STATUS: Record<string, number> = { RETENTION_OFF: 404, REDEEM_OFF: 404, ECONOMY_OFF: 404, NOT_FOUND: 404, NO_ACCOUNT: 404, ALREADY_CLAIMED: 409, EXPIRED: 410, REVOKED: 410, SOURCE_DISABLED: 409, TRY_LATER: 503 };
+/** The quote fields a purchase-like request must carry once `quoteRequired` is on. */
+export function missingQuote(path: string, q: Quote): boolean {
+  if (q.configVersion === undefined || q.expectedPrice === undefined) return true;
+  if (path === "/api/me/shop/upgrade" && q.expectedLevel === undefined) return true;
+  if (path === "/api/me/shop/draw" && q.oddsVersion === undefined) return true;
+  return false;
 }
 
 /**
@@ -99,6 +114,11 @@ export type AccountBackends = {
   limited(key: string, perMinute: number): Promise<boolean>;
   fetcher: typeof fetch;
   now(): number;
+  /**
+   * C5 phased quote check: true once every supported page sends the quote fields (Worker var
+   * `ECONOMY_QUOTE="required"`). Purchase-like requests without them get 409 CLIENT_UPDATE_REQUIRED.
+   */
+  quoteRequired?: boolean;
 };
 
 const COOKIE = "__Host-yl_oidc";
@@ -242,7 +262,27 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
   const econ = (r: EconResult) => (r.ok ? reply(200, { snapshot: r.snapshot, duplicate: r.duplicate ?? false, receipt: r.receipt, draw: r.draw }) : fail(r.code === "ECONOMY_OFF" ? 404 : r.code === "INSUFFICIENT" ? 402 : STALE_CODES.has(r.code) ? 409 : 400, r.code, r.message));
   if (path === "/api/me/economy" && method === "GET" && user.economy) return econ(await user.economy());
   if (path === "/api/me/shop/draw" && method === "GET" && user.drawStatus) return econ(await user.drawStatus());
+  /* ---------------- C5 rewards: attendance, streaks, reward inbox, redeem codes ---------------- */
+  const rewardReply = (r: RewardResult) => {
+    if (!r.ok) return fail(REWARD_STATUS[r.code] ?? 400, r.code, r.message);
+    const { ok: _ok, ...rest } = r;
+    return reply(200, rest);
+  };
+  if (path === "/api/me/rewards" && method === "GET") return user.rewards ? rewardReply(await user.rewards()) : fail(404, "RETENTION_OFF", "출석·연속 활동 보상은 아직 준비 중이에요.");
   if (method !== "POST") return fail(404, "NOT_FOUND", "없는 주소입니다.");
+  if (path === "/api/me/rewards/attendance" || path === "/api/me/rewards/claim" || path === "/api/me/rewards/redeem") {
+    if (!user.rewards) return fail(404, "RETENTION_OFF", "출석·연속 활동 보상은 아직 준비 중이에요.");
+    const input = await body(request, 1024);
+    if (path === "/api/me/rewards/attendance") return rewardReply(await user.claimAttendance!());
+    if (path === "/api/me/rewards/claim") {
+      const tx = input.txId;
+      if (tx !== "all" && (typeof tx !== "string" || !/^[A-Za-z0-9:._-]{4,96}$/.test(tx))) return fail(400, "INVALID", "받을 보상을 확인해 주세요.");
+      return rewardReply(await user.claimReward!(tx as string));
+    }
+    const code = input.code;
+    if (typeof code !== "string" || code.length < 4 || code.length > 40) return fail(400, "INVALID", "코드를 확인해 주세요.");
+    return rewardReply(await user.redeemCode!(code));
+  }
   if (path.startsWith("/api/me/shop/") || path === "/api/me/loadout" || path === "/api/me/quests/reroll") {
     if (!user.buy) return fail(404, "ECONOMY_OFF", "재화 기능은 아직 준비 중이에요.");
     const input = await body(request, 4096);
@@ -261,6 +301,7 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
     if (!rid) return fail(400, "INVALID", "요청 정보가 올바르지 않아요.");
     const quote = parseQuote(input);
     if (!quote) return fail(400, "INVALID", "요청 정보가 올바르지 않아요.");
+    if (b.quoteRequired && missingQuote(path, quote)) return fail(409, "CLIENT_UPDATE_REQUIRED", "상점이 업데이트됐어요. 페이지를 새로 고친 뒤 다시 시도해 주세요.");
     if (path === "/api/me/shop/draw" && user.draw) {
       const pool = drawPool(input.pool);
       if (!pool) return fail(400, "INVALID", "뽑기 종류를 확인해 주세요.");

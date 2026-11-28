@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DatabaseSync } from "node:sqlite";
 import { EconomyStore, type EconSql } from "../worker/src/economy";
-import { RewardGrants, validateGrant, type GrantRequest } from "../worker/src/grants";
+import { APPROVED_SOURCES, GRANT_SOURCES, RewardGrants, creditAdminClaim, validateGrant, type GrantRequest } from "../worker/src/grants";
 import { checkCode, hashCode, normalizeCode, type CodeDef } from "../src/economy/retention/codes";
 
 /**
@@ -43,7 +43,8 @@ const setup = () => {
   const econ = new EconomyStore(db);
   econ.init();
   econ.welcome(U, T0, null);
-  const grants = new RewardGrants(db);
+  // contract tests exercise every source; a Worker enables only approved ones (see "출처 승인")
+  const grants = new RewardGrants(db, econ, { enabled: new Set(GRANT_SOURCES) });
   grants.init();
   return { db, econ, grants };
 };
@@ -142,8 +143,9 @@ describe("보상 지급 엔진 (원장 재사용)", () => {
 
   it("경제를 쓴 적 없는 계정에는 지급하지 않는다(가입 보상 경로가 먼저)", () => {
     const db = sql();
-    new EconomyStore(db).init();
-    const g = new RewardGrants(db);
+    const e = new EconomyStore(db);
+    e.init();
+    const g = new RewardGrants(db, e, { enabled: new Set(GRANT_SOURCES) });
     g.init();
     expect(g.issue(U, req(), T0)).toMatchObject({ ok: false, code: "NO_ECONOMY" });
   });
@@ -163,6 +165,55 @@ describe("보상 지급 엔진 (원장 재사용)", () => {
     grants.issue(U, req({ txId: "act:m30", source: "activity-streak", coins: 200, gems: 5 }), T0);
     expect(econ.buy(U, "dice.mint", "coins", "req-buy-00001", T0).ok).toBe(true);
     expect(econ.snapshot(U, T0).wallet).toEqual({ coins: 100, gems: 25 });
+    expect(econ.verify().ok && grants.verify().ok).toBe(true);
+  });
+});
+
+describe("출처 승인 (C5-CORE만 기본 활성)", () => {
+  it("기본 설정은 출석·연속 활동·주간 연승만 지급하고, 운영자·제안·일일 콘텐츠·교환 코드·일일 경기는 SOURCE_DISABLED", () => {
+    const db = sql();
+    const econ = new EconomyStore(db);
+    econ.init();
+    econ.welcome(U, T0, null);
+    const g = new RewardGrants(db, econ);
+    g.init();
+    expect([...APPROVED_SOURCES].sort()).toEqual(["activity-streak", "attendance", "weekly-streak"]);
+    expect(g.issue(U, req(), T0).ok).toBe(true);
+    for (const source of ["daily-content", "daily-play", "redeem-code", "event", "return"] as const)
+      expect(g.issue(U, req({ txId: `x:${source}`, source, coins: 10 }), T0)).toMatchObject({ code: "SOURCE_DISABLED" });
+    for (const source of ["operator", "suggestion", "compensation"] as const)
+      expect(g.issue(U, req({ txId: `x:${source}`, source, coins: 10, actor: "admin:ops1" }), T0, { operator: true })).toMatchObject({ code: "SOURCE_DISABLED" });
+    expect(econ.snapshot(U, T0).wallet.coins).toBe(210);
+    expect(g.history().map((r) => r.txId)).toEqual(["att:0:1"]);
+  });
+  it("보상함에 남은 항목은 출처가 꺼지면 수령되지 않는다(켜지면 다시 가능)", () => {
+    const db = sql();
+    const econ = new EconomyStore(db);
+    econ.init();
+    econ.welcome(U, T0, null);
+    const on = new RewardGrants(db, econ, { enabled: new Set(GRANT_SOURCES) });
+    on.init();
+    on.issue(U, req({ txId: "sug:s-9", source: "suggestion", coins: 100, actor: "admin:ops1", delivery: "inbox" }), T0, { operator: true });
+    expect(new RewardGrants(db, econ).claim("sug:s-9", T0)).toMatchObject({ code: "SOURCE_DISABLED" });
+    expect(on.claim("sug:s-9", T0).ok).toBe(true);
+  });
+  it("연속 활동 칭호만 업적 전용 아이템으로 지급할 수 있다", () => {
+    const { econ, grants } = setup();
+    expect(grants.issue(U, req({ txId: "act:m30", source: "activity-streak", coins: 200, gems: 5, items: ["title.streak30"] }), T0).ok).toBe(true);
+    expect(econ.snapshot(U, T0).inventory.find((i) => i.id === "title.streak30")).toMatchObject({ via: "achievement" });
+    expect(grants.issue(U, req({ txId: "act:fake", source: "activity-streak", coins: 0, items: ["title.300"] }), T0)).toMatchObject({ code: "ITEM" });
+    expect(grants.issue(U, req({ txId: "sug:t-1", source: "suggestion", coins: 0, items: ["title.streak100"], actor: "admin:ops1" }), T0, { operator: true })).toMatchObject({ code: "ITEM" });
+  });
+});
+
+describe("ADMIN-1 전환 어댑터", () => {
+  it("adminGrant의 admin:<우편함 ID>를 같은 지급 기록·상한·출처 스위치로 처리한다(재수령 1회)", () => {
+    const { econ, grants } = setup();
+    const claim = { eventId: "admin:mb_0001", source: "operator" as const, coins: 300, gems: 0, label: "운영 보상 · 점검 보상", campaign: "camp-2026-12", actor: "admin:ops1" };
+    expect(creditAdminClaim(grants, U, claim, T0).ok).toBe(true);
+    expect(creditAdminClaim(grants, U, claim, T0 + 1)).toMatchObject({ ok: true, duplicate: true });
+    expect(econ.snapshot(U, T0).ledger.filter((l) => l.id === "g:admin:mb_0001")).toHaveLength(1);
+    expect(creditAdminClaim(grants, U, { ...claim, eventId: "op:not-admin" }, T0)).toMatchObject({ code: "TX_ID" });
     expect(econ.verify().ok && grants.verify().ok).toBe(true);
   });
 });

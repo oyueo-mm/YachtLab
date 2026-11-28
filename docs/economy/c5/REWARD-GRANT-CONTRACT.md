@@ -1,23 +1,24 @@
 # 공통 보상 지급 계약 (C5 → 05·06 담당, 2026-11-28)
 
-> 구현: `worker/src/grants.ts` (`RewardGrants`), 재방문 정책 `src/economy/retention/policy.ts`, 교환 코드 `src/economy/retention/codes.ts`. 테스트: `tests/reward-grants.test.ts`, `tests/retention-policy.test.ts`, `tests/sec1-economy.test.ts`.
-> **상태: 비활성 프로토타입.** `worker/src/index.ts`는 아직 이 모듈을 가져오지 않는다(Worker 번들 미포함). 금액은 후보이고 승인 전이다(D-C5-1). 연구 근거는 [C5 연구](../C5-RETENTION-RESEARCH.md)에 있다.
+> 구현: `worker/src/grants.ts` (`RewardGrants`, `creditAdminClaim`), `worker/src/retention.ts` (`RetentionStore`), 원장 기록 `EconomyStore.grantCredit`, 정책 `src/economy/retention/policy.ts` (`APPROVED_POLICY` = C5-CORE@1), 교환 코드 검사 `src/economy/retention/codes.ts`.
+> 테스트: `tests/reward-grants.test.ts`, `tests/retention-worker.test.ts`, `tests/retention-worker-e2e.test.ts`(wrangler), `tests/retention-policy.test.ts`, `tests/sec1-economy.test.ts`, `tests/ui/rewards.spec.ts`.
+> **상태(2026-11-28):** C5-CORE 채택(D-C5-2), Worker 연동 구현 완료. 운영 플래그 `RETENTION`은 기본 off다. 지급 가능한 출처는 **출석·연속 활동·주간 연승**뿐이다. 관리자·제안·일일 콘텐츠·교환 코드 금액은 미승인이라 `SOURCE_DISABLED`다. 통합 안내: [INTEGRATION-C5.md](./INTEGRATION-C5.md).
 
 ## 1. 누가 무엇을 부르나
 
 | 출처(`source`) | 호출 주체 | 거래 ID(txId) 규칙 | 방식 | 1회 상한(코인/보석/아이템) |
 |---|---|---|---|---|
-| `attendance` | 출석 수령 API (C5) | `att:<주기>:<n>` (`claimAttendance`) | direct | 200 / 10 / 0 |
-| `daily-play` | 경기 정산 (C5) | `dp:<KST일>:<k>` · `dp:<KST일>:done` | direct | 50 / 0 / 0 |
-| `daily-content` | **06 일일 콘텐츠** | `dc:<콘텐츠ID>:<KST일>` (콘텐츠·날짜당 1회) | direct | 100 / 5 / 0 |
-| `activity-streak` | 경기 정산·06 완료 보고 (C5) | `act:m<일수>` · `act:r:<KST일>` | direct | 1000 / 30 / 1 |
-| `weekly-streak` | 경기 정산 (C5) | `ws:<주>:<단계>` | direct | 100 / 5 / 0 |
-| `return` | (향후) | `ret:<KST일>` | direct | 300 / 10 / 0 |
-| `redeem-code` | 교환 코드 API | `code:<코드ID>` | direct | 1000 / 50 / 1 |
-| `event` | 이벤트 정산 | `e:<이벤트ID>` 또는 `ev:<이벤트ID>:<단계>` | direct/inbox | 1000 / 50 / 1 |
-| `operator` | **05 운영자 도구**(운영자 인증) | `op:<캠페인ID>` (사용자·캠페인당 1회) | inbox 권장 | 5000 / 200 / 3 |
-| `suggestion` | **05 제안 채택** | `sug:<제안ID>` | inbox | 2000 / 100 / 1 |
-| `compensation` | 05 장애 보상 | `comp:<규칙버전>:<범위>` | inbox | 10000 / 600 / 3 |
+| `attendance` ✅ 승인 | 출석 수령 API (C5) | `att:<주기>:<n>` (`claimAttendance`) | direct | 200 / 10 / 0 |
+| `daily-play` ⏸ 보류 | 경기 정산 (C5) | `dp:<KST일>:<k>` · `dp:<KST일>:done` | direct | 50 / 0 / 0 |
+| `daily-content` ⏸ 금액 미승인 | **05 LIVE-1 일일 콘텐츠** | `dc:<콘텐츠ID>:<KST일>` (콘텐츠·날짜당 1회) | direct | 100 / 5 / 0 |
+| `activity-streak` ✅ 승인 | 경기 정산·LIVE-1 완료 보고 (C5) | `act:m<일수>` · `act:r:<KST일>` | direct | 1000 / 30 / 1 |
+| `weekly-streak` ✅ 승인 | 경기 정산 (C5) | `ws:<주>:<단계>` | direct | 100 / 5 / 0 |
+| `return` ⏸ 보류 | (향후) | `ret:<KST일>` | direct | 300 / 10 / 0 |
+| `redeem-code` ⏸ 미승인 | 교환 코드 API(ADMIN-1 AdminHub 예약 후) | `code:<코드ID>` | direct | 1000 / 50 / 1 |
+| `event` ⏸ 미승인 | 이벤트 정산 | `e:<이벤트ID>` 또는 `ev:<이벤트ID>:<단계>` | direct/inbox | 1000 / 50 / 1 |
+| `operator` ⏸ 미승인 | **06 ADMIN-1 운영자 도구**(운영자 인증) | `op:<캠페인ID>` (사용자·캠페인당 1회) | inbox 권장 | 5000 / 200 / 3 |
+| `suggestion` ⏸ 미승인 | **06 ADMIN-1 제안 채택** | `sug:<제안ID>` | inbox | 2000 / 100 / 1 |
+| `compensation` ⏸ 미승인 | 06 장애 보상 | `comp:<규칙버전>:<범위>` | inbox | 10000 / 600 / 3 |
 
 - txId는 `[A-Za-z0-9:._-]{4,96}`이고, **결정적으로 만든다**. 같은 사건은 몇 번을 재시도해도 같은 txId가 나와야 한다. 난수 ID를 쓰지 않는다.
 - 출처별 상한은 실수·도구 오류의 한도다. 상한보다 큰 지급은 한 행으로 처리하지 않고, 검토된 캠페인 여러 개로 나눈다.
@@ -45,7 +46,7 @@ grants.expire(now) · grants.inbox(now) · grants.history(limit, source?)
 grants.verify()                                 // 지급 기록 ↔ 원장 대조 (EconomyStore.verify()와 함께)
 ```
 
-오류 코드: `TX_ID`, `SOURCE`, `FORBIDDEN`, `ACTOR`, `AMOUNT`, `EMPTY`, `LIMIT`, `ITEM`, `POLICY`, `LABEL`, `DELIVERY`, `TX_CONFLICT`(같은 txId·다른 내용), `NO_ECONOMY`(경제를 쓴 적 없는 계정 — 가입 보상 경로가 먼저), `EXPIRED`, `REVOKED`, `NOT_FOUND`, `NOT_REVOCABLE`.
+오류 코드: `SOURCE_DISABLED`(승인·활성화되지 않은 출처), `TX_ID`, `SOURCE`, `FORBIDDEN`, `ACTOR`, `AMOUNT`, `EMPTY`, `LIMIT`, `ITEM`, `POLICY`, `LABEL`, `DELIVERY`, `TX_CONFLICT`(같은 txId·다른 내용), `NO_ECONOMY`(경제를 쓴 적 없는 계정 — 가입 보상 경로가 먼저), `EXPIRED`, `REVOKED`, `NOT_FOUND`, `NOT_REVOCABLE`.
 
 ## 3. 저장과 원장
 
@@ -77,24 +78,25 @@ grants.verify()                                 // 지급 기록 ↔ 원장 대�
   2단계가 실패하면 같은 요청으로 재시도한다. 예약만 되고 지급이 안 된 건은 사용자 재시도나 알람 재처리로 지급한다. 예약 취소는 하지 않는다(초과 지급 방지가 우선).
 - 오류 문구는 "없는 코드"와 "사용할 수 없는 코드" 정도로 균일하게 둔다. 시도는 계정·IP별로 제한한다(SEC-1 §8).
 
-## 6. 06 일일 콘텐츠 담당에게
+## 6. 05 LIVE-1 일일 콘텐츠 담당에게
 
 - 서버가 판정한 완료만 지급한다. 클라이언트가 보고한 점수·완료는 지급 근거가 아니다(SEC-1 §8, D-101).
 - 완료 1회당 `issue(userId, { txId: "dc:<콘텐츠ID>:<KST일>", source: "daily-content", ... })`를 부른다. KST 날짜는 `economyDay(now)`(서버 시각)로 계산한다.
-- 연속 활동에 포함하려면 같은 트랜잭션에서 `markActiveDay(state, policy, now)`를 부르고 나온 `RetentionGrant`를 그대로 `issue`한다.
+- 연속 활동(승인됨): 공식 오늘의 요트 완료를 서버가 판정한 직후 계정 객체 RPC `dailyContentDone({ kind: "daily.official.completed", at })`를 부른다. `RetentionStore.onDailyContent`가 활동일 기록과 이정표 지급을 한 트랜잭션에서 처리한다. 퍼즐 답안·시작은 활동이 아니다.
 - 일일 콘텐츠 금액은 C5 경제 연구의 발행 예산 안에서 정한다. 승인 전 기본 0이다.
 
-## 7. 05 운영·제안·보상함 담당에게
+## 7. 06 ADMIN-1 운영·제안·보상함 담당에게
 
 - 운영자 지급은 **관리자 보안 조건을 갖추기 전에는 연결하지 않는다**: 서버 측 역할 검사, 읽기·쓰기 권한 분리, 모든 쓰기의 감사 로그(행위자·대상·사유·전후 값), 관리자 세션 분리·재인증(C4 SEC-06, SEC-1 §7).
 - 캠페인은 `op:<캠페인ID>`(사용자당 1회)이고 inbox + 만료로 보낸다. 잘못 보낸 경우 미수령분만 `revoke`할 수 있다. 수령된 지급은 되돌리지 않는다.
 - 제안 채택 보상은 `sug:<제안ID>`로 제안당 1회이고, 제안 ID는 05가 발급하는 불변 ID다.
 - 보상함 화면에는 `inbox(now)`(수령 가능), `history()`(지난 지급)을 쓴다. 보상함 목록은 계정 객체 안에만 있다.
 
-## 8. 활성화 전 남은 일 (승인 후)
+## 8. 구현 상태
 
-1. `RewardGrants.credit`을 `EconomyStore` 안으로 옮겨 원장 기록 경로를 하나로 만든다. 지금은 같은 SQL을 따르는 사본이고, 상호 운용 테스트로 고정해 두었다.
-2. 계정 DO 초기화에 `grants.init()`을 추가한다(추가형 표, 롤백 안전).
-3. API를 연다: `POST /api/me/attendance/claim`, `GET /api/me/rewards/inbox`, `POST /api/me/rewards/claim`(txId 또는 all), `POST /api/me/codes/redeem`(시도 제한). 운영자 API는 §7 조건을 갖춘 뒤에 연다.
-4. 운영 지표: `grant.<source>` 발행량, 보상함 미수령 잔고, `econ.maxCoinsOneAccount` 경보 기준 갱신.
-5. `worker/src/economy.ts`·경제 정책 변경은 D-100 보호 입력이므로 수동 고위험 배포다.
+- [x] 원장 기록 경로 단일화: `RewardGrants` → `EconomyStore.grantCredit` → `post`(중복 구현 제거)
+- [x] 계정 DO 초기화에 `grants.init()`·`retention.init()`(추가형 표 `grant_tx`·`retention`, 롤백 안전)
+- [x] API: `GET /api/me/rewards`, `POST /api/me/rewards/attendance`, `POST /api/me/rewards/claim`, `POST /api/me/rewards/redeem`(지금은 `REDEEM_OFF`)
+- [x] 경기 정산 트랜잭션 안 연속 활동·주간 연승(서버 검증 기록만), 결과 영수증에 지급 줄 추가
+- [x] 운영 지표 `grant.<source>`·`.coins`·`.gems`, 관리자 원장 검사에 지급 기록 검증 포함
+- [ ] (별도 승인) 운영 `RETENTION="on"`, 출처별 활성화(관리자·제안·일일 콘텐츠·교환 코드), ADMIN-1 우편함 보상의 보상함 통합(INTEGRATION §3)

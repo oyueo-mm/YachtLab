@@ -145,7 +145,7 @@ export class EconomyStore {
    * Append ledger rows and move the balance (inside a transaction). Rows whose id exists are skipped.
    * Returns the grants actually applied.
    */
-  private post(entries: { id: string; kind: string; coins: number; gems: number; label: string }[], now: number): { applied: typeof entries; wallet: Wallet } {
+  private post(entries: { id: string; kind: string; coins: number; gems: number; label: string; config?: string }[], now: number): { applied: typeof entries; wallet: Wallet } {
     const r = this.row()!;
     let coins = r.coins;
     let gems = r.gems;
@@ -166,12 +166,49 @@ export class EconomyStore {
         coins,
         gems,
         e.label.slice(0, 80),
-        ECONOMY.version,
+        e.config ?? ECONOMY.version,
       );
       applied.push(e);
     }
     if (applied.length) this.sql.exec("UPDATE econ SET coins = ?, gems = ?, updated_at = ? WHERE id = 1", coins, gems, now);
     return { applied, wallet: { coins, gems } };
+  }
+
+  /**
+   * C5: the ONE ledger writer for non-match rewards (`RewardGrants`: attendance, activity streak, weekly
+   * streak, inbox claims, redeem codes, operator / suggestion rewards, daily content). Same `post` as
+   * every other balance change, so `verify()` and the running totals hold. Must run inside the caller's
+   * transaction. Returns null when the ledger already has `entry.id` (nothing is changed).
+   * Items: achievement-only items are stored with `via = achievement` (like achievement titles, they do
+   * not count toward the ownership achievements); others with `via = grant:<kind>`. Owned items are skipped.
+   */
+  grantCredit(userId: string, entry: { id: string; kind: string; coins: number; gems: number; label: string; config: string }, items: readonly string[], now: number): { wallet: Wallet; skipped: string[] } | null {
+    this.ensure(userId, now);
+    if (this.sql.exec("SELECT 1 FROM ledger WHERE event_id = ?", entry.id).toArray().length) return null;
+    const wallet = entry.coins || entry.gems ? this.post([entry], now).wallet : this.balance();
+    const skipped: string[] = [];
+    const owned = this.owned();
+    for (const id of items) {
+      const item = itemById(id);
+      if (!item) throw Error("unknown grant item");
+      if (owned.has(id)) skipped.push(id);
+      else this.sql.exec("INSERT INTO inventory (item_id, level, via, at) VALUES (?, 1, ?, ?)", id, item.acquisition === "achievement" ? "achievement" : `grant:${entry.kind}`, now);
+    }
+    if (items.length > skipped.length) this.itemsAchievements(userId, now);
+    return { wallet, skipped };
+  }
+  /** Whether the ledger has a row (read only). */
+  hasLedger(eventId: string) {
+    return this.sql.exec("SELECT 1 FROM ledger WHERE event_id = ?", eventId).toArray().length > 0;
+  }
+  /** Current balance (no row is created). ADMIN-1 (#141) adds the same helper as `wallet()`: keep one at integration. */
+  balance(): Wallet {
+    const r = this.row();
+    return { coins: r?.coins ?? 0, gems: r?.gems ?? 0 };
+  }
+  /** Whether the account used the economy (the welcome path created its row). */
+  hasEconomy() {
+    return this.row() !== null;
   }
 
   /** Items granted by achievements (never purchasable). */

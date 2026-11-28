@@ -79,3 +79,23 @@ export const drawStatus = (server: string) => call<{ snapshot: Snapshot; draw: D
 export const submitDraw = (server: string, pool: DrawPool, requestId: string, quote?: Quote) =>
   call<{ snapshot: Snapshot; draw: DrawStatus; receipt: DrawReceipt }>(server, "/api/me/shop/draw", { pool, requestId, ...quoteBody(quote) });
 export const startServerAi = (server: string, name: string) => call<{ code: string; playerId: string; token: string }>(server, "/api/ai/start", { name });
+
+/* -------------------------------------------- C5 rewards: attendance, streaks, inbox, codes -------------------------------------------- */
+
+export type RewardGrantView = { txId: string; source: string; coins: number; gems: number; items: string[]; label: string; status: string; createdAt: number; expiresAt: number | null };
+export type RewardsStatus = {
+  enabled: boolean;
+  policy: string;
+  serverTime: number;
+  day: number;
+  week: number;
+  attendance: { claimedToday: boolean; claimed: number; cycle: number; total: number; rewards: { coins: number; gems: number }[]; nextResetAt: number };
+  activity: { current: number; best: number; activeToday: boolean; broken: boolean; restPerWeek: number; restLeft: number; milestones: { days: number; coins: number; gems: number; title?: string; paid: boolean }[] };
+  weeklyStreak: { current: number; best: number; tiers: { streak: number; coins: number; paid: boolean }[]; paidCoins: number; nextResetAt: number };
+};
+export type RewardsView = { status: RewardsStatus; inbox: RewardGrantView[]; history: RewardGrantView[]; redeem: boolean; wallet: { coins: number; gems: number }; granted?: RewardGrantView[]; snapshot?: Snapshot };
+/** Worker without the C5 routes, or RETENTION off: `RETENTION_OFF` (the page shows "준비 중"). */
+export const rewards = (server: string) => call<RewardsView>(server, "/api/me/rewards");
+export const claimAttendance = (server: string) => call<RewardsView>(server, "/api/me/rewards/attendance", {});
+export const claimReward = (server: string, txId: string | "all") => call<RewardsView>(server, "/api/me/rewards/claim", { txId });
+export const redeemCode = (server: string, code: string) => call<RewardsView>(server, "/api/me/rewards/redeem", { code });

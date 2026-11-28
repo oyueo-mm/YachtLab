@@ -1,6 +1,8 @@
 # C5 — 경제 시스템 및 재방문 보상 연구 (2026-11-28)
 
-> 담당 07 · 작업 ID C5. **연구·비활성 프로토타입이다.** 운영 보상 금액·상품 가격·뽑기 확률·경제 정책은 하나도 바꾸지 않았다(사용자 승인 전, D-C5-1).
+> 담당 07 · 작업 ID C5.
+> **2026-11-28 소유자가 C5-CORE를 채택했다(D-C5-2).** 출석 ATT-150, 연속 활동 ACT-REST1, 주간 최고 연승 WS-15-30-50, 장기 활동 칭호 3종 신규 ID가 승인됐다. Worker 연동은 구현했고 운영 플래그 `RETENTION`은 기본 off다(§11).
+> 보류: DP-3c15·C1-PRICE·복귀·월간 출석·컬렉션 완성·유료 재화·휴식권 판매. 기존 가격·뽑기 확률·강화 비용·기존 보상은 그대로다.
 > 기준 코드: `main` `edc2fbf` + SEC-1-01 커밋 `185c504`(SEC-1 브랜치, §9). 경제 버전 `M3i-W30@2`, 카탈로그 Rev.2.
 > 시뮬레이션: `npx tsx scripts/economy/c5-retention-sim.ts --users 150 --seeds 3` → [c5/retention-sim.json](./c5/retention-sim.json) (개발 시드 5101–5103, **홀드아웃 아님**, 실행 약 190초).
 > 지급 계약: [c5/REWARD-GRANT-CONTRACT.md](./c5/REWARD-GRANT-CONTRACT.md) (05·06 담당자용).
@@ -354,3 +356,26 @@ npx tsx scripts/economy/c5-retention-sim.ts --users 150 --seeds 3
 ```bash
 npx vitest run tests/retention-policy.test.ts tests/reward-grants.test.ts tests/sec1-economy.test.ts
 ```
+
+## 11. 채택 이후 구현 (2026-11-28, D-C5-2~4)
+
+| 승인 항목 | 구현 | 비고 |
+|---|---|---|
+| 출석 ATT-150 | `RetentionStore.claimAttendance`, `POST /api/me/rewards/attendance` | KST 하루 1회, 결석해도 유지, 7회 뒤 새 주기, txId `att:<주기>:<n>`. 두 기기 동시 수령은 하나만 200(wrangler E2E) |
+| 연속 활동 ACT-REST1 | `RetentionStore.onMatch` / `onDailyContent` | 서버 검증 정상 완료 경기(본인 기권·상대 기권승·모드 상한 제외)와 공식 오늘의 요트 완료만 인정한다. 출석은 활동이 아니다. 주 1회 휴식(월요일 KST 초기화)이 있고 휴식일은 일수에 넣지 않는다. 이정표는 `act:m<일>`로 평생 1회 |
+| 장기 활동 칭호 3종 | `title.streak30`·`title.streak100`·`title.streak365`(특수·업적 전용, 카탈로그 rev 3, 뽑기 제외) | 획득 경로: 연속 활동 30·100·365일 이정표 지급에만 포함. 구매(`NOT_FOR_SALE`)·뽑기(풀 제외)·다른 지급 출처(`ITEM` 거부)로는 얻을 수 없다 |
+| 주간 최고 연승 WS-15-30-50 | `applyWeeklyStreak`(경기 정산 트랜잭션) | 빠른 1:1만 인정. 같은 상대는 한 연승에 1회. 무승부·상대 기권승은 유지, 패배·본인 기권은 0. 단계별 차액 지급(15→+15→+20), 주 최대 50. 기존 연승 업적 카운터는 그대로 |
+| 공통 지급 엔진 | `RewardGrants` + `EconomyStore.grantCredit` | 원장 경로 하나, 출처 승인 스위치, 보상함, ADMIN-1 어댑터 |
+| 사용자 화면 | `#rewards`(`src/rewards/RewardsPage.tsx`) | 출석 7칸·연속 활동 이정표·주간 연승 단계·보상함·교환 코드(준비 중). 팝업 없음. 메뉴 연결은 UI-1 |
+
+**칭호 이름·디자인 제안(검토 요청):**
+- `title.streak30` 「한 달 항해사」 ⚓
+- `title.streak100` 「백일 선장」 ✧
+- `title.streak365` 「사계절 제독」 ✹
+
+모두 특수 등급 텍스트 칭호이고 업적 칭호와 같은 스타일이다. 바다·항해는 요트 테마와 맞췄고, 기간은 이름에 드러나게 했다. 이름은 ID와 분리되어 있어 승인 전 변경해도 소유권에 영향이 없다.
+
+**승인 규칙을 구현하며 정한 해석(검토 요청):**
+1. 게스트 상대에게 이긴 빠른 대전은 주간 연승을 **유지하되 올리지 않는다**. 게스트는 식별자가 없어 "같은 상대 1회" 규칙을 적용할 수 없고, 게스트 탭을 여러 개 열어 연승을 쌓는 경로를 막기 위해서다.
+2. 연속 활동의 "일일 콘텐츠 완료"는 공식 오늘의 요트 완료(`daily.official.completed`)로 한정한다. 퍼즐 답안은 승인 시 추가한다.
+3. 정책은 승인 시점부터 적용하고 **과거 경기로 소급하지 않는다**(진행도 0부터).

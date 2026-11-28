@@ -108,7 +108,7 @@ export default function DrawPanel({ server, onWallet }: { server: string; onWall
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "뽑기 요청을 처리하지 못했어요.";
-      if (error instanceof EconomyError && ["DRAW_CLOSED", "DRAW_LIMIT", "INSUFFICIENT", "DRAW_REQUEST", "INVALID", "ODDS_CHANGED", "PRICE_CHANGED", "POLICY_CHANGED"].includes(error.code)) {
+      if (error instanceof EconomyError && ["DRAW_CLOSED", "DRAW_LIMIT", "INSUFFICIENT", "DRAW_REQUEST", "INVALID", "ODDS_CHANGED", "PRICE_CHANGED", "POLICY_CHANGED", "REQUEST_REUSED", "CLIENT_UPDATE_REQUIRED"].includes(error.code)) {
         clearPending();
         setError(message);
       } else {

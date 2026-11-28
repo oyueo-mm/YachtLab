@@ -1,6 +1,9 @@
 /**
  * C5 retention rewards: attendance, daily play, activity streak, and the weekly best win streak.
- * Research prototype. It is not active, nothing imports it into the Worker, and it grants nothing.
+ * The owner adopted C5-CORE on 2026-11-28 (attendance ATT-150, activity streak ACT-REST1, weekly best
+ * streak WS-15-30-50). The Worker runs `APPROVED_POLICY` through worker/src/retention.ts when its
+ * runtime flag `RETENTION` is "on" (default off: operational activation is a separate approval).
+ * Every other candidate here (daily play, return, monthly) is research only and on hold.
  *
  * The functions are pure and deterministic. They read the server clock's economy day/week (KST,
  * `economyDay`/`economyWeek`) and return the new state plus `RetentionGrant`s. A grant only says
@@ -8,13 +11,12 @@
  * (worker/src/grants.ts), which writes the existing ledger. Grant transaction ids are deterministic,
  * so a retried or replayed call can never pay twice.
  *
- * Amounts are candidates (docs/economy/C5-RETENTION-RESEARCH.md). The owner approves them before
- * anything goes live (D-C5-1). `RETENTION_ACTIVE` stays false until that approval and a separate
- * high-risk release.
+ * Research and approval record: docs/economy/C5-RETENTION-RESEARCH.md (D-C5-1, D-C5-2).
  */
 import { economyDay, economyWeek } from "../live/config";
 import type { MatchOutcome, RewardInput } from "../live/rewards";
 
+/** Kept for the research tests: the module itself never pays; the Worker flag `RETENTION` decides. */
 export const RETENTION_ACTIVE = false as const;
 
 export type Amount = { coins: number; gems: number };
@@ -244,7 +246,8 @@ export function markActiveDay(state: RetentionState, policy: ActivityPolicy, now
  * Weekly best quick-match streak (STREAK-REVIEW-2026-11-27 rules):
  *  - quick match (`random`) only; friend, AI, solo and multiplayer matches never touch it
  *  - a completed win against an opponent not yet beaten in this run: +1
- *  - a draw, a win by the opponent's forfeit, or a repeat win against the same opponent: no change
+ *  - a draw, a win by the opponent's forfeit, a repeat win against the same opponent, or a win against a
+ *    guest (no identity to apply the same-opponent rule): no change
  *  - a loss or my own forfeit/timeout: reset to 0
  * Each week starts at 0. A week pays the amount of its highest tier (e.g. 50 for 8 wins), paid in
  * steps as tiers are reached (15, then +15, then +20) and kept even if the streak breaks later.
@@ -255,8 +258,10 @@ export function applyWeeklyStreak(state: RetentionState, policy: WeeklyStreakPol
   let ws = state.ws.week === week ? state.ws : { week, current: 0, best: 0, paidCoins: 0, paidTiers: [], opps: [] };
   const completed = input.endReason === "completed";
   if (input.outcome === "loss") ws = { ...ws, current: 0, opps: [] };
-  else if (input.outcome === "win" && completed) {
-    const opp = input.opponentUserId ?? `guest:${input.endedAt}`;
+  else if (input.outcome === "win" && completed && input.opponentUserId) {
+    // A guest opponent has no stable identity, so "the same opponent counts once" cannot be enforced:
+    // a win against a guest keeps the streak but does not raise it.
+    const opp = input.opponentUserId;
     if (!ws.opps.includes(opp)) ws = { ...ws, current: ws.current + 1, opps: [...ws.opps, opp] };
   }
   ws = { ...ws, best: Math.max(ws.best, ws.current) };
@@ -317,7 +322,14 @@ export const PACKAGES: Record<string, RetentionPolicy> = {
   /** Light package: attendance + activity streak only. */
   LITE: { version: "R-LITE@0", attendance: ATTENDANCE["ATT-120"], dailyPlay: null, activity: ACTIVITY["ACT-REST1"], weeklyStreak: null },
   /** C5 recommendation, step 1 (pending approval): attendance + activity streak + weekly best streak. */
-  "C5-CORE": { version: "R-C5-CORE@0", attendance: ATTENDANCE["ATT-150"], dailyPlay: null, activity: ACTIVITY["ACT-REST1"], weeklyStreak: WEEKLY_STREAK["WS-15-30-50"] },
+  "C5-CORE": { version: "C5-CORE@1", attendance: ATTENDANCE["ATT-150"], dailyPlay: null, activity: ACTIVITY["ACT-REST1"], weeklyStreak: WEEKLY_STREAK["WS-15-30-50"] },
   /** C5 step 2 option: step 1 + daily play paid only at 3 completed matches (15 coins). */
   "C5-FULL": { version: "R-C5-FULL@0", attendance: ATTENDANCE["ATT-150"], dailyPlay: DAILY_PLAY["DP-3c15"], activity: ACTIVITY["ACT-REST1"], weeklyStreak: WEEKLY_STREAK["WS-15-30-50"] },
 };
+
+/* ------------------------------------------------------------- approved ------------------------------------------------------------- */
+
+/** The adopted policy (2026-11-28). Changing any amount here needs a new version and a new approval. */
+export const APPROVED_POLICY: RetentionPolicy = PACKAGES["C5-CORE"];
+/** Non-sale titles granted only by the activity-streak milestones (catalog rev 3). */
+export const STREAK_TITLE_IDS: ReadonlySet<string> = new Set(MILESTONES_FULL.flatMap((m) => (m.title ? [m.title] : [])));

@@ -1,36 +1,30 @@
 import { itemById } from "../../src/economy/live/catalog";
-import type { EconSql, Wallet } from "./economy";
+import { STREAK_TITLE_IDS } from "../../src/economy/retention/policy";
+import type { EconSql, EconomyStore, Wallet } from "./economy";
 
 /**
- * Reward grant engine (C5). Inactive prototype: `worker/src/index.ts` does not import it yet.
+ * Common reward grant engine (C5, approved for Worker integration; operational activation is a separate
+ * approval). Every non-match reward goes through `RewardGrants.issue` / `claim`:
+ *   attendance · activity streak · weekly best streak · reward inbox · redeem codes · operator rewards
+ *   (ADMIN-1) · adopted suggestions (ADMIN-1) · daily content (LIVE-1) · compensation · events
  *
- * Every non-match reward goes through this one entry point: attendance, daily play, daily content,
- * activity streak, weekly streak, operator rewards, redeem codes, accepted suggestions, compensation
- * and events. It runs in the account's own SQLite Durable Object and reuses the existing economy
- * tables:
- *  - `ledger`: one row per credited grant, `event_id = g:<txId>`, `kind = <source>`, `config = <policy
- *    version>`, the same running-balance columns, so `EconomyStore.verify()` keeps working
- *  - `econ`: the balance (`CHECK >= 0`)
- *  - `inventory`: granted items (`via = grant:<source>`)
- * and adds a `grant_tx` table with one row per grant request:
- *   tx_id (PK, idempotency key) · source · target user · coins · gems · items · policy version · label ·
- *   actor · delivery (direct / inbox) · status · request hash · timestamps · ledger id
+ * Storage (the account's own SQLite Durable Object):
+ *  - `grant_tx`: one row per grant request — tx id (idempotency key) · source · target user · coins · gems ·
+ *    items · policy version · label · actor · delivery (direct / inbox) · status · payload fingerprint ·
+ *    timestamps · expiry · ledger id · reference · skipped items
+ *  - the balance, the ledger row `g:<txId>` and items are written ONLY by `EconomyStore.grantCredit`, the
+ *    same `post` as every other balance change (one ledger writer; `EconomyStore.verify()` keeps holding)
  *
  * Contract (docs/economy/c5/REWARD-GRANT-CONTRACT.md):
- *  - Idempotency: the caller picks a deterministic `txId` (e.g. `att:<cycle>:<n>`, `dp:<day>:done`,
- *    `code:<codeId>`, `op:<campaign>`, `sug:<suggestionId>`). The same txId with the same payload returns
- *    the original record (`duplicate: true`) and changes nothing. The same txId with a different
- *    payload is refused with `TX_CONFLICT`.
- *  - Atomicity: the grant row, the ledger row, the balance and the items are written in ONE
- *    transaction. A failure leaves nothing behind, so a retry with the same txId is always safe.
- *  - Concurrency: the account object is single-threaded, so two deliveries of one txId are applied one
- *    after the other: the second one finds the first row.
- *  - No balance writes outside the ledger: there is no "set balance" operation. Operators can only
- *    issue grants (positive amounts with a reason, an actor and caps) or revoke an UNCLAIMED inbox
- *    entry. A credited grant is never edited or deleted. A correction is a new, separately reviewed
- *    transaction.
- *  - Verification: `verify()` checks that every credited grant has exactly its ledger row with the same
- *    amounts, that no `g:` ledger row lacks its grant, and that inbox entries have no ledger row.
+ *  - Idempotency: deterministic `txId` per event. Same txId + same payload → the original record
+ *    (`duplicate: true`); same txId + different payload → `TX_CONFLICT`.
+ *  - Atomicity: grant row + ledger row + balance + items in ONE transaction (join the caller's when nested).
+ *  - Concurrency: the account object is single-threaded; a second delivery finds the first row.
+ *  - Sources must be ENABLED: only the approved C5-CORE sources are enabled by default. Operator,
+ *    suggestion, daily content, redeem codes, compensation, events, daily play and return bonuses are
+ *    refused with `SOURCE_DISABLED` until their amounts are approved and the Worker enables them.
+ *  - No balance writes outside the ledger, no edits or deletes of a credited grant; operators can only
+ *    issue (positive, capped, with an actor) or revoke an UNCLAIMED inbox entry.
  */
 
 export type GrantSource =
@@ -46,8 +40,10 @@ export type GrantSource =
   | "compensation"
   | "event";
 export const GRANT_SOURCES: readonly GrantSource[] = ["attendance", "daily-play", "daily-content", "activity-streak", "weekly-streak", "return", "operator", "redeem-code", "suggestion", "compensation", "event"];
+/** Approved policy C5-CORE (2026-11-28): the only sources that may pay once the Worker turns retention on. */
+export const APPROVED_SOURCES: ReadonlySet<GrantSource> = new Set(["attendance", "activity-streak", "weekly-streak"]);
 
-/** Per-request ceilings. A larger operator grant must be split into reviewed campaigns, never one row. */
+/** Per-request ceilings (tool-error bounds, not the policy). */
 export const GRANT_LIMITS: Record<GrantSource, { coins: number; gems: number; items: number }> = {
   attendance: { coins: 200, gems: 10, items: 0 },
   "daily-play": { coins: 50, gems: 0, items: 0 },
@@ -70,7 +66,7 @@ export type GrantRequest = {
   source: GrantSource;
   coins: number;
   gems: number;
-  /** Item ids from the catalog (achievement-only and retired items are refused). */
+  /** Catalog item ids. Achievement-only items are accepted only as activity-streak titles. */
   items?: string[];
   /** Version of the policy or campaign that decided the amount, stored on the ledger row. */
   policyVersion: string;
@@ -132,8 +128,9 @@ export function validateGrant(r: GrantRequest, opts: { operator: boolean }): Fai
   for (const id of items) {
     const item = itemById(id);
     if (!item || item.retired || item.acquisition === "default") return fail("ITEM", "지급할 수 없는 아이템이에요.");
-    // Achievement-only items stay achievement-only (their meaning is "earned by this achievement").
-    if (item.acquisition === "achievement") return fail("ITEM", "업적 전용 아이템은 지급할 수 없어요.");
+    // Achievement-only items keep their meaning: the only ones a grant may carry are the activity-streak
+    // titles, and only from the activity-streak source.
+    if (item.acquisition === "achievement" && !(r.source === "activity-streak" && STREAK_TITLE_IDS.has(id))) return fail("ITEM", "업적 전용 아이템은 지급할 수 없어요.");
   }
   if (!r.policyVersion || r.policyVersion.length > 40) return fail("POLICY", "정책 버전이 필요해요.");
   if (!r.label || r.label.length > 80) return fail("LABEL", "표시 문구가 필요해요.");
@@ -153,9 +150,16 @@ const toRecord = (r: Row): GrantRecord => ({
 });
 
 export class RewardGrants {
-  constructor(private readonly sql: EconSql) {}
+  private readonly enabled: ReadonlySet<GrantSource>;
+  /**
+   * `enabled`: the sources this Worker may pay. Default: the approved C5-CORE sources. Tests may pass
+   * every source to exercise the contract; a Worker passes only sources whose amounts are approved.
+   */
+  constructor(private readonly sql: EconSql, private readonly econ: EconomyStore, opts: { enabled?: ReadonlySet<GrantSource> } = {}) {
+    this.enabled = opts.enabled ?? APPROVED_SOURCES;
+  }
 
-  /** Additive schema only (rollback-safe): the economy tables are created by `EconomyStore.init()`. */
+  /** Additive schema only (rollback-safe). The economy tables are created by `EconomyStore.init()`. */
   init() {
     this.sql.exec(
       "CREATE TABLE IF NOT EXISTS grant_tx (tx_id TEXT PRIMARY KEY, source TEXT NOT NULL, user_id TEXT NOT NULL, coins INTEGER NOT NULL CHECK (coins >= 0), gems INTEGER NOT NULL CHECK (gems >= 0), items TEXT NOT NULL, policy TEXT NOT NULL, label TEXT NOT NULL, actor TEXT NOT NULL, delivery TEXT NOT NULL, status TEXT NOT NULL, fingerprint TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, expires_at INTEGER, ledger_id TEXT, ref TEXT, skipped TEXT NOT NULL DEFAULT '[]')",
@@ -163,51 +167,25 @@ export class RewardGrants {
     this.sql.exec("CREATE INDEX IF NOT EXISTS grant_tx_status ON grant_tx (status, created_at)");
   }
 
+  isEnabled(source: GrantSource) {
+    return this.enabled.has(source);
+  }
+
   private get(txId: string): Row | null {
     return this.sql.exec<Row>("SELECT * FROM grant_tx WHERE tx_id = ?", txId).toArray()[0] ?? null;
   }
 
-  private wallet(): Wallet {
-    const r = this.sql.exec<{ coins: number; gems: number }>("SELECT coins, gems FROM econ WHERE id = 1").toArray()[0];
-    return { coins: r?.coins ?? 0, gems: r?.gems ?? 0 };
-  }
-
-  /** The economy row exists once the account used the economy (welcome). A grant never creates it. */
-  private hasEconomy() {
-    return this.sql.exec("SELECT 1 FROM econ WHERE id = 1").toArray().length > 0;
-  }
-
-  /**
-   * Credit one grant: ledger row + balance + items (call inside a transaction). Mirrors
-   * `EconomyStore.post` exactly (same columns, same running totals, integer and ≥ 0 checks).
-   * At activation this moves into `EconomyStore` so the ledger keeps a single writer.
-   */
-  private credit(rec: GrantRecord, now: number): { ledgerId: string; skipped: string[] } {
+  /** Ledger + balance + items through the single writer (inside the caller's transaction). */
+  private credit(rec: GrantRecord, now: number): { ledgerId: string | null; skipped: string[] } {
     const ledgerId = `g:${rec.txId}`;
-    if (this.sql.exec("SELECT 1 FROM ledger WHERE event_id = ?", ledgerId).toArray().length) throw Error("ledger row exists without its grant");
-    const w = this.wallet();
-    const coins = w.coins + rec.coins;
-    const gems = w.gems + rec.gems;
-    if (!Number.isInteger(coins) || !Number.isInteger(gems) || coins < 0 || gems < 0) throw Error("invalid balance");
-    if (rec.coins || rec.gems) {
-      this.sql.exec(
-        "INSERT INTO ledger (event_id, at, kind, coins, gems, coins_after, gems_after, funding, label, config) VALUES (?, ?, ?, ?, ?, ?, ?, 'play', ?, ?)",
-        ledgerId, now, rec.source, rec.coins, rec.gems, coins, gems, rec.label.slice(0, 80), rec.policyVersion,
-      );
-      this.sql.exec("UPDATE econ SET coins = ?, gems = ?, updated_at = ? WHERE id = 1", coins, gems, now);
-    }
-    const skipped: string[] = [];
-    for (const id of rec.items) {
-      const owned = this.sql.exec("SELECT 1 FROM inventory WHERE item_id = ?", id).toArray().length > 0;
-      if (owned) skipped.push(id);
-      else this.sql.exec("INSERT INTO inventory (item_id, level, via, at) VALUES (?, 1, ?, ?)", id, `grant:${rec.source}`, now);
-    }
-    return { ledgerId: rec.coins || rec.gems ? ledgerId : "", skipped };
+    const r = this.econ.grantCredit(rec.userId, { id: ledgerId, kind: rec.source, coins: rec.coins, gems: rec.gems, label: rec.label, config: rec.policyVersion }, rec.items, now);
+    if (!r) throw Error("ledger row exists without its grant");
+    return { ledgerId: rec.coins || rec.gems ? ledgerId : null, skipped: r.skipped };
   }
 
   /**
    * Issue a grant. Direct grants are credited at once; inbox grants wait for `claim`.
-   * `operator` must be true only for calls authenticated as an operator (admin token + audit actor).
+   * `operator` must be true only for calls authenticated as an operator (admin session + audit actor).
    */
   issue(userId: string, req: GrantRequest, now: number, opts: { operator?: boolean } = {}): IssueResult {
     const operator = opts.operator === true;
@@ -218,9 +196,10 @@ export class RewardGrants {
       const existing = this.get(req.txId);
       if (existing) {
         if (existing.fingerprint !== fingerprint) return fail("TX_CONFLICT", "같은 거래 ID로 다른 지급을 요청했어요.");
-        return { ok: true, duplicate: true, record: toRecord(existing), wallet: this.wallet() };
+        return { ok: true, duplicate: true, record: toRecord(existing), wallet: this.econ.balance() };
       }
-      if (!this.hasEconomy()) return fail("NO_ECONOMY", "재화 기능을 아직 사용하지 않은 계정이에요.");
+      if (!this.enabled.has(req.source)) return fail("SOURCE_DISABLED", "아직 지급하지 않는 보상이에요.");
+      if (!this.econ.hasEconomy()) return fail("NO_ECONOMY", "재화 기능을 아직 사용하지 않은 계정이에요.");
       if (req.delivery === "inbox" && req.expiresAt != null && req.expiresAt <= now) return fail("EXPIRED", "이미 만료된 보상이에요.");
       const rec: GrantRecord = {
         txId: req.txId, source: req.source, userId, coins: req.coins, gems: req.gems, items: [...(req.items ?? [])], policyVersion: req.policyVersion, label: req.label,
@@ -229,7 +208,7 @@ export class RewardGrants {
       };
       if (rec.status === "granted") {
         const c = this.credit(rec, now);
-        rec.ledgerId = c.ledgerId || null;
+        rec.ledgerId = c.ledgerId;
         rec.skippedItems = c.skipped;
       }
       this.sql.exec(
@@ -237,7 +216,7 @@ export class RewardGrants {
         rec.txId, rec.source, userId, rec.coins, rec.gems, JSON.stringify(rec.items), rec.policyVersion, rec.label, rec.actor, rec.delivery, rec.status, fingerprint,
         now, now, rec.expiresAt, rec.ledgerId, rec.ref, JSON.stringify(rec.skippedItems),
       );
-      return { ok: true, duplicate: false, record: rec, wallet: this.wallet() };
+      return { ok: true, duplicate: false, record: rec, wallet: this.econ.balance() };
     });
   }
 
@@ -247,20 +226,20 @@ export class RewardGrants {
   }
 
   private claimInner(txId: string, now: number): IssueResult {
-    {
-      const row = this.get(txId);
-      if (!row) return fail("NOT_FOUND", "보상을 찾을 수 없어요.");
-      if (row.status === "claimed" || row.status === "granted") return { ok: true, duplicate: true, record: toRecord(row), wallet: this.wallet() };
-      if (row.status === "revoked") return fail("REVOKED", "취소된 보상이에요.");
-      if (row.status === "expired" || (row.expires_at != null && row.expires_at <= now)) {
-        if (row.status !== "expired") this.sql.exec("UPDATE grant_tx SET status = 'expired', updated_at = ? WHERE tx_id = ?", now, txId);
-        return fail("EXPIRED", "받을 수 있는 기간이 지났어요.");
-      }
-      const rec = toRecord(row);
-      const c = this.credit(rec, now);
-      this.sql.exec("UPDATE grant_tx SET status = 'claimed', updated_at = ?, ledger_id = ?, skipped = ? WHERE tx_id = ?", now, c.ledgerId || null, JSON.stringify(c.skipped), txId);
-      return { ok: true, duplicate: false, record: { ...rec, status: "claimed", updatedAt: now, ledgerId: c.ledgerId || null, skippedItems: c.skipped }, wallet: this.wallet() };
+    const row = this.get(txId);
+    if (!row) return fail("NOT_FOUND", "보상을 찾을 수 없어요.");
+    if (row.status === "claimed" || row.status === "granted") return { ok: true, duplicate: true, record: toRecord(row), wallet: this.econ.balance() };
+    if (row.status === "revoked") return fail("REVOKED", "취소된 보상이에요.");
+    if (row.status === "expired" || (row.expires_at != null && row.expires_at <= now)) {
+      if (row.status !== "expired") this.sql.exec("UPDATE grant_tx SET status = 'expired', updated_at = ? WHERE tx_id = ?", now, txId);
+      return fail("EXPIRED", "받을 수 있는 기간이 지났어요.");
     }
+    // A source switched off after delivery keeps its entry, but nothing is paid until it is enabled again.
+    if (!this.enabled.has(row.source as GrantSource)) return fail("SOURCE_DISABLED", "지금은 받을 수 없는 보상이에요.");
+    const rec = toRecord(row);
+    const c = this.credit(rec, now);
+    this.sql.exec("UPDATE grant_tx SET status = 'claimed', updated_at = ?, ledger_id = ?, skipped = ? WHERE tx_id = ?", now, c.ledgerId, JSON.stringify(c.skipped), txId);
+    return { ok: true, duplicate: false, record: { ...rec, status: "claimed", updatedAt: now, ledgerId: c.ledgerId, skippedItems: c.skipped }, wallet: this.econ.balance() };
   }
 
   /** Claim every claimable inbox entry, oldest first, in one transaction. */
@@ -272,7 +251,7 @@ export class RewardGrants {
         const r = this.claimInner(id, now);
         if (r.ok && !r.duplicate) claimed.push(r.record);
       }
-      return { ok: true as const, claimed, wallet: this.wallet() };
+      return { ok: true as const, claimed, wallet: this.econ.balance() };
     });
   }
 
@@ -335,4 +314,21 @@ export class RewardGrants {
     for (const id of ledger.keys()) problems.push(`ledger row ${id} has no grant`);
     return { ok: problems.length === 0, grants: rows.length, problems };
   }
+}
+
+/**
+ * ADMIN-1 (#141) transition adapter. #141's `EconomyStore.adminGrant(userId, "admin:<mailbox id>", coins,
+ * gems, label, now)` posts its own ledger row. At integration it delegates here instead, so operator and
+ * suggestion rewards use the same grant record, caps, source switch and `verify()`:
+ *   adminGrant(...) → creditAdminClaim(grants, userId, { eventId, source, coins, gems, label, campaign }, now)
+ * The tx id stays `admin:<mailbox id>` (idempotent with #141's mailbox claim); the ledger row is
+ * `g:admin:<mailbox id>`. The preferred end state delivers the reward itself as an inbox grant
+ * (`delivery: "inbox"`) and keeps the mailbox row as the message (contract §7).
+ */
+export function creditAdminClaim(grants: RewardGrants, userId: string, claim: { eventId: string; source: "operator" | "suggestion" | "compensation"; coins: number; gems: number; label: string; campaign: string; actor: string }, now: number): IssueResult {
+  if (!/^admin:[A-Za-z0-9_:-]{4,90}$/.test(claim.eventId)) return fail("TX_ID", "거래 ID 형식이 올바르지 않아요.");
+  return grants.issue(userId, {
+    txId: claim.eventId, source: claim.source, coins: claim.coins, gems: claim.gems, policyVersion: claim.campaign.slice(0, 40), label: claim.label.slice(0, 80),
+    actor: claim.actor, delivery: "direct", ref: claim.campaign,
+  }, now, { operator: true });
 }
