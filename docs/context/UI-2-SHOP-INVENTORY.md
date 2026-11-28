@@ -50,8 +50,9 @@ POST /api/me/loadout-presets/apply  ← { id, requestId } → Snapshot  (서버�
 - 모바일 상단 카테고리 칩은 `position: sticky; top: 56px`(현재 헤더 높이)을 쓴다. 헤더 높이가 바뀌면 CSS 변수로 공유하자(`--header-h` 제안).
 - 상세 창은 기존 `.modal` + `useActivityDialog`를 그대로 쓰고 너비만 `.item-detail-v2`로 980px까지 넓혔다.
 
-### 담당 03 (렌더링·사운드)
-- 연결점: `src/shell/shop/preview-registry.ts`의 `registerPreviewProvider({ id, categories, Stage?, thumbnail?, sound? })`.
+### 담당 03 (렌더링·사운드) — FX-1 `FxPreview`와의 연동은 §6
+- 기본 연결: 주사위·보드 상세 무대는 `src/shell/shop/PreviewStage.tsx`(FxPreview와 같은 props·핸들)를 통해서만 쓴다.
+- 확장 연결점: `src/shell/shop/preview-registry.ts`의 `registerPreviewProvider({ id, categories, Stage?, thumbnail?, sound? })`.
   - `Stage(props: { item, level, partner, active })`: 주사위·보드 상세 무대를 대체. `active=false`면 렌더 루프 정지.
   - `thumbnail(item, level) → url | null`: 카드용 사전 렌더 이미지(아틀라스 등). null이면 기존 캔버스 썸네일.
   - `sound(item, level, cue)`: "소리 듣기/효과음 비교" 버튼용 큐(`roll|land|emote|fx|tap`). 현재는 내장 합성음 사용.
@@ -61,6 +62,31 @@ POST /api/me/loadout-presets/apply  ← { id, requestId } → Snapshot  (서버�
 - 회귀 범위: `tests/ui/economy.spec.ts`, `collections.spec.ts`, `onboarding-shop.spec.ts`, 신규 `tests/ui/ui2-shop.spec.ts`, 단위 `tests/shop-curation.test.ts`.
 - 수동 확인 권장: 실제 Worker(rev 2)에서 캐러셀의 "판매 준비 중" 표시가 사라지는지, 프리셋 불러오기 후 저장이 서버 검증을 통과하는지.
 
-## 5. 검증
+## 5. 검증 (2026-11-28, 로컬 컨테이너, Chromium · desktop 1440×1000 + Pixel 7)
 
-검증 결과·한계는 [RESULTS.md](./RESULTS.md)의 "UI-2 상점·인벤토리" 항목에 기록한다.
+| 범위 | 결과 |
+| --- | --- |
+| 단위 `tests/shop-curation.test.ts` (큐레이션·필터·정렬·카탈로그 불변·프리셋 검증·계정 분리·단일 무대 토큰) | 8/8 통과 |
+| UI `tests/ui/ui2-shop.spec.ts` (캐러셀, 둘러보기/전체 분리, 검색·가격대·정렬, 9개 상품군, 보유·장착 상태, 요트·스트레이트 연출, 특수 연출 탭, 목록 강화, 컬렉션 진행도, 프리셋 검증·계정 분리, 뽑기 공개·중복, 320~1920px 6개 폭 × 3화면 가로 넘침 없음) | 14/14 통과(두 기기) |
+| 기존 UI `economy`·`collections`·`onboarding-shop`·`a1-board-fx`·`a2-cosmetics` | 전부 통과(조건부 skip 3 기존) |
+| FX-1 병합 모의(§6) | 충돌 1파일, 해결 후 tsc·FX-1 `fx1-preview`·UI-2·economy·collections 52 통과 |
+| 전체 `npm test`·`npm run build`·전체 Playwright | 결과는 PR 본문과 [RESULTS.md](./RESULTS.md) |
+
+발견·수정한 기존 문제: ① 인벤토리 특수 연출 탭 흰 화면(위 표). ② 첫 방문 인벤토리 안내가 열린 상세 창 위에 겹쳐 뜨면서 Esc를 가로채 창이 닫히지 않던 경쟁 상태 — 안내는 열린 모달이 없을 때까지 기다린다(`src/ui/Coach.tsx`), 회귀 테스트 방문자 상태에 인벤토리 안내 확인을 추가.
+
+한계: 실제 Worker·실계정 구매/강화/장착은 로컬 모의 서버로만 확인했다. 성능은 구조(카드 WebGL 0개, 상세 무대 1개, 화면 밖 썸네일 미렌더)로 보장하며 FPS·메모리 실측은 하지 않았다.
+
+## 6. FX-1 `FxPreview` 연동 계획 (브랜치 `claude/epic-cannon-2h7dfr`, 병합하지 않음)
+
+FX-1은 `src/fx-preview`의 `FxPreview`/`FxPreviewHandle`(D-104)을 제공하고, 같은 브랜치에서 `ItemStage`의 주사위·보드 분기를 `FxPreview`로 바꾸고 주사위 Lv.3 상세에 "요트 연출"·"스트레이트 연출"을 추가했다. UI-2는 FX-1을 병합하지 않고 다음처럼 설계했다.
+
+1. **같은 인터페이스의 어댑터.** `src/shell/shop/PreviewStage.tsx`는 `FxPreview`와 같은 props(`dice`, `diceLevel`, `board`, `boardLevel`, `autoRoll`, `renderer`, `sound`, `label`, `onRolled`, `ref`)와 같은 핸들(`roll`, `moment("yacht"|"straight"|"win")`, `scoreFx`, `playSound`, `reset`)을 가진다. 지금은 main의 경기 구성 요소(DiceArea·BoardFx·SynergyFx·score-fx)로 구현돼 있다. 상점·인벤토리 코드는 이 어댑터만 부른다.
+2. **ItemStage는 이미 FX-1 형태.** 주사위·보드 분기는 FX-1과 똑같이 `ref` 핸들로 굴림·족보 반응·승리 반응을 부르고, FX-1이 추가한 요트·스트레이트 연출을 모든 단계의 주사위·보드에서 쓸 수 있게 넓혔다(연출 칩 그룹). 여기에 UI-2의 내 장착 보드/주사위 조합, "소리 듣기"(`playSound("impact")`→`"land"`), 기본 연출(fx.none) 미리보기, 단일 활성 무대 토큰이 더해진다.
+3. **병합 절차(FX-1 → main 이후 UI-2 갱신 시).**
+   - 충돌 파일은 `src/shell/ItemViews.tsx` 하나다(모의 병합으로 확인). UI-2 쪽(`ours`)을 택한다. FX-1의 ItemStage 변경 — `FxPreview` 사용, 직접 DiceArea·BoardFx 코드 제거, 요트·스트레이트 버튼, import 정리 — 는 어댑터를 통해 모두 유지된다. FX-1의 `face-paint.ts`·`table.ts`·`sound.ts` 등 다른 변경은 충돌 없이 그대로 들어온다.
+   - `src/shell/shop/PreviewStage.tsx` 전체를 한 줄 재수출로 바꾼다:
+     `export { FxPreview as PreviewStage, previewLevel, type FxPreviewHandle as PreviewStageHandle, type FxMoment as PreviewMoment, type FxPreviewSound as PreviewSound, type FxPreviewProps as PreviewStageProps } from "../../fx-preview";`
+   - 그러면 `playSound("accent")`(Lv.3 착지 강조)·`"board"`·재질별 소리·`soundEnabled`가 FX-1 구현으로 살아난다.
+   - 모의 병합(위 두 단계 적용)에서 `tsc -b` 통과, `tests/ui/fx1-preview.spec.ts`·`ui2-shop`·`economy`·`collections` 52개 통과(FX-1 자체의 모바일 skip 2).
+4. **카드 썸네일.** 카드는 3D 테이블과 같은 면 페인터(`paintFace`)로 그린 2D 캔버스 한 장이라 색·무늬·눈 배치·Lv.2/3 발광은 실제와 같다. FX-1의 PBR(범프·거칠기·금속·투명·자체 발광 맵)과 둥근 모서리는 2D 썸네일에 없다. 다음 단계: FX-1 병합 뒤 `registerPreviewProvider({ id: "fx1-thumbs", categories: ["dice"], thumbnail })`로 **단일 오프스크린 WebGL 렌더러 하나**가 대기열에서 상품별·단계별 정지 이미지를 차례로 렌더해 메모리(+선택적으로 IndexedDB, 키 = 상품 ID·단계·렌더러 버전)에 캐시하고, 준비 전에는 지금의 2D 썸네일을 보인다. 카드마다 WebGL 컨텍스트를 만들지 않는다는 원칙은 그대로다. 이 렌더러 API는 03(FX-1)의 `table.ts`/`stage.ts`에 정지 프레임 렌더 함수가 필요하므로 FX-1 담당에게 요청한다.
+5. **단일 렌더러.** `FxPreview`는 열린 상세 창(또는 인벤토리 "이 조합으로 굴려 보기" 창) 하나에서만 마운트된다. 캐러셀·레일·그리드·슬롯 요약·프리셋에는 WebGL이 없다(UI 테스트: 둘러보기 화면 `.stage-board` 0개, 상세 1개).

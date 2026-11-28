@@ -641,3 +641,19 @@ C3·A3·A5·A4·C4.2와 문서 PR #112·#121·#122를 하나의 통합 PR(#134)�
 ## D-100. 일반 Worker 배포는 main 파이프라인 성공 뒤 자동, 운영 변수는 비상 정지 스위치 (2026-11-28, CI-1.2)
 
 일반 제품 업데이트는 PR → 필수 `ci-result` → main 병합 → Pages 배포 → (Worker 입력이 바뀐 경우만) Worker 자동 배포로 운영자 승인 없이 진행한다. Worker 입력은 `worker/src/index.ts`의 실제 번들 입력과 Worker 설정이며, UI·문서만 바뀐 커밋은 Cloudflare에 쓰지 않는다. 기준점은 활성 배포에 기록된 `git:<sha>` 주석이고, 주석 없는 배포(대시보드·롤백), 보호 입력(`wrangler.toml`의 바인딩·DO 마이그레이션·런타임 변수, 경제 원장·정책), 자동·수동 배포 실패는 자동 경로를 정지시키며 그 뒤의 수동 배포 성공으로만 재개한다(건너뛴 자동 실행은 잠금을 풀지 않는다). 수동 경로는 고위험 배포용으로 `worker-production-approval` Environment의 Required reviewers 승인을 유지한다. 실패한 배포는 재시도하지 않는다. `WORKER_PRODUCTION_DEPLOY_ENABLED`는 상시 `true`, 비상시 `false`. `worker-production` Environment(main 전용·전용 토큰)와 main 보호는 유지하고 그 Environment의 Required reviewers만 제거한다. 실제 롤백·대량 삭제·경제 정책·유료 설정은 계속 별도 승인. [CI-1.2 Worker 자동 배포](../operations/CI-1-2-WORKER-AUTO-DEPLOY.md)
+
+## D-UI2-1. 상점 추천은 편집 큐레이션만, 판매 정책은 그대로 (2026-11-28, UI-2)
+
+상점 개편은 기존 상품 ID·가격·획득 조건·등급·뽑기 확률·재화 소모·중복 보상·강화 단계·보유권을 바꾸지 않는다. 이용량을 수집하지 않으므로 인기 순위·개인화 추천을 만들지 않고, "추천순"·"에디터 추천"은 `src/shell/shop/curation.ts`의 편집 목록이며 화면에 그렇게 밝힌다. 프로모션 캐러셀은 기존 테마 컬렉션 10종과 에디터 추천만 다루고 할인·묶음·마감·미출시 상품·판매 전 시즌을 홍보하지 않는다. 신상품 = 가장 최근 카탈로그 리비전. [UI-2](./UI-2-SHOP-INVENTORY.md)
+
+## D-UI2-2. 미리보기 렌더러는 한 번에 하나, 카드는 정적 썸네일 (2026-11-28, UI-2)
+
+카드·레일·캐러셀·슬롯 요약에는 WebGL을 쓰지 않는다(면 페인터 2D 캔버스·CSS 샘플, 화면 밖 미렌더). 실제 주사위 테이블은 열린 상세 또는 조합 창 하나에서만 마운트한다(`claimStage`). 실물에 더 가까운 썸네일은 단일 오프스크린 렌더러의 정지 이미지 캐시로만 추가한다(`registerPreviewProvider.thumbnail`).
+
+## D-UI2-3. 상점 무대는 FX-1 FxPreview 인터페이스에 맞춘 어댑터로 (2026-11-28, UI-2)
+
+FX-1(`claude/epic-cannon-2h7dfr`, D-104)을 병합하지 않고, 같은 props·핸들의 `src/shell/shop/PreviewStage.tsx`를 통해서만 주사위·보드 미리보기를 쓴다. 병합 시 `ItemViews.tsx`는 UI-2 쪽을 택하고 어댑터를 `FxPreview` 재수출 한 줄로 바꾼다. 모의 병합에서 FX-1 UI 테스트 포함 통과를 확인했다. [UI-2 §6](./UI-2-SHOP-INVENTORY.md)
+
+## D-UI2-4. 장착 프리셋은 당분간 기기 저장, 적용은 서버와 같은 검증 (2026-11-28, UI-2)
+
+프리셋은 계정 ID별 localStorage(최대 5개, 세션 비밀값 미포함)이며 "계정 동기화 없음"을 표시한다. 불러오기는 `validateLoadout`(실패 시 `sanitizeLoadout` 후 이유 안내)을 거친 초안이고, "장착 저장" 때 서버가 다시 검증한다. 계정 동기화 API 계약은 [UI-2 §3](./UI-2-SHOP-INVENTORY.md)에 있고 Worker 구현은 별도 작업이다.
