@@ -26,14 +26,25 @@ export function buildDieMaterials(look: DiceColors, s: DiceMaterialSpec, opts: {
       m.bumpMap = keep(bumpTexture(v, 256, look, s));
       m.bumpScale = 1.4;
     }
-    const surface = keep(surfaceTexture(v, 128, look, s));
-    m.roughnessMap = surface;
-    m.metalnessMap = surface;
-    m.roughness = 1;
-    m.metalness = 1;
-    if (s.opacity < 1) {
-      m.transparent = true;
-      m.alphaMap = keep(alphaTexture(v, 128, s));
+    if (opts.flat) {
+      // Tier 2 (weakest devices): the pre-FX-1 shading cost — scalar roughness / metalness, plain opacity,
+      // no extra maps. Shape (rounded edges) and colours stay; reflections are off (caller passes env 0).
+      m.roughness = Math.max(0.3, s.roughness);
+      m.metalness = Math.min(0.55, s.metalness);
+      if (s.opacity < 1) {
+        m.transparent = true;
+        m.opacity = Math.max(0.86, s.opacity);
+      }
+    } else {
+      const surface = keep(surfaceTexture(v, 128, look, s));
+      m.roughnessMap = surface;
+      m.metalnessMap = surface;
+      m.roughness = 1;
+      m.metalness = 1;
+      if (s.opacity < 1) {
+        m.transparent = true;
+        m.alphaMap = keep(alphaTexture(v, 128, s));
+      }
     }
     if (env) {
       m.envMap = env;

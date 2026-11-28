@@ -62,8 +62,8 @@ function setAdaptiveLevel(level: number) {
 }
 /**
  * Dice material tier (FX-1 performance pass). 0 = full (clearcoat / iridescence / sheen where the item has
- * them), 1 = standard shading with the same maps and reflections, 2 = flat: no relief map, reflections only
- * for metal / glass / gems. Starts at 2 on software GL (SwiftShader / llvmpipe: the CPU draws every pixel,
+ * them), 1 = standard shading with the same maps and reflections, 2 = flat: the pre-FX-1 shading cost (no
+ * relief / surface / alpha maps, no reflections, no back light) — only the rounded shape remains. Starts at 2 on software GL (SwiftShader / llvmpipe: the CPU draws every pixel,
  * measured +1…+5 ms per frame at tier 0/1), 1 on "성능 우선", else 0; "자동" quality steps it down after slow throws *before* lowering resolution.
  * Remembered for the browser session. `sessionStorage["yachtlab.dice.material"]` also forces a tier (QA).
  */
@@ -226,13 +226,13 @@ export class DiceTable {
     const stored = storedMaterialTier();
     this.software = softwareGL(this.renderer);
     this.matTier = stored >= 0 ? stored : this.software ? 2 : quality === "3d" ? 1 : 0;
-    this.buildMaterials(CLASSIC_DICE);
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0xa8a8a8, 1.45));
     this.light = new THREE.DirectionalLight(0xffffff, 0.95);
     this.scene.add(this.light, this.light.target);
     // A weak back light from the far side: an edge highlight that separates polished dice from the board.
     this.rim = new THREE.DirectionalLight(0xdfe8ff, 0.32);
     this.scene.add(this.rim, this.rim.target);
+    this.buildMaterials(CLASSIC_DICE);
     this.blob = blobTexture();
     host.appendChild(this.canvas);
     addEventListener("scroll", this.dropRect, { passive: true, capture: true });
@@ -407,7 +407,8 @@ export class DiceTable {
     const usePhysical = this.physical && (raw.clearcoat > 0 || raw.iridescence > 0 || raw.sheen > 0);
     const lite = this.physical ? raw : liteSpec(raw);
     const flat = this.matTier >= 2;
-    const s = flat ? { ...lite, relief: 0, pipDepth: 0, env: lite.metalness > 0 || lite.class === "glass" || lite.class === "gem" ? lite.env : 0 } : lite;
+    const s = flat ? { ...lite, relief: 0, pipDepth: 0, env: 0 } : lite;
+    this.rim.visible = !flat; // the back light is a second per-pixel light: off on the flat tier
     this.spec = s;
     this.canvas.dataset.material = s.class; // diagnostics (tests, screenshots)
     this.canvas.dataset.physical = String(usePhysical);
@@ -425,17 +426,16 @@ export class DiceTable {
     this.motionOn = !!look.glow && (look.fxLevel ?? 1) >= 2 && s.motion !== "none";
     this.materials.forEach((m) => m.dispose());
     this.materials = built.materials;
-    for (const [id, mats] of this.dieMaterials) {
-      mats.forEach((m) => m.dispose());
-      const fresh = this.materials.map((m) => m.clone());
-      this.dieMaterials.set(id, fresh);
-      const mesh = this.meshes.get(id);
-      if (mesh) mesh.material = fresh;
-    }
+    // Per-die clones only when dice glow (their light follows each die's motion); otherwise all dice share
+    // the six materials (fewer program state changes per frame, as before FX-1).
+    for (const mats of this.dieMaterials.values()) mats.forEach((m) => m.dispose());
+    this.dieMaterials.clear();
+    for (const [id, mesh] of this.meshes) mesh.material = this.materialsFor(id);
     old.forEach((t) => t.dispose());
     this.energy.clear();
   }
   private materialsFor(id: number) {
+    if (!this.glowBase) return this.materials;
     let mats = this.dieMaterials.get(id);
     if (!mats) {
       mats = this.materials.map((m) => m.clone());
