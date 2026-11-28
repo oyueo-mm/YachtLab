@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { ActivityVisible } from "../shell/activity-visible";
+import { useContext, useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
 import "./kit.css";
 
@@ -207,6 +208,7 @@ export function Segmented<T extends string>({ value, options, onChange, label, c
 export function Sheet({ open, onClose, title, children, className = "", labelledBy }: {
   open: boolean; onClose: () => void; title: ReactNode; children: ReactNode; className?: string; labelledBy?: string;
 }) {
+  const visible = useContext(ActivityVisible);
   const ref = useRef<HTMLDialogElement>(null);
   const headId = useId();
   const opener = useRef<Element | null>(null);
@@ -214,16 +216,16 @@ export function Sheet({ open, onClose, title, children, className = "", labelled
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (open && !d.open) {
+    if (open && visible && !d.open) {
       opener.current = document.activeElement;
       setClosing(false);
       d.showModal?.();
     }
-    if (!open && d.open) {
+    if ((!open || !visible) && d.open) {
       d.close();
       (opener.current as HTMLElement | null)?.focus?.();
     }
-  }, [open]);
+  }, [open, visible]);
   const close = useCallback(() => onClose(), [onClose]);
   return (
     <dialog ref={ref} className={"ui-sheet" + (closing ? " closing" : "") + (className ? " " + className : "")} aria-labelledby={labelledBy ?? headId}

@@ -1,3 +1,4 @@
+import { useActivityDialog } from "./activity-visible";
 import { Select } from "../ui/kit";
 import ShopRail from "./ShopRail";
 import DrawPanel, { DrawOdds } from "./DrawPanel";
@@ -82,8 +83,8 @@ export function LoginPrompt({ server, action, resume, onClose, go }: { server: s
   const dialog = useRef<HTMLDialogElement>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [error, setError] = useState("");
+  useActivityDialog(dialog);
   useEffect(() => {
-    dialog.current?.showModal();
     let alive = true;
     void signInAvailable(server).then((ok) => alive && setAvailable(ok));
     return () => {
@@ -172,15 +173,7 @@ function ItemDetail({ item, initialLevel, unlocked, onClose, children, now = Dat
   const season = item.season && SEASONS[item.season];
   const descriptions = item.category === "board" || item.category === "emote" ? stageDescriptions[item.category] : item.levels;
   const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const surface = dialog.current;
-    const previous = document.activeElement;
-    surface?.showModal();
-    return () => {
-      surface?.close();
-      if (previous instanceof HTMLElement) previous.focus({ preventScroll: true });
-    };
-  }, []);
+  useActivityDialog(dialog);
   return (
     <dialog ref={dialog} className="modal item-detail" aria-label={`${item.name} 상세`}
       onCancel={(event) => { event.preventDefault(); onClose(); }}

@@ -171,6 +171,8 @@
 
 ## D-027. 관전은 모든 플레이어 동의 + 별도 관전 키, 읽기 전용, 방당 5명, 저장 쓰기 0 (제품 Phase 3)
 
+> **갱신(D-095, C3):** 친구 대전의 관전 범위는 이제 방장이 정한다(기본 비공개). 별도 관전 키, 읽기 전용, 방당 5명, 종료·재대결 후 관전 유지는 그대로다. 방장 제어 이전에 저장된 방은 이 항목의 전원 동의 규칙으로 읽는다.
+
 **상태: 신규 (2026-11-24, PR C).** 관전은 기본 꺼짐이다. 모든 좌석이 허용해야 무작위 관전 키(좌석 토큰과 별개)로 만든 링크 `?watch=CODE&k=KEY#spectate`가 동작한다. 누구든 끄면 즉시 키를 폐기하고 관전자를 끊는다(끄기에는 쿨다운 없음). 대기실에 새 플레이어가 앉아도 관전이 멈춘다. 관전 소켓은 중립 시점 뷰(`viewFor(state, null)`)만 받고 모든 조작·채팅·좌석 인증 메시지를 거부한다. 관전자 수는 방당 5명이다(송신은 DO 요청이 아니지만 공유 무료 한도를 고려해 보수적으로 정함). 관전 상태는 메모리와 소켓 첨부 데이터에만 둔다. 관전 MVP에서 관전자 채팅·감정 표현·공개 목록·리플레이는 제외했다.
 
 상세: [소셜·계정 설계](../online/SOCIAL-AND-ACCOUNTS.md) §3.
@@ -266,6 +268,26 @@
 **상태: 신규 (2026-11-25, 온라인 개선 PR).** 모든 빠른 대전은 관전방에 자동 등록된다. 공개 여부 체크박스를 없애고 매칭 시작 버튼 아래에 "빠른 대전은 관전방에 공개돼요(보기 전용)"만 안내한다. 서버가 강제한다: MatchHub는 클라이언트의 `spectate` 값을 무시하고 공개 경기로 만들고, 방은 공개 빠른 대전에서 관전 끄기 요청을 거절한다(`SPECTATE` 오류 + 현재 상태 재전송). 경기가 끝나면 목록에서 즉시 빠지고(기존 publishIfChanged → unpublish), 목록 항목은 `code·players(name, score, look)·round·spectators·max`뿐으로 좌석 토큰·관전 키·계정 ID가 없다(테스트로 키 집합 고정). 친구 방은 기존 전원 동의 관전 유지, AI 대전은 관전 없음. 닉네임은 프로필 페이지에서만 바꾸고 빠른 대전·친구 대전·초대 화면의 입력창을 없앴다. 게스트는 기기 저장 닉네임(없거나 현재 정책에 맞지 않으면 `요트러0000` 형식 자동 생성), 회원은 계정 닉네임이 기준이며 앱 시작·로그인 때 기기에 복사하고 계정에 닉네임이 없으면 기기 닉네임을 계정에 저장한다(기존 닉네임 보존). 서버도 로그인 좌석에는 클라이언트가 보낸 이름 대신 계정 닉네임을 쓴다(`UserStore.seat()` 한 번의 RPC로 닉네임·look). 입력창이 없으므로 같은 방의 같은 닉네임은 거절 대신 번호를 붙인다(`하늘 2`, 12자 제한 유지). 온라인 첫 화면은 중복 제목·설명 문단을 빼고 탭 → 닉네임 한 줄 → 주 버튼 순으로 줄였다.
 
 **근거:** worker/src/hub.ts, src/online/room.ts(setSpectate·uniqueName), worker/src/index.ts(seatInfo·seat), src/identity/display-name.ts, src/online/client.ts(savedName·defaultNickname), src/play/OnlineEntry.tsx, src/shell/Profile.tsx, tests/online-matchmaking.test.ts, tests/online-worker.test.ts, tests/economy-worker.test.ts, tests/ui/quick-match.spec.ts.
+
+
+## D-094. 전역 매칭 (C3, 2026-11-28 확정)
+
+**상태: PR #118, main 병합 대기.** (C3 초안의 D-088은 A2.2의 D-088과 겹쳐 D-094로 다시 매겼다. D-091까지는 다른 브랜치가 쓰고 있다.) 빠른 대전 대기는 사이트 전역에서 유지되고(앱 루트의 큐 컨트롤러), 팝업은 최소화·다시 열기, 취소와 연결 복구를 지원한다. 상대를 찾으면 알림음과 함께 자동으로 경기에 들어가며 별도 수락·거절 버튼은 없다. 배정·취소·재연결 결과는 서버 기준이다. 오프라인 AI 안내는 **대기 30초 이후**가 기본안이다. 매칭 성공 후 3초 카운트다운, 최종 팝업 디자인, 관전 목록 UI는 A6 범위다. 오프라인 AI 진행 상태, 구매·강화·뽑기 결과, C2 리뷰 취소·복원은 보존한다. 서버 AI 기능과 보상 정책, D-045(빠른 대전은 공개 관전)는 그대로다. C0 운영 Worker 배포 보류를 적용한다. [C3 계약](../online/C3-BACKGROUND-MATCH.md)
+
+## D-095. 친구 대전 관전 범위는 방장이 정한다 · 관전 ID 분리 · 현황 캐시 · 잠금 복구 (C3, 2026-11-28)
+
+**상태: PR #118, main 병합 대기.** 사용자 결정으로 C3 초안의 "참가자 전원 동의" 방식을 폐기한다.
+
+- 방장이 비공개(기본)·링크 관전·공개 중 하나를 고르며, 권한은 서버가 검사한다(방장이 아니면 `NOT_HOST`). 일반 참가자는 현재 범위를 보고, 바뀌면 모든 참가자에게 안내한다. 방장 승계·이양 시 설정은 유지한다. 빠른 대전은 D-045대로 항상 공개다.
+- 좁히면 즉시 처리하고 그 범위가 덮지 않는 권한을 폐기한다(공개→링크: 목록 키만, →비공개: 모든 키와 관전자). 넓히면 새 키를 발급한다.
+- 경기 종료 후에도 D-027대로 관전을 유지해 최종 결과와 재대결을 볼 수 있다. 종료된 경기는 공개 목록에서 즉시 빠진다.
+- 호환: 방장 제어 이전의 방 기록은 기존 규칙(전원 허용 시 링크만)으로 읽고 공개를 소급하지 않는다. 구 페이지의 `{allow}` 메시지는 방장일 때만 링크/비공개로 해석하고, 구 Worker에서는 새 페이지가 기존 스위치를 보인다.
+- **PR118-01:** 공개 목록과 관전 링크는 방(=초대) 코드가 아닌 10자 관전 ID를 쓴다. 관전 키나 관전 ID로는 좌석을 얻을 수 없다.
+- **PR118-02:** `/api/activity`는 허브 한 번 호출로 줄이고, 허브(10초)와 isolate(5초) 메모리 캐시를 둔다. 데이터는 최대 약 15초 지연되며 새 유료 리소스는 없다.
+- **PR118-03:** IN_MATCH가 나면 잠금을 가진 방에 실제 진행 여부를 묻고, 방이 부인한 잠금만 지운다. 시간만으로는 해제하지 않는다.
+- C3.1(대기실 참가/관전 선택, 방 소속과 경기 참가 분리)은 요구사항과 데이터 계약 후보만 기록했다.
+
+**근거:** src/online/room.ts(spectateMode·setSpectate·publicEntry·holdsAccount), src/play/Social.tsx, worker/src/index.ts(RoomDirectory spectate_ids·resolveSpectate·allocate*·/api/activity·/ws/:sid), worker/src/reservations.ts, worker/src/hub.ts(publish), server/online/server.ts, tests/online-social.test.ts, tests/online-worker.test.ts, tests/online-reservations.test.ts, tests/online-matchmaking.test.ts, tests/ui/online.spec.ts, tests/ui/multi-online.spec.ts. [C3 계약](../online/C3-BACKGROUND-MATCH.md)
 
 ## D-046. 방 생명주기: 재접속 유예 후 "연결 끊김(left)" 기권, 빈 방 자동 정리, 유예 정보는 소켓 첨부에 (2026-11-25)
 

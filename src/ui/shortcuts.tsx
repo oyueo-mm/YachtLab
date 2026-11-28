@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { categories, names, score, type Category, type Die } from "../engine";
 import { getSettings, updateSettings, useSettings } from "../settings";
 import { unlockAudio } from "../sound";
+import { ActivityVisible } from "../shell/activity-visible";
 import { Sheet, toast } from "./kit";
 
 /**
@@ -43,7 +44,7 @@ export function installShortcuts() {
   window.addEventListener("keydown", (e) => {
     if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return;
     if (isTyping(e.target)) return;
-    if (document.querySelector("[role=dialog]:not(dialog)")) return;
+    if (document.querySelector("[role=dialog]:not(dialog):not([inert] *)")) return;
     const s = getSettings();
     if (!s.shortcuts) return;
     // Screen keys first (topmost registration).
@@ -83,17 +84,18 @@ export function installShortcuts() {
 
 /** Register screen keys while `enabled`. The handler returns true when it used the key. */
 export function useShortcutLayer(handler: Handler, enabled = true, inDialog = false) {
+  const visible = useContext(ActivityVisible);
   const ref = useRef(handler);
   ref.current = handler;
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !visible) return;
     const id = ++seq;
     stack.push({ id, handler: (e) => ref.current(e), inDialog });
     return () => {
       const i = stack.findIndex((x) => x.id === id);
       if (i >= 0) stack.splice(i, 1);
     };
-  }, [enabled]);
+  }, [enabled, visible]);
 }
 
 export type GameKeys = {

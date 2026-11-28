@@ -36,7 +36,25 @@ test.beforeAll(async ({}, info) => {
   // one at a time: the matchmaker pairs whoever queues, so parallel seeding would cross the pairs
   for (const key of Object.keys(WISH)) await seedMember(worker, sessions[key], "회원" + key.toUpperCase(), WISH[key]);
 });
-test.afterEach(async () => { await Promise.all(contexts.splice(0).map((c) => c.close().catch(() => undefined))); });
+/**
+ * The same three accounts play every test. A signed-in account cannot start another match while it is
+ * still seated in one that is playing (C3 duplicate-match lock, D-094/D-095; a friend room with nobody
+ * connected keeps its match for up to 15 minutes, D-046). So each test resigns what it left unfinished,
+ * as a player would, before the next one starts. This only ends matches; it asserts nothing.
+ */
+async function resignUnfinished(pages: Page[]) {
+  for (const p of pages) {
+    const resign = p.getByRole("button", { name: "기권", exact: true }).first();
+    if (!(await resign.isVisible().catch(() => false)) || !(await resign.isEnabled().catch(() => false))) continue;
+    await resign.click().catch(() => undefined);
+    await p.getByRole("dialog").getByRole("button", { name: "기권", exact: true }).click({ timeout: 3000 }).catch(() => undefined);
+    await expect(p.locator(".game-result, .match-result").first()).toBeVisible({ timeout: 5000 }).catch(() => undefined);
+  }
+}
+test.afterEach(async () => {
+  await resignUnfinished(contexts.flatMap((c) => c.pages()));
+  await Promise.all(contexts.splice(0).map((c) => c.close().catch(() => undefined)));
+});
 test.afterAll(async () => { await worker?.stop(); idp?.close(); });
 
 const entry = (room?: string) => `?online-server=${encodeURIComponent(worker.url)}${room ? `&room=${room}` : ""}#online`;

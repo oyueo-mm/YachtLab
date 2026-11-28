@@ -84,6 +84,7 @@ export function useHumanTurn({
           await playbackDelay(T.reroll, signal);
           await waitForDice(signal);
         }
+        if (!valid()) return;
         if (!stateRef.current.rolls) {
           commit({ type: "roll" });
           setCaption("주사위를 굴렸습니다");

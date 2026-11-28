@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { ActivityVisible } from "../shell/activity-visible";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Download, Link2, Share2, X } from "lucide-react";
 
 /**
@@ -79,13 +80,15 @@ export function ShareResultButton({ facts }: { facts: ShareFacts }) {
 }
 
 function ShareSheet({ facts, onClose }: { facts: ShareFacts; onClose: () => void }) {
+  const visible = useContext(ActivityVisible);
   const dialog = useRef<HTMLDialogElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [showNames, setShowNames] = useState(false);
   const [note, setNote] = useState("");
   useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
+    if (visible && !dialog.current?.open) dialog.current?.showModal();
+    else if (!visible && dialog.current?.open) dialog.current.close();
+  }, [visible]);
   useEffect(() => {
     if (canvas.current) drawResultCard(canvas.current, facts, showNames);
   }, [facts, showNames]);
