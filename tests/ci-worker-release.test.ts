@@ -48,7 +48,7 @@ describe("release plan", () => {
   });
   it("every guarded pattern matches a real Worker input (no dead entries)", async () => {
     const real = await workerInputs();
-    for (const re of GUARDED) expect(real.some((f) => re.test(f)), String(re)).toBe(true);
+    for (const re of GUARDED) expect(real.some((f: string) => re.test(f)), String(re)).toBe(true);
   }, 60_000);
   it("reads only this pipeline's release annotation", () => {
     const sha = "ddf208f1800e859afd61d330bd6ae322b207d5c5";
