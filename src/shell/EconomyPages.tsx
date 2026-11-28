@@ -391,8 +391,9 @@ function ShopPage({ server, go, economyState, active, intent, clearIntent, onInt
   };
   const priceLine = (i: ItemDef) => {
     if (owned.has(i.id)) return null;
-    if (preparing(i)) return <span className="item-card-price">판매 준비 중</span>;
+    // Achievement-only items are never for sale, whatever the server's catalog revision (C5 streak titles).
     if (i.acquisition === "achievement") return <span className="item-card-price">업적 보상</span>;
+    if (preparing(i)) return <span className="item-card-price">판매 준비 중</span>;
     const c = priceOf(i, "coins"),
       g = priceOf(i, "gems");
     return (
@@ -412,7 +413,7 @@ function ShopPage({ server, go, economyState, active, intent, clearIntent, onInt
   };
   const card = (item: ItemDef) => (
     <ItemCard key={item.id} item={item} owned={owned.has(item.id)} level={owned.get(item.id) ?? 1} equipped={owned.has(item.id) && wears(snap?.loadout, item)}
-      badge={owned.has(item.id) ? "보유 중" : undefined} price={priceLine(item)} preparing={preparing(item)} onOpen={() => setOpen(item)} />
+      badge={owned.has(item.id) ? "보유 중" : undefined} price={priceLine(item)} preparing={item.acquisition !== "achievement" && preparing(item)} onOpen={() => setOpen(item)} />
   );
   const picks = sortItems(forSale.filter((i) => EDITOR_PICKS.includes(i.id)), "recommended");
   const fresh = newItems(forSale);
@@ -457,8 +458,8 @@ function ShopPage({ server, go, economyState, active, intent, clearIntent, onInt
             return <p className="collection-banner" style={{ "--col": activeCollection.color } as React.CSSProperties}><b>{activeCollection.name} 컬렉션</b> {member ? `보유 ${p.have}/${p.total}` : `${p.total}개 상품`} · 시너지: {activeCollection.synergy}</p>;
           })()}
           {busy && <p className="econ-note" role="status"><BrandMark /> 처리 중…</p>}
-          {notice && <p className="econ-ok" role="status">{notice}</p>}
-          {error && <p className="error-message" role="alert">{error}</p>}
+          {notice && !open && <p className="econ-ok" role="status">{notice}</p>}
+          {error && !open && <p className="error-message" role="alert">{error}</p>}
           {browsing ? <>
             <section className="shop-section shop-feature" id="shop-picks" aria-labelledby="shop-section-picks">
               <h2 id="shop-section-picks">에디터 추천</h2>
@@ -550,7 +551,7 @@ function ShopPage({ server, go, economyState, active, intent, clearIntent, onInt
       </div>
       {askLogin && <LoginPrompt server={server} action={askLogin} resume={resumeState(open)} go={go} onClose={() => setAskLogin(null)} />}
       {active && open && (
-        <ItemDetail item={open} initialLevel={owned.get(open.id) ?? 1} now={now} onClose={() => setOpen(null)}
+        <ItemDetail item={open} initialLevel={owned.get(open.id) ?? 1} now={now} onClose={() => { setOpen(null); setNotice(""); }}
           status={!member ? "로그인하지 않아도 미리보기는 모두 볼 수 있어요." : owned.has(open.id) ? <><Check size={14} aria-hidden="true" /> 보유 중 · Lv.{owned.get(open.id)}{wears(snap?.loadout, open) ? " · 지금 장착 중" : " · 장착하지 않음"}</> : "아직 보유하지 않은 상품이에요."}>
           {() => {
             const i = open;
@@ -564,6 +565,7 @@ function ShopPage({ server, go, economyState, active, intent, clearIntent, onInt
                     인벤토리에서 {i.maxLevel > 1 ? "강화·" : ""}장착 관리
                   </button>
                   {notice && <p className="econ-ok" role="status">{notice}</p>}
+                  {error && <p className="error-message" role="alert">{error}</p>}
                 </>
               );
             if (i.acquisition === "achievement") return <span className="shop-owned">업적으로만 얻을 수 있어요</span>;
@@ -571,6 +573,9 @@ function ShopPage({ server, go, economyState, active, intent, clearIntent, onInt
             if (preparing(i)) return <span className="shop-owned">판매 준비 중이에요. 서버가 새 상품을 열면 바로 살 수 있어요. 미리보기는 지금도 볼 수 있어요.</span>;
             const c = priceOf(i, "coins"),
               g = priceOf(i, "gems");
+            // A refused purchase (e.g. 409 PRICE_CHANGED / POLICY_CHANGED after a price update) is shown here,
+            // above the buttons, with the snapshot already reloaded so the buttons show the current price.
+            const refused = error ? <p className="error-message" role="alert">{error}</p> : null;
             if (!member)
               return (
                 <>
@@ -580,6 +585,7 @@ function ShopPage({ server, go, economyState, active, intent, clearIntent, onInt
               );
             return (
               <>
+                {refused}
                 {c !== null && (
                   <button type="button" className="primary" disabled={busy || !snap || wallet.coins < c} onClick={() => setConfirm({ item: i, currency: "coins", amount: c })} aria-label={`${i.name} 코인 ${c}으로 구매`}>
                     <Coins size={15} /> {fmt(c)} 코인으로 구매

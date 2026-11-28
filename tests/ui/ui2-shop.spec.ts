@@ -237,3 +237,61 @@ test("반응형: 320~1920px에서 가로 넘침 없이 상점·인벤토리·뽑
     else expect(box.width).toBeGreaterThan(box.height); // chip row
   }
 });
+
+test("카드 썸네일: 비동기 정지 이미지 공급자(FX-1 loadDiceThumbnail 자리)는 화면 안 카드만 요청하고, 그 전까지 2D 썸네일을 유지한다", async ({ page }) => {
+  await page.goto("#shop");
+  await page.getByRole("tab", { name: /^주사위/ }).click();
+  await expect(page.locator('[data-item="dice.mint"] canvas.dice-face-thumb')).toBeVisible(); // 2D first
+  await page.evaluate(() => {
+    (window as any).__stillRequests = [];
+    (window as any).__yachtlabPreview.register({
+      id: "test-stills", categories: ["dice"],
+      thumbnailAsync: async (item: { id: string }, level: number, px: number) => {
+        (window as any).__stillRequests.push(`${item.id}@${level}/${px}`);
+        const c = document.createElement("canvas"); c.width = c.height = px;
+        const g = c.getContext("2d")!; g.fillStyle = "#123456"; g.fillRect(0, 0, px, px);
+        return c.toDataURL();
+      },
+    });
+  });
+  await page.getByRole("tab", { name: /^보드판/ }).click(); // remount the grid so cards pick the provider up
+  await page.getByRole("tab", { name: /^주사위/ }).click();
+  await expect(page.locator('[data-item="dice.mint"] img.item-thumb-still')).toBeVisible();
+  const requested: string[] = await page.evaluate(() => (window as any).__stillRequests);
+  expect(requested).toContain("dice.mint@1/152");
+  expect(requested.length).toBeLessThan(34); // only cards near the viewport, not all 34 dice
+  await expect(page.locator(".stage-board")).toHaveCount(0); // still no live renderer on the grid
+});
+
+
+test("409 거절(가격·단계 변경): 상세 창 안에 서버 문구를 보이고, 보유·잔액을 바꾸지 않으며, 최신 스냅숏을 다시 불러온다", async ({ page }) => {
+  const acc = account([{ id: "dice.thunder", level: 1 }]);
+  let economyLoads = 0;
+  page.on("request", (r) => r.method() === "GET" && r.url().endsWith("/api/me/economy") && economyLoads++);
+  await open(page, "shop", acc);
+  // registered after the account mock: the most recent route wins
+  await page.route(SERVER + "/api/me/shop/**", (route) => {
+    const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type, authorization" };
+    if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+    const path = new URL(route.request().url()).pathname;
+    const error = path.endsWith("/buy") ? { code: "PRICE_CHANGED", message: "가격이 바뀌었어요. 새 가격을 확인해 주세요." } : { code: "LEVEL_CHANGED", message: "이미 강화된 상품이에요. 보유 단계를 확인해 주세요." };
+    return route.fulfill({ status: 409, contentType: "application/json", headers: cors, body: JSON.stringify({ error }) });
+  });
+  await page.getByRole("tab", { name: /^주사위/ }).click();
+  await page.getByRole("button", { name: "민트 자세히" }).click();
+  const dialog = page.getByRole("dialog", { name: "민트 상세" });
+  const before = economyLoads;
+  await dialog.getByRole("button", { name: /민트 코인 \d+으로 구매/ }).click();
+  await page.getByRole("dialog", { name: "구매할까요?" }).getByRole("button", { name: "구매", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toHaveText("가격이 바뀌었어요. 새 가격을 확인해 주세요.");
+  await expect.poll(() => economyLoads).toBeGreaterThan(before);
+  await expect(page.getByTestId("coins")).toHaveText("5,000");
+  await page.keyboard.press("Escape");
+  await expect(page.locator('[data-item="dice.mint"]')).not.toContainText("보유 중");
+  // upgrade refused from the inventory list (the same confirm path as the detail)
+  await page.goto(`?online-server=${encodeURIComponent(SERVER)}#inventory`);
+  await page.getByRole("button", { name: /번개 목록에서 Lv\.2로 강화/ }).click();
+  await page.getByRole("dialog", { name: "강화할까요?" }).getByRole("button", { name: "강화", exact: true }).click();
+  await expect(page.getByRole("alert")).toHaveText("이미 강화된 상품이에요. 보유 단계를 확인해 주세요.");
+  await expect(page.locator('[data-item="dice.thunder"]')).toContainText("Lv.1/3");
+});

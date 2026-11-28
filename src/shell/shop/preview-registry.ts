@@ -10,6 +10,7 @@
  *   registerPreviewProvider({ id: "dice-webgl-v2", categories: ["dice", "board"], Stage, thumbnail, sound })
  *  - `Stage`     replaces the built-in interactive stage for those categories (gets level, partner, active).
  *  - `thumbnail` may return a pre-rendered image URL for a card (e.g. an atlas); null falls back to ItemThumb.
+ *  - `thumbnailAsync` renders a still on demand (FX-1 3D thumbnails); the 2D thumbnail is the placeholder.
  *  - `sound`     plays a cue for the "효과음 듣기/비교" buttons; absent → the built-in synthesized cues.
  * The last provider registered for a category wins. Providers must not read game RNG or touch a match.
  */
@@ -30,6 +31,12 @@ export type PreviewProvider = {
   categories: readonly ItemCategory[];
   Stage?: ComponentType<PreviewStageProps>;
   thumbnail?: (item: ItemDef, level: number) => string | null;
+  /**
+   * Static still rendered later (e.g. FX-1 `loadDiceThumbnail()` → one shared WebGL context, serial queue,
+   * memory + sessionStorage cache). Called only for cards on screen; the 2D thumbnail stays until it
+   * resolves and remains when it resolves to null (no WebGL). `px` = bitmap size (2 × CSS size).
+   */
+  thumbnailAsync?: (item: ItemDef, level: number, px: number) => Promise<string | null>;
   sound?: (item: ItemDef, level: number, cue: SoundCue) => void;
 };
 
@@ -59,3 +66,6 @@ export function onStageChange(fn: () => void) {
   listeners.add(fn);
   return () => void listeners.delete(fn);
 }
+
+/** QA / integration hook (same pattern as `__yachtlabSound`): lets a test or INT-1 check register a provider. */
+if (typeof window !== "undefined") (window as unknown as { __yachtlabPreview?: { register: typeof registerPreviewProvider } }).__yachtlabPreview = { register: registerPreviewProvider };

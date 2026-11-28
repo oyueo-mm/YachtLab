@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CATEGORIES, DEFAULT_LOADOUT, ITEMS, itemById, priceOf } from "../src/economy/live/catalog";
 import { COLLECTIONS } from "../src/economy/live/collections";
-import { EDITOR_PICKS, EMPTY_QUERY, PRICE_BANDS, SORTS, filterItems, isFiltered, matchesText, newItems, promoSlides, sortItems, sortPrice, themeProgress } from "../src/shell/shop/curation";
+import { EDITOR_PICKS, EMPTY_QUERY, PRICE_BANDS, SORTS, filterItems, purchasable, isFiltered, matchesText, newItems, promoSlides, sortItems, sortPrice, themeProgress } from "../src/shell/shop/curation";
 import { accountOf, applyPreset, loadPresets, storePresets, type Preset } from "../src/shell/shop/presets";
 import { claimStage, isActiveStage, previewProvider, registerPreviewProvider } from "../src/shell/shop/preview-registry";
 
@@ -72,6 +72,18 @@ describe("UI-2 shop curation (editorial only, existing catalog)", () => {
     sortItems(filterItems(ITEMS, { ...EMPTY_QUERY, sort: "price-desc" }, ctx), "price-desc");
     expect(JSON.stringify(ITEMS)).toBe(before);
     expect(CATEGORIES).toHaveLength(9);
+  });
+
+  it("C5 achievement-only titles of a newer revision (rev 3) never become 신상품 nor sort first by 신상품순", () => {
+    // Same shape as PR #140's title.streak30/100/365: special tier, achievement only, drawExcluded, rev 3.
+    const streak = (id: string): typeof ITEMS[number] => ({ id, category: "title", tier: "special", specialKind: "achievement", name: id, acquisition: "achievement", rev: 3, drawExcluded: true, maxLevel: 1, look: { text: id } });
+    const withC5 = [...forSale, streak("title.streak30"), streak("title.streak100"), streak("title.streak365")];
+    expect(purchasable(withC5.at(-1)!)).toBe(false);
+    expect(newItems(withC5).map((i) => i.id)).toEqual(newItems(forSale).map((i) => i.id)); // still the 11 rev-2 items
+    const newest = sortItems(withC5, "new");
+    expect(newest[0].rev).toBe(2);
+    expect(newest.slice(-3).every((i) => i.acquisition === "achievement" || !purchasable(i))).toBe(true);
+    expect(filterItems(withC5, { ...EMPTY_QUERY, price: "coins" }, ctx).some((i) => i.id.startsWith("title.streak"))).toBe(false);
   });
 
   it("collection progress counts owned items of each theme", () => {

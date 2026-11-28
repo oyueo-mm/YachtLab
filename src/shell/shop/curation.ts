@@ -132,8 +132,9 @@ export function sortItems(items: readonly ItemDef[], sort: SortKey): ItemDef[] {
   const cmp: Record<SortKey, (a: ItemDef, b: ItemDef) => number> = {
     // Editorial: picks first, then by tier (low → high, the long-standing shop order), then catalog order.
     recommended: (a, b) => pickRank(a.id) - pickRank(b.id) || tierRank(a.tier) - tierRank(b.tier) || base(a, b),
-    // "New" = newest catalog revision first (the 2026-11-27 collection is revision 2), then catalog order.
-    new: (a, b) => (b.rev ?? 1) - (a.rev ?? 1) || base(b, a),
+    // "New" = newest catalog revision first among items that can be bought (the 2026-11-27 collection is
+    // revision 2); achievement-only items added later (e.g. C5 streak titles, rev 3) are not "new products".
+    new: (a, b) => newRank(b) - newRank(a) || base(b, a),
     "tier-desc": (a, b) => tierRank(b.tier) - tierRank(a.tier) || base(a, b),
     "tier-asc": (a, b) => tierRank(a.tier) - tierRank(b.tier) || base(a, b),
     "price-asc": (a, b) => sortPrice(a) - sortPrice(b) || base(a, b),
@@ -146,11 +147,14 @@ export function sortItems(items: readonly ItemDef[], sort: SortKey): ItemDef[] {
   });
 }
 
-/** Existing new items: the newest catalog revision (no fake "new" labels). */
-export const newestRev = (items: readonly ItemDef[]) => Math.max(1, ...items.map((i) => i.rev ?? 1));
+/** Can the item be bought with some currency (not achievement-only, not default, not special)? */
+export const purchasable = (i: ItemDef) => priceOf(i, "coins") !== null || priceOf(i, "gems") !== null;
+const newRank = (i: ItemDef) => (purchasable(i) ? i.rev ?? 1 : 0);
+/** Existing new items: the newest catalog revision among purchasable items (no fake "new" labels). */
+export const newestRev = (items: readonly ItemDef[]) => Math.max(1, ...items.filter(purchasable).map((i) => i.rev ?? 1));
 export const newItems = (items: readonly ItemDef[]) => {
   const rev = newestRev(items);
-  return rev > 1 ? items.filter((i) => (i.rev ?? 1) === rev) : [];
+  return rev > 1 ? items.filter((i) => purchasable(i) && (i.rev ?? 1) === rev) : [];
 };
 
 /** Collection progress over owned ids (default items never belong to a collection). */

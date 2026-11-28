@@ -63,9 +63,19 @@ export function DiceFace({ item, level, size = 64, value = 5 }: { item: ItemDef;
 export function ItemThumb({ item, level = 1, size = 64 }: { item: ItemDef; level?: number; size?: number }) {
   const { ref, inView } = useInView<HTMLSpanElement>();
   const look = lookAt(item, level);
-  const image = previewProvider(item.category)?.thumbnail?.(item, level) ?? null;
+  const provider = previewProvider(item.category);
+  const [still, setStill] = useState<string | null>(null);
+  const px = Math.round(size * 2);
+  useEffect(() => {
+    // Async stills (FX-1): requested once the card is on screen; the 2D image stays until then.
+    if (!inView || !provider?.thumbnailAsync) return;
+    let alive = true;
+    provider.thumbnailAsync(item, level, px).then((url) => alive && url && setStill(url)).catch(() => {});
+    return () => { alive = false; };
+  }, [inView, provider, item.id, level, px]);
+  const image = provider?.thumbnail?.(item, level) ?? still;
   let body: React.ReactNode = null;
-  if (image) body = inView ? <img src={image} alt="" width={size} height={size} loading="lazy" decoding="async" /> : null;
+  if (image) body = inView ? <img className="item-thumb-still" src={image} alt="" width={size} height={size} loading="lazy" decoding="async" /> : null;
   else if (item.category === "dice") body = inView ? <DiceFace item={item} level={level} size={size} /> : null;
   else if (item.category === "board") {
     const theme = boardTheme(item, level, false);
