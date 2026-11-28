@@ -31,6 +31,7 @@
 
 ## 저장소에서 발견한 워크플로
 
+- [a3-match-result-preview.yml](../../../.github/workflows/a3-match-result-preview.yml)
 - [algorithm-zoo.yml](../../../.github/workflows/algorithm-zoo.yml)
 - [br-error-enumeration.yml](../../../.github/workflows/br-error-enumeration.yml)
 - [br-research.yml](../../../.github/workflows/br-research.yml)
@@ -38,6 +39,7 @@
 - [confirm-v2.yml](../../../.github/workflows/confirm-v2.yml)
 - [context-sync.yml](../../../.github/workflows/context-sync.yml)
 - [context-wiki.yml](../../../.github/workflows/context-wiki.yml)
+- [deploy-online-worker-auto.yml](../../../.github/workflows/deploy-online-worker-auto.yml)
 - [deploy-online-worker.yml](../../../.github/workflows/deploy-online-worker.yml)
 - [deploy.yml](../../../.github/workflows/deploy.yml)
 - [discovered-external.yml](../../../.github/workflows/discovered-external.yml)
@@ -68,6 +70,7 @@
 - [v31-research.yml](../../../.github/workflows/v31-research.yml)
 - [v32-research.yml](../../../.github/workflows/v32-research.yml)
 - [v5-apex-research.yml](../../../.github/workflows/v5-apex-research.yml)
+- [verify-worker-production-read.yml](../../../.github/workflows/verify-worker-production-read.yml)
 - [yahtzeerl-transfer.yml](../../../.github/workflows/yahtzeerl-transfer.yml)
 
 ## 맥락 허브의 보존된 문서
@@ -75,6 +78,10 @@
 - [A1-DICE-BOARD-2026-11-27.md](../A1-DICE-BOARD-2026-11-27.md)
 - [A2-C5-CATALOG-PROPOSAL-2026-11-27.md](../A2-C5-CATALOG-PROPOSAL-2026-11-27.md)
 - [A2-COSMETICS-CHAT-2026-11-27.md](../A2-COSMETICS-CHAT-2026-11-27.md)
+- [A3-MATCH-RESULT-2026-11-27.md](../A3-MATCH-RESULT-2026-11-27.md)
+- [A4-CONTRACT-CANDIDATES-2026-11-27.md](../A4-CONTRACT-CANDIDATES-2026-11-27.md)
+- [A4-MOBILE-PROFILE-FRIENDS-2026-11-27.md](../A4-MOBILE-PROFILE-FRIENDS-2026-11-27.md)
+- [A5-GAME-REVIEW-UI.md](../A5-GAME-REVIEW-UI.md)
 - [AI-REVIEW.md](../AI-REVIEW.md)
 - [AUTOMATION.md](../AUTOMATION.md)
 - [C2-GAME-REVIEW.md](../C2-GAME-REVIEW.md)
@@ -123,16 +130,16 @@
 
 | 커밋 | 날짜 (Git 기록) | 설명 |
 |---|---|---|
-| [d6151f1](https://github.com/oyueo-mm/YachtLab/commit/d6151f1) | 2026-11-28 | Merge pull request #128 from oyueo-mm/claude/ci-1-context-sync-protection |
-| [dff4bfb](https://github.com/oyueo-mm/YachtLab/commit/dff4bfb) | 2026-11-27 | docs(ci-1): record live dispatch verification (ci-result success, deploy skipped off main) |
-| [263f388](https://github.com/oyueo-mm/YachtLab/commit/263f388) | 2026-11-27 | ci: explain the PR-creation admin setting, test the real scope step, record live verification |
-| [63d265a](https://github.com/oyueo-mm/YachtLab/commit/63d265a) | 2026-11-27 | ci: CI-1 context sync via automation PR, standalone wiki mirror, protection-ready workflows |
-| [db2e17a](https://github.com/oyueo-mm/YachtLab/commit/db2e17a) | 2026-11-28 | Merge pull request #117 from oyueo-mm/claude/a2-cosmetics-chat |
-| [c5d4d95](https://github.com/oyueo-mm/YachtLab/commit/c5d4d95) | 2026-11-27 | Merge remote-tracking branch 'origin/main' into claude/a2-cosmetics-chat |
-| [d5791f8](https://github.com/oyueo-mm/YachtLab/commit/d5791f8) | 2026-11-27 | test(a2): fix member spec settings; docs for A2.2 (stage look, compact multi sheet, bonus moment) |
-| [fa22a35](https://github.com/oyueo-mm/YachtLab/commit/fa22a35) | 2026-11-28 | Merge pull request #119 from oyueo-mm/codex/hotfix-item-upgrade |
-| [4ab142e](https://github.com/oyueo-mm/YachtLab/commit/4ab142e) | 2026-11-27 | feat(a2.2): table follows player on turn, compact multi score sheet, upper bonus moment |
-| [d6dcd3a](https://github.com/oyueo-mm/YachtLab/commit/d6dcd3a) | 2026-11-27 | wip: stage look follows player on turn; member e2e harness; CI test fixes |
+| [d775ecb](https://github.com/oyueo-mm/YachtLab/commit/d775ecb) | 2026-11-28 | Merge pull request #138: SEC-1 low/info hardening and triage |
+| [31bae0a](https://github.com/oyueo-mm/YachtLab/commit/31bae0a) | 2026-11-28 | Merge main (#137 SEC-1-01, #139 SEC-1 CI follow-up) into SEC-1 low hardening |
+| [083ce9e](https://github.com/oyueo-mm/YachtLab/commit/083ce9e) | 2026-11-28 | Merge pull request #139: SEC-1 CI follow-up — release lock, credential-free build, CI low items (D-102) |
+| [ab4596e](https://github.com/oyueo-mm/YachtLab/commit/ab4596e) | 2026-11-28 | docs(sec-1): SEC-1-02 resolved (legacy token revoked, repository secrets deleted, new token verified); record #137 release |
+| [fe0b0b4](https://github.com/oyueo-mm/YachtLab/commit/fe0b0b4) | 2026-11-28 | Merge main (#137 SEC-1-01) into SEC-1 CI follow-up; keep D-101 and D-102 |
+| [331b5c9](https://github.com/oyueo-mm/YachtLab/commit/331b5c9) | 2026-11-28 | Merge pull request #137: SEC-1-01 server-verified record outranks a same-id device record (D-101) |
+| [6814c32](https://github.com/oyueo-mm/YachtLab/commit/6814c32) | 2026-11-28 | ci(security): SEC-1 CI follow-up — robust release lock, credential-free build, CI low items (D-102) |
+| [dd6aa90](https://github.com/oyueo-mm/YachtLab/commit/dd6aa90) | 2026-11-28 | fix(security): SEC-1 Low/Info hardening (input handling, sign-in fragment, body size) + triage |
+| [78adcaa](https://github.com/oyueo-mm/YachtLab/commit/78adcaa) | 2026-11-28 | test(account): settlement compatibility, redelivery, rollback and streak checks (SEC-1-01); narrow public wording |
+| [185c504](https://github.com/oyueo-mm/YachtLab/commit/185c504) | 2026-11-28 | fix(account): server-verified result replaces a same-id device record (SEC-1-01); SEC-1 audit summary |
 
 ## 최근 GitHub Actions 상태
 
@@ -140,8 +147,13 @@
 
 | 워크플로 | 최근 완료 상태 | 커밋 |
 |---|---|---|
-| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/46056702107) | success | dff4bfb27d |
-| [A3 match result preview](https://github.com/oyueo-mm/YachtLab/actions/runs/46045115881) | success | 133e5778c8 |
+| [Verify Worker production credentials (read only)](https://github.com/oyueo-mm/YachtLab/actions/runs/46130510556) | success | 083ce9e1b5 |
+| [SEO IndexNow](https://github.com/oyueo-mm/YachtLab/actions/runs/46130284431) | success | 083ce9e1b5 |
+| [Test and deploy YachtLab](https://github.com/oyueo-mm/YachtLab/actions/runs/46126070961) | success | f35b4097f4 |
+| [Context wiki](https://github.com/oyueo-mm/YachtLab/actions/runs/46126068039) | success | 083ce9e1b5 |
+| [Deploy YachtLab Online Worker (automatic)](https://github.com/oyueo-mm/YachtLab/actions/runs/46125948545) | success | 083ce9e1b5 |
+| [YachtLab Win DP v5 research (exact PMF + interactive endgame)](https://github.com/oyueo-mm/YachtLab/actions/runs/46124080599) | success | ab4596e46e |
+| [YachtLab v3.3 v3.4 v4 self-play and 200k-per-model confirmation](https://github.com/oyueo-mm/YachtLab/actions/runs/46124080560) | success | ab4596e46e |
 
 ## 다음 채팅과 작업의 시작점
 
