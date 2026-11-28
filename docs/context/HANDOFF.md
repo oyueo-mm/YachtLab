@@ -2,6 +2,8 @@
 
 > **관리자 페이지·사용자 제안(ADMIN-1/FEEDBACK-1, 2026-11-28)** → [ADMIN-FEEDBACK](../admin/ADMIN-FEEDBACK.md), D-ADM-1~5. 코드: `worker/src/admin/`(roles·store·member·stats·api), `worker/src/feedback/board.ts`, 화면 `src/admin/AdminConsole.tsx`(`#admin`), `src/engagement/`(`#suggestions`·`#mailbox`). 쓰기·게시판·관리자 계정은 모두 꺼진 상태이며 SEC-1 독립 검증 전 쓰기 활성 금지. 알림함 API는 `/api/me/mailbox`(`/api/me/inbox`는 친구 받은함). 후속 작업(D-ADM-6~10): 관리자 세션에는 실제 Google 재인증이 필요하고, 단일 운영자는 제한 규칙으로만 본인 승인할 수 있으며, `ADMIN_TOKEN`은 읽기 전용 GET 2개로 고정했습니다. LIVE-1은 `AdminExtensionRoute`로 등록하고, 지급액은 `ADMIN_REWARD_POLICY`가 승인돼야 쓸 수 있습니다. 감사 목록: `docs/admin/SEC-1-AUDIT-2-CHECKLIST.md`.
 
+> **오늘의 요트·전략 퍼즐·일일 랭킹(LIVE-1)**은 [DAILY-LIVE-1](./DAILY-LIVE-1.md)에서 시작한다. 운영 비공개(`DAILY=off`), 공개 순서는 D-LIVE1-6. INT-1 통합 검증 항목은 [LIVE-1-HANDOFF-INT-1](./LIVE-1-HANDOFF-INT-1.md).
+
 > **Worker 배포(2026-11-28 이후)**는 [CI-1.2 Worker 자동 배포](../operations/CI-1-2-WORKER-AUTO-DEPLOY.md)와 D-100을 따른다. 일반 변경은 병합만으로 Pages·Worker가 배포되고, 보호 입력·롤백·정지 해제는 수동 워크플로를 쓴다.
 
 > **2026-11-28 제품 통합 출시**는 [RELEASE-2026-11-28](../operations/RELEASE-2026-11-28.md)과 D-099에서 시작한다(통합 범위, 호환성, 배포·롤백 순서, 출시 기록).

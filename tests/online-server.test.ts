@@ -78,8 +78,8 @@ describe("Online Phase 2 — local WebSocket server", () => {
     const intruder = new Client(s, code);
     const res = await intruder.hello("x".repeat(43));
     expect(res.t).toBe("error");
-    await new Promise((r) => setTimeout(r, 50));
-    expect(intruder.closed?.code).toBe(4001);
+    // wait for the close frame itself (it follows the error message; a fixed sleep can race it)
+    expect(await intruder.waitForClose()).toBe(4001);
     await a.cmd({ type: "start" });
     await a.settled();
     // b tries to act as a (playerId in payload is ignored; the socket identity is b)

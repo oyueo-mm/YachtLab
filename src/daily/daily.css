@@ -1,0 +1,76 @@
+/* 오늘의 요트 · 오늘의 퍼즐 (LIVE-1). Uses the shared tokens (--red, --ink, --muted, --line, --soft). */
+.daily-page { max-width: 920px; }
+.daily-page h1 { display: flex; align-items: center; gap: 8px; margin: 0; }
+.daily-date { color: var(--muted); font-size: 13px; }
+.daily-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.daily-card { border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px; background: #fff; }
+.daily-card.is-done { border-color: color-mix(in srgb, var(--red) 40%, var(--line)); }
+.daily-card h2 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 17px; }
+.daily-card p { margin: 0; color: var(--muted); }
+.daily-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.daily-score { color: var(--ink) !important; }
+.daily-score strong { font-size: 28px; margin-right: 2px; }
+.daily-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--soft); color: var(--muted); }
+.daily-badge-official { background: color-mix(in srgb, var(--red) 12%, #fff); color: var(--red-deep); }
+.daily-badge-cell { display: flex; flex-direction: column; gap: 2px; }
+.daily-badge-cell small { color: var(--muted); font-size: 11px; }
+.daily-puzzle-list { margin: 0; padding-left: 18px; color: var(--ink); }
+.daily-puzzle-list li.ok { color: #2f7d4f; }
+.daily-puzzle-list li.no { color: var(--red-deep); }
+.daily-ranking, .daily-records, .daily-archive, .daily-after { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+.daily-ranking h2, .daily-records h2, .daily-archive h2 { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: 16px; }
+.daily-rank-list { list-style: none; margin: 0; padding: 0; }
+.daily-rank-list li { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 8px; padding: 8px 4px; border-bottom: 1px solid var(--line); }
+.daily-rank-list li small { grid-column: 2 / 4; color: var(--muted); }
+.daily-rank-list li.me { background: color-mix(in srgb, var(--red) 7%, #fff); font-weight: 700; }
+.daily-rank-list .rank { font-weight: 800; text-align: center; }
+.daily-rank-list .score { font-variant-numeric: tabular-nums; }
+.daily-me-rank { font-weight: 700; margin: 0 0 6px; }
+.daily-rank-note, .daily-fair-note, .daily-model { color: var(--muted); font-size: 12px; }
+.daily-visibility { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.daily-visibility select { min-height: 36px; }
+.daily-stats { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 0 0 10px; padding: 0; }
+.daily-stats li { background: var(--soft); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; }
+.daily-stats span, .daily-stats small { color: var(--muted); font-size: 12px; }
+.daily-stats strong { font-size: 20px; }
+.daily-history, .daily-archive ul { list-style: none; margin: 0; padding: 0; }
+.daily-history li, .daily-archive li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.daily-history li span:first-child, .daily-archive li > span { min-width: 104px; font-variant-numeric: tabular-nums; }
+.daily-archive li small, .daily-history li small { color: var(--muted); }
+.daily-archive li button { min-height: 36px; }
+.daily-fairness { color: var(--muted); font-size: 13px; }
+.daily-fairness summary { cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 650; color: var(--ink); }
+.daily-fairness code { word-break: break-all; }
+.daily-after { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px auto; max-width: 920px; }
+.daily-after p { margin: 0; }
+.daily-sync { color: var(--muted); font-size: 12px; }
+.daily-final { font-weight: 700; }
+.daily-level-tabs button { display: inline-flex; align-items: center; gap: 4px; }
+.daily-puzzle-card { border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.daily-puzzle-card header { display: flex; flex-wrap: wrap; gap: 6px; }
+.daily-puzzle-card h2 { margin: 0; font-size: 17px; }
+.daily-chip { font-size: 12px; font-weight: 650; background: var(--soft); border-radius: 999px; padding: 2px 8px; color: var(--muted); }
+.daily-chip-exact { color: #2f7d4f; }
+.daily-facts { margin: 0; padding-left: 18px; }
+.daily-puzzle-board { min-height: 0; }
+.daily-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.daily-choices .chosen { outline: 2px solid var(--red); }
+.daily-kept { grid-column: 1 / -1; margin: 0; font-weight: 700; }
+.daily-explain { border-radius: 12px; padding: 12px 14px; background: var(--soft); }
+.daily-explain.is-correct h3 { color: #2f7d4f; }
+.daily-explain.is-wrong h3 { color: var(--red-deep); }
+.daily-explain h3 { margin: 0 0 6px; }
+.daily-explain ul { margin: 0 0 8px; padding-left: 18px; }
+.daily-values { width: 100%; border-collapse: collapse; font-size: 13px; }
+.daily-values caption { text-align: left; color: var(--muted); padding-bottom: 4px; }
+.daily-values th, .daily-values td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.daily-values td:not(:first-child), .daily-values th:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.daily-values tr.best td { font-weight: 700; }
+.daily-values tr.mine td { background: color-mix(in srgb, var(--red) 8%, transparent); }
+.daily-share-canvas { aspect-ratio: 1 / 1; }
+.daily-share-text { white-space: pre-wrap; font-size: 13px; background: var(--soft); border-radius: 8px; padding: 8px; margin: 0; }
+@media (max-width: 560px) {
+  .daily-page { padding-inline: 4px; }
+  .daily-card button, .daily-archive li button { min-height: 44px; }
+  .daily-history li span:first-child, .daily-archive li > span { min-width: 0; flex: 1 1 100%; }
+}

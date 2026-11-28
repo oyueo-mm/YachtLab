@@ -36,6 +36,13 @@ import { MemberOps, type MemberSql } from "./admin/member";
 import { GrantRefused, claimAdminItem, deliverAdminItem, redeemAdminItem, revokeAdminItem, type AdminGrantContext } from "./admin/grant-port";
 import { handleAdminRoute, handleEngagementRoute, type AdminBackends, type AdminUserApi } from "./admin/api";
 import { BoardCore, type BoardSql } from "./feedback/board";
+import { DailyBoardCore, DailyPlayStore, dailyClock, dailySecrets, dayKeyFor, flushPending, entryFrom, rankEligible, verifyState, type DailySql, type Mode as DailyMode } from "./daily";
+import { handleDailyRoute, type DailyBoardApi, type DailyUserApi } from "./daily-api";
+import { activityFor, reportCompletion, type DailyContentSink } from "./daily-activity";
+import { dailyAdminRoutes } from "./daily-admin";
+import { boardName, type BoardEntry, type Visibility } from "../../src/daily/ranking";
+import { DAILY_RULES, isDailyDate } from "../../src/daily/calendar";
+import type { PuzzleResult } from "../../src/daily/puzzles/types";
 
 /**
  * YachtLab Online — Cloudflare Worker + SQLite-backed Durable Objects (Phase 3).
@@ -57,6 +64,24 @@ export interface Env extends ConfigVars {
   /** Phase 4.5: one global object — quick-match queue, public spectating list, operations counters. */
   HUB: DurableObjectNamespace<MatchHub>;
   FRIENDS: DurableObjectNamespace<FriendIndex>;
+  /** LIVE-1: one ranking object per (rules, date). */
+  DAILY_BOARDS: DurableObjectNamespace<DailyBoard>;
+  /** LIVE-1 feature flag: "on" opens 오늘의 요트 / 오늘의 퍼즐 (also needs DAILY_SECRET and sign-in). Default off. */
+  DAILY?: string;
+  /** Worker secret (≥ 32 chars) from which each day's dice key is derived. Never in wrangler.toml. */
+  DAILY_SECRET?: string;
+  /** Dated rotation (dailySecrets): the former secret, used for dates before DAILY_SECRET_FROM. Worker secret. */
+  DAILY_SECRET_PREVIOUS?: string;
+  /** YYYY-MM-DD from which DAILY_SECRET applies (set to a future date when rotating). */
+  DAILY_SECRET_FROM?: string;
+  /** Official participants per day (service cap; default 500). */
+  DAILY_PARTICIPANT_LIMIT?: string;
+  /** Same-day practice games per member after the official attempt (default 5). */
+  DAILY_PRACTICE_PER_DAY?: string;
+  /** "on": accounts created on the day itself are ranked too (default off: they play, but rank from the next day). */
+  DAILY_NEW_ACCOUNTS_RANKED?: string;
+  /** Local tests only (see dailyClock): shifts the daily clock; ignored unless APP_URL is loopback. */
+  DAILY_TEST_OFFSET_MS?: string;
   /** "on" enables official coins/gems/quests/achievements/shop (feature flag). */
   ECONOMY?: string;
   DICE_DRAW?: string;
@@ -520,11 +545,13 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   private friends: FriendStore;
   private cleanup: CleanupQueue;
   private member: MemberOps;
+  private dailyStore: DailyPlayStore;
   private presenceState = new Presence();
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.store = new AccountStore(ctx.storage.sql as unknown as Sql);
     this.member = new MemberOps(ctx.storage.sql as unknown as MemberSql);
+    this.dailyStore = new DailyPlayStore(this.econSql() as unknown as DailySql);
     this.econ = new EconomyStore(this.econSql());
     // C5: only the approved C5-CORE sources can pay (operator, suggestion, daily content, redeem codes: off)
     this.grants = new RewardGrants(this.econSql(), this.econ);
@@ -539,7 +566,102 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       this.friends.init();
       this.cleanup.init();
       this.member.init();
+      this.dailyStore.init();
     });
+  }
+  /* ------------------------------------------------- 오늘의 요트 (LIVE-1): member side ------------------------------------------------- */
+  private dailyNow = dailyClock(this.env);
+  private dailyBoard(date: string) {
+    return this.env.DAILY_BOARDS.get(this.env.DAILY_BOARDS.idFromName(boardName(DAILY_RULES, date)));
+  }
+  private dailyKey(date: string) {
+    const secrets = dailySecrets(this.env);
+    if (!secrets.ok) throw Error("daily secret configuration");
+    return dayKeyFor(secrets.secretFor(date), date);
+  }
+  private dailyLimits() {
+    const n = Number(this.env.DAILY_PRACTICE_PER_DAY ?? 5);
+    return { practicePerDay: Number.isInteger(n) && n >= 0 ? n : 5 };
+  }
+  /**
+   * After a finished official attempt (retried on later calls): 1) the ranking board, 2) the C5
+   * continuous-activity report (`dailyContentDone`, present once C5 is merged; a no-op before). Each step
+   * is marked done on its own. Practice / archive / puzzles never get here.
+   */
+  private async dailyFlush() {
+    const p = this.store.profile();
+    if (!p) return;
+    await flushPending(this.dailyStore, {
+      // defence in depth: the stored state must be exactly what its own log replays to
+      verify: (state, date) => verifyState(state, this.dailyKey(date)),
+      onVerifyFailed: () => console.error("DAILY_VERIFY_FAILED"),
+      board: async (a) => {
+        const board = this.dailyBoard(a.date);
+        if (a.ranked) await board.submit(entryFrom(p.userId, p.nickname, a.state, a.finishedAt, this.dailyStore.visibility()));
+        else await board.count("completed.unranked");
+      },
+      // C5 (#140) adds UserStore.dailyContentDone; until then the sink is absent and this is a no-op
+      activity: async (a) => {
+        await reportCompletion(this as unknown as Partial<DailyContentSink>, activityFor({ mode: "official", status: "finished", finishedAt: a.finishedAt }, p.userId, a.date, DAILY_RULES, a.score, a.ranked));
+      },
+    });
+  }
+  async dailyStart(date: string, mode: DailyMode) {
+    const p = this.store.profile();
+    if (!p) return { ok: false as const, status: 404, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+    if (!isDailyDate(date)) return { ok: false as const, status: 400, code: "INVALID_COMMAND", message: "잘못된 날짜예요." };
+    const now = this.dailyNow();
+    if (mode === "official" && !this.dailyStore.attempt(date, "official", now)) {
+      const limit = Number(this.env.DAILY_PARTICIPANT_LIMIT ?? 500);
+      const admitted = await this.dailyBoard(date).admit(p.userId, Number.isInteger(limit) && limit > 0 ? limit : 500, now);
+      if (!admitted.ok) return { ok: false as const, status: 503, code: "DAILY_FULL", message: "오늘의 요트 참가 인원이 가득 찼어요. 내일 다시 도전해 주세요." };
+    }
+    const ranked = rankEligible(p.createdAt, date, this.env.DAILY_NEW_ACCOUNTS_RANKED === "on");
+    const r = this.dailyStore.start(date, mode, this.dailyKey(date), now, { ranked, limits: this.dailyLimits() });
+    if (r.ok && r.created && mode === "practice") await this.dailyBoard(date).count("practice").catch(() => undefined);
+    if (r.ok && r.created) await this.hub().count(`daily.${mode}.started`).catch(() => undefined);
+    return r;
+  }
+  async dailyAct(date: string, mode: DailyMode, seq: unknown, step: unknown) {
+    if (!this.store.profile()) return { ok: false as const, status: 404, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+    if (!isDailyDate(date)) return { ok: false as const, status: 400, code: "INVALID_COMMAND", message: "잘못된 날짜예요." };
+    const r = this.dailyStore.act(date, mode, seq, step, this.dailyKey(date), this.dailyNow());
+    if (r.ok && r.finished) {
+      if (mode === "official") await this.dailyFlush();
+      await this.hub().count(`daily.${mode}.completed`).catch(() => undefined);
+    }
+    return r;
+  }
+  async dailyAttempt(date: string, mode: DailyMode) {
+    await this.dailyFlush();
+    return isDailyDate(date) ? this.dailyStore.attempt(date, mode, this.dailyNow()) : null;
+  }
+  async dailyPracticeLeft(date: string) {
+    const used = (this.ctx.storage.sql.exec<{ games: number }>("SELECT games FROM daily_practice WHERE date = ?", date).toArray()[0]?.games ?? 0);
+    return Math.max(0, this.dailyLimits().practicePerDay - used);
+  }
+  async dailyHistory() {
+    await this.dailyFlush();
+    return { ...this.dailyStore.history(this.dailyNow()), puzzles: this.dailyStore.puzzleSummary(), visibility: this.dailyStore.visibility() };
+  }
+  async dailyVisibility(v?: Visibility) {
+    return v ? this.dailyStore.setVisibility(v) : this.dailyStore.visibility();
+  }
+  /** Accounts hidden from me in daily lists: those I block and those who block me. Internal ids only. */
+  async dailyHidden() {
+    return this.ctx.storage.sql.exec<{ user_id: string }>("SELECT user_id FROM fr_blocks UNION SELECT user_id FROM fr_blocked_by").toArray().map((r) => r.user_id);
+  }
+  async dailyFriendIds() {
+    return this.friends.friendIds();
+  }
+  async dailyPuzzleResults(ids: string[]) {
+    return this.dailyStore.puzzleResults(ids.slice(0, 10));
+  }
+  async dailyAnswer(date: string, result: PuzzleResult) {
+    return this.dailyStore.answerPuzzle(date, result);
+  }
+  async dailyLog(date: string) {
+    return this.dailyStore.log(date, "official");
   }
   /* ---------------------------------------------- friends (I/J): one generic RPC over FriendStore ---------------------------------------------- */
   private static FR_OPS = new Set(["code", "setCode", "spend", "isFriend", "isBlocking", "relation", "friendIds", "peerId", "lists", "canRequest", "recordOutgoing", "addFriend", "removeFriend", "cancelOutgoing", "declineIncoming", "dropIncoming", "incomingPeer", "block", "unblock", "receiveRequest", "outgoingDeclined", "incomingCancelled", "blockedBy", "unblockedBy", "acceptedBy", "forget", "forgetMany", "retiredCodes", "residuePairs", "refresh", "receiveInvite", "invites", "takeInvite", "inboxCount"]);
@@ -738,6 +860,8 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     const p = this.store.profile();
     if (!p) return [];
     const now = Date.now();
+    // INT-1: a suspended account earns no activity day (the daily API also refuses its writes)
+    if (this.member.standing(now).suspended) return [];
     this.welcome(now);
     return this.retention.onDailyContent(p.userId, activity, now).map(publicGrant);
   }
@@ -929,6 +1053,10 @@ export class UserStore extends DurableObject<Env> implements UserApi {
    */
   async deleteAccount() {
     const guests = this.store.exists() ? this.store.guests() : [];
+    // LIVE-1: the member's daily results leave every board they are on (best effort, before the tables go)
+    const dailyDates = this.store.exists() ? (this.dailyStore.history(Date.now(), 400).records.map((r) => r.date)) : [];
+    const dailyOwner = this.store.profile()?.userId;
+    if (dailyOwner) await Promise.all(dailyDates.map((d) => this.dailyBoard(d).remove(dailyOwner).catch(() => undefined)));
     const owner = this.store.profile()?.userId ?? null;
     const plan = owner ? this.friends.deletionPlan() : { code: null, peers: [] };
     const now = Date.now();
@@ -956,6 +1084,8 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     this.presenceState = new Presence();
     this.member = new MemberOps(sql as unknown as MemberSql);
     this.member.init();
+    this.dailyStore = new DailyPlayStore(this.econSql() as unknown as DailySql);
+    this.dailyStore.init();
     await this.runCleanup();
     await this.scheduleAlarm();
     return guests;
@@ -1087,6 +1217,58 @@ export class UserStore extends DurableObject<Env> implements UserApi {
 
 /** Which account linked a guest's device records (first claim wins). Addressed by `idFromName(guestId)`. */
 /** Friend code → account, exact nickname → accounts (one small SQLite object; never exposed directly). */
+/* ---------------------------------------------------------------- daily board ---------------------------------------------------------------- */
+
+/** LIVE-1: one object per (rules, date) — first official results, participation counters, puzzle statistics. */
+export class DailyBoard extends DurableObject<Env> implements DailyBoardApi {
+  private core: DailyBoardCore;
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    const sql = ctx.storage.sql;
+    this.core = new DailyBoardCore({
+      exec: (q: string, ...p: unknown[]) => sql.exec(q, ...(p as SqlStorageValue[])) as unknown as { toArray(): never[] },
+      transaction: <T>(fn: () => T) => ctx.storage.transactionSync(fn),
+    } as DailySql);
+    ctx.blockConcurrencyWhile(async () => this.core.init());
+  }
+  async admit(userId: string, limit: number, now: number) {
+    return this.core.admit(userId, limit, now);
+  }
+  async submit(entry: BoardEntry) {
+    return this.core.submit(entry);
+  }
+  async count(name: string) {
+    this.core.count(name);
+  }
+  async remove(userId: string) {
+    this.core.remove(userId);
+  }
+  async page(offset: number, limit: number) {
+    return this.core.page(offset, limit);
+  }
+  async entriesFor(ids: string[]) {
+    return this.core.entriesFor(ids);
+  }
+  async total() {
+    return this.core.total();
+  }
+  async stats() {
+    return this.core.stats();
+  }
+  async puzzleAnswered(id: string, correct: boolean) {
+    this.core.puzzleAnswered(id, correct);
+  }
+  async puzzleFlags() {
+    return this.core.puzzleFlags();
+  }
+  async setPuzzleFlag(id: string, disabled: boolean) {
+    this.core.setPuzzleFlag(id, disabled);
+  }
+  async setVisibility(userId: string, v: Visibility) {
+    this.core.setVisibility(userId, v);
+  }
+}
+
 export class FriendIndex extends DurableObject<Env> {
   private core: FriendIndexStore;
   constructor(ctx: DurableObjectState, env: Env) {
@@ -1430,6 +1612,11 @@ export default {
     };
 
     const hub = () => env.HUB.get(env.HUB.idFromName("hub"));
+    // LIVE-1: daily content is off unless the flag, the secret and sign-in are all configured.
+    const secrets = dailySecrets(env);
+    if (env.DAILY === "on" && !secrets.ok) console.error("DAILY_SECRET_CONFIG", secrets.reason); // the reason never contains a secret value
+    const dailyOn = env.DAILY === "on" && secrets.ok && !!auth;
+    const dailyBoard = (date: string) => env.DAILY_BOARDS.get(env.DAILY_BOARDS.idFromName(boardName(DAILY_RULES, date))) as unknown as DailyBoardApi;
     try {
       // Quick match queue (Phase 4.5): one hibernatable socket per waiting player on the hub object.
       if (url.pathname === "/ws/match") {
@@ -1440,7 +1627,7 @@ export default {
       }
       // What this server offers (the page hides what is not available).
       if (url.pathname === "/api/features" && request.method === "GET")
-        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, createSettings: true, defaultTurnTimeoutMs: config.turnTimeoutMs, backgroundMatch: true, activity: true, friendPublicSpectate: true, serverAi: !!auth && env.SERVER_AI !== "off", economy: !!auth && env.ECONOMY === "on" }, allowed, "public, max-age=60");
+        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, createSettings: true, defaultTurnTimeoutMs: config.turnTimeoutMs, backgroundMatch: true, activity: true, friendPublicSpectate: true, serverAi: !!auth && env.SERVER_AI !== "off", economy: !!auth && env.ECONOMY === "on", daily: dailyOn }, allowed, "public, max-age=60");
       if (url.pathname === "/api/activity" && request.method === "GET") {
         if (isolateLimited("activity:" + (await clientKey(request)), 15)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
         // PR118-02: one hub call (the hub caches the directory lookup), and this isolate reuses the
@@ -1480,6 +1667,9 @@ export default {
         now: Date.now,
         feedback: !!auth && env.FEEDBACK_BOARD === "on",
         economy: !!auth && env.ECONOMY === "on",
+        // INT-1: LIVE-1 daily operations as admin console extensions (stats.read / content.write + audit).
+        // The shared ADMIN_TOKEN path for daily routes stays removed.
+        extensions: dailyAdminRoutes({ board: dailyBoard, now: dailyClock(env) }),
       });
       if (parts[0] === "api" && (parts[1] === "notices" || parts[1] === "suggestions" || parts[1] === "reports" || (parts[1] === "me" && ["mailbox", "redeem", "sanctions", "appeals"].includes(parts[2] ?? "")))) {
         if (request.method !== "GET" && !allowed) return fail(403, "ORIGIN", "허용되지 않은 출처입니다.", null);
@@ -1547,6 +1737,30 @@ export default {
         const verdict = code ? await directory.check(await clientKey(request), code, "peek") : await directory.resolveSpectate(await clientKey(request), sid!);
         if (!verdict.ok) return new Response(null, { status: verdict.status });
         return roomStub(code ?? (verdict as unknown as { code: string }).code).fetch(request);
+      }
+      // 오늘의 요트 / 오늘의 퍼즐 (LIVE-1): behind the DAILY flag.
+      if (url.pathname.startsWith("/api/daily/")) {
+        if (!dailyOn) return fail(404, "DAILY_OFF", "오늘의 요트는 아직 준비 중이에요.", allowed);
+        if (!allowed && request.method !== "GET") return fail(403, "ORIGIN", "허용되지 않은 출처입니다.", null);
+        const readJson = async () => {
+          const text = await request.text();
+          if (text.length > 2048) throw new Error("too large");
+          const v = JSON.parse(text || "{}");
+          if (typeof v !== "object" || v === null || Array.isArray(v)) throw new SyntaxError("object expected");
+          return v as Record<string, unknown>;
+        };
+        let identity: Promise<{ userId: string; suspended: boolean } | null> | null = null;
+        const res = await handleDailyRoute(request, url, {
+          secretFor: (date) => (secrets as Extract<typeof secrets, { ok: true }>).secretFor(date),
+          now: dailyClock(env),
+          me: () => (identity ??= sessionUser(request, backends).then((u) => (u ? { userId: u.userId, suspended: u.suspended } : null))),
+          user: (id) => env.USERS.get(env.USERS.idFromName(id)) as unknown as DailyUserApi,
+          board: dailyBoard,
+          limited: isolateLimited,
+          clientKey: () => clientKey(request),
+          reply: (status, body, cache) => json(status, body, allowed, cache),
+        }, readJson);
+        if (res) return res;
       }
       // Friends & invites (I/J): members only; players are addressed by friend code.
       const friendPath = url.pathname.startsWith("/api/me/friends") || url.pathname === "/api/me/inbox" || url.pathname.startsWith("/api/me/invites");

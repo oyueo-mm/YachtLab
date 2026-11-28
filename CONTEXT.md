@@ -15,6 +15,8 @@
 
 > **관리자 페이지·사용자 제안·운영 보상(ADMIN-1/FEEDBACK-1, 2026-11-28)** → [ADMIN-FEEDBACK](docs/admin/ADMIN-FEEDBACK.md) (D-ADM-1~5). 쓰기·게시판 기본 꺼짐, SEC-1 검증 전 활성 금지.
 
+> **오늘의 요트·오늘의 전략 퍼즐·일일 랭킹(LIVE-1, 운영 비공개)** → [DAILY-LIVE-1](docs/context/DAILY-LIVE-1.md) (D-LIVE1-1~D-LIVE1-6).
+>
 > **온라인 요트다이스 제품 개편** → [브랜드, 메뉴, 검색 및 배포 인수인계](docs/context/ONLINE-YACHT-PRODUCT.md).
 >
 > **콘텐츠 확장(2026-11-27): 1인 플레이·개인 기록, 게임 프로필, 테마 컬렉션 10종·신규 11종·시너지, 기간 한정, 상점·뽑기 안내, 오디오 믹스, 모바일** → [COLLECTIONS-2026-11-27](docs/context/COLLECTIONS-2026-11-27.md), [연승 검토](docs/context/STREAK-REVIEW-2026-11-27.md), [오디오 믹스](docs/audio/MIX.md) (D-074~D-078). 워커 수동 배포 전에는 1인 기록 계정 보관·신규 상품 판매가 대기 상태.

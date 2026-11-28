@@ -3,7 +3,12 @@ import { describe, expect, it } from "vitest";
 import { handleAdminRoute, handleEngagementRoute } from "../worker/src/admin/api";
 import { DAY_MS } from "../worker/src/admin/store";
 import { APPROVED_SOURCES } from "../worker/src/grants";
-import { reply, req, uid, world } from "./helpers/admin-fakes";
+import { reply, req, sqlite, uid, world } from "./helpers/admin-fakes";
+import { AccountStore } from "../worker/src/account";
+import { EconomyStore } from "../worker/src/economy";
+import { RewardGrants } from "../worker/src/grants";
+import { RetentionStore } from "../worker/src/retention";
+import { handleDailyRoute } from "../worker/src/daily-api";
 
 /**
  * INT-1: ADMIN-1 rewards run on the C5 grant path (worker/src/admin/grant-port.ts). These checks use the
@@ -121,5 +126,69 @@ describe("INT-1 · suspended accounts receive nothing", () => {
     const rewards = src.indexOf('if (path === "/api/me/rewards/attendance"');
     expect(guard).toBeGreaterThan(0);
     expect(rewards).toBeGreaterThan(guard);
+  });
+});
+
+describe("INT-1 · LIVE-1 → C5 activity day at the midnight grace", () => {
+  // KST midnight = 15:00 UTC. Daily D's grace runs to D+1 00:30 KST.
+  const D_2350 = Date.UTC(2026, 11, 9, 14, 50); // 2026-12-09 23:50 KST
+  const D1_0010 = Date.UTC(2026, 11, 9, 15, 10); // 2026-12-10 00:10 KST (grace of 12-09)
+  const D1_1200 = Date.UTC(2026, 11, 10, 3, 0); // 2026-12-10 12:00 KST
+  function retention() {
+    const db = sqlite();
+    const account = new AccountStore(db);
+    account.init();
+    account.ensureUser(U, "google", D_2350 - 30 * DAY_MS);
+    const econ = new EconomyStore(db);
+    econ.init();
+    econ.welcome(U, D_2350 - 30 * DAY_MS, null);
+    const grants = new RewardGrants(db, econ);
+    grants.init();
+    const r = new RetentionStore(db, grants);
+    r.init();
+    return r;
+  }
+  it("a grace-time completion of yesterday's official game counts for the day it finished (KST, server time) — once", () => {
+    const r = retention();
+    r.onDailyContent(U, { kind: "daily.official.completed", at: D1_0010 }, D1_0010);
+    const s1 = r.status(D1_1200).activity;
+    expect(s1).toMatchObject({ activeToday: true, current: 1 });
+    // today's own official game on the same KST day adds nothing
+    r.onDailyContent(U, { kind: "daily.official.completed", at: D1_1200 }, D1_1200);
+    expect(r.status(D1_1200).activity.current).toBe(1);
+    // a client-chosen future time is never used: C5 takes min(at, now)
+    const r2 = retention();
+    r2.onDailyContent(U, { kind: "daily.official.completed", at: D1_1200 }, D_2350);
+    expect(r2.status(D_2350).activity).toMatchObject({ activeToday: true, current: 1 });
+    expect(r2.status(D1_1200).activity.activeToday).toBe(false);
+  });
+  it("practice, puzzles and other kinds are not activity", () => {
+    const r = retention();
+    for (const kind of ["daily.practice.completed", "daily.puzzle.answered", "daily.official.started"]) r.onDailyContent(U, { kind, at: D1_1200 } as never, D1_1200);
+    expect(r.status(D1_1200).activity).toMatchObject({ activeToday: false, current: 0 });
+  });
+});
+
+describe("INT-1 · suspended accounts cannot use daily content", () => {
+  it("every daily write is refused for a suspended session (reads stay available)", async () => {
+    const calls: string[] = [];
+    const deps = {
+      secretFor: () => "s".repeat(40), now: () => Date.UTC(2026, 11, 10, 3), limited: () => false, clientKey: async () => "c",
+      me: async () => ({ userId: U, suspended: true }),
+      user: () => new Proxy({}, { get: (_t, k) => async () => (calls.push(String(k)), null) }),
+      board: () => new Proxy({}, { get: (_t, k) => async () => (calls.push("board." + String(k)), {}) }),
+      reply: (status: number, body: unknown) => new Response(JSON.stringify(body), { status }),
+    };
+    for (const path of ["/api/daily/start", "/api/daily/step", "/api/daily/puzzle", "/api/daily/settings"]) {
+      const res = await handleDailyRoute(new Request("https://w.example" + path, { method: "POST", body: "{}" }), new URL("https://w.example" + path), deps as never, async () => ({}));
+      expect(res!.status, path).toBe(403);
+      expect(((await res!.json()) as any).error.code).toBe("SUSPENDED");
+    }
+    expect(calls).toEqual([]); // nothing reached the account or the board
+  });
+  it("C5 itself ignores daily activity of a suspended account (defence in depth)", () => {
+    const src = readFileSync("worker/src/index.ts", "utf8");
+    const fn = src.slice(src.indexOf("async dailyContentDone("), src.indexOf("async dailyContentDone(") + 600);
+    expect(fn).toMatch(/standing\(now\)\.suspended/);
   });
 });

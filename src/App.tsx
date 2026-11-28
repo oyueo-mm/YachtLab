@@ -48,6 +48,7 @@ const ItemsPage = lazy(() => import("./shell/EconomyPages").then((module) => ({ 
 const AdminConsole = lazy(() => import("./admin/AdminConsole"));
 const SuggestionsPage = lazy(() => import("./engagement/EngagementPages").then((module) => ({ default: module.SuggestionsPage })));
 const MailboxPage = lazy(() => import("./engagement/EngagementPages").then((module) => ({ default: module.MailboxPage })));
+const DailyPage = lazy(() => import("./daily/DailyPage"));
 const QuestsPage = lazy(() => import("./shell/EconomyPages").then((module) => ({ default: module.QuestsPage })));
 const RewardsPage = lazy(() => import("./rewards/RewardsPage"));
 
@@ -422,6 +423,7 @@ export default function App() {
             {page === "admin" && <AdminConsole server={onlineServer} />}
           </Suspense>
         )}
+        {page === "daily" && <Suspense fallback={<p className="econ-note" role="status"><BrandMark /> 불러오는 중…</p>}><DailyPage server={onlineServer} go={navigate} /></Suspense>}
         {page === "spectate" && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "spectate" && onlineServer && (watchTarget ? <OnlineWatch key={watchTarget.code + watchTarget.key} server={onlineServer} code={watchTarget.code} watchKey={watchTarget.key} onLeave={() => navigate("home")} /> : (
           <p className="online-connecting" role="alert">
