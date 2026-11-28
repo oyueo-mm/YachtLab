@@ -353,3 +353,24 @@ describe("SEC-1 2차 DLY-3·INT-5(원본) · 일일 경로의 객체 생성", ()
     expect(block).not.toContain(".puzzleFlags()");
   });
 });
+
+describe("SEC-1 2차 Low(원본) · ADM-8·ECO-4·ECO-5·SOC-4·DLY-6", () => {
+  const read = (f: string) => readFileSync(f, "utf8");
+  it("ADM-8: 상태 화면의 승인 방식은 라우터가 실제로 적용하는 adminSettings 값", () => {
+    expect(read("worker/src/index.ts")).toContain("approval: adminSettings(env).approval");
+  });
+  it("ECO-4: admin: 원장으로 지급하던 MemberOps.claim이 없다", () => {
+    expect(read("worker/src/admin/member.ts")).not.toMatch(/\n  claim\(id: string, now: number, post/);
+    expect(read("worker/src/admin/member.ts")).not.toContain('post("admin:"');
+  });
+  it("ECO-5: 회수 actor는 회수한 관리자", async () => {
+    expect(read("worker/src/admin/api.ts")).toContain("revokeItem?.(revoke[2], actor)");
+    expect(read("worker/src/index.ts")).toContain('"admin:" + actor');
+  });
+  it("SOC-4: 접속 상태 숨김 반영 실패는 503으로 알린다(조용히 무시하지 않음)", () => {
+    expect(read("worker/src/friends-api.ts")).toContain('fail(503, "PRESENCE_SYNC"');
+  });
+  it("DLY-6: 키 공개는 마감 1분 뒤부터", () => {
+    expect(read("worker/src/daily-api.ts")).toContain("now < closesAt(date) + 60_000");
+  });
+});

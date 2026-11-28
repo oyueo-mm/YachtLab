@@ -183,7 +183,12 @@ export async function handleFriendRoute(request: Request, url: URL, me: { userId
     if (await d.limited("fsettings:" + me.userId, 10)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
     const r = await user.social<{ ok: true; settings: SocialSettings; presenceChanged: boolean } | { ok: false; code: string; message: string }>("setSettings", await readBody(), d.now());
     if (!r.ok) return fail(400, r.code, r.message);
-    if (r.presenceChanged) await d.presence?.setHidden(me.userId, r.settings.presence === "hidden").catch(() => undefined);
+    // SEC-1 2차 SOC-4: hiding must reach the central presence; a failure is reported (the setting is stored and
+    // the next heartbeat / settings save retries) instead of silently leaving the member visible
+    if (r.presenceChanged) {
+      const synced = await (d.presence?.setHidden(me.userId, r.settings.presence === "hidden").then(() => true, () => false) ?? Promise.resolve(true));
+      if (!synced) return fail(503, "PRESENCE_SYNC", "접속 상태 설정을 반영하지 못했어요. 잠시 후 다시 저장해 주세요.");
+    }
     return reply(200, { settings: r.settings });
   }
   if (path === "/api/me/profile/pins") {

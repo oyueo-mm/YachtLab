@@ -34,7 +34,7 @@ export interface AdminUserApi {
   adminView?(): Promise<unknown | null>;
   adminRecord?(matchId: string): Promise<unknown | null>;
   deliver?(item: InboxItem): Promise<DeliverResult>;
-  revokeItem?(id: string): Promise<boolean>;
+  revokeItem?(id: string, actor?: string): Promise<boolean>;
   applySanction?(s: { id: string; kind: string; reason: string; until: number | null }): Promise<DeliverResult>;
   liftSanction?(id: string): Promise<boolean>;
   inbox?(): Promise<{ items: InboxView[]; unclaimed: number }>;
@@ -325,7 +325,7 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
       const denied = need("rewards.write"); if (denied) return denied;
       const stale = fresh(); if (stale) return stale;
       await audit("reward.revoke", "started", revoke[1], { item: revoke[2] }); // ADM-2: effect in the account object
-      const ok = (await b.user(revoke[1]).revokeItem?.(revoke[2])) ?? false;
+      const ok = (await b.user(revoke[1]).revokeItem?.(revoke[2], actor)) ?? false;
       await audit("reward.revoke", ok ? "ok" : "not-revocable", revoke[1], { item: revoke[2] });
       return ok ? reply(200, { ok: true }) : fail(409, "NOT_REVOCABLE", "이미 받았거나 없는 보상이에요(받은 보상은 원장에서 회수하지 않아요).");
     }

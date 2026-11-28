@@ -78,20 +78,7 @@ export class MemberOps {
   unclaimed(now: number): number {
     return this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM inbox WHERE claimed_at IS NULL AND revoked = 0 AND (coins > 0 OR gems > 0) AND (expires_at IS NULL OR expires_at > ?)", now).toArray()[0]?.n ?? 0;
   }
-  /**
-   * Credit one reward item through `post` (the economy ledger, same transaction as the caller).
-   * `post` returns false when the ledger already has the id (then the item is only marked claimed).
-   */
-  claim(id: string, now: number, post: (eventId: string, coins: number, gems: number, label: string) => void): { ok: true; coins: number; gems: number } | { ok: false; code: string; message: string } {
-    const r = this.sql.exec<{ coins: number; gems: number; title: string; expires_at: number | null; claimed_at: number | null; revoked: number }>("SELECT coins, gems, title, expires_at, claimed_at, revoked FROM inbox WHERE id = ?", id).toArray()[0];
-    if (!r || (!r.coins && !r.gems)) return { ok: false, code: "NOT_FOUND", message: "받을 수 있는 보상이 없어요." };
-    if (r.claimed_at !== null) return { ok: false, code: "CLAIMED", message: "이미 받은 보상이에요." };
-    if (r.revoked) return { ok: false, code: "REVOKED", message: "회수된 보상이에요." };
-    if ((r.expires_at ?? FOREVER) <= now) return { ok: false, code: "EXPIRED", message: "수령 기간이 끝난 보상이에요." };
-    post("admin:" + id, r.coins, r.gems, "운영 보상 · " + r.title);
-    this.sql.exec("UPDATE inbox SET claimed_at = ? WHERE id = ?", now, id);
-    return { ok: true, coins: r.coins, gems: r.gems };
-  }
+  // SEC-1 2차 ECO-4: the old `claim` (ledger `admin:<id>`) was removed — rewards are C5 grants (grant-port.ts).
   /** Take back an UNCLAIMED reward (recovery of a wrong campaign). Claimed ones stay (ledger is append-only). */
   revoke(id: string): boolean {
     const r = this.sql.exec<{ claimed_at: number | null }>("SELECT claimed_at FROM inbox WHERE id = ?", id).toArray()[0];

@@ -162,7 +162,8 @@ export async function handleDailyRoute(request: Request, url: URL, deps: DailyDe
   if (path === "/api/daily/reveal" && method === "GET") {
     const date = dateParam(url.searchParams.get("date"));
     if (!date) return fail(deps, 404, "NOT_FOUND", "없는 날짜예요.");
-    if (dayPhase(date, now) !== "closed") return fail(deps, 403, "NOT_REVEALED", "주사위 키는 그날 도전이 끝난 뒤(한국 시간 자정 + 30분)에 공개돼요.");
+    // SEC-1 2차 DLY-6: one extra minute after the close, so no account object's clock can still accept a step
+    if (dayPhase(date, now) !== "closed" || now < closesAt(date) + 60_000) return fail(deps, 403, "NOT_REVEALED", "주사위 키는 그날 도전이 끝난 뒤(한국 시간 자정 + 30분)에 공개돼요.");
     const key = dayKeyFor(deps.secretFor(date), date);
     const me = await deps.me();
     const log = me ? await deps.user(me.userId).dailyLog(date) : null;

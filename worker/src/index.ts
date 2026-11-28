@@ -1066,11 +1066,11 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     }
     return deliverAdminItem(c, item, now);
   }
-  async revokeItem(id: string) {
+  async revokeItem(id: string, actor?: string) {
     const c = this.adminGrants();
     if (!c) return false;
     // a reward lives in the C5 inbox (txId = mailbox id); a message is hidden in the mailbox
-    return revokeAdminItem(c, id, "admin:console", Date.now());
+    return revokeAdminItem(c, id, actor && /^u_[A-Za-z0-9_-]{22}$/.test(actor) ? "admin:" + actor : "admin:console", Date.now()); // ECO-5: the revoking administrator
   }
   async applySanction(s: { id: string; kind: "warning" | "nickname_reset" | "restrict" | "suspend"; reason: string; until: number | null }) {
     const p = this.store.profile();
@@ -1843,7 +1843,7 @@ export default {
         hubReport: (d) => hub().report(d) as never,
         usage: () => directory.usage(),
         liveActivity: () => hub().activity(),
-        flags: { signIn: !!auth, economy: env.ECONOMY === "on", diceDraw: env.DICE_DRAW === "on", serverAi: env.SERVER_AI !== "off", adminWrites: env.ADMIN_WRITES === "on", approval: env.ADMIN_APPROVAL === "self" ? "self" : "two-person", feedback: env.FEEDBACK_BOARD === "on", attachments: false, friendResidueCleanup: env.FRIEND_RESIDUE_CLEANUP ?? "off" },
+        flags: { signIn: !!auth, economy: env.ECONOMY === "on", diceDraw: env.DICE_DRAW === "on", serverAi: env.SERVER_AI !== "off", adminWrites: env.ADMIN_WRITES === "on", approval: adminSettings(env).approval /* SEC-1 2차 ADM-8: the policy the router applies */, feedback: env.FEEDBACK_BOARD === "on", attachments: false, friendResidueCleanup: env.FRIEND_RESIDUE_CLEANUP ?? "off" },
         limited: (key, perMinute) => directory.hit(key, perMinute),
         count: (name, n) => hub().count(name, n),
         client: "",
