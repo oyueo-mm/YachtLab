@@ -223,6 +223,9 @@ describe("SEC-1 2차 ADM-2 · 관리자 작업과 감사 기록의 장애 일관
     const sanctionsBefore = await m.account.mySanctions();
     expect(sanctionsBefore).toHaveLength(1); // the effect happened in the account
     failFinish = false;
+    // still inside the stale window: not resumable yet (it may be running)
+    expect((await post(w, `/api/admin/actions/${id}/resume`, b, { confirm: id })).body.error.code).toBe("RUNNING");
+    w.advance(121_000);
     const r = await post(w, `/api/admin/actions/${id}/resume`, b, { confirm: id });
     expect(r.status).toBe(200);
     expect(r.body.attempt).toBe(2);

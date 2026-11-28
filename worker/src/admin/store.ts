@@ -17,6 +17,8 @@ import { GRANT_CAPS, type ActionKind, type Role } from "./roles";
  * Coins and gems are NEVER changed here: deliveries go to the account's own mailbox, and claiming
  * posts one row to that account's existing economy ledger (worker/src/economy.ts, idempotent by id).
  */
+/** SEC-1 2차 ADM-2: an `executing` action without an outcome for this long counts as interrupted (resumable). */
+export const EXECUTION_STALE_MS = 120_000;
 export interface AdminSql {
   exec<T = Record<string, unknown>>(query: string, ...params: unknown[]): { toArray(): T[] };
   transaction?<T>(fn: () => T): T;
@@ -408,7 +410,10 @@ export class AdminCore {
       const a = this.action(id);
       if (!a) return fail("NOT_FOUND", "작업을 찾을 수 없어요.");
       if (!(a.status === "approved" || (e.resume && (a.status === "executing" || a.status === "failed")))) return fail("STATE", "실행할 수 없는 상태예요.");
-      const prev = (a.result as { attempt?: number } | null)?.attempt ?? 0;
+      const prevResult = a.result as { attempt?: number; startedAt?: number } | null;
+      // an execution still running is not "interrupted": resume only after EXECUTION_STALE_MS without an outcome
+      if (e.resume && a.status === "executing" && e.at - (prevResult?.startedAt ?? 0) < EXECUTION_STALE_MS) return fail("RUNNING", "아직 실행 중이에요. 잠시 뒤 다시 확인해 주세요.");
+      const prev = prevResult?.attempt ?? 0;
       const attempt = prev + 1;
       this.sql.exec("UPDATE actions SET status = 'executing', result = ? WHERE id = ?", JSON.stringify({ attempt, startedAt: e.at }), id);
       this.audit({ at: e.at, actor: e.actor, role: e.role, action: "action.execute", target: id, result: "started", detail: { attempt, resume: e.resume }, client: e.client });

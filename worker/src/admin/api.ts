@@ -479,6 +479,7 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
       const stale = fresh(); if (stale) return stale;
       if (input.confirm !== resume[1]) return fail(400, "CONFIRM", "확인을 위해 작업 ID를 정확히 입력해 주세요.");
       const result = await execute(b, resume[1], actor, now, { role, client: b.client, resume: true });
+      if (result.error === "RUNNING") return fail(409, "RUNNING", "아직 실행 중이에요. 2분 뒤에도 끝나지 않으면 다시 실행할 수 있어요.");
       if (result.error === "STATE" || result.error === "NOT_FOUND") return fail(409, String(result.error), "다시 실행할 수 있는 작업이 아니에요.");
       return reply(result.ok ? 200 : 500, result);
     }
