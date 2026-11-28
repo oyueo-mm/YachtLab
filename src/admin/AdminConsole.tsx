@@ -644,7 +644,7 @@ function Actions({ ctx }: { ctx: Ctx }) {
   return (
     <>
       <Head title="승인 대기" note={`작성자가 아닌 승인 권한자가 승인해야 실행돼요${ctx.admin.selfApprove ? "(현재 본인 승인 허용 설정)" : ""}. 승인 전 관리자 로그인은 ${Math.round(ctx.admin.freshMs / 60_000)}분 이내여야 해요.`}>
-        <select aria-label="상태" value={status} onChange={(e) => setStatus(e.target.value)}><option value="pending">대기</option><option value="executed">실행됨</option><option value="failed">실패</option><option value="rejected">반려</option><option value="cancelled">취소</option><option value="">전체</option></select>
+        <select aria-label="상태" value={status} onChange={(e) => setStatus(e.target.value)}><option value="pending">대기</option><option value="executing">실행 중단(재개 필요)</option><option value="executed">실행됨</option><option value="failed">실패</option><option value="rejected">반려</option><option value="cancelled">취소</option><option value="">전체</option></select>
         {approver && stale && <button className="adm-btn" onClick={() => void ctx.refreshSession()}>Google 재인증</button>}
       </Head>
       {msg && <p className="adm-note" role="status">{msg}</p>}
@@ -660,6 +660,11 @@ function Actions({ ctx }: { ctx: Ctx }) {
               <button className="adm-btn" disabled={busy || !ctx.admin.writes} onClick={() => void run(`/api/admin/actions/${a.id}/reject`, {}, () => { reload(); return "반려했어요."; })}>반려</button>
             </>}
             <button className="adm-btn" disabled={busy || !ctx.admin.writes} onClick={() => void run(`/api/admin/actions/${a.id}/cancel`, {}, () => { reload(); return "취소했어요."; })}>작성 취소</button>
+          </div>}
+          {/* SEC-1 2차 ADM-2: an interrupted or failed approved action re-runs the same idempotent effect */}
+          {(a.status === "executing" || a.status === "failed") && approver && <div className="adm-row">
+            <input aria-label="확인용 작업 ID" placeholder="작업 ID를 그대로 입력" value={confirm[a.id] ?? ""} onChange={(e) => setConfirm({ ...confirm, [a.id]: e.target.value.trim() })} />
+            <button className="adm-btn danger" disabled={busy || !ctx.admin.writes || confirm[a.id] !== a.id} onClick={() => void run(`/api/admin/actions/${a.id}/resume`, { confirm: a.id }, (r) => { reload(); return "다시 실행했어요: " + JSON.stringify(r); })}>다시 실행</button>
           </div>}
         </article>
       ))}

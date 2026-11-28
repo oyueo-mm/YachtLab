@@ -102,7 +102,10 @@ describe("SEC-1 · every admin write is audited", () => {
     for (const act of pending) await route(w, `/api/admin/actions/${act.id}/approve`, b, { confirm: act.id });
     const actions = w.admin.auditLog({ limit: 100 }).entries.map((e: any) => e.action);
     expect(actions).toEqual(expect.arrayContaining(["notice.save", "action.draft", "code.create", "sanction.warning", "report.update", "action.execute"]));
-    expect(actions.filter((x: string) => x === "action.execute")).toHaveLength(pending.length);
+    // SEC-1 2차 ADM-2: each execution writes a "started" row before any effect and one outcome row after it
+    const exec = w.admin.auditLog({ limit: 100 }).entries.filter((e: any) => e.action === "action.execute");
+    expect(exec.filter((e: any) => e.result === "started")).toHaveLength(pending.length);
+    expect(exec.filter((e: any) => e.result !== "started")).toHaveLength(pending.length);
   });
   it("the audit log has no delete or update path", () => {
     const src = readFileSync("worker/src/admin/store.ts", "utf8");

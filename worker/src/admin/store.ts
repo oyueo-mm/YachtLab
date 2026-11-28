@@ -398,6 +398,30 @@ export class AdminCore {
   finishAction(id: string, status: "executed" | "failed", result: unknown) {
     this.sql.exec("UPDATE actions SET status = ?, result = ? WHERE id = ?", status, JSON.stringify(result).slice(0, 4000), id);
   }
+  /**
+   * SEC-1 2차 ADM-2: start (or resume) the execution of an approved action and write its "started" audit row
+   * in ONE transaction of this object. Only `approved`, `executing` (interrupted) or `failed` actions run;
+   * the account-side effects are idempotent by ids derived from the action, so a resume never doubles them.
+   */
+  beginExecution(id: string, e: { at: number; actor: string; role: string; client?: string; resume: boolean }): { ok: true; kind: ActionKind; payload: unknown; attempt: number } | Fail {
+    return this.tx(() => {
+      const a = this.action(id);
+      if (!a) return fail("NOT_FOUND", "작업을 찾을 수 없어요.");
+      if (!(a.status === "approved" || (e.resume && (a.status === "executing" || a.status === "failed")))) return fail("STATE", "실행할 수 없는 상태예요.");
+      const prev = (a.result as { attempt?: number } | null)?.attempt ?? 0;
+      const attempt = prev + 1;
+      this.sql.exec("UPDATE actions SET status = 'executing', result = ? WHERE id = ?", JSON.stringify({ attempt, startedAt: e.at }), id);
+      this.audit({ at: e.at, actor: e.actor, role: e.role, action: "action.execute", target: id, result: "started", detail: { attempt, resume: e.resume }, client: e.client });
+      return { ok: true as const, kind: a.kind, payload: a.payload, attempt };
+    });
+  }
+  /** The outcome and its audit row together (one transaction): the action status never disagrees with the log. */
+  finishExecution(id: string, status: "executed" | "failed", result: Record<string, unknown>, e: { at: number; actor: string; role: string; client?: string; detail?: Record<string, unknown> }) {
+    this.tx(() => {
+      this.sql.exec("UPDATE actions SET status = ?, result = ? WHERE id = ? AND status = 'executing'", status, JSON.stringify(result).slice(0, 4000), id);
+      this.audit({ at: e.at, actor: e.actor, role: e.role, action: "action.execute", target: id, result: status === "executed" ? "ok" : "failed", detail: { ...result, ...e.detail }, client: e.client });
+    });
+  }
 
   /* ------------------------------------------------------------ reward campaigns ------------------------------------------------------------ */
 
@@ -546,6 +570,8 @@ export class AdminCore {
   setCodeStatus(id: string, status: "active" | "inactive", approval?: { approver: string; policyVersion: string }) {
     const c = this.code(id);
     if (!c) return fail("NOT_FOUND", "코드를 찾을 수 없어요.");
+    // ADM-2: a resumed activation of the same approval is a no-op success
+    if (status === "active" && c.status === "active" && approval && (c as { approved_by?: string | null }).approved_by === approval.approver) return { ok: true as const };
     if (status === "active" && c.status !== "draft") return fail("STATE", "초안 상태의 코드만 활성화할 수 있어요.");
     if (status === "active" && approval) this.sql.exec("UPDATE codes SET status = ?, approved_by = ?, policy_version = ? WHERE id = ?", status, approval.approver, approval.policyVersion, id);
     else this.sql.exec("UPDATE codes SET status = ? WHERE id = ?", status, id);

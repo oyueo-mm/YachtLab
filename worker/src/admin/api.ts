@@ -469,8 +469,17 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
         await audit("action." + verb, "ok", id);
         return reply(200, { ok: true, status: verb === "reject" ? "rejected" : "cancelled" });
       }
-      const result = await execute(b, id, actor, now);
-      await audit("action.execute", result.ok ? "ok" : "failed", id, { ...result, approval: self ? "self-approved" : "second-admin" });
+      const result = await execute(b, id, actor, now, { role, client: b.client, detail: { approval: self ? "self-approved" : "second-admin" } });
+      return reply(result.ok ? 200 : 500, result);
+    }
+    // SEC-1 2차 ADM-2: re-run an interrupted (`executing`) or failed approved action — same idempotent effect
+    const resume = /^\/api\/admin\/actions\/(act_[a-z0-9]{20})\/resume$/.exec(path);
+    if (resume) {
+      const denied = need("approve"); if (denied) return denied;
+      const stale = fresh(); if (stale) return stale;
+      if (input.confirm !== resume[1]) return fail(400, "CONFIRM", "확인을 위해 작업 ID를 정확히 입력해 주세요.");
+      const result = await execute(b, resume[1], actor, now, { role, client: b.client, resume: true });
+      if (result.error === "STATE" || result.error === "NOT_FOUND") return fail(409, String(result.error), "다시 실행할 수 있는 작업이 아니에요.");
       return reply(result.ok ? 200 : 500, result);
     }
     return notFound();
@@ -502,12 +511,21 @@ async function liftSanction(b: AdminBackends, id: string, by: string, reason: st
   return { ok: true };
 }
 
-/** Run an approved action. Every branch is idempotent by an id derived from the action. */
-async function execute(b: AdminBackends, actionId: string, by: string, now: number): Promise<{ ok: boolean; [k: string]: unknown }> {
-  const a = await b.admin.op<{ kind: ActionKind; payload: unknown } | null>("action", actionId);
-  if (!a) return { ok: false, error: "missing" };
+/**
+ * Run an approved action. Every branch is idempotent by an id derived from the action.
+ * SEC-1 2차 ADM-2: the effects live in other objects (accounts, campaign queue), so no single SQL transaction
+ * can cover them. Instead: (1) `beginExecution` marks the action `executing` and writes a "started" audit row
+ * atomically BEFORE any effect; (2) the effect runs (idempotent ids); (3) `finishExecution` writes the status
+ * and the outcome audit row atomically. A crash between (1) and (3) leaves `executing` + "started" in the log
+ * — visible, and resumable with POST /api/admin/actions/:id/resume, which re-runs the same idempotent effect.
+ */
+async function execute(b: AdminBackends, actionId: string, by: string, now: number, ctx: { role: string; client?: string; resume?: boolean; detail?: Record<string, unknown> }): Promise<{ ok: boolean; [k: string]: unknown }> {
+  const started = await b.admin.op<{ ok: true; kind: ActionKind; payload: unknown; attempt: number } | { ok: false; code: string; message: string }>("beginExecution", actionId, { at: now, actor: by, role: ctx.role, client: ctx.client, resume: !!ctx.resume });
+  if (!started.ok) return { ok: false, error: started.code };
+  const a = { kind: started.kind, payload: started.payload };
+  let status: "executed" | "failed";
+  let result: Record<string, unknown>;
   try {
-    let result: Record<string, unknown>;
     if (a.kind === "reward.campaign") {
       const campaignId = await b.admin.op<string>("scheduleCampaign", actionId, { ...(a.payload as RewardPayload), approvedBy: by }, now);
       await b.admin.schedule();
@@ -531,13 +549,15 @@ async function execute(b: AdminBackends, actionId: string, by: string, now: numb
       if (sent !== "ok") throw Error("account not found");
       result = { delivered: p.userId };
     } else throw Error("unknown action");
-    await b.admin.op("finishAction", actionId, "executed", result);
-    return { ok: true, ...result };
+    status = "executed";
   } catch (error) {
-    const result = { error: error instanceof Error ? error.message : "failed" };
-    await b.admin.op("finishAction", actionId, "failed", result);
-    return { ok: false, ...result };
+    status = "failed";
+    result = { error: error instanceof Error ? (error as { code?: string }).code ?? error.message : "failed" };
   }
+  const out = { ...result, attempt: started.attempt };
+  // if this write fails the action stays `executing` with its "started" row: the console shows it as interrupted
+  await b.admin.op("finishExecution", actionId, status, out, { at: now, actor: by, role: ctx.role, client: ctx.client, detail: ctx.detail });
+  return { ok: status === "executed", ...out };
 }
 
 /* ========================================================= member-facing routes ========================================================= */

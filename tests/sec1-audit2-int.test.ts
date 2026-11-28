@@ -189,3 +189,51 @@ describe("SEC-1 2차 ECO-2/ECO-3 · 교환 코드", () => {
     expect(src).toContain('redeem: this.grants.isEnabled("redeem-code")');
   });
 });
+
+describe("SEC-1 2차 ADM-2 · 관리자 작업과 감사 기록의 장애 일관성", () => {
+  const post = async (w: ReturnType<typeof world>, path: string, token: string, body: unknown) => {
+    const r = await handleAdminRoute(new Request("https://w.example" + path, { method: "POST", headers: { authorization: "Bearer " + token, "content-type": "application/json" }, body: JSON.stringify(body) }), new URL("https://w.example" + path), w.backends(), reply);
+    return { status: r.status, body: (await r.json()) as Record<string, any> };
+  };
+  const setup = async () => {
+    const w = world({ ADMIN_ACCOUNTS: `${A}:owner,${B}:owner`, ADMIN_WRITES: "on" });
+    const a = (await w.adminLogin(w.account(A).session)).token as string;
+    const b = (await w.adminLogin(w.account(B).session)).token as string;
+    const m = w.account(U);
+    const d = await post(w, "/api/admin/sanctions", a, { userId: U, kind: "suspend", reason: "감사 시험", days: 3 });
+    return { w, a, b, m, id: d.body.actionId as string };
+  };
+  it("효과 전에 'started' 감사 행과 executing 상태가 함께 기록되고, 끝나면 상태와 결과 행이 함께 기록된다", async () => {
+    const { w, b, id } = await setup();
+    expect((await post(w, `/api/admin/actions/${id}/approve`, b, { confirm: id })).status).toBe(200);
+    const rows = w.admin.auditLog({ limit: 50 }).entries.filter((e: any) => e.action === "action.execute" && e.target === id).map((e: any) => e.result);
+    expect(rows.sort()).toEqual(["ok", "started"]);
+    expect(w.admin.action(id)!.status).toBe("executed");
+  });
+  it("결과 기록 직전에 관리자 허브 호출이 실패해도 'started' 행과 executing 상태가 남고, 재개(resume)가 같은 효과를 한 번만 적용한다", async () => {
+    const { w, b, m, id } = await setup();
+    const backends = w.backends();
+    const op = backends.admin.op.bind(backends.admin) as (n: string, ...x: unknown[]) => Promise<unknown>;
+    let failFinish = true;
+    backends.admin = { ...backends.admin, op: (n: string, ...x: unknown[]) => (n === "finishExecution" && failFinish ? Promise.reject(new Error("hub down")) : op(n, ...x)) } as typeof backends.admin;
+    const path = `/api/admin/actions/${id}/approve`;
+    await expect(handleAdminRoute(new Request("https://w.example" + path, { method: "POST", headers: { authorization: "Bearer " + b, "content-type": "application/json" }, body: JSON.stringify({ confirm: id }) }), new URL("https://w.example" + path), backends, reply)).rejects.toThrow();
+    expect(w.admin.action(id)!.status).toBe("executing");
+    expect(w.admin.auditLog({ limit: 50 }).entries.filter((e: any) => e.target === id && e.result === "started")).toHaveLength(1);
+    const sanctionsBefore = await m.account.mySanctions();
+    expect(sanctionsBefore).toHaveLength(1); // the effect happened in the account
+    failFinish = false;
+    const r = await post(w, `/api/admin/actions/${id}/resume`, b, { confirm: id });
+    expect(r.status).toBe(200);
+    expect(r.body.attempt).toBe(2);
+    expect(w.admin.action(id)!.status).toBe("executed");
+    expect(await m.account.mySanctions()).toHaveLength(1); // idempotent: not applied twice
+    // a finished action cannot be resumed again
+    expect((await post(w, `/api/admin/actions/${id}/resume`, b, { confirm: id })).status).toBe(409);
+  });
+  it("대기 중인 작업은 재개 경로로 실행할 수 없다(승인 절차 우회 불가)", async () => {
+    const { w, b, id } = await setup();
+    expect((await post(w, `/api/admin/actions/${id}/resume`, b, { confirm: id })).status).toBe(409);
+    expect(w.admin.action(id)!.status).toBe("pending");
+  });
+});
