@@ -16,7 +16,7 @@
 
 ## 맥락 내비게이션
 
-**오늘의 요트·전략 퍼즐·일일 랭킹 (LIVE-1, 운영 비공개):** [DAILY-LIVE-1](./DAILY-LIVE-1.md) · 결정 D-103~D-108.
+**오늘의 요트·전략 퍼즐·일일 랭킹 (LIVE-1, 운영 비공개):** [DAILY-LIVE-1](./DAILY-LIVE-1.md) · 결정 D-LIVE1-1~D-LIVE1-6.
 
 **경제(재화·퀘스트·업적·가격) 연구:** [경제 연구 보고서](../economy/ECONOMY-RESEARCH.md) · [1차 결과](../economy/RESULTS-GENERATED.md) · [2차 추가 검증](../economy/FOLLOWUP-GENERATED.md) · [온라인 매칭·관전방 계획](../online/MATCHMAKING-SPECTATE-PLAN.md) · [저장 쓰기·AI 대전 보안](../online/STORAGE-AND-AI-MATCH-SECURITY.md) · 결정 D-029~D-037.
 

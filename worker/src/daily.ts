@@ -1,5 +1,5 @@
 import { categories, total, upper } from "../../src/engine";
-import { closesAt, dayPhase, dayStart, DAILY_RULES, kstDate } from "../../src/daily/calendar";
+import { closesAt, dayPhase, dayStart, DAILY_RULES, isDailyDate, kstDate } from "../../src/daily/calendar";
 import { applyStep, DailyRuleError, finalScore, newDailyState, parseStep, replayLog, sameStep, viewOf, type DailyState, type DailyStep, type DailyView } from "../../src/daily/game";
 import { deriveDayKey, type DayKey } from "../../src/daily/tape";
 import { compareEntries, isVisibility, type BoardEntry, type Visibility } from "../../src/daily/ranking";
@@ -31,12 +31,15 @@ const err = (status: number, code: string, message: string, state?: AttemptView)
 
 export type DailyLimits = { practicePerDay: number };
 
-type Row = { date: string; rules: string; mode: Mode; state: string; status: AttemptStatus; started_at: number; finished_at: number | null; score: number | null; ranked: number; submitted: number };
+type Row = { date: string; rules: string; mode: Mode; state: string; status: AttemptStatus; started_at: number; finished_at: number | null; score: number | null; ranked: number; submitted: number; activity: number };
 
 export class DailyPlayStore {
   constructor(private sql: DailySql) {}
   init() {
     this.sql.exec("CREATE TABLE IF NOT EXISTS daily_attempts (date TEXT NOT NULL, rules TEXT NOT NULL, mode TEXT NOT NULL, state TEXT NOT NULL, status TEXT NOT NULL, started_at INTEGER NOT NULL, finished_at INTEGER, score INTEGER, ranked INTEGER NOT NULL DEFAULT 0, submitted INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (date, rules, mode))");
+    // C5 continuous-activity report state (added with the C5 adapter; older rows default to "not sent")
+    if (!this.sql.exec<{ name: string }>("PRAGMA table_info(daily_attempts)").toArray().some((c) => c.name === "activity"))
+      this.sql.exec("ALTER TABLE daily_attempts ADD COLUMN activity INTEGER NOT NULL DEFAULT 0");
     this.sql.exec("CREATE TABLE IF NOT EXISTS daily_practice (date TEXT PRIMARY KEY, games INTEGER NOT NULL)");
     this.sql.exec("CREATE TABLE IF NOT EXISTS daily_puzzles (puzzle_id TEXT PRIMARY KEY, date TEXT NOT NULL, answer TEXT NOT NULL, correct INTEGER NOT NULL, value REAL, best REAL NOT NULL, at INTEGER NOT NULL)");
     this.sql.exec("CREATE TABLE IF NOT EXISTS daily_prefs (id INTEGER PRIMARY KEY CHECK (id = 1), visibility TEXT NOT NULL)");
@@ -137,13 +140,19 @@ export class DailyPlayStore {
     });
   }
 
-  /** Finished official attempts whose board submission has not been confirmed yet (retry on the next call). */
-  pendingSubmissions(): { date: string; score: number; finishedAt: number; ranked: boolean; state: DailyState }[] {
-    return this.sql.exec<Row>("SELECT * FROM daily_attempts WHERE mode = 'official' AND rules = ? AND status = 'finished' AND submitted = 0", DAILY_RULES).toArray()
-      .map((r) => ({ date: r.date, score: r.score ?? 0, finishedAt: r.finished_at ?? r.started_at, ranked: !!r.ranked, state: JSON.parse(r.state) as DailyState }));
+  /**
+   * Finished official attempts with a pending step: the board submission (`submitted`) and/or the C5
+   * activity report (`activity`). Each step is marked separately, so a retry never repeats a done step.
+   */
+  pendingSubmissions(): { date: string; score: number; finishedAt: number; ranked: boolean; state: DailyState; board: boolean; activity: boolean }[] {
+    return this.sql.exec<Row>("SELECT * FROM daily_attempts WHERE mode = 'official' AND rules = ? AND status = 'finished' AND (submitted = 0 OR activity = 0)", DAILY_RULES).toArray()
+      .map((r) => ({ date: r.date, score: r.score ?? 0, finishedAt: r.finished_at ?? r.started_at, ranked: !!r.ranked, state: JSON.parse(r.state) as DailyState, board: !r.submitted, activity: !r.activity }));
   }
   markSubmitted(date: string) {
     this.sql.exec("UPDATE daily_attempts SET submitted = 1 WHERE date = ? AND rules = ? AND mode = 'official'", date, DAILY_RULES);
+  }
+  markActivity(date: string) {
+    this.sql.exec("UPDATE daily_attempts SET activity = 1 WHERE date = ? AND rules = ? AND mode = 'official'", date, DAILY_RULES);
   }
 
   /** Official history, newest first, with personal best and participation streak inputs. */
@@ -188,6 +197,46 @@ export class DailyPlayStore {
 }
 
 /**
+ * After-completion steps of finished official attempts (UserStore.dailyFlush): 1) ranking board,
+ * 2) C5 activity report. Each step is marked done on its own, so a failed step is retried on a later
+ * call and a finished step never repeats (no double board counter, no second activity report).
+ * A state that does not replay from its own log is never published and never reported.
+ */
+export type FlushSteps = {
+  verify(state: DailyState, date: string): boolean;
+  board(p: ReturnType<DailyPlayStore["pendingSubmissions"]>[number]): Promise<void>;
+  activity(p: ReturnType<DailyPlayStore["pendingSubmissions"]>[number]): Promise<void>;
+  onVerifyFailed?(): void;
+};
+export async function flushPending(store: DailyPlayStore, steps: FlushSteps): Promise<{ board: number; activity: number; failed: number; rejected: number }> {
+  const out = { board: 0, activity: 0, failed: 0, rejected: 0 };
+  for (const a of store.pendingSubmissions()) {
+    try {
+      if (!steps.verify(a.state, a.date)) {
+        steps.onVerifyFailed?.();
+        store.markSubmitted(a.date);
+        store.markActivity(a.date);
+        out.rejected++;
+        continue;
+      }
+      if (a.board) {
+        await steps.board(a);
+        store.markSubmitted(a.date);
+        out.board++;
+      }
+      if (a.activity) {
+        await steps.activity(a);
+        store.markActivity(a.date);
+        out.activity++;
+      }
+    } catch {
+      out.failed++; // the next call retries the step that did not complete
+    }
+  }
+  return out;
+}
+
+/**
  * Clock of the daily service. `DAILY_TEST_OFFSET_MS` shifts it for local end-to-end tests only: it is
  * honoured only when APP_URL is a loopback http address, which a deployed Worker can never have.
  */
@@ -199,6 +248,32 @@ export function dailyClock(env: { DAILY_TEST_OFFSET_MS?: string; APP_URL?: strin
 
 /** Day key for a date (Worker secret → per-day HMAC key). Throws if the secret is missing or short. */
 export const dayKeyFor = (secret: string | undefined, date: string) => deriveDayKey(secret ?? "", date);
+
+/**
+ * DAILY_SECRET handling (D-LIVE1-2). The key of EVERY date derives from the secret, so replacing it in place
+ * would change today's dice mid-game and the published keys of past days. A rotation is therefore dated:
+ *
+ *   DAILY_SECRET           current secret (≥ 32 chars), used for dates >= DAILY_SECRET_FROM
+ *   DAILY_SECRET_PREVIOUS  the former secret, kept for dates  < DAILY_SECRET_FROM (reveal / verify / grace)
+ *   DAILY_SECRET_FROM      YYYY-MM-DD, set to a FUTURE date (tomorrow at the earliest) when rotating
+ *
+ * Any inconsistent setting fails closed (daily stays off): a short secret, FROM without a valid PREVIOUS,
+ * PREVIOUS equal to the current secret, or FROM that is not a date.
+ */
+export type DailySecretEnv = { DAILY_SECRET?: string; DAILY_SECRET_PREVIOUS?: string; DAILY_SECRET_FROM?: string };
+export function dailySecrets(env: DailySecretEnv): { ok: true; secretFor(date: string): string } | { ok: false; reason: string } {
+  const current = env.DAILY_SECRET ?? "";
+  if (current.length < 32) return { ok: false, reason: "DAILY_SECRET missing or shorter than 32 characters" };
+  const from = env.DAILY_SECRET_FROM;
+  if (from === undefined || from === "") {
+    if (env.DAILY_SECRET_PREVIOUS) return { ok: false, reason: "DAILY_SECRET_PREVIOUS without DAILY_SECRET_FROM" };
+    return { ok: true, secretFor: () => current };
+  }
+  const previous = env.DAILY_SECRET_PREVIOUS ?? "";
+  if (!isDailyDate(from)) return { ok: false, reason: "DAILY_SECRET_FROM is not YYYY-MM-DD" };
+  if (previous.length < 32 || previous === current) return { ok: false, reason: "DAILY_SECRET_PREVIOUS missing, short or equal to DAILY_SECRET" };
+  return { ok: true, secretFor: (date) => (date < from ? previous : current) };
+}
 
 /** Whether an account may rank on `date`: created before that KST day began (unless allowed by config). */
 export const rankEligible = (createdAt: number, date: string, newAccountsRanked: boolean) => newAccountsRanked || createdAt < dayStart(date);

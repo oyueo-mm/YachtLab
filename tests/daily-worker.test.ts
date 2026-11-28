@@ -225,15 +225,11 @@ describe("오늘의 요트 (wrangler dev + 가짜 로컬 로그인)", () => {
     const guestAns = await call(closed, null, "/api/daily/puzzles/answer", { date: DATE, puzzleId: q2.id, answer: pzClosed.body.puzzles[1].key.best[0] });
     expect(guestAns.body).toMatchObject({ recorded: false, result: { correct: true } });
 
-    // operations (06): participation / completion / puzzle numbers without ids, puzzle withdrawal
-    const admin = (path: string, body?: unknown) => fetch(closed.url + path, { method: body ? "POST" : "GET", headers: { authorization: "Bearer " + ADMIN }, body: body ? JSON.stringify(body) : undefined }).then(async (r) => ({ status: r.status, body: (await r.json()) as Record<string, any> }));
-    expect((await fetch(closed.url + `/api/admin/daily?date=${DATE}`)).status).toBe(404);
-    const report = await admin(`/api/admin/daily?date=${DATE}`);
-    expect(report.body.official).toMatchObject({ started: 3, completed: 3, ranked: 3, completionRate: 1 });
-    expect(report.body.practice.games).toBe(2);
-    expect(report.body.puzzles[0]).toMatchObject({ answered: 1, disabled: false });
-    expect(JSON.stringify(report.body)).not.toMatch(/u_[A-Za-z0-9_-]{22}|에이/);
-    expect((await admin("/api/admin/daily/puzzle", { date: DATE, puzzleId: q.id, disabled: true })).status).toBe(200);
-    expect((await call(closed, b, `/api/daily/puzzles?date=${DATE}`)).body.puzzles).toHaveLength(2);
+    // operations (06): no shared-token path any more — the report and puzzle withdrawal are ADMIN-1
+    // extension routes (stats.read / content.write, tests/daily-integration.test.ts), registered by INT-1
+    const admin = (path: string, body?: unknown) => fetch(closed.url + path, { method: body ? "POST" : "GET", headers: { authorization: "Bearer " + ADMIN }, body: body ? JSON.stringify(body) : undefined });
+    expect((await admin(`/api/admin/daily?date=${DATE}`)).status).toBe(404);
+    expect((await admin("/api/admin/daily/puzzle", { date: DATE, puzzleId: q.id, disabled: true })).status).toBe(404);
+    expect((await call(closed, b, `/api/daily/puzzles?date=${DATE}`)).body.puzzles).toHaveLength(3);
   }, 240_000);
 });

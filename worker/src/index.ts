@@ -24,8 +24,9 @@ import type { PublicLook } from "../../src/economy/live/catalog";
 import type { MatchKind } from "../../src/economy/live/config";
 import { HubCore, type HubSql, type QueueSeat } from "./hub";
 import { clearStaleReservations, migrateReservations, reserve, type ReservationSql } from "./reservations";
-import { DailyBoardCore, DailyPlayStore, dailyClock, dayKeyFor, entryFrom, rankEligible, verifyState, type DailySql, type Mode as DailyMode } from "./daily";
-import { dailyAdminReport, handleDailyRoute, puzzlesOf, type DailyBoardApi, type DailyUserApi } from "./daily-api";
+import { DailyBoardCore, DailyPlayStore, dailyClock, dailySecrets, dayKeyFor, flushPending, entryFrom, rankEligible, verifyState, type DailySql, type Mode as DailyMode } from "./daily";
+import { handleDailyRoute, type DailyBoardApi, type DailyUserApi } from "./daily-api";
+import { activityFor, reportCompletion, type DailyContentSink } from "./daily-activity";
 import { boardName, type BoardEntry, type Visibility } from "../../src/daily/ranking";
 import { DAILY_RULES, isDailyDate } from "../../src/daily/calendar";
 import type { PuzzleResult } from "../../src/daily/puzzles/types";
@@ -56,6 +57,10 @@ export interface Env extends ConfigVars {
   DAILY?: string;
   /** Worker secret (≥ 32 chars) from which each day's dice key is derived. Never in wrangler.toml. */
   DAILY_SECRET?: string;
+  /** Dated rotation (dailySecrets): the former secret, used for dates before DAILY_SECRET_FROM. Worker secret. */
+  DAILY_SECRET_PREVIOUS?: string;
+  /** YYYY-MM-DD from which DAILY_SECRET applies (set to a future date when rotating). */
+  DAILY_SECRET_FROM?: string;
   /** Official participants per day (service cap; default 500). */
   DAILY_PARTICIPANT_LIMIT?: string;
   /** Same-day practice games per member after the official attempt (default 5). */
@@ -501,32 +506,36 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     return this.env.DAILY_BOARDS.get(this.env.DAILY_BOARDS.idFromName(boardName(DAILY_RULES, date)));
   }
   private dailyKey(date: string) {
-    return dayKeyFor(this.env.DAILY_SECRET, date);
+    const secrets = dailySecrets(this.env);
+    if (!secrets.ok) throw Error("daily secret configuration");
+    return dayKeyFor(secrets.secretFor(date), date);
   }
   private dailyLimits() {
     const n = Number(this.env.DAILY_PRACTICE_PER_DAY ?? 5);
     return { practicePerDay: Number.isInteger(n) && n >= 0 ? n : 5 };
   }
-  /** Board submission of finished official attempts (retried on later calls if the board was unreachable). */
+  /**
+   * After a finished official attempt (retried on later calls): 1) the ranking board, 2) the C5
+   * continuous-activity report (`dailyContentDone`, present once C5 is merged; a no-op before). Each step
+   * is marked done on its own. Practice / archive / puzzles never get here.
+   */
   private async dailyFlush() {
     const p = this.store.profile();
     if (!p) return;
-    for (const a of this.dailyStore.pendingSubmissions()) {
-      try {
+    await flushPending(this.dailyStore, {
+      // defence in depth: the stored state must be exactly what its own log replays to
+      verify: (state, date) => verifyState(state, this.dailyKey(date)),
+      onVerifyFailed: () => console.error("DAILY_VERIFY_FAILED"),
+      board: async (a) => {
         const board = this.dailyBoard(a.date);
-        // defence in depth: the stored state must be exactly what its own log replays to
-        if (!verifyState(a.state, this.dailyKey(a.date))) {
-          console.error("DAILY_VERIFY_FAILED");
-          this.dailyStore.markSubmitted(a.date);
-          continue;
-        }
         if (a.ranked) await board.submit(entryFrom(p.userId, p.nickname, a.state, a.finishedAt, this.dailyStore.visibility()));
         else await board.count("completed.unranked");
-        this.dailyStore.markSubmitted(a.date);
-      } catch {
-        /* the next call retries */
-      }
-    }
+      },
+      // C5 (#140) adds UserStore.dailyContentDone; until then the sink is absent and this is a no-op
+      activity: async (a) => {
+        await reportCompletion(this as unknown as Partial<DailyContentSink>, activityFor({ mode: "official", status: "finished", finishedAt: a.finishedAt }, p.userId, a.date, DAILY_RULES, a.score, a.ranked));
+      },
+    });
   }
   async dailyStart(date: string, mode: DailyMode) {
     const p = this.store.profile();
@@ -1232,7 +1241,9 @@ export default {
 
     const hub = () => env.HUB.get(env.HUB.idFromName("hub"));
     // LIVE-1: daily content is off unless the flag, the secret and sign-in are all configured.
-    const dailyOn = env.DAILY === "on" && (env.DAILY_SECRET ?? "").length >= 32 && !!auth;
+    const secrets = dailySecrets(env);
+    if (env.DAILY === "on" && !secrets.ok) console.error("DAILY_SECRET_CONFIG", secrets.reason); // the reason never contains a secret value
+    const dailyOn = env.DAILY === "on" && secrets.ok && !!auth;
     const dailyBoard = (date: string) => env.DAILY_BOARDS.get(env.DAILY_BOARDS.idFromName(boardName(DAILY_RULES, date))) as unknown as DailyBoardApi;
     try {
       // Quick match queue (Phase 4.5): one hibernatable socket per waiting player on the hub object.
@@ -1273,17 +1284,6 @@ export default {
         const given = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
         if (!token || token.length < 32 || given.length !== token.length || !sameText(given, token)) return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
         if (url.pathname === "/api/admin/metrics" && request.method === "GET") return json(200, { usage: await directory.usage(), hub: await hub().report(Math.min(60, Number(url.searchParams.get("days") ?? 14) || 14)) }, null);
-        if (url.pathname === "/api/admin/daily" && request.method === "GET") {
-          const date = url.searchParams.get("date") ?? "";
-          if (!isDailyDate(date)) return fail(400, "INVALID_COMMAND", "date=YYYY-MM-DD", null);
-          return json(200, await dailyAdminReport({ board: dailyBoard, now: dailyClock(env) }, date), null);
-        }
-        if (url.pathname === "/api/admin/daily/puzzle" && request.method === "POST") {
-          const body = JSON.parse((await request.text()).slice(0, 2048) || "{}") as { date?: unknown; puzzleId?: unknown; disabled?: unknown };
-          if (!isDailyDate(body.date) || typeof body.puzzleId !== "string" || !puzzlesOf(body.date).some((p) => p.id === body.puzzleId)) return fail(400, "INVALID_COMMAND", "date, puzzleId (scheduled on that date), disabled", null);
-          await dailyBoard(body.date).setPuzzleFlag(body.puzzleId, body.disabled !== false);
-          return json(200, { date: body.date, puzzleId: body.puzzleId, disabled: body.disabled !== false }, null);
-        }
         if (parts[2] === "ledger" && parts.length === 4 && /^u_[A-Za-z0-9_-]{22}$/.test(parts[3])) return json(200, await env.USERS.get(env.USERS.idFromName(parts[3])).verifyLedger(), null);
         return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
       }
@@ -1339,7 +1339,7 @@ export default {
         };
         let identity: Promise<{ userId: string } | null> | null = null;
         const res = await handleDailyRoute(request, url, {
-          secret: env.DAILY_SECRET!,
+          secretFor: (date) => (secrets as Extract<typeof secrets, { ok: true }>).secretFor(date),
           now: dailyClock(env),
           me: () => (identity ??= sessionUser(request, backends).then((u) => (u ? { userId: u.userId } : null))),
           user: (id) => env.USERS.get(env.USERS.idFromName(id)) as unknown as DailyUserApi,

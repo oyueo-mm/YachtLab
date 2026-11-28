@@ -212,6 +212,8 @@ describe("DailyPlayStore (계정 객체 SQLite)", () => {
     expect(v.state.score).toBe(total(end.card));
     expect(store.pendingSubmissions()).toHaveLength(1);
     store.markSubmitted(DATE);
+    expect(store.pendingSubmissions()).toMatchObject([{ board: false, activity: true }]); // C5 report is its own step
+    store.markActivity(DATE);
     expect(store.pendingSubmissions()).toHaveLength(0);
     expect(store.act(DATE, "official", seq, { t: "roll", keep: 0 }, key, T0)).toMatchObject({ ok: false });
     // same-day practice: same dice tape, limited, never ranked

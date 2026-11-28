@@ -2,7 +2,7 @@
 
 > 담당 05. 기존 12칸 규칙(`src/engine.ts`)과 기존 DP Expert·Win DP 엔진만 사용한다. 새 AI 모델 연구는 하지 않았다.
 > **상태: 구현·검증 완료, 운영 비공개.** Worker 플래그 `DAILY = "off"`(기본) — 모든 `/api/daily/*`가 `404 DAILY_OFF`를 답하고,
-> 페이지 `#daily`는 "준비 중" 안내만 보인다. 결정 D-103~D-108.
+> 페이지 `#daily`는 "준비 중" 안내만 보인다. 결정 D-LIVE1-1~D-LIVE1-6(임시 ID, 최종 번호는 INT-1).
 
 ## 1. 무엇을 만들었나
 
@@ -12,7 +12,9 @@
 | 주사위 | 위치 인덱싱 테이프 `face(날짜, 라운드, 굴림, 주사위 칸)` = HMAC(그날 키). 그날 키 = HMAC(`DAILY_SECRET`, 규칙·날짜) | `src/daily/tape.ts`, `src/daily/sha256.ts` |
 | 게임 | 서버 판정 상태 기계. 클라이언트는 `{roll, keep 마스크}`·`{score, 칸}`만 보낸다. 점수·주사위는 서버가 계산 | `src/daily/game.ts` |
 | 저장 | 회원별 `UserStore` SQLite(`daily_attempts`·`daily_puzzles`·`daily_prefs`), 날짜별 `DailyBoard` 객체(첫 공식 기록·집계) | `worker/src/daily.ts`, `worker/src/index.ts` |
-| API | `/api/daily/*` (아래 §4) + 운영 `/api/admin/daily*` | `worker/src/daily-api.ts` |
+| API | `/api/daily/*` (아래 §4) | `worker/src/daily-api.ts` |
+| 운영 | ADMIN-1 `AdminExtensionRoute` 2개(`dailyAdminRoutes`) — 공유 토큰 경로 없음 | `worker/src/daily-admin.ts` |
+| C5 연동 | 공식 완료 → `dailyContentDone({kind, at})` 어댑터 | `worker/src/daily-activity.ts` |
 | 퍼즐 | 오프라인 생성 파이프라인 → `bank.json`(84일 × 입문·보통·고급 + 예비 30) | `src/daily/puzzles/*`, `scripts/daily/generate-puzzles.ts` |
 | 화면 | 독립 페이지 `#daily`: 오늘의 도전·퍼즐 카드, 게임, 퍼즐·해설, 전체/친구 순위, 내 기록, 지난 도전, 공유 이미지 | `src/daily/Daily*.tsx`, `src/daily/daily.css` |
 | 연동 계약 | 07 보상 훅(지급 없음), 06 운영 보고서 형식 | `src/daily/contract.ts` |
@@ -21,7 +23,7 @@ App 연결은 최소로 했다: `routes.ts`에 `daily` 경로 1개, `App.tsx`에
 
 ## 2. 오늘의 요트 — 공정성 설계
 
-### 2.1 난수 소비 순서 문제와 위치 인덱싱 (D-103)
+### 2.1 난수 소비 순서 문제와 위치 인덱싱 (D-LIVE1-1)
 
 순차 PRNG는 "몇 번째 난수인가"로 눈이 정해지므로, 한 사람이 주사위 하나를 더 고정하면 그 뒤의 모든 눈이 밀린다. 같은 시드를 줘도 참가자마다 다른 게임이 된다.
 여기서는 눈을 **위치**로 정한다: 라운드 r(1~12, 내 몇 번째 차례인지)·굴림 k(1~3)·주사위 칸 j(0~4). 고정한 주사위는 그 위치의 눈을 쓰지 않을 뿐이다. 따라서
@@ -30,7 +32,7 @@ App 연결은 최소로 했다: `routes.ts`에 `daily` 경로 1개, `App.tsx`에
 - 다시 굴린 주사위는 아직 보지 않은 위치의 독립·균등 눈을 받는다 — 실제 주사위와 같은 확률 구조.
 - 시험: 킵·칸 선택이 달라도 다음 위치 눈이 같음, 365일 × 180칸 = 65,700면 χ² = 5.92(자유도 5), 200일 테이프에서 DP 최적 플레이 평균 191.98점(DP 기대 191.76).
 
-### 2.2 미래 주사위를 알 수 없게 (D-104)
+### 2.2 미래 주사위를 알 수 없게 (D-LIVE1-2)
 
 - 공개 시드가 없다. 그날 키는 Worker 비밀(`DAILY_SECRET`, 32자 이상)에서 HMAC으로 유도되고 서버 밖으로 나가지 않는다. 클라이언트는 이미 굴린 눈만 받는다.
 - 그날 아침에는 **확인값** `SHA-256("yachtlab/daily-commit/" + hex(키))`만 공개한다. 마감 뒤(`closed`) 키를 공개(`/api/daily/reveal`)하면 누구나 확인값과 맞는지, 자기 로그가 그 키로 같은 점수로 재현되는지 검사할 수 있다(실제 Worker 테스트에서 확인).
@@ -59,7 +61,18 @@ App 연결은 최소로 했다: `routes.ts`에 `daily` 경로 1개, `App.tsx`에
 | 게시 전 재검증 | 순위 게시 직전 저장 상태를 로그로 다시 재생해 비교(`verifyState`), 불일치면 게시하지 않고 로그만 남김 |
 | 순위 객체 장애 | 완료 기록은 계정 객체에 먼저 저장, 게시는 다음 호출에서 재시도(`submitted` 플래그) |
 
-## 3. 오늘의 전략 퍼즐 (D-106)
+### 2.5 `DAILY_SECRET` 관리 (D-LIVE1-2)
+
+| 항목 | 규칙 |
+|---|---|
+| 보관 | Worker **비밀**로만(`wrangler secret put DAILY_SECRET`, 운영자). `wrangler.toml`·저장소·대화·로그에 쓰지 않는다(시험이 `wrangler.toml`에 값이 없음을 확인). 설정 오류 로그 `DAILY_SECRET_CONFIG`에는 이유만 있고 값은 없다 |
+| 생성 | 32자 이상 무작위(예: `openssl rand -base64 48`). 짧거나 없으면 일일 기능 전체가 꺼진다(fail closed) |
+| 교체 | 모든 날짜의 키가 비밀에서 나오므로 **제자리 교체 금지**(오늘 진행 중인 경기의 눈과 과거 공개 키가 바뀐다). 날짜 지정 교체만: 새 값을 `DAILY_SECRET`, 이전 값을 `DAILY_SECRET_PREVIOUS`(비밀), 적용 시작일 `DAILY_SECRET_FROM=YYYY-MM-DD`(내일 이후). FROM 이전 날짜는 이전 비밀로 계속 재생·공개된다 |
+| 잘못된 교체 설정 | PREVIOUS 없음·짧음·현재와 같음, FROM 형식 오류, FROM 없이 PREVIOUS만 → 꺼짐 |
+| 유출 시 | 다음 날부터 새 비밀(FROM=내일). 유출된 날의 순위는 운영 판단(현재 자동 무효화 기능 없음 — 후속 후보) |
+| 정리 | 교체 뒤 PREVIOUS는 이전 날짜 재검증에 필요하므로 계속 보관한다 |
+
+## 3. 오늘의 전략 퍼즐 (D-LIVE1-4)
 
 ### 3.1 생성 파이프라인 (오프라인, 재현 가능)
 
@@ -89,8 +102,14 @@ App 연결은 최소로 했다: `routes.ts`에 `daily` 경로 1개, `App.tsx`에
 
 - 웹 번들은 `bank.json`을 가져오지 않는다(시험으로 고정). 질문(`questionOf`)에는 정답이 없다.
 - 오늘의 퍼즐: 회원의 **첫 답만 기록**, 채점 후에야 키·해설을 받는다. 게스트는 문제는 보지만 오늘 답은 회원만. 마감된 날: 누구나 풀고 즉시 해설(기록 없음).
-- 한계(D-106): 저장소가 공개이고 분석 도구도 공개이므로, 마음먹은 사람은 답을 계산할 수 있다. 그래서 퍼즐 기록은 "참여·정답 기록"이며 **보상·경쟁 순위에 쓰지 않는다**.
-- 운영자는 문제를 내릴 수 있다(`POST /api/admin/daily/puzzle`): 그날 목록·채점에서 빠지고 답 제출은 `410`.
+- 한계(D-LIVE1-4): 저장소가 공개이고 분석 도구도 공개이므로, 마음먹은 사람은 답을 계산할 수 있다. 그래서 퍼즐 기록은 "참여·정답 기록"이며 **보상·경쟁 순위에 쓰지 않는다**.
+- 운영자는 문제를 내릴 수 있다(관리자 확장 라우트 `POST /api/admin/daily/puzzle`, `content.write`): 그날 목록·채점에서 빠지고 답 제출은 `410`. 같은 라우트에 `disabled:false`로 되살린다.
+
+### 3.5 퍼즐 소진 대응
+
+- 예약은 2027-02-22까지(84일). 그 뒤 날짜는 **다시 보는 퍼즐**: 시작일부터 센 날짜 순번을 예약 길이로 나눈 나머지 날의 3문제를 결정적으로 다시 낸다. ID는 `rerun:<날짜>:<원래 ID>`라 답 기록이 원래 문제와 따로 남고, 제목에 "다시 보는 퍼즐"이 붙는다. 퍼즐 카드가 빈 날은 없다.
+- 운영 보고서 `puzzleBank`에 마지막 예약일·남은 예약일(`runwayDays`, 14일 미만이면 경고 대상)·그날이 다시 보는 퍼즐인지를 넣었다.
+- 새 문제 확보는 `npx tsx scripts/daily/generate-puzzles.ts --days N`(재현성 시험이 은행과 함께 갱신을 요구). 예약이 늘어나면 다시 보는 퍼즐은 자동으로 사라진다.
 
 ## 4. API (Worker, `DAILY=on`일 때)
 
@@ -107,12 +126,14 @@ App 연결은 최소로 했다: `routes.ts`에 `daily` 경로 1개, `App.tsx`에
 | GET `/api/daily/reveal?date` | 모두 | 마감 날짜의 키(+ 회원 본인 로그) | 게스트 1일 |
 | GET `/api/daily/puzzles?date` | 모두 | 질문, 내 결과, (답했거나 마감이면) 키 | — |
 | POST `/api/daily/puzzles/answer` | 오늘=회원, 마감=모두 | 채점, 첫 답 기록 | — |
-| GET `/api/admin/daily?date` | `ADMIN_TOKEN` | 06 운영 보고서(§6) | — |
-| POST `/api/admin/daily/puzzle` | `ADMIN_TOKEN` | 문제 내리기/되살리기 | — |
+| GET `/api/admin/daily?date` | 관리자 세션 `stats.read` (ADMIN-1 확장 라우트) | 06 운영 보고서(§6), 조회 감사 없음(집계만) | — |
+| POST `/api/admin/daily/puzzle` | 관리자 세션 `content.write` (operator·owner), `ADMIN_WRITES=on` 필요, 감사 `daily.puzzle` | 문제 내리기/되살리기 | — |
+
+관리자 두 라우트는 INT-1이 ADMIN-1 라우터의 `extensions: dailyAdminRoutes(deps)`로 등록하기 전까지 **어디에도 연결되지 않는다**(404). 공유 `ADMIN_TOKEN` 경로는 삭제했다.
 
 `/api/features`에 `daily: boolean`. 켜짐 조건: `DAILY="on"` **그리고** `DAILY_SECRET` ≥ 32자 **그리고** 로그인 설정.
 
-## 5. 일일 랭킹 (D-105)
+## 5. 일일 랭킹 (D-LIVE1-3)
 
 - 첫 공식 기록만. 같은 날 연습·지난 도전은 절대 반영되지 않는다.
 - 높은 점수 우선. **동점은 같은 순위**(1, 1, 3), 동점 안에서는 먼저 끝낸 사람이 위에 표시(표시 순서일 뿐 더 좋은 순위가 아님).
@@ -121,10 +142,49 @@ App 연결은 최소로 했다: `routes.ts`에 `daily` 경로 1개, `App.tsx`에
 - 공개 범위: 전체(기본)·친구만·나만. 차단은 양방향 모두 서로의 목록에서 숨긴다(`fr_blocks` ∪ `fr_blocked_by`). 탈퇴하면 모든 날짜 보드에서 기록 삭제.
 - 범위 밖(이번에 하지 않음): 일반 대전 레이팅, 랭크전, 시즌 티어, 토너먼트.
 
+### 5.1 랭킹 공정성 점검 (2026-11-28 재확인)
+
+| 점검 | 결과 | 근거 |
+|---|---|---|
+| 같은 조건 | 모든 참가자가 같은 위치에서 같은 눈. 킵·칸 선택이 다른 사람의 눈을 바꾸지 않음 | daily-core "위치 인덱싱", worker E2E "첫 굴림 동일" |
+| 점수 위조 | 제출 경로 없음, 서버 판정, 게시 전 로그 재생 재검증, 마감 뒤 누구나 재검증 | daily-core·worker E2E |
+| 되돌리기(결과 보고 다시 굴리기) | 굴림마다 저장 → 다른 요청은 `STALE` | daily-core·worker E2E |
+| 첫 기록만 | 보드 `INSERT` 1회, 이후 무시 | daily-core "첫 공식 기록만" |
+| 연습 반영 | 연습·지난 도전·퍼즐은 보드·C5 활동에 가지 않음 | daily-integration "practice never produces a pending step" |
+| 시각 이점 | 끝낸 시각은 동점 안 **표시 순서**에만. 순위·점수에 영향 없음 | ranking.ts, daily-core "동점" |
+| 다른 계정으로 미리 보기 | **남는 위험**. 완화: 당일 가입 계정 순위 제외, 공유에 눈 미포함, 연습은 공식 뒤. 그날 이전에 만든 보조 계정은 막지 못함 — 계정별 테이프는 "같은 조건"과 충돌해 미채택(D-LIVE1-2) | 문서화 |
+| 늦은 참가자 정보 이점 | 먼저 한 사람이 눈을 공유할 수 있음(위와 같은 위험). 공유 기능 자체는 눈을 싣지 않음 | share.ts 시험 |
+| 참가 상한 | 500명 도달 뒤 시작 불가는 모두에게 같은 규칙. 운영 보고서로 상한 근접을 본다 | daily-core "상한" |
+
 ## 6. 07(경제)·06(운영) 연동
 
-- **07**: `DailyActivity` 이벤트(공식 시작·완료, 퍼즐 답)와 `DailyRewardHook.proposals()`만 정의. 구현은 `NO_DAILY_REWARDS`(항상 빈 목록), `DAILY_REWARDS_APPROVED = false`. Worker는 일일 콘텐츠로 원장에 쓰지 않는다. 출석·연속 참여 계산은 `dailyStreak()`로 제공(화면 표시용). 07이 지급 계약을 승인하면 보상은 (userId, date, kind) 멱등 키로 원장 트랜잭션 안에서 지급하도록 붙인다 — 그 전에는 지급 금지.
-- **06**: `GET /api/admin/daily?date=` → `DailyAdminReport`: 시작·완료·순위 반영 수, 완료율, 25점 구간 분포, 평균·최고, 같은 날 연습 수, 퍼즐별 응답·정답·정답률·내림 여부. 계정 ID·닉네임 없음. 문제 운영은 `POST /api/admin/daily/puzzle {date, puzzleId, disabled}`.
+통합 계약 원문: ADMIN-1 `docs/admin/LIVE-1-ADMIN-CONTRACT.md`(#141), C5 `docs/economy/c5/INTEGRATION-C5.md`(#140). 두 PR은 병합하지 않았고, 이 브랜치는 main만 반영한 채 **독립 시험 가능한 어댑터**만 둔다. INT-1 등록 절차는 §6.3.
+
+### 6.1 C5(07 경제·연속 활동) — `dailyContentDone`
+
+- 서버가 **공식** 오늘의 요트를 완료로 판정한 뒤에만 `UserStore.dailyContentDone({ kind: "daily.official.completed", at: 서버 완료 시각 })`을 부른다(`worker/src/daily-activity.ts`). 순위 반영 여부(당일 가입)와 무관하게 공식 완료면 활동이다.
+- **퍼즐 답·공식 시작·같은 날 연습·지난 도전은 활동이 아니다**(`ACTIVITY_KINDS`, C5 `ACTIVITY_DAILY_KINDS`와 같은 집합).
+- 호출은 완료 뒤 처리(`flushPending`)의 둘째 단계다: ① 랭킹 보드 ② C5 보고. 단계별로 완료 표시(`submitted`, `activity` 열)를 따로 해서, C5가 실패하면 다음 호출에서 C5만 다시 보내고 보드 집계는 두 번 세지 않는다. 재생 검증 실패 기록은 둘 다 하지 않는다.
+- main에는 C5가 없어 `dailyContentDone`이 없으므로 지금은 아무 일도 하지 않는다(no-op). C5 병합 뒤에는 같은 객체의 메서드로 바로 호출되고, `RETENTION`이 꺼져 있으면 C5 쪽이 빈 결과를 돌려준다.
+- **일일 콘텐츠 자체 코인은 비활성 유지**: `NO_DAILY_REWARDS`(모든 활동에 빈 제안), `DAILY_REWARDS_APPROVED = false`. LIVE-1은 원장에 쓰지 않는다. 연속 활동 이정표 보상은 C5가 자기 트랜잭션에서 지급한다.
+
+### 6.2 ADMIN-1(06 운영) — `AdminExtensionRoute`
+
+| 라우트 | 권한 | write | 감사 | 응답 |
+|---|---|---|---|---|
+| `GET /api/admin/daily?date=` | `stats.read` | false | 없음(집계만, ID·닉네임 없음) | `DailyAdminReport` + `puzzleBank` 잔여일 |
+| `POST /api/admin/daily/puzzle {date, puzzleId, disabled}` | `content.write` | true | `daily.puzzle`, target=puzzleId, detail={date, disabled} | 내리기(기본)·되살리기 |
+
+- 세션·역할 재조회·권한·`ADMIN_WRITES`·재인증·본문 검사·감사는 ADMIN-1 라우터가 한다. 처리기는 날짜·예약된 퍼즐 여부·`disabled` 형식만 검사한다.
+- `DailyAdminRoute` 타입은 ADMIN-1 `AdminExtensionRoute`와 구조가 같다(권한만 두 값으로 좁힘). 공통 모듈이 main에 없어 타입을 직접 가져오지 않았다. INT-1 통합 때 `AdminExtensionRoute[]`로 대입되는지 타입 검사로 확인한다.
+
+### 6.3 INT-1 등록 절차
+
+1. `worker/src/index.ts`의 ADMIN-1 `engagement()` 관리자 백엔드에 `extensions: dailyAdminRoutes({ board: dailyBoard, now: dailyClock(env) })`를 넣는다(`import { dailyAdminRoutes } from "./daily-admin"`).
+2. C5의 `UserStore.dailyContentDone`이 들어오면 추가 작업은 없다(어댑터가 메서드 존재로 판단).
+3. `worker/wrangler.toml`의 임시 마이그레이션 태그 `v5-live1-daily`(DailyBoard)와 ADMIN-1의 `v5-admin-feedback` 순서·최종 태그를 정한다. 적용된 태그는 바꿀 수 없으므로 첫 운영 배포 **전에** 확정한다.
+4. 결정 번호 D-LIVE1-1~6을 최종 번호로 바꾼다.
+5. ADMIN-1 콘솔의 "통계" 그룹에 일일 보고서 메뉴를 추가한다(06).
 
 ## 7. 비용 (Workers Free)
 
@@ -142,16 +202,17 @@ App 연결은 최소로 했다: `routes.ts`에 `daily` 경로 1개, `App.tsx`에
 
 ## 8. 공개 전 남은 일 (운영 공개 조건)
 
-1. Worker 배포: `wrangler.toml`에 바인딩·마이그레이션 `v5`(DailyBoard)·변수가 추가돼 D-100의 **보호 입력** → 자동 배포가 멈추고 승인된 수동 배포가 필요하다. `DAILY="off"`로 배포하면 사용자에게 보이는 변화는 없다.
-2. 운영자가 `DAILY_SECRET`(32자 이상, Worker 비밀)을 설정 — 저장소·대화에 쓰지 않는다. 비밀을 바꾸면 그날 이후의 테이프가 바뀌므로 날짜 중간에 바꾸지 않는다.
+1. Worker 배포: `wrangler.toml`에 바인딩·임시 마이그레이션 `v5-live1-daily`(DailyBoard, 최종 번호는 INT-1)·변수가 추가돼 D-100의 **보호 입력** → 자동 배포가 멈추고 승인된 수동 배포가 필요하다. `DAILY="off"`로 배포하면 사용자에게 보이는 변화는 없다.
+2. 운영자가 `DAILY_SECRET`(32자 이상, Worker 비밀)을 설정 — 저장소·대화에 쓰지 않는다. 교체는 §2.5의 날짜 지정 방식으로만.
 3. 비공개 경로(`?online-server=…#daily`)에서 운영 Worker로 1주일 관찰: 완료율, 쓰기량, `DAILY_VERIFY_FAILED` 로그 0건.
 4. 01과 로비 카드·내비게이션 위치 협의(`DailyHomeCards`).
-5. 07 보상 계약 승인 전까지 보상 없음. 06 운영 화면은 보고서 API를 쓴다.
-6. 퍼즐 은행 연장: 2027-02-22 이후 날짜가 비므로 그 전에 `--days`를 늘려 다시 생성(재현성 시험이 함께 갱신을 요구).
+5. 일일 콘텐츠 코인 없음(07 승인 전). C5 연속 활동은 `RETENTION` 활성화(C5 체크리스트) 뒤에만 의미가 있다. 06 운영 화면은 ADMIN-1 콘솔에 붙인다(§6.3).
+6. 퍼즐 은행 연장: 2027-02-22 뒤에는 다시 보는 퍼즐이 나온다(§3.5). 새 문제는 `runwayDays`가 14일 아래로 내려가기 전에 생성한다.
 
 ## 9. 검증 기록 (이 브랜치, 2026-11-28)
 
 - `tests/daily-core.test.ts` 17개: SHA-256/HMAC 비트 일치(node:crypto), KST 경계, 테이프 위치 독립성·균등성, 게임 규칙·로그 재생, 저장소의 1회 시작·중복·STALE·재시작 복구·연습 잠금·횟수·만료, 순위 동점·페이지 경계·상한·삭제, 공유 문구.
 - `tests/daily-puzzles.test.ts` 10개: 예약 형식, 질문에 정답 없음, 복수 정답·자명 문제 배제, 모든 합법 행동 평가, 기존 DP/Win DP/열거 일치, 웹 코드의 은행 미포함, 바이트 단위 재현성.
-- `tests/daily-worker.test.ts` 2개(실제 workerd): 플래그 기본값 off, 공식·중복·다중 탭·재접속·위조·연습·랭킹·친구·차단·비공개·퍼즐(게스트는 오늘 답 401, 마감일은 누구나·기록 없음)·마감 후 키 공개 재검증·운영 보고서·문제 내리기.
-- `tests/ui/daily.spec.ts` 3개(Chromium): 플래그 off 서버의 준비 중 화면, 브라우저에서 12라운드 공식 도전(중간 새로고침 복구 포함)→순위·공유·연습 해제·퍼즐 해설, 휴대폰 폭 가로 넘침 없음.
+- `tests/daily-worker.test.ts` 2개(실제 workerd): 플래그 기본값 off, 공식·중복·다중 탭·재접속·위조·연습·랭킹·친구·차단·비공개·퍼즐(게스트는 오늘 답 401, 마감일은 누구나·기록 없음)·마감 후 키 공개 재검증, 공유 `ADMIN_TOKEN`으로 `/api/admin/daily*` 접근 시 404.
+- `tests/daily-integration.test.ts` 14개: ADMIN-1 확장 라우트(권한·쓰기·감사 target/detail·입력 검사·ID 없는 보고서·토큰 경로 부재), C5 어댑터(공식 완료만, 연습·시작·퍼즐 제외, 코인 제안 0, 단계별 재시도, 검증 실패 미보고, 이전 스키마 열 추가), 퍼즐 소진(다시 보는 퍼즐·ID 분리·잔여일), `DAILY_SECRET` 날짜 지정 교체·fail closed·저장소 미포함.
+- `tests/ui/daily.spec.ts` 데스크톱 3 + **모바일(Pixel 7) 3**: 플래그 off 화면, 휴대폰에서도 12라운드 공식 도전 전체(새로고침 복구 포함)→순위·공유·연습·퍼즐 해설, 게임·해설 화면 가로 넘침 없음, 320·360 px 카드 화면 가로 넘침 없음·주요 버튼 높이 44 px 이상.

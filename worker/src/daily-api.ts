@@ -1,4 +1,4 @@
-import { addDays, closesAt, dayPhase, DAILY_EPOCH, DAILY_RULES, isDailyDate, kstDate } from "../../src/daily/calendar";
+import { addDays, closesAt, dayPhase, DAILY_EPOCH, DAILY_RULES, daysBetween, isDailyDate, kstDate } from "../../src/daily/calendar";
 import { commitmentOf } from "../../src/daily/tape";
 import { toHex } from "../../src/daily/sha256";
 import { boardName, isVisibility, pageParams, withRanks, type BoardEntry, type RankedEntry, type Visibility } from "../../src/daily/ranking";
@@ -53,7 +53,8 @@ export type DailyBoardApi = {
   setVisibility(userId: string, v: Visibility): Promise<void>;
 };
 export type DailyDeps = {
-  secret: string;
+  /** Worker secret for a date (dailySecrets: dated rotation). */
+  secretFor(date: string): string;
   now(): number;
   me(): Promise<{ userId: string } | null>;
   user(id: string): DailyUserApi;
@@ -67,10 +68,34 @@ const fail = (deps: DailyDeps, status: number, code: string, message: string, ex
 const MODES: readonly Mode[] = ["official", "practice"];
 
 /* -------------------------------------------------------------------- puzzles -------------------------------------------------------------------- */
-export function puzzlesOf(date: string): Puzzle[] {
-  return (bank.schedule[date] ?? []).map((id) => bank.puzzles[id]).filter(Boolean);
+/**
+ * Puzzle run-out (LIVE-1): the bank is scheduled up to `lastScheduledDate()`. A later date gets a
+ * deterministic RE-RUN of an earlier day's three puzzles (date index modulo the schedule length), under
+ * new ids `rerun:<date>:<original id>` — answers are separate records, the title says it is a re-run —
+ * so the service never shows an empty puzzle card. A fresh bank (`--days` up) replaces re-runs.
+ */
+const scheduledDates = Object.keys(bank.schedule).sort();
+export const lastScheduledDate = () => scheduledDates[scheduledDates.length - 1];
+const RERUN = /^rerun:(\d{4}-\d{2}-\d{2}):(.+)$/;
+export function rerunSource(date: string): string | null {
+  if (bank.schedule[date] || date <= lastScheduledDate() || date < bank.epoch) return null;
+  return scheduledDates[daysBetween(scheduledDates[0], date) % scheduledDates.length];
 }
-export const puzzleById = (id: string): Puzzle | null => bank.puzzles[id] ?? null;
+const rerun = (date: string, p: Puzzle): Puzzle => ({ ...p, id: `rerun:${date}:${p.id}`, title: p.title + " · 다시 보는 퍼즐", source: p.source + " (rerun)" });
+export function puzzlesOf(date: string): Puzzle[] {
+  const direct = bank.schedule[date];
+  if (direct) return direct.map((id) => bank.puzzles[id]).filter(Boolean);
+  const from = rerunSource(date);
+  return from ? bank.schedule[from].map((id) => rerun(date, bank.puzzles[id])).filter(Boolean) : [];
+}
+export function puzzleById(id: string): Puzzle | null {
+  const m = RERUN.exec(id);
+  if (!m) return bank.puzzles[id] ?? null;
+  const original = bank.puzzles[m[2]];
+  return original ? rerun(m[1], original) : null;
+}
+/** Days of scheduled (non-re-run) puzzles left after `today` (ops warning below 14). */
+export const puzzleRunway = (today: string) => Math.max(0, daysBetween(today, lastScheduledDate()));
 const keyView = (k: PuzzleKey) => ({ best: k.best, values: k.values, unit: k.unit, explanation: k.explanation, ...(k.expected ? { expected: k.expected } : {}), model: k.model });
 
 /* ---------------------------------------------------------------- ranking cache ---------------------------------------------------------------- */
@@ -98,7 +123,7 @@ export async function handleDailyRoute(request: Request, url: URL, deps: DailyDe
 
   if (path === "/api/daily/today" && method === "GET") {
     if (deps.limited("daily-today:" + (await deps.clientKey()), 60)) return fail(deps, 429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
-    const key = dayKeyFor(deps.secret, today);
+    const key = dayKeyFor(deps.secretFor(today), today);
     const me = await deps.me();
     const flags = await deps.board(today).puzzleFlags().catch(() => ({} as Record<string, boolean>));
     const puzzles = puzzlesOf(today).filter((p) => !flags[p.id]).map((p) => ({ id: p.id, level: p.level, kind: p.kind, title: p.title }));
@@ -115,7 +140,7 @@ export async function handleDailyRoute(request: Request, url: URL, deps: DailyDe
     const date = dateParam(url.searchParams.get("date"));
     if (!date) return fail(deps, 404, "NOT_FOUND", "없는 날짜예요.");
     if (dayPhase(date, now) !== "closed") return fail(deps, 403, "NOT_REVEALED", "주사위 키는 그날 도전이 끝난 뒤(한국 시간 자정 + 30분)에 공개돼요.");
-    const key = dayKeyFor(deps.secret, date);
+    const key = dayKeyFor(deps.secretFor(date), date);
     const me = await deps.me();
     const log = me ? await deps.user(me.userId).dailyLog(date) : null;
     return deps.reply(200, { date, rules: DAILY_RULES, key: toHex(key), commitment: commitmentOf(key), log }, me ? "private, max-age=300" : "public, max-age=86400");
@@ -163,7 +188,7 @@ export async function handleDailyRoute(request: Request, url: URL, deps: DailyDe
     const input = await readJson();
     const date = dateParam(input.date);
     const p = typeof input.puzzleId === "string" ? puzzleById(input.puzzleId) : null;
-    if (!date || !p || !(bank.schedule[date] ?? []).includes(p.id) || typeof input.answer !== "string") return fail(deps, 400, "INVALID_COMMAND", "요청 형식이 올바르지 않아요.");
+    if (!date || !p || !puzzlesOf(date).some((x) => x.id === p.id) || typeof input.answer !== "string") return fail(deps, 400, "INVALID_COMMAND", "요청 형식이 올바르지 않아요.");
     const open = dayPhase(date, now) !== "closed";
     const viewer = open ? await deps.me() : null;
     if (open && !viewer) return fail(deps, 401, "UNAUTHENTICATED", "오늘의 퍼즐 기록은 로그인한 회원만 남길 수 있어요. 지난 퍼즐은 누구나 풀 수 있어요.");
@@ -234,6 +259,7 @@ export async function dailyAdminReport(deps: Pick<DailyDeps, "board" | "now">, d
     date, rules: DAILY_RULES, phase: dayPhase(date, deps.now()),
     official: { started: s.started, completed: s.completed, ranked: s.ranked, completionRate: s.started ? s.completed / s.started : null, scoreBuckets: s.buckets, average: s.average, best: s.best },
     practice: { games: s.practice },
+    puzzleBank: { lastScheduledDate: lastScheduledDate(), runwayDays: puzzleRunway(kstDate(deps.now())), rerun: !!rerunSource(date) },
     puzzles: puzzlesOf(date).map((p) => {
       const st = s.puzzles[p.id] ?? { answered: 0, correct: 0 };
       return { id: p.id, level: p.level, kind: p.kind, answered: st.answered, correct: st.correct, correctRate: st.answered ? st.correct / st.answered : null, disabled: !!s.flags[p.id] };

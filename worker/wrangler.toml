@@ -72,8 +72,11 @@ new_sqlite_classes = ["MatchHub"]
 tag = "v4"
 new_sqlite_classes = ["FriendIndex"]
 
+# LIVE-1 provisional tag. ADMIN-1 (#141) also adds a migration after v4 (AdminHub, SuggestionBoard).
+# INT-1 assigns the final order and tag when integrating; migrations apply in file order and an applied
+# tag can never be renamed, so the final tag is fixed BEFORE the first production deploy.
 [[migrations]]
-tag = "v5"
+tag = "v5-live1-daily"
 new_sqlite_classes = ["DailyBoard"]
 
 [vars]
@@ -90,6 +93,8 @@ DAILY_AI_LIMIT = "100"
 ECONOMY = "on"
 # LIVE-1 오늘의 요트 / 오늘의 퍼즐: "off" until the operator sets the DAILY_SECRET Worker secret (>= 32 chars)
 # and turns it on (docs/context/DAILY-LIVE-1.md). Off = every /api/daily route answers 404 DAILY_OFF.
+# DAILY_SECRET / DAILY_SECRET_PREVIOUS are Worker SECRETS (never here); DAILY_SECRET_FROM is set only
+# while rotating (dated rotation, see docs §2.5).
 DAILY = "off"
 DAILY_PARTICIPANT_LIMIT = "500"
 DAILY_PRACTICE_PER_DAY = "5"
