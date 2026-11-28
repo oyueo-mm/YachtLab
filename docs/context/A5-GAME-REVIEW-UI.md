@@ -39,7 +39,7 @@ C2 리뷰 엔진과 `yachtlab-review-a5-v1` 계약을 그대로 쓰는 화면 �
 
 ## 다른 작업과의 호환
 
-- A2.1·A2.2(PR #117)는 main에 병합된 상태에서 이 브랜치에 main을 병합했다. 리뷰 파일과 겹치는 변경은 없었고 충돌은 `DECISIONS.md` 번호뿐이었다. main의 D-085~D-090을 그대로 두고 A5 결정을 D-091로 옮겼다.
+- A2.1·A2.2(PR #117)는 main에 병합된 상태에서 이 브랜치에 main을 병합했다. 리뷰 파일과 겹치는 변경은 없었고 충돌은 `DECISIONS.md` 번호뿐이었다. main의 D-085~D-090을 그대로 두고 A5 결정을 D-091로 옮겼다. 릴리스 통합(2026-11-28)에서 A4가 D-091~D-093을 쓰므로 **D-097**로 다시 매겼다.
 - A3(`claude/a3-match-result`)를 이 브랜치에 시험 병합해 타입 검사와 `tests/match-result-a3.test.ts`·리뷰 단위 테스트를 함께 통과했다. A3 결과 화면은 `onReview` 콜백으로만 리뷰를 열어 `ReviewLauncher`/`ReviewPage` 진입 API와 맞는다. 시험 병합의 충돌은 A3와 main 사이의 `HANDOFF.md`뿐이었다(이 PR은 그 파일을 바꾸지 않음).
 
 ## 검증
