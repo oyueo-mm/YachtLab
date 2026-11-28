@@ -1259,7 +1259,8 @@ export default {
             return c ? roomStub(c).sharesRoom(a, b) : false;
           },
         };
-        // SEC-1: size checked before reading (declared length and a streaming byte cap).
+        // SEC-15 (C4 B-31) / SEC-1: oversized declared bodies are refused before reading, and bodies without a
+        // declared length are read through a byte cap (worker/src/limits.ts) — never buffered whole.
         const readJson = () => readJsonObject(request, BODY_LIMITS.social);
         if (roomInvite) {
           const code = normalizeCode(parts[2]);

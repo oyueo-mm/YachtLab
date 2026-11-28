@@ -223,7 +223,7 @@ export function uniqueName(name: string, taken: string[]): string {
   return name;
 }
 
-/** Invite codes: 6 characters without look-alikes (0/O, 1/I/L). 32^6 ≈ 1.07e9 codes. */
+/** Invite codes: 6 characters without look-alikes (0/O, 1/I/L): 31 symbols, 31^6 ≈ 8.9e8 codes. */
 export const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 export const CODE_PATTERN = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
 export function newRoomCode(random: (b: Uint8Array) => Uint8Array = (b) => crypto.getRandomValues(b)): string {

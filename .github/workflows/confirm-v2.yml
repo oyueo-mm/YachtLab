@@ -20,7 +20,12 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Independent confirmatory evaluation
-        run: node scripts/confirm-v2.mjs ${{ github.event.inputs.games || '20000' }}
+        # SEC-1-07: the input reaches the shell only through env and must be a number.
+        env:
+          GAMES: ${{ github.event.inputs.games || '20000' }}
+        run: |
+          [[ "$GAMES" =~ ^[0-9]{1,6}$ ]] || { echo "games must be a number"; exit 1; }
+          node scripts/confirm-v2.mjs "$GAMES"
       - name: Save all paired game scores
         uses: actions/upload-artifact@v4
         with:
