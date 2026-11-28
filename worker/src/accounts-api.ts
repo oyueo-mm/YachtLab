@@ -47,6 +47,8 @@ export interface UserApi {
   ensureAndCode(userId: string, provider: string, clientStateHash: string): Promise<string>;
   exchange(code: string, clientState: string): Promise<string | null>;
   authenticate(session: string): Promise<boolean>;
+  /** ADMIN-1: authentication plus the account's sanction standing in ONE call (no extra request). */
+  authenticateStanding?(session: string): Promise<{ ok: boolean; suspended: boolean; restricted: boolean; until: number | null }>;
   me(): Promise<PrivateProfile | null>;
   records(limit: number): Promise<MatchRecord[]>;
   matchReview?(matchId: string): Promise<{ review: ReviewMatch | null } | null>;
@@ -111,12 +113,20 @@ async function body(request: Request, max: number): Promise<Record<string, unkno
 }
 
 /** The signed-in user of this request, or null (no / invalid / expired session). */
-export async function sessionUser(request: Request, b: AccountBackends): Promise<{ userId: string; secret: string } | null> {
+export async function sessionUser(request: Request, b: AccountBackends): Promise<SessionUser | null> {
   const m = SESSION.exec((request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, ""));
   if (!m) return null;
-  const ok = await b.user(m[1]).authenticate(m[2]).catch(() => false);
-  return ok ? { userId: m[1], secret: m[2] } : null;
+  const user = b.user(m[1]);
+  if (user.authenticateStanding) {
+    const r = await user.authenticateStanding(m[2]).catch(() => null);
+    return r?.ok ? { userId: m[1], secret: m[2], suspended: r.suspended, restricted: r.restricted, until: r.until } : null;
+  }
+  const ok = await user.authenticate(m[2]).catch(() => false);
+  return ok ? { userId: m[1], secret: m[2], suspended: false, restricted: false, until: null } : null;
 }
+/** A signed-in request. `suspended` / `restricted` come from the account's own sanction records (ADMIN-1). */
+export type SessionUser = { userId: string; secret: string; suspended: boolean; restricted: boolean; until: number | null };
+export const SUSPENDED_MESSAGE = "이용이 정지된 계정이에요. 알림함에서 사유를 확인하고 이의제기할 수 있어요.";
 
 /**
  * Handle an account route, or return null when the path is not one. `client` is the hashed client
@@ -227,6 +237,8 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
   if (path === "/api/me/economy" && method === "GET" && user.economy) return econ(await user.economy());
   if (path === "/api/me/shop/draw" && method === "GET" && user.drawStatus) return econ(await user.drawStatus());
   if (method !== "POST") return fail(404, "NOT_FOUND", "없는 주소입니다.");
+  // ADMIN-1: a suspended account may still read, sign out and delete itself — nothing else.
+  if (me.suspended && path !== "/api/me/logout" && path !== "/api/me/logout-all" && path !== "/api/me/delete") return fail(403, "SUSPENDED", SUSPENDED_MESSAGE);
   if (path.startsWith("/api/me/shop/") || path === "/api/me/loadout" || path === "/api/me/quests/reroll") {
     if (!user.buy) return fail(404, "ECONOMY_OFF", "재화 기능은 아직 준비 중이에요.");
     const input = await body(request, 4096);

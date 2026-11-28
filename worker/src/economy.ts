@@ -195,6 +195,22 @@ export class EconomyStore {
     });
   }
 
+  /**
+   * ADMIN-1: credit an operator reward (mailbox claim, redeem code, adopted suggestion) through the SAME
+   * ledger as every other balance change — no separate grant path. Idempotent by `eventId` (the caller
+   * passes `admin:<mailbox item id>`); amounts are positive integers, and the safety caps are checked by
+   * the admin layer (the economy owner sets the actual policy). Must run inside the caller's transaction.
+   */
+  adminGrant(userId: string, eventId: string, coins: number, gems: number, label: string, now: number): { applied: boolean; wallet: Wallet } {
+    if (!/^admin:[A-Za-z0-9_:-]{4,120}$/.test(eventId)) throw Error("invalid admin grant id");
+    if (!Number.isInteger(coins) || !Number.isInteger(gems) || coins < 0 || gems < 0 || coins + gems === 0) throw Error("invalid admin grant amount");
+    return this.sql.transaction(() => {
+      this.ensure(userId, now);
+      const posted = this.post([{ id: eventId, kind: "admin-grant", coins, gems, label }], now);
+      return { applied: posted.applied.length > 0, wallet: posted.wallet };
+    });
+  }
+
   /** Count one server AI match start against today's limit. */
   startAi(userId: string, now: number): { ok: true } | Fail {
     return this.sql.transaction(() => {
@@ -399,6 +415,12 @@ export class EconomyStore {
     const ledger = { coins: sum?.c ?? 0, gems: sum?.g ?? 0 };
     if (wallet.coins !== ledger.coins || wallet.gems !== ledger.gems) problems.push("balance differs from ledger sum");
     return { ok: problems.length === 0, wallet, ledger, rows: sum?.n ?? 0, problems };
+  }
+
+  /** Current balance (no row is created). */
+  wallet(): Wallet {
+    const r = this.row();
+    return { coins: r?.coins ?? 0, gems: r?.gems ?? 0 };
   }
 
   /** Daily coin issuance of this account today (abuse signal for operations metrics). */
