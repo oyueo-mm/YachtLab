@@ -33,7 +33,7 @@ CI-1.2 구현에서 확인한 해제 경로:
 | SEC-1-08 | `online-live-check`의 PR 라벨 실행은 같은 저장소 브랜치만(포크 PR 제외) |
 | SEC-1-09 | Wiki 동기화 토큰을 URL 대신 HTTP 헤더(`GIT_CONFIG_*` 환경 변수, argv 미노출)로 전달, 오류 메시지의 URL 자격 증명 제거 |
 
-## 4. SEC-1-02 구형 Cloudflare 시크릿 (운영자 조치 대기)
+## 4. SEC-1-02 구형 Cloudflare 시크릿 (해결됨, 2026-11-28)
 
 | 항목 | 확인 결과 |
 |---|---|
@@ -42,14 +42,26 @@ CI-1.2 구현에서 확인한 해제 경로:
 | 구형 토큰 마지막 사용(Actions) | 수동 #17 [45772443229](https://github.com/oyueo-mm/YachtLab/actions/runs/45772443229)(2026-11-26, `54c1367`) |
 | 신규 토큰 성공 기록 | 읽기 점검 [46101611304](https://github.com/oyueo-mm/YachtLab/actions/runs/46101611304), 수동 배포 #18 [46103873770](https://github.com/oyueo-mm/YachtLab/actions/runs/46103873770)·#19 [46113118303](https://github.com/oyueo-mm/YachtLab/actions/runs/46113118303), 첫 자동 실행 [46117886454](https://github.com/oyueo-mm/YachtLab/actions/runs/46117886454)(Worker 입력 변경 없음 → Cloudflare 읽기 후 건너뜀, 활성 `27ff426a…` 유지) |
 | 결론 | 구형 토큰에 대한 main의 의존성 없음. 남아 있는 한 우회 경로이므로 폐기 대상 |
+| **조치(운영자, 2026-11-28)** | Cloudflare의 구형 "YachtLab Deploy" 토큰 폐기, 저장소 시크릿 `CLOUDFLARE_API_TOKEN`·`CLOUDFLARE_ACCOUNT_ID` 삭제(Repository secrets 비어 있음). "YachtLab Production Deploy" 토큰과 `worker-production` Environment 시크릿 2개는 유지 |
+| **확인** | 삭제 후 읽기 점검 [46123593845](https://github.com/oyueo-mm/YachtLab/actions/runs/46123593845) 성공(활성 `27ff426a…` 100%), 이어서 자동 배포 [46123739813](https://github.com/oyueo-mm/YachtLab/actions/runs/46123739813)이 신규 토큰으로 #137을 배포. 옛 브랜치의 구형 워크플로는 시크릿이 없어 더 이상 배포할 수 없다 |
 
-폐기 절차(사용자 승인 후, 순서 고정):
+폐기 절차(기록용, 2026-11-28 수행 완료):
 1. [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens)에서 이 저장소 배포용 **구형** 토큰을 찾는다(이름·생성일·마지막 사용 시각으로 구분, `worker-production`용 신규 토큰과 혼동 금지). 마지막 사용이 2026-11-26 이후 Actions 기록과 맞지 않으면 중단하고 확인한다. 다른 프로젝트의 토큰은 건드리지 않는다.
 2. 그 토큰을 **Roll이 아닌 Delete(폐기)** 한다.
 3. [Actions secrets](https://github.com/oyueo-mm/YachtLab/settings/secrets/actions) → Repository secrets에서 `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`를 삭제한다. Environment secrets(`WORKER_PRODUCTION_*`)는 유지.
 4. [읽기 점검](https://github.com/oyueo-mm/YachtLab/actions/workflows/verify-worker-production-read.yml)을 현재 활성 UUID로 실행해 신규 토큰이 정상인지 확인한다(또는 다음 자동 실행 Summary 확인).
 
-## 5. SEC-1-01 수정 출시 순서 (권장)
+## 5. SEC-1-01 수정 출시 (완료)
+
+| 항목 | 결과 |
+|---|---|
+| 병합 | [#137](https://github.com/oyueo-mm/YachtLab/pull/137) → main `331b5c9cb26ba761de71f07a273b378c6d5c2e17`, PR CI [46121993035](https://github.com/oyueo-mm/YachtLab/actions/runs/46121993035) 성공 |
+| 배포 전 | 읽기 점검 [46122981444](https://github.com/oyueo-mm/YachtLab/actions/runs/46122981444): 활성 `27ff426a…` 100% |
+| Pages | main CI·배포 [46123011195](https://github.com/oyueo-mm/YachtLab/actions/runs/46123011195), `331b5c9-mx0426s4` |
+| Worker(자동, CI-1.2 첫 실제 배포) | [46123739813](https://github.com/oyueo-mm/YachtLab/actions/runs/46123739813): 변경 입력 `worker/src/account.ts`, 배포 `c13d98b7-b61f-4acc-a30f-e3acaff93379`, **활성 100% `6ef2c717-60f1-48c0-89ee-3b7ae8b0f1de`**, 복귀 후보 `27ff426a-9cf0-4fea-bcc8-6ad84fb05df0`(배포 `f541a6f2…`) |
+| 운영 점검 | `/healthz` ok, 기능 플래그 전체, 로그인 설정, 게스트 2인 친구 방 생성·입장·양쪽 1턴·관전 설정·재접속·기권 결과 창, 페이지 오류 0. 계정·재화 데이터는 건드리지 않았다(과거 기록 소급 수정 없음) |
+
+### 권장 순서 (작성 당시)
 
 SEC-1-01 브랜치 `claude/eager-pasteur-2oqfw7`(`185c504`) 검토: 변경은 `AccountStore.insert` 한 곳이다. 같은 ID에 클라이언트 보고 행만 있을 때 서버 검증 기록이 그 행을 지우고 다시 넣으며, 기존 기록·정산 트랜잭션(`econSql().transaction`) 안에서 실행되어 정산 실패 시 함께 롤백된다. 기기 사본은 리뷰 아카이브를 쓰지 않으므로 남는 행이 없다. 스키마·원장 키·보상량 변경 없음. 회귀 테스트가 정산 1회, 재배달 멱등, 이후 기기 업로드 무시를 확인한다. 문제 없음.
 
