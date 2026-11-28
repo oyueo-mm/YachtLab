@@ -50,6 +50,8 @@ export const isRoute = (value: string): value is Route => Object.prototype.hasOw
 export const currentRoute = (): Route => {
   const id = location.hash.slice(1);
   if (id !== "tutorial" && isRoute(id)) return id;
+  // ADMIN-1: return from the Google re-authentication (the console consumes and removes the ticket)
+  if (id.startsWith("admin-reauth=") || id.startsWith("admin-reauth-error=")) return "admin";
   // A watch link whose #spectate was dropped still opens the spectator screen.
   if (new URLSearchParams(location.search).get("watch")) return "spectate";
   // An invite link whose #online was dropped by a messenger still opens the online screen.

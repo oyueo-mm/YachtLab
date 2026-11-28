@@ -229,15 +229,20 @@ export class BoardCore {
     return this.sql.exec<{ at: number; by: string; change: string }>("SELECT at, by, change FROM sg_history WHERE suggestion_id = ? ORDER BY seq", id).toArray().map((h) => ({ ...h, change: JSON.parse(h.change) as unknown }));
   }
 
-  /** Account deletion: public posts stay anonymous, private reports go, votes and reports by the account go. */
-  forget(userId: string) {
+  /**
+   * Account deletion: public posts stay anonymous, private reports go, votes and reports by the account
+   * go. Idempotent and GENERATION-SAFE (retried by the deleted account's cleanup queue, possibly after
+   * the same Google account re-joined): only rows written before `before` (the deletion time) change.
+   */
+  forget(userId: string, before: number = Number.MAX_SAFE_INTEGER) {
     this.tx(() => {
-      for (const v of this.sql.exec<{ suggestion_id: string }>("SELECT suggestion_id FROM sg_votes WHERE user_id = ?", userId).toArray()) this.sql.exec("UPDATE suggestions SET votes = max(0, votes - 1) WHERE id = ?", v.suggestion_id);
-      this.sql.exec("DELETE FROM sg_votes WHERE user_id = ?", userId);
-      this.sql.exec("DELETE FROM sg_reports WHERE user_id = ?", userId);
-      this.sql.exec("DELETE FROM sg_votes WHERE suggestion_id IN (SELECT id FROM suggestions WHERE author_id = ? AND private = 1)", userId);
-      this.sql.exec("DELETE FROM suggestions WHERE author_id = ? AND private = 1", userId);
-      this.sql.exec("UPDATE suggestions SET author_id = NULL, author_name = '탈퇴한 사용자', credit = 0 WHERE author_id = ?", userId);
+      for (const v of this.sql.exec<{ suggestion_id: string }>("SELECT suggestion_id FROM sg_votes WHERE user_id = ? AND at <= ?", userId, before).toArray()) this.sql.exec("UPDATE suggestions SET votes = max(0, votes - 1) WHERE id = ?", v.suggestion_id);
+      this.sql.exec("DELETE FROM sg_votes WHERE user_id = ? AND at <= ?", userId, before);
+      this.sql.exec("DELETE FROM sg_reports WHERE user_id = ? AND at <= ?", userId, before);
+      this.sql.exec("DELETE FROM sg_votes WHERE suggestion_id IN (SELECT id FROM suggestions WHERE author_id = ? AND private = 1 AND created_at <= ?)", userId, before);
+      this.sql.exec("DELETE FROM sg_history WHERE suggestion_id IN (SELECT id FROM suggestions WHERE author_id = ? AND private = 1 AND created_at <= ?)", userId, before);
+      this.sql.exec("DELETE FROM suggestions WHERE author_id = ? AND private = 1 AND created_at <= ?", userId, before);
+      this.sql.exec("UPDATE suggestions SET author_id = NULL, author_name = '탈퇴한 사용자', credit = 0 WHERE author_id = ? AND created_at <= ?", userId, before);
     });
   }
   stats() {

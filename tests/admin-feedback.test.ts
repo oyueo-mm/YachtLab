@@ -58,7 +58,7 @@ describe("AdminCore", () => {
   it("validates rewards with safety caps and previews recipients and totals", () => {
     const c = core();
     const now = Date.now();
-    expect(c.checkReward({ title: "보상", coins: 10_001, expiresAt: now + DAY_MS }, now).ok).toBe(false);
+    expect(c.checkReward({ title: "보상", coins: 5_001, expiresAt: now + DAY_MS }, now).ok).toBe(false);
     expect(c.checkReward({ title: "보상", coins: 0, gems: 0, expiresAt: now + DAY_MS }, now).ok).toBe(false);
     expect(c.checkReward({ title: "보상", coins: 10, expiresAt: now + 10, target: { type: "all" } }, now).ok).toBe(false); // expiry < 1 h
     const ok = c.checkReward({ title: "보상", coins: 100, expiresAt: now + DAY_MS, target: { type: "users", userIds: [U, W, U] } }, now);
@@ -115,10 +115,10 @@ describe("AdminCore", () => {
     if (!first.ok) throw Error();
     // an unconfirmed reservation is handed back again (grant retried with the same id)
     expect(c.redeem(U, 0, "WELCOME2026", now)).toMatchObject({ ok: true, redemptionId: first.redemptionId });
-    c.confirmRedeem(first.redemptionId, true);
+    c.confirmRedeem(U, first.redemptionId, true);
     expect(c.redeem(U, 0, "WELCOME2026", now)).toMatchObject({ ok: false, code: "CODE_USED" });
     const second = c.redeem(W, 0, "WELCOME2026", now);
-    if (second.ok) c.confirmRedeem(second.redemptionId, true);
+    if (second.ok) c.confirmRedeem(W, second.redemptionId, true);
     expect(c.redeem(uid("Z"), 0, "WELCOME2026", now)).toMatchObject({ ok: false, code: "CODE_EXHAUSTED" });
     expect(c.redeem(uid("Y"), 0, "WELCOME2026", now + DAY_MS)).toMatchObject({ ok: false, code: "CODE_PERIOD" });
     c.setCodeStatus(made.id, "inactive");
@@ -273,7 +273,7 @@ describe("admin routes (fakes, isolated)", () => {
     const r = await handleEngagementRoute(req(path, token, body), new URL("https://w.example" + path), w.backends(), reply);
     return { status: r!.status, body: (await r!.json()) as Record<string, any> };
   };
-  const login = async (w: ReturnType<typeof world>, session: string) => (await route(w, "/api/admin/session", session, {})).body.token as string;
+  const login = async (w: ReturnType<typeof world>, session: string) => (await w.adminLogin(session)).token as string;
 
   it("hides everything from non-admins and when no admin is configured", async () => {
     const empty = world({});
@@ -314,7 +314,7 @@ describe("admin routes (fakes, isolated)", () => {
   });
 
   it("reward: draft → second-admin approval (fresh session + typed id) → delivery → member claim", async () => {
-    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on" });
+    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "test-policy" });
     const a = await login(w, w.account(A).session);
     const member = w.account(U);
     const draft = await route(w, "/api/admin/rewards", a, { title: "점검 보상", message: "불편을 드려 죄송해요", coins: 100, gems: 2, expiresAt: w.clock() + 7 * DAY_MS, target: { type: "users", userIds: [U] } });
@@ -340,7 +340,7 @@ describe("admin routes (fakes, isolated)", () => {
   });
 
   it("an old admin session must sign in again before approving", async () => {
-    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on" });
+    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "test-policy" });
     const a = await login(w, w.account(A).session);
     const b = await login(w, w.account(B).session);
     w.account(U);
@@ -353,12 +353,13 @@ describe("admin routes (fakes, isolated)", () => {
   });
 
   it("suspend: approval, enforcement, appeal accepted → lifted; restrict blocks posting", async () => {
-    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_APPROVAL: "self" });
+    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "test-policy" });
     const a = await login(w, w.account(A).session);
+    const b = await login(w, w.account(B).session);
     const member = w.account(U);
     const d = await route(w, "/api/admin/sanctions", a, { userId: U, kind: "suspend", reason: "부정 프로그램 사용 정황", days: 7 });
     const id = d.body.actionId;
-    expect((await route(w, `/api/admin/actions/${id}/approve`, a, { confirm: id })).body.ok).toBe(true); // self-approval configured
+    expect((await route(w, `/api/admin/actions/${id}/approve`, b, { confirm: id })).body.ok).toBe(true);
     expect((await eng(w, "/api/me/redeem", member.session, { code: "ANYCODE1" })).body.error.code).toBe("SUSPENDED");
     const sanctions = await eng(w, "/api/me/sanctions", member.session);
     expect(sanctions.body.standing.suspended).toBe(true);
@@ -371,16 +372,17 @@ describe("admin routes (fakes, isolated)", () => {
     // warning: immediate, still audited
     expect((await route(w, "/api/admin/sanctions", a, { userId: U, kind: "warning", reason: "채팅 비매너 경고" })).body.ok).toBe(true);
     const r = await route(w, "/api/admin/sanctions", a, { userId: U, kind: "restrict", reason: "도배 반복", days: 2 });
-    await route(w, `/api/admin/actions/${r.body.actionId}/approve`, a, { confirm: r.body.actionId });
+    await route(w, `/api/admin/actions/${r.body.actionId}/approve`, b, { confirm: r.body.actionId });
     expect((await eng(w, "/api/suggestions", member.session, { category: "feature", title: "제안합니다", body: "제한 중 작성 시도입니다" })).body.error.code).toBe("RESTRICTED");
   });
 
   it("nickname reset removes the nickname; member view is audited and has no secrets", async () => {
-    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_APPROVAL: "self" });
+    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "test-policy" });
     const a = await login(w, w.account(A).session);
+    const b = await login(w, w.account(B).session);
     const m = w.account(U, "나쁜닉네임");
     const d = await route(w, "/api/admin/sanctions", a, { userId: U, kind: "nickname_reset", reason: "부적절한 닉네임" });
-    await route(w, `/api/admin/actions/${d.body.actionId}/approve`, a, { confirm: d.body.actionId });
+    await route(w, `/api/admin/actions/${d.body.actionId}/approve`, b, { confirm: d.body.actionId });
     expect((await m.account.me())!.nickname).toBeNull();
     const view = await route(w, `/api/admin/members/${U}`, a);
     expect(view.status).toBe(200);
@@ -389,7 +391,7 @@ describe("admin routes (fakes, isolated)", () => {
   });
 
   it("redeem codes through the routes: approval, one grant per account, retry-safe", async () => {
-    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on" });
+    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "test-policy" });
     const a = await login(w, w.account(A).session);
     const b = await login(w, w.account(B).session);
     const m = w.account(U);
@@ -402,7 +404,7 @@ describe("admin routes (fakes, isolated)", () => {
   });
 
   it("suggestions: public board, admin answer + adoption reward via approval", async () => {
-    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on" });
+    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "test-policy" });
     const a = await login(w, w.account(A).session);
     const b = await login(w, w.account(B).session);
     const author = w.account(U, "제안자");
@@ -426,7 +428,7 @@ describe("admin routes (fakes, isolated)", () => {
   });
 
   it("reports: a member reports another with a match id; admins see the evidence and resolve", async () => {
-    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on" });
+    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "test-policy" });
     const a = await login(w, w.account(A).session);
     const reporter = w.account(U);
     w.account(W);

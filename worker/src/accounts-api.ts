@@ -3,7 +3,7 @@ import type { ReviewMatch } from "../../src/review/model";
 import type { MatchReceipt } from "../../src/economy/live/receipt";
 import { sanitizeRecord, type MatchRecord } from "../../src/identity/records";
 import { sanitizeSoloRecord, type SoloRecord } from "../../src/solo/records";
-import { GOOGLE, OidcError, USER_ID, beginLogin, finishLogin, seal, sha256, unseal, userIdFor, type LoginState, type OidcProvider } from "./oidc";
+import { GOOGLE, OidcError, USER_ID, beginLogin, finishLogin, requireFreshAuth, seal, sha256, unseal, userIdFor, type LoginState, type OidcProvider } from "./oidc";
 import type { PrivateProfile, PublicProfile } from "./account";
 
 /**
@@ -85,6 +85,11 @@ export type AccountBackends = {
   limited(key: string, perMinute: number): Promise<boolean>;
   fetcher: typeof fetch;
   now(): number;
+  /**
+   * ADMIN-1: after a Google re-authentication (`purpose=admin`), a one-time ticket for an admin session —
+   * null when this account is not an administrator. Never creates an account.
+   */
+  adminReauth?(userId: string, clientStateHash: string, authTime: number): Promise<string | null>;
 };
 
 const COOKIE = "__Host-yl_oidc";
@@ -146,7 +151,8 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
     const cs = url.searchParams.get("cs") ?? "";
     if (!CS_HASH.test(cs)) return new Response("bad request", { status: 400 });
     const redirectUri = url.origin + "/auth/google/callback";
-    const { url: to, login } = await beginLogin({ provider: cfg.provider, clientId: cfg.clientId, redirectUri, clientStateHash: cs, now: b.now() });
+    const purpose = url.searchParams.get("purpose") === "admin" && b.adminReauth ? ("admin" as const) : undefined;
+    const { url: to, login } = await beginLogin({ provider: cfg.provider, clientId: cfg.clientId, redirectUri, clientStateHash: cs, now: b.now(), purpose });
     return new Response(null, {
       status: 302,
       headers: {
@@ -168,18 +174,25 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
     const state = url.searchParams.get("state") ?? "";
     // Without our own cookie with the same state this callback was not started by this browser (login CSRF).
     if (!login || login.exp < b.now() || login.state !== state) return back("login-error=state");
-    if (url.searchParams.get("error")) return back("login-error=cancelled");
+    const err = (reason: string) => back((login.purpose === "admin" ? "admin-reauth-error=" : "login-error=") + reason);
+    if (url.searchParams.get("error")) return err("cancelled");
     const code = url.searchParams.get("code");
-    if (!code || code.length > 2048) return back("login-error=code");
+    if (!code || code.length > 2048) return err("code");
     try {
       const claims = await finishLogin({ provider: cfg.provider, clientId: cfg.clientId, clientSecret: cfg.clientSecret, redirectUri: url.origin + "/auth/google/callback", code, login, now: b.now(), fetcher: b.fetcher });
       const userId = await userIdFor(cfg.provider.name, claims.sub);
+      if (login.purpose === "admin") {
+        // ADMIN-1 re-authentication: fresh auth_time required, no account is created, non-admins get the same error
+        const authTime = requireFreshAuth(claims, login);
+        const ticket = b.adminReauth ? await b.adminReauth(userId, login.cs, authTime) : null;
+        return back(ticket ? `admin-reauth=${ticket}` : "admin-reauth-error=denied");
+      }
       const oneTime = await b.user(userId).ensureAndCode(userId, cfg.provider.name, login.cs);
       return back(`login=${userId}.${oneTime}`);
     } catch (error) {
       // Never log tokens or claims; only the error kind.
       console.warn("sign-in failed", error instanceof OidcError ? error.code : "unexpected");
-      return back("login-error=verify");
+      return back(login.purpose === "admin" ? "admin-reauth-error=verify" : "login-error=verify");
     }
   }
 

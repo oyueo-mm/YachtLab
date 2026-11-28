@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startLocalWorker, type LocalWorker } from "./helpers/wrangler";
-import { fakeLogin, startFakeIdp, type FakeIdp } from "./helpers/fake-idp";
+import { fakeAdminReauth, fakeLogin, startFakeIdp, type FakeIdp } from "./helpers/fake-idp";
 import { userIdFor } from "../worker/src/oidc";
 
 /**
@@ -26,6 +26,9 @@ beforeAll(async () => {
     ECONOMY: "on",
     ADMIN_ACCOUNTS: `${ids["owner-a"]}:owner,${ids["owner-b"]}:owner,${ids.viewer}:viewer`,
     ADMIN_WRITES: "on",
+    ADMIN_REWARD_POLICY: "e2e-policy",
+    ADMIN_TOKEN: "t".repeat(40),
+    ADMIN_TOKEN_ROUTES: "metrics",
     FEEDBACK_BOARD: "on",
   });
 }, 120_000);
@@ -42,7 +45,9 @@ async function call(token: string | null, path: string, body?: unknown) {
   });
   return { status: res.status, body: (await res.json().catch(() => null)) as any };
 }
-const adminSession = async (member: string) => (await call(member, "/api/admin/session", {})).body?.token as string;
+/** Real flow: Google re-authentication (fake IdP, prompt=login / max_age=0, auth_time) → ticket → admin session. */
+const subs = new Map<string, string>();
+const adminSession = async (member: string) => (await fakeAdminReauth(worker.url, idp, subs.get(member)!, member, ORIGIN)).body?.token as string;
 
 describe("admin console and engagement in the Workers runtime", () => {
   it("runs the whole operator flow without touching anything outside this local worker", async () => {
@@ -50,11 +55,21 @@ describe("admin console and engagement in the Workers runtime", () => {
     const b = await fakeLogin(worker.url, idp, "owner-b", ORIGIN);
     const v = await fakeLogin(worker.url, idp, "viewer", ORIGIN);
     const m = await fakeLogin(worker.url, idp, "member", ORIGIN);
+    for (const [s, sub] of [[a, "owner-a"], [b, "owner-b"], [v, "viewer"], [m, "member"]]) subs.set(s, sub);
     expect((await call(m, "/api/me/nickname", { nickname: "테스트회원" })).status).toBe(200);
     expect((await call(m, "/api/me/economy")).status).toBe(200);
 
-    // non-admins: the admin API does not exist for them
+    // non-admins: the admin API does not exist for them, and Google re-authentication gives them no ticket
     expect((await call(m, "/api/admin/session", {})).status).toBe(404);
+    expect((await fakeAdminReauth(worker.url, idp, "member", m, ORIGIN)).fragment).toBe("#admin-reauth-error=denied");
+    // an admin needs the re-authentication: the member session alone is refused
+    expect((await call(a, "/api/admin/session", {})).body.error.code).toBe("REAUTH_REQUIRED");
+    const reauth = await fakeAdminReauth(worker.url, idp, "owner-a", a, ORIGIN);
+    expect(idp.lastAuth()).toEqual({ prompt: "login", maxAge: "0" });
+    expect(reauth.body).toMatchObject({ role: "owner", reauth: "google" });
+    // a ticket cannot be used with another member's session
+    const stolen = await fakeAdminReauth(worker.url, idp, "owner-b", a, ORIGIN);
+    expect(stolen.status).toBe(401);
     expect((await call(null, "/api/admin/overview")).status).toBe(404);
     const va = await adminSession(v);
     expect((await call(va, "/api/admin/overview")).status).toBe(200);
@@ -105,7 +120,14 @@ describe("admin console and engagement in the Workers runtime", () => {
     expect((await call(aa, `/api/admin/appeals/${appeal.body.id}`, { status: "accepted", answer: "해제합니다" })).body.lifted).toBe(true);
     expect((await call(m, "/api/me/nickname", { nickname: "바뀐이름" })).status).toBe(200);
 
+    // legacy ADMIN_TOKEN: read-only allowlist (here "metrics" only), audited
+    const legacy = (p: string, method = "GET") => fetch(worker.url + p, { method, headers: { authorization: "Bearer " + "t".repeat(40) } });
+    expect((await legacy("/api/admin/metrics")).status).toBe(200);
+    expect((await legacy("/api/admin/ledger/" + ids.member)).status).toBe(404);
+    expect((await legacy("/api/admin/metrics", "POST")).status).toBe(404);
+    expect((await legacy("/api/admin/overview")).status).toBe(404);
     const audit = await call(aa, "/api/admin/audit");
+    expect(audit.body.entries.some((e: any) => e.actor === "token:ADMIN_TOKEN" && e.action === "legacy.metrics")).toBe(true);
     expect(audit.body.entries.map((e: any) => e.action)).toEqual(expect.arrayContaining(["action.execute", "member.view", "appeal.answer", "denied"]));
 
     // account deletion: leaves the index; the post stays anonymous

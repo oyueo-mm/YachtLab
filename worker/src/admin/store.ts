@@ -1,5 +1,5 @@
 import { randomToken, sha256 } from "../oidc";
-import type { ActionKind, Role } from "./roles";
+import { GRANT_CAPS, type ActionKind, type Role } from "./roles";
 
 /**
  * ADMIN-1 — the logic of the one global `AdminHub` Durable Object (runtime-free; tested in Node with
@@ -23,9 +23,9 @@ export interface AdminSql {
 }
 
 export const ADMIN_LIMITS = {
-  /** Safety caps per recipient (NOT the reward policy: amounts are set by the economy owner, docs §07). */
-  maxCoinsEach: 10_000,
-  maxGemsEach: 300,
+  /** Safety caps per recipient = C5 `operator` grant limits (NOT the reward policy: amounts need approval). */
+  maxCoinsEach: GRANT_CAPS.operator.coins,
+  maxGemsEach: GRANT_CAPS.operator.gems,
   maxRecipients: 100_000,
   maxScheduleAheadMs: 60 * 86_400_000,
   maxExpiryMs: 90 * 86_400_000,
@@ -40,6 +40,13 @@ export const ADMIN_LIMITS = {
 
 export const DAY_MS = 86_400_000;
 export const utcDay = (t: number) => Math.floor(t / DAY_MS);
+/**
+ * Member activity days are KST (UTC+9, no DST) — the same day the economy, quests and LIVE-1 daily
+ * content reset on (`economyDay`). A KST day number d covers [d·24h − 9h, (d+1)·24h − 9h) UTC.
+ * MatchHub counters stay UTC days (C3); the console labels each.
+ */
+export const KST_OFFSET_MS = 9 * 3600_000;
+export const kstDay = (t: number) => Math.floor((t + KST_OFFSET_MS) / DAY_MS);
 /** Monday-based week number (1970-01-01 was a Thursday). */
 export const weekOf = (day: number) => Math.floor((day + 3) / 7);
 export const monthOf = (day: number) => new Date(day * DAY_MS).toISOString().slice(0, 7);
@@ -56,16 +63,25 @@ export type ActivityReport = {
   /** Days since the previous active day; null = first ever report. */
   gapDays: number | null;
 };
+/**
+ * Retention of moderation data (D-ADM-7, proposal pending the privacy policy #126 — operator approval):
+ *  - a deleted account's sanctions still in force are kept (minimal fields) until they end, so deletion
+ *    is not a way out; a permanent suspension is kept for at most `permanentSanctionMs`, then deleted;
+ *  - finished sanctions (warning, nickname reset, expired, lifted) of a deleted account lose their
+ *    reason text at deletion and the rows go after `closedRecordMs`;
+ *  - appeals of a deleted account lose their text at deletion; reports it filed lose the reporter id.
+ */
+export const RETENTION = { closedRecordMs: 365 * DAY_MS, permanentSanctionMs: 365 * DAY_MS, reauthTicketMs: 2 * 60_000 } as const;
 
 export type Target =
   | { type: "users"; userIds: string[] }
   | { type: "segment"; joinedAfter?: number; joinedBefore?: number; activeWithinDays?: number }
   | { type: "all" };
-export type RewardPayload = { title: string; message: string; coins: number; gems: number; target: Target; scheduledAt: number; expiresAt: number };
+export type RewardPayload = { title: string; message: string; coins: number; gems: number; target: Target; scheduledAt: number; expiresAt: number; policyVersion?: string };
 export type CodePayload = { codeId: string };
 export type SanctionKind = "warning" | "nickname_reset" | "restrict" | "suspend";
 export type SanctionPayload = { userId: string; kind: SanctionKind; reason: string; days: number | null; reportId: string | null };
-export type SuggestionRewardPayload = { suggestionId: string; userId: string; coins: number; gems: number; reason: string };
+export type SuggestionRewardPayload = { suggestionId: string; userId: string; coins: number; gems: number; reason: string; policyVersion?: string };
 
 export type InboxItem = {
   id: string;
@@ -105,7 +121,10 @@ export class AdminCore {
 
   init() {
     const s = (q: string) => this.sql.exec(q);
-    s("CREATE TABLE IF NOT EXISTS admin_sessions (hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, role TEXT NOT NULL, created_at INTEGER NOT NULL, last_used INTEGER NOT NULL)");
+    s("CREATE TABLE IF NOT EXISTS admin_sessions (hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, role TEXT NOT NULL, created_at INTEGER NOT NULL, last_used INTEGER NOT NULL, reauth_at INTEGER)");
+    s("CREATE TABLE IF NOT EXISTS admin_reauth (hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, cs_hash TEXT NOT NULL, auth_time INTEGER NOT NULL, expires INTEGER NOT NULL)");
+    s("CREATE TABLE IF NOT EXISTS deletions (user_id TEXT NOT NULL, deleted_at INTEGER NOT NULL, PRIMARY KEY (user_id, deleted_at))");
+    s("CREATE TABLE IF NOT EXISTS self_approvals (day INTEGER PRIMARY KEY, n INTEGER NOT NULL)");
     s("CREATE TABLE IF NOT EXISTS audit (seq INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, actor TEXT NOT NULL, role TEXT NOT NULL, action TEXT NOT NULL, target TEXT NOT NULL, result TEXT NOT NULL, detail TEXT NOT NULL, client TEXT NOT NULL)");
     s("CREATE INDEX IF NOT EXISTS audit_actor ON audit (actor, seq)");
     s("CREATE TABLE IF NOT EXISTS members (user_id TEXT PRIMARY KEY, nickname TEXT, created_at INTEGER NOT NULL, last_day INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'ok', status_until INTEGER)");
@@ -118,13 +137,13 @@ export class AdminCore {
     s("CREATE TABLE IF NOT EXISTS deliveries (campaign_id TEXT NOT NULL, user_id TEXT NOT NULL, status TEXT NOT NULL, attempts INTEGER NOT NULL, next_at INTEGER NOT NULL, at INTEGER, PRIMARY KEY (campaign_id, user_id))");
     s("CREATE INDEX IF NOT EXISTS deliveries_due ON deliveries (status, next_at)");
     s("CREATE TABLE IF NOT EXISTS codes (id TEXT PRIMARY KEY, code TEXT NOT NULL UNIQUE, title TEXT NOT NULL, coins INTEGER NOT NULL, gems INTEGER NOT NULL, starts_at INTEGER NOT NULL, ends_at INTEGER NOT NULL, max_total INTEGER NOT NULL, per_account INTEGER NOT NULL, joined_before INTEGER, status TEXT NOT NULL, created_by TEXT NOT NULL, created_at INTEGER NOT NULL)");
-    s("CREATE TABLE IF NOT EXISTS redemptions (id TEXT PRIMARY KEY, code_id TEXT NOT NULL, user_id TEXT NOT NULL, n INTEGER NOT NULL, status TEXT NOT NULL, at INTEGER NOT NULL)");
+    s("CREATE TABLE IF NOT EXISTS redemptions (id TEXT NOT NULL, code_id TEXT NOT NULL, user_id TEXT NOT NULL, n INTEGER NOT NULL, status TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (code_id, user_id, n))");
     s("CREATE INDEX IF NOT EXISTS redemptions_code ON redemptions (code_id, user_id)");
     s("CREATE TABLE IF NOT EXISTS notices (id TEXT PRIMARY KEY, kind TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, important INTEGER NOT NULL, publish_at INTEGER NOT NULL, end_at INTEGER, status TEXT NOT NULL, updated_by TEXT NOT NULL, updated_at INTEGER NOT NULL)");
     s("CREATE TABLE IF NOT EXISTS reports (id TEXT PRIMARY KEY, reporter TEXT NOT NULL, target_type TEXT NOT NULL, target_id TEXT NOT NULL, reason TEXT NOT NULL, detail TEXT NOT NULL, match_id TEXT, status TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)");
     s("CREATE INDEX IF NOT EXISTS reports_status ON reports (status, created_at)");
     s("CREATE INDEX IF NOT EXISTS reports_reporter ON reports (reporter, created_at)");
-    s("CREATE TABLE IF NOT EXISTS sanctions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL, reason TEXT NOT NULL, starts_at INTEGER NOT NULL, until INTEGER, status TEXT NOT NULL, report_id TEXT, action_id TEXT, created_by TEXT NOT NULL, lifted_by TEXT, lifted_at INTEGER, lift_reason TEXT)");
+    s("CREATE TABLE IF NOT EXISTS sanctions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL, reason TEXT NOT NULL, starts_at INTEGER NOT NULL, until INTEGER, status TEXT NOT NULL, report_id TEXT, action_id TEXT, created_by TEXT NOT NULL, lifted_by TEXT, lifted_at INTEGER, lift_reason TEXT, purge_at INTEGER)");
     s("CREATE INDEX IF NOT EXISTS sanctions_user ON sanctions (user_id, starts_at)");
     s("CREATE TABLE IF NOT EXISTS appeals (id TEXT PRIMARY KEY, sanction_id TEXT NOT NULL, user_id TEXT NOT NULL, text TEXT NOT NULL, status TEXT NOT NULL, answer TEXT NOT NULL DEFAULT '', answered_by TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)");
     s("CREATE INDEX IF NOT EXISTS appeals_status ON appeals (status, created_at)");
@@ -132,24 +151,44 @@ export class AdminCore {
 
   /* ------------------------------------------------------------ admin sessions ------------------------------------------------------------ */
 
-  async createSession(userId: string, role: Role, now: number): Promise<string> {
+  /**
+   * A Google re-authentication of an administrator → one-time ticket (2 minutes), bound to the browser
+   * tab that started it (client-state hash) and to the account.
+   */
+  async createReauth(userId: string, csHash: string, authTime: number, now: number): Promise<string> {
+    const ticket = randomToken();
+    this.sql.exec("DELETE FROM admin_reauth WHERE expires <= ? OR user_id = ?", now, userId);
+    this.sql.exec("INSERT INTO admin_reauth (hash, user_id, cs_hash, auth_time, expires) VALUES (?, ?, ?, ?, ?)", await sha256(ticket), userId, csHash, authTime, now + RETENTION.reauthTicketMs);
+    return ticket;
+  }
+  /** Use a ticket once: same account, same tab (client state), not expired → the Google auth time. */
+  async consumeReauth(ticket: unknown, userId: string, clientState: unknown, now: number): Promise<number | null> {
+    if (typeof ticket !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(ticket) || typeof clientState !== "string" || clientState.length < 20 || clientState.length > 128) return null;
+    const hash = await sha256(ticket);
+    const row = this.one<{ user_id: string; cs_hash: string; auth_time: number; expires: number }>("SELECT user_id, cs_hash, auth_time, expires FROM admin_reauth WHERE hash = ?", hash);
+    this.sql.exec("DELETE FROM admin_reauth WHERE hash = ?", hash);
+    if (!row || row.expires <= now || row.user_id !== userId || row.cs_hash !== (await sha256(clientState))) return null;
+    return row.auth_time;
+  }
+  /** `reauthAt`: time of the Google re-authentication behind this session (null = session-only mode, local tests). */
+  async createSession(userId: string, role: Role, now: number, reauthAt: number | null = null): Promise<string> {
     const token = "a1." + randomToken();
     this.sql.exec("DELETE FROM admin_sessions WHERE user_id = ? AND hash NOT IN (SELECT hash FROM admin_sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 2)", userId, userId);
-    this.sql.exec("INSERT INTO admin_sessions (hash, user_id, role, created_at, last_used) VALUES (?, ?, ?, ?, ?)", await sha256(token), userId, role, now, now);
+    this.sql.exec("INSERT INTO admin_sessions (hash, user_id, role, created_at, last_used, reauth_at) VALUES (?, ?, ?, ?, ?, ?)", await sha256(token), userId, role, now, now, reauthAt);
     return token;
   }
   /** A live admin session (idle and absolute expiry), touched at most once a minute. */
-  async checkSession(token: string, now: number, limits: { idleMs: number; absoluteMs: number }): Promise<{ userId: string; createdAt: number } | null> {
+  async checkSession(token: string, now: number, limits: { idleMs: number; absoluteMs: number }): Promise<{ userId: string; createdAt: number; reauthAt: number | null } | null> {
     if (!/^a1\.[A-Za-z0-9_-]{43}$/.test(token)) return null;
     const hash = await sha256(token);
-    const row = this.one<{ user_id: string; created_at: number; last_used: number }>("SELECT user_id, created_at, last_used FROM admin_sessions WHERE hash = ?", hash);
+    const row = this.one<{ user_id: string; created_at: number; last_used: number; reauth_at: number | null }>("SELECT user_id, created_at, last_used, reauth_at FROM admin_sessions WHERE hash = ?", hash);
     if (!row) return null;
     if (now - row.last_used > limits.idleMs || now - row.created_at > limits.absoluteMs) {
       this.sql.exec("DELETE FROM admin_sessions WHERE hash = ?", hash);
       return null;
     }
     if (now - row.last_used > 60_000) this.sql.exec("UPDATE admin_sessions SET last_used = ? WHERE hash = ?", now, hash);
-    return { userId: row.user_id, createdAt: row.created_at };
+    return { userId: row.user_id, createdAt: row.created_at, reauthAt: row.reauth_at };
   }
   async endSession(token: string) {
     if (/^a1\./.test(token)) this.sql.exec("DELETE FROM admin_sessions WHERE hash = ?", await sha256(token));
@@ -184,12 +223,21 @@ export class AdminCore {
     for (const [k, n] of Object.entries(counts)) if (n) data[k] = (data[k] ?? 0) + n;
     this.sql.exec("INSERT INTO activity_days (day, data) VALUES (?, ?) ON CONFLICT(day) DO UPDATE SET data = excluded.data", day, JSON.stringify(data));
   }
-  /** One account's first activity of a UTC day (sent by the account object itself). */
-  activity(r: ActivityReport) {
-    if (!USER.test(r.userId)) return;
-    this.tx(() => {
+  /**
+   * Reports of one account, oldest first (the account sends its whole unsent queue in one call, so they
+   * arrive in order). Each (account, day) counts once: a retried report whose answer was lost is ignored.
+   */
+  activityBatch(reports: ActivityReport[]): number {
+    let applied = 0;
+    for (const r of [...reports].sort((a, b) => a.day - b.day)) if (this.activity(r)) applied++;
+    return applied;
+  }
+  /** One account's first activity of a KST day (sent by the account object itself). True = counted. */
+  activity(r: ActivityReport): boolean {
+    if (!USER.test(r.userId) || !Number.isInteger(r.day)) return false;
+    return this.tx(() => {
       const known = this.one<{ last_day: number }>("SELECT last_day FROM members WHERE user_id = ?", r.userId);
-      if (known && known.last_day >= r.day) return;
+      if (known && known.last_day >= r.day) return false;
       this.sql.exec(
         "INSERT INTO members (user_id, nickname, created_at, last_day) VALUES (?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET nickname = excluded.nickname, last_day = excluded.last_day",
         r.userId, r.nickname, r.createdAt, r.day,
@@ -205,6 +253,7 @@ export class AdminCore {
         "return.8-30d": gap !== null && gap >= 8 && gap <= 30 ? 1 : 0,
         "return.31d+": gap !== null && gap > 30 ? 1 : 0,
       });
+      return true;
     });
   }
   /**
@@ -213,16 +262,42 @@ export class AdminCore {
    */
   signup(userId: string, now: number): { id: string; kind: SanctionKind; reason: string; until: number | null }[] {
     if (!USER.test(userId)) return [];
-    this.bump(utcDay(now), { signup: 1 });
+    this.bump(kstDay(now), { signup: 1 });
     return this.all<{ id: string; kind: SanctionKind; reason: string; until: number | null }>(
       "SELECT id, kind, reason, until FROM sanctions WHERE user_id = ? AND status = 'active' AND kind IN ('restrict', 'suspend') AND (until IS NULL OR until > ?)", userId, now);
   }
-  /** A deleted account leaves the index (and the console) entirely; only a counter remains. */
-  deleted(userId: string, now: number) {
+  /**
+   * A deleted account leaves the index; only a counter remains. Idempotent and GENERATION-SAFE (it is
+   * retried by the deleted account's cleanup queue, possibly after the same Google account re-joined):
+   * only rows that existed before `deletedAt` are touched, and the deletion is counted once.
+   * Moderation data follows the retention rules (RETENTION).
+   */
+  deleted(userId: string, deletedAt: number) {
+    if (!USER.test(userId) || !Number.isFinite(deletedAt)) return;
     this.tx(() => {
-      this.sql.exec("DELETE FROM members WHERE user_id = ?", userId);
+      const first = !this.one("SELECT 1 FROM deletions WHERE user_id = ? AND deleted_at = ?", userId, deletedAt);
+      this.sql.exec("DELETE FROM members WHERE user_id = ? AND created_at <= ?", userId, deletedAt);
       this.sql.exec("DELETE FROM deliveries WHERE user_id = ? AND status = 'pending'", userId);
-      this.bump(utcDay(now), { deleted: 1 });
+      // finished sanctions: reason text goes now, the row after closedRecordMs
+      this.sql.exec("UPDATE sanctions SET reason = '(탈퇴 계정)', lift_reason = NULL, purge_at = ? WHERE user_id = ? AND starts_at <= ? AND (status != 'active' OR kind IN ('warning', 'nickname_reset'))", deletedAt + RETENTION.closedRecordMs, userId, deletedAt);
+      // sanctions still in force: kept until they end (permanent: at most permanentSanctionMs)
+      this.sql.exec("UPDATE sanctions SET purge_at = coalesce(until, ?) WHERE user_id = ? AND starts_at <= ? AND status = 'active' AND kind IN ('restrict', 'suspend')", deletedAt + RETENTION.permanentSanctionMs, userId, deletedAt);
+      this.sql.exec("UPDATE appeals SET text = '(탈퇴 계정)' WHERE user_id = ? AND created_at <= ?", userId, deletedAt);
+      this.sql.exec("UPDATE reports SET reporter = 'deleted' WHERE reporter = ? AND created_at <= ?", userId, deletedAt);
+      if (first) {
+        this.sql.exec("INSERT INTO deletions (user_id, deleted_at) VALUES (?, ?)", userId, deletedAt);
+        this.bump(kstDay(deletedAt), { deleted: 1 });
+      }
+    });
+  }
+  /** Retention sweep (alarm): moderation rows past `purge_at`, appeals of purged sanctions, old deletion marks. */
+  purgeRetention(now: number) {
+    this.tx(() => {
+      this.sql.exec("DELETE FROM appeals WHERE sanction_id IN (SELECT id FROM sanctions WHERE purge_at IS NOT NULL AND purge_at <= ?)", now);
+      this.sql.exec("DELETE FROM sanctions WHERE purge_at IS NOT NULL AND purge_at <= ?", now);
+      this.sql.exec("DELETE FROM reports WHERE reporter = 'deleted' AND status IN ('resolved', 'dismissed') AND updated_at <= ?", now - RETENTION.closedRecordMs);
+      this.sql.exec("DELETE FROM deletions WHERE deleted_at <= ?", now - 90 * DAY_MS);
+      this.sql.exec("DELETE FROM admin_reauth WHERE expires <= ?", now);
     });
   }
   nicknameChanged(userId: string, nickname: string | null) {
@@ -230,7 +305,7 @@ export class AdminCore {
   }
 
   activityReport(days: number, now: number) {
-    const today = utcDay(now);
+    const today = kstDay(now);
     const from = today - Math.max(1, Math.min(120, days)) + 1;
     const rows = this.all<{ day: number; data: string }>("SELECT day, data FROM activity_days WHERE day >= ? ORDER BY day", from - 31);
     const byDay = new Map(rows.map((r) => [r.day, JSON.parse(r.data) as Record<string, number>]));
@@ -252,7 +327,7 @@ export class AdminCore {
     }
     const first = this.one<{ day: number }>("SELECT min(day) AS day FROM activity_days");
     const members = this.one<{ n: number }>("SELECT count(*) AS n FROM members")?.n ?? 0;
-    return { timezone: "UTC", since: first?.day == null ? null : iso(first.day), indexedMembers: members, days: list };
+    return { timezone: "Asia/Seoul", since: first?.day == null ? null : iso(first.day), indexedMembers: members, days: list };
   }
 
   searchMembers(q: { nickname?: string; userId?: string; status?: string; sort?: "created" | "active"; page?: number }) {
@@ -275,7 +350,7 @@ export class AdminCore {
   resolveTarget(t: Target, now: number): string[] {
     if (t.type === "users") return [...new Set(t.userIds.filter((id) => USER.test(id)))].slice(0, ADMIN_LIMITS.maxRecipients);
     if (t.type === "all") return this.all<{ user_id: string }>("SELECT user_id FROM members ORDER BY created_at LIMIT ?", ADMIN_LIMITS.maxRecipients).map((r) => r.user_id);
-    const since = t.activeWithinDays ? utcDay(now) - t.activeWithinDays + 1 : -1;
+    const since = t.activeWithinDays ? kstDay(now) - t.activeWithinDays + 1 : -1;
     return this.all<{ user_id: string }>(
       "SELECT user_id FROM members WHERE created_at >= ? AND created_at < ? AND last_day >= ? ORDER BY created_at LIMIT ?",
       t.joinedAfter ?? 0, t.joinedBefore ?? Number.MAX_SAFE_INTEGER, since, ADMIN_LIMITS.maxRecipients,
@@ -299,6 +374,16 @@ export class AdminCore {
     ).map((r) => ({ ...r, preview: JSON.parse(r.preview) as unknown, result: r.result ? (JSON.parse(r.result) as unknown) : null }));
   }
   /** pending → approved (by an approver; the creator only when self-approval is configured) or rejected/cancelled. */
+  /** Single-operator policy: count one self-approval against today's (KST) budget; false = budget spent. */
+  useSelfApproval(now: number, perDay: number): boolean {
+    const day = kstDay(now);
+    const n = this.one<{ n: number }>("SELECT n FROM self_approvals WHERE day = ?", day)?.n ?? 0;
+    if (n >= perDay) return false;
+    this.sql.exec("INSERT INTO self_approvals (day, n) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET n = n + 1", day);
+    this.sql.exec("DELETE FROM self_approvals WHERE day < ?", day - 30);
+    return true;
+  }
+  /** `selfApprove` = the caller already checked the single-operator rules for this draft. */
   decide(id: string, by: string, decision: "approved" | "rejected" | "cancelled", now: number, selfApprove: boolean): { ok: true } | Fail {
     const a = this.action(id);
     if (!a) return fail("NOT_FOUND", "작업을 찾을 수 없어요.");
@@ -350,6 +435,7 @@ export class AdminCore {
   /** After approval: one campaign per action (unique), deliveries materialised at the scheduled time. */
   scheduleCampaign(actionId: string, p: RewardPayload, now: number) {
     const id = "rw_" + actionId.slice(4);
+    // the mailbox item / grant id follows the C5 RewardGrants txId rule: op:<campaignId> (one per account)
     this.sql.exec("INSERT OR IGNORE INTO campaigns (id, action_id, payload, status, scheduled_at, created_at) VALUES (?, ?, ?, 'scheduled', ?, ?)", id, actionId, JSON.stringify(p), p.scheduledAt, now);
     return id;
   }
@@ -401,7 +487,7 @@ export class AdminCore {
         continue;
       }
       try {
-        const r = await deliver(d.user_id, { id: d.campaign_id, kind: "reward", title: p.title, body: p.message, coins: p.coins, gems: p.gems, expiresAt: p.expiresAt });
+        const r = await deliver(d.user_id, { id: "op:" + d.campaign_id, kind: "reward", title: p.title, body: p.message, coins: p.coins, gems: p.gems, expiresAt: p.expiresAt });
         this.sql.exec("UPDATE deliveries SET status = ?, at = ? WHERE campaign_id = ? AND user_id = ?", r === "ok" ? "done" : "skipped", now, d.campaign_id, d.user_id);
         stats[r === "ok" ? "done" : "skipped"]++;
       } catch {
@@ -437,7 +523,7 @@ export class AdminCore {
     const maxTotal = Number(r.maxTotal), perAccount = Number(r.perAccount ?? 1);
     const joinedBefore = r.joinedBefore === undefined || r.joinedBefore === null || r.joinedBefore === "" ? null : Number(r.joinedBefore);
     if (title.length < 2) return fail("INVALID", "코드 이름을 입력해 주세요.");
-    if (!Number.isInteger(coins) || !Number.isInteger(gems) || coins < 0 || gems < 0 || coins + gems === 0 || coins > ADMIN_LIMITS.maxCoinsEach || gems > ADMIN_LIMITS.maxGemsEach) return fail("INVALID", "보상량이 올바르지 않아요.");
+    if (!Number.isInteger(coins) || !Number.isInteger(gems) || coins < 0 || gems < 0 || coins + gems === 0 || coins > GRANT_CAPS["redeem-code"].coins || gems > GRANT_CAPS["redeem-code"].gems) return fail("INVALID", `보상량이 올바르지 않아요(1회 상한 코인 ${GRANT_CAPS["redeem-code"].coins}·보석 ${GRANT_CAPS["redeem-code"].gems}).`);
     if (!Number.isFinite(startsAt) || !Number.isFinite(endsAt) || endsAt <= startsAt || endsAt > now + ADMIN_LIMITS.maxExpiryMs) return fail("INVALID", "사용 기간이 올바르지 않아요(최대 90일).");
     if (!Number.isInteger(maxTotal) || maxTotal < 1 || maxTotal > ADMIN_LIMITS.codeMaxTotal) return fail("INVALID", "전체 사용 횟수가 올바르지 않아요.");
     if (!Number.isInteger(perAccount) || perAccount < 1 || perAccount > ADMIN_LIMITS.codeMaxPerAccount) return fail("INVALID", "계정별 사용 횟수가 올바르지 않아요.");
@@ -485,14 +571,16 @@ export class AdminCore {
       if (mine >= c.per_account) return fail("CODE_USED", "이미 사용한 코드예요.");
       const total = this.one<{ n: number }>("SELECT count(*) AS n FROM redemptions WHERE code_id = ?", c.id)?.n ?? 0;
       if (total >= c.max_total) return fail("CODE_EXHAUSTED", "모두 사용된 코드예요.");
-      const rid = `cr_${c.id.slice(3)}_${userId.slice(2, 12)}_${mine + 1}`;
+      // C5 txId rule: code:<codeId> (per account); a code usable more than once per account adds :<n>
+      const rid = mine === 0 ? `code:${c.id}` : `code:${c.id}:${mine + 1}`;
       this.sql.exec("INSERT INTO redemptions (id, code_id, user_id, n, status, at) VALUES (?, ?, ?, ?, 'reserved', ?)", rid, c.id, userId, mine + 1, now);
       return { ok: true as const, redemptionId: rid, item: item(rid) };
     });
   }
-  confirmRedeem(redemptionId: string, ok: boolean) {
-    if (ok) this.sql.exec("UPDATE redemptions SET status = 'done' WHERE id = ?", redemptionId);
-    else this.sql.exec("DELETE FROM redemptions WHERE id = ? AND status = 'reserved'", redemptionId);
+  /** Redemption ids are per account (the account's grant id), so the account is part of the key. */
+  confirmRedeem(userId: string, redemptionId: string, ok: boolean) {
+    if (ok) this.sql.exec("UPDATE redemptions SET status = 'done' WHERE user_id = ? AND id = ?", userId, redemptionId);
+    else this.sql.exec("DELETE FROM redemptions WHERE user_id = ? AND id = ? AND status = 'reserved'", userId, redemptionId);
   }
 
   /* --------------------------------------------------------------- notices --------------------------------------------------------------- */

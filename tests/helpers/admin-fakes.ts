@@ -5,7 +5,8 @@ import { MemberOps, type MemberSql } from "../../worker/src/admin/member";
 import { AdminCore, type InboxItem } from "../../worker/src/admin/store";
 import { BoardCore } from "../../worker/src/feedback/board";
 import { adminSettings } from "../../worker/src/admin/roles";
-import type { AdminBackends, AdminUserApi } from "../../worker/src/admin/api";
+import { handleAdminRoute, type AdminBackends, type AdminUserApi } from "../../worker/src/admin/api";
+import { sha256 } from "../../worker/src/oidc";
 import type { SessionUser } from "../../worker/src/accounts-api";
 
 /** node:sqlite with a re-entrant transaction (same contract as the Durable Object shells). */
@@ -99,7 +100,7 @@ export class FakeAccount implements AdminUserApi {
 
 export const uid = (c: string) => "u_" + c.repeat(22).slice(0, 22);
 
-export function world(env: { ADMIN_ACCOUNTS?: string; ADMIN_WRITES?: string; ADMIN_APPROVAL?: string } = {}) {
+export function world(env: { ADMIN_ACCOUNTS?: string; ADMIN_WRITES?: string; ADMIN_APPROVAL?: string; ADMIN_REWARD_POLICY?: string; ADMIN_REAUTH?: string; APP_URL?: string } = {}) {
   let now = Date.UTC(2026, 10, 28, 12);
   const clock = () => now;
   const admin = new AdminCore(sqlite());
@@ -140,7 +141,19 @@ export function world(env: { ADMIN_ACCOUNTS?: string; ADMIN_WRITES?: string; ADM
     feedback: true,
     economy: true,
   });
-  return { admin, board, accounts, account, backends, counts, advance: (ms: number) => void (now += ms), clock };
+  /**
+   * Admin sign-in as production does it: the Google re-authentication callback (simulated here by the
+   * ticket it would create, with auth_time = now) → POST /api/admin/session { reauth, clientState }.
+   */
+  const adminLogin = async (session: string, opts: { authTime?: number; tamper?: "user" | "state" } = {}) => {
+    const userId = sessions.get(session)?.userId ?? uid("Z");
+    const cs = "client-state-" + Math.random().toString(36).slice(2).padEnd(24, "x");
+    const ticket = await admin.createReauth(opts.tamper === "user" ? uid("Q") : userId, await sha256(cs), opts.authTime ?? now, now);
+    const r = await handleAdminRoute(req("/api/admin/session", session, { reauth: ticket, clientState: opts.tamper === "state" ? cs + "x" : cs }), new URL("https://w.example/api/admin/session"), backends(), reply);
+    const body = (await r.json()) as Record<string, any>;
+    return { status: r.status, body, token: body.token as string | undefined };
+  };
+  return { admin, board, accounts, account, backends, counts, advance: (ms: number) => void (now += ms), clock, adminLogin };
 }
 
 export const reply = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });

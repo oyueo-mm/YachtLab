@@ -1,6 +1,6 @@
 import type { PrivateProfile } from "../account";
 import type { SessionUser } from "../accounts-api";
-import { ACTION_KINDS, can, permissionsOf, type ActionKind, type AdminSettings, type Permission, type Role } from "./roles";
+import { ACTION_KINDS, GRANT_CAPS, SINGLE_OPERATOR, can, permissionsOf, type ActionKind, type AdminSettings, type Permission, type Role } from "./roles";
 import { cleanText, type DeliverResult, type InboxItem, type RewardPayload, type SanctionPayload, type SuggestionRewardPayload } from "./store";
 import { economyStats, itemStats, matchStats, matchingStats, questStats, systemStats, type DayCounters } from "./stats";
 import type { InboxView } from "./member";
@@ -41,6 +41,26 @@ export interface AdminUserApi {
   redeemGrant?(item: InboxItem): Promise<{ ok: true; coins: number; gems: number } | { ok: false; code: string; message: string }>;
   mySanctions?(): Promise<unknown[]>;
 }
+/**
+ * LIVE-1 and later modules add admin routes HERE instead of using ADMIN_TOKEN (D-ADM-9): the router does
+ * authentication, the permission check, the ADMIN_WRITES gate for writes, the re-authentication window
+ * for high-risk routes and one audit row per write (and per sensitive read when `auditRead`).
+ */
+export type AdminExtensionRoute = {
+  method: "GET" | "POST";
+  /** Matched against the full path, e.g. /^\/api\/admin\/daily$/ */
+  path: RegExp;
+  permission: Permission;
+  /** Writes need ADMIN_WRITES=on and are always audited. */
+  write: boolean;
+  /** Needs a Google re-authentication within freshMs. */
+  highRisk?: boolean;
+  auditRead?: boolean;
+  /** Audit action name, e.g. "daily.puzzle". */
+  action: string;
+  handle(ctx: { url: URL; match: RegExpExecArray; body: Record<string, unknown> | null; actor: string; now: number }): Promise<{ status: number; body: unknown; target?: string; detail?: unknown }>;
+};
+
 export type AdminBackends = {
   settings: AdminSettings;
   admin: AdminHubApi;
@@ -59,6 +79,8 @@ export type AdminBackends = {
   /** FEEDBACK=on: suggestions, reports and appeals. */
   feedback: boolean;
   economy: boolean;
+  /** Admin routes contributed by other modules (LIVE-1 daily, …). */
+  extensions?: AdminExtensionRoute[];
 };
 type Reply = (status: number, body: unknown) => Response;
 
@@ -95,13 +117,24 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
       if (me) await b.admin.op("audit", { at: now, actor: me.userId, role: "-", action: "session.denied", result: "denied", client: b.client });
       return notFound();
     }
-    const token = await b.admin.op<string>("createSession", me.userId, role, now);
-    await b.admin.op("audit", { at: now, actor: me.userId, role, action: "session.create", result: "ok", client: b.client });
-    return reply(200, { token, role, permissions: permissionsOf(role), writes: b.settings.writes, selfApprove: b.settings.selfApprove, idleMs: b.settings.idleMs, absoluteMs: b.settings.absoluteMs, freshMs: b.settings.freshMs });
+    // Real re-authentication (D-ADM-1/1b): the one-time ticket from a Google prompt=login/max_age=0 flow,
+    // bound to this account and to the tab that started it. Only loopback test servers may skip it.
+    let reauthAt: number | null = null;
+    if (b.settings.reauth === "google") {
+      const input = await readJson(request, 1024).catch(() => ({} as Record<string, unknown>));
+      reauthAt = await b.admin.op<number | null>("consumeReauth", input.reauth, me.userId, input.clientState, now);
+      if (reauthAt === null) {
+        await b.admin.op("audit", { at: now, actor: me.userId, role, action: "session.reauth-missing", result: "denied", client: b.client });
+        return fail(401, "REAUTH_REQUIRED", "관리자 세션은 Google 재인증 후에만 시작할 수 있어요.");
+      }
+    }
+    const token = await b.admin.op<string>("createSession", me.userId, role, now, reauthAt);
+    await b.admin.op("audit", { at: now, actor: me.userId, role, action: "session.create", result: "ok", client: b.client, detail: { reauth: b.settings.reauth, reauthAt } });
+    return reply(200, { token, role, permissions: permissionsOf(role), writes: b.settings.writes, approval: b.settings.approval, selfApprove: b.settings.selfApprove, reauth: b.settings.reauth, reauthAt, rewardPolicy: b.settings.rewardPolicy, idleMs: b.settings.idleMs, absoluteMs: b.settings.absoluteMs, freshMs: b.settings.freshMs });
   }
 
   const token = bearer(request);
-  const session = token.startsWith("a1.") ? await b.admin.op<{ userId: string; createdAt: number } | null>("checkSession", token, now, b.settings) : null;
+  const session = token.startsWith("a1.") ? await b.admin.op<{ userId: string; createdAt: number; reauthAt: number | null } | null>("checkSession", token, now, { idleMs: b.settings.idleMs, absoluteMs: b.settings.absoluteMs }) : null;
   const role = session ? b.settings.accounts.get(session.userId) : undefined;
   if (!session || !role) {
     if (session) await b.admin.op("endSessionsOf", session.userId); // removed from ADMIN_ACCOUNTS
@@ -115,14 +148,36 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
   };
   const need = (p: Permission) => (can(role, p) ? null : deny(p));
   const writable = () => (b.settings.writes ? null : fail(403, "WRITES_DISABLED", "관리자 쓰기 기능이 꺼져 있어요(ADMIN_WRITES)."));
-  const fresh = () => (now - session.createdAt <= b.settings.freshMs ? null : fail(401, "REAUTH_REQUIRED", "위험한 작업 전에는 관리자 로그인을 다시 해 주세요."));
+  /** When this session last proved a Google re-authentication (session-only test mode: its creation). */
+  const reauthAt = b.settings.reauth === "google" ? session.reauthAt : session.createdAt;
+  const fresh = () => (reauthAt !== null && now - reauthAt <= b.settings.freshMs ? null : fail(401, "REAUTH_REQUIRED", "위험한 작업 전에는 Google로 다시 인증해 주세요."));
+  const policy = () => (b.settings.rewardPolicy ? null : fail(409, "POLICY_PENDING", "지급액 정책이 아직 승인되지 않았어요(ADMIN_REWARD_POLICY)."));
 
   if (path === "/api/admin/logout" && method === "POST") {
     await b.admin.op("endSession", token);
     await audit("session.end", "ok");
     return reply(200, { ok: true });
   }
-  if (path === "/api/admin/me" && method === "GET") return reply(200, { userId: actor, role, permissions: permissionsOf(role), writes: b.settings.writes, selfApprove: b.settings.selfApprove, sessionAgeMs: now - session.createdAt, freshMs: b.settings.freshMs });
+  if (path === "/api/admin/me" && method === "GET") return reply(200, { userId: actor, role, permissions: permissionsOf(role), writes: b.settings.writes, approval: b.settings.approval, selfApprove: b.settings.selfApprove, reauth: b.settings.reauth, reauthAt, rewardPolicy: b.settings.rewardPolicy, sessionAgeMs: now - session.createdAt, freshMs: b.settings.freshMs });
+
+  /* ------------------------------------------------- module extensions (LIVE-1 …) ------------------------------------------------- */
+  for (const ext of b.extensions ?? []) {
+    const match = ext.method === method ? ext.path.exec(path) : null;
+    if (!match) continue;
+    const denied = need(ext.permission); if (denied) return denied;
+    if (ext.write) { const off = writable(); if (off) return off; }
+    if (ext.highRisk) { const stale = fresh(); if (stale) return stale; }
+    try {
+      const body = method === "POST" ? await readJson(request) : null;
+      const out = await ext.handle({ url, match, body, actor, now });
+      if (ext.write || ext.auditRead) await audit(ext.action, out.status < 400 ? "ok" : "failed", out.target ?? path, out.detail ?? {});
+      return reply(out.status, out.body);
+    } catch (error) {
+      if (error instanceof SyntaxError || (error instanceof Error && error.message === "too large")) return fail(400, "INVALID", "요청 형식이 올바르지 않아요.");
+      if (ext.write) await audit(ext.action, "error", path);
+      throw error;
+    }
+  }
 
   try {
     /* -------------------------------------------------------------- read-only -------------------------------------------------------------- */
@@ -239,6 +294,7 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
 
     const draft = async (kind: ActionKind, payload: unknown, preview: unknown, target: string) => {
       const denied = need(ACTION_KINDS[kind].permission); if (denied) return denied;
+      const stale = fresh(); if (stale) return stale; // drafting a dangerous action is itself high-risk
       const id = await b.admin.op<string>("draft", kind, payload, preview, actor, now);
       await audit("action.draft", "pending", id, { kind, target, preview });
       return reply(201, { actionId: id, status: "pending", preview, note: "승인 권한을 가진 다른 관리자가 승인해야 실행돼요." });
@@ -246,11 +302,13 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
 
     if (path === "/api/admin/rewards") {
       const denied = need("rewards.write"); if (denied) return denied;
+      const pending = policy(); if (pending) return pending;
       const checked = await b.admin.op<{ ok: true; payload: RewardPayload } | { ok: false; code: string; message: string }>("checkReward", input, now);
       if (!checked.ok) return fail(400, checked.code, checked.message);
       const preview = await b.admin.op<{ recipients: number }>("previewReward", checked.payload, now);
       if (!preview.recipients) return fail(400, "NO_RECIPIENTS", "지급 대상이 없어요.");
-      return draft("reward.campaign", checked.payload, preview, checked.payload.target.type);
+      const payload = { ...checked.payload, policyVersion: b.settings.rewardPolicy! };
+      return draft("reward.campaign", payload, { ...preview, policyVersion: payload.policyVersion }, checked.payload.target.type);
     }
     const rw = /^\/api\/admin\/rewards\/(rw_[a-z0-9]{16,20})\/(cancel|retry)$/.exec(path);
     if (rw) {
@@ -263,6 +321,7 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
     const revoke = /^\/api\/admin\/members\/(u_[A-Za-z0-9_-]{22})\/inbox\/([A-Za-z0-9_:-]{4,80})\/revoke$/.exec(path);
     if (revoke) {
       const denied = need("rewards.write"); if (denied) return denied;
+      const stale = fresh(); if (stale) return stale;
       const ok = (await b.user(revoke[1]).revokeItem?.(revoke[2])) ?? false;
       await audit("reward.revoke", ok ? "ok" : "not-revocable", revoke[1], { item: revoke[2] });
       return ok ? reply(200, { ok: true }) : fail(409, "NOT_REVOCABLE", "이미 받았거나 없는 보상이에요(받은 보상은 원장에서 회수하지 않아요).");
@@ -270,11 +329,13 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
 
     if (path === "/api/admin/codes") {
       const denied = need("codes.write"); if (denied) return denied;
+      const pending = policy(); if (pending) return pending;
+      const stale = fresh(); if (stale) return stale;
       const made = await b.admin.op<{ ok: true; id: string; code: string } | { ok: false; code: string; message: string }>("createCode", input, actor, now);
       if (!made.ok) return fail(400, made.code, made.message);
       await audit("code.create", "draft", made.id);
       const c = await b.admin.op("code", made.id);
-      return draft("code.activate", { codeId: made.id }, c, made.id);
+      return draft("code.activate", { codeId: made.id, policyVersion: b.settings.rewardPolicy }, { ...(c as object), policyVersion: b.settings.rewardPolicy }, made.id);
     }
     const deact = /^\/api\/admin\/codes\/(cd_[a-z0-9]{16})\/deactivate$/.exec(path);
     if (deact) {
@@ -356,12 +417,14 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
     }
     const sgr = /^\/api\/admin\/suggestions\/(sg_[a-z0-9]{16})\/reward$/.exec(path);
     if (sgr) {
+      const denied = need("suggestions.write"); if (denied) return denied;
+      const pending = policy(); if (pending) return pending;
       const t = await b.board.op<{ ok: true; userId: string; title: string } | { ok: false; code: string; message: string }>("rewardTarget", sgr[1]);
       if (!t.ok) return fail(400, t.code, t.message);
       const coins = Number(input.coins ?? 0), gems = Number(input.gems ?? 0);
       // Amounts are not fixed yet (docs §4: set after the economy owner's study); the safety caps still apply.
-      if (!Number.isInteger(coins) || !Number.isInteger(gems) || coins < 0 || gems < 0 || coins + gems === 0 || coins > 10_000 || gems > 300) return fail(400, "INVALID", "감사 보상량을 확인해 주세요.");
-      const payload: SuggestionRewardPayload = { suggestionId: sgr[1], userId: t.userId, coins, gems, reason: cleanText(input.reason, 300) || "제안 채택 감사 보상" };
+      if (!Number.isInteger(coins) || !Number.isInteger(gems) || coins < 0 || gems < 0 || coins + gems === 0 || coins > GRANT_CAPS.suggestion.coins || gems > GRANT_CAPS.suggestion.gems) return fail(400, "INVALID", "감사 보상량을 확인해 주세요.");
+      const payload: SuggestionRewardPayload = { suggestionId: sgr[1], userId: t.userId, coins, gems, reason: cleanText(input.reason, 300) || "제안 채택 감사 보상", policyVersion: b.settings.rewardPolicy! };
       const res = await draft("suggestion.reward", payload, { ...payload, title: t.title }, t.userId);
       if (res.status === 201) await b.board.op("markReward", sgr[1], ((await res.clone().json()) as { actionId: string }).actionId);
       return res;
@@ -376,7 +439,29 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
         const stale = fresh(); if (stale) return stale;
         if (input.confirm !== id) return fail(400, "CONFIRM", "확인을 위해 작업 ID를 정확히 입력해 주세요.");
       }
-      const decided = await b.admin.op<{ ok: true } | { ok: false; code: string; message: string }>("decide", id, actor, verb === "approve" ? "approved" : verb === "reject" ? "rejected" : "cancelled", now, b.settings.selfApprove);
+      // Single-operator policy (D-ADM-6): one's own draft only after the cooling-off delay, with a Google
+      // re-authentication made AFTER the draft, inside the blast-radius limits and the daily budget.
+      let self = false;
+      if (verb === "approve") {
+        const a = await b.admin.op<{ kind: ActionKind; created_by: string; created_at: number; payload: unknown; preview: unknown; status: string } | null>("action", id);
+        if (a && a.status === "pending" && a.created_by === actor) {
+          if (b.settings.approval !== "single-operator") {
+            await audit("action.approve", "refused", id, { code: "SECOND_APPROVER" });
+            return fail(409, "SECOND_APPROVER", "작성자가 아닌 다른 관리자가 승인해야 해요.");
+          }
+          const why = singleOperatorRefusal(a, reauthAt, now);
+          if (why) {
+            await audit("action.approve", "refused", id, { code: why.code });
+            return fail(409, why.code, why.message);
+          }
+          if (!(await b.admin.op<boolean>("useSelfApproval", now, SINGLE_OPERATOR.perDay))) {
+            await audit("action.approve", "refused", id, { code: "SELF_BUDGET" });
+            return fail(429, "SELF_BUDGET", `본인 승인은 하루 ${SINGLE_OPERATOR.perDay}건까지예요.`);
+          }
+          self = true;
+        }
+      }
+      const decided = await b.admin.op<{ ok: true } | { ok: false; code: string; message: string }>("decide", id, actor, verb === "approve" ? "approved" : verb === "reject" ? "rejected" : "cancelled", now, self);
       if (!decided.ok) {
         await audit("action." + verb, "refused", id, { code: decided.code });
         return fail(409, decided.code, decided.message);
@@ -386,7 +471,7 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
         return reply(200, { ok: true, status: verb === "reject" ? "rejected" : "cancelled" });
       }
       const result = await execute(b, id, actor, now);
-      await audit("action.execute", result.ok ? "ok" : "failed", id, result);
+      await audit("action.execute", result.ok ? "ok" : "failed", id, { ...result, approval: self ? "self-approved" : "second-admin" });
       return reply(result.ok ? 200 : 500, result);
     }
     return notFound();
@@ -395,6 +480,20 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
     if (msg === "too large" || error instanceof SyntaxError) return fail(400, "INVALID", "요청 형식이 올바르지 않아요.");
     throw error;
   }
+}
+
+/** Single-operator self-approval rules; null = allowed. */
+export function singleOperatorRefusal(a: { kind: ActionKind; created_at: number; payload: unknown; preview?: unknown }, reauthAt: number | null, now: number): { code: string; message: string } | null {
+  if (now - a.created_at < SINGLE_OPERATOR.cooldownMs) return { code: "COOLDOWN", message: `본인 초안은 작성 ${SINGLE_OPERATOR.cooldownMs / 60_000}분 뒤에 승인할 수 있어요.` };
+  if (reauthAt === null || reauthAt <= a.created_at) return { code: "REAUTH_AFTER_DRAFT", message: "초안을 만든 뒤 Google로 다시 인증해야 본인 승인할 수 있어요." };
+  const p = a.payload as Record<string, any>;
+  if (a.kind === "reward.campaign" && (p.target?.type !== "users" || (p.target.userIds?.length ?? 0) > SINGLE_OPERATOR.rewardMaxRecipients))
+    return { code: "SCOPE", message: `본인 승인 지급은 개별 회원 ${SINGLE_OPERATOR.rewardMaxRecipients}명 이하만 가능해요. 조건·전체 지급은 두 번째 관리자가 필요해요.` };
+  if (a.kind === "sanction.apply" && (p.kind === "restrict" || p.kind === "suspend") && (p.days === null || p.days > SINGLE_OPERATOR.sanctionMaxDays))
+    return { code: "SCOPE", message: `본인 승인 제재는 ${SINGLE_OPERATOR.sanctionMaxDays}일 이하만 가능해요(무기한 정지는 두 번째 관리자).` };
+  if (a.kind === "code.activate" && Number((a.preview as { max_total?: number } | undefined)?.max_total ?? Infinity) > SINGLE_OPERATOR.codeMaxTotal)
+    return { code: "SCOPE", message: `본인 승인 코드는 전체 ${SINGLE_OPERATOR.codeMaxTotal}회 이하만 가능해요.` };
+  return null;
 }
 
 async function liftSanction(b: AdminBackends, id: string, by: string, reason: string, now: number): Promise<{ ok: true } | { ok: false; code: string; message: string }> {
@@ -428,7 +527,7 @@ async function execute(b: AdminBackends, actionId: string, by: string, now: numb
       result = { sanctionId: id, until };
     } else if (a.kind === "suggestion.reward") {
       const p = a.payload as SuggestionRewardPayload;
-      const sent = await b.user(p.userId).deliver?.({ id: "sg:" + p.suggestionId, kind: "suggestion", title: "제안 채택 감사 보상", body: p.reason, coins: p.coins, gems: p.gems, expiresAt: now + 30 * 86_400_000 });
+      const sent = await b.user(p.userId).deliver?.({ id: "sug:" + p.suggestionId, kind: "suggestion", title: "제안 채택 감사 보상", body: p.reason, coins: p.coins, gems: p.gems, expiresAt: now + 30 * 86_400_000 });
       if (sent !== "ok") throw Error("account not found");
       result = { delivered: p.userId };
     } else throw Error("unknown action");
@@ -507,7 +606,7 @@ export async function handleEngagementRoute(request: Request, url: URL, b: Admin
       if (!r.ok) return fail(400, r.code, r.message);
       const granted = await user.redeemGrant?.(r.item).catch(() => null);
       if (!granted?.ok) return fail(503, "RETRY", "보상을 지급하지 못했어요. 같은 코드로 다시 시도해 주세요(중복 지급되지 않아요).");
-      await b.admin.op("confirmRedeem", r.redemptionId, true);
+      await b.admin.op("confirmRedeem", me.userId, r.redemptionId, true);
       await Promise.all([b.count?.("grant.admin.coins", granted.coins), b.count?.("grant.admin.gems", granted.gems), b.count?.("code.redeem")]).catch(() => undefined);
       return reply(200, { ok: true, title: r.item.title, coins: granted.coins, gems: granted.gems });
     }

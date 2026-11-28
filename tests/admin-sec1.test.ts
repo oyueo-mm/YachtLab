@@ -19,12 +19,12 @@ const eng = async (w: ReturnType<typeof world>, path: string, token: string | nu
   const r = await handleEngagementRoute(req(path, token, body), new URL("https://w.example" + path), w.backends(), reply);
   return { status: r!.status, body: (await r!.json()) as Record<string, any> };
 };
-const login = async (w: ReturnType<typeof world>, s: string) => (await route(w, "/api/admin/session", s, {})).body.token as string;
+const login = async (w: ReturnType<typeof world>, s: string) => (await w.adminLogin(s)).token as string;
 const files = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(join(dir, e.name)) : [join(dir, e.name)]));
 
 describe("SEC-1 · server-side roles, read/write separation, blocked member access", () => {
   it("a member session (s1.) is never accepted as an admin credential, on any admin path", async () => {
-    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on" });
+    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "test-policy" });
     const { session } = w.account(U);
     for (const p of ["/api/admin/overview", "/api/admin/members", "/api/admin/audit", "/api/admin/actions"]) expect((await route(w, p, session)).status).toBe(404);
     expect((await route(w, "/api/admin/rewards", session, { title: "x", coins: 1 })).status).toBe(404);
@@ -33,7 +33,7 @@ describe("SEC-1 · server-side roles, read/write separation, blocked member acce
     expect((await route(w, "/api/admin/overview", own)).status).toBe(404);
   });
   it("support can read members and triage reports but cannot draft rewards, codes, sanctions or approve", async () => {
-    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on" });
+    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "test-policy" });
     const t = await login(w, w.account(S).session);
     w.account(U);
     expect((await route(w, "/api/admin/members", t)).status).toBe(200);
@@ -47,7 +47,7 @@ describe("SEC-1 · server-side roles, read/write separation, blocked member acce
 
 describe("SEC-1 · admin session separation and re-authentication", () => {
   it("admin tokens are a distinct a1. credential, expire on idle and absolute age, and approvals need a fresh one", async () => {
-    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on" });
+    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "test-policy" });
     const a = await login(w, w.account(A).session);
     expect(a).toMatch(/^a1\.[A-Za-z0-9_-]{43}$/);
     for (let i = 0; i < 8; i++) {
@@ -76,7 +76,7 @@ describe("SEC-1 · admin session separation and re-authentication", () => {
 
 describe("SEC-1 · every admin write is audited", () => {
   it("each write route leaves an audit row with the actor", async () => {
-    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on" });
+    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "test-policy" });
     const a = await login(w, w.account(A).session);
     const b = await login(w, w.account(B).session);
     const m = w.account(U);
@@ -136,7 +136,7 @@ describe("SEC-1 · stored XSS, input and attachment validation", () => {
 
 describe("SEC-1 · duplicate votes and duplicate adoption rewards", () => {
   it("one vote per account; repeated adoption reward requests and claims grant once", async () => {
-    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on" });
+    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "test-policy" });
     const a = await login(w, w.account(A).session);
     const b = await login(w, w.account(B).session);
     const author = w.account(U);
@@ -149,11 +149,11 @@ describe("SEC-1 · duplicate votes and duplicate adoption rewards", () => {
     expect((await route(w, `/api/admin/suggestions/${post.body.id}/reward`, a, { coins: 50 })).body.error.code).toBe("DUPLICATE");
     await route(w, `/api/admin/actions/${r1.body.actionId}/approve`, b, { confirm: r1.body.actionId });
     // a forced second delivery of the same item (e.g. a retried execution) adds nothing
-    await author.account.deliver({ id: "sg:" + post.body.id, kind: "suggestion", title: "x", body: "", coins: 50, gems: 0, expiresAt: w.clock() + DAY_MS });
+    await author.account.deliver({ id: "sug:" + post.body.id, kind: "suggestion", title: "x", body: "", coins: 50, gems: 0, expiresAt: w.clock() + DAY_MS });
     const box = await eng(w, "/api/me/mailbox", author.session);
     expect(box.body.items.filter((i: any) => i.kind === "suggestion")).toHaveLength(1);
-    await eng(w, `/api/me/mailbox/sg:${post.body.id}/claim`, author.session, {});
-    await eng(w, `/api/me/mailbox/sg:${post.body.id}/claim`, author.session, {});
+    await eng(w, `/api/me/mailbox/sug:${post.body.id}/claim`, author.session, {});
+    await eng(w, `/api/me/mailbox/sug:${post.body.id}/claim`, author.session, {});
     expect(author.account.econ.verify()).toMatchObject({ ok: true, wallet: { coins: 50 } });
   });
 });
@@ -210,5 +210,8 @@ describe("SEC-1 · admin writes stay off by default", () => {
     expect(toml).toMatch(/^ADMIN_APPROVAL = "two-person"$/m);
     expect(toml).toMatch(/^FEEDBACK_BOARD = "off"$/m);
     expect(toml).not.toMatch(/^ADMIN_ACCOUNTS\s*=/m);
+    // re-authentication can never be switched off in production; amounts stay unapproved
+    expect(toml).not.toMatch(/^ADMIN_REAUTH\s*=/m);
+    expect(toml).not.toMatch(/^ADMIN_REWARD_POLICY\s*=/m);
   });
 });

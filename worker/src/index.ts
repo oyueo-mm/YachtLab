@@ -16,6 +16,9 @@ import { validateNickname } from "../../src/identity/nickname";
 import { ABSENT_ACCOUNT, FriendIndexStore, FriendStore, Presence, type FriendSql } from "./friends";
 import { handleFriendRoute, sendInvites, type FriendDeps, type FriendUser, type ResidueMode } from "./friends-api";
 import { CLEANUP_PARKED_CHECK_MS, CleanupQueue, INDEX_TARGET, runCleanup, type CleanupJob } from "./account-cleanup";
+/** ADMIN-1 / FEEDBACK-1 cleanup targets (account ids start with "u_", so these never collide). */
+const ADMIN_TARGET = "@admin";
+const BOARD_TARGET = "@board";
 import { sameText } from "./oidc";
 import { authConfig, handleAccountRoute, sessionUser, type AccountBackends, type GuestApi, type UserApi } from "./accounts-api";
 import type { MatchRecord } from "../../src/identity/records";
@@ -24,7 +27,7 @@ import type { PublicLook } from "../../src/economy/live/catalog";
 import type { MatchKind } from "../../src/economy/live/config";
 import { HubCore, type HubSql, type QueueSeat } from "./hub";
 import { clearStaleReservations, migrateReservations, reserve, type ReservationSql } from "./reservations";
-import { adminSettings } from "./admin/roles";
+import { adminSettings, legacyTokenRoutes } from "./admin/roles";
 import { AdminCore, utcDay, type ActivityReport, type AdminSql, type InboxItem } from "./admin/store";
 import { MemberOps, type MemberSql } from "./admin/member";
 import { handleAdminRoute, handleEngagementRoute, type AdminBackends, type AdminUserApi } from "./admin/api";
@@ -77,6 +80,12 @@ export interface Env extends ConfigVars {
   ADMIN_WRITES?: string;
   /** "self" lets an owner approve their own drafts; default needs a second administrator. */
   ADMIN_APPROVAL?: string;
+  /** ADMIN-1: "google" (default) re-authentication for admin sessions; "off" honoured only for a loopback APP_URL (tests). */
+  ADMIN_REAUTH?: string;
+  /** ADMIN-1: approved reward-amount policy version. Unset = reward/code/adoption-reward drafts refused. */
+  ADMIN_REWARD_POLICY?: string;
+  /** D-ADM-9: legacy ADMIN_TOKEN routes — "metrics,ledger" (default), "metrics", "off". */
+  ADMIN_TOKEN_ROUTES?: string;
   /** "on" opens the suggestion board, reports and appeals to members. Default off. */
   FEEDBACK_BOARD?: string;
   /** Sign-in (all four must be set, as Worker secrets / vars, or sign-in stays off). */
@@ -650,12 +659,26 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   private admin(): { op(name: string, ...args: unknown[]): Promise<unknown> } {
     return this.env.ADMIN.get(this.env.ADMIN.idFromName("admin")) as unknown as { op(name: string, ...args: unknown[]): Promise<unknown> };
   }
-  /** First authenticated request of a UTC day → one activity report to the admin index (fire and forget). */
+  /**
+   * First authenticated request of a KST day queues an activity report; the whole unacknowledged queue
+   * (oldest first, one call, one at a time) goes to the admin index and is removed only on success, so a
+   * failure is retried at a later request (at most once a minute). The index counts each day once.
+   */
+  private activitySending = false;
+  private activityTriedAt = 0;
   private reportActivity() {
     const p = this.store.profile();
     if (!p || !this.env.ADMIN) return;
-    const report = this.member.activity(p, Date.now());
-    if (report) this.ctx.waitUntil(this.admin().op("activity", report satisfies ActivityReport).catch(() => undefined));
+    const fresh = this.member.activity(p, Date.now());
+    if (this.activitySending || (!fresh && Date.now() - this.activityTriedAt < 60_000)) return;
+    const queue = this.member.outbox();
+    if (!queue.length) return;
+    this.activitySending = true;
+    this.activityTriedAt = Date.now();
+    this.ctx.waitUntil(this.admin().op("activityBatch", queue satisfies ActivityReport[])
+      .then(() => this.member.ack(queue.map((r) => r.day)))
+      .catch(() => undefined)
+      .finally(() => (this.activitySending = false)));
   }
   /* ------------------------------------------------------------- ADMIN-1 (admin console RPC) ------------------------------------------------------------- */
   async adminView() {
@@ -792,7 +815,9 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       sql.exec("CREATE TABLE IF NOT EXISTS fr_retired (code TEXT PRIMARY KEY, at INTEGER NOT NULL)");
       if (plan.code) sql.exec("INSERT OR IGNORE INTO fr_retired (code, at) VALUES (?, ?)", plan.code, now);
       this.cleanup.init();
-      if (owner && (plan.code || plan.peers.length)) this.cleanup.enqueue(owner, [INDEX_TARGET, ...plan.peers], plan.code, now);
+      // ADMIN-1/FEEDBACK-1 (D-ADM-8): the admin index and the board are cleanup targets too — same durable,
+      // retried, generation-safe queue as the friend relations (they act only on data from before `now`).
+      if (owner) this.cleanup.enqueue(owner, [...(plan.code || plan.peers.length ? [INDEX_TARGET, ...plan.peers] : []), ADMIN_TARGET, BOARD_TARGET], plan.code, now);
     });
     // Fresh, empty objects over the (re-created) empty tables; presence is forgotten too.
     this.store = new AccountStore(sql as unknown as Sql);
@@ -804,11 +829,6 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     this.presenceState = new Presence();
     this.member = new MemberOps(sql as unknown as MemberSql);
     this.member.init();
-    if (owner) {
-      // ADMIN-1 / FEEDBACK-1: leave the admin index and anonymise board posts (best effort; documented residue)
-      await this.admin().op("deleted", owner, now).catch(() => console.warn("ADMIN_INDEX_FORGET_FAILED"));
-      await (this.env.FEEDBACK.get(this.env.FEEDBACK.idFromName("board")) as unknown as { op(n: string, ...a: unknown[]): Promise<unknown> }).op("forget", owner).catch(() => console.warn("BOARD_FORGET_FAILED"));
-    }
     await this.runCleanup();
     await this.scheduleAlarm();
     return guests;
@@ -816,6 +836,13 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   private async runCleanup() {
     const send = async (job: CleanupJob, userId: string) => {
       if (job.target === INDEX_TARGET) await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).removeCode(userId, job.code);
+      else if (job.target === ADMIN_TARGET || job.target === BOARD_TARGET) {
+        // generation bound: the deletion time of THIS deletion record (a later re-join is never touched)
+        const deletedAt = this.ctx.storage.sql.exec<{ deleted_at: number }>("SELECT deleted_at FROM tomb WHERE id = 1").toArray()[0]?.deleted_at;
+        if (deletedAt === undefined) return; // record already ended: nothing left to bound the cleanup → done
+        if (job.target === ADMIN_TARGET) await this.admin().op("deleted", userId, deletedAt);
+        else await (this.env.FEEDBACK.get(this.env.FEEDBACK.idFromName("board")) as unknown as { op(n: string, ...a: unknown[]): Promise<unknown> }).op("forget", userId, deletedAt);
+      }
       else await (this.env.USERS.get(this.env.USERS.idFromName(job.target)) as unknown as FriendUser).fr("forget", userId, job.code);
     };
     const run = await runCleanup(this.cleanup, send, Date.now);
@@ -975,7 +1002,7 @@ export class GuestLink extends DurableObject<Env> implements GuestApi {
 /* ------------------------------------------------------------- admin (ADMIN-1) ------------------------------------------------------------- */
 
 /** Allowlisted AdminCore methods callable over RPC (one generic method keeps the shell thin). */
-const ADMIN_OPS = new Set(["createSession", "checkSession", "endSession", "endSessionsOf", "audit", "auditLog", "activity", "signup", "deleted", "nicknameChanged", "activityReport", "searchMembers", "draft", "action", "actions", "decide", "finishAction", "checkReward", "previewReward", "scheduleCampaign", "campaigns", "cancelCampaign", "retryFailed", "createCode", "code", "codes", "setCodeStatus", "redemptions", "redeem", "confirmRedeem", "saveNotice", "endNotice", "notices", "createReport", "reports", "report", "updateReport", "checkSanction", "recordSanction", "sanctions", "liftSanction", "createAppeal", "appeals", "answerAppeal"]);
+const ADMIN_OPS = new Set(["createSession", "checkSession", "endSession", "endSessionsOf", "audit", "auditLog", "activity", "activityBatch", "signup", "deleted", "purgeRetention", "createReauth", "consumeReauth", "useSelfApproval", "nicknameChanged", "activityReport", "searchMembers", "draft", "action", "actions", "decide", "finishAction", "checkReward", "previewReward", "scheduleCampaign", "campaigns", "cancelCampaign", "retryFailed", "createCode", "code", "codes", "setCodeStatus", "redemptions", "redeem", "confirmRedeem", "saveNotice", "endNotice", "notices", "createReport", "reports", "report", "updateReport", "checkSanction", "recordSanction", "sanctions", "liftSanction", "createAppeal", "appeals", "answerAppeal"]);
 
 /**
  * ADMIN-1: one object for the service (`idFromName("admin")`). Only the Worker and account objects
@@ -1009,6 +1036,7 @@ export class AdminHub extends DurableObject<Env> {
     await this.core.process(now, async (userId, item) => this.env.USERS.get(this.env.USERS.idFromName(userId)).deliver(item));
     this.core.expireSanctions(now);
     this.core.pruneSessions(now, adminSettings(this.env).absoluteMs);
+    this.core.purgeRetention(now);
     const next = this.core.nextWorkAt();
     // idle: wake every 6 hours for sanction expiry / session pruning; busy: as soon as work is due
     await this.ctx.storage.setAlarm(Math.max(now + 1000, Math.min(next ?? Infinity, now + 6 * 3600_000)));
@@ -1244,6 +1272,8 @@ export default {
       // 2026-11-24 dashboard). Limits by IP (login, exchange, profiles) stay global in the directory.
       limited: (key, perMinute) => (key.startsWith("me:") ? Promise.resolve(isolateLimited(key, perMinute)) : directory.hit(key, perMinute)),
       fetcher: (input, init) => fetch(input, init),
+      // ADMIN-1: Google re-authentication → one-time admin ticket, only for accounts in ADMIN_ACCOUNTS
+      adminReauth: env.ADMIN ? async (userId, cs, authTime) => (adminSettings(env).accounts.has(userId) ? ((await (env.ADMIN.get(env.ADMIN.idFromName("admin")) as unknown as { op(n: string, ...a: unknown[]): Promise<unknown> }).op("createReauth", userId, cs, authTime, Date.now())) as string) : null) : undefined,
       now: Date.now,
     };
     /** Signed-in identity for a seat (an invalid or expired session simply plays as a guest). */
@@ -1333,9 +1363,15 @@ export default {
           if (!env.ADMIN || !auth) return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
           return handleAdminRoute(request, url, { ...engagement(), client: await clientKey(request) }, (status, body) => json(status, body, allowed));
         }
-        if (url.pathname === "/api/admin/metrics" && request.method === "GET") return json(200, { usage: await directory.usage(), hub: await hub().report(Math.min(60, Number(url.searchParams.get("days") ?? 14) || 14)) }, null);
-        if (parts[2] === "ledger" && parts.length === 4 && /^u_[A-Za-z0-9_-]{22}$/.test(parts[3])) return json(200, await env.USERS.get(env.USERS.idFromName(parts[3])).verifyLedger(), null);
-        return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
+        // Legacy shared token (D-ADM-9): read-only allowlist, rate-limited, every use in the admin audit log.
+        // No write and no new route may be served here — modules register console routes instead.
+        const routes = legacyTokenRoutes(env.ADMIN_TOKEN_ROUTES);
+        const route = url.pathname === "/api/admin/metrics" ? "metrics" : parts[2] === "ledger" && parts.length === 4 && /^u_[A-Za-z0-9_-]{22}$/.test(parts[3]) ? "ledger" : null;
+        if (request.method !== "GET" || !route || !routes.has(route)) return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
+        if (await directory.hit("admin-legacy:" + (await clientKey(request)), 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", null);
+        await (env.ADMIN?.get(env.ADMIN.idFromName("admin")) as unknown as { op(n: string, ...a: unknown[]): Promise<unknown> } | undefined)?.op("audit", { at: Date.now(), actor: "token:ADMIN_TOKEN", role: "legacy-token", action: "legacy." + route, target: route === "ledger" ? parts[3] : "", result: "ok", client: await clientKey(request) }).catch(() => console.warn("ADMIN_LEGACY_AUDIT_FAILED"));
+        if (route === "metrics") return json(200, { usage: await directory.usage(), hub: await hub().report(Math.min(60, Number(url.searchParams.get("days") ?? 14) || 14)) }, null);
+        return json(200, await env.USERS.get(env.USERS.idFromName(parts[3])).verifyLedger(), null);
       }
       // Server-verified AI match (Phase 4.5): members only, the room plays the AI seat itself.
       if (url.pathname === "/api/ai/start" && request.method === "POST") {

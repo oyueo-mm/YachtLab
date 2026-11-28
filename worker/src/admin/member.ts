@@ -1,4 +1,4 @@
-import { utcDay, weekOf, monthOf, type ActivityReport, type InboxItem, type SanctionKind } from "./store";
+import { kstDay, weekOf, monthOf, type ActivityReport, type InboxItem, type SanctionKind } from "./store";
 
 /**
  * ADMIN-1 — what ONE account object (`UserStore`) keeps for the admin and engagement features
@@ -22,22 +22,38 @@ export class MemberOps {
   constructor(private readonly sql: MemberSql) {}
   init() {
     this.sql.exec("CREATE TABLE IF NOT EXISTS member_activity (id INTEGER PRIMARY KEY CHECK (id = 1), last_day INTEGER NOT NULL)");
+    // reports not yet acknowledged by the admin index (sent again until acknowledged; at most 14 days)
+    this.sql.exec("CREATE TABLE IF NOT EXISTS activity_outbox (day INTEGER PRIMARY KEY, report TEXT NOT NULL)");
     this.sql.exec("CREATE TABLE IF NOT EXISTS inbox (id TEXT PRIMARY KEY, kind TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, coins INTEGER NOT NULL, gems INTEGER NOT NULL, expires_at INTEGER, at INTEGER NOT NULL, claimed_at INTEGER, revoked INTEGER NOT NULL DEFAULT 0)");
     this.sql.exec("CREATE TABLE IF NOT EXISTS sanctions (id TEXT PRIMARY KEY, kind TEXT NOT NULL, reason TEXT NOT NULL, starts_at INTEGER NOT NULL, until INTEGER, lifted_at INTEGER)");
   }
 
-  /** First call of a UTC day returns the report to send (and stores the day); later calls that day: null. */
+  /**
+   * First call of a KST day queues that day's report (and stores the day); later calls that day: null.
+   * The report stays in the outbox until the admin index acknowledges it (`ack`), so a failed or lost
+   * delivery is sent again; the index counts each (account, day) once, so a repeat is harmless.
+   */
   activity(profile: { userId: string; nickname: string | null; createdAt: number }, now: number): ActivityReport | null {
-    const day = utcDay(now);
+    const day = kstDay(now);
     const last = this.sql.exec<{ last_day: number }>("SELECT last_day FROM member_activity WHERE id = 1").toArray()[0]?.last_day ?? null;
     if (last !== null && last >= day) return null;
-    this.sql.exec("INSERT INTO member_activity (id, last_day) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET last_day = excluded.last_day", day);
-    return {
+    const report: ActivityReport = {
       userId: profile.userId, nickname: profile.nickname, createdAt: profile.createdAt, day,
       firstInWeek: last === null || weekOf(last) !== weekOf(day),
       firstInMonth: last === null || monthOf(last) !== monthOf(day),
       gapDays: last === null ? null : day - last,
     };
+    this.sql.exec("INSERT INTO member_activity (id, last_day) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET last_day = excluded.last_day", day);
+    this.sql.exec("INSERT OR REPLACE INTO activity_outbox (day, report) VALUES (?, ?)", day, JSON.stringify(report));
+    this.sql.exec("DELETE FROM activity_outbox WHERE day < ?", day - 14);
+    return report;
+  }
+  /** Unacknowledged reports, oldest first. */
+  outbox(): ActivityReport[] {
+    return this.sql.exec<{ report: string }>("SELECT report FROM activity_outbox ORDER BY day").toArray().map((r) => JSON.parse(r.report) as ActivityReport);
+  }
+  ack(days: number[]) {
+    for (const d of days) this.sql.exec("DELETE FROM activity_outbox WHERE day = ?", d);
   }
   lastActiveDay(): number | null {
     return this.sql.exec<{ last_day: number }>("SELECT last_day FROM member_activity WHERE id = 1").toArray()[0]?.last_day ?? null;

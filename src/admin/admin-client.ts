@@ -6,7 +6,27 @@ import { authHeader } from "../identity/account-client";
  * checked again on the server (role, permission, expiry). Hiding this screen is not access control.
  */
 const KEY = "yachtlab.admin.v1";
-export type AdminSession = { token: string; role: string; permissions: string[]; writes: boolean; selfApprove: boolean; freshMs: number; at: number };
+export type AdminSession = { token: string; role: string; permissions: string[]; writes: boolean; selfApprove: boolean; approval?: string; reauth?: string; reauthAt?: number | null; rewardPolicy?: string | null; freshMs: number; at: number };
+const REAUTH_STATE = "yachtlab.admin.reauth.state";
+const b64url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const sha256 = async (t: string) => b64url(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t))));
+
+/**
+ * Real re-authentication (D-ADM-1b): leave for Google with prompt=login / max_age=0. The Worker checks
+ * auth_time and returns `#admin-reauth=<one-time ticket>`; only this tab knows the client state.
+ */
+export async function startAdminReauth(server: string) {
+  const state = b64url(crypto.getRandomValues(new Uint8Array(24)));
+  sessionStorage.setItem(REAUTH_STATE, state);
+  location.assign(`${server}/auth/google/start?cs=${await sha256(state)}&purpose=admin`);
+}
+/** On return from Google: the ticket (or error) from the address bar, removed at once. */
+export function takeReauthResult(): { ticket?: string; error?: string } | null {
+  const h = location.hash;
+  if (!h.startsWith("#admin-reauth=") && !h.startsWith("#admin-reauth-error=")) return null;
+  history.replaceState(history.state, "", location.pathname + location.search + "#admin");
+  return h.startsWith("#admin-reauth=") ? { ticket: decodeURIComponent(h.slice("#admin-reauth=".length)) } : { error: h.slice("#admin-reauth-error=".length) };
+}
 
 export function adminSession(): AdminSession | null {
   try {
@@ -30,11 +50,21 @@ export class AdminError extends Error {
   }
 }
 
-export async function adminSignIn(server: string): Promise<AdminSession> {
-  const res = await fetch(server + "/api/admin/session", { method: "POST", headers: { "content-type": "application/json", ...authHeader() }, body: "{}" });
+export async function adminSignIn(server: string, ticket?: string): Promise<AdminSession> {
+  let clientState: string | null = null;
+  if (ticket) {
+    try {
+      clientState = sessionStorage.getItem(REAUTH_STATE);
+      sessionStorage.removeItem(REAUTH_STATE);
+    } catch {
+      /* ignore */
+    }
+  }
+  const payload = ticket && clientState ? JSON.stringify({ reauth: ticket, clientState }) : "{}";
+  const res = await fetch(server + "/api/admin/session", { method: "POST", headers: { "content-type": "application/json", ...authHeader() }, body: payload });
   const body = await res.json().catch(() => null);
   if (!res.ok || !body?.token) throw new AdminError(res.status === 404 ? "NOT_ADMIN" : body?.error?.code ?? "SERVER", res.status === 404 ? "관리자 권한이 있는 계정으로 로그인해 주세요." : body?.error?.message ?? "관리자 로그인에 실패했어요.", res.status);
-  const s: AdminSession = { token: body.token, role: body.role, permissions: body.permissions, writes: body.writes, selfApprove: body.selfApprove, freshMs: body.freshMs, at: Date.now() };
+  const s: AdminSession = { token: body.token, role: body.role, permissions: body.permissions, writes: body.writes, selfApprove: body.selfApprove, approval: body.approval, reauth: body.reauth, reauthAt: body.reauthAt, rewardPolicy: body.rewardPolicy, freshMs: body.freshMs, at: body.reauthAt ?? Date.now() };
   save(s);
   return s;
 }

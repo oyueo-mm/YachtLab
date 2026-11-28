@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { session, signInAvailable, startSignIn } from "../identity/account-client";
-import { AdminError, adminApi, adminSession, adminSignIn, adminSignOut, type AdminSession } from "./admin-client";
+import { AdminError, adminApi, adminSession, adminSignIn, adminSignOut, startAdminReauth, takeReauthResult, type AdminSession } from "./admin-client";
 import "./admin.css";
 
 /**
@@ -38,19 +38,33 @@ export default function AdminConsole({ server }: { server: string | null }) {
   const [error, setError] = useState("");
   const [canSignIn, setCanSignIn] = useState(false);
   useEffect(() => void signInAvailable(server).then(setCanSignIn), [server]);
+  // back from Google re-authentication: exchange the one-time ticket for an admin session
+  useEffect(() => {
+    const r = takeReauthResult();
+    if (!r || !server) return;
+    if (r.error) return void setError(r.error === "denied" ? "관리자 권한이 있는 계정이 아니에요." : r.error === "cancelled" ? "재인증을 취소했어요." : "Google 재인증을 완료하지 못했어요.");
+    adminSignIn(server, r.ticket).then(setAdmin).catch((e) => setError((e as Error).message));
+  }, [server]);
+  const begin = async () => {
+    setError("");
+    try {
+      setAdmin(await adminSignIn(server!));
+    } catch (e) {
+      // production: the server requires a real Google re-authentication first
+      if ((e as AdminError).code === "REAUTH_REQUIRED") await startAdminReauth(server!);
+      else setError((e as Error).message);
+    }
+  };
   if (!server) return <section className="adm-gate"><h1>관리자</h1><p>온라인 서버가 설정되지 않았어요.</p></section>;
   if (!admin) {
     return (
       <section className="adm-gate">
         <h1>YachtLab 관리자</h1>
-        <p>관리자 권한은 서버에 등록된 계정에만 있어요. 일반 회원 로그인 후 관리자 세션을 시작합니다(30분 미사용 또는 4시간 후 만료).</p>
+        <p>관리자 권한은 서버에 등록된 계정에만 있어요. 회원 로그인 후 Google에서 한 번 더 인증해야 관리자 세션이 시작돼요(30분 미사용 또는 4시간 후 만료, 승인 등 고위험 작업은 재인증 10분 이내).</p>
         {!session() ? (
           canSignIn ? <button className="adm-btn primary" onClick={() => void startSignIn(server)}>Google로 로그인</button> : <p>로그인이 아직 설정되지 않았어요.</p>
         ) : (
-          <button className="adm-btn primary" onClick={async () => {
-            setError("");
-            try { setAdmin(await adminSignIn(server)); } catch (e) { setError((e as Error).message); }
-          }}>관리자 세션 시작</button>
+          <button className="adm-btn primary" onClick={() => void begin()}>관리자 세션 시작</button>
         )}
         {error && <p className="adm-error" role="alert">{error}</p>}
       </section>
@@ -58,7 +72,7 @@ export default function AdminConsole({ server }: { server: string | null }) {
   }
   const visible = MENUS.filter((m) => admin.permissions.includes(m.perm) || (m.id === "actions" && admin.permissions.some((p) => p.endsWith(".write"))));
   const groups = [...new Set(visible.map((m) => m.group))];
-  const ctx: Ctx = { server, admin, refreshSession: async () => setAdmin(await adminSignIn(server)), lost: () => setAdmin(null) };
+  const ctx: Ctx = { server, admin, refreshSession: async () => { try { setAdmin(await adminSignIn(server)); } catch (e) { if ((e as AdminError).code === "REAUTH_REQUIRED") await startAdminReauth(server); } }, lost: () => setAdmin(null) };
   return (
     <div className="adm">
       <aside className="adm-side" aria-label="관리 메뉴">
@@ -74,7 +88,8 @@ export default function AdminConsole({ server }: { server: string | null }) {
           ))}
         </nav>
         <div className="adm-side-foot">
-          <span>쓰기 {admin.writes ? "켜짐" : "꺼짐"} · 승인 {admin.selfApprove ? "본인 가능" : "2인"}</span>
+          <span>쓰기 {admin.writes ? "켜짐" : "꺼짐"} · 승인 {admin.approval === "single-operator" ? "단일 운영자 규칙" : "2인"} · 지급 정책 {admin.rewardPolicy ?? "미승인"}</span>
+          <button className="adm-btn" onClick={() => void ctx.refreshSession()}>Google 재인증</button>
           <button className="adm-btn" onClick={async () => { await adminSignOut(server); setAdmin(null); }}>관리자 로그아웃</button>
         </div>
       </aside>
@@ -630,7 +645,7 @@ function Actions({ ctx }: { ctx: Ctx }) {
     <>
       <Head title="승인 대기" note={`작성자가 아닌 승인 권한자가 승인해야 실행돼요${ctx.admin.selfApprove ? "(현재 본인 승인 허용 설정)" : ""}. 승인 전 관리자 로그인은 ${Math.round(ctx.admin.freshMs / 60_000)}분 이내여야 해요.`}>
         <select aria-label="상태" value={status} onChange={(e) => setStatus(e.target.value)}><option value="pending">대기</option><option value="executed">실행됨</option><option value="failed">실패</option><option value="rejected">반려</option><option value="cancelled">취소</option><option value="">전체</option></select>
-        {approver && stale && <button className="adm-btn" onClick={() => void ctx.refreshSession()}>관리자 로그인 갱신</button>}
+        {approver && stale && <button className="adm-btn" onClick={() => void ctx.refreshSession()}>Google 재인증</button>}
       </Head>
       {msg && <p className="adm-note" role="status">{msg}</p>}
       {(data?.actions ?? []).map((a: any) => (
