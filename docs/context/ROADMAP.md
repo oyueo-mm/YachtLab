@@ -1,5 +1,9 @@
 # 연구 로드맵 / 백로그 (실행 가능성 기준)
 
+> **오늘의 요트 비경쟁 전환(D-141):** ✅ 순위 API·기록·화면 제거, 개인 기록·연습·퍼즐·지난 도전 유지. ⏸ DLY-1 E1~E5 경쟁 순위 연구 보류. ⏳ 완료 코인(5~10) 지급액 승인 대기([검토](../economy/DAILY-COMPLETION-REWARD-ANALYSIS.md)). `DAILY` 보류.
+> **소셜 정책(D-142):** ✅ B-26 유지, 차단은 요청·초대·빠른 대전·방 입장 모두 적용, 게스트 한계 기록.
+> **출시 준비:** [출시 계획](../operations/INT-1-RELEASE-PLAN.md) · [Workers Free 분석](../operations/INT-1-WORKERS-FREE.md). 최적화 후보: 방 기록 저장 빈도, 요청별 인증 DO 호출, 하트비트.
+
 > **SEC-1 2차 감사 후속(D-140):**
 > - ✅ P0 4건과 P1 주요 결함을 `integration/int-1`에서 수정했다(감사 기준 `e1487d4`).
 > - ⏳ 상세 보고서가 필요한 Low·의심·Info 분류, DLY-1 일일 랭킹 공정성 결정([연구](./DAILY-FAIRNESS-DLY1.md)), ADM-1 실제 Google 재인증 검증([절차](../admin/ADMIN-1-GOOGLE-REAUTH-VERIFICATION.md))이 남았다.
