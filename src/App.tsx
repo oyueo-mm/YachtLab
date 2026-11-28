@@ -45,6 +45,9 @@ import { aiMatchConfig, finalizeNames, getAiSetup, getLocalSetup, type AiMatchCo
 // Research tools are a separate, lazily loaded chunk (see routes.ts "lab" tier).
 const LabScreen = lazy(() => import("./lab/LabScreen"));
 const ItemsPage = lazy(() => import("./shell/EconomyPages").then((module) => ({ default: module.ItemsPage })));
+const AdminConsole = lazy(() => import("./admin/AdminConsole"));
+const SuggestionsPage = lazy(() => import("./engagement/EngagementPages").then((module) => ({ default: module.SuggestionsPage })));
+const MailboxPage = lazy(() => import("./engagement/EngagementPages").then((module) => ({ default: module.MailboxPage })));
 const QuestsPage = lazy(() => import("./shell/EconomyPages").then((module) => ({ default: module.QuestsPage })));
 
 type LocalConfig = { players: string[]; order: LocalOrder };
@@ -410,6 +413,13 @@ export default function App() {
             achievements={page === "achievements" || (page !== "quests" && suspended?.route === "achievements")} />)}
         </Suspense>
         {page === "friends" && <FriendsPage server={onlineServer} go={navigate} />}
+        {(page === "suggestions" || page === "mailbox" || page === "admin") && (
+          <Suspense fallback={<p className="econ-note" role="status"><BrandMark /> 불러오는 중…</p>}>
+            {page === "suggestions" && <SuggestionsPage server={onlineServer} />}
+            {page === "mailbox" && <MailboxPage server={onlineServer} />}
+            {page === "admin" && <AdminConsole server={onlineServer} />}
+          </Suspense>
+        )}
         {page === "spectate" && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "spectate" && onlineServer && (watchTarget ? <OnlineWatch key={watchTarget.code + watchTarget.key} server={onlineServer} code={watchTarget.code} watchKey={watchTarget.key} onLeave={() => navigate("home")} /> : (
           <p className="online-connecting" role="alert">
