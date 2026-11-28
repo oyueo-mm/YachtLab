@@ -31,6 +31,8 @@ const VIEW = arg("viewport", "desktop");
 const CPU = Number(arg("cpu", 1));
 const ONLY = arg("only", "");
 const OUT = arg("out", "");
+/** FX-1: force a dice material tier (0 full · 1 standard · 2 flat) for the whole run; empty = the app decides. */
+const MAT = arg("mattier", "");
 const BASE = `http://127.0.0.1:${PORT}/YachtLab/`;
 
 export const COMBOS = {
@@ -110,7 +112,8 @@ for (const key of keys) {
       localStorage.setItem("yachtlab.session.v1", "s1." + u + "." + "b".repeat(43));
       localStorage.setItem("yachtlab.own-look.v1", JSON.stringify({ account: u, look: { emotes: [], chats: [], ...l } }));
       localStorage.setItem("yachtlab.settings.v1", JSON.stringify({ muted: true }));
-    }, look);
+      if (l.__mat !== "") sessionStorage.setItem("yachtlab.dice.material", l.__mat);
+    }, { ...look, __mat: MAT });
     const page = await ctx.newPage();
     const cdp = await ctx.newCDPSession(page);
     await cdp.send("Performance.enable");

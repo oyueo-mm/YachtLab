@@ -212,7 +212,21 @@ function noiseFor(audio: BaseAudioContext) {
   }
   return buffer;
 }
-type Graph = { mix: GainNode; sfx: GainNode; buses: Record<SfxBus, GainNode> };
+type Graph = { mix: GainNode; sfx: GainNode; buses: Record<SfxBus, GainNode>; speaker?: BiquadFilterNode[] };
+/**
+ * Dev listening aid (주사위 실험실 only, FX-1): a rough small-phone-speaker curve — little below ~450 Hz,
+ * a presence bump, a soft top roll-off. Not a measurement of any real device; off unless the lab turns it on.
+ */
+let speakerSim = false;
+export const speakerSimulation = () => speakerSim;
+export function setSpeakerSimulation(on: boolean) {
+  speakerSim = on;
+  const f = graph?.speaker;
+  if (!f || !ctx) return;
+  f[0].frequency.setTargetAtTime(on ? 450 : 10, ctx.currentTime, 0.02);
+  f[1].gain.setTargetAtTime(on ? 4 : 0, ctx.currentTime, 0.02);
+  f[2].frequency.setTargetAtTime(on ? 9000 : 22000, ctx.currentTime, 0.02);
+}
 function buildGraph(audio: BaseAudioContext): Graph {
   const limiter = audio.createDynamicsCompressor();
   limiter.threshold.value = -3;
@@ -221,7 +235,19 @@ function buildGraph(audio: BaseAudioContext): Graph {
   limiter.attack.value = 0.001;
   limiter.release.value = 0.1;
   const mix = audio.createGain();
-  mix.connect(limiter).connect(audio.destination);
+  const hp = audio.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = speakerSim ? 450 : 10;
+  hp.Q.value = 0.9;
+  const bump = audio.createBiquadFilter();
+  bump.type = "peaking";
+  bump.frequency.value = 2500;
+  bump.Q.value = 1;
+  bump.gain.value = speakerSim ? 4 : 0;
+  const lp = audio.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = speakerSim ? 9000 : 22000;
+  mix.connect(hp).connect(bump).connect(lp).connect(limiter).connect(audio.destination);
   const sfx = audio.createGain();
   sfx.connect(mix);
   const buses = {} as Record<SfxBus, GainNode>;
@@ -231,7 +257,7 @@ function buildGraph(audio: BaseAudioContext): Graph {
     g.connect(sfx);
     buses[key] = g;
   }
-  return { mix, sfx, buses };
+  return { mix, sfx, buses, speaker: [hp, bump, lp] };
 }
 let graph: Graph | null = null;
 

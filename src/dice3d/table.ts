@@ -8,7 +8,8 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import { studioScene } from "./studio-env";
 import { diceMaterialSpec, liteSpec, motionGlow, stepEnergy, type DiceMaterialSpec } from "./dice-material";
 import { MATERIAL_ORDER, canonicalOrientation, finalValue, playRate, prepareThrow, throwKey, qAxisAngle, qDot, qMul, qSlerp, simulateThrow, topFace, type PreparedThrow, type Quat, type SimResult } from "./physics";
-import { CLASSIC_DICE, alphaTexture, blobTexture, bumpTexture, faceTexture, glowTexture, selfGlowTexture, surfaceTexture, type DiceColors, type Quality } from "./stage";
+import { CLASSIC_DICE, blobTexture, type DiceColors, type Quality } from "./stage";
+import { GLOW_BASE, buildDieMaterials } from "./die-materials";
 
 /**
  * Persistent 3D dice table: a roll tray and a hold shelf below it, drawn on one canvas.
@@ -57,6 +58,41 @@ function setAdaptiveLevel(level: number) {
     sessionStorage.setItem(LEVEL_KEY, String(level));
   } catch {
     /* private mode */
+  }
+}
+/**
+ * Dice material tier (FX-1 performance pass). 0 = full (clearcoat / iridescence / sheen where the item has
+ * them), 1 = standard shading with the same maps and reflections, 2 = flat: no relief map, reflections only
+ * for metal / glass / gems. Starts at 2 on software GL (SwiftShader / llvmpipe: the CPU draws every pixel,
+ * measured +1…+5 ms per frame at tier 0/1), 1 on "성능 우선", else 0; "자동" quality steps it down after slow throws *before* lowering resolution.
+ * Remembered for the browser session. `sessionStorage["yachtlab.dice.material"]` also forces a tier (QA).
+ */
+const MATERIAL_KEY = "yachtlab.dice.material";
+export function storedMaterialTier(): number {
+  try {
+    const v = sessionStorage.getItem(MATERIAL_KEY);
+    const n = v === null ? NaN : Number(v);
+    return Number.isInteger(n) && n >= 0 && n <= 2 ? n : -1;
+  } catch {
+    return -1;
+  }
+}
+function setMaterialTier(n: number) {
+  try {
+    sessionStorage.setItem(MATERIAL_KEY, String(n));
+  } catch {
+    /* private mode */
+  }
+}
+/** True on a CPU rasteriser (where per-pixel shading is the whole cost). */
+export function softwareGL(renderer: THREE.WebGLRenderer): boolean {
+  try {
+    const gl = renderer.getContext();
+    const info = gl.getExtension("WEBGL_debug_renderer_info");
+    const name = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) ?? "");
+    return /swiftshader|llvmpipe|software|basic render/i.test(name);
+  } catch {
+    return false;
   }
 }
 export type { Quat, SimResult };
@@ -126,7 +162,7 @@ export type CelebrateOptions = {
 export const landSoundOf = (id?: string) => diceFx(id)?.sound ?? null;
 
 /** Emission level of glowing pips (they are masked, so this no longer tints the whole die). */
-const GLOW_BASE = 0.55;
+// GLOW_BASE: see die-materials.ts
 
 export class DiceTable {
   readonly canvas: HTMLCanvasElement;
@@ -187,6 +223,9 @@ export class DiceTable {
     this.renderer.setClearColor(0x000000, 0);
     // Faces are always 256 px (cheap: six small textures) with mipmaps and the GPU's anisotropic
     // filtering, so pips stay crisp; relief / roughness maps come from the same seeded painter.
+    const stored = storedMaterialTier();
+    this.software = softwareGL(this.renderer);
+    this.matTier = stored >= 0 ? stored : this.software ? 2 : quality === "3d" ? 1 : 0;
     this.buildMaterials(CLASSIC_DICE);
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0xa8a8a8, 1.45));
     this.light = new THREE.DirectionalLight(0xffffff, 0.95);
@@ -345,8 +384,10 @@ export class DiceTable {
   }
 
   /** Physical layers (clearcoat, iridescence, sheen) only on the high quality and a non-degraded device. */
+  private matTier = 0;
+  private software = false;
   private get physical() {
-    return this.quality === "3d-high" && (!this.options.adaptive || adaptiveLevel() < 2);
+    return this.matTier === 0 && this.quality === "3d-high" && (!this.options.adaptive || adaptiveLevel() < 2);
   }
   /** Studio reflections (built once per table, only when a material needs them). */
   private environment() {
@@ -364,64 +405,26 @@ export class DiceTable {
   private buildMaterials(look: DiceColors) {
     const raw = diceMaterialSpec(look, look.fx);
     const usePhysical = this.physical && (raw.clearcoat > 0 || raw.iridescence > 0 || raw.sheen > 0);
-    const s = this.physical ? raw : liteSpec(raw);
+    const lite = this.physical ? raw : liteSpec(raw);
+    const flat = this.matTier >= 2;
+    const s = flat ? { ...lite, relief: 0, pipDepth: 0, env: lite.metalness > 0 || lite.class === "glass" || lite.class === "gem" ? lite.env : 0 } : lite;
     this.spec = s;
     this.canvas.dataset.material = s.class; // diagnostics (tests, screenshots)
     this.canvas.dataset.physical = String(usePhysical);
+    this.canvas.dataset.materialTier = String(this.matTier);
     const old = this.textures;
-    this.textures = [];
-    const keep = <T extends THREE.Texture>(t: T) => (this.textures.push(t), t);
-    const anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy?.() ?? 4);
-    const env = s.env > 0 ? this.environment() : null;
-    const glowColor = look.glow ?? (s.selfGlow > 0 ? look.accent ?? look.edge : null);
-    this.glowBase = look.glow ? GLOW_BASE + (s.selfGlow ? 0.25 : 0) : s.selfGlow;
+    const built = buildDieMaterials(look, s, {
+      physical: usePhysical,
+      anisotropy: Math.min(8, this.renderer.capabilities.getMaxAnisotropy?.() ?? 4),
+      env: () => this.environment(),
+      flat,
+    });
+    this.textures = built.textures;
+    this.glowBase = built.glowBase;
     this.ambientGlow = this.glowBase;
     this.motionOn = !!look.glow && (look.fxLevel ?? 1) >= 2 && s.motion !== "none";
     this.materials.forEach((m) => m.dispose());
-    this.materials = MATERIAL_ORDER.map((v) => {
-      const m = usePhysical ? new THREE.MeshPhysicalMaterial() : new THREE.MeshStandardMaterial();
-      const map = keep(faceTexture(v, 256, look));
-      map.anisotropy = anisotropy;
-      m.map = map;
-      m.bumpMap = keep(bumpTexture(v, 256, look, s));
-      m.bumpScale = 1.4;
-      const surface = keep(surfaceTexture(v, 128, look, s));
-      m.roughnessMap = surface;
-      m.metalnessMap = surface;
-      m.roughness = 1;
-      m.metalness = 1;
-      if (s.opacity < 1) {
-        m.transparent = true;
-        m.alphaMap = keep(alphaTexture(v, 128, s));
-      }
-      if (env) {
-        m.envMap = env;
-        m.envMapIntensity = s.env;
-      }
-      if (m instanceof THREE.MeshPhysicalMaterial) {
-        m.clearcoat = s.clearcoat;
-        m.clearcoatRoughness = s.clearcoatRoughness;
-        if (s.iridescence) {
-          m.iridescence = s.iridescence;
-          m.iridescenceIOR = 1.3;
-          m.iridescenceThicknessRange = [120, 420];
-        }
-        if (s.sheen) {
-          m.sheen = s.sheen;
-          m.sheenRoughness = 0.55;
-          m.sheenColor.set(s.sheenColor ?? "#ffffff");
-        }
-        if (s.class === "gem") m.ior = 1.77;
-      }
-      if (glowColor) {
-        // Glow lights the pips / rim (and a material's own glowing pattern) through an emission mask;
-        // the body keeps its colour.
-        m.emissiveMap = keep(s.selfGlow > 0 ? selfGlowTexture(v, 128, look, !!look.glow) : glowTexture(v, 128, look));
-        m.emissive.set(glowColor);
-        m.emissiveIntensity = this.glowBase;
-      }
-      return m;
-    });
+    this.materials = built.materials;
     for (const [id, mats] of this.dieMaterials) {
       mats.forEach((m) => m.dispose());
       const fresh = this.materials.map((m) => m.clone());
@@ -577,6 +580,14 @@ export class DiceTable {
     this.slowThrows = p95 > 22 ? this.slowThrows + 1 : 0;
     if (this.slowThrows < 2) return;
     this.slowThrows = 0;
+    // Shading first (what costs per pixel), resolution after: the dice stay sharp on most devices.
+    if (this.matTier < 2) {
+      this.matTier++;
+      setMaterialTier(this.matTier);
+      this.buildMaterials(this.colors);
+      this.requestRender();
+      return;
+    }
     const level = Math.min(2, adaptiveLevel() + 1);
     if (level === adaptiveLevel()) return;
     setAdaptiveLevel(level);
