@@ -130,6 +130,10 @@ export interface Env extends ConfigVars {
   ADMIN_TOKEN_ROUTES?: string;
   /** "on" opens the suggestion board, reports and appeals to members. Default off. */
   FEEDBACK_BOARD?: string;
+  /** INT-1: "on" shows the member mailbox (admin messages) entry. Default off. */
+  MAILBOX?: string;
+  /** INT-1: "on" shows public important notices in the shell. Default off. */
+  NOTICES?: string;
   /** Sign-in (all four must be set, as Worker secrets / vars, or sign-in stays off). */
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
@@ -1727,7 +1731,9 @@ export default {
       }
       // What this server offers (the page hides what is not available).
       if (url.pathname === "/api/features" && request.method === "GET")
-        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, createSettings: true, defaultTurnTimeoutMs: config.turnTimeoutMs, backgroundMatch: true, activity: true, friendPublicSpectate: true, lobbyWatch: true, social: !!auth, serverAi: !!auth && env.SERVER_AI !== "off", economy: !!auth && env.ECONOMY === "on", daily: dailyOn }, allowed, "public, max-age=60");
+        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, createSettings: true, defaultTurnTimeoutMs: config.turnTimeoutMs, backgroundMatch: true, activity: true, friendPublicSpectate: true, lobbyWatch: true, social: !!auth, serverAi: !!auth && env.SERVER_AI !== "off", economy: !!auth && env.ECONOMY === "on", daily: dailyOn,
+          // INT-1 entry flags (src/shell/entries.ts): every member feature is hidden unless its own variable is "on".
+          retention: !!auth && env.ECONOMY === "on" && env.RETENTION === "on", feedback: !!auth && env.FEEDBACK_BOARD === "on", mailbox: !!auth && env.MAILBOX === "on", notices: env.NOTICES === "on" }, allowed, "public, max-age=60");
       if (url.pathname === "/api/activity" && request.method === "GET") {
         if (isolateLimited("activity:" + (await clientKey(request)), 15)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
         // PR118-02: one hub call (the hub caches the directory lookup), and this isolate reuses the

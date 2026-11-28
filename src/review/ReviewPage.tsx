@@ -451,16 +451,21 @@ function Moments({ match, report, values, seat, unit, change }: {
     const action = reviewed.get(index);
     const { before, action: choice } = match.steps[index];
     const suggestion = action?.evaluation.state === "assessed" ? action.evaluation.recommended : undefined;
-    return <li key={index}><button type="button" onClick={() => change(index)}>
+    const differs = suggestion && choiceKey(suggestion, before) !== choiceKey(choice, before);
+    // UI-1: the actual choice and the AI's recommendation are separate labelled lines (no inline arrow that wraps).
+    return <li key={index}><button type="button" className="review-moment-row" onClick={() => change(index)}>
       <GradeMark action={action} />
-      <span><b>{before.round}R</b> {choiceLabel(choice, before)}{suggestion && choiceKey(suggestion, before) !== choiceKey(choice, before) && <small> → 추천 {choiceLabel(suggestion, before)}</small>}</span>
+      <span className="review-moment-text">
+        <span className="review-moment-line"><b>{before.round}R</b> <span className="review-moment-tag mine">내 선택</span> {choiceLabel(choice, before)}</span>
+        {differs && <span className="review-moment-line suggest"><span className="review-moment-tag ai">AI 추천</span> {choiceLabel(suggestion, before)}</span>}
+      </span>
       <span className="review-row-meta">{detail}</span>
     </button></li>;
   };
   const luckRow = ({ index, round, roll }: { index: number | null; round: number; roll: ReviewedRoll }, i: number) =>
-    <li key={i}><button type="button" onClick={() => jump(index, round)}>
+    <li key={i}><button type="button" className="review-moment-row luck" onClick={() => jump(index, round)}>
       <span className="review-dice-line small">{roll.dice.map((value, d) => <DieIcon key={d} value={value} />)}</span>
-      <span><b>{round}R</b> {roll.kind === "first" ? "첫 굴림" : "재굴림"}{roll.exactness === "estimate" && <b className="review-flag estimate">추정</b>}</span>
+      <span className="review-moment-text"><span className="review-moment-line"><b>{round}R</b> {roll.kind === "first" ? "첫 굴림" : "재굴림"}{roll.exactness === "estimate" && <b className="review-flag estimate">추정</b>}</span></span>
       <span className={"review-row-meta " + (roll.swing > 0 ? "luck-plus" : "luck-minus")}>{signed(roll.swing)}{unit}</span>
     </button></li>;
   const group = (title: string, className: string, rows: ReactNode[], empty: string) =>

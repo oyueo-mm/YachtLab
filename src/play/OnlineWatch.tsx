@@ -2,7 +2,7 @@ import { useSettings } from "../settings";
 import { BonusMoments } from "../bonus-moment";
 import { BrandMark } from "../ui/BrandLoading";
 import { useEffect, useRef, useState } from "react";
-import { Eye, Home, Trophy, WifiOff } from "lucide-react";
+import { Eye, Home, WifiOff } from "lucide-react";
 import { names, type Game } from "../engine";
 import { DiceArea } from "../DiceArea";
 import { Scoreboard } from "../Scoreboard";
@@ -17,6 +17,9 @@ import { OnlineStandings } from "./OnlineMulti";
 import { MultiScoreboard } from "../MultiScoreboard";
 import type { MultiGame } from "../multi-engine";
 import type { PublicLook } from "../economy/live/catalog";
+import type { OnlineEvent } from "../online/protocol";
+import { MatchResultPanel } from "../match-result/MatchResultPanel";
+import { fromOnline as resultFromOnline } from "../match-result/adapters";
 
 const ROW = [0, 1, 2, 3, 4];
 const clock = (ms: number) => {
@@ -45,6 +48,8 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
   /** Multi-player view: whose detailed score sheet is open (null = the leader / current player). */
   const [picked, setPicked] = useState<string | null>(null);
   const viewRef = useRef<PlayerView | null>(null);
+  /** Public event log of the current match (for the result panel: forfeits, scoring order, duration). */
+  const events = useRef(new Map<number, OnlineEvent>());
   const lastDice = useRef<number[]>([1, 2, 3, 4, 5]);
   const chat = useTableChat(null);
   chat.levelRef.current = (from, id) => looks[from]?.emotes.find((x) => x.id === id)?.lv ?? 1;
@@ -60,6 +65,8 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
       onView(next, live, hold) {
         const prev = viewRef.current;
         if (prev && prev.matchId !== next.matchId) live = false;
+        if (prev?.matchId !== next.matchId) events.current.clear();
+        for (const event of next.events) events.current.set(event.seq, event);
         let rolled = false;
         const nameOf = (id: string) => next.players.find((p) => p.playerId === id)?.name ?? "";
         if (live && prev)
@@ -157,8 +164,16 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
   };
   const labels = players.map((p) => p.name) as [string, string];
   const remaining = deadline !== null && view.status === "playing" ? deadline - now : null;
-  const winner = players.find((p) => p.playerId === view.winners[0]);
   const nameMap = Object.fromEntries(players.map((player) => [player.playerId, player.name]));
+  // UI-1: spectators get the shared A3 panel in observer mode — the whole match's result only: no own
+  // win/loss, no rewards, no participants' records, no rematch/review/share (players' actions).
+  const spectatorResult = view.status === "finished" ? (
+    <MatchResultPanel key={view.matchId} className="online-result watch-result" sound="off"
+      input={resultFromOnline(view, [...events.current.values()], null, { spectator: true })}
+      actions={{ onHome: leave, homeLabel: "관전 종료" }}>
+      {series && series.games > 1 && <p className="online-series">이 방에서 {series.games}경기째예요. 재대결이 시작되면 이어서 볼 수 있어요.</p>}
+    </MatchResultPanel>
+  ) : null;
 
   if (players.length > 2 || view.mode === "simultaneous") {
     const simultaneous = view.mode === "simultaneous";
@@ -168,7 +183,6 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
     const sheet: MultiGame = { dice: game.dice, order: ROW, cards: players.map((p) => p.card), player: focusIndex, round: view.round || 12, rolls, done: finished, winners: [], seed: 0, rng: [], actions: view.version };
     const recorded = simultaneous ? players.filter((p) => p.status === "active" && !view.progress?.[p.playerId]).length : 0;
     const activeCount = players.filter((p) => p.status === "active").length;
-    const top = view.standings?.filter((x) => x.rank === 1).map((x) => players.find((p) => p.playerId === x.playerId)?.name ?? "") ?? [];
     return (
       <div className="game-grid online-game online-watch online-multi watch-multi">
         <div className="game-left">
@@ -211,17 +225,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
             ) : (
               <DiceArea state={game} colors={diceLookOf(stage.look, stage.showFx)} material={diceMaterialOf(stage.look)} interactive={false} animate rollEvent={rollEvent} onToggle={() => {}} holdOrder={rolls > 0 ? keep : []} />
             )}
-            {finished && (
-              <div className="game-result" role="status">
-                <Trophy size={25} />
-                <h2>{top.length > 1 ? `공동 1위 · ${top.join(", ")}` : `${top[0] ?? ""} 님 1위`}</h2>
-                <div className="game-result-actions">
-                  <button className="secondary" onClick={leave}>
-                    <Home size={15} /> 관전 종료
-                  </button>
-                </div>
-              </div>
-            )}
+            {finished && spectatorResult}
           </section>
           <TableFeed chat={chat} names={nameMap} looks={looks} me={null} avatars />
           {feedback && (
@@ -294,21 +298,7 @@ export default function OnlineWatch({ server, code, watchKey, onLeave }: { serve
               {remaining !== null && <span className="turn-timer"> · 남은 시간 {clock(remaining)}</span>}
             </p>
           </div>
-          {finished && (
-            <div className="game-result" role="status">
-              <Trophy size={25} />
-              <h2>{view.winners.length !== 1 ? "무승부" : `${winner?.name ?? ""} 님 승리`}</h2>
-              <p className="online-final">
-                {players[0]?.total ?? 0} : {players[1]?.total ?? 0}
-              </p>
-              {series && series.games > 1 && <p className="online-series">이 방에서 {series.games}경기째예요. 재대결이 시작되면 이어서 볼 수 있어요.</p>}
-              <div className="game-result-actions">
-                <button className="secondary" onClick={leave}>
-                  <Home size={15} /> 관전 종료
-                </button>
-              </div>
-            </div>
-          )}
+          {finished && spectatorResult}
         </section>
         {feedback && (
           <p className="game-feedback" role="status">

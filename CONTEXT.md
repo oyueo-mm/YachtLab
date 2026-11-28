@@ -16,6 +16,8 @@
 > **관리자 페이지·사용자 제안·운영 보상(ADMIN-1/FEEDBACK-1, 2026-11-28)** → [ADMIN-FEEDBACK](docs/admin/ADMIN-FEEDBACK.md) (D-ADM-1~5). 쓰기·게시판 기본 꺼짐, SEC-1 검증 전 활성 금지.
 
 > **오늘의 요트·오늘의 전략 퍼즐·일일 랭킹(LIVE-1, 운영 비공개)** → [DAILY-LIVE-1](docs/context/DAILY-LIVE-1.md) (D-LIVE1-1~D-LIVE1-6).
+
+> **제품 방향·백로그·병렬 트랙·아이디어 보관(2026-11-28)** → [PRODUCT-PLAN](docs/context/PRODUCT-PLAN.md) · [PRODUCT-BACKLOG](docs/context/PRODUCT-BACKLOG.md) · [PARALLEL-PLAN](docs/context/PARALLEL-PLAN.md) · [IDEAS](docs/context/IDEAS.md). 게임 UI/UX 품질(UI-1): [UI-1 기록](docs/context/UI-1-GAME-UX-2026-11-28.md) (UI1-D1, 임시).
 >
 > **온라인 요트다이스 제품 개편** → [브랜드, 메뉴, 검색 및 배포 인수인계](docs/context/ONLINE-YACHT-PRODUCT.md).
 >

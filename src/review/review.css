@@ -248,3 +248,20 @@
   .review-timeline button { grid-template-columns: minmax(0, auto) 28px minmax(0, 1fr) auto; gap: 4px; padding-inline: 4px; }
   .review-who { max-width: 5.5em; }
 }
+
+/* UI-1 key-scene cards: Korean text breaks at words only (no one-letter columns), luck dice get their own
+   line, the value never wraps, the actual choice and the AI recommendation are labelled lines. */
+.review-moment-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 14px; }
+.review-moment button.review-moment-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; min-height: 52px; padding: 8px 12px; text-align: left; }
+.review-moment button.review-moment-row > span:nth-child(2) { overflow-wrap: normal; }
+.review-moment-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; word-break: keep-all; overflow-wrap: break-word; line-height: 1.35; }
+.review-moment-line { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; }
+.review-moment-line.suggest { color: var(--muted); font-size: 12.5px; }
+.review-moment-tag { flex: none; padding: 1px 6px; border-radius: 6px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+.review-moment-tag.mine { background: #f2efee; color: #4a4442; }
+.review-moment-tag.ai { background: #eaf2fd; color: #1d5fa8; }
+.review-moment .review-row-meta { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700; }
+.review-moment button.review-moment-row.luck { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "dice meta" "text text"; }
+.review-moment button.review-moment-row.luck > .review-dice-line { grid-area: dice; }
+.review-moment button.review-moment-row.luck > .review-moment-text { grid-area: text; }
+.review-moment button.review-moment-row.luck > .review-row-meta { grid-area: meta; }

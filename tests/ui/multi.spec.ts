@@ -78,7 +78,8 @@ test("4인전: 48턴 완주, 공동 우승 가능 및 완성된 기보", async (
 test("9인전: 현재 점수판, 전체 순위, 가로 스크롤 점수표", async ({ page }) => {
   await startLocal(page, { count: 9 });
   await expect(page.locator(".multi-standing-row")).toHaveCount(9);
-  await expect(page.locator(".multi-scoreboard thead th")).toHaveCount(2);
+  // UI-1: every column by default (pinned current player + horizontal scroll)
+  await expect(page.locator(".multi-scores .multi-scoreboard thead th")).toHaveCount(10);
   await page.getByRole("button", { name: "주사위 굴리기" }).click();
   await scoreCategory(page);
   await expect(page.locator(".turn-indicator")).toContainText("플레이어 2의 차례");
@@ -92,11 +93,12 @@ test("9인전: 현재 점수판, 전체 순위, 가로 스크롤 점수표", asy
     await expect(sheet.locator('[data-category="aces"] .empty-score')).toHaveCount(1);
     await page.getByRole("button", { name: "점수판 닫기" }).click();
   } else {
-    await page.getByRole("button", { name: "전체 점수표" }).click();
     await expect(page.locator(".multi-scoreboard thead th")).toHaveCount(10);
     await expect(page.locator(".multi-scoreboard .fixed-score")).toHaveCount(1);
-    await page.getByRole("button", { name: "내 점수판" }).click();
+    await page.getByRole("button", { name: "현재 차례만" }).click();
     await expect(page.locator(".multi-scoreboard thead th")).toHaveCount(2);
+    await page.getByRole("button", { name: "전체 점수표" }).click();
+    await expect(page.locator(".multi-scoreboard thead th")).toHaveCount(10);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

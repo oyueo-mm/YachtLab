@@ -5,15 +5,18 @@ import { MatchRewardSummary } from "../shell/MatchRewards";
 import { useAccountRefreshAfterMatch } from "../match-result/account-refresh";
 import { ZeroScoreToast } from "../match-result/ZeroScoreToast";
 import { useZeroScoreNotice } from "../match-result/useZeroScore";
-import { MatchResult } from "../ui/MatchResult";
+import { MatchResultPanel } from "../match-result/MatchResultPanel";
+import { fromOnline as resultFromOnline } from "../match-result/adapters";
+import { ActivityVisible } from "../shell/activity-visible";
+import { ReviewUnavailable } from "../match-result/ReviewUnavailable";
 import { ShareResultButton } from "../ui/ShareResult";
 import ReviewLauncher from "../review/ReviewLauncher";
 import { rememberOnlineReview } from "../review/online-history";
 import { fromOnline } from "../review/sources";
 import type { OnlineEvent } from "../online/protocol";
 import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./Tutorial";
-import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { beatDeviceScore, behindAfterNine, nearYacht, ScoreTotal } from "../ui/GameMoments";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Crown, Dices, Flag, LogOut, Play, RotateCcw, Share2, UserRound, Wifi, WifiOff, X } from "lucide-react";
 import { names, type Category, type Game } from "../engine";
 import { useGameShortcuts } from "../ui/shortcuts";
@@ -423,7 +426,6 @@ export default function OnlineGame({ server, code, quickIntro = false, onEntered
   // The winner's special effect (presentation only). Others' effects follow the "상대 아이템 효과" setting.
   const winnerLook = finished && winners.length === 1 ? looks[winners[0]] : undefined;
   const winnerFxItem = winnerLook && winnerLook.fx !== "fx.none" && (winners[0] === me?.playerId || settings.opponentFx) ? winnerLook : undefined;
-  const winnerFx = winnerFxItem ? ` fx-confetti fx-lv${winnerFxItem.fxLv}` : "";
   const winnerFxLook = winnerFxItem ? itemById(winnerFxItem.fx)?.look.fx : undefined;
   const gesture = useThrowGesture(canRoll, roll);
   const keys = useGameShortcuts({
@@ -446,6 +448,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onEntered
   // H-A3-1: after a seated player's match ends, re-read the account (wallet, quests, records) once the server
   // receipt settles, so a rematch in the same room shows the server's balance without going home.
   useAccountRefreshAfterMatch(server, view?.matchId ?? null, finished && !!me);
+  const screenVisible = useContext(ActivityVisible);
   // A3 0-point notice: only my own seat in a 1:1 match; reconnect/resync catch-up is ignored (syncKey).
   const [zeroNotice, clearZero] = useZeroScoreNotice(players.length === 2 ? game.cards : [], (seat) => (me && seat === meIndex ? {} : null), syncKey);
 
@@ -649,7 +652,11 @@ export default function OnlineGame({ server, code, quickIntro = false, onEntered
           }
           status={status}
           review={reviewButton}
-          reward={finished && <MatchRewardSummary key={view.matchId} server={server} matchId={view.matchId} />}
+          reward={finished && me && <MatchRewardSummary key={view.matchId} server={server} matchId={view.matchId} />}
+          result={finished ? resultFromOnline(view, [...reviewEvents.current.values()], me?.playerId ?? null) : undefined}
+          visible={screenVisible}
+          effect={winnerFxLook && winnerFxItem ? <FxBurst fx={winnerFxLook} level={winnerFxItem.fxLv} seed={view.matchId} /> : undefined}
+          effectSound={!!winnerFxItem && winnerFxItem.fxLv >= 3}
           tools={toolGroups}
           banner={banner}
           dice={game.dice}
@@ -762,30 +769,35 @@ export default function OnlineGame({ server, code, quickIntro = false, onEntered
               <QuickPicks values={game.dice.map((d) => d.value)} card={players[meIndex]?.card ?? {}} rolls={rolls} canScore={can} onScore={record} />
             </div>
             {finished && (
-              <MatchResult key={view.matchId} className={"online-result" + winnerFx} waiting={!!celebration || !!yachtFx}
-                title={!me ? "경기 종료" : outcome === "draw" ? "무승부" : outcome === "win" ? "승리" : "패배"}
+              // UI-1: the online 1:1 result uses the shared A3 result panel (same layout as AI / local / solo).
+              // Rewards stay with MatchRewardSummary (server receipt only); nothing is shown before it settles.
+              <MatchResultPanel key={view.matchId} className="online-result" waiting={!!celebration || !!yachtFx} visible={screenVisible}
                 invitation={!!rematch?.requests.some((id) => id !== me?.playerId)}
-                actions={<>
-                  {reviewButton}
-                  {me && opponent && <ShareResultButton facts={{
+                // No seat (SOC-1 #143 lets room members watch a match): the observer view — no own result, rewards or actions.
+                input={resultFromOnline(view, [...reviewEvents.current.values()], me?.playerId ?? null, { spectator: !me })}
+                sound={me ? "accent" : "off"}
+                effect={winnerFxLook && winnerFxItem ? <FxBurst fx={winnerFxLook} level={winnerFxItem.fxLv} seed={view.matchId} /> : undefined}
+                effectSound={!!winnerFxItem && winnerFxItem.fxLv >= 3}
+                actions={!me ? { onHome: leaveFinishedMatch, homeLabel: "나가기" } : {
+                  rematchSlot: <RematchControls rematch={rematch} me={me?.playerId ?? ""} opponentName={opponent?.name ?? "상대"} onOp={(op) => conn.current?.rematch(op)} />,
+                  reviewSlot: reviewButton ?? <ReviewUnavailable />,
+                  shareSlot: me && opponent ? <ShareResultButton facts={{
                     outcome: outcome ?? "draw",
                     me: { name: players[meIndex].name, total: players[meIndex].total, yachts: players[meIndex].card.yacht === 50 ? 1 : 0 },
                     opponent: { name: opponent.name, total: opponent.total, yachts: opponent.card.yacht === 50 ? 1 : 0 },
                     kind: aiSeat ? "온라인 · 서버 AI 대전" : "온라인 대전",
-                  }} />}
-                  <RematchControls rematch={rematch} me={me?.playerId ?? ""} opponentName={opponent?.name ?? "상대"} onOp={(op) => conn.current?.rematch(op)} />
-                  <button className="secondary" onClick={leaveFinishedMatch}>나가기</button>
-                </>}>
-                {winnerFxLook && winnerFxItem && <FxBurst fx={winnerFxLook} level={winnerFxItem.fxLv} seed={view.matchId} />}
-                <p className="online-final">{players[meIndex]?.total ?? 0} : {opponent?.total ?? 0}</p>
+                  }} /> : undefined,
+                  onHome: leaveFinishedMatch,
+                  homeLabel: "나가기",
+                }}>
+                <p className="online-final" aria-label="최종 점수 (나 : 상대)">{players[meIndex]?.total ?? 0} : {opponent?.total ?? 0}</p>
                 {series && series.games > 1 && me && opponent && (
                   <p className="online-series">
                     이 방 전적 {series.wins[me.playerId] ?? 0}승 {series.wins[opponent.playerId] ?? 0}패{series.draws ? ` ${series.draws}무` : ""}
                   </p>
                 )}
-                <MatchMilestones {...milestones} />
-                <MatchRewardSummary key={view.matchId} server={server} matchId={view.matchId} />
-              </MatchResult>
+                {me && <MatchRewardSummary key={view.matchId} server={server} matchId={view.matchId} />}
+              </MatchResultPanel>
             )}
           </section>
           <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : rolls} canScore={can} yacht={yachtReady} />

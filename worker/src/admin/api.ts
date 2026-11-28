@@ -40,6 +40,8 @@ export interface AdminUserApi {
   claim?(id: string): Promise<{ ok: true; coins: number; gems: number; snapshot?: unknown } | { ok: false; code: string; message: string }>;
   redeemGrant?(item: InboxItem): Promise<{ ok: true; coins: number; gems: number } | { ok: false; code: string; message: string }>;
   mySanctions?(): Promise<unknown[]>;
+  /** C5 reward page view (GET /api/me/rewards shape) — the reply of POST /api/me/rewards/redeem. */
+  rewards?(): Promise<{ ok: true } & Record<string, unknown> | { ok: false; code: string; message: string }>;
 }
 /**
  * LIVE-1 and later modules add admin routes HERE instead of using ADMIN_TOKEN (D-ADM-9): the router does
@@ -615,6 +617,15 @@ export async function handleEngagementRoute(request: Request, url: URL, b: Admin
       }
       await b.admin.op("confirmRedeem", me.userId, r.redemptionId, true);
       await Promise.all([b.count?.("grant.admin.coins", granted.coins), b.count?.("grant.admin.gems", granted.gems), b.count?.("code.redeem")]).catch(() => undefined);
+      if (path === "/api/me/rewards/redeem") {
+        // C5 reward page contract: the refreshed RewardsView plus what this code just paid (`granted`).
+        const view = await user.rewards?.().catch(() => null);
+        const paid = { txId: r.redemptionId, source: "redeem", coins: granted.coins, gems: granted.gems, items: [], label: r.item.title, status: "claimed", createdAt: now, expiresAt: null };
+        if (view?.ok) {
+          const { ok: _ok, ...rest } = view;
+          return reply(200, { ...rest, granted: [paid] });
+        }
+      }
       return reply(200, { ok: true, title: r.item.title, coins: granted.coins, gems: granted.gems });
     }
 

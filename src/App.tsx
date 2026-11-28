@@ -15,6 +15,7 @@ import OnlineEntry from "./play/OnlineEntry";
 import { useBackgroundMatch } from "./online/useBackgroundMatch";
 import { countdownFor } from "./online/match-flow";
 import { MatchPopup } from "./play/MatchPopup";
+import { ImportantNotice } from "./shell/ImportantNotice";
 import { ActivityVisible } from "./shell/activity-visible";
 import OnlineGame from "./play/OnlineGame";
 import OnlineWatch from "./play/OnlineWatch";
@@ -341,6 +342,8 @@ export default function App() {
             </button>
           </p>
         )}
+        {/* UI-1 §11: ADMIN-1 important notice (flag features.notices), never during a game. */}
+        {(shell === "lobby" || shell === "page") && page !== "tutorial" && <ImportantNotice server={onlineServer} />}
         <MatchPopup match={match} onAi={() => navigate("play-setup")} onRoom={(code) => enterRoom(code)} offerAfterMs={30_000} practicePaused={inProgress.current && preserve(page)} />
         {suspended && page !== "online-room" && <button type="button" className="secondary" onClick={restoreActivity}>이전 활동으로 돌아가기</button>}
         <InstallBanner active={page === "home"} />
@@ -350,7 +353,7 @@ export default function App() {
           pending={noticesFor(pendingRewards, session())}
           consume={(ids) => setPendingRewards((list) => dropNotices(list, ids))}
         />}
-        {page === "home" && <Lobby navigate={navigate} />}
+        {page === "home" && <Lobby navigate={navigate} server={onlineServer} signedIn={profile.signedIn} />}
         {page === "tutorial" && <Tutorial onExit={() => {
           if (tutorialDestination.current) enter(tutorialDestination.current);
           else go("home");

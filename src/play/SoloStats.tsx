@@ -66,7 +66,8 @@ export function SoloStatsPanel({ stats, compact = false, syncNote }: { stats: So
         </>
       )}
       {syncNote && <p className="solo-sync-note">{syncNote}</p>}
-      <p className="solo-trust">이 기기에서 기록한 개인 기록이에요. 공식 랭킹·보상에는 쓰지 않아요.</p>
+      {/* UI-1: with no games yet the empty line and the storage note already say enough */}
+      {stats.plays > 0 && <p className="solo-trust">이 기기에서 기록한 개인 기록이에요. 공식 랭킹·보상에는 쓰지 않아요.</p>}
     </section>
   );
 }

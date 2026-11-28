@@ -192,3 +192,38 @@ describe("INT-1 · suspended accounts cannot use daily content", () => {
     expect(fn).toMatch(/standing\(now\)\.suspended/);
   });
 });
+
+describe("INT-1 · one reward page, one redeem form, entry flags off by default", () => {
+  it("POST /api/me/rewards/redeem answers in the C5 RewardsView shape with `granted` (the ADMIN route keeps its own shape)", async () => {
+    const w = world({ ADMIN_ACCOUNTS: ADMINS, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "policy-1" });
+    const a = await login(w, w.account(A).session);
+    const b = await login(w, w.account(B).session);
+    const m = w.account(U);
+    (m.account as unknown as { rewards: () => Promise<unknown> }).rewards = async () => ({ ok: true, status: { enabled: true }, inbox: [], history: [], redeem: true, wallet: { coins: 1, gems: 0 } });
+    for (const code of ["VIEW2026", "VIEW2027"]) {
+      const c = await route(w, "/api/admin/codes", a, { code, title: "쿠폰", coins: 20, endsAt: w.clock() + DAY_MS, maxTotal: 10 });
+      await route(w, `/api/admin/actions/${c.body.actionId}/approve`, b, { confirm: c.body.actionId });
+    }
+    const c5 = await eng(w, "/api/me/rewards/redeem", m.session, { code: "VIEW2026" });
+    expect(c5.status).toBe(200);
+    expect(c5.body).toMatchObject({ redeem: true, wallet: { coins: 1 }, granted: [{ coins: 20, gems: 0, label: "쿠폰" }] });
+    expect(c5.body.ok).toBeUndefined();
+    const adm = await eng(w, "/api/me/redeem", m.session, { code: "VIEW2027" });
+    expect(adm.body).toMatchObject({ ok: true, coins: 20, title: "쿠폰" });
+    expect(gLedger(w, m)).toHaveLength(2);
+  });
+
+  it("the mailbox page has no claim button or coupon form; /api/features reports every entry flag from its own variable", () => {
+    const page = readFileSync("src/engagement/EngagementPages.tsx", "utf8");
+    expect(page).not.toMatch(/mailbox\/\$\{[^}]+\}\/claim/);
+    expect(page).not.toContain("/api/me/redeem");
+    const worker = readFileSync("worker/src/index.ts", "utf8");
+    expect(worker).toContain('retention: !!auth && env.ECONOMY === "on" && env.RETENTION === "on"');
+    expect(worker).toContain('feedback: !!auth && env.FEEDBACK_BOARD === "on"');
+    expect(worker).toContain('mailbox: !!auth && env.MAILBOX === "on"');
+    expect(worker).toContain('notices: env.NOTICES === "on"');
+    const toml = readFileSync("worker/wrangler.toml", "utf8");
+    for (const v of ["FEEDBACK_BOARD", "MAILBOX", "NOTICES", "ADMIN_WRITES", "DAILY"]) expect(toml).toMatch(new RegExp(`^${v} = "off"$`, "m"));
+    expect(toml).not.toMatch(/^RETENTION\s*=/m);
+  });
+});

@@ -3,8 +3,8 @@ import { api, AccountError, session, signInAvailable, startSignIn } from "../ide
 import "./engagement.css";
 
 /**
- * FEEDBACK-1 member pages: 서비스 제안 (`#suggestions`) and 알림함 (`#mailbox`: 공지, 운영 보상 수령,
- * 쿠폰 입력, 제재 안내·이의제기). Lazily loaded; navigation entries are added by the shell owner (01).
+ * FEEDBACK-1 member pages: 서비스 제안 (`#suggestions`) and 알림함 (`#mailbox`: 공지, 운영 메시지,
+ * 제재 안내·이의제기 — 보상 수령·쿠폰은 `#rewards` 한 곳). Lazily loaded; navigation entries are added by the shell owner (01).
  *
  * Stored-XSS rule (SEC-1): every user or admin text is rendered as a React TEXT node. There is no raw-HTML
  * injection anywhere, no Markdown, and links in posts are shown as plain text (never anchors).
@@ -154,13 +154,12 @@ function SuggestionDetail({ server, id, back }: { server: string; id: string; ba
 /* ----------------------------------------------------------------- 알림함 ----------------------------------------------------------------- */
 
 type Notice = { id: string; kind: string; title: string; body: string; important: boolean; publishAt: number };
-type Item = { id: string; kind: string; title: string; body: string; coins: number; gems: number; expiresAt: number | null; at: number; claimedAt: number | null; revoked: boolean; expired: boolean };
+type Item = { id: string; kind: string; title: string; body: string; expiresAt: number | null; at: number };
 export function MailboxPage({ server }: { server: string | null }) {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [box, setBox] = useState<{ items: Item[]; unclaimed: number } | null>(null);
   const [sanctions, setSanctions] = useState<{ id: string; kind: string; reason: string; until: number | null; liftedAt: number | null }[]>([]);
   const [appeals, setAppeals] = useState<{ id: string; sanction_id: string; status: string; answer: string }[]>([]);
-  const [code, setCode] = useState("");
   const [appeal, setAppeal] = useState<{ id: string; text: string } | null>(null);
   const [msg, setMsg] = useState("");
   const signIn = useSignIn(server);
@@ -183,21 +182,16 @@ export function MailboxPage({ server }: { server: string | null }) {
       {msg && <p className="eng-note" role="status">{msg}</p>}
       <h2>공지사항</h2>
       {notices.length ? <ul className="eng-notices">{notices.map((n) => <li key={n.id} className={n.important ? "important" : ""}><b>[{KIND[n.kind] ?? "공지"}] {n.title}</b> <span className="eng-muted">{date(n.publishAt)}</span><p className="eng-body">{n.body}</p></li>)}</ul> : <p className="eng-muted">새 공지가 없어요.</p>}
-      {!session() ? (signIn && <p><button className="eng-btn primary" onClick={signIn}>로그인하고 보상·알림 확인</button></p>) : <>
-        <h2>받은 알림·보상</h2>
+      {!session() ? (signIn && <p><button className="eng-btn primary" onClick={signIn}>로그인하고 알림 확인</button></p>) : <>
+        <h2>받은 알림</h2>
+        {/* INT-1 (D-ADM-3 갱신): the mailbox holds messages only; coins and gems are claimed on the reward page (#rewards). */}
+        {!!box?.unclaimed && <p className="eng-note">받을 보상 {box.unclaimed}개가 있어요. <a href="#rewards">출석·보상에서 받기</a></p>}
         {box?.items.length ? <ul className="eng-mail">{box.items.map((i) => (
           <li key={i.id}>
             <b>{i.title}</b> <span className="eng-muted">{date(i.at)}{i.expiresAt ? ` · ${date(i.expiresAt)}까지` : ""}</span>
             {i.body && <p className="eng-body">{i.body}</p>}
-            {(i.coins > 0 || i.gems > 0) && (i.claimedAt ? <span className="eng-muted">받음</span> : i.revoked ? <span className="eng-muted">회수됨</span> : i.expired ? <span className="eng-muted">기간 만료</span> :
-              <button className="eng-btn primary" onClick={() => void act(`/api/me/mailbox/${encodeURIComponent(i.id)}/claim`, {}, (r) => `코인 ${r.coins} · 보석 ${r.gems}을 받았어요.`)}>받기 ({i.coins ? `코인 ${i.coins}` : ""}{i.gems ? ` 보석 ${i.gems}` : ""})</button>)}
           </li>
         ))}</ul> : <p className="eng-muted">받은 알림이 없어요.</p>}
-        <h2>쿠폰 입력</h2>
-        <form className="eng-row" onSubmit={(e) => { e.preventDefault(); void act("/api/me/redeem", { code }, (r) => { setCode(""); return `${r.title}: 코인 ${r.coins} · 보석 ${r.gems}을 받았어요.`; }); }}>
-          <input aria-label="쿠폰 코드" value={code} maxLength={24} autoComplete="off" onChange={(e) => setCode(e.target.value.toUpperCase())} />
-          <button className="eng-btn" disabled={code.length < 6}>사용</button>
-        </form>
         {sanctions.length > 0 && <>
           <h2>이용 제한 안내</h2>
           <ul className="eng-mail">{sanctions.map((s) => {
