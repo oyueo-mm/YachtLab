@@ -50,6 +50,11 @@ class_name = "MatchHub"
 name = "FRIENDS"
 class_name = "FriendIndex"
 
+# LIVE-1 (오늘의 요트): one small SQLite object per (rules, KST date) — first official results and counters.
+[[durable_objects.bindings]]
+name = "DAILY_BOARDS"
+class_name = "DailyBoard"
+
 # Workers Free supports only SQLite-backed Durable Objects.
 [[migrations]]
 tag = "v1"
@@ -67,6 +72,10 @@ new_sqlite_classes = ["MatchHub"]
 tag = "v4"
 new_sqlite_classes = ["FriendIndex"]
 
+[[migrations]]
+tag = "v5"
+new_sqlite_classes = ["DailyBoard"]
+
 [vars]
 # Only the GitHub Pages site may call this server (browsers always send Origin).
 ALLOWED_ORIGINS = "https://oyueo-mm.github.io"
@@ -79,6 +88,11 @@ DAILY_AI_LIMIT = "100"
 # Phase 5/6: official coins / gems / quests / achievements / shop (M3i-W30). "off" stops all grants
 # and purchases at once (balances are kept). Rewards only from server-verified matches of members.
 ECONOMY = "on"
+# LIVE-1 오늘의 요트 / 오늘의 퍼즐: "off" until the operator sets the DAILY_SECRET Worker secret (>= 32 chars)
+# and turns it on (docs/context/DAILY-LIVE-1.md). Off = every /api/daily route answers 404 DAILY_OFF.
+DAILY = "off"
+DAILY_PARTICIPANT_LIMIT = "500"
+DAILY_PRACTICE_PER_DAY = "5"
 DICE_DRAW = "on"
 CREATE_PER_MINUTE = "5"
 JOIN_PER_MINUTE = "30"

@@ -5,7 +5,7 @@
  * The tier is a structural boundary only (lab screens live in src/lab and load lazily) so they
  * could become an optional plan later. No payment, subscription or access control exists.
  */
-export type Route = "home" | "tutorial" | "practice" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "solo" | "records" | "profile" | "account" | "shop" | "draw" | "inventory" | "quests" | "achievements" | "friends" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab" | "economy-lab" | "cosmetics-lab";
+export type Route = "home" | "tutorial" | "practice" | "offline" | "online" | "online-room" | "spectate" | "play-setup" | "pvp-setup" | "play" | "pvp" | "solo" | "records" | "profile" | "account" | "shop" | "draw" | "inventory" | "quests" | "achievements" | "friends" | "daily" | "lab" | "watch" | "tournament" | "analysis" | "dice-lab" | "economy-lab" | "cosmetics-lab";
 export type Shell = "lobby" | "game" | "lab" | "page";
 
 export const routes: Record<Route, { title: string; shell: Shell; tier: "core" | "lab" }> = {
@@ -30,6 +30,9 @@ export const routes: Record<Route, { title: string; shell: Shell; tier: "core" |
   quests: { title: "퀘스트", shell: "page", tier: "core" },
   achievements: { title: "업적", shell: "page", tier: "core" },
   friends: { title: "친구", shell: "page", tier: "core" },
+  // LIVE-1: independent page at #daily; it stays a "준비 중" notice until the server reports features.daily.
+  // Lobby cards / navigation entry are for the shell owner (01) to add.
+  daily: { title: "오늘의 요트", shell: "page", tier: "core" },
   lab: { title: "연구실", shell: "lab", tier: "lab" },
   watch: { title: "AI 대전 관전", shell: "lab", tier: "lab" },
   tournament: { title: "AI 토너먼트", shell: "lab", tier: "lab" },
