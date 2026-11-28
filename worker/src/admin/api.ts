@@ -141,6 +141,9 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
   }
   const actor = session.userId;
   const audit = (action: string, result: string, target = "", detail: unknown = {}) => b.admin.op("audit", { at: now, actor, role, action, target, result, detail, client: b.client });
+  /** SEC-1 2차 ADM-2: a write of the admin index together with its audit row (one transaction there). */
+  const audited = <T>(name: string, args: unknown[], action: string, result: string, target = "", detail: unknown = {}) =>
+    b.admin.op<T>("audited", name, args, { at: now, actor, role, action, target, result, detail, client: b.client });
   const deny = async (p: Permission) => {
     await audit("denied", "forbidden", path, { need: p });
     return fail(403, "FORBIDDEN", "이 작업을 할 권한이 없어요.");
@@ -168,6 +171,8 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
     if (ext.highRisk) { const stale = fresh(); if (stale) return stale; }
     try {
       const body = method === "POST" ? await readJson(request) : null;
+      // ADM-2: the effect lives in another object — the intent row is written first
+      if (ext.write) await audit(ext.action, "started", path);
       const out = await ext.handle({ url, match, body, actor, now });
       if (ext.write || ext.auditRead) await audit(ext.action, out.status < 400 ? "ok" : "failed", out.target ?? path, out.detail ?? {});
       return reply(out.status, out.body);
@@ -294,8 +299,7 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
     const draft = async (kind: ActionKind, payload: unknown, preview: unknown, target: string) => {
       const denied = need(ACTION_KINDS[kind].permission); if (denied) return denied;
       const stale = fresh(); if (stale) return stale; // drafting a dangerous action is itself high-risk
-      const id = await b.admin.op<string>("draft", kind, payload, preview, actor, now);
-      await audit("action.draft", "pending", id, { kind, target, preview });
+      const id = await audited<string>("draft", [kind, payload, preview, actor, now], "action.draft", "pending", "", { kind, target, preview });
       return reply(201, { actionId: id, status: "pending", preview, note: "승인 권한을 가진 다른 관리자가 승인해야 실행돼요." });
     };
 
@@ -312,8 +316,7 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
     const rw = /^\/api\/admin\/rewards\/(rw_[a-z0-9]{16,20})\/(cancel|retry)$/.exec(path);
     if (rw) {
       const denied = need("rewards.write"); if (denied) return denied;
-      const r = await b.admin.op<{ ok: boolean }>(rw[2] === "cancel" ? "cancelCampaign" : "retryFailed", rw[1], now);
-      await audit("reward." + rw[2], r.ok ? "ok" : "failed", rw[1], r);
+      const r = await audited<{ ok: boolean }>(rw[2] === "cancel" ? "cancelCampaign" : "retryFailed", [rw[1], now], "reward." + rw[2], "ok", rw[1]);
       if (rw[2] === "retry") await b.admin.schedule();
       return reply(r.ok ? 200 : 400, r);
     }
@@ -321,6 +324,7 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
     if (revoke) {
       const denied = need("rewards.write"); if (denied) return denied;
       const stale = fresh(); if (stale) return stale;
+      await audit("reward.revoke", "started", revoke[1], { item: revoke[2] }); // ADM-2: effect in the account object
       const ok = (await b.user(revoke[1]).revokeItem?.(revoke[2])) ?? false;
       await audit("reward.revoke", ok ? "ok" : "not-revocable", revoke[1], { item: revoke[2] });
       return ok ? reply(200, { ok: true }) : fail(409, "NOT_REVOCABLE", "이미 받았거나 없는 보상이에요(받은 보상은 원장에서 회수하지 않아요).");
@@ -330,40 +334,35 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
       const denied = need("codes.write"); if (denied) return denied;
       const pending = policy(); if (pending) return pending;
       const stale = fresh(); if (stale) return stale;
-      const made = await b.admin.op<{ ok: true; id: string; code: string } | { ok: false; code: string; message: string }>("createCode", input, actor, now);
+      const made = await audited<{ ok: true; id: string; code: string } | { ok: false; code: string; message: string }>("createCode", [input, actor, now], "code.create", "draft");
       if (!made.ok) return fail(400, made.code, made.message);
-      await audit("code.create", "draft", made.id);
       const c = await b.admin.op("code", made.id);
       return draft("code.activate", { codeId: made.id, policyVersion: b.settings.rewardPolicy }, { ...(c as object), policyVersion: b.settings.rewardPolicy }, made.id);
     }
     const deact = /^\/api\/admin\/codes\/(cd_[a-z0-9]{16})\/deactivate$/.exec(path);
     if (deact) {
       const denied = need("codes.write"); if (denied) return denied;
-      const r = await b.admin.op<{ ok: boolean; code?: string; message?: string }>("setCodeStatus", deact[1], "inactive");
-      await audit("code.deactivate", r.ok ? "ok" : "failed", deact[1]);
+      const r = await audited<{ ok: boolean; code?: string; message?: string }>("setCodeStatus", [deact[1], "inactive"], "code.deactivate", "ok", deact[1]);
       return r.ok ? reply(200, r) : fail(400, r.code ?? "FAILED", r.message ?? "처리하지 못했어요.");
     }
 
     if (path === "/api/admin/notices") {
       const denied = need("notices.write"); if (denied) return denied;
-      const r = await b.admin.op<{ ok: true; id: string } | { ok: false; code: string; message: string }>("saveNotice", input, actor, now);
+      const r = await audited<{ ok: true; id: string } | { ok: false; code: string; message: string }>("saveNotice", [input, actor, now], "notice.save", "ok", "", { status: input.status === "published" ? "published" : "draft", important: !!input.important });
       if (!r.ok) return fail(400, r.code, r.message);
-      await audit("notice.save", "ok", r.id, { status: input.status === "published" ? "published" : "draft", important: !!input.important });
       return reply(200, r);
     }
     const endN = /^\/api\/admin\/notices\/(nt_[a-z0-9]{16})\/end$/.exec(path);
     if (endN) {
       const denied = need("notices.write"); if (denied) return denied;
-      const r = await b.admin.op<{ ok: boolean }>("endNotice", endN[1], actor, now);
-      await audit("notice.end", r.ok ? "ok" : "failed", endN[1]);
+      const r = await audited<{ ok: boolean }>("endNotice", [endN[1], actor, now], "notice.end", "ok", endN[1]);
       return reply(r.ok ? 200 : 404, r);
     }
 
     const rep = /^\/api\/admin\/reports\/(rp_[a-z0-9]{16})$/.exec(path);
     if (rep) {
       const denied = need("reports.write"); if (denied) return denied;
-      const r = await b.admin.op<{ ok: boolean; code?: string; message?: string }>("updateReport", rep[1], input.status, input.note, now);
-      await audit("report.update", r.ok ? "ok" : "failed", rep[1], { status: input.status });
+      const r = await audited<{ ok: boolean; code?: string; message?: string }>("updateReport", [rep[1], input.status, input.note, now], "report.update", "ok", rep[1], { status: input.status });
       return r.ok ? reply(200, r) : fail(400, r.code ?? "FAILED", r.message ?? "");
     }
 
@@ -376,10 +375,10 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
       if (checked.payload.kind === "warning") {
         // the mildest sanction: recorded and notified at once (still audited, still needs ADMIN_WRITES)
         const id = "sn_" + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+        await audit("sanction.warning", "started", checked.payload.userId, { id }); // ADM-2: effect in the account object
         const sent = await b.user(checked.payload.userId).applySanction?.({ id, kind: "warning", reason: checked.payload.reason, until: null });
         if (sent !== "ok") return fail(404, "NOT_FOUND", "계정을 찾을 수 없어요.");
-        await b.admin.op("recordSanction", id, checked.payload, actor, null, now);
-        await audit("sanction.warning", "ok", checked.payload.userId, { id, reportId: checked.payload.reportId });
+        await audited("recordSanction", [id, checked.payload, actor, null, now], "sanction.warning", "ok", checked.payload.userId, { id, reportId: checked.payload.reportId });
         return reply(200, { ok: true, sanctionId: id });
       }
       return draft("sanction.apply", checked.payload, { ...checked.payload, nickname: target.nickname }, checked.payload.userId);
@@ -387,8 +386,7 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
     const lift = /^\/api\/admin\/sanctions\/(sn_[a-z0-9]{16})\/lift$/.exec(path);
     if (lift) {
       const denied = need("sanctions.write"); if (denied) return denied;
-      const r = await liftSanction(b, lift[1], actor, cleanText(input.reason, 500) || "운영자 해제", now);
-      await audit("sanction.lift", r.ok ? "ok" : "failed", lift[1]);
+      const r = await liftSanction(b, lift[1], actor, cleanText(input.reason, 500) || "운영자 해제", now, { role, client: b.client, action: "sanction.lift" });
       return r.ok ? reply(200, r) : fail(400, r.code, r.message);
     }
 
@@ -396,12 +394,11 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
     if (ap) {
       const denied = need("reports.write"); if (denied) return denied;
       if (input.status === "accepted" && !can(role, "sanctions.write")) return deny("sanctions.write");
-      const r = await b.admin.op<{ ok: true; appeal: { sanction_id: string; user_id: string } } | { ok: false; code: string; message: string }>("answerAppeal", ap[1], input.status, input.answer, actor, now);
+      const r = await audited<{ ok: true; appeal: { sanction_id: string; user_id: string } } | { ok: false; code: string; message: string }>("answerAppeal", [ap[1], input.status, input.answer, actor, now], "appeal.answer", "ok", ap[1], { status: input.status });
       if (!r.ok) return fail(400, r.code, r.message);
       let lifted = false;
-      if (input.status === "accepted") lifted = (await liftSanction(b, r.appeal.sanction_id, actor, "이의제기 인용", now)).ok;
+      if (input.status === "accepted") lifted = (await liftSanction(b, r.appeal.sanction_id, actor, "이의제기 인용", now, { role, client: b.client, action: "sanction.lift" })).ok;
       if (input.status !== "reviewing") await b.user(r.appeal.user_id).deliver?.({ id: "ap:" + ap[1], kind: "sanction", title: input.status === "accepted" ? "이의제기가 받아들여졌어요" : "이의제기 처리 결과", body: cleanText(input.answer, 1000), coins: 0, gems: 0, expiresAt: null }).catch(() => undefined);
-      await audit("appeal.answer", "ok", ap[1], { status: input.status, lifted });
       return reply(200, { ok: true, lifted });
     }
 
@@ -409,8 +406,12 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
     if (msg) {
       const onlyHide = Object.keys(input).every((k) => k === "hidden");
       const denied = need(onlyHide ? "reports.write" : "suggestions.write"); if (denied) return denied;
+      await audit("suggestion.moderate", "started", msg[1]); // ADM-2: the board is another object — intent first
       const r = await b.board.op<{ ok: true; suggestion: { status: string } } | { ok: false; code: string; message: string }>("moderate", msg[1], actor, input, now);
-      if (!r.ok) return fail(400, r.code, r.message);
+      if (!r.ok) {
+        await audit("suggestion.moderate", "failed", msg[1], { code: r.code });
+        return fail(400, r.code, r.message);
+      }
       await audit("suggestion.moderate", "ok", msg[1], { status: input.status, hidden: input.hidden, answered: input.answer !== undefined });
       return reply(200, r);
     }
@@ -418,14 +419,23 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
     if (sgr) {
       const denied = need("suggestions.write"); if (denied) return denied;
       const pending = policy(); if (pending) return pending;
-      const t = await b.board.op<{ ok: true; userId: string; title: string } | { ok: false; code: string; message: string }>("rewardTarget", sgr[1]);
-      if (!t.ok) return fail(400, t.code, t.message);
       const coins = Number(input.coins ?? 0), gems = Number(input.gems ?? 0);
       // Amounts are not fixed yet (docs §4: set after the economy owner's study); the safety caps still apply.
       if (!Number.isInteger(coins) || !Number.isInteger(gems) || coins < 0 || gems < 0 || coins + gems === 0 || coins > GRANT_CAPS.suggestion.coins || gems > GRANT_CAPS.suggestion.gems) return fail(400, "INVALID", "감사 보상량을 확인해 주세요.");
+      // SEC-1 2차 ADM-5: reserve on the board first (conditional), then draft, then record the action id
+      const token = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+      const t = await b.board.op<{ ok: true; userId: string; title: string } | { ok: false; code: string; message: string }>("reserveReward", sgr[1], token, now);
+      if (!t.ok) return fail(400, t.code, t.message);
       const payload: SuggestionRewardPayload = { suggestionId: sgr[1], userId: t.userId, coins, gems, reason: cleanText(input.reason, 300) || "제안 채택 감사 보상", policyVersion: b.settings.rewardPolicy! };
-      const res = await draft("suggestion.reward", payload, { ...payload, title: t.title }, t.userId);
-      if (res.status === 201) await b.board.op("markReward", sgr[1], ((await res.clone().json()) as { actionId: string }).actionId);
+      let res: Response;
+      try {
+        res = await draft("suggestion.reward", payload, { ...payload, title: t.title }, t.userId);
+      } catch (error) {
+        await b.board.op("releaseReward", sgr[1], token).catch(() => undefined);
+        throw error;
+      }
+      if (res.status === 201) await b.board.op("markReward", sgr[1], ((await res.clone().json()) as { actionId: string }).actionId, token);
+      else await b.board.op("releaseReward", sgr[1], token).catch(() => undefined);
       return res;
     }
 
@@ -453,22 +463,18 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
             await audit("action.approve", "refused", id, { code: why.code });
             return fail(409, why.code, why.message);
           }
-          if (!(await b.admin.op<boolean>("useSelfApproval", now, SINGLE_OPERATOR.perDay))) {
-            await audit("action.approve", "refused", id, { code: "SELF_BUDGET" });
-            return fail(429, "SELF_BUDGET", `본인 승인은 하루 ${SINGLE_OPERATOR.perDay}건까지예요.`);
-          }
           self = true;
         }
       }
-      const decided = await b.admin.op<{ ok: true } | { ok: false; code: string; message: string }>("decide", id, actor, verb === "approve" ? "approved" : verb === "reject" ? "rejected" : "cancelled", now, self);
-      if (!decided.ok) {
-        await audit("action." + verb, "refused", id, { code: decided.code });
-        return fail(409, decided.code, decided.message);
-      }
-      if (verb !== "approve") {
-        await audit("action." + verb, "ok", id);
-        return reply(200, { ok: true, status: verb === "reject" ? "rejected" : "cancelled" });
-      }
+      // ADM-6: a self-approval checks and spends the daily budget inside the same transaction as the decision
+      // ADM-2: the decision and its audit row in one transaction of the admin index (a refusal is logged as failed)
+      type Decided = { ok: true } | { ok: false; code: string; message: string };
+      const decided = self
+        ? await audited<Decided>("decideSelf", [id, actor, now, SINGLE_OPERATOR.perDay], "action.approve", "ok", id, { approval: "self-approved" })
+        : await audited<Decided>("decide", [id, actor, verb === "approve" ? "approved" : verb === "reject" ? "rejected" : "cancelled", now, false], "action." + verb, "ok", id);
+      if (!decided.ok && decided.code === "SELF_BUDGET") return fail(429, "SELF_BUDGET", decided.message);
+      if (!decided.ok) return fail(409, decided.code, decided.message);
+      if (verb !== "approve") return reply(200, { ok: true, status: verb === "reject" ? "rejected" : "cancelled" });
       const result = await execute(b, id, actor, now, { role, client: b.client, detail: { approval: self ? "self-approved" : "second-admin" } });
       return reply(result.ok ? 200 : 500, result);
     }
@@ -505,8 +511,9 @@ export function singleOperatorRefusal(a: { kind: ActionKind; created_at: number;
   return null;
 }
 
-async function liftSanction(b: AdminBackends, id: string, by: string, reason: string, now: number): Promise<{ ok: true } | { ok: false; code: string; message: string }> {
-  const r = await b.admin.op<{ ok: true; userId: string } | { ok: false; code: string; message: string }>("liftSanction", id, by, reason, now);
+async function liftSanction(b: AdminBackends, id: string, by: string, reason: string, now: number, a: { role: string; client?: string; action: string }): Promise<{ ok: true } | { ok: false; code: string; message: string }> {
+  // ADM-2: the admin index change and its audit row together; the account object follows (idempotent)
+  const r = await b.admin.op<{ ok: true; userId: string } | { ok: false; code: string; message: string }>("audited", "liftSanction", [id, by, reason, now], { at: now, actor: by, role: a.role, action: a.action, target: id, result: "ok", detail: {}, client: a.client });
   if (!r.ok) return r;
   await b.user(r.userId).liftSanction?.(id).catch(() => undefined);
   return { ok: true };

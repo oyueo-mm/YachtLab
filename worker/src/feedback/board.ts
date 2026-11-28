@@ -222,8 +222,30 @@ export class BoardCore {
     if (r.reward_action) return fail("DUPLICATE", "이미 보상을 요청한 제안이에요.");
     return { ok: true, userId: r.author_id, title: r.title };
   }
-  markReward(id: string, actionId: string) {
-    this.sql.exec("UPDATE suggestions SET reward_action = ? WHERE id = ? AND reward_action IS NULL", actionId, id);
+  markReward(id: string, actionId: string, token?: string) {
+    // SEC-1 2차 ADM-5: with a reservation, only the request that reserved it records its action
+    if (token) this.sql.exec("UPDATE suggestions SET reward_action = ? WHERE id = ? AND reward_action LIKE ?", actionId, id, `pending:${token}:%`);
+    else this.sql.exec("UPDATE suggestions SET reward_action = ? WHERE id = ? AND reward_action IS NULL", actionId, id);
+  }
+  /**
+   * ADM-5: reserve the one adoption reward of a suggestion BEFORE the draft is made (conditional update), so two
+   * concurrent requests cannot both create drafts. A reservation older than RESERVE_MS (a crashed request) can be
+   * taken over; `releaseReward` frees it when the draft fails.
+   */
+  reserveReward(id: string, token: string, now: number): { ok: true; userId: string; title: string } | Fail {
+    const RESERVE_MS = 10 * 60_000;
+    const r = this.one<Row>("SELECT * FROM suggestions WHERE id = ?", id);
+    if (!r) return fail("NOT_FOUND", "제안을 찾을 수 없어요.");
+    if (!["adopted", "in_progress", "done"].includes(r.status)) return fail("STATE", "채택된 제안에만 감사 보상을 줄 수 있어요.");
+    if (!r.author_id) return fail("NO_AUTHOR", "작성자가 탈퇴해 보상을 줄 수 없어요.");
+    const held = typeof r.reward_action === "string" ? /^pending:[a-z0-9]+:(\d+)$/.exec(r.reward_action) : null;
+    if (r.reward_action && !(held && now - Number(held[1]) > RESERVE_MS)) return fail("DUPLICATE", "이미 보상을 요청한 제안이에요.");
+    this.sql.exec("UPDATE suggestions SET reward_action = ? WHERE id = ? AND (reward_action IS NULL OR reward_action = ?)", `pending:${token}:${now}`, id, r.reward_action ?? null);
+    const mine = this.one<Row>("SELECT reward_action FROM suggestions WHERE id = ?", id)?.reward_action === `pending:${token}:${now}`;
+    return mine ? { ok: true, userId: r.author_id, title: r.title } : fail("DUPLICATE", "이미 보상을 요청한 제안이에요.");
+  }
+  releaseReward(id: string, token: string) {
+    this.sql.exec("UPDATE suggestions SET reward_action = NULL WHERE id = ? AND reward_action LIKE ?", id, `pending:${token}:%`);
   }
   history(id: string) {
     return this.sql.exec<{ at: number; by: string; change: string }>("SELECT at, by, change FROM sg_history WHERE suggestion_id = ? ORDER BY seq", id).toArray().map((h) => ({ ...h, change: JSON.parse(h.change) as unknown }));

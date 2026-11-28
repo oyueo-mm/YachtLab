@@ -1492,7 +1492,7 @@ export class GuestLink extends DurableObject<Env> implements GuestApi {
 /* ------------------------------------------------------------- admin (ADMIN-1) ------------------------------------------------------------- */
 
 /** Allowlisted AdminCore methods callable over RPC (one generic method keeps the shell thin). */
-const ADMIN_OPS = new Set(["createSession", "checkSession", "endSession", "endSessionsOf", "audit", "auditLog", "activity", "activityBatch", "signup", "deleted", "purgeRetention", "createReauth", "consumeReauth", "useSelfApproval", "nicknameChanged", "activityReport", "searchMembers", "draft", "action", "actions", "decide", "finishAction", "beginExecution", "finishExecution", "checkReward", "previewReward", "scheduleCampaign", "campaigns", "cancelCampaign", "retryFailed", "createCode", "code", "codes", "setCodeStatus", "redemptions", "redeem", "confirmRedeem", "saveNotice", "endNotice", "notices", "createReport", "reports", "report", "updateReport", "checkSanction", "recordSanction", "sanctions", "liftSanction", "createAppeal", "appeals", "answerAppeal"]);
+const ADMIN_OPS = new Set(["audited", "createSession", "checkSession", "endSession", "endSessionsOf", "audit", "auditLog", "activity", "activityBatch", "signup", "deleted", "purgeRetention", "createReauth", "consumeReauth", "useSelfApproval", "nicknameChanged", "activityReport", "searchMembers", "draft", "action", "actions", "decide", "decideSelf", "finishAction", "beginExecution", "finishExecution", "checkReward", "previewReward", "scheduleCampaign", "campaigns", "cancelCampaign", "retryFailed", "createCode", "code", "codes", "setCodeStatus", "redemptions", "redeem", "confirmRedeem", "saveNotice", "endNotice", "notices", "createReport", "reports", "report", "updateReport", "checkSanction", "recordSanction", "sanctions", "liftSanction", "createAppeal", "appeals", "answerAppeal"]);
 
 /**
  * ADMIN-1: one object for the service (`idFromName("admin")`). Only the Worker and account objects
@@ -1533,7 +1533,7 @@ export class AdminHub extends DurableObject<Env> {
   }
 }
 
-const BOARD_OPS = new Set(["create", "list", "get", "vote", "report", "setCredit", "contributors", "moderate", "rewardTarget", "markReward", "history", "forget", "stats"]);
+const BOARD_OPS = new Set(["create", "list", "get", "vote", "report", "setCredit", "contributors", "moderate", "rewardTarget", "reserveReward", "releaseReward", "markReward", "history", "forget", "stats"]);
 /** FEEDBACK-1: the suggestion board (`idFromName("board")`). */
 export class SuggestionBoard extends DurableObject<Env> {
   private core: BoardCore;
@@ -1884,7 +1884,12 @@ export default {
         const route = url.pathname === "/api/admin/metrics" ? "metrics" : parts[2] === "ledger" && parts.length === 4 && /^u_[A-Za-z0-9_-]{22}$/.test(parts[3]) ? "ledger" : null;
         if (request.method !== "GET" || !route || !routes.has(route)) return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
         if (await directory.hit("admin-legacy:" + (await clientKey(request)), 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", null);
-        await (env.ADMIN?.get(env.ADMIN.idFromName("admin")) as unknown as { op(n: string, ...a: unknown[]): Promise<unknown> } | undefined)?.op("audit", { at: Date.now(), actor: "token:ADMIN_TOKEN", role: "legacy-token", action: "legacy." + route, target: route === "ledger" ? parts[3] : "", result: "ok", client: await clientKey(request) }).catch(() => console.warn("ADMIN_LEGACY_AUDIT_FAILED"));
+        // SEC-1 2차 ADM-2: no audit row, no answer (the legacy token is never served unlogged)
+        const logged = await (env.ADMIN?.get(env.ADMIN.idFromName("admin")) as unknown as { op(n: string, ...a: unknown[]): Promise<unknown> } | undefined)?.op("audit", { at: Date.now(), actor: "token:ADMIN_TOKEN", role: "legacy-token", action: "legacy." + route, target: route === "ledger" ? parts[3] : "", result: "ok", client: await clientKey(request) }).then(() => true, () => false);
+        if (!logged) {
+          console.warn("ADMIN_LEGACY_AUDIT_FAILED");
+          return fail(503, "AUDIT_UNAVAILABLE", "잠시 후 다시 시도해 주세요.", null);
+        }
         if (route === "metrics") return json(200, { usage: await directory.usage(), hub: await hub().report(Math.min(60, Number(url.searchParams.get("days") ?? 14) || 14)) }, null);
         return json(200, await env.USERS.get(env.USERS.idFromName(parts[3])).verifyLedger(), null);
       }

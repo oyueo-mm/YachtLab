@@ -265,3 +265,78 @@ describe("SEC-1 2차 INT-4/INT-5 · 공개 경로 요청 비용", () => {
     expect(readFileSync("worker/src/daily-admin.ts", "utf8")).toContain("forgetDailyFlags(date)");
   });
 });
+
+describe("SEC-1 2차 ADM-2(원본 R5) · 관리자 색인 안의 쓰기와 감사 행은 함께 기록되거나 함께 실패한다", () => {
+  const post = async (w: ReturnType<typeof world>, path: string, token: string, body: unknown, backends = w.backends()) => {
+    const r = await handleAdminRoute(new Request("https://w.example" + path, { method: "POST", headers: { authorization: "Bearer " + token, "content-type": "application/json" }, body: JSON.stringify(body) }), new URL("https://w.example" + path), backends, reply);
+    return { status: r.status, body: (await r.json()) as Record<string, any> };
+  };
+  it("감사 기록이 실패하면 공지도 게시되지 않는다(같은 트랜잭션), 성공하면 둘 다 남는다", async () => {
+    const w = world({ ADMIN_ACCOUNTS: `${A}:owner,${B}:owner`, ADMIN_WRITES: "on" });
+    const a = (await w.adminLogin(w.account(A).session)).token as string;
+    const core = w.admin as unknown as { audit: (e: unknown) => void };
+    const real = core.audit.bind(core);
+    core.audit = () => { throw new Error("DO reset"); };
+    await expect(post(w, "/api/admin/notices", a, { title: "공지 제목", body: "공지 본문", status: "published" })).rejects.toThrow();
+    core.audit = real;
+    expect(w.admin.notices(false, w.clock())).toHaveLength(0);
+    expect((await post(w, "/api/admin/notices", a, { title: "공지 제목", body: "공지 본문", status: "published" })).status).toBe(200);
+    expect(w.admin.notices(false, w.clock())).toHaveLength(1);
+    expect(w.admin.auditLog({ action: "notice" }).entries).toHaveLength(1);
+  });
+  it("관리자 색인 쓰기 경로는 별도 audit 호출 없이 audited로만 기록한다(정적)", () => {
+    const src = readFileSync("worker/src/admin/api.ts", "utf8");
+    expect(src).toContain("audited<");
+    // (recordSanction inside an approved action's execution is covered by beginExecution / finishExecution)
+    for (const op of ["saveNotice", "endNotice", "createCode", "updateReport", "answerAppeal", "cancelCampaign"]) expect(src).not.toMatch(new RegExp(`b\\.admin\\.op[^(]*\\("${op}"`));
+    expect(readFileSync("worker/src/index.ts", "utf8")).toContain('fail(503, "AUDIT_UNAVAILABLE"');
+  });
+  it("원본 R1(ADM-3): 늦은 탈퇴 정리 재시도는 재가입 계정의 대기 지급을 지우지 않는다", async () => {
+    const w = world({ ADMIN_ACCOUNTS: `${A}:owner,${B}:owner`, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "p1" });
+    const t0 = w.clock();
+    w.admin.activity({ userId: U, nickname: "n", createdAt: t0 - 86_400_000, day: 1, firstInWeek: true, firstInMonth: true, gapDays: null } as never);
+    w.advance(3600_000);
+    w.admin.signup(U, w.clock());
+    w.admin.scheduleCampaign("act_" + "1".repeat(20), { title: "t", message: "m", coins: 1, gems: 0, target: { type: "users", userIds: [U] }, scheduledAt: w.clock() + 3600_000, expiresAt: w.clock() + 2 * 86_400_000, approvedBy: A, policyVersion: "p1" } as never, w.clock());
+    w.advance(2 * 3600_000);
+    await (w.admin as unknown as { process: (n: number, f: () => Promise<never>) => Promise<unknown> }).process(w.clock(), async () => { throw new Error("transient"); });
+    const pending = () => (w.admin as unknown as { sql: { exec: (q: string, ...p: unknown[]) => { toArray(): { n: number }[] } } }).sql.exec("SELECT count(*) AS n FROM deliveries WHERE user_id = ? AND status = 'pending'", U).toArray()[0].n;
+    expect(pending()).toBe(1);
+    w.admin.deleted(U, t0);
+    expect(pending()).toBe(1);
+  });
+});
+
+describe("SEC-1 2차 ADM-5·ADM-6(원본 R2b·R4b) · 객체 간 지연이 있는 동시 요청", () => {
+  const slow = (o: any) => ({ ...o, op: async (n: string, ...x: unknown[]) => { await new Promise((r) => setTimeout(r, 5)); return o.op(n, ...x); } });
+  const call = async (w: ReturnType<typeof world>, path: string, token: string, body: unknown, extra: Record<string, unknown> = {}) => {
+    const r = await handleAdminRoute(new Request("https://w.example" + path, { method: "POST", headers: { authorization: "Bearer " + token, "content-type": "application/json" }, body: JSON.stringify(body) }), new URL("https://w.example" + path), { ...w.backends(), ...extra } as never, reply);
+    return { status: r.status, body: (await r.json()) as Record<string, any> };
+  };
+  it("같은 제안의 채택 보상 초안은 동시에 요청해도 하나만 만들어진다", async () => {
+    const w = world({ ADMIN_ACCOUNTS: `${A}:owner,${B}:owner`, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "p1" });
+    const a = (await w.adminLogin(w.account(A).session)).token as string;
+    const V = uid("V");
+    w.account(V);
+    const sg = w.board.create({ userId: V, nickname: "v" }, { category: "feature", title: "좋은 제안입니다", body: "내용을 열 글자 이상 적어요" }, w.clock()) as { id: string };
+    await call(w, `/api/admin/suggestions/${sg.id}`, a, { status: "adopted", adoptReason: "채택합니다" });
+    const base = w.backends();
+    const rs = await Promise.all([1, 2, 3].map(() => call(w, `/api/admin/suggestions/${sg.id}/reward`, a, { coins: 10 }, { board: slow(base.board), admin: slow(base.admin) })));
+    expect(rs.filter((r) => r.status === 201)).toHaveLength(1);
+    expect(rs.filter((r) => r.body.error?.code === "DUPLICATE")).toHaveLength(2);
+    expect(w.admin.actions("pending")).toHaveLength(1);
+  });
+  it("동시 본인 승인 3건: 실행 1건, 하루 예산도 1건만 소진", async () => {
+    const w = world({ ADMIN_ACCOUNTS: `${A}:owner`, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "p1", ADMIN_APPROVAL: "self" });
+    let a = (await w.adminLogin(w.account(A).session)).token as string;
+    w.account(U);
+    const d = await call(w, "/api/admin/rewards", a, { title: "보상", coins: 5, expiresAt: w.clock() + 2 * 86_400_000, target: { type: "users", userIds: [U] } });
+    w.advance(11 * 60_000);
+    a = (await w.adminLogin(w.account(A).session)).token as string;
+    const base = w.backends();
+    const rs = await Promise.all([1, 2, 3].map(() => call(w, `/api/admin/actions/${d.body.actionId}/approve`, a, { confirm: d.body.actionId }, { admin: slow(base.admin) })));
+    expect(rs.filter((r) => r.status === 200)).toHaveLength(1);
+    expect((w.admin as unknown as { sql: { exec: (q: string) => { toArray(): { n: number }[] } } }).sql.exec("SELECT n FROM self_approvals").toArray()).toEqual([{ n: 1 }]);
+    expect(w.admin.campaigns()).toHaveLength(1);
+  });
+});

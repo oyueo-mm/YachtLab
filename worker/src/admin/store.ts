@@ -18,6 +18,8 @@ import { GRANT_CAPS, type ActionKind, type Role } from "./roles";
  * posts one row to that account's existing economy ledger (worker/src/economy.ts, idempotent by id).
  */
 /** SEC-1 2차 ADM-2: an `executing` action without an outcome for this long counts as interrupted (resumable). */
+/** Writes of the admin index that run together with their audit row (AdminCore.audited). */
+export const AUDITED_OPS: ReadonlySet<string> = new Set(["saveNotice", "endNotice", "createCode", "setCodeStatus", "updateReport", "cancelCampaign", "retryFailed", "draft", "decide", "decideSelf", "recordSanction", "liftSanction", "answerAppeal"]);
 export const EXECUTION_STALE_MS = 120_000;
 export interface AdminSql {
   exec<T = Record<string, unknown>>(query: string, ...params: unknown[]): { toArray(): T[] };
@@ -139,6 +141,8 @@ export class AdminCore {
     s("CREATE INDEX IF NOT EXISTS actions_status ON actions (status, created_at)");
     s("CREATE TABLE IF NOT EXISTS campaigns (id TEXT PRIMARY KEY, action_id TEXT NOT NULL UNIQUE, payload TEXT NOT NULL, status TEXT NOT NULL, scheduled_at INTEGER NOT NULL, created_at INTEGER NOT NULL)");
     s("CREATE TABLE IF NOT EXISTS deliveries (campaign_id TEXT NOT NULL, user_id TEXT NOT NULL, status TEXT NOT NULL, attempts INTEGER NOT NULL, next_at INTEGER NOT NULL, at INTEGER, PRIMARY KEY (campaign_id, user_id))");
+    // SEC-1 2차 ADM-3: when the delivery row was made (deletion cleanup is generation-bound by it); additive column
+    if (!this.all<{ name: string }>("PRAGMA table_info(deliveries)").some((c) => c.name === "created_at")) s("ALTER TABLE deliveries ADD COLUMN created_at INTEGER");
     s("CREATE INDEX IF NOT EXISTS deliveries_due ON deliveries (status, next_at)");
     s("CREATE TABLE IF NOT EXISTS codes (id TEXT PRIMARY KEY, code TEXT NOT NULL UNIQUE, title TEXT NOT NULL, coins INTEGER NOT NULL, gems INTEGER NOT NULL, starts_at INTEGER NOT NULL, ends_at INTEGER NOT NULL, max_total INTEGER NOT NULL, per_account INTEGER NOT NULL, joined_before INTEGER, status TEXT NOT NULL, created_by TEXT NOT NULL, created_at INTEGER NOT NULL, approved_by TEXT, policy_version TEXT)");
     s("CREATE TABLE IF NOT EXISTS redemptions (id TEXT NOT NULL, code_id TEXT NOT NULL, user_id TEXT NOT NULL, n INTEGER NOT NULL, status TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (code_id, user_id, n))");
@@ -209,6 +213,20 @@ export class AdminCore {
   audit(e: { at: number; actor: string; role: string; action: string; target?: string; result: string; detail?: unknown; client?: string }) {
     const detail = JSON.stringify(e.detail ?? {}).slice(0, 2000);
     this.sql.exec("INSERT INTO audit (at, actor, role, action, target, result, detail, client) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", e.at, e.actor, e.role, e.action, e.target ?? "", e.result, detail, e.client ?? "");
+  }
+  /**
+   * SEC-1 2차 ADM-2: run one write of THIS object and its audit row in ONE transaction (both or neither).
+   * The row's result is "failed" when the write answers `{ ok: false }`; its target defaults to the new id.
+   */
+  audited(name: string, args: unknown[], e: { at: number; actor: string; role: string; action: string; target?: string; result: string; detail?: unknown; client?: string }) {
+    if (!AUDITED_OPS.has(name)) throw Error("not an audited write");
+    return this.tx(() => {
+      const r = (this as unknown as Record<string, (...a: unknown[]) => unknown>)[name](...args) as unknown;
+      const refused = !!r && typeof r === "object" && (r as { ok?: unknown }).ok === false;
+      const id = typeof r === "string" ? r : r && typeof r === "object" && typeof (r as { id?: unknown }).id === "string" ? (r as { id: string }).id : "";
+      this.audit({ ...e, target: e.target || id, result: refused ? "failed" : e.result, detail: refused ? { ...(e.detail as object ?? {}), code: (r as { code?: string }).code } : e.detail });
+      return r;
+    });
   }
   auditLog(q: { actor?: string; action?: string; before?: number; limit?: number }) {
     const limit = Math.max(1, Math.min(ADMIN_LIMITS.auditPage, q.limit ?? 50));
@@ -281,7 +299,8 @@ export class AdminCore {
     this.tx(() => {
       const first = !this.one("SELECT 1 FROM deletions WHERE user_id = ? AND deleted_at = ?", userId, deletedAt);
       this.sql.exec("DELETE FROM members WHERE user_id = ? AND created_at <= ?", userId, deletedAt);
-      this.sql.exec("DELETE FROM deliveries WHERE user_id = ? AND status = 'pending'", userId);
+      // ADM-3: only deliveries made for the deleted generation (a late retry never touches the re-joined account's)
+      this.sql.exec("DELETE FROM deliveries WHERE user_id = ? AND status = 'pending' AND coalesce(created_at, 0) <= ?", userId, deletedAt);
       // finished sanctions: reason text goes now, the row after closedRecordMs
       this.sql.exec("UPDATE sanctions SET reason = '(탈퇴 계정)', lift_reason = NULL, purge_at = ? WHERE user_id = ? AND starts_at <= ? AND (status != 'active' OR kind IN ('warning', 'nickname_reset'))", deletedAt + RETENTION.closedRecordMs, userId, deletedAt);
       // sanctions still in force: kept until they end (permanent: at most permanentSanctionMs)
@@ -386,6 +405,25 @@ export class AdminCore {
     this.sql.exec("INSERT INTO self_approvals (day, n) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET n = n + 1", day);
     this.sql.exec("DELETE FROM self_approvals WHERE day < ?", day - 30);
     return true;
+  }
+  /**
+   * SEC-1 2차 ADM-6: a self-approval spends today's budget only when it actually approves — the budget check,
+   * the budget write and the pending → approved change are one transaction (concurrent attempts spend one).
+   */
+  decideSelf(id: string, by: string, now: number, perDay: number): { ok: true } | Fail {
+    return this.tx(() => {
+      const a = this.action(id);
+      if (!a) return fail("NOT_FOUND", "작업을 찾을 수 없어요.");
+      if (a.status !== "pending") return fail("STATE", "이미 처리된 작업이에요.");
+      if (a.created_by !== by) return fail("STATE", "본인 초안이 아니에요.");
+      const day = kstDay(now);
+      const n = this.one<{ n: number }>("SELECT n FROM self_approvals WHERE day = ?", day)?.n ?? 0;
+      if (n >= perDay) return fail("SELF_BUDGET", `본인 승인은 하루 ${perDay}건까지예요.`);
+      this.sql.exec("INSERT INTO self_approvals (day, n) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET n = n + 1", day);
+      this.sql.exec("DELETE FROM self_approvals WHERE day < ?", day - 30);
+      this.sql.exec("UPDATE actions SET status = 'approved', decided_by = ?, decided_at = ? WHERE id = ? AND status = 'pending'", by, now, id);
+      return { ok: true as const };
+    });
   }
   /** `selfApprove` = the caller already checked the single-operator rules for this draft. */
   decide(id: string, by: string, decision: "approved" | "rejected" | "cancelled", now: number, selfApprove: boolean): { ok: true } | Fail {
@@ -502,7 +540,7 @@ export class AdminCore {
       const p = JSON.parse(c.payload) as RewardPayload;
       const ids = this.resolveTarget(p.target, now);
       this.tx(() => {
-        for (const uid of ids) this.sql.exec("INSERT OR IGNORE INTO deliveries (campaign_id, user_id, status, attempts, next_at) VALUES (?, ?, 'pending', 0, ?)", c.id, uid, now);
+        for (const uid of ids) this.sql.exec("INSERT OR IGNORE INTO deliveries (campaign_id, user_id, status, attempts, next_at, created_at) VALUES (?, ?, 'pending', 0, ?, ?)", c.id, uid, now, now);
         this.sql.exec("UPDATE campaigns SET status = 'sending' WHERE id = ?", c.id);
       });
     }
