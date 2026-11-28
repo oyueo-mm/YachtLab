@@ -1,5 +1,10 @@
 # 연구 로드맵 / 백로그 (실행 가능성 기준)
 
+> **SEC-1 2차 감사 후속(D-140):**
+> - ✅ P0 4건과 P1 주요 결함을 `integration/int-1`에서 수정했다(감사 기준 `e1487d4`).
+> - ⏳ 상세 보고서가 필요한 Low·의심·Info 분류, DLY-1 일일 랭킹 공정성 결정([연구](./DAILY-FAIRNESS-DLY1.md)), ADM-1 실제 Google 재인증 검증([절차](../admin/ADMIN-1-GOOGLE-REAUTH-VERIFICATION.md))이 남았다.
+> - SEC-1 재감사를 기다린다. 기능 활성화·배포는 계속 보류한다.
+
 > **INT-1 제품 통합(D-139):** ✅ 격리 통합 완료(브랜치 `integration/int-1`, Draft PR #147) — C5 #140·ADMIN-1 #141·LIVE-1 #142·SOC-1 #143·UI-1 #144·FX-1 #146·UI-2 #145. 보상 경로 하나(C5 `g:` 원장), 알림함 메시지·보상함 재화 분리, SOC-1-F1 해결, 진입 플래그 통일(모두 꺼짐), DO 마이그레이션 v5·v6 확정, 하트비트 DO 호출 절감. [통합 기록](../operations/INT-1-INTEGRATION.md). 남은 일(각각 별도 승인): SEC-1 2차 감사([인계](../audits/sec-1-2026-11-28/AUDIT-2-HANDOFF-INT-1.md)), 구·신 Pages × Worker 교차 실행, main 병합, Worker 수동 배포(보호 입력), 기능별 활성화. 후속: FriendIndex·AdminHub 샤딩(동시 접속 수천 규모), 운영 요청량 실측.
 
 > **SEC-1 CI 후속(D-102):** 실패 잠금 강화(SEC-1-03), 빌드·운영 토큰 분리(SEC-1-04), CI Low 3건 정리. 남은 운영자 조치: 구형 저장소 Cloudflare 시크릿 폐기(SEC-1-02). [SEC-1 CI 후속](../operations/SEC-1-CI-FOLLOWUP.md)

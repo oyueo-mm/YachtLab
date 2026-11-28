@@ -44,3 +44,8 @@ npx playwright test tests/ui/admin-feedback.spec.ts tests/ui/int1-ui2-c5.spec.ts
 | 기존 A1–A11, B1–B11 | | | |
 | §1 변경 항목 | | | |
 | I1–I10 | | | |
+
+## 5. 2차 감사 후속 상태 (2026-11-28)
+
+감사 기준 `e1487d4`에 대한 후속 수정은 `integration/int-1`에 있다. 발견 ID별 수정 내역·원인·재현 결과는 비공개 인계 자료로 SEC-1에 전달한다. 공개 요약은 [INT-1 통합 기록 §9](../../operations/INT-1-INTEGRATION.md)와 D-140이다.
+

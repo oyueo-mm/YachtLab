@@ -100,3 +100,26 @@ Free 한도(Cloudflare 문서 기준, 배포 전 대시보드에서 재확인): 
 ## 8. SEC-1 2차 감사 인계
 
 [SEC-1 2차 감사 인계](../audits/sec-1-2026-11-28/AUDIT-2-HANDOFF-INT-1.md) 참고(ADMIN-1 [체크리스트](../admin/SEC-1-AUDIT-2-CHECKLIST.md) 기반).
+
+## 9. SEC-1 2차 감사 후속 (2026-11-28, D-140)
+
+감사 기준 `e1487d4`.
+- Critical 0건, High 1건, Medium 계열 5건, Low 16건, 의심 4건, Info
+- 발견별 상세와 재현 정보는 비공개 인계 자료로만 전달한다(D-098). 아래는 범위와 상태뿐이다.
+
+| 구분 | 발견 ID | 상태 |
+|---|---|---|
+| P0 | INT-1, INT-3, INT-7, INT-8 | 수정 완료(회귀 시험, 실제 Worker 포함) |
+| P1 | ECO-1, ECO-2, ECO-3, ADM-2, INT-6, SOC-1, SOC-2, SOC-3, DLY-2, INT-4, INT-5 | 수정 완료 |
+| P1 | ADM-3 | 일부 수정(재개 경로 동시 실행 방지), 원본 내용 확인 필요 |
+| P1 | ADM-4~6, DLY-3~5 | 추가 검증 필요(상세 보고서·재현 스크립트 필요) |
+| 연구 | DLY-1 | [공정성 연구](../context/DAILY-FAIRNESS-DLY1.md), 정책 승인 필요, `DAILY` 보류 |
+| 절차 | ADM-1 | [실제 Google 재인증 검증 절차](../admin/ADMIN-1-GOOGLE-REAUTH-VERIFICATION.md), 사용자 참여 필요 |
+| 나머지 | Low 16 · 의심 4 · Info | 분류 대기(상세 보고서 필요) |
+
+기능 비활성 상태에서 바뀐 동작:
+- `RETENTION`이 꺼져 있으면 쿠폰·알림함 수령이 관리자 색인을 부르지 않는다.
+- `NOTICES`가 꺼져 있으면 공지 조회가 관리자 색인을 부르지 않는다.
+- 차단 관계의 친구 방 코드 입장을 거절한다.
+- 차단당한 사람의 공개 프로필 조회는 익명 응답과 같다.
+
