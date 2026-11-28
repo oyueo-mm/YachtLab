@@ -110,9 +110,9 @@ FriendIndex는 전역 단일 객체다. 하트비트가 몰리는 규모(동시 
 | 대표 업적 검증·공개 범위 | `soc1-social`, `soc1-worker` |
 | SEC-1 본문 크기·입력 검증·차단 | `tests/body-limits.test.ts`, `soc1-worker` |
 
-결과(이 샌드박스, 2026-11-28): `npm test` 83 파일 통과·1 skip, 797 중 796 통과·1 skip. `npm run build` 통과. Playwright 결과는 PR 본문에 기록. **운영 서비스에서 실제 사용자와의 테스트 매칭은 하지 않았다**(전부 로컬 wrangler·Node 서버).
+결과(이 샌드박스, 2026-11-28, 커밋 기준 최신): `npm test` 84 파일 통과·1 skip, 802 중 801 통과·1 skip. `npm run build` 통과. Playwright(로컬 wrangler·Node 서버, 미리 설치된 Chromium `PW_CHROMIUM_PATH`): 친구·A4 친구·빠른 대전·다인전 온라인·온라인(Node+Workers)·입장·프로필·A3 재대결·A2 온라인 10개 파일 **55 통과, 45 skip(모바일 프로젝트에서 테스트 스스로 건너뜀), 실패 0**. 전체 Playwright 결과는 PR 본문에 기록. **운영 서비스에서 실제 사용자와의 테스트 매칭은 하지 않았다**(전부 로컬 wrangler·Node 서버).
 
-기존 테스트 변경: `tests/account-security-worker.test.ts`(받은함 응답에 `sent: []` 추가), `tests/friends.test.ts`(가짜 초대 ID를 운영과 같은 UUID 형태로), `tests/friend-relations.test.ts`(liveApi 테스트 이름: 서버가 대응을 보증하지 못하면 보내지 않는다 — 단언 동일).
+기존 테스트 변경: `tests/ui/a4-friends.spec.ts`(D-091의 "서버 보증이 없으니 보내지 않는다"가 SOC-1로 "서버 보증 뒤에만 버튼, 자동 전송 없음, 한 번에 한 건"으로 바뀜 — 계정 전환 격리 단언은 유지), `tests/account-security-worker.test.ts`(받은함 응답에 `sent: []` 추가), `tests/friends.test.ts`(가짜 초대 ID를 운영과 같은 UUID 형태로), `tests/friend-relations.test.ts`(liveApi 테스트 이름: 서버가 대응을 보증하지 못하면 보내지 않는다 — 단언 동일).
 
 ## 7. SEC-1 1차 감사 반영
 
