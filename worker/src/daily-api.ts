@@ -191,10 +191,13 @@ export async function handleDailyRoute(request: Request, url: URL, deps: DailyDe
   if (path === "/api/daily/puzzles" && method === "GET") {
     const date = dateParam(url.searchParams.get("date") ?? today);
     if (!date) return fail(deps, 404, "NOT_FOUND", "없는 날짜예요.");
-    const flags = await deps.board(date).puzzleFlags().catch(() => ({} as Record<string, boolean>));
-    const list = puzzlesOf(date).filter((p) => !flags[p.id]);
+    // SEC-1 2차 INT-5: the per-client limit comes BEFORE any Durable Object call, a date without puzzles never
+    // touches its board, and the withdrawals are read from the isolate cache
+    if (deps.limited("daily-pz:" + (await deps.clientKey()), 30)) return fail(deps, 429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
+    const scheduled = puzzlesOf(date);
+    const flags = scheduled.length ? await cachedFlags(deps.board(date), date, Date.now()) : {};
+    const list = scheduled.filter((p) => !flags[p.id]);
     const viewer = await deps.me();
-    if (!viewer && deps.limited("daily-pz:" + (await deps.clientKey()), 30)) return fail(deps, 429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
     const results = viewer ? await deps.user(viewer.userId).dailyPuzzleResults(list.map((p) => p.id)) : [];
     const closed = dayPhase(date, now) === "closed";
     return deps.reply(200, {
@@ -264,6 +267,8 @@ export async function handleDailyRoute(request: Request, url: URL, deps: DailyDe
 
   if ((path === "/api/daily/start" || path === "/api/daily/play") && method === "POST") {
     const input = await readJson();
+    // SEC-1 2차 DLY-3: any valid date reaches the account, which admits a participant only on an OPEN day
+    // (future / closed dates keep their DAILY_NOT_OPEN / DAILY_CLOSED answers and create no board object)
     const date = isDailyDate(input.date) ? input.date : null;
     const mode = input.mode as Mode;
     if (!date || !MODES.includes(mode)) return fail(deps, 400, "INVALID_COMMAND", "요청 형식이 올바르지 않아요.");

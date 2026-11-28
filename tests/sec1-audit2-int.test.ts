@@ -340,3 +340,16 @@ describe("SEC-1 2차 ADM-5·ADM-6(원본 R2b·R4b) · 객체 간 지연이 있�
     expect(w.admin.campaigns()).toHaveLength(1);
   });
 });
+
+describe("SEC-1 2차 DLY-3·INT-5(원본) · 일일 경로의 객체 생성", () => {
+  it("공식 시작은 열린 날에만 참가자를 등록하고(admit), 퍼즐 조회는 한도 → 일정 확인 → 캐시 순서", () => {
+    const src = readFileSync("worker/src/index.ts", "utf8");
+    expect(src).toContain('if (mode === "official" && dayPhase(date, now) === "open" && !this.dailyStore.attempt(date, "official", now)) {');
+    const api = readFileSync("worker/src/daily-api.ts", "utf8");
+    const block = api.slice(api.indexOf('if (path === "/api/daily/puzzles" && method === "GET")'), api.indexOf('if (path === "/api/daily/puzzles/answer"'));
+    expect(block.indexOf('deps.limited("daily-pz:"')).toBeGreaterThan(-1);
+    expect(block.indexOf('deps.limited("daily-pz:"')).toBeLessThan(block.indexOf("cachedFlags("));
+    expect(block).toContain("scheduled.length ? await cachedFlags(");
+    expect(block).not.toContain(".puzzleFlags()");
+  });
+});

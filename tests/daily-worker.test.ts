@@ -101,6 +101,8 @@ describe("오늘의 요트 (wrangler dev + 가짜 로컬 로그인)", () => {
     // other dates: future refused, a past (already closed) date cannot be started officially
     expect((await call(worker, a, "/api/daily/start", { date: "2026-12-04", mode: "official" })).body.error.code).toBe("DAILY_NOT_OPEN");
     expect((await call(worker, a, "/api/daily/start", { date: "2026-12-01", mode: "official" })).body.error.code).toBe("DAILY_CLOSED");
+    // SEC-1 2차 DLY-3: refused dates admit nobody (the board of that date stays empty)
+    expect((await call(worker, a, "/api/daily/start", { date: "2099-12-31", mode: "official" })).body.error.code).toBe("DAILY_NOT_OPEN");
 
     // two tabs start at once → one attempt
     const [s1, s2] = await Promise.all([call(worker, a, "/api/daily/start", { date: DATE, mode: "official" }), call(worker, a, "/api/daily/start", { date: DATE, mode: "official" })]);

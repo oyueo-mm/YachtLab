@@ -43,7 +43,7 @@ import { handleDailyRoute, type DailyBoardApi, type DailyUserApi } from "./daily
 import { activityFor, reportCompletion, type DailyContentSink } from "./daily-activity";
 import { dailyAdminRoutes } from "./daily-admin";
 import { boardName, type BoardEntry, type Visibility } from "../../src/daily/ranking";
-import { DAILY_RULES, closesAt, isDailyDate } from "../../src/daily/calendar";
+import { DAILY_RULES, closesAt, dayPhase, isDailyDate } from "../../src/daily/calendar";
 import type { PuzzleResult } from "../../src/daily/puzzles/types";
 
 /**
@@ -631,7 +631,9 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     if (!p) return { ok: false as const, status: 404, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
     if (!isDailyDate(date)) return { ok: false as const, status: 400, code: "INVALID_COMMAND", message: "잘못된 날짜예요." };
     const now = this.dailyNow();
-    if (mode === "official" && !this.dailyStore.attempt(date, "official", now)) {
+    // SEC-1 2차 DLY-3: only an OPEN day admits a new official participant (no board object, no participant row
+    // for future, grace or closed dates — the store then answers DAILY_NOT_OPEN / DAILY_CLOSED as before)
+    if (mode === "official" && dayPhase(date, now) === "open" && !this.dailyStore.attempt(date, "official", now)) {
       if (this.dailyUsedBeforeRejoin(date, now)) return { ok: false as const, status: 409, code: "DAILY_USED", message: "오늘의 공식 도전은 이미 했어요. 내일 다시 도전해 주세요." };
       const limit = Number(this.env.DAILY_PARTICIPANT_LIMIT ?? 500);
       const admitted = await this.dailyBoard(date).admit(p.userId, Number.isInteger(limit) && limit > 0 ? limit : 500, now);
