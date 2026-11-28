@@ -89,10 +89,11 @@ describe("SOC-1 소셜 (wrangler dev + 가짜 로컬 로그인)", () => {
     // an anonymous visitor still sees the public profile (no session to block)
     expect((await call(a, `/api/profiles/${bUser}`)).status).toBe(200);
     expect((await call(b, "/api/me/friends/block", { code: aCode })).body).toEqual({ ok: true });
+    // SEC-1 2차 SOC-1: the blocked viewer gets exactly the anonymous view (no 404 that would reveal the block)
     const blocked = await call(a, `/api/profiles/${bUser}`);
-    expect(blocked.status).toBe(404);
-    expect(blocked.body.error.message).toBe("프로필을 찾을 수 없어요.");
-    expect((await call(null, `/api/profiles/${bUser}`)).status).toBe(200);
+    const anonymous = await call(null, `/api/profiles/${bUser}`);
+    expect(blocked.status).toBe(200);
+    expect(blocked.body).toEqual(anonymous.body);
     expect((await call(a, "/api/me/friends/search", { query: "소셜비" })).body.results).toEqual([]);
     expect((await call(a, `/api/me/friends/profile?code=${bCode}`)).status).toBe(404);
     expect((await call(a, `/api/me/friends/relation?userId=${bUser}&room=${room.body.code}`)).body.relation).toBe("none");

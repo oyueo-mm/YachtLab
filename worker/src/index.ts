@@ -1244,8 +1244,10 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   async publicProfile(viewer?: string | null) {
     const p = this.store.publicProfile();
     if (!p || viewer === undefined) return p;
-    if (viewer && this.friends.isBlocking(viewer)) return null;
-    const pins = await this.showcase(viewer);
+    // SEC-1 2차 SOC-1: a viewer this account blocks gets exactly the anonymous view (what anyone signed out
+    // sees) — a 404 only for them would tell them about the block, while hiding nothing they cannot see anyway.
+    const as = viewer && this.friends.isBlocking(viewer) ? null : viewer;
+    const pins = await this.showcase(as);
     return { ...p, pins };
   }
   /** What other players see of this account in a match (validated equipped items; null = default look). */
