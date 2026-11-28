@@ -126,7 +126,7 @@ export interface Env extends ConfigVars {
   ADMIN_REAUTH?: string;
   /** ADMIN-1: approved reward-amount policy version. Unset = reward/code/adoption-reward drafts refused. */
   ADMIN_REWARD_POLICY?: string;
-  /** D-ADM-9: legacy ADMIN_TOKEN routes — "metrics,ledger" (default), "metrics", "off". */
+  /** D-115: legacy ADMIN_TOKEN routes — "metrics,ledger" (default), "metrics", "off". */
   ADMIN_TOKEN_ROUTES?: string;
   /** "on" opens the suggestion board, reports and appeals to members. Default off. */
   FEEDBACK_BOARD?: string;
@@ -741,6 +741,15 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   async ping() {
     this.presenceState.ping(Date.now());
   }
+  /**
+   * INT-1 (Workers Free): the inbox heartbeat in ONE call — ping + request count + invites + sent invites
+   * (was four separate calls to this object per tab per minute). Same answers as the separate operations.
+   */
+  async inboxBeat(now: number) {
+    this.presenceState.ping(now);
+    const [box, invites, sent] = await Promise.all([this.fr("inboxCount", now), this.fr("invites", now), this.social("sent", now)]);
+    return { box: box as { requests: number; invites: number }, invites: invites as unknown[], sent: sent as unknown[] };
+  }
   async setPlaying(room: string | null) {
     this.presenceState.setPlaying(room, Date.now());
   }
@@ -1130,7 +1139,7 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       sql.exec("CREATE TABLE IF NOT EXISTS fr_retired (code TEXT PRIMARY KEY, at INTEGER NOT NULL)");
       if (plan.code) sql.exec("INSERT OR IGNORE INTO fr_retired (code, at) VALUES (?, ?)", plan.code, now);
       this.cleanup.init();
-      // ADMIN-1/FEEDBACK-1 (D-ADM-8): the admin index and the board are cleanup targets too — same durable,
+      // ADMIN-1/FEEDBACK-1 (D-114): the admin index and the board are cleanup targets too — same durable,
       // retried, generation-safe queue as the friend relations (they act only on data from before `now`).
       if (owner) this.cleanup.enqueue(owner, [...(plan.code || plan.peers.length ? [INDEX_TARGET, ...plan.peers] : []), ADMIN_TARGET, BOARD_TARGET], plan.code, now);
     });
@@ -1794,7 +1803,7 @@ export default {
           if (!env.ADMIN || !auth) return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
           return handleAdminRoute(request, url, { ...engagement(), client: await clientKey(request) }, (status, body) => json(status, body, allowed));
         }
-        // Legacy shared token (D-ADM-9): read-only allowlist, rate-limited, every use in the admin audit log.
+        // Legacy shared token (D-115): read-only allowlist, rate-limited, every use in the admin audit log.
         // No write and no new route may be served here — modules register console routes instead.
         const routes = legacyTokenRoutes(env.ADMIN_TOKEN_ROUTES);
         const route = url.pathname === "/api/admin/metrics" ? "metrics" : parts[2] === "ledger" && parts.length === 4 && /^u_[A-Za-z0-9_-]{22}$/.test(parts[3]) ? "ledger" : null;

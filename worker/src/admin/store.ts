@@ -64,7 +64,7 @@ export type ActivityReport = {
   gapDays: number | null;
 };
 /**
- * Retention of moderation data (D-ADM-7, proposal pending the privacy policy #126 — operator approval):
+ * Retention of moderation data (D-113, proposal pending the privacy policy #126 — operator approval):
  *  - a deleted account's sanctions still in force are kept (minimal fields) until they end, so deletion
  *    is not a way out; a permanent suspension is kept for at most `permanentSanctionMs`, then deleted;
  *  - finished sanctions (warning, nickname reset, expired, lifted) of a deleted account lose their

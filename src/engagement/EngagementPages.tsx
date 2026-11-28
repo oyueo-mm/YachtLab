@@ -184,7 +184,7 @@ export function MailboxPage({ server }: { server: string | null }) {
       {notices.length ? <ul className="eng-notices">{notices.map((n) => <li key={n.id} className={n.important ? "important" : ""}><b>[{KIND[n.kind] ?? "공지"}] {n.title}</b> <span className="eng-muted">{date(n.publishAt)}</span><p className="eng-body">{n.body}</p></li>)}</ul> : <p className="eng-muted">새 공지가 없어요.</p>}
       {!session() ? (signIn && <p><button className="eng-btn primary" onClick={signIn}>로그인하고 알림 확인</button></p>) : <>
         <h2>받은 알림</h2>
-        {/* INT-1 (D-ADM-3 갱신): the mailbox holds messages only; coins and gems are claimed on the reward page (#rewards). */}
+        {/* INT-1 (D-109 갱신): the mailbox holds messages only; coins and gems are claimed on the reward page (#rewards). */}
         {!!box?.unclaimed && <p className="eng-note">받을 보상 {box.unclaimed}개가 있어요. <a href="#rewards">출석·보상에서 받기</a></p>}
         {box?.items.length ? <ul className="eng-mail">{box.items.map((i) => (
           <li key={i.id}>

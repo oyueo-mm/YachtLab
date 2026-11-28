@@ -55,7 +55,7 @@ export function parseAdminAccounts(raw: string | undefined): Map<string, Role> {
 }
 
 /**
- * Approval policy (D-ADM-6):
+ * Approval policy (D-112):
  *  - "two-person" (DEFAULT): the approver must be a different administrator.
  *  - "single-operator": an owner may approve their OWN draft only under SINGLE_OPERATOR rules — a Google
  *    re-authentication made AFTER the draft, a cooling-off delay, a small blast radius per action kind
@@ -138,7 +138,7 @@ export const GRANT_CAPS = {
 /**
  * Legacy `ADMIN_TOKEN` (shared bearer, pre-ADMIN-1). Only these GET routes, every use audited
  * (actor `token:ADMIN_TOKEN`). ADMIN_TOKEN_ROUTES = "metrics" | "metrics,ledger" (default) | "off".
- * No new route may ever be added to the legacy path (D-ADM-9).
+ * No new route may ever be added to the legacy path (D-115).
  */
 export const LEGACY_TOKEN_ROUTES = ["metrics", "ledger"] as const;
 export function legacyTokenRoutes(raw: string | undefined): Set<string> {

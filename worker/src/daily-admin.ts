@@ -8,7 +8,7 @@ import { dailyAdminReport, puzzlesOf, type DailyBoardApi } from "./daily-api";
  * `engagement()` admin backend. The router — not these handlers — does the admin session check, the role
  * re-read from ADMIN_ACCOUNTS, the permission check, the ADMIN_WRITES gate and the audit row per write.
  *
- * There is NO shared-token path for daily operations any more (D-LIVE1-5): until INT-1 registers these
+ * There is NO shared-token path for daily operations any more (D-121): until INT-1 registers these
  * routes, `/api/admin/daily*` answers 404 like any unknown admin path.
  */
 export type DailyAdminPermission = "stats.read" | "content.write";

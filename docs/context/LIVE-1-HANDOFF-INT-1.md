@@ -1,7 +1,7 @@
 # LIVE-1 → INT-1 인계 (2026-11-28)
 
 > LIVE-1(담당 05) 개발 범위는 **완료로 확정**됐다. 이 문서는 INT-1이 통합·배포 단계에서 검증할 항목과 남은 위험을 정리한다.
-> 근거 PR: [#142](https://github.com/oyueo-mm/YachtLab/pull/142) (브랜치 `claude/funny-hamilton-5aavn9`). 상세 설계: [DAILY-LIVE-1](./DAILY-LIVE-1.md). 결정: D-LIVE1-1~6(임시 ID).
+> 근거 PR: [#142](https://github.com/oyueo-mm/YachtLab/pull/142) (브랜치 `claude/funny-hamilton-5aavn9`). 상세 설계: [DAILY-LIVE-1](./DAILY-LIVE-1.md). 결정: D-117~D-122(임시 ID).
 > LIVE-1은 **main 병합·운영 배포·`DAILY` 활성화·운영 설정 변경을 하지 않았다.** 다른 담당 PR(#140 C5, #141 ADMIN-1)도 병합하지 않았다(계약 문서만 읽음).
 
 ## 1. 이 PR의 상태
@@ -14,7 +14,7 @@
 | 재화 | 일일 콘텐츠 자체 코인 **없음** (`NO_DAILY_REWARDS`, `DAILY_REWARDS_APPROVED = false`) |
 | 연속 활동 | **공식 오늘의 요트 완료(`daily.official.completed`)만** 인정. 전략 퍼즐·공식 시작·같은 날 연습·지난 도전은 제외 |
 | DO 마이그레이션 | 임시 태그 `v5-live1-daily` (`DailyBoard`) |
-| 결정 번호 | 임시 `D-LIVE1-1~6` |
+| 결정 번호 | 임시 `D-117~D-122` |
 
 ## 2. INT-1 통합 검증 항목
 
@@ -75,7 +75,7 @@
 
 - **비공개 경로 1주 관찰 때 실측**: 요청 수·DO 쓰기 행·CPU 시간, 완료율, `DAILY_VERIFY_FAILED`·`DAILY_SECRET_CONFIG` 로그 0건. 실측이 추정을 넘으면 상한을 낮춘다.
 
-## 4. INT-1 공개 순서 (D-LIVE1-6)
+## 4. INT-1 공개 순서 (D-122)
 
 1. #140·#141·#142 충돌 정리, 마이그레이션 순서·결정 번호 확정, 필수 CI 통과.
 2. 승인된 수동 Worker 배포(`DAILY="off"`, `RETENTION` 미설정).

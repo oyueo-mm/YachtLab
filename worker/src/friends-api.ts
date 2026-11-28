@@ -35,6 +35,8 @@ export interface FriendUser {
   /** `viewer`: shown only to a player this account also lists as a friend (else "offline"). */
   presence(viewer?: string): Promise<"playing" | "online" | "offline">;
   ping(): Promise<void>;
+  /** INT-1: ping + inboxCount + invites + sent in one call (absent on test fakes → the separate calls). */
+  inboxBeat?(now: number): Promise<{ box: { requests: number; invites: number }; invites: unknown[]; sent: unknown[] }>;
   publicProfile(): Promise<unknown>;
   /** SOC-1: SocialStore operations of this account (settings, pins, sent invites). */
   social?<T = unknown>(op: string, ...args: unknown[]): Promise<T>;
@@ -148,8 +150,16 @@ export async function handleFriendRoute(request: Request, url: URL, me: { userId
   const user = d.user(me.userId);
 
   if (path === "/api/me/inbox" && method === "GET") {
-    await user.ping();
     const device = url.searchParams.get("device") ?? "";
+    if (user.inboxBeat) {
+      // INT-1: one account call + one presence call per heartbeat (Workers Free request budget)
+      const [beat] = await Promise.all([
+        user.inboxBeat(d.now()),
+        d.presence?.beat(me.userId, DEVICE_ID.test(device) ? device : "legacy").catch(() => undefined),
+      ]);
+      return reply(200, { requests: beat.box.requests, invites: beat.invites as Invite[], sent: beat.sent as SentInvite[] });
+    }
+    await user.ping();
     // The heartbeat of this tab / device; a failure only makes friends see "unknown" for a while.
     await d.presence?.beat(me.userId, DEVICE_ID.test(device) ? device : "legacy").catch(() => undefined);
     const box = await user.fr<{ requests: number; invites: number }>("inboxCount", d.now());

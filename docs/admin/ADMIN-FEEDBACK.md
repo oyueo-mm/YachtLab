@@ -2,7 +2,7 @@
 
 > 상태: **구현·격리 검증 완료, 운영 미활성.** 관리자 계정 등록(`ADMIN_ACCOUNTS`), 쓰기 활성(`ADMIN_WRITES=on`), 제안 게시판 공개(`FEEDBACK_BOARD=on`)는 모두 **별도 승인** 대상이다. SEC-1 결정에 따라 관리자 쓰기 기능은 **SEC-1 담당자(08)의 독립 검증 전에는 운영에서 켜지 않는다.** `wrangler.toml`(바인딩·마이그레이션 v5·변수)과 `worker/src/economy.ts`가 바뀌었으므로 CI-1.2(D-100) 보호 입력 → 자동 배포가 정지되고 수동 승인 배포만 가능하다.
 >
-> 결정: D-ADM-1~5. 코드: `worker/src/admin/`(roles·store·member·stats·api), `worker/src/feedback/board.ts`, `src/admin/`, `src/engagement/`. 테스트: `tests/admin-feedback.test.ts`(26), `tests/admin-sec1.test.ts`(13), `tests/admin-worker.test.ts`(wrangler dev E2E 1), `tests/ui/admin-feedback.spec.ts`(Playwright 3×2).
+> 결정: D-107~D-111. 코드: `worker/src/admin/`(roles·store·member·stats·api), `worker/src/feedback/board.ts`, `src/admin/`, `src/engagement/`. 테스트: `tests/admin-feedback.test.ts`(26), `tests/admin-sec1.test.ts`(13), `tests/admin-worker.test.ts`(wrangler dev E2E 1), `tests/ui/admin-feedback.spec.ts`(Playwright 3×2).
 
 ## 0. 조사한 기존 구조 (작업 전)
 
@@ -147,7 +147,7 @@
 
 ## 9. 후속 작업 (2026-11-28, PR #141 추가 커밋)
 
-### 9.1 실제 Google 재인증 (D-ADM-1 보강)
+### 9.1 실제 Google 재인증 (D-107 보강)
 
 1. 콘솔에서 "관리자 세션 시작"을 누르면 `/auth/google/start?purpose=admin&cs=<탭 상태 해시>`로 이동합니다. Worker는 `prompt=login`과 `max_age=0`을 붙여 Google이 기존 세션을 재사용하지 않고 다시 인증하게 합니다.
 2. 콜백에서 ID 토큰의 `auth_time`이 이 로그인 시작 시각(허용 오차 60초) 이후인지 확인합니다(`requireFreshAuth`). `auth_time`이 없거나 오래되면 거부합니다. 계정을 새로 만들지 않고, 관리자가 아닌 계정은 같은 오류(`admin-reauth-error=denied`)를 받습니다.
@@ -156,7 +156,7 @@
 5. 고위험 작업은 `now − reauth_at ≤ 10분`일 때만 허용합니다. 대상은 승인·실행, 보상·코드·제재(경고 제외) 초안, 보상 회수, 확장 라우트 중 `highRisk`입니다. 조회는 30분 미사용·4시간 세션으로 계속할 수 있습니다.
 6. `ADMIN_REAUTH=off`는 `APP_URL`이 루프백(127.0.0.1)일 때만 적용됩니다. 배포된 Worker에서는 항상 `google`이고, `wrangler.toml`에 이 변수를 두지 않습니다(테스트로 고정).
 
-### 9.2 단일 운영자 승인 정책 (D-ADM-6)
+### 9.2 단일 운영자 승인 정책 (D-112)
 
 기본값은 계속 `two-person`입니다. `ADMIN_APPROVAL=single-operator`일 때만 owner가 자기 초안을 승인할 수 있고, 다음 조건을 **모두** 만족해야 합니다.
 
@@ -170,7 +170,7 @@
 
 예전 값 `self`는 무제한 승인이 아니라 이 규칙으로 해석합니다.
 
-### 9.3 탈퇴 정리 재시도 (D-ADM-8)
+### 9.3 탈퇴 정리 재시도 (D-114)
 
 탈퇴 트랜잭션은 계정 데이터 삭제와 함께 기존 C4.2 정리 대기열(`acct_cleanup`)에 `@admin`과 `@board` 대상을 기록합니다. 처리 방식은 친구 정리와 같습니다.
 
@@ -180,7 +180,7 @@
   * `BoardCore.forget(userId, before)`: `before` 이전의 글·추천·신고만 처리합니다.
 * 따라서 재가입한 같은 Google 계정의 새 데이터는 늦은 재시도에도 건드리지 않습니다.
 
-### 9.4 탈퇴 후 제재 기록의 보존 정책 (D-ADM-7, 처리방침 승인 전 제안)
+### 9.4 탈퇴 후 제재 기록의 보존 정책 (D-113, 처리방침 승인 전 제안)
 
 | 데이터 | 보존 목적 | 탈퇴 시 처리 | 삭제 시점 |
 |---|---|---|---|
@@ -192,7 +192,7 @@
 
 `purgeRetention`은 AdminHub 알람(6시간 간격)에서 실행됩니다. 기간 상수는 `RETENTION`에 있습니다. 기간과 처리방침(#126) 문구는 별도 승인입니다.
 
-### 9.5 기존 ADMIN_TOKEN 경로 검토 (D-ADM-9)
+### 9.5 기존 ADMIN_TOKEN 경로 검토 (D-115)
 
 | 발견 | 위험 | 조치 |
 |---|---|---|
@@ -203,7 +203,7 @@
 
 권장 순서: 콘솔을 운영하기 시작하면 `ADMIN_TOKEN_ROUTES=metrics`로 줄이고, 운영 점검 스크립트를 옮긴 뒤 `off`로 끕니다. 별도 승인 사항입니다.
 
-### 9.6 DAU·WAU·MAU 정확성 (D-ADM-4 보강)
+### 9.6 DAU·WAU·MAU 정확성 (D-110 보강)
 
 * **시간대:** 회원 활동 집계를 UTC에서 **KST**로 바꿨습니다(`kstDay`, 월요일 시작 주, KST 달력 월). 경제·퀘스트·LIVE-1 일일 콘텐츠와 같은 날짜 경계를 씁니다. Hub 카운터(경기·매칭·경제 통계)는 기존대로 UTC이고, 화면에 각각 표시합니다.
 * **정확성:** 계정이 "주 첫 활동"과 "월 첫 활동" 여부를 직접 판정하므로, 일별 합계만으로 정확한 고유 수가 나옵니다. 70일 무작위 활동(KST 23:59와 00:01 경계)을 전수 계산한 값과 일치하는지 테스트로 확인했습니다.
@@ -211,7 +211,7 @@
 * **실패 복구:** 계정은 보고를 `activity_outbox`에 남기고, 색인이 확인응답을 줄 때만 지웁니다. 실패하면 다음 인증 때(최소 1분 간격, 동시에 1건) 미전송분을 한 번에 다시 보냅니다. 최근 14일분까지 보관합니다.
 * **한계:** 같은 Google 계정이 탈퇴 후 재가입하면 새 계정으로 셉니다. 색인 배포 전 활동은 집계되지 않습니다. 색인 객체 자체를 잃으면 복구할 수 없습니다(Durable Object 저장소에 의존).
 
-### 9.7 C5 #140 RewardGrants 연동 준비 (D-ADM-3 보강)
+### 9.7 C5 #140 RewardGrants 연동 준비 (D-109 보강)
 
 * 지급 ID를 이미 C5 txId 규칙에 맞췄습니다.
   * 운영 캠페인: `op:<campaignId>`
@@ -222,7 +222,7 @@
 * `worker/src/admin/grant-port.ts`의 `toGrantRequest()`가 알림함 항목을 C5 `GrantRequest`로 바꿉니다(`actor = admin:<승인자>`, 운영·채택 보상은 알림함, 코드는 즉시 지급). #140은 아직 병합되지 않았으므로 연결하지 않았고, 지금은 기존 `EconomyStore.adminGrant`(원장 `admin:<id>`)를 씁니다. INT-1이 통합할 때 계정 객체의 `deliver`/`claim`/`redeemGrant` 내부만 `grants.issue`/`grants.claim`으로 바꾸면 되고, 원장 ID 접두사는 `admin:`에서 `g:`로 바뀝니다. 운영 배포 전 통합이라 기존 데이터는 없습니다.
 * C5 계약 §5의 2단계 예약(전역 예약 → 계정 지급, 예약은 취소하지 않음)은 이미 `AdminCore.redeem`/`confirmRedeem`과 같은 구조입니다.
 
-### 9.8 LIVE-1 #142 관리자 API 계약 통일 (D-ADM-9)
+### 9.8 LIVE-1 #142 관리자 API 계약 통일 (D-115)
 
 [LIVE-1 관리자 계약](./LIVE-1-ADMIN-CONTRACT.md) 참고. 요약: `/api/admin/daily*`는 `ADMIN_TOKEN` 대신 `AdminExtensionRoute`로 등록합니다. 보고서는 `stats.read`, 문제 내리기는 새 권한 `content.write`(operator와 owner)·쓰기 스위치·감사를 적용합니다. 동작은 테스트로 고정했습니다(followup §8). #142 브랜치는 수정하지 않았고, 변경 요청만 남깁니다.
 

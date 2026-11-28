@@ -12,7 +12,7 @@ const b64url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replac
 const sha256 = async (t: string) => b64url(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t))));
 
 /**
- * Real re-authentication (D-ADM-1b): leave for Google with prompt=login / max_age=0. The Worker checks
+ * Real re-authentication (D-107b): leave for Google with prompt=login / max_age=0. The Worker checks
  * auth_time and returns `#admin-reauth=<one-time ticket>`; only this tab knows the client state.
  */
 export async function startAdminReauth(server: string) {

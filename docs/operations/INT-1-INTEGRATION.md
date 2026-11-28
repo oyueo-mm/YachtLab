@@ -1,127 +1,101 @@
-# INT-1 제품 통합 (격리 브랜치 `integration/int-1`)
+# INT-1 제품 통합 (격리 브랜치 `integration/int-1`, Draft PR #147)
 
-기준 main `d775ecb` (보안 출시 #137·#138·#139 포함) · 운영 Pages `d775ecb-mx07j30u` · Worker `692e00a4-d983-4ccb-b93c-4e52c06deca6`
-승인 범위: 격리 통합·충돌 해결·공통 인터페이스 연결·테스트·검증용 Draft PR. **main 병합·운영 배포·플래그 활성화·재화 지급·담당 브랜치 변경 없음.**
+기준 main `d775ecb` (보안 출시 #137·#138·#139 포함) · 운영 Pages `d775ecb-mx07j30u` · Worker `692e00a4-d983-4ccb-b93c-4e52c06deca6`(복귀 `6ef2c717-60f1-48c0-89ee-3b7ae8b0f1de`)
+승인 범위: 격리 통합·충돌 해결·공통 인터페이스 연결·테스트·검증용 Draft PR. **main 병합·운영 배포·기능 활성화·실제 사용자 보상 지급·담당 브랜치 변경 없음.** 결정: [D-139](../context/DECISIONS.md) (트랙 결정 D-103~D-138).
 
-## A. 통합 기록 (기준 SHA와 통합 후 변경)
+## 1. 통합 기록 (기준 head와 통합 커밋)
 
-| 순서 | PR | 통합 기준 head | 통합 커밋 | 상태 |
+| 순서 | PR | 통합한 head | 통합 커밋 | 충돌 해결 |
 |---|---|---|---|---|
-| 1 | #140 C5 | `5d49414` | `6bea655` | 통합됨(충돌 없음) |
-| 2 | #141 ADMIN-1/FEEDBACK-1 | `4cd73a0` | `f5891da` | 통합됨 — 충돌 5파일 해결 |
-| 3 | #142 LIVE-1 | (담당 최종 보고·CI 대기) | — | 대기 |
-| 4 | #143 SOC-1 | (담당 최종 보고·CI 대기) | — | 대기 |
-| 5 | #144 UI-1 | (담당 최종 보고·CI 대기) | — | 대기 |
-| 6 | #145 UI-2 | (담당 최종 보고·CI 대기) | — | 대기 |
-| 7 | #146 FX-1 | (main 병합으로 PR CI 재개 필요) | — | 대기 |
+| 1 | #140 C5 | `5d49414` | `6bea655` | 없음 |
+| 2 | #141 ADMIN-1/FEEDBACK-1 | `4cd73a0` | `f5891da` → `1ffa39e`(보상 경로 단일화) → `78b41d0`(v5 확정) → `ea2b4fa`(e2e) | `routes.ts`, `accounts-api.ts`, `index.ts`, 문서 |
+| 3 | #142 LIVE-1 | `762b86a` | `d55835f` | `index.ts`, `routes.ts`, `wrangler.toml`(v6), `App.tsx`, 문서 |
+| 4 | #143 SOC-1 | `cda0cae` | `b579006` (+SOC-1-F1 수정) | `App.tsx`, `index.ts`, 문서 |
+| 5 | #144 UI-1 | `d6a2a7d` | `c79b8a4` (+진입 플래그·알림함 분리) | `App.tsx`, `MatchPopup.tsx`(UI-1 판), `OnlineGame.tsx`(UI-1 A3 결과창), 문서 |
+| 6 | #146 FX-1 | `d9c3fa8` | `4c042f8` | `items-content.css`(양쪽 유지), 문서 |
+| 7 | #145 UI-2 | `8964bcc` (재검증: browser(1) 재실행 성공, `ci-result` 성공) | `a519965` | `DrawPanel.tsx`·`EconomyPages.tsx`(UI-2 판 + C5 견적 패치), `ItemViews.tsx`(UI-2 판), 문서 |
+| — | 통합 검증·문서 | — | `045718c`, `89e3566`, 이후 커밋 | — |
 
-### #141 충돌 해결 (`f5891da`)
-- `src/routes.ts`: 양쪽 라우트 합집합(`rewards` + `suggestions`/`mailbox`/`admin`).
-- `worker/src/accounts-api.ts`: 의존성 두 필드 모두 유지(`quoteRequired`, `adminReauth`). **정지 계정 가드를 C5 보상 POST(출석·수령·코드)보다 앞에** 배치.
-- `worker/src/index.ts`: C5 quote 인자 + ADMIN 지표 배열을 결합(buy·upgrade·draw), 경기 정산 지표 두 줄 모두 유지.
-- DECISIONS/ROADMAP: 합집합(최종 번호는 §4 일괄 부여).
+각 담당 브랜치는 읽기만 했다(변경·삭제 없음). 문서 충돌(DECISIONS/ROADMAP/RESULTS/TECHNIQUES/CONTEXT/HANDOFF)은 모두 양쪽 유지 후 번호만 일괄 부여했다.
 
-### 공통 보상 지급 경로 단일화 (`1ffa39e`)
-- `worker/src/admin/grant-port.ts`: `deliverAdminItem`·`claimAdminItem`·`redeemAdminItem`·`revokeAdminItem` — UserStore와 테스트 가짜가 같은 함수를 쓴다. `toGrantRequest` 연결.
-- 관리자 보상(`op:`)·채택 보상(`sug:`) = C5 inbox 지급, 교환 코드(`code:<id>[:<n>]`) = C5 direct 지급 → `EconomyStore.grantCredit`(원장 `g:<txId>`)만 잔액을 바꾼다. ADMIN 알림함은 메시지만(금액 0), **보상함 단일 원천 = C5 `grant_tx`**, 알림함 `unclaimed`는 C5 inbox 수.
-- 승인 기록: 캠페인·채택 보상·활성화된 코드가 승인 관리자와 승인된 금액 정책 버전을 운반(C5 `actor`=`admin:<id>`, `policyVersion`). 없으면 거절.
-- 삭제한 중복 경로: `EconomyStore.adminGrant`(`admin:` 원장), C5 `creditAdminClaim`, ADMIN `wallet()`(C5 `balance()` 유지). `GRANT_CAPS`는 C5 `GRANT_LIMITS`를 참조(상한 표 하나).
-- 교환 코드: `/api/me/rewards/redeem`(C5 화면)과 `/api/me/redeem`이 같은 흐름(예약 → C5 지급 → 확정). 확정적 거절(예: `SOURCE_DISABLED`)은 예약을 풀어 코드를 소진하지 않는다. 동시·반복 요청은 같은 예약(txId)이라 1회만 지급.
-- 회수: 미수령 C5 grant만 취소, 수령된 것은 유지(원장 append-only), grant 없는 메시지만 알림함에서 숨김.
-- **두 승인 게이트 모두 유지**: `ADMIN_REWARD_POLICY`(초안 시 POLICY_PENDING) + C5 `APPROVED_SOURCES`(출석·연속 활동·주간 연승만). 운영 설정에서는 관리자 보상·채택 보상·교환 코드가 `SOURCE_DISABLED`로 막힌다.
-- 시험: ADMIN 시험을 단일 경로 계약으로 이전, `tests/int1-admin-grants.test.ts`(운영 게이트·예약 해제·동시 수령/코드 1회·회수·정지 계정·가드 순서).
+## 2. 통합에서 바꾼 것 (각 PR에 없던 변경)
 
-### DO 마이그레이션 확정
-- 운영 v1~v4 그대로. **v5 = `AdminHub`·`SuggestionBoard`(ADMIN-1, 태그 확정)**, **v6 = `DailyBoard`(LIVE-1, 통합 시 확정)**. 신규 클래스 추가만이라 기존 DO 데이터 영향 없음. 이 통합의 Worker 배포는 `wrangler.toml` 변경 때문에 CI-1.2 보호 입력 → **수동 고위험 경로**.
+| 항목 | 내용 | 시험 |
+|---|---|---|
+| 보상 지급 경로 하나 | `worker/src/admin/grant-port.ts`: 운영 보상(`op:`)·채택 보상(`sug:`) = C5 보상함 지급, 교환 코드(`code:<id>[:<n>]`) = C5 직접 지급. 잔액은 `EconomyStore.grantCredit`(원장 `g:<txId>`)만 바꾼다. 삭제: `EconomyStore.adminGrant`(`admin:` 원장), `creditAdminClaim`, ADMIN `wallet()`. `GRANT_CAPS` = C5 `GRANT_LIMITS` | `tests/int1-admin-grants.test.ts` |
+| 승인 게이트 둘 다 | `ADMIN_REWARD_POLICY`(정책 버전) + C5 `APPROVED_SOURCES`(출석·연속 활동·주간 연승). 운영 설정에서 관리자·제안·코드 지급은 `SOURCE_DISABLED`, 코드 예약은 해제(코드 소진 없음) | 〃 |
+| 알림함 = 메시지, 보상함 = 재화 | 알림함 화면의 받기 버튼·쿠폰 입력 제거, "받을 보상 n개 → 출석·보상" 안내. 쿠폰은 `#rewards` 한 곳. `/api/me/rewards/redeem`은 C5 RewardsView(+`granted`)로 응답(이전엔 ADMIN 형식이라 C5 화면이 깨졌다) | 〃 (RewardsView 형식, 화면 소스 확인) |
+| 정지 계정 | 보상 POST·쿠폰·알림함 수령 403, 일일 콘텐츠 쓰기 403, C5 `dailyContentDone`은 정지 중 기록 안 함 | 〃 |
+| LIVE-1 일일 관리 | `engagement()`에 `dailyAdminRoutes` 등록(ADMIN 확장 라우트, `stats.read`/`content.write`, 감사 `daily.puzzle`). 공유 `ADMIN_TOKEN`은 GET 2개만 | `tests/daily-integration.test.ts` |
+| SOC-1-F1 | 빠른 대전이 두 회원을 짝짓기 전에 양방향 `isBlocking` 확인(오류 = 짝짓지 않음), 차단 쌍은 재매칭 간격 동안 기억(`queue.blockedSkip` 지표) | `tests/online-matchmaking.test.ts` "SOC-1-F1" 3건 |
+| 진입 플래그 | `/api/features`에 `retention`·`feedback`·`mailbox`·`notices` 추가(각자 변수, 기본 꺼짐). 신규 변수 `MAILBOX="off"`, `NOTICES="off"` | `int1-admin-grants` "entry flags" |
+| UI-2 × C5 | UI-2 구조에 C5 견적 필드·409 처리 재적용(`docs/context/int1-ui2/ui2-c5-port.patch`, 9 hunk 그대로 적용됨), UI 시험 `tests/ui/int1-ui2-c5.spec.ts` 추가 | 실제 Worker: `tests/int1-spectator-worker.test.ts` |
+| UI-2 × FX-1 | `src/shell/shop/PreviewStage.tsx` = FX-1 `FxPreview` 재수출, `src/shell/shop/fx1-stills.ts`(주사위 카드 정적 3D 썸네일, 공유 WebGL 1개·직렬 대기열·8초 뒤 해제) | `ui2-shop`·`fx1-preview` UI 시험 |
+| 하트비트 비용 | `/api/me/inbox` 하트비트의 계정 DO 호출 4회(ping·요청 수·초대·보낸 초대)를 `UserStore.inboxBeat` 1회로 합침 | 친구·접속 상태 시험 64건 |
+| 결정 번호 | 임시 ID 36개 → D-103~D-138(제목에 `[구 …]`), 통합 결정 D-139 | — |
 
-## B. 통합 계획 (조사 기준, 진행에 따라 갱신)
-기준: main `d775ecb` · 운영 Pages `d775ecb-mx07j30u` · Worker `692e00a4-d983-4ccb-b93c-4e52c06deca6`(복귀 `6ef2c717…`)
-승인 범위: 조사·계획만. 병합·배포·플래그 활성화·재화 지급·기존 브랜치 변경 없음.
+UI-1 시험 경쟁 수정(사이드바 닫기)과 LIVE-1 WebSocket close 이벤트 시험 수정은 담당 브랜치 그대로 들어왔다(충돌 없음, 해당 파일 미수정).
 
-## 0. 대상 PR 상태
+## 3. 추가 확인 11건
 
-| PR | head | main 대비 | CI | 확정 가능 |
-|---|---|---|---|---|
-| #140 C5 | `5d49414` (문서상 `f35b409` + 문서 커밋 1개) | 3 뒤 | 통과 | 예(개발 종료) |
-| #141 ADMIN-1 | `4cd73a0` | 3 뒤 | 통과 | 예(개발 종료) |
-| #142 LIVE-1 | `434e876` | 최신 | 진행 중 | 담당 확정 후 |
-| #143 SOC-1 | `cda0cae` | 최신 | 브라우저 통과 | 담당 확정 후 |
-| #144 UI-1 | `b957dd3` | 최신 | 진행 중 | 담당 확정 후 |
-| #145 UI-2 | `d13e8b1` | 최신 | ci-result 진행 중 | 담당 확정 후 |
-| #146 FX-1 | `dbb26f9` | 10 뒤 | **미실행**(DECISIONS 충돌로 PR CI 불가) | 담당이 main 병합 후 |
+| # | 확인 | 결과 |
+|---|---|---|
+| 1 | LIVE-1 자정 30분 유예 × C5 활동 날짜 | 서버 시각 `min(at, now)`의 KST 날짜로 1회. 유예 중 끝낸 전날 도전 = 오늘 활동, 전날 소급 없음(C5 "소급 없음"과 일치). 시험 고정 |
+| 2 | 정지 계정의 일일 콘텐츠 우회 | 일일 POST 403 + `dailyContentDone` 정지 가드 → 연속 활동 보상 우회 불가 |
+| 3 | SOC-1-F1 | 해결(§2) |
+| 4 | 관전자 제외(실제 Worker) | wrangler dev: 3인 방에서 관전을 고른 회원은 경기 조작 불가, **기록 0·원장 변화 0·경기 잠금 없음**(관전 중 서버 AI 대전 시작 가능), 참가자 2명만 기록·`m:<matchId>` 원장 |
+| 5 | UI-1 사이드바 닫기 / LIVE-1 close 이벤트 시험 수정 | 보존(§2) |
+| 6 | UI-2 C5 이식 패치 | 그대로 적용. 실제 Worker에서 UI-2가 보내는 본문으로 구매·강화 200, 가격·설정·확률·단계 불일치 409(`PRICE_CHANGED`·`POLICY_CHANGED`·`ODDS_CHANGED`·`LEVEL_CHANGED`), 거절 시 잔액·보유 불변 |
+| 7 | FX-1 정적 썸네일·단일 3D 무대 | 카드 그리드 `.stage-board` 0, 상세 1, 상세 반복 열고 닫아도 WebGL 컨텍스트 잔존 없음(`fx1-preview` 시험). 썸네일은 화면 근처 카드만 요청 |
+| 8 | 공개 기능 플래그·진입점 통일 | `/api/features` 한 곳, `src/shell/entries.ts`만 진입점을 그림. 관리자 콘솔은 진입점 없음(`#admin` + 서버 관리자 세션) |
+| 9 | 알림함/보상함 분리 | §2 |
+| 10 | Workers Free 사용량 | §5 |
+| 11 | v5(ADMIN) → v6(LIVE-1) 마이그레이션 | `wrangler.toml`: v1~v4 불변, `v5` = `AdminHub`·`SuggestionBoard`, `v6` = `DailyBoard`. 순서 시험 고정, 로컬 wrangler dev 시험이 모두 이 순서로 적용·실행 |
 
-LIVE-1 세션이 이미 한 일(#142 `434e876`, 자기 PR 안): 공유 ADMIN_TOKEN 일일 경로 제거, `dailyAdminRoutes`(stats.read / content.write+감사) 내보내기만, `dailyContentDone` 어댑터(C5 없으면 no-op), 일일 보상 0. **등록·연결은 INT-1에 남아 있음** → 중복 없음.
+## 4. 기능 플래그 (모두 비활성)
 
-## 1. 통합 순서 (격리 브랜치, 의존성 순)
+`RETENTION` 미설정 · `ECONOMY_QUOTE` 미설정 · `ADMIN_WRITES="off"` · `ADMIN_APPROVAL="two-person"` · `FEEDBACK_BOARD="off"` · `MAILBOX="off"`(신규) · `NOTICES="off"`(신규) · `ADMIN_REWARD_POLICY` 미설정 · `DAILY="off"` · `DAILY_NEW_ACCOUNTS_RANKED="off"` · 일일 보상 0 · `FRIEND_RESIDUE_CLEANUP` 미설정 · C5 `APPROVED_SOURCES` = 자동 재방문 3종(그것도 `RETENTION` 꺼짐으로 미작동). 관리자 계정 시크릿 `ADMIN_ACCOUNTS` 미등록.
 
-1. **main → 통합 브랜치** (보안 수정 #137/#138/#139 포함 상태에서 시작)
-2. **#140 C5** — 공통 지급·원장(`RewardGrants`/`grantCredit`), 보상함 `grant_tx`, quote 필드·409. Worker 저장소는 UserStore 추가 테이블만(DO 마이그레이션 없음).
-3. **#141 ADMIN-1** — 충돌: `worker/src/index.ts`, `accounts-api.ts`, `src/routes.ts`, DECISIONS/ROADMAP.
-   - 통합 작업: `grant-port.ts` `toGrantRequest()`로 `deliver/claim/redeemGrant` 내부를 `grants.issue/claim`으로 교체, `EconomyStore.adminGrant`(`admin:` 원장)·`creditAdminClaim` 경로 제거, `wallet()`/`balance()` 하나로.
-   - 보상함 단일 원천 = C5 `grant_tx`; ADMIN `inbox` 테이블은 메시지만(코인·보석 필드 미사용).
-   - 교환 코드: C5 `/api/me/rewards/redeem` 하나만 유지, ADMIN `/api/me/redeem` 제거 또는 C5로 위임. `code:<id>:<n>` 키로 "계정당 1회" 보장 여부 테스트(동시 요청 포함).
-   - 게이트 둘 다 유지: `ADMIN_REWARD_POLICY`(미설정=POLICY_PENDING) + C5 `APPROVED_SOURCES`(attendance/activity-streak/weekly-streak만).
-   - 정지 계정: `/api/me/rewards/*` POST(출석·수령·코드) 전에 standing 검사.
-   - 상한: `GRANT_CAPS` = C5 `GRANT_LIMITS` 하나로(ADMIN 문서의 10,000/300 문구는 정리).
-4. **#142 LIVE-1** — 충돌: `index.ts`, `routes.ts`, `wrangler.toml`, App.tsx.
-   - `engagement()`에 `extensions: dailyAdminRoutes(deps)` 등록, ADMIN 권한 `content.write` 추가 확인, 감사 로그 `daily.puzzle`.
-   - `daily-activity.ts` → C5 `UserStore.dailyContentDone({kind:"daily.official.completed"})`만. 퍼즐·연습·지난 도전 제외 테스트.
-   - 순위 게시·활동 보고 단계별 멱등(재시도 중복 없음) 테스트.
-   - 공유 `ADMIN_TOKEN` 쓰기 경로 복구 금지(허용 목록 GET 2개만 유지).
-5. **#143 SOC-1** — Worker 변경 다수지만 마이그레이션 없음. 충돌: `index.ts`, `accounts-api.ts`, `account.ts`, `host.ts`(#141과), App.tsx.
-6. **#144 UI-1** — 충돌: `MatchPopup.tsx`(UI-1 판 채택), `OnlineGame.tsx`, `OnlineMulti.tsx`(#143과), App.tsx.
-   - 진입점 `src/shell/entries.ts`: `features.daily`는 있음, `retention`/`mailbox`/`feedback`/`notices`는 어느 PR의 `/api/features`에도 없음 → 기본 숨김(요구사항과 일치). 플래그 키를 `/api/features`에 추가할 때 기본값 false.
-   - 보상함 진입점 `#rewards` 하나(UI-1·C5 합의), `/api/me/notifications` 요청 엔드포인트는 신규 기능이라 보류.
-7. **#145 UI-2** — 충돌: `EconomyPages.tsx`, `DrawPanel.tsx`(#140과).
-   - **C5 quote 필드(`expectedPrice/expectedLevel/configVersion/oddsVersion`)·409(ODDS_CHANGED/PRICE_CHANGED/POLICY_CHANGED/REQUEST_REUSED/CLIENT_UPDATE_REQUIRED) 재적용** — UI-2는 보내지 않음(유실 위험 최대).
-   - 카탈로그 rev 3(C5) 이후 "신상품" 레일 대상 확인.
-8. **#146 FX-1** — 충돌: `ItemViews.tsx`(UI-2 판 채택 후 FX-1 변경 재적용), `items-content.css`(#143과), DECISIONS/RESULTS/TECHNIQUES.
-   - UI-2 `PreviewStage.tsx`를 `../../fx-preview` 재수출로 교체, 썸네일 `registerPreviewProvider` 연결, 단일 활성 WebGL 무대 정책·정적 썸네일 캐시 검증.
+남은 문서 불일치: ADMIN `flags.approval`은 `self`/`two-person`만 보고한다(문서의 `single-operator` 표기는 `self`).
 
-## 2. 충돌 지도 (git merge-tree, main `d775ecb` 기준)
+## 5. Workers Free 사용량 (기능별, 코드 경로 기준 추정)
 
-- main 대비: #146만 DECISIONS.md.
-- 코드 충돌 쌍: 140×141(routes, accounts-api, index), 140×142(routes), 140×143(App), 140×145(DrawPanel, EconomyPages), 141×142(App, routes, index, **wrangler.toml**), 141×143(App, index), 142×143(App, index), 143×144(App, MatchPopup, OnlineGame), 143×146(items-content.css), 145×146(ItemViews).
-- 문서 충돌: DECISIONS.md는 모든 쌍, CONTEXT/HANDOFF/ROADMAP/RESULTS/TECHNIQUES 일부.
+Free 한도(Cloudflare 문서 기준, 배포 전 대시보드에서 재확인): Worker 요청 10만/일, DO 요청 10만/일, SQLite 행 쓰기 10만/일·읽기 500만/일, 저장 5 GB, 번들 gzip 3 MB.
 
-## 3. DO 마이그레이션·저장소 (첫 운영 배포 전 확정)
+| 기능 | 켜진 상태 비용 | 운영 기본(꺼짐) | 비고 |
+|---|---|---|---|
+| 번들 | 1,660.5 KiB / gzip 272.9 KiB (운영 401.3 KiB) | — | 증가분 대부분 LIVE-1 퍼즐 데이터. 한도의 약 9% |
+| SOC-1 받은함 하트비트(로그인 탭당 60초, 화면 보일 때) | Worker 1 + DO 3(인증 1·계정 1·FriendIndex 1, 메모리만) | 켜짐(SOC-1 기본) | 통합 전 SOC-1 그대로면 DO 6, main은 4. 로그인 탭 1시간 = Worker 60·DO 180 → DO 10만/일 ≈ 탭 555시간/일 |
+| SOC-1 경기 시작/종료 | 참가자당 FriendIndex 1(행 쓰기 1) | 켜짐 | |
+| SOC-1 빠른 대전 차단 확인(F1) | 회원끼리 짝짓기 1회당 DO 2(양쪽 `isBlocking`), 차단 쌍은 재확인 없음 | 켜짐 | 게스트 쌍 0 |
+| ADMIN-1 활동 보고 | 회원당 KST 하루 1회 AdminHub 1(실패 시 최대 분당 1회 재시도), 행 쓰기 1~2 | 켜짐(관리자 미등록이어도 집계) | AdminHub 단일 객체 |
+| ADMIN-1 콘솔·게시판·공지 | 관리자·게시판 사용 시에만 | 꺼짐 | |
+| C5 보상 | 출석 POST 1/일(DO 2), 연속·연승은 경기 정산 트랜잭션 안(추가 요청 0, 지급 시 행 2~3) | 꺼짐 | |
+| LIVE-1 오늘의 요트 | 공식 1판 ≈ 37요청, 행 쓰기 ≈ 42, 참가 상한 500명 → 최악 ≈ 2만 행/일 | 꺼짐 | DAILY-LIVE-1 §7 측정값 |
+| UI-1·UI-2·FX-1 | 서버 요청 추가 0(정적 썸네일·3D는 브라우저) | — | UI-1 공지 배너는 `notices` 켜질 때만 GET 1 |
 
-현재 운영: v1~v4. 제안: **v5 = `AdminHub`,`SuggestionBoard` (ADMIN-1)**, **v6 = `DailyBoard` (LIVE-1)** — 통합 순서와 동일, 태그는 단순 `v5`/`v6`.
-- 신규 클래스만 추가(기존 클래스 이름·바인딩 불변) → 기존 데이터 영향 없음. 적용된 태그는 이름 변경 불가하므로 통합 PR에서 한 번에 확정.
-- 롤백: 코드 롤백 시 새 DO 클래스는 남아도 무해(바인딩만 미사용). 삭제 마이그레이션은 만들지 않음.
-- CI-1.2: `wrangler.toml` 변경 = 보호 입력 → 이 통합의 Worker 배포는 **수동 고위험 경로(승인 Environment)**. UserStore 추가 테이블(C5 `grant_tx`/`retention`, LIVE-1 `daily_*`)은 생성형이라 구 코드 호환.
-- 기존 운영 DO 데이터 호환: 직전 운영 소스 기준 `account-upgrade-worker` 방식의 저장소 승계 시험을 통합 트리에 대해 실행(계정·세션·친구·원장 보존).
+결론: 신규 유료 리소스 없음(모든 저장소 SQLite DO). 꺼진 기능은 비용 0. 켜진 상태의 첫 한도는 **DO 요청 수**(하트비트)이며 통합 수정으로 main보다 적다. 운영 요청량은 측정하지 않았다(배포 뒤 Cloudflare 지표로 확인). 후속: FriendIndex·AdminHub 단일 객체 샤딩은 동시 접속 수천 규모에서 검토.
 
-## 4. 결정 번호 (최종 부여 제안, 통합 순서대로)
+## 6. 검증
 
-D-103~D-106 C5(D-C5-1~4) · D-107~D-116 ADMIN-1(D-ADM-1~10) · D-117~D-122 LIVE-1 · D-123~D-128 SOC-1 · D-129 UI-1(UI1-D1) · D-130~D-133 UI-2 · D-134~D-138 FX-1. (UI-2 문서의 "D-104"=FxPreview 인용은 FX1-D4의 최종 번호로 교정. #126 초안 번호는 그 PR 병합 시 별도.)
+| 항목 | 결과 |
+|---|---|
+| `npx tsc -b`, `worker` tsc | 통과 |
+| `npm test`(vitest 전체, `4c042f8`) | 104 파일 통과 / 1 건너뜀, 1,032 통과 / 1 건너뜀 |
+| 이후 추가 시험 | `int1-spectator-worker`(실제 Worker 2건), UI-2 관련 vitest 117, 친구·접속 64 — 통과 |
+| `npm run build`, SEO `--check` | 통과 |
+| Playwright(로컬 preview, UI-2 관련 8개 스펙) | 95 통과 / 9 건너뜀 / 2 실패 → 원인: 실제 FX-1 썸네일 연결 뒤 "처음엔 2D" 전제가 바뀜 → 시험 전제 조정 후 `ui2-shop` 36/36(2회 반복) |
+| 전체 Playwright·필수 GitHub CI | Draft PR #147 최종 head에서 확인(최종 보고에 기록) |
 
-## 5. 기능 플래그 (모두 기본 비활성 유지 확인)
+미실시: 구 Pages ↔ 통합 Worker·통합 Pages ↔ 운영 Worker 교차 실행, 실기기 FPS·메모리 실측. 배포 준비 단계에서 지난 출시와 같은 방식으로 수행한다.
 
-`RETENTION` 미설정, `ECONOMY_QUOTE` 미설정, `ADMIN_WRITES=off`, `ADMIN_APPROVAL=two-person`, `FEEDBACK_BOARD=off`, `ADMIN_REWARD_POLICY` 미설정, `DAILY=off`, `DAILY_NEW_ACCOUNTS_RANKED=off`, `NO_DAILY_REWARDS`/`DAILY_REWARDS_APPROVED=false`, `FRIEND_RESIDUE_CLEANUP` 미설정. 확인 필요: ADMIN `flags.approval`이 `single-operator` 값을 매핑하지 않음(문서 불일치).
+## 7. 배포 시 유의 (승인 전 실행 금지)
 
-## 6. Workers Free 영향 검토 항목
+- `wrangler.toml` 변경(v5·v6 마이그레이션, 바인딩 3개, 변수)은 D-100 보호 입력 → 자동 배포가 멈추고 **수동 고위험 경로(`worker-production-approval`)**만 가능.
+- 새 DO 클래스는 추가만이라 기존 데이터 영향 없음. 적용된 태그는 바꿀 수 없으므로 이 순서가 확정이다. 코드 롤백 시 새 클래스는 남아도 무해(바인딩 미사용), 삭제 마이그레이션은 만들지 않는다.
+- UserStore 추가 테이블(C5 `grant_tx`/`retention`, LIVE-1 `daily_*`, SOC-1 `soc_*`)은 생성형이라 구 코드와 호환.
+- 간헐 실패(기존): `game-shell.spec.ts:14`(main에도 있음).
 
-SOC-1 접속 상태 heartbeat(`/api/me/inbox`) 요청 빈도, FriendIndex 중앙 presence 쓰기, LIVE-1 DailyBoard(일자별 1 객체) 쓰기, ADMIN AdminHub 단일 객체(관리자만), C5 grant 트랜잭션. 측정: 로컬 Worker 시나리오별 요청·SQLite 쓰기 수 계측 → 일일 사용자 수 가정으로 환산. 신규 유료 리소스 없음(모두 SQLite DO).
+## 8. SEC-1 2차 감사 인계
 
-## 7. 회귀·통합 검증 계획
-
-1. 각 단계 병합 후: `tsc -b`, worker/server tsc, `vitest`(전체), `npm run build`.
-2. 통합 완료 후: 전체 Playwright(데스크톱+모바일), 필수 GitHub CI.
-3. 기능 간 통합 테스트(로컬 wrangler):
-   - 공통 원장: 출석/연속/주간 지급이 `g:` 원장 1회, ADMIN 경로가 같은 원장으로 수렴, 수령 중복·동시 수령·코드 중복 수령 차단.
-   - 정지 계정: 출석·수령·코드 거부.
-   - 다인전·관전자 보상 격리(관전자·대기실 관전자 무보상, SOC-1 lobby watch).
-   - LIVE-1 공식 완료 → `dailyContentDone` 1회, 퍼즐·연습 제외, 재시도 멱등.
-   - 관리자: 일반 세션으로 `/api/admin/*` 404, 권한별 접근, 감사 로그 기록, ADMIN_TOKEN은 GET 2개만.
-   - 개인정보: 공개 프로필·접속 상태 상호 친구만, 차단 반영(SOC-1-F1 빠른 대전 차단 쌍 매칭은 알려진 후속).
-4. 호환성: 구 Pages(d775ecb) ↔ 통합 Worker, 통합 Pages ↔ 운영 Worker(692e00a4) 교차 실행(지난 출시와 같은 방식).
-5. 성능: WebGL 단일 무대·컨텍스트 해제, 썸네일 캐시, 메모리(장시간 상점·인벤토리 이동).
-6. SEC-1 2차 감사 인계 문서(ADMIN-1 `SEC-1-AUDIT-2-CHECKLIST.md` 기준).
-
-## 8. 알려진 위험·미결
-
-- SOC-1 병합만으로도 Worker 자동 배포 대상(보호 입력 없음) — 통합 PR로 묶으면 `wrangler.toml` 변경 때문에 수동 경로.
-- 간헐 실패: `game-shell.spec.ts:14`(main에도 존재), SOC-1 보고 `game-flow.spec.ts:313`.
-- ADMIN 문서의 구식 정보(#142가 "v5"·ADMIN_TOKEN 경로 사용) — 통합 시 문서 정정.
-- ADMIN mailbox id 표기 `sg:` vs `sug:` 불일치 확인.
+[SEC-1 2차 감사 인계](../audits/sec-1-2026-11-28/AUDIT-2-HANDOFF-INT-1.md) 참고(ADMIN-1 [체크리스트](../admin/SEC-1-AUDIT-2-CHECKLIST.md) 기반).

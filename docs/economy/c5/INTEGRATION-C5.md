@@ -1,10 +1,10 @@
 # C5 통합 안내 — INT-1용 (2026-11-28)
 
-> **C5 개발 완료 · INT-1 인계 (2026-11-28).** 소유자가 최신 필수 CI 통과를 확인했다. 칭호 이름 3종 유지, 게스트 상대 승리는 유지·증가 없음, 일일 콘텐츠는 서버 검증된 오늘의 요트 공식 경기 완료만 인정(전략 퍼즐·연습 제외), 소급 지급 없음으로 확정했다(D-C5-3). 추가 기능·정책 변경·main 병합·운영 배포·보상 활성화는 C5에서 하지 않는다. 마지막 확인: head `f35b409`, 필수 CI(`ci-result`·unit·build·browser 4) 통과, main과 충돌 없음.
+> **C5 개발 완료 · INT-1 인계 (2026-11-28).** 소유자가 최신 필수 CI 통과를 확인했다. 칭호 이름 3종 유지, 게스트 상대 승리는 유지·증가 없음, 일일 콘텐츠는 서버 검증된 오늘의 요트 공식 경기 완료만 인정(전략 퍼즐·연습 제외), 소급 지급 없음으로 확정했다(D-105). 추가 기능·정책 변경·main 병합·운영 배포·보상 활성화는 C5에서 하지 않는다. 마지막 확인: head `f35b409`, 필수 CI(`ci-result`·unit·build·browser 4) 통과, main과 충돌 없음.
 >
-> PR [#140](https://github.com/oyueo-mm/YachtLab/pull/140) 브랜치 `claude/happy-euler-paasea`. 소유자가 2026-11-28 **C5-CORE를 채택**하고 개발을 승인했다(D-C5-2).
+> PR [#140](https://github.com/oyueo-mm/YachtLab/pull/140) 브랜치 `claude/happy-euler-paasea`. 소유자가 2026-11-28 **C5-CORE를 채택**하고 개발을 승인했다(D-104).
 > **main 병합·운영 Worker 배포·운영 보상 활성화·기존 사용자 실제 지급은 별도 승인 대상이다.** Worker 플래그 `RETENTION`은 기본 off다.
-> 결정 번호는 C5 임시 ID(D-C5-1~4)다. 최종 번호는 INT-1이 정한다. 다른 담당 브랜치(#141, #142)는 **병합하지 않았다**. 읽고 대조만 했다.
+> 결정 번호는 C5 임시 ID(D-103~D-106)다. 최종 번호는 INT-1이 정한다. 다른 담당 브랜치(#141, #142)는 **병합하지 않았다**. 읽고 대조만 했다.
 
 ## 1. 이 PR이 제공하는 공통 인터페이스
 
@@ -32,7 +32,7 @@
 | `src/routes.ts`, `src/App.tsx` | 라우트 `rewards` 1줄씩 | `admin`·`suggestions`·`mailbox` | `daily` | 라우트 목록 한 줄씩 합친다. 메뉴 연결은 UI-1·01 담당 |
 | `src/economy/live/catalog.ts` | 칭호 3종(rev 3), `CATALOG_REV = 3` | — | — | A2·UI-2 카탈로그 작업과 순서만 맞춘다 |
 | `src/cosmetics-a2.css` | 칭호 표식 3줄(`tests/a2-cosmetics.test.ts`가 요구) | — | — | A2 영역, 추가 3줄 |
-| `docs/context/DECISIONS.md` | D-C5-1~4 | D-101~D-105 초안 | D-101~D-106 초안 | 셋 다 D-101 이후를 쓴다. 기존 D-101은 SEC-1(main). INT-1이 재번호한다 |
+| `docs/context/DECISIONS.md` | D-103~D-106 | D-101~D-105 초안 | D-101~D-106 초안 | 셋 다 D-101 이후를 쓴다. 기존 D-101은 SEC-1(main). INT-1이 재번호한다 |
 | 상점·공용 화면(`EconomyPages.tsx`, `DrawPanel.tsx`) | 견적 필드 전송, 409 처리 코드 추가(문구·구조 그대로) | — | — | UI-2 상점 개편과 겹치면 **요청 본문 필드만** 보존한다 |
 
 ## 3. ADMIN-1(#141) adminGrant·mailbox 전환 방안

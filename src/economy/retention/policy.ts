@@ -11,7 +11,7 @@
  * (worker/src/grants.ts), which writes the existing ledger. Grant transaction ids are deterministic,
  * so a retried or replayed call can never pay twice.
  *
- * Research and approval record: docs/economy/C5-RETENTION-RESEARCH.md (D-C5-1, D-C5-2).
+ * Research and approval record: docs/economy/C5-RETENTION-RESEARCH.md (D-103, D-104).
  */
 import { economyDay, economyWeek } from "../live/config";
 import type { MatchOutcome, RewardInput } from "../live/rewards";

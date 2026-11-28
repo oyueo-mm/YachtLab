@@ -44,7 +44,7 @@ export interface AdminUserApi {
   rewards?(): Promise<{ ok: true } & Record<string, unknown> | { ok: false; code: string; message: string }>;
 }
 /**
- * LIVE-1 and later modules add admin routes HERE instead of using ADMIN_TOKEN (D-ADM-9): the router does
+ * LIVE-1 and later modules add admin routes HERE instead of using ADMIN_TOKEN (D-115): the router does
  * authentication, the permission check, the ADMIN_WRITES gate for writes, the re-authentication window
  * for high-risk routes and one audit row per write (and per sensitive read when `auditRead`).
  */
@@ -119,7 +119,7 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
       if (me) await b.admin.op("audit", { at: now, actor: me.userId, role: "-", action: "session.denied", result: "denied", client: b.client });
       return notFound();
     }
-    // Real re-authentication (D-ADM-1/1b): the one-time ticket from a Google prompt=login/max_age=0 flow,
+    // Real re-authentication (D-107/1b): the one-time ticket from a Google prompt=login/max_age=0 flow,
     // bound to this account and to the tab that started it. Only loopback test servers may skip it.
     let reauthAt: number | null = null;
     if (b.settings.reauth === "google") {
@@ -441,7 +441,7 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
         const stale = fresh(); if (stale) return stale;
         if (input.confirm !== id) return fail(400, "CONFIRM", "확인을 위해 작업 ID를 정확히 입력해 주세요.");
       }
-      // Single-operator policy (D-ADM-6): one's own draft only after the cooling-off delay, with a Google
+      // Single-operator policy (D-112): one's own draft only after the cooling-off delay, with a Google
       // re-authentication made AFTER the draft, inside the blast-radius limits and the daily budget.
       let self = false;
       if (verb === "approve") {

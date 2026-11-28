@@ -2,7 +2,7 @@
 
 > 구현: `worker/src/grants.ts` (`RewardGrants`, `creditAdminClaim`), `worker/src/retention.ts` (`RetentionStore`), 원장 기록 `EconomyStore.grantCredit`, 정책 `src/economy/retention/policy.ts` (`APPROVED_POLICY` = C5-CORE@1), 교환 코드 검사 `src/economy/retention/codes.ts`.
 > 테스트: `tests/reward-grants.test.ts`, `tests/retention-worker.test.ts`, `tests/retention-worker-e2e.test.ts`(wrangler), `tests/retention-policy.test.ts`, `tests/sec1-economy.test.ts`, `tests/ui/rewards.spec.ts`.
-> **상태(2026-11-28):** C5-CORE 채택(D-C5-2), Worker 연동 구현 완료. 운영 플래그 `RETENTION`은 기본 off다. 지급 가능한 출처는 **출석·연속 활동·주간 연승**뿐이다. 관리자·제안·일일 콘텐츠·교환 코드 금액은 미승인이라 `SOURCE_DISABLED`다. 통합 안내: [INTEGRATION-C5.md](./INTEGRATION-C5.md).
+> **상태(2026-11-28):** C5-CORE 채택(D-104), Worker 연동 구현 완료. 운영 플래그 `RETENTION`은 기본 off다. 지급 가능한 출처는 **출석·연속 활동·주간 연승**뿐이다. 관리자·제안·일일 콘텐츠·교환 코드 금액은 미승인이라 `SOURCE_DISABLED`다. 통합 안내: [INTEGRATION-C5.md](./INTEGRATION-C5.md).
 
 ## 1. 누가 무엇을 부르나
 

@@ -250,7 +250,7 @@ export function dailyClock(env: { DAILY_TEST_OFFSET_MS?: string; APP_URL?: strin
 export const dayKeyFor = (secret: string | undefined, date: string) => deriveDayKey(secret ?? "", date);
 
 /**
- * DAILY_SECRET handling (D-LIVE1-2). The key of EVERY date derives from the secret, so replacing it in place
+ * DAILY_SECRET handling (D-118). The key of EVERY date derives from the secret, so replacing it in place
  * would change today's dice mid-game and the published keys of past days. A rotation is therefore dated:
  *
  *   DAILY_SECRET           current secret (≥ 32 chars), used for dates >= DAILY_SECRET_FROM

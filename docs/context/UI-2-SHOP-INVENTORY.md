@@ -80,7 +80,7 @@ POST /api/me/loadout-presets/apply  ← { id, requestId } → Snapshot  (서버�
 
 ## 6. FX-1 `FxPreview` 연동 계획 (브랜치 `claude/epic-cannon-2h7dfr`, 병합하지 않음)
 
-FX-1은 `src/fx-preview`의 `FxPreview`/`FxPreviewHandle`(D-104)을 제공하고, 같은 브랜치에서 `ItemStage`의 주사위·보드 분기를 `FxPreview`로 바꾸고 주사위 Lv.3 상세에 "요트 연출"·"스트레이트 연출"을 추가했다. UI-2는 FX-1을 병합하지 않고 다음처럼 설계했다.
+FX-1은 `src/fx-preview`의 `FxPreview`/`FxPreviewHandle`(D-137, 구 FX1-D4)을 제공하고, 같은 브랜치에서 `ItemStage`의 주사위·보드 분기를 `FxPreview`로 바꾸고 주사위 Lv.3 상세에 "요트 연출"·"스트레이트 연출"을 추가했다. UI-2는 FX-1을 병합하지 않고 다음처럼 설계했다.
 
 1. **같은 인터페이스의 어댑터.** `src/shell/shop/PreviewStage.tsx`는 `FxPreview`와 같은 props(`dice`, `diceLevel`, `board`, `boardLevel`, `autoRoll`, `renderer`, `sound`, `label`, `onRolled`, `ref`)와 같은 핸들(`roll`, `moment("yacht"|"straight"|"win")`, `scoreFx`, `playSound`, `reset`)을 가진다. 지금은 main의 경기 구성 요소(DiceArea·BoardFx·SynergyFx·score-fx)로 구현돼 있다. 상점·인벤토리 코드는 이 어댑터만 부른다.
 2. **ItemStage는 이미 FX-1 형태.** 주사위·보드 분기는 FX-1과 똑같이 `ref` 핸들로 굴림·족보 반응·승리 반응을 부르고, FX-1이 추가한 요트·스트레이트 연출을 모든 단계의 주사위·보드에서 쓸 수 있게 넓혔다(연출 칩 그룹). 여기에 UI-2의 내 장착 보드/주사위 조합, "소리 듣기"(`playSound("impact")`→`"land"`), 기본 연출(fx.none) 미리보기, 단일 활성 무대 토큰이 더해진다.
@@ -114,7 +114,7 @@ C5는 상점 화면을 바꾸지 않지만 같은 함수에 경제 보호를 넣
 1. 최신 main ← UI-2 #145 (현재 main과 충돌 없음).
 2. ← C5 #140: §7 절차. 결정 문서는 양쪽 유지. 검증: `npx tsc -b`, C5 단위(sec1-economy·retention·reward-grants·economy-live·collections), UI(`int1-ui2-c5`·`economy`·`ui2-shop`·`rewards`).
 3. ← FX-1 #146: `src/shell/ItemViews.tsx`는 UI-2 쪽, [`PreviewStage.after-fx1.tsx.txt`](./int1-ui2/PreviewStage.after-fx1.tsx.txt)로 `src/shell/shop/PreviewStage.tsx` 교체, `fx1-stills.ts` 추가(§6.4). `CONTEXT.md`·`DECISIONS.md`·`RESULTS.md`·`TECHNIQUES.md`는 양쪽 유지. 검증: 위 + `fx1-preview`·`a1-board-fx`·`a2-cosmetics`·`collections`.
-4. 결정 번호: main이 이미 D-101·D-102(SEC-1)를 쓰므로 FX-1의 임시 `FX1-D1~D5`, C5의 `D-C5-1~4`, UI-2의 `D-UI2-1~4`는 INT-1이 최종 번호를 부여한다.
+4. 결정 번호: main이 이미 D-101·D-102(SEC-1)를 쓰므로 FX-1의 임시 `FX1-D1~D5`(→ D-134~D-138), C5의 `D-103~D-106`, UI-2의 `D-130~D-133`는 INT-1이 최종 번호를 부여한다.
 5. 전체 필수 CI(빌드+preview 기반 Playwright 4샤드). 로컬 개발 서버 실행 결과는 SEO·PWA 등 28건이 base에서도 실패하므로 기준으로 쓰지 않는다.
 
 ## 9. UI-1(공통 헤더·App·Coach)과의 계약
