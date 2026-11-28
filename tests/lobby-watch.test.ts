@@ -132,6 +132,16 @@ describe("C3.1 대기실 참가/관전 분리", () => {
     expect(w.spectate.key).toBeNull();
     expect(w.spectate.sid).toBeUndefined();
     expect(host.sock.last("welcome")!.role).toBe("player");
+    // SEC-1 2차 SOC-2: a watcher asking to change the range (refused: not the host) gets no key / sid back
+    for (const msg of [{ t: "spectate", allow: true }, { t: "spectate", allow: true, visibility: "public" }, { t: "spectate", allow: false }]) {
+      await h.send(b, msg);
+      const st = b.sock.last("spectate")!.spectate;
+      expect(st.key).toBeNull();
+      expect(st.sid).toBeUndefined();
+      const key = host.sock.last("spectate")?.spectate?.key ?? "no-key-for-host";
+      const leaked = b.sock.sent.filter((m) => JSON.stringify(m).includes(key)).map((m) => m.t);
+      expect(leaked).toEqual([]);
+    }
     // participant-only rooms: the roster accounts only are reserved
     // intent changes are refused during the match
     await h.send(c, { t: "intent", value: "watch" });
@@ -261,4 +271,20 @@ describe("C3.1 대기실 참가/관전 분리", () => {
     const after = JSON.parse(h.st.record!) as RoomRecord;
     expect(Object.keys(after.members!).sort()).toEqual([a.id, b.id, (c as any).playerId].sort());
   });
+
+  it("SEC-1 2차 SOC-2: 대기실에서 관전을 고른 구성원은 외부 관전 키를 받지 않고, 참가로 바꾸면 받는다", async () => {
+    const h = harness(4);
+    const host = await h.join("방장", true);
+    const b = await h.join("관전", true);
+    await h.send(b, { t: "intent", value: "watch" });
+    await h.send(host, { t: "spectate", allow: true, visibility: "invite" });
+    const key = host.sock.last("spectate")!.spectate.key as string;
+    expect(key).toBeTruthy();
+    expect(b.sock.sent.filter((m) => JSON.stringify(m).includes(key))).toEqual([]);
+    expect(b.sock.last("spectate")!.spectate.key).toBeNull();
+    h.advance(1_000); // lobby change pacing
+    await h.send(b, { t: "intent", value: "ready" });
+    expect(b.sock.last("spectate")!.spectate.key).toBe(key);
+  });
 });
+

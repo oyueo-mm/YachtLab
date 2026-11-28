@@ -797,7 +797,10 @@ export class OnlineRoom {
   /** What this seat may see of the spectating state: a watching member gets no external key or id. */
   private spectateFor(playerId: string | null): SpectateState {
     const st = this.spectateState();
-    if (!playerId || !this.isWatcher(playerId)) return st;
+    // SEC-1 2차 SOC-2: a member who chose "watch" in the lobby gets no external key either (it is sent when
+    // they switch to playing); during the match a watcher never gets it.
+    const watching = !!playerId && (this.isWatcher(playerId) || (this.state.status === "lobby" && this.intentOf(playerId) === "watch"));
+    if (!playerId || !watching) return st;
     const { key: _k, sid: _s, ...rest } = st;
     return { ...rest, key: null };
   }
@@ -846,8 +849,9 @@ export class OnlineRoom {
     this.lobbyOps++;
     await this.saveRecord(next);
     this.broadcastLobby();
-    // The host can change the spectating range: pages show the new host's controls.
-    if (msg.t === "host") this.broadcastSpectate();
+    // The host can change the spectating range: pages show the new host's controls. An intent change
+    // gives / takes the external key (SOC-2).
+    if (msg.t === "host" || msg.t === "intent" || msg.t === "ready") this.broadcastSpectate();
   }
 
   /**
@@ -993,16 +997,16 @@ export class OnlineRoom {
     // Quick matches are public by rule (D-045): nobody can switch spectating off during the match.
     if (this.isPublic) {
       if (!allow || (visibility && visibility !== "public")) conn.send({ t: "error", code: "SPECTATE", message: "빠른 대전은 관전방에 공개되는 경기예요. 공개를 끌 수 없어요." });
-      return conn.send({ t: "spectate", spectate: this.spectateState() });
+      return conn.send({ t: "spectate", spectate: this.spectateFor(playerId) });
     }
     if (this.hostId() !== playerId) {
       conn.send({ t: "error", code: "NOT_HOST", message: "관전 범위는 방장만 바꿀 수 있어요." });
-      return conn.send({ t: "spectate", spectate: this.spectateState() });
+      return conn.send({ t: "spectate", spectate: this.spectateFor(playerId) });
     }
     const target: SpectateMode = visibility ?? (allow ? "invite" : "private");
     const current = this.spectateMode();
     const sp = this.record.spectate ?? { allow: {}, key: null };
-    if (target === current && (this.record.spectate?.mode || target === "private")) return conn.send({ t: "spectate", spectate: this.spectateState() });
+    if (target === current && (this.record.spectate?.mode || target === "private")) return conn.send({ t: "spectate", spectate: this.spectateFor(playerId) });
     const rank = { private: 0, invite: 1, public: 2 } as const;
     const now = this.deps.now();
     if (rank[target] > rank[current]) {
