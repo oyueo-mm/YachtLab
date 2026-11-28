@@ -30,7 +30,7 @@
 > **AI 연구 현황(2026-11-26): 잠정 종료** — 매우 어려움 v4-D 유지, v5-R·I2RO1 교체 보류(D-V7-6). 최종 후보 I2RO1은 v4-D 대비 확증(50.55%), v5-R과는 대국상 동등. → [V7-APEX-RESEARCH](docs/context/V7-APEX-RESEARCH.md) §9–11, [V7-PRODUCT-HANDOFF](docs/context/V7-PRODUCT-HANDOFF.md).
 > **AI 제품 통합(v5-R·WASM 은행·분석 API v6)** → [V6-INTEGRATION-HANDOFF](docs/context/V6-INTEGRATION-HANDOFF.md).
 >
-> **재방문 보상(출석·일일 경기·연속 활동·연승)·공통 보상 지급 엔진·SEC-1 경제 항목** → [C5 연구](docs/economy/C5-RETENTION-RESEARCH.md), [지급 계약](docs/economy/c5/REWARD-GRANT-CONTRACT.md) (D-102, 금액 미승인·비활성).
+> **재방문 보상(출석·일일 경기·연속 활동·연승)·공통 보상 지급 엔진·SEC-1 경제 항목** → [C5 연구](docs/economy/C5-RETENTION-RESEARCH.md), [지급 계약](docs/economy/c5/REWARD-GRANT-CONTRACT.md) (D-C5-1, 금액 미승인·비활성).
 >
 > **재화·상점·퀘스트·업적을 다룬다면** [실서비스 경제](docs/economy/LIVE-ECONOMY.md)부터(M3i-W30 실제 구현·원장·가격표·퀘스트·업적, 결정 D-040~D-042). 연구 배경: [경제 연구 보고서](docs/economy/ECONOMY-RESEARCH.md)(D-029~D-037).
 >

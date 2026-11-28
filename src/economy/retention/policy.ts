@@ -9,7 +9,7 @@
  * so a retried or replayed call can never pay twice.
  *
  * Amounts are candidates (docs/economy/C5-RETENTION-RESEARCH.md). The owner approves them before
- * anything goes live (D-102). `RETENTION_ACTIVE` stays false until that approval and a separate
+ * anything goes live (D-C5-1). `RETENTION_ACTIVE` stays false until that approval and a separate
  * high-risk release.
  */
 import { economyDay, economyWeek } from "../live/config";

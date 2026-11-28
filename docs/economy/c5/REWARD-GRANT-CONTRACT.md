@@ -1,7 +1,7 @@
 # 공통 보상 지급 계약 (C5 → 05·06 담당, 2026-11-28)
 
 > 구현: `worker/src/grants.ts` (`RewardGrants`), 재방문 정책 `src/economy/retention/policy.ts`, 교환 코드 `src/economy/retention/codes.ts`. 테스트: `tests/reward-grants.test.ts`, `tests/retention-policy.test.ts`, `tests/sec1-economy.test.ts`.
-> **상태: 비활성 프로토타입.** `worker/src/index.ts`는 아직 이 모듈을 가져오지 않는다(Worker 번들 미포함). 금액은 후보이고 승인 전이다(D-102). 연구 근거는 [C5 연구](../C5-RETENTION-RESEARCH.md)에 있다.
+> **상태: 비활성 프로토타입.** `worker/src/index.ts`는 아직 이 모듈을 가져오지 않는다(Worker 번들 미포함). 금액은 후보이고 승인 전이다(D-C5-1). 연구 근거는 [C5 연구](../C5-RETENTION-RESEARCH.md)에 있다.
 
 ## 1. 누가 무엇을 부르나
 
