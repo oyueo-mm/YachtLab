@@ -641,3 +641,7 @@ C3·A3·A5·A4·C4.2와 문서 PR #112·#121·#122를 하나의 통합 PR(#134)�
 ## D-100. 일반 Worker 배포는 main 파이프라인 성공 뒤 자동, 운영 변수는 비상 정지 스위치 (2026-11-28, CI-1.2)
 
 일반 제품 업데이트는 PR → 필수 `ci-result` → main 병합 → Pages 배포 → (Worker 입력이 바뀐 경우만) Worker 자동 배포로 운영자 승인 없이 진행한다. Worker 입력은 `worker/src/index.ts`의 실제 번들 입력과 Worker 설정이며, UI·문서만 바뀐 커밋은 Cloudflare에 쓰지 않는다. 기준점은 활성 배포에 기록된 `git:<sha>` 주석이고, 주석 없는 배포(대시보드·롤백), 보호 입력(`wrangler.toml`의 바인딩·DO 마이그레이션·런타임 변수, 경제 원장·정책), 자동·수동 배포 실패는 자동 경로를 정지시키며 그 뒤의 수동 배포 성공으로만 재개한다(건너뛴 자동 실행은 잠금을 풀지 않는다). 수동 경로는 고위험 배포용으로 `worker-production-approval` Environment의 Required reviewers 승인을 유지한다. 실패한 배포는 재시도하지 않는다. `WORKER_PRODUCTION_DEPLOY_ENABLED`는 상시 `true`, 비상시 `false`. `worker-production` Environment(main 전용·전용 토큰)와 main 보호는 유지하고 그 Environment의 Required reviewers만 제거한다. 실제 롤백·대량 삭제·경제 정책·유료 설정은 계속 별도 승인. [CI-1.2 Worker 자동 배포](../operations/CI-1-2-WORKER-AUTO-DEPLOY.md)
+
+## D-101. 서버 검증 경기 기록은 같은 ID의 기기 기록보다 우선한다 (2026-11-28, SEC-1)
+
+**상태: 신규, 브랜치 `claude/eager-pasteur-2oqfw7`, 운영 미배포.** 기기 기록 가져오기(클라이언트 보고)와 서버 결과 배달은 같은 `record_id`(온라인 경기의 matchId)를 쓴다. 기기 사본이 먼저 저장되면 서버 결과가 중복으로 처리되어 공개 전적·연승 정산이 빠졌다(SEC-1-01, 격리 재현). 같은 ID에 클라이언트 보고 기록만 있으면 서버 검증 기록이 그 행을 대체하고 정산을 실행한다. 그 밖의 경우는 기존처럼 멱등이고, 서버 검증 기록이 있으면 기기 업로드는 건너뛴다. 경제 정책·보상량·원장 키·스키마는 바꾸지 않는다. 앞으로 추가하는 클라이언트 보고 데이터(일일 콘텐츠·건의 등)는 서버 검증 데이터와 키 공간을 나누거나, 우선순위를 명시한다. 회귀 테스트는 `tests/accounts.test.ts` "SEC-1-01"이다. 근거: [SEC-1 감사](../audits/sec-1-2026-11-28/README.md).
