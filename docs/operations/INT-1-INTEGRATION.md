@@ -85,7 +85,8 @@ Free 한도(Cloudflare 문서 기준, 배포 전 대시보드에서 재확인): 
 | 이후 추가 시험 | `int1-spectator-worker`(실제 Worker 2건), UI-2 관련 vitest 117, 친구·접속 64 — 통과 |
 | `npm run build`, SEO `--check` | 통과 |
 | Playwright(로컬 preview, UI-2 관련 8개 스펙) | 95 통과 / 9 건너뜀 / 2 실패 → 원인: 실제 FX-1 썸네일 연결 뒤 "처음엔 2D" 전제가 바뀜 → 시험 전제 조정 후 `ui2-shop` 36/36(2회 반복) |
-| 전체 Playwright·필수 GitHub CI | Draft PR #147 최종 head에서 확인(최종 보고에 기록) |
+| 전체 Playwright(로컬 preview, 데스크톱+모바일, 3병렬) | 590 통과 / 139 건너뜀 / 5 실패 → UI-1 진입점 시험 2건(통합 빌드에는 다른 트랙 경로가 있어 전제가 틀림, `70c8988`에서 시험 수정), 병렬 부하 간헐 3건(`game-flow:313`·`online:428`·`quick-match:100`)은 단독 2회 반복 모두 통과 |
+| 필수 GitHub CI (`70c8988`) | unit·build·browser 1~4·`ci-result`·preview·smoke·context check 모두 성공 — [실행 46138019788](https://github.com/oyueo-mm/YachtLab/actions/runs/46138019788). 이전 head의 `ci-result` 실패는 새 커밋에 밀려 취소된 실행과 위 UI-1 시험(`045718c` browser(2)) |
 
 미실시: 구 Pages ↔ 통합 Worker·통합 Pages ↔ 운영 Worker 교차 실행, 실기기 FPS·메모리 실측. 배포 준비 단계에서 지난 출시와 같은 방식으로 수행한다.
 

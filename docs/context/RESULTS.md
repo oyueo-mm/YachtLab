@@ -438,5 +438,5 @@ I2R vs v6-P 49.956%, I2R vs I1RO 49.900% (9105, 각 8,000경기, I2R 판단 평�
 - 단위(vitest 전체, FX-1까지 통합한 `4c042f8`): 104 파일·1,032 통과 / 1 건너뜀. 실제 Worker(wrangler dev) 교차 시험 2건 추가: 관전 회원 기록·원장 변화 0·경기 잠금 없음, UI-2 견적 본문 200 / 불일치 409 4종.
 - Worker 번들(`wrangler deploy --dry-run`): 1,660.5 KiB / gzip 272.9 KiB(운영 401.3 KiB), DO 바인딩 9개.
 - 받은함 하트비트 DO 요청: main 4 → SOC-1 그대로 6 → 통합 수정 후 3(코드 경로 계수, 운영 측정 아님).
-- 전체 Playwright·필수 CI 결과는 [통합 기록 §6](../operations/INT-1-INTEGRATION.md)과 Draft PR #147에 기록.
+- 전체 Playwright(로컬): 590 통과 / 139 건너뜀, 실패 5건 중 2건은 시험 전제 수정, 3건은 단독 재실행 통과. 필수 CI(`70c8988`) 전부 성공. [통합 기록 §6](../operations/INT-1-INTEGRATION.md)
 
