@@ -84,22 +84,19 @@ describe("admin console and engagement in the Workers runtime", () => {
     expect((await call(aa, "/api/admin/notices", { title: "점검 안내", body: "새벽 점검이 있어요", kind: "maintenance", important: true, status: "published" })).status).toBe(200);
     expect((await call(null, "/api/notices")).body.notices[0]).toMatchObject({ title: "점검 안내", important: true });
 
-    // reward: draft (A) → approve (B) → alarm delivery → claim → ledger
+    // reward: draft (A) → approve (B) → alarm delivery. INT-1: the delivery is a C5 grant, and C5 does not approve
+    // the operator source in production (APPROVED_SOURCES) — the approved campaign pays NOTHING: no mailbox
+    // reward, no C5 inbox entry, wallet unchanged (tests/int1-admin-grants.test.ts covers the approved mechanics).
     const before = (await call(m, "/api/me/economy")).body.snapshot.wallet.coins as number;
     const draft = await call(aa, "/api/admin/rewards", { title: "점검 보상", coins: 77, expiresAt: Date.now() + 86_400_000, target: { type: "users", userIds: [ids.member] } });
     expect(draft.status).toBe(201);
     expect((await call(aa, `/api/admin/actions/${draft.body.actionId}/approve`, { confirm: draft.body.actionId })).body.error.code).toBe("SECOND_APPROVER");
     expect((await call(ba, `/api/admin/actions/${draft.body.actionId}/approve`, { confirm: draft.body.actionId })).body.ok).toBe(true);
-    let inbox: any = null;
-    for (let i = 0; i < 40 && !inbox?.unclaimed; i++) {
-      await new Promise((r) => setTimeout(r, 250));
-      inbox = (await call(m, "/api/me/mailbox")).body;
-    }
-    expect(inbox.unclaimed).toBe(1);
-    const claim = await call(m, `/api/me/mailbox/${inbox.items[0].id}/claim`, {});
-    expect(claim.body).toMatchObject({ ok: true, coins: 77 });
-    expect((await call(m, `/api/me/mailbox/${inbox.items[0].id}/claim`, {})).status).toBe(409);
-    expect((await call(m, "/api/me/economy")).body.snapshot.wallet.coins).toBe(before + 77);
+    await new Promise((r) => setTimeout(r, 3000)); // the delivery alarm runs and is refused
+    const inbox = (await call(m, "/api/me/mailbox")).body;
+    expect(inbox.unclaimed).toBe(0);
+    expect(inbox.items.filter((i: any) => i.kind === "reward")).toHaveLength(0);
+    expect((await call(m, "/api/me/economy")).body.snapshot.wallet.coins).toBe(before);
     const view = await call(aa, `/api/admin/members/${ids.member}`);
     expect(view.body.ledger.ok).toBe(true);
     expect(JSON.stringify(view.body)).not.toContain("s1.");
