@@ -13,7 +13,7 @@
 
 ## 맥락 읽는 순서
 
-> **관리자 페이지·사용자 제안·운영 보상(ADMIN-1/FEEDBACK-1, 2026-11-28)** → [ADMIN-FEEDBACK](docs/admin/ADMIN-FEEDBACK.md) (D-101~D-105). 쓰기·게시판 기본 꺼짐, SEC-1 검증 전 활성 금지.
+> **관리자 페이지·사용자 제안·운영 보상(ADMIN-1/FEEDBACK-1, 2026-11-28)** → [ADMIN-FEEDBACK](docs/admin/ADMIN-FEEDBACK.md) (D-ADM-1~5). 쓰기·게시판 기본 꺼짐, SEC-1 검증 전 활성 금지.
 
 > **온라인 요트다이스 제품 개편** → [브랜드, 메뉴, 검색 및 배포 인수인계](docs/context/ONLINE-YACHT-PRODUCT.md).
 >

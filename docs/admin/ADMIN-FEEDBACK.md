@@ -2,7 +2,7 @@
 
 > 상태: **구현·격리 검증 완료, 운영 미활성.** 관리자 계정 등록(`ADMIN_ACCOUNTS`), 쓰기 활성(`ADMIN_WRITES=on`), 제안 게시판 공개(`FEEDBACK_BOARD=on`)는 모두 **별도 승인** 대상이다. SEC-1 결정에 따라 관리자 쓰기 기능은 **SEC-1 담당자(08)의 독립 검증 전에는 운영에서 켜지 않는다.** `wrangler.toml`(바인딩·마이그레이션 v5·변수)과 `worker/src/economy.ts`가 바뀌었으므로 CI-1.2(D-100) 보호 입력 → 자동 배포가 정지되고 수동 승인 배포만 가능하다.
 >
-> 결정: D-101~D-105. 코드: `worker/src/admin/`(roles·store·member·stats·api), `worker/src/feedback/board.ts`, `src/admin/`, `src/engagement/`. 테스트: `tests/admin-feedback.test.ts`(26), `tests/admin-sec1.test.ts`(13), `tests/admin-worker.test.ts`(wrangler dev E2E 1), `tests/ui/admin-feedback.spec.ts`(Playwright 3×2).
+> 결정: D-ADM-1~5. 코드: `worker/src/admin/`(roles·store·member·stats·api), `worker/src/feedback/board.ts`, `src/admin/`, `src/engagement/`. 테스트: `tests/admin-feedback.test.ts`(26), `tests/admin-sec1.test.ts`(13), `tests/admin-worker.test.ts`(wrangler dev E2E 1), `tests/ui/admin-feedback.spec.ts`(Playwright 3×2).
 
 ## 0. 조사한 기존 구조 (작업 전)
 

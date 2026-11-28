@@ -1,6 +1,6 @@
 # 새 채팅을 위한 YachtLab 인수인계
 
-> **관리자 페이지·사용자 제안(ADMIN-1/FEEDBACK-1, 2026-11-28)** → [ADMIN-FEEDBACK](../admin/ADMIN-FEEDBACK.md), D-101~D-105. 코드: `worker/src/admin/`(roles·store·member·stats·api), `worker/src/feedback/board.ts`, 화면 `src/admin/AdminConsole.tsx`(`#admin`), `src/engagement/`(`#suggestions`·`#mailbox`). 쓰기·게시판·관리자 계정은 모두 꺼진 상태이며 SEC-1 독립 검증 전 쓰기 활성 금지. 알림함 API는 `/api/me/mailbox`(`/api/me/inbox`는 친구 받은함).
+> **관리자 페이지·사용자 제안(ADMIN-1/FEEDBACK-1, 2026-11-28)** → [ADMIN-FEEDBACK](../admin/ADMIN-FEEDBACK.md), D-ADM-1~5. 코드: `worker/src/admin/`(roles·store·member·stats·api), `worker/src/feedback/board.ts`, 화면 `src/admin/AdminConsole.tsx`(`#admin`), `src/engagement/`(`#suggestions`·`#mailbox`). 쓰기·게시판·관리자 계정은 모두 꺼진 상태이며 SEC-1 독립 검증 전 쓰기 활성 금지. 알림함 API는 `/api/me/mailbox`(`/api/me/inbox`는 친구 받은함).
 
 > **Worker 배포(2026-11-28 이후)**는 [CI-1.2 Worker 자동 배포](../operations/CI-1-2-WORKER-AUTO-DEPLOY.md)와 D-100을 따른다. 일반 변경은 병합만으로 Pages·Worker가 배포되고, 보호 입력·롤백·정지 해제는 수동 워크플로를 쓴다.
 
