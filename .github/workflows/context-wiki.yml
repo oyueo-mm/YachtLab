@@ -40,4 +40,5 @@ jobs:
       - name: Mirror context pages to the GitHub Wiki
         env:
           WIKI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/ci/sync-wiki.mjs --remote "https://x-access-token:${WIKI_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
+        # SEC-1-09: the token is sent as a header by sync-wiki.mjs; the remote URL carries no credentials.
+        run: node scripts/ci/sync-wiki.mjs --remote "https://github.com/${GITHUB_REPOSITORY}.wiki.git"

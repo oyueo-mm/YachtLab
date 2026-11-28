@@ -213,12 +213,17 @@ jobs:
           merge-multiple: true
           path: training/results/frontier-challenge
       - name: Reject missing/duplicated shards and compute paired intervals
+        # SEC-1-07: choice inputs, still passed through env rather than interpolated into the script.
+        env:
+          SCALE: ${{ inputs.scale }}
+          CANDIDATE: ${{ inputs.candidate }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            if [[ "${{ inputs.scale }}" == "1000000" ]]; then
-              node scripts/summarize-frontier.mjs --start 1401 --count 100 --candidate "${{ inputs.candidate }}"
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            [[ "$CANDIDATE" =~ ^[a-z0-9-]+$ ]] || { echo "unknown candidate"; exit 1; }
+            if [[ "$SCALE" == "1000000" ]]; then
+              node scripts/summarize-frontier.mjs --start 1401 --count 100 --candidate "$CANDIDATE"
             else
-              node scripts/summarize-frontier.mjs --start 1301 --count 20 --candidate "${{ inputs.candidate }}"
+              node scripts/summarize-frontier.mjs --start 1301 --count 20 --candidate "$CANDIDATE"
             fi
           else
             node scripts/summarize-frontier.mjs --start 1301 --count 20
