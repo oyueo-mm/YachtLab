@@ -56,6 +56,8 @@ export class FakeAccount implements AdminUserApi {
   member = new MemberOps(this.sql);
   grants: RewardGrants;
   failDeliveries = 0;
+  /** C5 master switch (ECONOMY+RETENTION) — on for the mechanics tests, `world({ RETENTION: "off" })` closes it. */
+  rewardsOn = true;
   constructor(readonly userId: string, nickname: string | null, readonly clock: () => number, sources: ReadonlySet<GrantSource> = ADMIN_TEST_SOURCES) {
     this.store.init();
     this.econ.init();
@@ -76,7 +78,7 @@ export class FakeAccount implements AdminUserApi {
   }
   /** Same delivery paths as UserStore (worker/src/admin/grant-port.ts): C5 RewardGrants is the only crediting path. */
   ctx(): AdminGrantContext {
-    return { userId: this.userId, grants: this.grants, member: this.member, transaction: (fn) => this.sql.transaction(fn) };
+    return { userId: this.userId, grants: this.grants, member: this.member, transaction: (fn) => this.sql.transaction(fn), rewardsOn: this.rewardsOn };
   }
   async deliver(item: InboxItem) {
     if (this.failDeliveries > 0) {
@@ -113,7 +115,7 @@ export class FakeAccount implements AdminUserApi {
 
 export const uid = (c: string) => "u_" + c.repeat(22).slice(0, 22);
 
-export function world(env: { ADMIN_ACCOUNTS?: string; ADMIN_WRITES?: string; ADMIN_APPROVAL?: string; ADMIN_REWARD_POLICY?: string; ADMIN_REAUTH?: string; APP_URL?: string; GRANT_SOURCES?: "production" | "admin-test" } = {}) {
+export function world(env: { ADMIN_ACCOUNTS?: string; ADMIN_WRITES?: string; ADMIN_APPROVAL?: string; ADMIN_REWARD_POLICY?: string; ADMIN_REAUTH?: string; APP_URL?: string; GRANT_SOURCES?: "production" | "admin-test"; RETENTION?: "on" | "off" } = {}) {
   let now = Date.UTC(2026, 10, 28, 12);
   const clock = () => now;
   const admin = new AdminCore(sqlite());
@@ -125,6 +127,7 @@ export function world(env: { ADMIN_ACCOUNTS?: string; ADMIN_WRITES?: string; ADM
   const counts: Record<string, number> = {};
   const account = (userId: string, nickname: string | null = "닉" + userId.slice(2, 5)) => {
     const a = new FakeAccount(userId, nickname, clock, env.GRANT_SOURCES === "production" ? PRODUCTION_SOURCES : ADMIN_TEST_SOURCES);
+    if (env.RETENTION === "off") a.rewardsOn = false;
     accounts.set(userId, a);
     const token = "s1." + userId + "." + "x".repeat(43);
     sessions.set(token, { userId, secret: "x", suspended: false, restricted: false, until: null });

@@ -1012,7 +1012,7 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   /** INT-1: the admin delivery paths on this account (C5 RewardGrants is the only crediting path). */
   private adminGrants(): AdminGrantContext | null {
     const p = this.store.profile();
-    return p ? { userId: p.userId, grants: this.grants, member: this.member, transaction: (fn) => this.econSql().transaction(fn) } : null;
+    return p ? { userId: p.userId, grants: this.grants, member: this.member, transaction: (fn) => this.econSql().transaction(fn), rewardsOn: this.retentionOn } : null;
   }
   async deliver(item: InboxItem) {
     const c = this.adminGrants();

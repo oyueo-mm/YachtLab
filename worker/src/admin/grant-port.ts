@@ -83,7 +83,16 @@ export type AdminGrantContext = {
   grants: RewardGrants;
   member: MemberOps;
   transaction<T>(fn: () => T): T;
+  /**
+   * SEC-1 2차 INT-3: the C5 master switch (ECONOMY=on AND RETENTION=on). Every coin/gem path through
+   * RewardGrants — admin delivery, mailbox claim, redeem code — is closed while it is off, exactly like the
+   * C5 reward routes (rollback = unset RETENTION stops all non-match payouts).
+   */
+  rewardsOn: boolean;
 };
+const RETENTION_OFF = { ok: false as const, code: "RETENTION_OFF", message: "보상 기능은 아직 준비 중이에요." };
+/** Admin-delivered inbox ids only (the compatibility claim route must not claim other C5 grants). */
+const ADMIN_INBOX_ID = /^(op:rw_[a-z0-9]{16,20}|sug:sg_[a-z0-9]{16})$/;
 
 /**
  * Deliver one admin item to this account. A message goes to the mailbox. A reward is issued as a C5 grant
@@ -96,6 +105,7 @@ export function deliverAdminItem(c: AdminGrantContext, item: InboxItem, now: num
     c.member.deliver(item, now);
     return "ok";
   }
+  if (!c.rewardsOn) throw new GrantRefused(RETENTION_OFF.code, RETENTION_OFF.message);
   if (!item.grant) throw new GrantRefused("APPROVAL_MISSING", "승인 기록이 없는 보상은 보낼 수 없어요.");
   const request = toGrant(toGrantRequest(item, item.grant.approver, item.grant.policyVersion));
   return c.transaction(() => {
@@ -108,6 +118,8 @@ export function deliverAdminItem(c: AdminGrantContext, item: InboxItem, now: num
 
 /** `/api/me/mailbox/:id/claim` (compatibility) = C5 claim of the same txId. Never credits twice. */
 export function claimAdminItem(c: AdminGrantContext, id: string, now: number): { ok: true; coins: number; gems: number } | { ok: false; code: string; message: string } {
+  if (!c.rewardsOn) return RETENTION_OFF;
+  if (!ADMIN_INBOX_ID.test(id)) return { ok: false, code: "NOT_FOUND", message: "받을 보상을 찾을 수 없어요." };
   const r = c.grants.claim(id, now);
   if (!r.ok) return r;
   return r.duplicate ? { ok: false, code: "CLAIMED", message: "이미 받은 보상이에요." } : { ok: true, coins: r.record.coins, gems: r.record.gems };
@@ -118,6 +130,7 @@ export function claimAdminItem(c: AdminGrantContext, id: string, now: number): {
  * same reservation is the same txId, so it is reported as done without crediting again.
  */
 export function redeemAdminItem(c: AdminGrantContext, item: InboxItem, now: number): { ok: true; coins: number; gems: number } | { ok: false; code: string; message: string } {
+  if (!c.rewardsOn) return RETENTION_OFF;
   if (!item.grant) return { ok: false, code: "APPROVAL_MISSING", message: "승인 기록이 없는 코드예요." };
   let request: GrantRequest;
   try {
