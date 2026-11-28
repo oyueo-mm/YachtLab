@@ -1,6 +1,6 @@
 # 새 채팅을 위한 YachtLab 인수인계
 
-> **오늘의 요트·전략 퍼즐·일일 랭킹(LIVE-1)**은 [DAILY-LIVE-1](./DAILY-LIVE-1.md)에서 시작한다. 운영 비공개(`DAILY=off`), 공개 순서는 D-LIVE1-6.
+> **오늘의 요트·전략 퍼즐·일일 랭킹(LIVE-1)**은 [DAILY-LIVE-1](./DAILY-LIVE-1.md)에서 시작한다. 운영 비공개(`DAILY=off`), 공개 순서는 D-LIVE1-6. INT-1 통합 검증 항목은 [LIVE-1-HANDOFF-INT-1](./LIVE-1-HANDOFF-INT-1.md).
 
 > **Worker 배포(2026-11-28 이후)**는 [CI-1.2 Worker 자동 배포](../operations/CI-1-2-WORKER-AUTO-DEPLOY.md)와 D-100을 따른다. 일반 변경은 병합만으로 Pages·Worker가 배포되고, 보호 입력·롤백·정지 해제는 수동 워크플로를 쓴다.
 
