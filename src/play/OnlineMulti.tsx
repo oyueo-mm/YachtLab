@@ -130,7 +130,7 @@ export function LobbyPanel(p: {
       </fieldset>
       {watchMode && (
         <div className="lobby-intent" role="group" aria-label="이번 경기 참가 방식">
-          {!isHost && (
+          {!isHost && needReady && (
             <button type="button" className={mine === "ready" ? "primary" : "secondary"} aria-pressed={mine === "ready"} disabled={p.disabled} onClick={() => p.onIntent!(mine === "ready" ? "idle" : "ready")}>
               <Check size={15} /> {mine === "ready" ? "준비 취소" : "준비 완료"}
             </button>
@@ -145,7 +145,7 @@ export function LobbyPanel(p: {
         <button type="button" className="primary online-start" disabled={!canStart || p.disabled} onClick={p.onStart}>
           <Play size={17} /> 게임 시작{needReady && !allReady ? " (모두 준비하면)" : ""}
         </button>
-      ) : watchMode ? null : needReady ? (
+      ) : watchMode && needReady ? null : needReady ? (
         <button type="button" className={ready[p.me] ? "secondary online-start" : "primary online-start"} disabled={p.disabled} onClick={() => p.onReady(!ready[p.me])} aria-pressed={!!ready[p.me]}>
           <Check size={17} /> {ready[p.me] ? "준비 취소" : "준비 완료"}
         </button>

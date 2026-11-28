@@ -100,9 +100,8 @@ export async function selfPeer(userId: string, d: FriendDeps): Promise<Peer> {
  * deleted) — nothing is written to the index for it.
  */
 export async function peerOf(userId: string, d: FriendDeps): Promise<Peer | null> {
-  const u = d.user(userId);
-  const nickname = await u.nickname();
-  if (nickname === null) return null;
+  // Existence is the profile, not the nickname (an account may never have set one).
+  if (!(await d.user(userId).publicProfile().catch(() => null))) return null;
   return selfPeer(userId, d);
 }
 

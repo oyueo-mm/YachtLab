@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startLocalWorker, type LocalWorker } from "./helpers/wrangler";
 import { fakeLogin, startFakeIdp, type FakeIdp } from "./helpers/fake-idp";
 import { Client, closeAllClients } from "./helpers/online-client";
+import { playMatchBetween } from "./helpers/member-look";
 
 /**
  * SOC-1 + SEC-1 in the real Workers runtime (wrangler dev --local, FAKE loopback sign-in, never production):
@@ -99,6 +100,18 @@ describe("SOC-1 소셜 (wrangler dev + 가짜 로컬 로그인)", () => {
     expect((await call(a, "/api/me/friends/request", { userId: bUser, room: room.body.code })).body).toEqual({ status: "sent" });
     expect((await call(b, "/api/me/friends")).body.incoming).toEqual([]);
     expect((await call(a, "/api/me/friends")).body.friends).toEqual([]);
+  }, 90_000);
+
+  it("서버 검증 기록의 상대(최근 대전 상대)는 방 없이도 계정 ID로 관계를 조회한다", async () => {
+    const a = await fakeLogin(worker.url, idp, "soc-r1", ORIGIN);
+    const b = await fakeLogin(worker.url, idp, "soc-r2", ORIGIN);
+    await playMatchBetween(worker, a, b);
+    const recs = (await call(a, "/api/me/records")).body.records as any[];
+    const opp = recs.find((r) => r.opponent?.userId)?.opponent.userId as string;
+    expect(opp).toMatch(/^u_/);
+    const rel = await call(a, `/api/me/friends/relation?userId=${opp}`);
+    expect(rel.status, JSON.stringify(rel.body)).toBe(200);
+    expect(rel.body.relation).toBe("none");
   }, 90_000);
 
   it("요청 본문 크기는 읽기 전에 검사한다(선언된 길이·실제 바이트), 잘못된 입력은 400", async () => {

@@ -123,6 +123,16 @@ function world(opts: { central?: boolean } = {}) {
 }
 
 describe("SOC-1 친구: 계정 ID 기준, 닉네임으로 추측하지 않음", () => {
+  it("닉네임을 정하지 않은 계정도 존재하는 계정으로 찾는다(존재 판단은 프로필)", async () => {
+    const w = world();
+    const me = w.add("nn1", "나");
+    const noName = w.add("nn2", null);
+    w.accounts.get(me)!.opponents.add(noName);
+    const rel = await w.call(me, "GET", `/api/me/friends/relation?userId=${noName}`);
+    expect(rel.status).toBe(200);
+    expect(rel.body.code).toMatch(/^YL/);
+  });
+
   it("같은 닉네임의 두 계정: 최근 상대의 계정 ID로 관계를 묻고 요청하면 정확히 그 계정에게만 간다", async () => {
     const w = world();
     const me = w.add("me", "나");
@@ -160,7 +170,7 @@ describe("SOC-1 친구: 계정 ID 기준, 닉네임으로 추측하지 않음", 
     const w = world();
     const me = w.add("me3", "나");
     const blocker = w.add("blk3", "차단자");
-    const gone = w.add("gone3", null);
+    const gone = uid("gone3"); // never created / deleted: no account object answers
     w.accounts.get(me)!.opponents.add(blocker).add(gone);
     const code = (await w.call(me, "GET", `/api/me/friends/relation?userId=${blocker}`)).body.code;
     await w.call(blocker, "POST", "/api/me/friends/block", { code: await w.codeOf(me) });
