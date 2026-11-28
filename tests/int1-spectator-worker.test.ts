@@ -5,6 +5,8 @@ import { b64url } from "../worker/src/oidc";
 import { authConfig } from "../worker/src/accounts-api";
 import { Client, closeAllClients } from "./helpers/online-client";
 import { startLocalWorker, type LocalWorker } from "./helpers/wrangler";
+import { ITEMS, priceOf, upgradeCost } from "../src/economy/live/catalog";
+import { DRAW_COST, drawOdds } from "../src/economy/live/draw";
 
 /**
  * INT-1 (SOC-1 × C5 × economy) in the real Workers runtime: a signed-in room member who chooses "watch"
@@ -64,7 +66,7 @@ beforeAll(async () => {
     ECONOMY: "on",
     ADMIN_TOKEN: ADMIN,
   });
-}, 120_000);
+}, 240_000);
 afterAll(async () => {
   await worker?.stop();
   idp?.close();
@@ -169,4 +171,52 @@ describe("INT-1 · 관전 구성원 격리 (wrangler dev)", () => {
     const ea = (await call(a.session, "/api/me/economy")).body.snapshot;
     expect(ea.ledger.some((l: { id: string }) => l.id === "m:" + matchId)).toBe(true);
   }, 60_000);
+});
+
+describe("INT-1 · UI-2가 보내는 C5 견적 필드 (wrangler dev)", () => {
+  it("UI-2 화면의 가격·단계·설정 버전이 맞으면 거래되고, 다르면 409로 거절되어 잔액·보유가 그대로다", async () => {
+    const m = await login("int1-quote-member"), n = await login("int1-quote-rival");
+    await call(m.session, "/api/me/economy");
+    // earn match coins first (welcome 200 is below the cheapest upgradable item + its upgrade)
+    const target = Math.min(...ITEMS.filter((i) => (i.rev ?? 1) === 1 && !i.retired && priceOf(i, "coins") && upgradeCost(i, 1)).map((i) => priceOf(i, "coins")! + upgradeCost(i, 1)!));
+    for (let game = 1; game <= 12 && (await call(m.session, "/api/me/economy")).body.snapshot.wallet.coins < target; game++) {
+      const room = await call(m.session, "/api/rooms", { name: "견적", maxPlayers: 2 });
+      const jn = await call(n.session, `/api/rooms/${room.body.code}/join`, { name: "상대" });
+      const p1 = new Client(worker.url, room.body.code), p2 = new Client(worker.url, room.body.code);
+      await p1.hello(room.body.token);
+      await p2.hello(jn.body.token);
+      intent(p2, "ready");
+      await expect.poll(async () => (await p1.cmd({ type: "start" })).ok, { timeout: 5000 }).toBe(true);
+      await playOut([p1, p2]);
+      await expect.poll(async () => (await call(m.session, "/api/me/records")).body.records?.length ?? 0, { timeout: 10_000 }).toBe(game);
+    }
+    const snap = (await call(m.session, "/api/me/economy")).body.snapshot;
+    const fire = ITEMS.find((i) => (i.rev ?? 1) === 1 && !i.retired && priceOf(i, "coins") && upgradeCost(i, 1) && priceOf(i, "coins")! + upgradeCost(i, 1)! === target)!;
+    const price = priceOf(fire, "coins")!;
+    expect(target).toBeLessThanOrEqual(snap.wallet.coins);
+    // stale quotes first: nothing changes
+    const stale = [
+      await call(m.session, "/api/me/shop/buy", { itemId: fire.id, currency: "coins", requestId: "q-stale-price", expectedPrice: price + 1, configVersion: snap.config }),
+      await call(m.session, "/api/me/shop/buy", { itemId: fire.id, currency: "coins", requestId: "q-stale-config", expectedPrice: price, configVersion: "old-config" }),
+      await call(m.session, "/api/me/shop/draw", { pool: "standard", requestId: "q-stale-odds", expectedPrice: DRAW_COST, oddsVersion: "old-odds", configVersion: snap.config }),
+    ];
+    expect(stale.map((r) => [r.status, r.body.error?.code])).toEqual([[409, "PRICE_CHANGED"], [409, "POLICY_CHANGED"], [409, "ODDS_CHANGED"]]);
+    const still = (await call(m.session, "/api/me/economy")).body.snapshot;
+    expect(still.wallet).toEqual(snap.wallet);
+    expect(still.inventory.some((i: { id: string }) => i.id === fire.id)).toBe(false);
+    // the exact body UI-2 sends (EconomyPages.purchase → buy(..., { expectedPrice, configVersion }))
+    const ok = await call(m.session, "/api/me/shop/buy", { itemId: fire.id, currency: "coins", requestId: "q-buy-fire-01", expectedPrice: price, configVersion: snap.config });
+    expect(ok.status).toBe(200);
+    expect(ok.body.snapshot.wallet.coins).toBe(snap.wallet.coins - price);
+    // upgrade (InventoryPage confirm → upgrade(..., { expectedLevel: to - 1, expectedPrice: cost, configVersion }))
+    const cost = upgradeCost(fire, 1)!;
+    const wrongLevel = await call(m.session, "/api/me/shop/upgrade", { itemId: fire.id, requestId: "q-up-wrong-1", expectedLevel: 2, expectedPrice: cost, configVersion: snap.config });
+    expect([wrongLevel.status, wrongLevel.body.error?.code]).toEqual([409, "LEVEL_CHANGED"]);
+    const up = await call(m.session, "/api/me/shop/upgrade", { itemId: fire.id, requestId: "q-up-right-1", expectedLevel: 1, expectedPrice: cost, configVersion: snap.config });
+    expect(up.status).toBe(200);
+    expect(up.body.snapshot.inventory.find((i: { id: string }) => i.id === fire.id).level).toBe(2);
+    // the draw status reports the same odds version this bundle shows (DrawPanel oddsMismatch stays false)
+    const draw = (await call(m.session, "/api/me/shop/draw")).body.draw;
+    if (draw.odds?.standard !== undefined) expect(draw.odds.standard).toBe(drawOdds("standard").version);
+  }, 240_000);
 });
