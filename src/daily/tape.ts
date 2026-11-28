@@ -2,7 +2,7 @@ import { hmacSha256, sha256, toHex, utf8 } from "./sha256";
 import { DAILY_RULES } from "./calendar";
 
 /**
- * Daily dice tape (LIVE-1, D-101).
+ * Daily dice tape (LIVE-1, D-102).
  *
  * Indexing: the faces are addressed by POSITION, not by how many random numbers were used so far:
  *
