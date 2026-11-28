@@ -1,5 +1,7 @@
 # C5 통합 안내 — INT-1용 (2026-11-28)
 
+> **C5 개발 완료 · INT-1 인계 (2026-11-28).** 소유자가 최신 필수 CI 통과를 확인했다. 칭호 이름 3종 유지, 게스트 상대 승리는 유지·증가 없음, 일일 콘텐츠는 서버 검증된 오늘의 요트 공식 경기 완료만 인정(전략 퍼즐·연습 제외), 소급 지급 없음으로 확정했다(D-C5-3). 추가 기능·정책 변경·main 병합·운영 배포·보상 활성화는 C5에서 하지 않는다. 마지막 확인: head `f35b409`, 필수 CI(`ci-result`·unit·build·browser 4) 통과, main과 충돌 없음.
+>
 > PR [#140](https://github.com/oyueo-mm/YachtLab/pull/140) 브랜치 `claude/happy-euler-paasea`. 소유자가 2026-11-28 **C5-CORE를 채택**하고 개발을 승인했다(D-C5-2).
 > **main 병합·운영 Worker 배포·운영 보상 활성화·기존 사용자 실제 지급은 별도 승인 대상이다.** Worker 플래그 `RETENTION`은 기본 off다.
 > 결정 번호는 C5 임시 ID(D-C5-1~4)다. 최종 번호는 INT-1이 정한다. 다른 담당 브랜치(#141, #142)는 **병합하지 않았다**. 읽고 대조만 했다.
@@ -86,3 +88,24 @@
 | 연속 활동 분포 | `grant.activity-streak`(이정표별 txId 접두 집계는 활성화 PR에서) | 3·7·14·30일 도달 비율 |
 | 주간 연승 | `grant.weekly-streak` | 계정당 주 50코인 상한 확인 |
 | 이상 징후 | `grant_tx` + `verify()`(관리자 원장 검사 경로에 포함됨) | 불일치 0건 |
+
+## 8. INT-1 확인 항목 — ADMIN-1 최신 C5 어댑터와 지급 계약
+
+ADMIN-1 브랜치 `claude/charming-pasteur-7gzm9e`(확인 시점 `4cd73a0`)에 C5 연동 준비가 들어 있다. 다음 두 파일이다.
+- `worker/src/admin/grant-port.ts`의 `toGrantRequest()`
+- `docs/admin/ADMIN-FEEDBACK.md` §9.7
+
+통합할 때 아래를 **실제 코드로 다시 검증**한다(C5가 읽어서 대조한 결과이고, 병합 검증은 아니다).
+
+| # | 확인 항목 | C5 계약 | ADMIN-1 현재 | 판단 |
+|---|---|---|---|---|
+| 1 | 연결 방식 | 권장 최종형: 전달 시 `grants.issue(delivery: "inbox")`, 수령은 `grants.claim` (§3-2) | `deliver`/`claim`/`redeemGrant` 내부를 `grants.issue`/`grants.claim`으로 교체하는 계획. 운영·채택 보상은 inbox, 코드는 direct | **`toGrantRequest` 경로를 채택한다.** C5의 `creditAdminClaim`(수령 시 direct 지급)은 대안이자 호환용이다. 둘을 함께 쓰지 않는다 |
+| 2 | `GrantRequest` 형태 | `worker/src/grants.ts` `GrantRequest` | 같은 필드의 구조형 사본 `C5GrantRequest`(import 없음) | 통합 시 사본을 지우고 C5 타입을 import한다(필드 차이가 생기면 컴파일에서 드러남) |
+| 3 | txId | `[A-Za-z0-9:._-]{4,96}`, 결정적 | `op:rw_…`, `sug:sg_…`, `code:cd_…[:n]` | 형식은 일치한다. **`code:<id>:<n>` 접미사**는 한 계정이 같은 코드를 여러 번 받는 것을 뜻하므로, 계약 §5의 "코드당 계정 1회"와 맞는지 금액 정책 승인 때 결정한다 |
+| 4 | 행위자·운영자 플래그 | 운영자 출처는 `{ operator: true }` + `actor = admin:<id>` | `actor = "admin:" + 승인자 계정 ID`. `redeem-code`도 같은 actor | `validateGrant`를 통과한다. 다만 사용자가 직접 교환하는 코드도 `operator: true`로 발급되므로, 감사 로그에 "승인자 = 코드 생성 승인자"로 남는다는 점을 기록한다 |
+| 5 | 상한 | `GRANT_LIMITS` operator 5000/200, suggestion 2000/100, redeem-code 1000/50 | `GRANT_CAPS`를 같은 값으로 맞춤 | 일치한다. 통합 후에는 C5 상수 하나만 쓰도록 정리한다 |
+| 6 | 금액 승인 게이트 | `APPROVED_SOURCES`에 operator·suggestion·redeem-code 없음 → `SOURCE_DISABLED` | `ADMIN_REWARD_POLICY` 없으면 `POLICY_PENDING` | **두 게이트를 모두 유지한다.** 관리자 보상·제안 채택·교환 코드 금액이 승인되면 정책 버전을 `ADMIN_REWARD_POLICY`에 넣고, Worker의 `RewardGrants` 활성 출처에 해당 출처를 추가한다(별도 승인 배포) |
+| 7 | 원장 ID | `g:<txId>` | 지금 `admin:<id>`(adminGrant). 통합 후 `g:` | 운영 배포 전이라 이전할 데이터가 없다. `EconomyStore.adminGrant`·`wallet()`은 통합 후 지우거나 `creditAdminClaim`·`balance()`로 대체한다(§2) |
+| 8 | 보상함 하나 | 보상이 붙은 항목은 `grant_tx` inbox, 우편함은 메시지만 | 우편함 `inbox` 표에 코인·보석이 함께 있음 | 통합 시 우편함의 보상 금액은 `grant_tx`만 원본으로 삼는다(이중 표시·이중 수령 방지). `#rewards` 보상함과 ADMIN-1 `#mailbox` 중 사용자 진입점은 UI-1과 정한다 |
+| 9 | 일일 콘텐츠 | `dc:<콘텐츠ID>:<KST일>`, 금액 미승인. 연속 활동은 공식 경기 완료만 | `LIVE-1-ADMIN-CONTRACT.md` §5: 일일 콘텐츠 보상은 system 지급이라 관리자 경로 대상 아님 | 일치한다. LIVE-1 연결은 `dailyContentDone({ kind: "daily.official.completed", at })`뿐이다 |
+| 10 | 검증 | 통합 후 `grants.verify()` + `EconomyStore.verify()` | SEC-1 2차 감사 체크리스트 A11·B5·B11 | 통합 PR에서 `tests/reward-grants.test.ts`·`retention-worker*.test.ts`와 ADMIN-1 `admin-sec1` 테스트를 함께 통과해야 한다 |
