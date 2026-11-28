@@ -126,7 +126,7 @@ describe("SEC-1 2차 INT-7 · 롤백에도 관리자·게시판 탈퇴 정리가
     const src = readFileSync("worker/src/index.ts", "utf8");
     expect(src).toContain("this.extCleanup.enqueue(owner, [ADMIN_TARGET, BOARD_TARGET], plan.code, now)");
     expect(src).not.toMatch(/this\.cleanup\.enqueue\([^)]*ADMIN_TARGET/);
-    expect(src).toContain('new Set(["tomb", "acct_cleanup", EXT_CLEANUP_TABLE, "fr_retired"])');
+    expect(src).toContain('new Set(["tomb", "acct_cleanup", EXT_CLEANUP_TABLE, "fr_retired", "daily_used"])');
     expect(src).toContain("this.extCleanup.nextAt()");
     expect(src).toContain("this.extCleanup.requeue(epoch, now)");
     expect(src).toContain("this.extCleanup.parked() === this.extCleanup.pending()");
