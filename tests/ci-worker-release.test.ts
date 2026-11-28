@@ -38,15 +38,24 @@ describe("release plan", () => {
     expect(deployedCommit(`git:${sha} actions:46113118303/1`)).toBe(sha);
     for (const m of [undefined, "", "Rollback to 837e6a1e", `git:${sha}`, `git:${sha.slice(0, 7)} actions:1/1`]) expect(deployedCommit(m)).toBeNull();
   });
-  it("stays stopped after a failed automatic run until a later manual release succeeds", () => {
+  it("stays stopped after a failed run until a later manual release succeeds", () => {
     const run = (id: number, at: string, conclusion: string, status = "completed") => ({ id, created_at: at, conclusion, status });
     const failedAuto = [run(3, "2026-11-28T03:00:00Z", "failure"), run(2, "2026-11-28T02:00:00Z", "success")];
     expect(stoppedByFailure(failedAuto, [], 9)).toMatchObject({ id: 3 });
     expect(stoppedByFailure(failedAuto, [run(7, "2026-11-28T02:30:00Z", "success")], 9)).toMatchObject({ id: 3 });
     expect(stoppedByFailure(failedAuto, [run(8, "2026-11-28T04:00:00Z", "success")], 9)).toBeNull();
-    expect(stoppedByFailure(failedAuto, [run(8, "2026-11-28T04:00:00Z", "failure")], 9)).toMatchObject({ id: 3 });
-    // cancelled/skipped runs and the current run do not count
+    expect(stoppedByFailure(failedAuto, [run(8, "2026-11-28T04:00:00Z", "failure")], 9)).toMatchObject({ id: 8 });
+    // cancelled runs and the current run do not count
     expect(stoppedByFailure([run(9, "2026-11-28T05:00:00Z", "failure", "in_progress"), run(4, "2026-11-28T04:00:00Z", "cancelled"), run(2, "2026-11-28T02:00:00Z", "success")], [], 9)).toBeNull();
+  });
+  it("is not cleared by later successful automatic runs (emergency-stop or no-change skips)", () => {
+    const run = (id: number, at: string, conclusion: string) => ({ id, created_at: at, conclusion, status: "completed" });
+    const autoRuns = [run(6, "2026-11-28T06:00:00Z", "success"), run(5, "2026-11-28T05:00:00Z", "success"), run(3, "2026-11-28T03:00:00Z", "failure")];
+    expect(stoppedByFailure(autoRuns, [], 9)).toMatchObject({ id: 3 });
+  });
+  it("is set by a failed manual release too", () => {
+    const run = (id: number, at: string, conclusion: string) => ({ id, created_at: at, conclusion, status: "completed" });
+    expect(stoppedByFailure([run(2, "2026-11-28T02:00:00Z", "success")], [run(4, "2026-11-28T04:00:00Z", "failure"), run(1, "2026-11-28T01:00:00Z", "success")], 9)).toMatchObject({ id: 4 });
   });
 });
 
@@ -66,6 +75,15 @@ describe("workflow guardrails", () => {
       expect(wf).toContain("vars.WORKER_PRODUCTION_DEPLOY_ENABLED");
     }
     expect(auto).toMatch(/^permissions: \{\}$/m);
+    expect(auto).not.toContain("worker-production-approval");
+  });
+  it("keeps a separate operator approval for manual (high-risk) releases", () => {
+    expect(manual).toMatch(/approve:\n\s+needs: verify[\s\S]*?environment: worker-production-approval/);
+    expect(manual).toContain("required_reviewers");
+    expect(manual).toMatch(/deploy:\n\s+needs: \[verify, approve\][\s\S]*?environment: worker-production\n/);
+    // the approval job holds no Cloudflare credentials
+    const approve = manual.slice(manual.indexOf("  approve:"), manual.indexOf("  deploy:"));
+    expect(approve).not.toContain("secrets.");
     expect(auto).not.toMatch(/contents: write|deployments: write|actions: write/);
   });
 });

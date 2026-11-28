@@ -66,16 +66,17 @@ export function deployedCommit(message) {
 }
 
 /**
- * Stop rule: after a failed automatic run, automatic releases stay stopped until a manual release of the
- * Worker succeeds (D-100). Runs are GitHub workflow runs (newest first is not assumed).
+ * Stop rule (D-100): any failed Worker release run — automatic or manual — stops the automatic path until a
+ * manual release succeeds after it. Successful automatic runs never clear it: they include skips (emergency
+ * stop, no Worker change, superseded commit) that released nothing.
  */
 export function stoppedByFailure(autoRuns, manualRuns, currentRunId) {
   const done = (r) => r.status === "completed" && r.id !== currentRunId;
-  const lastAuto = autoRuns.filter(done).filter((r) => r.conclusion === "success" || r.conclusion === "failure")
-    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
-  if (!lastAuto || lastAuto.conclusion !== "failure") return null;
-  const cleared = manualRuns.some((r) => done(r) && r.conclusion === "success" && Date.parse(r.created_at) > Date.parse(lastAuto.created_at));
-  return cleared ? null : lastAuto;
+  const at = (r) => Date.parse(r.created_at);
+  const lastFailure = [...autoRuns, ...manualRuns].filter((r) => done(r) && r.conclusion === "failure").sort((a, b) => at(b) - at(a))[0];
+  if (!lastFailure) return null;
+  const cleared = manualRuns.some((r) => done(r) && r.conclusion === "success" && at(r) > at(lastFailure));
+  return cleared ? null : lastFailure;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

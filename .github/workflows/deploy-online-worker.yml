@@ -2,6 +2,7 @@ name: Deploy YachtLab Online Worker (manual)
 # CI-1.2 (D-100): the manual path for guarded releases (Worker config, Durable Object migrations, runtime vars,
 # economy policy), for the first release after a rollback or a stopped automatic run, and for any operator
 # release. Ordinary Worker changes are released by deploy-online-worker-auto.yml after the main pipeline.
+# Every manual release waits for an operator approval in the worker-production-approval Environment.
 on:
   workflow_dispatch:
     inputs:
@@ -67,8 +68,33 @@ jobs:
           WRANGLER_SEND_METRICS: "false"
         run: npx --no-install wrangler deploy --dry-run --config worker/wrangler.toml --outdir "$RUNNER_TEMP/worker-dry-run"
 
-  deploy:
+  # D-100: manual releases are the high-risk path (economy policy, Durable Object migrations, bindings, runtime vars,
+  # recovery after a rollback or a stopped automatic release). They keep a separate operator approval in an
+  # Environment without secrets; the release itself still runs in worker-production with its dedicated token.
+  approve:
     needs: verify
+    if: github.ref == 'refs/heads/main' && github.run_attempt == '1' && inputs.free_plan_confirmed
+    environment: worker-production-approval
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions:
+      actions: read
+    steps:
+      - name: Require a protected approval Environment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        # GitHub creates a missing Environment without protection, so check that this one really has reviewers.
+        run: |
+          rules=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/environments/worker-production-approval") ||
+            { echo 'Could not read the approval Environment.'; exit 1; }
+          echo "$rules" | jq -e '[.protection_rules[]? | select(.type == "required_reviewers" and ((.reviewers // []) | length) > 0)] | length > 0' > /dev/null ||
+            { echo 'worker-production-approval has no required reviewers. Configure it before any manual release.'; exit 1; }
+          echo "Approved by a required reviewer of worker-production-approval."
+
+  deploy:
+    needs: [verify, approve]
     if: github.ref == 'refs/heads/main' && github.run_attempt == '1' && inputs.free_plan_confirmed
     environment: worker-production
     runs-on: ubuntu-24.04
