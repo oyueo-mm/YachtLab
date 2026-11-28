@@ -9,6 +9,14 @@ export const BODY_LIMITS = {
   room: 1024,
   /** Friend, invite, presence, settings and pins routes. */
   social: 4096,
+  /** INT-1 (SEC-1 2차 INT-1): admin console routes (drafts, notices, rewards). */
+  admin: 16_384,
+  /** Admin sign-in exchange. */
+  adminLogin: 1024,
+  /** Member engagement routes (suggestions, reports, appeals, mailbox, redeem). */
+  engagement: 8192,
+  /** 오늘의 요트 / 퍼즐 routes (one step, one answer). */
+  daily: 2048,
 } as const;
 
 export async function readLimitedText(request: Request, max: number): Promise<string> {

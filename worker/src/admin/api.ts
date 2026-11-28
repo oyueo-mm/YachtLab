@@ -1,3 +1,4 @@
+import { BODY_LIMITS, readJsonObject } from "../limits";
 import type { PrivateProfile } from "../account";
 import type { SessionUser } from "../accounts-api";
 import { ACTION_KINDS, GRANT_CAPS, SINGLE_OPERATOR, can, permissionsOf, type ActionKind, type AdminSettings, type Permission, type Role } from "./roles";
@@ -86,14 +87,8 @@ export type AdminBackends = {
 };
 type Reply = (status: number, body: unknown) => Response;
 
-async function readJson(request: Request, max = 16_384): Promise<Record<string, unknown>> {
-  if (Number(request.headers.get("content-length") ?? "0") > max) throw new Error("too large");
-  const text = await request.text();
-  if (text.length > max) throw new Error("too large");
-  const v = JSON.parse(text || "{}");
-  if (typeof v !== "object" || v === null || Array.isArray(v)) throw new SyntaxError("object expected");
-  return v as Record<string, unknown>;
-}
+/** SEC-1 2차 INT-1: the shared limited reader (declared length AND streamed bytes), never the unbounded body readers. */
+const readJson = (request: Request, max: number = BODY_LIMITS.admin): Promise<Record<string, unknown>> => readJsonObject(request, max);
 const bearer = (request: Request) => (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
 const days = (url: URL, def = 14) => Math.max(1, Math.min(120, Math.floor(Number(url.searchParams.get("days") ?? def)) || def));
 const page = (url: URL) => Math.max(0, Math.floor(Number(url.searchParams.get("page") ?? 0)) || 0);
@@ -123,7 +118,7 @@ export async function handleAdminRoute(request: Request, url: URL, b: AdminBacke
     // bound to this account and to the tab that started it. Only loopback test servers may skip it.
     let reauthAt: number | null = null;
     if (b.settings.reauth === "google") {
-      const input = await readJson(request, 1024).catch(() => ({} as Record<string, unknown>));
+      const input = await readJson(request, BODY_LIMITS.adminLogin).catch(() => ({} as Record<string, unknown>));
       reauthAt = await b.admin.op<number | null>("consumeReauth", input.reauth, me.userId, input.clientState, now);
       if (reauthAt === null) {
         await b.admin.op("audit", { at: now, actor: me.userId, role, action: "session.reauth-missing", result: "denied", client: b.client });
@@ -582,7 +577,7 @@ export async function handleEngagementRoute(request: Request, url: URL, b: Admin
     if (path === "/api/me/appeals" && method === "GET") return reply(200, { appeals: await b.admin.op("appeals", { userId: me.userId }) });
     if (path === "/api/me/mailbox" && method === "GET") return reply(200, (await user.inbox?.()) ?? { items: [], unclaimed: 0 });
     if (method !== "POST") return fail(404, "NOT_FOUND", "없는 주소입니다.");
-    const input = await readJson(request, 8192);
+    const input = await readJson(request, BODY_LIMITS.engagement);
 
     // A suspended account may still appeal; nothing else here.
     if (path === "/api/me/appeals") {

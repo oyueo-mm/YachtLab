@@ -1857,13 +1857,8 @@ export default {
       if (url.pathname.startsWith("/api/daily/")) {
         if (!dailyOn) return fail(404, "DAILY_OFF", "오늘의 요트는 아직 준비 중이에요.", allowed);
         if (!allowed && request.method !== "GET") return fail(403, "ORIGIN", "허용되지 않은 출처입니다.", null);
-        const readJson = async () => {
-          const text = await request.text();
-          if (text.length > 2048) throw new Error("too large");
-          const v = JSON.parse(text || "{}");
-          if (typeof v !== "object" || v === null || Array.isArray(v)) throw new SyntaxError("object expected");
-          return v as Record<string, unknown>;
-        };
+        // SEC-1 2차 INT-1: same limited reader as every other route (declared length and streamed bytes)
+        const readJson = () => readJsonObject(request, BODY_LIMITS.daily);
         let identity: Promise<{ userId: string; suspended: boolean } | null> | null = null;
         const res = await handleDailyRoute(request, url, {
           secretFor: (date) => (secrets as Extract<typeof secrets, { ok: true }>).secretFor(date),
