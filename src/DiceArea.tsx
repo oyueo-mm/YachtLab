@@ -11,6 +11,7 @@ import { useScoreFx, type ScoreFx } from "./score-fx";
 import { beginDiceMotion } from "./dice-motion";
 import { DieIcon } from "./Dice";
 import { StraightFlash, YachtFlash } from "./yacht-moment";
+import { diceMaterialSpec } from "./dice3d/dice-material";
 
 const TABLE_TIMEOUT_MS = 12_000;
 
@@ -114,7 +115,7 @@ export function DiceArea({ forceRenderer, onRendererReady, colors = null, materi
   return (
     <>
       {colors ? (
-        <div className="dice-themed" style={{ "--die-face": colors.face, "--die-pip": colors.pip, "--die-edge": colors.edge } as React.CSSProperties}>
+        <div className="dice-themed" data-material={diceMaterialSpec(colors, colors.fx).class} style={{ "--die-face": colors.face, "--die-pip": colors.pip, "--die-edge": colors.edge, "--die-accent": colors.accent ?? colors.edge } as React.CSSProperties}>
           <Dice {...props} material={material} soundEnabled={soundEnabled} holdOrder={holdOrder} forceRenderer={renderer === "none" ? "none" : "2.5d"} />
         </div>
       ) : (

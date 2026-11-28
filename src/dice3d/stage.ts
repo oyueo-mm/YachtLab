@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { MATERIAL_ORDER, finalValue, simulateThrow, type SimInput, type SimResult } from "./physics";
-import { paintFace, paintGlowMap, type DiceLook } from "./face-paint";
+import { paintAlphaMap, paintBumpMap, paintFace, paintGlowMap, paintSelfGlowMap, paintSurfaceMap, type DiceLook } from "./face-paint";
+import type { DiceMaterialSpec } from "./dice-material";
 
 /**
  * three.js renderer for pre-simulated dice throws. Loaded lazily (separate chunk) only when the
@@ -224,3 +225,17 @@ export class DiceStage {
     void this.host;
   }
 }
+
+/* FX-1 material maps (bump, roughness/metalness, alpha, self-glow). Small, cached per look by the caller. */
+function canvasTexture(px: number, paint: (g: CanvasRenderingContext2D) => void, srgb = false) {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = px;
+  paint(canvas.getContext("2d")!);
+  const texture = new THREE.CanvasTexture(canvas);
+  if (srgb) texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+export const bumpTexture = (value: number, px: number, colors: DiceColors, spec: DiceMaterialSpec) => canvasTexture(px, (g) => paintBumpMap(g, value, px, colors, spec));
+export const surfaceTexture = (value: number, px: number, colors: DiceColors, spec: DiceMaterialSpec) => canvasTexture(px, (g) => paintSurfaceMap(g, value, px, colors, spec));
+export const alphaTexture = (value: number, px: number, spec: DiceMaterialSpec) => canvasTexture(px, (g) => paintAlphaMap(g, value, px, spec));
+export const selfGlowTexture = (value: number, px: number, colors: DiceColors, withPips: boolean) => canvasTexture(px, (g) => paintSelfGlowMap(g, value, px, colors, withPips), true);

@@ -1,25 +1,22 @@
-import { announceScore, clearScoreFx } from "../score-fx";
-import { diceMaterial } from "../sound-packs";
+import { clearScoreFx } from "../score-fx";
 import { useEffect, useRef, useState } from "react";
 import { Dices, Play, Volume2 } from "lucide-react";
-import { BoardFx, SynergyFx } from "../play/BoardFx";
 import { collectionsOf } from "../economy/live/collections";
 
 import { EmoteGlyph } from "../play/EmoteGlyph";
-import { emitFx } from "../fx-bus";
 import { CATEGORIES, itemById, lookAt, publicLook, DEFAULT_LOADOUT, type ItemDef, type PublicLook } from "../economy/live/catalog";
 import { TIERS } from "../economy/live/config";
 import { paintFace } from "../dice3d/face-paint";
-import { DiceArea } from "../DiceArea";
+import { FxPreview, type FxPreviewHandle } from "../fx-preview";
 import { boardTheme, DefaultAvatar, PlayerTag } from "../play/Looks";
 import { FxBurst, GLYPH, type FxKind } from "../play/FxBurst";
 import { ChatMessage } from "../play/ChatMessage";
 import { useOwnLook } from "../play/own-look";
 import { GUEST_LOOK } from "../economy/live/catalog";
 import { socialItem } from "../social/catalog";
-import { playEmoteSfx, playSfx, unlockAudio } from "../sound";
+import { playEmoteSfx, unlockAudio } from "../sound";
 import { DieIcon } from "../Dice";
-import { diceRenderer, motionLevel, useSettings } from "../settings";
+import { useSettings } from "../settings";
 
 /**
  * Item visuals for the shop and the inventory (E/F/G, 2026-11-25).
@@ -117,46 +114,23 @@ function lookWith(item: ItemDef, level: number, equipped?: PublicLook | null): P
 /** Sample lines for the bubble preview: one calm, one cheering, one questioning (never the live catalog). */
 const BUBBLE_LINES = ["안녕하세요!", "대단해요!", "정말요?"].map((text, i) => ({ id: "chat.hello", item: { id: "preview.line." + i, kind: "chat" as const, text, label: text, tier: "basic" as const, style: "default" as const } }));
 
-const randomDice = () => Array.from({ length: 5 }, (_, id) => ({ id, value: 1 + Math.floor(Math.random() * 6), held: false }));
-
 /**
  * The large preview in the item detail: the real game piece at the chosen level. Nothing is saved.
  */
 export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemDef; level: number; name?: string }) {
   const look = lookAt(item, level);
-  const [dice, setDice] = useState(randomDice);
-  const [rolls, setRolls] = useState(0);
-  const [rollEvent, setRollEvent] = useState(0);
+  const stage = useRef<FxPreviewHandle>(null);
   const [replay, setReplay] = useState(0);
   const [pair, setPair] = useState(false);
   const [bubbleLine, setBubbleLine] = useState(0);
   const [fxKind, setFxKind] = useState<FxKind>("win");
   const own = useOwnLook();
   const reduced = useSettings().reducedEffects;
-  const boardRef = useRef<HTMLElement | null>(null);
   // Preview sounds follow the global settings (mute / effects switch / volume); no extra switch.
-  const previewGrand = () => {
-    unlockAudio();
-    const example = [1, 2, 3, 4, 5].map((value, id) => ({ value, id, held: false }));
-    setDice(example);
-    setRolls(1);
-    announceScore(example, "large");
-    emitFx({ type: "straight" });
-  };
-  const previewWin = () => {
-    unlockAudio();
-    emitFx({ type: "win" });
-  };
   useEffect(() => {
     if (item.category === "board") return clearScoreFx;
   }, [item]);
-  const roll = () => {
-    unlockAudio();
-    setDice((previous) => randomDice().map((die, index) => previous[index].held ? previous[index] : die));
-    setRolls((r) => (r >= 3 ? 1 : r + 1));
-    setRollEvent((n) => n + 1);
-  };
-  // Switching level replays the throw so Lv.1 / Lv.2 / Lv.3 can be compared directly.
+  // Switching level replays the emote (dice / boards: FxPreview throws again by itself).
   const firstLevel = useRef(true);
   useEffect(() => {
     if (firstLevel.current) {
@@ -167,34 +141,19 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
       setReplay((n) => n + 1);
       playEmoteSfx(item.id, level);
     }
-    // Dice: every level re-throws. Boards: Lv.2 is visible at rest; Lv.3 throws so the reactions show.
-    if ((item.category === "dice" || (item.category === "board" && level === 3)) && motionLevel() === "full") {
-      setDice((d) => d.map((x) => ({ ...x, held: false })));
-      setRolls((r) => (r >= 3 ? 1 : r + 1));
-      setRollEvent((n) => n + 1);
-    }
   }, [level, item.category]);
-  const state = { dice, order: [0, 1, 2, 3, 4], rolls: Math.max(1, rolls) };
-  // The real 3D table when the device can draw it (the same renderer and painter as in a match).
-  const settings = useSettings();
-  const renderer = diceRenderer(settings);
   if (item.category === "dice" || item.category === "board") {
     // Collection combo preview: the same theme's die on its board, with the synergy (nothing is saved).
-    const collection = item.category === "dice" || item.category === "board" ? collectionsOf(item.id).find((c) => c.dice.length && c.boards.length) : undefined;
+    const collection = collectionsOf(item.id).find((c) => c.dice.length && c.boards.length);
     const partner = pair && collection ? itemById(item.category === "dice" ? collection.boards[0] : collection.dice[0]) : null;
     const boardItem = item.category === "board" ? item : partner;
     const diceItem = item.category === "dice" ? item : partner;
     // The pair is shown at the chosen level on both sides (the game uses the lower of the two levels).
-    const partnerLv = (other: ItemDef) => Math.min(level, other.maxLevel);
-    const diceLook = diceItem ? lookAt(diceItem, diceItem === item ? level : partnerLv(diceItem)).dice ?? null : null;
-    const theme = boardItem ? boardTheme(boardItem, boardItem === item ? level : partnerLv(boardItem), motionLevel(settings) === "full") : { className: "" };
+    const lv = (other: ItemDef | null) => (other ? (other === item ? level : Math.min(level, other.maxLevel)) : 1);
     return (
       <div className="item-stage">
-        <section ref={boardRef} className={"game-board throw-tray stage-board" + theme.className} style={theme.style} aria-label="미리보기 보드">
-          <DiceArea key={partner?.id ?? "solo"} state={state} forceRenderer={renderer} colors={diceLook} material={diceMaterial(diceItem?.id ?? item.id, diceLook ?? undefined)} interactive animate rollEvent={rollEvent} onToggle={(id) => setDice((previous) => previous.map((die) => die.id === id ? { ...die, held: !die.held } : die))} />
-          {boardItem && <BoardFx itemId={boardItem.id} level={boardItem === item ? level : partnerLv(boardItem)} host={boardRef} />}
-          {partner && diceItem && boardItem && <SynergyFx dice={diceItem.id} board={boardItem.id} level={level} host={boardRef} />}
-        </section>
+        {/* FX-1: the shared preview stage (same dice table, board layers, synergy and moments as a match). */}
+        <FxPreview ref={stage} dice={diceItem?.id ?? null} diceLevel={lv(diceItem)} board={boardItem?.id ?? null} boardLevel={lv(boardItem)} autoRoll={item.category === "dice" || level === 3} />
         {collection && (
           <label className="stage-pair">
             <input type="checkbox" checked={pair} onChange={(e) => setPair(e.target.checked)} />
@@ -202,12 +161,16 @@ export function ItemStage({ item, level, name = "내 닉네임" }: { item: ItemD
           </label>
         )}
         <div className="stage-actions">
-          <button type="button" className="primary stage-action" onClick={roll}>
+          <button type="button" className="primary stage-action" onClick={() => stage.current?.roll()}>
             <Dices size={17} /> 굴려 보기
           </button>
           {item.category === "board" && level === 3 && <>
-            <button type="button" className="secondary stage-action" onClick={previewGrand}>족보 반응</button>
-            <button type="button" className="secondary stage-action" onClick={previewWin}>승리 반응</button>
+            <button type="button" className="secondary stage-action" onClick={() => stage.current?.scoreFx("large")}>족보 반응</button>
+            <button type="button" className="secondary stage-action" onClick={() => stage.current?.moment("win")}>승리 반응</button>
+          </>}
+          {item.category === "dice" && level === 3 && <>
+            <button type="button" className="secondary stage-action" onClick={() => stage.current?.moment("yacht")}>요트 연출</button>
+            <button type="button" className="secondary stage-action" onClick={() => stage.current?.moment("straight")}>스트레이트 연출</button>
           </>}
         </div>
       </div>

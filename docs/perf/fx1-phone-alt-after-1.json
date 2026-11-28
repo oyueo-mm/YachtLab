@@ -1,0 +1,289 @@
+{
+ "viewport": "phone",
+ "cpu": 4,
+ "trials": 2,
+ "rolls": 6,
+ "idleMs": 3000,
+ "env": "headless Chromium + SwiftShader (software GL), 60 Hz rAF cap — emulation, not a real device",
+ "combos": {
+  "default": {
+   "look": {},
+   "initMs": 721.5,
+   "tapToFirstFrameMs": {
+    "n": 12,
+    "avg": 60.1,
+    "p50": 58.9,
+    "p95": 96.4,
+    "p99": 96.4,
+    "worst": 96.4,
+    "over33": 12,
+    "over50": 7
+   },
+   "rollFrames": {
+    "n": 641,
+    "avg": 19.5,
+    "p50": 16.7,
+    "p95": 33.4,
+    "p99": 66.7,
+    "worst": 128.3,
+    "over33": 18,
+    "over50": 7
+   },
+   "firstRollFrames": {
+    "n": 108,
+    "avg": 24.4,
+    "p50": 16.7,
+    "p95": 33.4,
+    "p99": 106.8,
+    "worst": 128.3,
+    "over33": 8,
+    "over50": 2
+   },
+   "laterRollFrames": {
+    "n": 233,
+    "avg": 17.3,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 50,
+    "worst": 66.7,
+    "over33": 3,
+    "over50": 2
+   },
+   "idleFrames": {
+    "n": 359,
+    "avg": 16.7,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 16.8,
+    "worst": 16.8,
+    "over33": 0,
+    "over50": 0
+   },
+   "cpuIdlePct": 4.3,
+   "cpuRollPct": 84.5,
+   "scriptRollPct": 13.3,
+   "longTasksPerRoll": 1.4,
+   "longTaskMsPerRoll": 97.5,
+   "heapMB": 8.2,
+   "heapGrowthMB": 1.8,
+   "domNodes": 1105,
+   "canvases": 1,
+   "fxTier": [
+    0,
+    0
+   ]
+  },
+  "lava-synergy": {
+   "look": {
+    "dice": "dice.lava",
+    "diceLv": 3,
+    "board": "board.volcano",
+    "boardLv": 3
+   },
+   "initMs": 797,
+   "tapToFirstFrameMs": {
+    "n": 12,
+    "avg": 68.2,
+    "p50": 64.4,
+    "p95": 145.4,
+    "p99": 145.4,
+    "worst": 145.4,
+    "over33": 11,
+    "over50": 8
+   },
+   "rollFrames": {
+    "n": 353,
+    "avg": 35.8,
+    "p50": 33.3,
+    "p95": 50.1,
+    "p99": 110.7,
+    "worst": 195.3,
+    "over33": 110,
+    "over50": 25
+   },
+   "firstRollFrames": {
+    "n": 36,
+    "avg": 52.5,
+    "p50": 50,
+    "p95": 144.7,
+    "p99": 195.3,
+    "worst": 195.3,
+    "over33": 26,
+    "over50": 6
+   },
+   "laterRollFrames": {
+    "n": 145,
+    "avg": 29.5,
+    "p50": 33.3,
+    "p95": 50,
+    "p99": 81.5,
+    "worst": 82.9,
+    "over33": 27,
+    "over50": 5
+   },
+   "idleFrames": {
+    "n": 357,
+    "avg": 16.8,
+    "p50": 16.7,
+    "p95": 16.7,
+    "p99": 16.8,
+    "worst": 33.3,
+    "over33": 0,
+    "over50": 0
+   },
+   "cpuIdlePct": 39.7,
+   "cpuRollPct": 98.5,
+   "scriptRollPct": 15.2,
+   "longTasksPerRoll": 2.4,
+   "longTaskMsPerRoll": 174.7,
+   "heapMB": 8.9,
+   "heapGrowthMB": 2,
+   "domNodes": 1118,
+   "canvases": 4,
+   "fxTier": [
+    2,
+    2
+   ]
+  },
+  "gold-lv1": {
+   "look": {
+    "dice": "dice.gold",
+    "diceLv": 1
+   },
+   "initMs": 831.5,
+   "tapToFirstFrameMs": {
+    "n": 12,
+    "avg": 60.5,
+    "p50": 63.6,
+    "p95": 142.4,
+    "p99": 142.4,
+    "worst": 142.4,
+    "over33": 12,
+    "over50": 6
+   },
+   "rollFrames": {
+    "n": 754,
+    "avg": 18.6,
+    "p50": 16.7,
+    "p95": 33.3,
+    "p99": 50.1,
+    "worst": 175.2,
+    "over33": 19,
+    "over50": 8
+   },
+   "firstRollFrames": {
+    "n": 104,
+    "avg": 24,
+    "p50": 16.7,
+    "p95": 33.4,
+    "p99": 105.3,
+    "worst": 175.2,
+    "over33": 10,
+    "over50": 2
+   },
+   "laterRollFrames": {
+    "n": 241,
+    "avg": 17.6,
+    "p50": 16.7,
+    "p95": 16.8,
+    "p99": 66.7,
+    "worst": 83.4,
+    "over33": 3,
+    "over50": 3
+   },
+   "idleFrames": {
+    "n": 359,
+    "avg": 16.7,
+    "p50": 16.7,
+    "p95": 16.8,
+    "p99": 16.8,
+    "worst": 16.8,
+    "over33": 0,
+    "over50": 0
+   },
+   "cpuIdlePct": 3.2,
+   "cpuRollPct": 85,
+   "scriptRollPct": 12.6,
+   "longTasksPerRoll": 1.2,
+   "longTaskMsPerRoll": 98.8,
+   "heapMB": 8.3,
+   "heapGrowthMB": 1.8,
+   "domNodes": 1105,
+   "canvases": 1,
+   "fxTier": [
+    0,
+    0
+   ]
+  },
+  "glass_blue-lv3": {
+   "look": {
+    "dice": "dice.glass_blue",
+    "diceLv": 3
+   },
+   "initMs": 848.5,
+   "tapToFirstFrameMs": {
+    "n": 12,
+    "avg": 54,
+    "p50": 54.4,
+    "p95": 95,
+    "p99": 95,
+    "worst": 95,
+    "over33": 12,
+    "over50": 7
+   },
+   "rollFrames": {
+    "n": 634,
+    "avg": 20.5,
+    "p50": 16.7,
+    "p95": 33.4,
+    "p99": 66.6,
+    "worst": 125.8,
+    "over33": 31,
+    "over50": 7
+   },
+   "firstRollFrames": {
+    "n": 68,
+    "avg": 30.7,
+    "p50": 33.3,
+    "p95": 50,
+    "p99": 125.8,
+    "worst": 125.8,
+    "over33": 11,
+    "over50": 2
+   },
+   "laterRollFrames": {
+    "n": 242,
+    "avg": 17.5,
+    "p50": 16.7,
+    "p95": 16.8,
+    "p99": 50,
+    "worst": 66.6,
+    "over33": 4,
+    "over50": 1
+   },
+   "idleFrames": {
+    "n": 359,
+    "avg": 16.7,
+    "p50": 16.7,
+    "p95": 16.8,
+    "p99": 16.8,
+    "worst": 16.8,
+    "over33": 0,
+    "over50": 0
+   },
+   "cpuIdlePct": 16.7,
+   "cpuRollPct": 94.2,
+   "scriptRollPct": 13.5,
+   "longTasksPerRoll": 1.5,
+   "longTaskMsPerRoll": 104.1,
+   "heapMB": 8.6,
+   "heapGrowthMB": 2,
+   "domNodes": 1114,
+   "canvases": 2,
+   "fxTier": [
+    1,
+    0
+   ]
+  }
+ }
+}
