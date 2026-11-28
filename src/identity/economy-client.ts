@@ -62,13 +62,20 @@ async function once<T>(fn: (requestId: string) => Promise<T>): Promise<T> {
 
 export const signedIn = () => !!session();
 export const economy = (server: string) => call<{ snapshot: Snapshot }>(server, "/api/me/economy").then((r) => r.snapshot);
-export const buy = (server: string, itemId: string, currency: "coins" | "gems") => once((requestId) => call<{ snapshot: Snapshot }>(server, "/api/me/shop/buy", { itemId, currency, requestId })).then((r) => r.snapshot);
-export const upgrade = (server: string, itemId: string) => once((requestId) => call<{ snapshot: Snapshot }>(server, "/api/me/shop/upgrade", { itemId, requestId })).then((r) => r.snapshot);
-export const buySlot = (server: string, kind: "emote" | "chat", currency: "coins" | "gems") => once((requestId) => call<{ snapshot: Snapshot }>(server, "/api/me/shop/slot", { kind, currency, requestId })).then((r) => r.snapshot);
+/**
+ * What the player saw when confirming (SEC-08 / SEC-10). The server checks each field it receives in the
+ * same transaction as the charge and answers 409 (PRICE_CHANGED, LEVEL_CHANGED, POLICY_CHANGED,
+ * ODDS_CHANGED, REQUEST_REUSED) without charging. Workers older than this ignore the fields.
+ */
+export type Quote = { expectedPrice?: number; expectedLevel?: number; configVersion?: string; oddsVersion?: string };
+const quoteBody = (q: Quote = {}) => Object.fromEntries(Object.entries(q).filter(([, v]) => v !== undefined && v !== null));
+export const buy = (server: string, itemId: string, currency: "coins" | "gems", quote?: Quote) => once((requestId) => call<{ snapshot: Snapshot }>(server, "/api/me/shop/buy", { itemId, currency, requestId, ...quoteBody(quote) })).then((r) => r.snapshot);
+export const upgrade = (server: string, itemId: string, quote?: Quote) => once((requestId) => call<{ snapshot: Snapshot }>(server, "/api/me/shop/upgrade", { itemId, requestId, ...quoteBody(quote) })).then((r) => r.snapshot);
+export const buySlot = (server: string, kind: "emote" | "chat", currency: "coins" | "gems", quote?: Quote) => once((requestId) => call<{ snapshot: Snapshot }>(server, "/api/me/shop/slot", { kind, currency, requestId, ...quoteBody(quote) })).then((r) => r.snapshot);
 export const saveLoadout = (server: string, loadout: Loadout) => call<{ snapshot: Snapshot }>(server, "/api/me/loadout", { loadout }).then((r) => r.snapshot);
 export const rerollQuest = (server: string, index: number | "all", period: "daily" | "weekly", expected: number) =>
   call<{ snapshot: Snapshot }>(server, "/api/me/quests/reroll", { index, period, expected }).then((r) => r.snapshot);
 export const drawStatus = (server: string) => call<{ snapshot: Snapshot; draw: DrawStatus }>(server, "/api/me/shop/draw");
-export const submitDraw = (server: string, pool: DrawPool, requestId: string) =>
-  call<{ snapshot: Snapshot; draw: DrawStatus; receipt: DrawReceipt }>(server, "/api/me/shop/draw", { pool, requestId });
+export const submitDraw = (server: string, pool: DrawPool, requestId: string, quote?: Quote) =>
+  call<{ snapshot: Snapshot; draw: DrawStatus; receipt: DrawReceipt }>(server, "/api/me/shop/draw", { pool, requestId, ...quoteBody(quote) });
 export const startServerAi = (server: string, name: string) => call<{ code: string; playerId: string; token: string }>(server, "/api/ai/start", { name });

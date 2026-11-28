@@ -6,7 +6,7 @@ import { newRoomCode, normalizeCode, normalizeSpectateId, parseRoomSettings, ROO
 import { readConfig, type ConfigVars, type OnlineConfig } from "./config";
 import { RoomHost, type HostSocket, type HostStorage } from "./host";
 import { AccountStore, type Sql } from "./account";
-import { EconomyStore, type EconSql } from "./economy";
+import { EconomyStore, type EconSql, type Quote } from "./economy";
 import { ECONOMY } from "../../src/economy/live/config";
 import { itemById } from "../../src/economy/live/catalog";
 
@@ -552,15 +552,15 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     void kind;
     return r;
   }
-  async buy(itemId: unknown, currency: unknown, requestId: string) {
+  async buy(itemId: unknown, currency: unknown, requestId: string, quote: Quote = {}) {
     const tier = itemById(itemId)?.tier ?? "unknown";
-    return this.econAction("buy", (u, n) => this.econ.buy(u, itemId, currency, requestId, n), () => `buy.${tier}.${currency === "gems" ? "gems" : "coins"}`);
+    return this.econAction("buy", (u, n) => this.econ.buy(u, itemId, currency, requestId, n, quote), () => `buy.${tier}.${currency === "gems" ? "gems" : "coins"}`);
   }
-  async upgrade(itemId: unknown, requestId: string) {
-    return this.econAction("upgrade", (u, n) => this.econ.upgrade(u, itemId, requestId, n), () => "upgrade");
+  async upgrade(itemId: unknown, requestId: string, quote: Quote = {}) {
+    return this.econAction("upgrade", (u, n) => this.econ.upgrade(u, itemId, requestId, n, quote), () => "upgrade");
   }
-  async buySlot(kind: unknown, currency: unknown, requestId: string) {
-    return this.econAction("slot", (u, n) => this.econ.buySlot(u, kind, currency, requestId, n), () => `slot.${kind === "chat" ? "chat" : "emote"}`);
+  async buySlot(kind: unknown, currency: unknown, requestId: string, quote: Quote = {}) {
+    return this.econAction("slot", (u, n) => this.econ.buySlot(u, kind, currency, requestId, n, quote), () => `slot.${kind === "chat" ? "chat" : "emote"}`);
   }
   async setLoadout(loadout: unknown) {
     return this.econAction("loadout", (u, n) => this.econ.setLoadout(u, loadout, n));
@@ -574,9 +574,9 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       ok: true as const, snapshot: this.econ.snapshot(userId, now), draw: this.econ.drawStatus(now),
     }));
   }
-  async draw(pool: DrawPool, requestId: string) {
+  async draw(pool: DrawPool, requestId: string, quote: Quote = {}) {
     if (this.env.DICE_DRAW !== "on") return { ok: false as const, code: "ECONOMY_OFF", message: "뽑기는 아직 준비 중이에요." };
-    return this.econAction("draw", (u, n) => this.econ.draw(u, pool, requestId, n), () => "shop.draw");
+    return this.econAction("draw", (u, n) => this.econ.draw(u, pool, requestId, n, quote), () => "shop.draw");
   }
   /** Ledger ↔ balance check (administrator). */
   async verifyLedger() {

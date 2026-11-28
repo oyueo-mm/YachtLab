@@ -4,7 +4,7 @@ import { Coins } from "lucide-react";
 import { DiceArea } from "../DiceArea";
 import { waitForDice } from "../dice-motion";
 import { itemById } from "../economy/live/catalog";
-import { DRAW_COMBINATIONS, DRAW_COST, DRAW_DAILY_LIMIT, DRAW_TIERS, DUPLICATE_COINS, HANDS, drawAvailable, drawItems, drawPool, enumerateDrawHands, type DrawPool, type DrawReceipt, type DrawStatus } from "../economy/live/draw";
+import { DRAW_COMBINATIONS, DRAW_COST, DRAW_DAILY_LIMIT, DRAW_TIERS, DUPLICATE_COINS, HANDS, drawAvailable, drawItems, drawOdds, drawPool, enumerateDrawHands, type DrawPool, type DrawReceipt, type DrawStatus } from "../economy/live/draw";
 import { SEASONS, type SeasonId } from "../economy/live/seasons";
 import { session } from "../identity/account-client";
 import { drawStatus, EconomyError, economyRequestId, submitDraw, type Snapshot } from "../identity/economy-client";
@@ -95,7 +95,8 @@ export default function DrawPanel({ server, onWallet }: { server: string; onWall
     try {
       sessionStorage.setItem(key, JSON.stringify(request));
       setPending(request);
-      const response = await submitDraw(server, request.pool, request.requestId);
+      // SEC-10: the odds shown here are this bundle's table; the server refuses the draw if its own differs
+      const response = await submitDraw(server, request.pool, request.requestId, { expectedPrice: DRAW_COST, oddsVersion: drawOdds(request.pool).version, configVersion: snapshot?.config });
       setSnapshot(response.snapshot);
       onWallet(response.snapshot);
       setStatus(response.draw);
@@ -107,7 +108,7 @@ export default function DrawPanel({ server, onWallet }: { server: string; onWall
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "뽑기 요청을 처리하지 못했어요.";
-      if (error instanceof EconomyError && ["DRAW_CLOSED", "DRAW_LIMIT", "INSUFFICIENT", "DRAW_REQUEST", "INVALID"].includes(error.code)) {
+      if (error instanceof EconomyError && ["DRAW_CLOSED", "DRAW_LIMIT", "INSUFFICIENT", "DRAW_REQUEST", "INVALID", "ODDS_CHANGED", "PRICE_CHANGED", "POLICY_CHANGED"].includes(error.code)) {
         clearPending();
         setError(message);
       } else {
@@ -123,13 +124,17 @@ export default function DrawPanel({ server, onWallet }: { server: string; onWall
   const season = pool === "standard" ? null : SEASONS[pool];
   const dice = (receipt?.dice ?? [1, 1, 1, 1, 1]).map((value, id) => ({ id, value, held: false }));
   const won = itemById(receipt?.itemId);
-  const canDraw = snapshot && active && status.remaining > 0 && snapshot.wallet.coins >= DRAW_COST;
+  // A server that reports its odds version must match the table shown on this page (older servers report none).
+  const serverOdds = status?.odds?.[pool];
+  const oddsMismatch = !!serverOdds && serverOdds !== drawOdds(pool).version;
+  const canDraw = snapshot && active && status.remaining > 0 && snapshot.wallet.coins >= DRAW_COST && !oddsMismatch;
   return <section className="draw-panel" role="tabpanel" aria-label="뽑기">
     <div className="draw-controls">
       <Select label="뽑기 종류" value={pool} onChange={setPool}
         options={[{ value: "standard" as DrawPool, label: "일반 뽑기" }, ...(Object.keys(SEASONS) as SeasonId[]).map((id) => ({ value: id as DrawPool, label: SEASONS[id].name }))]} />
       {status && <small>오늘 남은 횟수 {status.remaining}/{DRAW_DAILY_LIMIT} · 매일 00:00 초기화</small>}
     </div>
+    {oddsMismatch && <p className="error-message" role="alert">서버의 뽑기 확률표가 이 화면과 달라요. 페이지를 새로 고친 뒤 확률을 다시 확인해 주세요.</p>}
     {season && <p className="econ-note">{format.format(season.start)} ~ {format.format(season.end)} (한국 시간){active ? "" : " · 판매 기간 외"}</p>}
     <p className="econ-note">주사위 5개를 한 번 굴려 족보에 해당하는 등급에서 상품 하나를 받아요. 같은 상품을 받으면 {DUPLICATE_COINS}코인으로 지급해요.</p>
     <section className="game-board throw-tray stage-board" aria-label="뽑기 주사위">

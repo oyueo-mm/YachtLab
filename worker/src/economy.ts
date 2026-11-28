@@ -1,4 +1,4 @@
-import { DRAW_COST, DRAW_DAILY_LIMIT, DUPLICATE_COINS, HANDS, drawAvailable, drawHand, drawItems, type DrawPool, type DrawReceipt, type DrawStatus } from "../../src/economy/live/draw";
+import { DRAW_COST, DRAW_DAILY_LIMIT, DUPLICATE_COINS, HANDS, drawAvailable, drawHand, drawItems, drawOdds, type DrawPool, type DrawReceipt, type DrawStatus } from "../../src/economy/live/draw";
 import { seasonActive } from "../../src/economy/live/seasons";
 import type { MatchReceipt } from "../../src/economy/live/receipt";
 import { ECONOMY, SLOTS, economyDay } from "../../src/economy/live/config";
@@ -55,6 +55,28 @@ function randomBelow(bound: number) {
 
 type Fail = { ok: false; code: string; message: string };
 
+/**
+ * What the player saw when they confirmed (SEC-08 / SEC-10 / stale requests). Every field is optional so
+ * older pages keep working; a page that sends a field gets it checked inside the same transaction as
+ * the charge. A mismatch charges nothing and answers 409 so the page reloads and asks again.
+ *  - expectedPrice: the coins/gems price (or upgrade cost, slot price, draw cost) shown
+ *  - expectedLevel: upgrades — the level the item had when the player tapped (prevents a second tab or
+ *    a late retry from upgrading twice)
+ *  - configVersion: the economy version (`snapshot.config`) the page last read from this server
+ *  - oddsVersion: draws — the version of the odds table shown (`drawOdds(pool).version`)
+ */
+export type Quote = { expectedPrice?: number; expectedLevel?: number; configVersion?: string; oddsVersion?: string };
+/** 409 codes: nothing was charged, the page should reload the snapshot and ask again. */
+export const STALE_CODES: ReadonlySet<string> = new Set(["PRICE_CHANGED", "LEVEL_CHANGED", "POLICY_CHANGED", "ODDS_CHANGED", "REQUEST_REUSED"]);
+function staleQuote(q: Quote, actual: { price: number; level?: number; odds?: string }): Fail | null {
+  if (q.configVersion !== undefined && q.configVersion !== ECONOMY.version) return { ok: false, code: "POLICY_CHANGED", message: "상점 정보가 바뀌었어요. 새 가격을 확인하고 다시 시도해 주세요." };
+  if (q.expectedLevel !== undefined && actual.level !== undefined && q.expectedLevel !== actual.level) return { ok: false, code: "LEVEL_CHANGED", message: "이미 강화 단계가 바뀌었어요. 현재 단계를 확인해 주세요." };
+  if (q.expectedPrice !== undefined && q.expectedPrice !== actual.price) return { ok: false, code: "PRICE_CHANGED", message: "가격이 바뀌었어요. 새 가격을 확인하고 다시 시도해 주세요." };
+  if (q.oddsVersion !== undefined && actual.odds !== undefined && q.oddsVersion !== actual.odds) return { ok: false, code: "ODDS_CHANGED", message: "뽑기 확률 정보가 바뀌었어요. 새로 고친 확률을 확인해 주세요." };
+  return null;
+}
+const REUSED: Fail = { ok: false, code: "REQUEST_REUSED", message: "이미 다른 요청에 쓴 요청 번호예요. 다시 시도해 주세요." };
+
 export class EconomyStore {
   constructor(private readonly sql: EconSql) {}
 
@@ -68,6 +90,19 @@ export class EconomyStore {
     this.sql.exec("CREATE TABLE IF NOT EXISTS draws (request_id TEXT PRIMARY KEY, day INTEGER NOT NULL, receipt TEXT NOT NULL)");
     this.sql.exec("CREATE INDEX IF NOT EXISTS draws_by_day ON draws (day)");
     this.sql.exec("CREATE TABLE IF NOT EXISTS inventory (item_id TEXT PRIMARY KEY, level INTEGER NOT NULL, via TEXT NOT NULL, at INTEGER NOT NULL)");
+    // What each purchase / upgrade / slot request id was used for (additive, rollback-safe). Requests
+    // stored before this table existed have no row and keep the old "duplicate" answer.
+    this.sql.exec("CREATE TABLE IF NOT EXISTS econ_requests (event_id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, at INTEGER NOT NULL)");
+  }
+
+  /** "new" | "duplicate" (same request replayed) | "reused" (the id was used for something else). */
+  private replay(eventId: string, fingerprint: string): "new" | "duplicate" | "reused" {
+    if (!this.sql.exec("SELECT 1 FROM ledger WHERE event_id = ?", eventId).toArray().length) return "new";
+    const row = this.sql.exec<{ fingerprint: string }>("SELECT fingerprint FROM econ_requests WHERE event_id = ?", eventId).toArray()[0];
+    return row && row.fingerprint !== fingerprint ? "reused" : "duplicate";
+  }
+  private remember(eventId: string, fingerprint: string, now: number) {
+    this.sql.exec("INSERT OR REPLACE INTO econ_requests (event_id, fingerprint, at) VALUES (?, ?, ?)", eventId, fingerprint, now);
   }
 
   private row() {
@@ -227,11 +262,14 @@ export class EconomyStore {
   }
 
   /** Buy an item. Idempotent by `requestId`; atomic (balance, inventory, ledger, achievements). */
-  buy(userId: string, itemId: unknown, currency: unknown, requestId: string, now: number): { ok: true; duplicate: boolean; snapshot: EconomySnapshot } | Fail {
+  buy(userId: string, itemId: unknown, currency: unknown, requestId: string, now: number, quote: Quote = {}): { ok: true; duplicate: boolean; snapshot: EconomySnapshot } | Fail {
     return this.sql.transaction(() => {
       this.ensure(userId, now);
       const key = `buy:${requestId}`;
-      if (this.sql.exec("SELECT 1 FROM ledger WHERE event_id = ?", key).toArray().length) return { ok: true, duplicate: true, snapshot: this.snapshot(userId, now) } as const;
+      const fingerprint = `buy|${String(itemId)}|${String(currency)}`;
+      const seen = this.replay(key, fingerprint);
+      if (seen === "reused") return REUSED;
+      if (seen === "duplicate") return { ok: true, duplicate: true, snapshot: this.snapshot(userId, now) } as const;
       const item = itemById(itemId);
       if (!item || item.retired || (item.season && !seasonActive(item.season, now))) return { ok: false, code: "ITEM", message: "판매하지 않는 아이템이에요." } as Fail;
       if (item.acquisition === "achievement") return { ok: false, code: "NOT_FOR_SALE", message: "업적으로만 얻을 수 있는 아이템이에요." } as Fail;
@@ -240,8 +278,11 @@ export class EconomyStore {
       const price = priceOf(item, currency);
       if (price === null) return { ok: false, code: "CURRENCY", message: currency === "coins" ? "코인으로 살 수 없는 아이템이에요." : "보석으로 살 수 없는 아이템이에요." } as Fail;
       if (this.owned().has(item.id)) return { ok: false, code: "OWNED", message: "이미 가진 아이템이에요." } as Fail;
+      const stale = staleQuote(quote, { price });
+      if (stale) return stale;
       const r = this.row()!;
       if ((currency === "coins" ? r.coins : r.gems) < price) return { ok: false, code: "INSUFFICIENT", message: currency === "coins" ? "코인이 부족해요." : "보석이 부족해요." } as Fail;
+      this.remember(key, fingerprint, now);
       this.post([{ id: key, kind: "purchase", coins: currency === "coins" ? -price : 0, gems: currency === "gems" ? -price : 0, label: `구매 · ${item.name}` }], now);
       this.sql.exec("INSERT INTO inventory (item_id, level, via, at) VALUES (?, 1, ?, ?)", item.id, currency, now);
       this.itemsAchievements(userId, now);
@@ -257,13 +298,14 @@ export class EconomyStore {
     return {
       now,
       remaining: Math.max(0, DRAW_DAILY_LIMIT - this.drawsToday(now)),
+      odds: { standard: drawOdds("standard").version, ...Object.fromEntries((["christmas-2026"] as const).filter((p) => drawAvailable(p, now)).map((p) => [p, drawOdds(p).version])) },
       history: this.sql.exec<{ receipt: string }>("SELECT receipt FROM draws ORDER BY rowid DESC LIMIT 30").toArray()
         .map(({ receipt }) => JSON.parse(receipt) as DrawReceipt),
     };
   }
 
   /** The receipt, inventory, debit, duplicate compensation and related rewards commit together. */
-  draw(userId: string, pool: DrawPool, requestId: string, now: number) {
+  draw(userId: string, pool: DrawPool, requestId: string, now: number, quote: Quote = {}) {
     return this.sql.transaction(() => {
       const previous = this.sql.exec<{ receipt: string }>("SELECT receipt FROM draws WHERE request_id = ?", requestId).toArray()[0];
       if (previous) {
@@ -272,6 +314,8 @@ export class EconomyStore {
         return { ok: true, duplicate: true, receipt, draw: this.drawStatus(now), snapshot: this.snapshot(userId, now) } as const;
       }
       if (!drawAvailable(pool, now)) return { ok: false, code: "DRAW_CLOSED", message: "시즌 뽑기 기간이 아니에요." } as Fail;
+      const stale = staleQuote(quote, { price: DRAW_COST, odds: drawOdds(pool).version });
+      if (stale) return stale;
       if (this.drawsToday(now) >= DRAW_DAILY_LIMIT) return { ok: false, code: "DRAW_LIMIT", message: "오늘의 뽑기 횟수를 모두 사용했어요." } as Fail;
       this.ensure(userId, now);
       if (this.row()!.coins < DRAW_COST) return { ok: false, code: "INSUFFICIENT", message: "코인이 부족해요." } as Fail;
@@ -295,17 +339,23 @@ export class EconomyStore {
   }
 
   /** Upgrade an owned item by one level (coins only, no failure, no downgrade). Idempotent by `requestId`. */
-  upgrade(userId: string, itemId: unknown, requestId: string, now: number): { ok: true; duplicate: boolean; snapshot: EconomySnapshot } | Fail {
+  upgrade(userId: string, itemId: unknown, requestId: string, now: number, quote: Quote = {}): { ok: true; duplicate: boolean; snapshot: EconomySnapshot } | Fail {
     return this.sql.transaction(() => {
       this.ensure(userId, now);
       const key = `up:${requestId}`;
-      if (this.sql.exec("SELECT 1 FROM ledger WHERE event_id = ?", key).toArray().length) return { ok: true, duplicate: true, snapshot: this.snapshot(userId, now) } as const;
+      const fingerprint = `up|${String(itemId)}`;
+      const seen = this.replay(key, fingerprint);
+      if (seen === "reused") return REUSED;
+      if (seen === "duplicate") return { ok: true, duplicate: true, snapshot: this.snapshot(userId, now) } as const;
       const item = itemById(itemId);
       const level = item ? this.owned().get(item.id) : undefined;
       if (!item || level === undefined) return { ok: false, code: "NOT_OWNED", message: "가진 아이템만 강화할 수 있어요." } as Fail;
       const cost = upgradeCost(item, level);
       if (cost === null) return { ok: false, code: "MAX_LEVEL", message: item.maxLevel <= 1 ? "강화할 수 없는 아이템이에요." : "이미 최대 단계예요." } as Fail;
+      const stale = staleQuote(quote, { price: cost, level });
+      if (stale) return stale;
       if (this.row()!.coins < cost) return { ok: false, code: "INSUFFICIENT", message: "코인이 부족해요." } as Fail;
+      this.remember(key, fingerprint, now);
       this.post([{ id: key, kind: "upgrade", coins: -cost, gems: 0, label: `강화 · ${item.name} Lv.${level + 1}` }], now);
       this.sql.exec("UPDATE inventory SET level = ? WHERE item_id = ?", level + 1, item.id);
       return { ok: true, duplicate: false, snapshot: this.snapshot(userId, now) } as const;
@@ -313,18 +363,24 @@ export class EconomyStore {
   }
 
   /** Buy one more permanent equip slot (emote or chat), coins or gems. Idempotent by `requestId`. */
-  buySlot(userId: string, kind: unknown, currency: unknown, requestId: string, now: number): { ok: true; duplicate: boolean; snapshot: EconomySnapshot } | Fail {
+  buySlot(userId: string, kind: unknown, currency: unknown, requestId: string, now: number, quote: Quote = {}): { ok: true; duplicate: boolean; snapshot: EconomySnapshot } | Fail {
     return this.sql.transaction(() => {
       this.ensure(userId, now);
       const key = `slot:${requestId}`;
-      if (this.sql.exec("SELECT 1 FROM ledger WHERE event_id = ?", key).toArray().length) return { ok: true, duplicate: true, snapshot: this.snapshot(userId, now) } as const;
+      const fingerprint = `slot|${String(kind)}|${String(currency)}`;
+      const seen = this.replay(key, fingerprint);
+      if (seen === "reused") return REUSED;
+      if (seen === "duplicate") return { ok: true, duplicate: true, snapshot: this.snapshot(userId, now) } as const;
       if (kind !== "emote" && kind !== "chat") return { ok: false, code: "SLOT", message: "슬롯 종류가 올바르지 않아요." } as Fail;
       if (currency !== "coins" && currency !== "gems") return { ok: false, code: "CURRENCY", message: "결제 수단을 골라 주세요." } as Fail;
       const r = this.row()!;
       const slots = this.slots(r.slots);
       const price = slotPrice(kind, slots[kind], currency);
       if (price === null) return { ok: false, code: "MAX_SLOTS", message: "슬롯을 더 늘릴 수 없어요." } as Fail;
+      const stale = staleQuote(quote, { price });
+      if (stale) return stale;
       if ((currency === "coins" ? r.coins : r.gems) < price) return { ok: false, code: "INSUFFICIENT", message: currency === "coins" ? "코인이 부족해요." : "보석이 부족해요." } as Fail;
+      this.remember(key, fingerprint, now);
       this.post([{ id: key, kind: "slot", coins: currency === "coins" ? -price : 0, gems: currency === "gems" ? -price : 0, label: `${kind === "emote" ? "이모티콘" : "채팅"} 슬롯 ${slots[kind] + 1}칸` }], now);
       this.sql.exec("UPDATE econ SET slots = ? WHERE id = 1", JSON.stringify({ ...slots, [kind]: slots[kind] + 1 }));
       return { ok: true, duplicate: false, snapshot: this.snapshot(userId, now) } as const;
