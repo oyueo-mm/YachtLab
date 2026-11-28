@@ -17,12 +17,20 @@ import { pathToFileURL } from "node:url";
 
 const BOT = ["-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com"];
 
+/** Removes credentials embedded in any URL of a message (`https://user:secret@host` → `https://***@host`). */
+export const redact = (text) => String(text).replace(/(\w+:\/\/)[^/\s@]+@/g, "$1***@");
+
 export function syncWiki({ remote, branch = "master", cwd = process.cwd(), workDir }) {
   if (!remote) throw new Error("--remote 가 필요함");
   const own = !workDir;
   const dir = workDir ?? mkdtempSync(path.join(tmpdir(), "yachtlab-wiki-"));
+  // SEC-1-09: the token travels as an HTTP header set through GIT_CONFIG_* (not in the URL, not in argv).
+  const token = process.env.WIKI_TOKEN;
+  const auth = token
+    ? { GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "http.https://github.com/.extraheader", GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${Buffer.from(`x-access-token:${token}`).toString("base64")}` }
+    : {};
   const git = (args, options = {}) =>
-    execFileSync("git", args, { cwd: options.cwd ?? dir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } }).trim();
+    execFileSync("git", args, { cwd: options.cwd ?? dir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, GIT_TERMINAL_PROMPT: "0", ...auth } }).trim();
   try {
     mkdirSync(dir, { recursive: true });
     let cloned = true;
@@ -53,7 +61,7 @@ export function syncWiki({ remote, branch = "master", cwd = process.cwd(), workD
     try {
       git(["push", "--quiet", "origin", `HEAD:${branch}`]);
     } catch (error) {
-      throw new Error(`Wiki push 실패: ${String(error.stderr ?? error.message).trim().split("\n").pop()}`);
+      throw new Error(`Wiki push 실패: ${redact(String(error.stderr ?? error.message).trim().split("\n").pop())}`);
     }
     console.log(`GitHub Wiki updated (${cloned ? "clone" : "bootstrap"})`);
     return "updated";
@@ -69,7 +77,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const result = syncWiki({ remote: value("--remote"), branch: value("--branch"), workDir: value("--work-dir") });
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Wiki\n${result}\n`);
   } catch (error) {
-    console.error(`::error::Wiki 미러 실패 — Wiki가 한 번도 초기화되지 않았거나(첫 페이지 생성 필요) 쓰기 권한이 없음. ${String(error.message).split("\n")[0]}`);
+    console.error(`::error::Wiki 미러 실패 — Wiki가 한 번도 초기화되지 않았거나(첫 페이지 생성 필요) 쓰기 권한이 없음. ${redact(String(error.message).split("\n")[0])}`);
     process.exit(1);
   }
 }

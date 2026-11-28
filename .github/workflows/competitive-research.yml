@@ -20,7 +20,12 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Run Win DP versus DP Expert experiment
-        run: node scripts/research-competitive.mjs ${{ inputs.games }}
+        # SEC-1-07: the input reaches the shell only through env and must be a number.
+        env:
+          GAMES: ${{ inputs.games }}
+        run: |
+          [[ "$GAMES" =~ ^[0-9]{1,6}$ ]] || { echo "games must be a number"; exit 1; }
+          node scripts/research-competitive.mjs "$GAMES"
       - name: Independent larger confirmatory run (20,000 games)
         if: github.event_name == 'push'
         run: node scripts/research-competitive.mjs 20000 930000

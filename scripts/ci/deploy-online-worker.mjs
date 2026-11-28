@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { appendFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { appendFileSync, readFileSync } from "node:fs";
 
 class ReleaseError extends Error {}
 
@@ -10,6 +11,9 @@ const token = process.env.CLOUDFLARE_API_TOKEN;
 const commit = process.env.GITHUB_SHA;
 const pagesBuild = process.env.PAGES_BUILD;
 const previousVersion = process.env.EXPECTED_WORKER_VERSION;
+// SEC-1-04: the bundle built and hashed by the credential-free job; this job never builds.
+const bundle = process.env.WORKER_BUNDLE;
+const bundleSha256 = process.env.WORKER_BUNDLE_SHA256;
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 const message = `git:${commit} actions:${process.env.GITHUB_RUN_ID}/${process.env.GITHUB_RUN_ATTEMPT}`;
 
@@ -51,15 +55,24 @@ try {
     throw new ReleaseError("The approved commit, rollback version and Pages build are required.");
   }
 
+  if (!bundle || !/^[0-9a-f]{64}$/.test(bundleSha256 ?? "")) throw new ReleaseError("A verified prebuilt Worker bundle is required.");
   const before = await activeDeployment();
   if (before.version !== previousVersion) throw new ReleaseError("The active Worker version changed after review.");
   const pages = await getJson(pagesUrl, "the live Pages build", { "Cache-Control": "no-cache" });
   if (pages?.build !== pagesBuild) throw new ReleaseError("The live Pages build changed after review.");
   if (mainHead() !== commit) throw new ReleaseError("The reviewed commit is no longer the tip of main, or main could not be verified.");
 
+  let actual;
+  try {
+    actual = createHash("sha256").update(readFileSync(bundle)).digest("hex");
+  } catch {
+    actual = "";
+  }
+  if (actual !== bundleSha256) throw new ReleaseError("The prebuilt Worker bundle changed after verification.");
+
   writeAttempted = true;
   const deploy = spawnSync("node_modules/.bin/wrangler", [
-    "deploy", "--config", "worker/wrangler.toml", "--keep-vars", "--strict", "--message", message,
+    "deploy", bundle, "--no-bundle", "--config", "worker/wrangler.toml", "--keep-vars", "--strict", "--message", message,
   ], {
     // Wrangler can print resolved variable values or upstream errors. Retain only verified metadata below.
     stdio: "ignore",
@@ -73,6 +86,7 @@ try {
       "",
       `- Commit: \`${commit}\``,
       `- Reviewed Pages build: \`${pagesBuild}\``,
+      `- Bundle sha256 (built without credentials): \`${bundleSha256}\``,
       `- Deployment: \`${after.id}\``,
       `- Active Worker version (100%): \`${after.version}\``,
       `- Previous deployment / rollback version: \`${before.id}\` / \`${before.version}\``,
