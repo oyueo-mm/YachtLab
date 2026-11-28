@@ -24,6 +24,12 @@ export interface Sql {
 }
 
 export const SESSION_TTL_MS = 30 * 86_400_000;
+/**
+ * Live sessions kept per account (C4.2, SEC-04): a new sign-in beyond this ends the OLDEST session (the
+ * device least likely still in use). Existing sessions are never ended by a deployment; only an account
+ * that already has this many live sessions loses its oldest one at its next sign-in.
+ */
+export const SESSION_CAP = 20;
 export const LOGIN_CODE_TTL_MS = 2 * 60_000;
 export const LIMITS = { importPerDay: 1000, importPerRequest: 200, nicknamePerDay: 10, maxRecords: 5000, maxSoloRecords: 1000 } as const;
 
@@ -40,6 +46,7 @@ const day = (now: number) => Math.floor(now / 86_400_000);
 
 export class AccountStore {
   private counters = new Map<string, { day: number; n: number }>();
+  private prunedDay = -1;
   constructor(private readonly sql: Sql) {}
 
   init() {
@@ -98,13 +105,38 @@ export class AccountStore {
     if (row.expires_at < now || row.cs_hash !== (await sha256(clientState))) return null;
     if (!this.exists()) return null;
     const session = randomToken();
-    this.sql.exec("INSERT INTO sessions (hash, created_at, expires_at) VALUES (?, ?, ?)", await sha256(session), now, now + SESSION_TTL_MS);
+    const sessionHash = await sha256(session);
+    this.pruneSessions(now);
+    // keep the newest SESSION_CAP - 1 live sessions, then add this one
+    this.sql.exec("DELETE FROM sessions WHERE hash IN (SELECT hash FROM sessions ORDER BY created_at DESC, hash DESC LIMIT -1 OFFSET ?)", SESSION_CAP - 1);
+    this.sql.exec("INSERT INTO sessions (hash, created_at, expires_at) VALUES (?, ?, ?)", sessionHash, now, now + SESSION_TTL_MS);
     return session;
+  }
+
+  /**
+   * Remove every expired session and login code of this account (SEC-04): run at each sign-in, at most
+   * once a day from authentication, and by the account object's alarm at the next expiry — so expired
+   * secrets do not stay stored for accounts that never come back. Returns how many sessions went.
+   */
+  pruneSessions(now: number): number {
+    this.prunedDay = day(now);
+    const n = this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM sessions WHERE expires_at < ?", now).toArray()[0]?.n ?? 0;
+    if (n) this.sql.exec("DELETE FROM sessions WHERE expires_at < ?", now);
+    this.sql.exec("DELETE FROM login_codes WHERE expires_at < ?", now);
+    return n;
+  }
+  /** When the next session expires (null: none stored) — the alarm that prunes it. */
+  nextSessionExpiry(): number | null {
+    return this.sql.exec<{ t: number | null }>("SELECT min(expires_at) AS t FROM sessions").toArray()[0]?.t ?? null;
+  }
+  sessionCount(): number {
+    return this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM sessions").toArray()[0]?.n ?? 0;
   }
 
   /** Is this session secret valid now? (Expired sessions are removed when found.) */
   async authenticate(sessionSecret: string, now: number): Promise<boolean> {
     if (!this.exists()) return false;
+    if (this.prunedDay !== day(now)) this.pruneSessions(now);
     const hash = await sha256(sessionSecret);
     const row = this.sql.exec<{ expires_at: number }>("SELECT expires_at FROM sessions WHERE hash = ?", hash).toArray()[0];
     if (!row) return false;

@@ -1,0 +1,77 @@
+/*
+ * A4 mobile pass (loaded last). Phones and tablets only: the desktop layouts and the A2 cosmetics are
+ * untouched (every rule is inside a max-width query or keyed on the phone-only structure).
+ *  1. real viewport: dynamic viewport units (address bar / PWA chrome change the visible height)
+ *  2. 1인 플레이: one compact summary row, icon-only tools
+ *  3. 2–4 player score sheet: every player column fits the width (no sideways scroll), sheet right
+ *     below the board, slimmer rows (touch targets stay ≥ 40px)
+ */
+
+/* 1 ─ visible height follows the browser UI (iOS Safari / Android Chrome address bar, PWA) */
+@supports (min-height: 100dvh) {
+  .shell, .app-shell { min-height: 100dvh; }
+  @media (max-width: 760px) {
+    .game-board { max-height: none; }
+  }
+}
+/* PWA / notch: keep controls out of the system bars */
+@media (display-mode: standalone) {
+  .app-shell { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* 2 ─ 1인 플레이 on phones: score · best · round on one row, tools as icons beside them, bonus line below */
+@media (max-width: 560px) {
+  .solo-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 0; padding: 0 0 6px; margin: 0 0 6px; }
+  .solo-summary > div:not(.solo-tools):not(.bonus-chip) { flex: 1 1 0; min-width: 0; padding: 0 6px; }
+  .solo-summary > div:first-child { padding-left: 2px; }
+  .solo-summary > div > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; }
+  .solo-summary .solo-best span svg { display: none; }
+  .solo-summary .solo-best span { font-size: 0; }
+  .solo-summary .solo-best span::after { content: "최고"; font-size: 11.5px; }
+  .solo-summary strong { font-size: 22px; line-height: 1.15; }
+  .solo-summary small { font-size: 11px; margin-left: 2px; }
+  .solo-summary > .solo-tools { order: 3; flex: 0 0 auto; grid-column: auto; margin: 0 0 0 auto; padding: 0; display: flex; gap: 4px; border: 0; }
+  .solo-summary > .solo-tools .text-button { min-width: 44px; min-height: 44px; padding: 0; justify-content: center; }
+  .solo-summary > .solo-tools .tool-label { display: none; }
+  .solo-summary > .bonus-chip { order: 5; flex: 1 1 100%; margin: 4px 0 0; padding: 0 2px; border: 0; background: none; display: flex; gap: 8px; align-items: baseline; }
+}
+
+/* 3 ─ multi-player score sheet on phones */
+@media (max-width: 760px) {
+  /* the sheet comes right after the board; the (redundant) standings list goes below it */
+  .page-online-room .online-multi.game-grid { display: flex; flex-direction: column; gap: 8px; }
+  .page-online-room .online-multi.game-grid > .game-left { display: contents; }
+  .page-online-room .online-multi.game-grid > .game-left > * { order: 1; }
+  .page-online-room .online-multi.game-grid > .game-left > .game-board { order: 2; }
+  .page-online-room .online-multi.game-grid > .multi-scores { order: 3; }
+  .page-online-room .online-multi.game-grid > .game-left > .online-standings { order: 4; margin-top: 0; }
+  .page-online-room .online-multi.game-grid > .game-left > .game-feedback, .page-online-room .online-multi.game-grid > .game-left > [role="alert"] { order: 3; }
+
+  .multi-scoreboard.compact .score-title { display: none; }
+  .multi-scoreboard.compact .multi-score-scroll { overflow: visible; }
+  .online-multi .multi-scoreboard.compact .multi-score-scroll { overflow-x: visible; }
+  .multi-scoreboard.compact .multi-score-scroll table { width: 100%; min-width: 0; table-layout: fixed; }
+  .multi-scoreboard.compact .multi-score-scroll th:first-child { position: static; min-width: 0; width: 34%; padding: 0 4px 0 8px; }
+  .multi-scoreboard.compact .multi-score-scroll td { min-width: 0; max-width: none; width: auto; padding: 0 2px; }
+  .multi-scoreboard.compact :is(th, td) { height: 38px; padding-top: 0; padding-bottom: 0; }
+  .multi-scoreboard.compact thead th { height: auto; padding: 6px 2px 4px; font-size: 11px; line-height: 1.2; }
+  .multi-scoreboard.compact thead th:first-child { padding-left: 8px; }
+  .multi-scoreboard.compact thead th:not(:first-child) { text-align: center; white-space: nowrap; max-width: none; }
+  .multi-scoreboard.compact thead th .col-meta { font-size: 9.5px; }
+  .multi-scoreboard.compact tbody th .category-label { font-size: 12px; gap: 3px; }
+  .multi-scoreboard.compact tbody th .category-pattern, .multi-scoreboard.compact tbody th .category-icon { display: none; }
+  .multi-scoreboard.compact tbody th .category-help { display: none; }
+  .multi-scoreboard.compact .score-option { min-width: 0; width: 100%; min-height: 34px; margin: 0; padding: 0; font-size: 13px; text-align: center; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  .multi-scoreboard.compact td { text-align: center; font-size: 13px; }
+  .multi-scoreboard.compact .section-row th { height: 24px; padding: 0 8px !important; font-size: 10px !important; }
+  .multi-scoreboard.compact .bonus-row :is(th, td) { height: 40px; }
+  .scoreboard .multi-scoreboard.compact .bonus-progress, .multi-scoreboard.compact .bonus-progress { min-width: 0; width: 100%; }
+  .multi-scoreboard.compact .bonus-progress strong { font-size: 10.5px; white-space: nowrap; }
+  .multi-scoreboard.compact .bonus-track { width: 100%; }
+  .multi-scoreboard.compact .bonus-progress small { display: none; }
+  .multi-scoreboard.compact .total-row :is(th, td) { height: 40px; font-size: 14px; }
+  .multi-scoreboard.compact tbody th svg { display: none; }
+  /* slimmer standings below the sheet */
+  .online-standings { padding: 8px 10px; }
+  .online-standing-list li { min-height: 34px; padding-top: 2px; padding-bottom: 2px; }
+}

@@ -33,7 +33,7 @@ test("백그라운드에서는 AI 행동을 진행하지 않고 복귀하면 재
   // Timed effects can expire while play is paused. Keep checking the actual board and the AI caption.
   const board = () => page.locator(".game-board").evaluate((node) => {
     const clone = node.cloneNode(true) as HTMLElement;
-    clone.querySelectorAll(".score-fx-label, .score-fx-strip, .yacht-flash, .straight-flash").forEach((effect) => effect.remove());
+    clone.querySelectorAll(".score-fx-label, .score-fx-strip, .yacht-flash, .straight-flash, .a3-zero-toast").forEach((effect) => effect.remove());
     return clone.textContent ?? "";
   });
   const before = await board();

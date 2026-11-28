@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { BonusMoments } from "../bonus-moment";
 import { Dices, History, RotateCcw, Trophy } from "lucide-react";
-import { MatchResult } from "../ui/MatchResult";
+import { MatchResultPanel } from "../match-result/MatchResultPanel";
+import { ZeroScoreToast } from "../match-result/ZeroScoreToast";
+import { useZeroScoreNotice } from "../match-result/useZeroScore";
+import { winEffect } from "../match-result/win-effect";
+import type { ResultInput } from "../match-result/model";
 import ReviewLauncher from "../review/ReviewLauncher";
 import { fromSoloReplay } from "../review/sources";
 import { nearYacht, ScoreTotal } from "../ui/GameMoments";
@@ -140,6 +144,15 @@ export default function SoloGame({ name, server, onLeave, onProgress, onRecords 
   const gesture = useThrowGesture(canAct && state.rolls < 3, () => act({ type: "roll" }));
   const yachtReady = useYachtReady(state.dice, state.rolls, !state.done && card.yacht === undefined);
   const celebration = useGameSounds(state.cards, state.done, state.done ? (newBest || firstRecord ? "win" : "draw") : null);
+  const [zeroNotice, clearZero] = useZeroScoreNotice(state.cards, () => ({}), record.current.metadata.id);
+  const resultInput = useMemo<ResultInput | null>(() => result && {
+    mode: "solo",
+    seats: [{ id: "me", name, you: true, card: result.record.card, total: result.record.score }],
+    winners: ["me"],
+    startedAt: result.record.startedAt,
+    endedAt: result.record.endedAt,
+    personal: { bestBefore: result.before, source: "device" },
+  }, [result, name]);
   const toggle = (id: number) => act({ type: "hold", ids: state.dice.filter((d) => (d.id === id ? !d.held : d.held)).map((d) => d.id) });
   const keys = useGameShortcuts({
     active: canAct && !state.done, dice: state.dice, rolls: state.rolls, canRoll: canAct && state.rolls < 3, roll: () => act({ type: "roll" }),
@@ -167,12 +180,12 @@ export default function SoloGame({ name, server, onLeave, onProgress, onRecords 
             </div>
             <BonusChip card={card} />
           <div className="game-tools solo-tools">
-            <button className="text-button" onClick={() => setViewReplay(record.current!)}>
-              <History size={15} /> 기보 보기
+            <button className="text-button" aria-label="기보 보기" title="기보 보기" onClick={() => setViewReplay(record.current!)}>
+              <History size={15} /> <span className="tool-label">기보 보기</span>
             </button>
             {!state.done && (
-              <button className="text-button" onClick={() => guarded({ title: "처음부터 다시 할까요?", message: "진행 중인 경기는 기록되지 않고 새 경기를 시작해요.", confirmLabel: "다시 시작", run: restart })}>
-                <RotateCcw size={15} /> 다시 시작
+              <button className="text-button" aria-label="다시 시작" title="다시 시작" onClick={() => guarded({ title: "처음부터 다시 할까요?", message: "진행 중인 경기는 기록되지 않고 새 경기를 시작해요.", confirmLabel: "다시 시작", run: restart })}>
+                <RotateCcw size={15} /> <span className="tool-label">다시 시작</span>
               </button>
             )}
           </div>
@@ -185,6 +198,7 @@ export default function SoloGame({ name, server, onLeave, onProgress, onRecords 
             {...gesture}
           >
             <Celebrate value={celebration} />
+            <ZeroScoreToast notice={zeroNotice} onDone={clearZero} />
             <BonusMoments scope={String(state.seed)} players={[{ id: "me", name, card, mine: true, look }]} />
             <BoardFx itemId={look.board} level={look.boardLv ?? 1} host={boardRef} />
             <SynergyFx dice={look.dice} board={look.board} level={Math.min(look.diceLv ?? 1, look.boardLv ?? 1)} host={boardRef} />
@@ -204,27 +218,27 @@ export default function SoloGame({ name, server, onLeave, onProgress, onRecords 
               <QuickPicks values={state.dice.map((d) => d.value)} card={card} rolls={state.rolls} canScore={canAct && !state.done} onScore={recordScore} />
               {keys.label && <p className="kbd-pick" role="status">{keys.label}</p>}
             </div>
-            {state.done && result && (
-              <MatchResult waiting={!!celebration} mood={newBest || firstRecord ? "win" : "lose"} title={newBest ? "최고 기록 갱신!" : firstRecord ? "첫 기록 완성" : "경기 종료"}
-                actions={<>
-                  <button className="primary" onClick={restart}>바로 다시 도전</button>
-                  <ReviewLauncher source={() => fromSoloReplay(record.current!)} />
-                  {onRecords && <button className="secondary" onClick={onRecords}>내 기록</button>}
-                  <button className="secondary" onClick={onLeave}>나가기</button>
-                </>}>
-                <p className="solo-final"><strong>{result.record.score}점</strong></p>
+            {state.done && result && resultInput && (
+              <MatchResultPanel key={result.record.recordId} waiting={!!celebration} input={resultInput}
+                {...(newBest || firstRecord ? winEffect(look, result.record.recordId) : null)}
+                actions={{
+                  onRematch: restart,
+                  rematchLabel: "바로 다시 도전",
+                  reviewSlot: <ReviewLauncher source={() => fromSoloReplay(record.current!)} />,
+                  extra: onRecords && <button className="secondary" onClick={onRecords}>내 기록</button>,
+                  onHome: onLeave,
+                  homeLabel: "나가기",
+                }}>
                 <p className="solo-final-note">
                   {newBest ? `이전 최고 ${result.before}점보다 ${result.record.score - result.before!}점 높아요.`
                     : firstRecord ? "이 점수가 개인 최고 기록이 돼요."
                     : `개인 최고 ${result.before}점까지 ${result.before! - result.record.score}점 남았어요.`}
                 </p>
-                <ul className="solo-final-facts">
+                <ul className="a3-extra solo-final-facts">
                   <li>플레이 {stats.plays}회</li>
                   {stats.average !== null && <li>평균 {stats.average.toFixed(1)}점</li>}
-                  <li>상단 보너스 {upper(card) >= 63 ? "달성" : "미달성"}</li>
-                  {card.yacht === 50 && <li>요트 달성</li>}
                 </ul>
-              </MatchResult>
+              </MatchResultPanel>
             )}
           </section>
           <MobileScoreButton onClick={() => setMobileScoreOpen(true)} rolls={rolling ? 0 : state.rolls} canScore={canAct} yacht={yachtReady} />

@@ -4,6 +4,7 @@ import type { MatchKind } from "../../src/economy/live/config";
 import type { DiceSource } from "../../src/online/dice-source";
 import type { HoldState, RoomSummary, ServerMessage } from "../../src/online/wire";
 import type { SocialBucket } from "../../src/social/catalog";
+import type { OnlineMatchState } from "../../src/online/protocol";
 import type { MatchRecord } from "../../src/identity/records";
 import type { OnlineConfig } from "./config";
 
@@ -55,7 +56,10 @@ export type HostEvents = {
   /** The room was cleaned up (idle / max age). The shell tells the directory. */
   onDeleted?: (code: string) => void | Promise<void>;
   /** A rematch wants to start: null = allowed (and counted), otherwise the reason it is not. */
-  allowMatch?: (code: string, weight: number, matchNo: number) => Promise<string | null> | string | null;
+  allowMatch?: (code: string, weight: number, matchNo: number, users: string[]) => Promise<string | null> | string | null;
+  releaseMatch?: (code: string, matchNo: number) => void | Promise<void>;
+  /** Make a spectate id resolve to this room (the directory). Throws when it cannot be stored. */
+  registerSpectate?: (code: string, sid: string) => void | Promise<void>;
   /** Deliver a server-verified result to an account; true when stored (or already there). */
   deliverRecord?: (userId: string, record: MatchRecord) => Promise<boolean>;
   /** Public spectating list: the room's entry (or null to remove it). Best effort. */
@@ -65,7 +69,9 @@ export type HostEvents = {
   /** A quick match finished (its players may queue again). */
   matchEnded?: (code: string) => Promise<void> | void;
   /** Operations counters for a finished match (mode, completed or not, duration). No player data. */
-  finished?: (info: { kind: string; completed: boolean; durationMs: number; members: number }) => Promise<void> | void;
+  finished?: (info: { matchId: string; at: number; kind: MatchKind; completed: boolean; durationMs: number; members: number }) => Promise<void> | void;
+  yachts?: (matchId: string, events: { seq: number; at: number }[]) => Promise<void> | void;
+  activity?: (code: string, info: { kind: MatchKind; status: OnlineMatchState["status"]; spectators: number; public: boolean } | null) => Promise<void> | void;
 };
 export type PublicEntry = NonNullable<ReturnType<OnlineRoom["publicEntry"]>>;
 export const RECORD_RETRY_MS = 60_000;
@@ -118,7 +124,7 @@ export class RoomHost {
     private readonly events: HostEvents = {},
   ) {}
 
-  private deps() {
+  private deps(code?: string) {
     return {
       now: this.now,
       dice: this.dice,
@@ -127,12 +133,18 @@ export class RoomHost {
         this.turnDeadline = at;
         this.rearm();
       },
-      allowMatch: (weight: number, matchNo: number) => {
+      releaseMatch: (matchNo: number) => this.room ? this.events.releaseMatch?.(this.room.code, matchNo) : undefined,
+      allowMatch: (weight: number, matchNo: number, users: string[]) => {
         const room = this.room;
         if (!room) return "방을 찾을 수 없어요.";
         // A rematch needs time to finish before the room's retention limit removes it.
-        if (this.now() > room.createdAt + this.config.maxAgeMs - 2 * 3600_000) return "이 방은 곧 정리돼요. 새 방을 만들어 주세요.";
-        return this.events.allowMatch?.(room.code, weight, matchNo) ?? null;
+        if (matchNo > 1 && this.now() > room.createdAt + this.config.maxAgeMs - 2 * 3600_000) return "이 방은 곧 정리돼요. 새 방을 만들어 주세요.";
+        return this.events.allowMatch?.(room.code, weight, matchNo, users) ?? null;
+      },
+      registerSpectate: (sid: string) => {
+        const room = code ?? this.room?.code;
+        if (!room) throw Error("no room");
+        return this.events.registerSpectate?.(room, sid);
       },
     };
   }
@@ -192,11 +204,12 @@ export class RoomHost {
   /** First seat of a brand-new room (called once by the Worker after the directory allocated the code). */
   async create(code: string, name: unknown, identity?: { userId: string } | null, look?: PublicLook | null, maxPlayers = 2, settings?: RoomSettings): Promise<JoinResult> {
     if (this.room) return { ok: false, status: 409, error: { code: "ROOM_CLOSED", message: "이미 사용 중인 방 코드입니다." } };
-    const room = OnlineRoom.create(code, this.deps(), { turnTimeoutMs: this.config.turnTimeoutMs, seats: maxPlayers, settings });
+    const room = OnlineRoom.create(code, this.deps(code), { turnTimeoutMs: this.config.turnTimeoutMs, seats: maxPlayers, settings });
     const joined = await room.join(name, identity, look);
     if (joined.ok) {
       this.room = room;
       this.rearm();
+      await this.publishIfChanged();
     }
     return joined;
   }
@@ -207,27 +220,54 @@ export class RoomHost {
     return this.room.join(name, identity, look);
   }
 
+  private creation: Promise<Awaited<ReturnType<RoomHost["createMatched"]>>> | null = null;
+
   /** Quick match / AI match: a room created with its seats already taken and the match started. */
   async createMatched(code: string, seats: SeatSpec[], options: { kind: MatchKind; public: boolean }): Promise<{ ok: true; seats: { playerId: string; token: string }[] } | { ok: false; message: string }> {
-    if (this.room) return { ok: false, message: "이미 사용 중인 방 코드입니다." };
+    if (this.room) {
+      // A retried allocation only succeeds for the same server-generated credentials.
+      if (options.kind === "random" && this.room.kind === "random" && seats.every((seat) => seat.token)) {
+        const recovered = await Promise.all(seats.map(async ({ token }) => ({ token: token!, playerId: await this.room!.authenticate(token) })));
+        if (recovered.every((seat) => seat.playerId !== null)) {
+          return { ok: true, seats: recovered.map(({ token, playerId }) => ({ token, playerId: playerId! })) };
+        }
+      }
+      return { ok: false, message: "이미 사용 중인 방 코드입니다." };
+    }
+    if (this.creation) {
+      await this.creation;
+      return this.createMatched(code, seats, options);
+    }
+    const creation = this.createMatchedOnce(code, seats, options);
+    this.creation = creation;
     try {
-      const made = await OnlineRoom.createMatched(code, this.deps(), { turnTimeoutMs: this.config.turnTimeoutMs, kind: options.kind, public: options.public }, seats);
+      return await creation;
+    } finally {
+      if (this.creation === creation) this.creation = null;
+    }
+  }
+
+  private async createMatchedOnce(code: string, seats: SeatSpec[], options: { kind: MatchKind; public: boolean }) {
+    try {
+      const made = await OnlineRoom.createMatched(code, this.deps(code), { turnTimeoutMs: this.config.turnTimeoutMs, kind: options.kind, public: options.public }, seats);
       this.room = made.room;
       this.rearm();
       await this.publishIfChanged();
       this.scheduleAi();
-      return { ok: true, seats: made.seats };
+      return { ok: true as const, seats: made.seats };
     } catch (error) {
-      return { ok: false, message: error instanceof Error ? error.message : "경기를 만들지 못했어요." };
+      return { ok: false as const, message: error instanceof Error ? error.message : "경기를 만들지 못했어요." };
     }
   }
 
   /** Watch key for a viewer coming from the public list (null when the room is not listed / full). */
-  publicWatch(): string | null {
-    return this.room && !this.deleted ? this.room.publicWatchKey() : null;
+  publicWatch(sid?: string): string | null {
+    if (!this.room || this.deleted || (sid !== undefined && this.room.spectateId !== sid)) return null;
+    return this.room.publicWatchKey();
   }
 
   private published = "";
+  private activitySignature = "";
   private lastStatus: string | null = null;
   /** Friend invites (J): whether `userId` sits in this friend room's waiting room and seats are left. */
   inviteState(userId: string): { ok: true; seats: number; players: number } | { ok: false; reason: "not-member" | "started" | "full" | "closed" } {
@@ -240,17 +280,43 @@ export class RoomHost {
   }
   private endedSent = false;
   private finishedFor = "";
+  private yachtCursor = { matchId: "", size: 0 };
   /** Push the public list entry when it changed (round, scores, spectators) — at most a few times per round. */
   async publishIfChanged() {
     const room = this.room;
     if (!room) return;
+    const { matchId, log } = room.match;
+    if (this.events.yachts && (this.yachtCursor.matchId !== matchId || this.yachtCursor.size < log.length)) {
+      const prior = this.yachtCursor;
+      this.yachtCursor = { matchId, size: log.length };
+      const current = this.yachtCursor;
+      const yachts = log.slice(prior.matchId === matchId ? prior.size : 0)
+        .filter((event) => event.type === "categoryScored" && event.category === "yacht" && event.points > 0)
+        .map(({ seq, at }) => ({ seq, at }));
+      if (yachts.length) await Promise.resolve(this.events.yachts(matchId, yachts)).catch(() => {
+        // Replaying the log after a failed notification is safe: the hub deduplicates by seq.
+        this.yachtCursor = this.yachtCursor === current ? prior : { matchId: "", size: 0 };
+      });
+    }
+    const info = { kind: room.kind, status: room.match.status, spectators: room.spectateState().spectators, public: room.publicSpectating() };
+    const activitySignature = JSON.stringify(info);
+    if (this.events.activity && activitySignature !== this.activitySignature) {
+      this.activitySignature = activitySignature;
+      await Promise.resolve(this.events.activity(room.code, info)).catch(() => {
+        if (this.activitySignature === activitySignature) this.activitySignature = "";
+      });
+    }
     if (room.match.status === "finished" && this.finishedFor !== room.match.matchId && this.events.finished) {
-      this.finishedFor = room.match.matchId;
+      const matchId = room.match.matchId;
+      this.finishedFor = matchId;
+      await Promise.resolve(this.events.releaseMatch?.(room.code, room.matchNumber)).catch(() => {
+        if (this.finishedFor === matchId) this.finishedFor = "";
+      });
       const log = room.match.log;
       const started = log.find((e) => e.type === "matchStarted")?.at ?? log[0]?.at ?? 0;
       const end = log[log.length - 1]?.at ?? started;
       const completed = !log.some((e) => e.type === "playerForfeited");
-      await Promise.resolve(this.events.finished({ kind: room.kind, completed, durationMs: Math.max(0, end - started), members: Object.keys(room.members()).length })).catch(() => undefined);
+      await Promise.resolve(this.events.finished({ matchId: room.match.matchId, at: end, kind: room.kind, completed, durationMs: Math.max(0, end - started), members: Object.keys(room.members()).length })).catch(() => undefined);
     }
     if (room.match.status !== this.lastStatus) {
       const before = this.lastStatus;
@@ -263,12 +329,14 @@ export class RoomHost {
       await Promise.resolve(this.events.matchEnded?.(room.code)).catch(() => undefined);
     }
     if (room.match.status === "playing") this.endedSent = false;
-    if (!room.isPublic || !this.events.publish) return;
+    if (!this.events.publish) return;
     const entry = this.deleted ? null : room.publicEntry();
-    const sig = entry ? JSON.stringify([entry.round, entry.players.map((p) => p.score), entry.spectators]) : "";
+    const sig = entry ? JSON.stringify([room.match.matchId, entry.round, entry.players.map((p) => p.score), entry.spectators]) : "";
     if (sig === this.published) return;
     this.published = sig;
-    await Promise.resolve(this.events.publish(room.code, entry)).catch(() => undefined);
+    await Promise.resolve(this.events.publish(room.code, entry)).catch(() => {
+      if (this.published === sig) this.published = "";
+    });
   }
 
   private delivering = false;
@@ -296,6 +364,10 @@ export class RoomHost {
     this.rearm();
   }
 
+  /** PR118-03: a missing or deleted room holds nobody; otherwise the room decides. */
+  holdsAccount(userId: string, matchNo: number): boolean {
+    return !!this.room && !this.deleted && this.room.holdsAccount(userId, matchNo);
+  }
   summary(): RoomSummary | null {
     return this.room && !this.deleted ? this.room.summary() : null;
   }
@@ -399,7 +471,8 @@ export class RoomHost {
       return;
     }
     if (this.aiTimer) clearTimeout(this.aiTimer);
-    if (room.isPublic) await Promise.resolve(this.events.publish?.(room.code, null)).catch(() => undefined);
+    if (this.published) await Promise.resolve(this.events.publish?.(room.code, null)).catch(() => undefined);
+    await Promise.resolve(this.events.activity?.(room.code, null)).catch(() => undefined);
     if (room.kind === "random" && !this.endedSent) await Promise.resolve(this.events.matchEnded?.(room.code)).catch(() => undefined);
     this.storage.deleteAlarm();
     await this.storage.clear();
@@ -413,7 +486,7 @@ export class RoomHost {
     this.gone.add(ws);
     if (!this.room || this.deleted) return;
     this.room.disconnect(conn);
-    if (conn.spectator) void this.publishIfChanged();
+    if (conn.spectator) await this.publishIfChanged();
     if (conn.playerId) {
       this.syncPresence();
       for (const s of this.open()) this.remember(s);

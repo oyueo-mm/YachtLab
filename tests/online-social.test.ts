@@ -254,27 +254,37 @@ describe("실시간 관전 (읽기 전용)", () => {
     await room.message(c, JSON.stringify({ t: "watch", key }));
     return c;
   };
-  it("두 플레이어 모두 허용해야 관전 키가 생기고, 관전자는 중립 시점의 공개 정보만 받으며 조작할 수 없다", async () => {
+  it("방장이 관전을 열어야 관전 키가 생기고(일반 참가자는 바꿀 수 없음), 관전자는 중립 시점의 공개 정보만 받으며 조작할 수 없다", async () => {
     const { room, a, b, ja, jb, cmd, clock } = await setup();
     await cmd(a, { type: "start" });
-    // Nobody allowed: a guessed key is refused.
+    // Default private: a guessed key is refused.
+    expect(a.last("spectate")?.spectate ?? room.spectateState()).toMatchObject({ active: false, key: null, visibility: "private", hostControl: true, host: ja.playerId });
     expect((await watcher(room, "x".repeat(24))).closed).toBe(4003);
-    await room.message(a, JSON.stringify({ t: "spectate", allow: true }));
-    expect(a.last("spectate")!.spectate).toMatchObject({ active: false, key: null });
+    // A non-host player cannot open it (server-checked), whatever the page sends.
+    await room.message(b, JSON.stringify({ t: "spectate", allow: true, visibility: "public" }));
+    expect(b.last("error")!.code).toBe("NOT_HOST");
+    expect(b.last("spectate")!.spectate).toMatchObject({ active: false, key: null, visibility: "private" });
     clock.advance(1100);
-    await room.message(b, JSON.stringify({ t: "spectate", allow: true }));
+    // The host (an older page sends {allow:true} only = link spectating).
+    await room.message(a, JSON.stringify({ t: "spectate", allow: true }));
     const state = a.last("spectate")!.spectate;
-    expect(state.active).toBe(true);
+    expect(state).toMatchObject({ active: true, visibility: "invite" });
+    expect(state.allow).toEqual({ [ja.playerId]: true, [jb.playerId]: true });
     expect(state.key).toMatch(/^[A-Za-z0-9_-]{24}$/);
+    expect(state.sid).toMatch(/^[A-Z2-9]{10}$/);
+    expect(b.last("spectate")!.spectate).toMatchObject({ active: true, visibility: "invite", host: ja.playerId });
     expect((await watcher(room, "y".repeat(24))).closed).toBe(4003); // wrong key
     const w = await watcher(room, state.key!);
     expect(w.closed).toBeNull();
     const welcome = w.last("watching")!;
     expect(welcome.view.you).toBeNull();
     expect(welcome.view.legal).toBeNull();
+    // The spectator learns the spectate id, never the room (= invite) code.
+    expect(welcome.code).toBe(state.sid);
     const text = JSON.stringify(w.sent);
     expect(text).not.toContain(ja.token);
     expect(text).not.toContain(jb.token);
+    expect(text).not.toContain("ABCDEF");
     expect(text).not.toContain('"by"'); // no command ids of the players
     expect(a.last("spectate")!.spectate.spectators).toBe(1);
     // live updates: roll + hold order
@@ -282,22 +292,27 @@ describe("실시간 관전 (읽기 전용)", () => {
     expect(w.last("view")!.view.turn!.rolls).toBe(1);
     await room.message(a, JSON.stringify({ t: "hold", keep: [2, 0], n: 1 }));
     expect(w.last("hold")!.keep).toEqual([2, 0]);
-    // a spectator cannot act, take a seat with someone else's id, or chat
+    // a spectator cannot act, take a seat with someone else's id or its own watch key, or chat
     const version = room.match.version;
-    for (const frame of [{ t: "cmd", id: "x1", action: { type: "roll", keep: [] } }, { t: "say", id: "chat.hello" }, { t: "rematch", op: "request" }, { t: "spectate", allow: false }, { t: "hello", token: "z".repeat(40) }])
+    for (const frame of [{ t: "cmd", id: "x1", action: { type: "roll", keep: [] } }, { t: "say", id: "chat.hello" }, { t: "rematch", op: "request" }, { t: "spectate", allow: false }, { t: "hello", token: "z".repeat(40) }, { t: "hello", token: state.key }])
       await room.message(w, JSON.stringify(frame));
     expect(room.match.version).toBe(version);
     expect(w.all("error").every((e) => e.code === "SPECTATOR")).toBe(true);
     expect(b.all("said")).toHaveLength(0);
+    // a fresh socket cannot use the watch key as a seat token either
+    const intruder = new Conn();
+    room.connect(intruder);
+    await room.message(intruder, JSON.stringify({ t: "hello", token: state.key }));
+    expect(intruder.last("welcome")).toBeUndefined();
+    expect(room.match.players).toHaveLength(2);
     // players' chat is visible to spectators
     await room.message(b, JSON.stringify({ t: "say", id: "emote.clap" }));
     expect(w.last("said")!.id).toBe("emote.clap");
   });
 
-  it("관전자 수 제한, 동의 철회 시 즉시 종료·이전 링크 무효, 재대결도 이어서 관전", async () => {
+  it("관전자 수 제한, 방장의 비공개 전환 시 즉시 종료·이전 링크 무효, 최종 결과와 재대결도 이어서 관전", async () => {
     const { room, a, b, cmd, playOut, clock } = await setup();
-    await room.message(a, JSON.stringify({ t: "spectate", allow: true }));
-    await room.message(b, JSON.stringify({ t: "spectate", allow: true }));
+    await room.message(a, JSON.stringify({ t: "spectate", allow: true, visibility: "invite" }));
     const key = a.last("spectate")!.spectate.key!;
     const ws = [];
     for (let i = 0; i < ROOM_LIMITS.maxSpectators; i++) ws.push(await watcher(room, key));
@@ -305,24 +320,93 @@ describe("실시간 관전 (읽기 전용)", () => {
     expect((await watcher(room, key)).closed).toBe(4005);
     await cmd(a, { type: "start" });
     await playOut();
+    // D-027: the final result reaches the spectators; the link stays valid.
+    expect(ws[0].last("view")!.view.status).toBe("finished");
+    expect(ws.every((w) => w.closed === null)).toBe(true);
     clock.advance(1100);
     await room.message(a, JSON.stringify({ t: "rematch", op: "request" }));
     clock.advance(1100);
     await room.message(b, JSON.stringify({ t: "rematch", op: "request" }));
     expect(ws[0].last("view")!.view.matchId).toBe(room.match.matchId);
     expect(ws[0].last("view")!.view.status).toBe("playing");
+    // A non-host cannot revoke either; only the host's choice changes the range.
     clock.advance(1100);
     await room.message(b, JSON.stringify({ t: "spectate", allow: false }));
+    expect(b.last("error")!.code).toBe("NOT_HOST");
+    expect(ws.every((w) => w.closed === null)).toBe(true);
+    await room.message(a, JSON.stringify({ t: "spectate", allow: false, visibility: "private" }));
     expect(ws.every((w) => w.closed === 4003)).toBe(true);
     expect((await watcher(room, key)).closed).toBe(4003);
+    expect(b.last("spectate")!.spectate).toMatchObject({ active: false, visibility: "private", key: null });
     clock.advance(1100);
-    await room.message(b, JSON.stringify({ t: "spectate", allow: true }));
+    await room.message(a, JSON.stringify({ t: "spectate", allow: true, visibility: "invite" }));
     const fresh = a.last("spectate")!.spectate.key!;
     expect(fresh).not.toBe(key);
     expect((await watcher(room, fresh)).closed).toBeNull();
   });
 
-  it("대기실에 새 플레이어가 들어오면(동의 전) 관전이 멈춘다", async () => {
+  it("공개는 방장이 고를 때만 목록에 오르고 목록은 관전 ID만 보이며, 공개→링크 축소 시 목록 키만 폐기한다", async () => {
+    const { room, a, b, cmd, playOut, clock } = await setup();
+    await cmd(a, { type: "start" });
+    expect(room.publicEntry()).toBeNull();
+    await room.message(a, JSON.stringify({ t: "spectate", allow: true, visibility: "invite" }));
+    expect(room.publicEntry()).toBeNull();
+    expect(room.publicWatchKey()).toBeNull();
+    const inviteKey = a.last("spectate")!.spectate.key!;
+    const linkViewer = await watcher(room, inviteKey);
+    expect(linkViewer.closed).toBeNull();
+    clock.advance(1100);
+    await room.message(a, JSON.stringify({ t: "spectate", allow: true, visibility: "public" }));
+    const entry = room.publicEntry()!;
+    const sid = a.last("spectate")!.spectate.sid!;
+    expect(entry).toMatchObject({ id: sid, code: sid, kind: "friend", status: "playing", participants: 2, round: 1, spectators: 1 });
+    expect(JSON.stringify(entry)).not.toContain("ABCDEF");
+    expect(b.last("spectate")!.spectate.visibility).toBe("public");
+    // widening keeps the link key; the list hands out its own key
+    expect(a.last("spectate")!.spectate.key).toBe(inviteKey);
+    expect(linkViewer.closed).toBeNull();
+    const publicKey = room.publicWatchKey()!;
+    expect(publicKey).not.toBe(inviteKey);
+    const listViewer = await watcher(room, publicKey);
+    expect(listViewer.closed).toBeNull();
+    // public → link: list viewers out, the list key dead, link viewers stay
+    await room.message(a, JSON.stringify({ t: "spectate", allow: true, visibility: "invite" }));
+    expect(room.publicEntry()).toBeNull();
+    expect(listViewer.closed).toBe(4003);
+    expect(linkViewer.closed).toBeNull();
+    expect((await watcher(room, publicKey)).closed).toBe(4003);
+    expect(a.last("spectate")!.spectate.visibility).toBe("invite");
+    // a finished match leaves the list at once even when public; the link still shows the result
+    clock.advance(1100);
+    await room.message(a, JSON.stringify({ t: "spectate", allow: true, visibility: "public" }));
+    expect(room.publicEntry()).not.toBeNull();
+    await playOut();
+    expect(room.publicEntry()).toBeNull();
+    expect(room.publicWatchKey()).toBeNull();
+    expect(linkViewer.closed).toBeNull();
+    expect(linkViewer.last("view")!.view.status).toBe("finished");
+  });
+
+  it("방장을 넘기면 관전 설정은 유지되고 새 방장만 바꿀 수 있다", async () => {
+    const { room, a, b, ja, jb, clock } = await setup();
+    await room.message(a, JSON.stringify({ t: "spectate", allow: true, visibility: "invite" }));
+    const key = a.last("spectate")!.spectate.key!;
+    const w = await watcher(room, key);
+    clock.advance(1100);
+    await room.message(a, JSON.stringify({ t: "host", to: jb.playerId }));
+    expect(room.lobbyState().hostId).toBe(jb.playerId);
+    expect(a.last("spectate")!.spectate).toMatchObject({ visibility: "invite", host: jb.playerId, key });
+    expect(w.closed).toBeNull();
+    await room.message(a, JSON.stringify({ t: "spectate", allow: false, visibility: "private" }));
+    expect(a.last("error")!.code).toBe("NOT_HOST");
+    expect(w.closed).toBeNull();
+    await room.message(b, JSON.stringify({ t: "spectate", allow: false, visibility: "private" }));
+    expect(w.closed).toBe(4003);
+    expect(a.last("spectate")!.spectate).toMatchObject({ visibility: "private", host: jb.playerId });
+    expect(ja.playerId).not.toBe(jb.playerId);
+  });
+
+  it("대기실에 새 플레이어가 들어와도 방장이 정한 범위는 유지되고, 새 플레이어도 현재 범위를 본다", async () => {
     let t = 1;
     const room = OnlineRoom.create("ABCDEF", { now: () => t, save: () => {}, schedule: () => {} });
     const ja = await room.join("민수");
@@ -335,7 +419,34 @@ describe("실시간 관전 (읽기 전용)", () => {
     const w = await watcher(room, key);
     expect(w.closed).toBeNull();
     t += 10;
-    await room.join("지민");
+    const jb = await room.join("지민");
+    if (!jb.ok) throw Error();
+    expect(w.closed).toBeNull();
+    const b = new Conn();
+    room.connect(b);
+    await room.message(b, JSON.stringify({ t: "hello", token: jb.token }));
+    expect(b.last("welcome")!.spectate).toMatchObject({ active: true, visibility: "invite", host: ja.playerId });
+  });
+
+  it("호스트 제어 이전 기록(구 Worker)은 전원 허용일 때만 링크 관전이고 새 플레이어가 들어오면 멈추며, 공개는 소급되지 않는다", async () => {
+    const store = { record: null as RoomRecord | null };
+    let t = 1;
+    const deps = { now: () => t, save: (r: RoomRecord) => void (store.record = JSON.parse(JSON.stringify(r))), schedule: () => {} };
+    const first = OnlineRoom.create("ABCDEF", deps, { seats: 3 });
+    const ja = await first.join("민수");
+    const jb = await first.join("지민");
+    if (!ja.ok || !jb.ok) throw Error();
+    // What an older Worker stored: per-player consent and one key, no host range, no spectate id.
+    const legacy: RoomRecord = { ...store.record!, spectate: { allow: { [ja.playerId]: true, [jb.playerId]: true }, key: "L".repeat(24), publicAllow: { [ja.playerId]: true, [jb.playerId]: true } } };
+    const room = OnlineRoom.restore(legacy, deps);
+    expect(room.spectateState()).toMatchObject({ active: true, visibility: "invite" });
+    expect(room.publicSpectating()).toBe(false);
+    const w = await watcher(room, "L".repeat(24));
+    expect(w.closed).toBeNull();
+    expect(w.last("watching")!.code).toBe("ABCDEF"); // legacy links already carried the code
+    t += 10;
+    await room.join("하늘");
     expect(w.closed).toBe(4003);
+    expect(room.spectateState()).toMatchObject({ active: false, visibility: "private" });
   });
 });

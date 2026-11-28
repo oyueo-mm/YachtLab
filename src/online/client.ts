@@ -50,7 +50,7 @@ export function inviteLink(code: string): string {
 }
 
 /**
- * Watch (spectator) link: `?watch=CODE&k=KEY#spectate`. The key is a read-only credential the players
+ * Watch (spectator) link: `?watch=SID&k=KEY#spectate` (SID = spectate id, never the invite code; older links used CODE). The key is a read-only credential the players
  * created by allowing spectators; it never gives a seat and stops working when they turn spectating off.
  */
 export function watchLink(code: string, key: string): string {
@@ -68,7 +68,8 @@ export function watchFromUrl(): { code: string; key: string } | null {
   const q = new URLSearchParams(location.search);
   const code = q.get("watch"),
     key = q.get("k");
-  return code && key && /^[A-Z2-9]{6}$/i.test(code) && /^[A-Za-z0-9_-]{16,64}$/.test(key) ? { code: code.toUpperCase(), key } : null;
+  // `watch` is a spectate id (10 characters, PR118-01) or, in links made by older pages, the room code.
+  return code && key && /^(?:[A-Z2-9]{6}|[A-Z2-9]{10})$/i.test(code) && /^[A-Za-z0-9_-]{16,64}$/.test(key) ? { code: code.toUpperCase(), key } : null;
 }
 
 /** Room code from the current URL (`?room=`), if any. */
@@ -108,15 +109,19 @@ const writeSeats = (seats: Record<string, SavedSeat>) => {
   }
 };
 /** The seat token stays in this browser's storage only (never in the URL, never shown). */
-export const savedSeat = (code: string): SavedSeat | null => readSeats()[code] ?? null;
+const tabSeats = new Map<string, SavedSeat>();
+export const savedSeat = (code: string): SavedSeat | null => tabSeats.get(code) ?? readSeats()[code] ?? null;
 export function saveSeat(seat: SavedSeat) {
   const seats = readSeats();
   seats[seat.code] = seat;
   // keep the 10 most recent rooms
   const kept = Object.values(seats).sort((a, b) => b.at - a.at).slice(0, 10);
   writeSeats(Object.fromEntries(kept.map((s) => [s.code, s])));
+  if (readSeats()[seat.code]?.token !== seat.token) tabSeats.set(seat.code, seat);
+  else tabSeats.delete(seat.code);
 }
 export function forgetSeat(code: string) {
+  tabSeats.delete(code);
   const seats = readSeats();
   delete seats[code];
   writeSeats(seats);
@@ -184,7 +189,7 @@ export const roomSummary = (base: string, code: string) => call<RoomSummary>(bas
 
 /* ------------------------------------------------------------- features / public spectating ------------------------------------------------------------- */
 
-export type Features = { quickMatch: boolean; publicSpectate: boolean; signIn: boolean; serverAi?: boolean; economy?: boolean; createSettings?: boolean; defaultTurnTimeoutMs?: number | null };
+export type Features = { quickMatch: boolean; publicSpectate: boolean; signIn: boolean; serverAi?: boolean; economy?: boolean; createSettings?: boolean; defaultTurnTimeoutMs?: number | null; backgroundMatch?: boolean; activity?: boolean; friendPublicSpectate?: boolean };
 const featureCache = new Map<string, Promise<Features>>();
 /** What the server offers. An older server (or the local Node dev server) answers 404: friend play only. */
 export function serverFeatures(base: string): Promise<Features> {
@@ -195,7 +200,20 @@ export function serverFeatures(base: string): Promise<Features> {
   }
   return p;
 }
-export type PublicRoom = { code: string; players: { name: string; score: number; look: PublicLook }[]; round: number; spectators: number; max: number };
+export type ServerActivity = {
+  asOf: number;
+  timezone: "UTC";
+  waiting: number;
+  activeUsers: number | null;
+  playing: Record<MatchKind, number> | null;
+  spectators: number | null;
+  privatePlaying: number | null;
+  completedToday: number | null;
+  yachtsToday: number | null;
+};
+export const serverActivity = (base: string) => call<ServerActivity>(base, "/api/activity");
+
+export type PublicRoom = { /** Spectate id; `code` repeats it (never the invite code). */ id?: string; kind?: "random" | "friend"; status?: "playing"; participants?: number; rounds?: number; code: string; players: { name: string; score: number; look: PublicLook }[]; round: number; spectators: number; max: number };
 export const publicRooms = (base: string) => call<{ rooms: PublicRoom[] }>(base, "/api/spectate/rooms").then((r) => r.rooms);
 /** Ask for the watch key of a listed match (only while it is listed and has room for one more viewer). */
 export const publicWatchKey = (base: string, code: string) => call<{ code: string; key: string }>(base, `/api/spectate/${code}/watch`, {});
@@ -222,7 +240,7 @@ export function deviceId(): string {
   }
 }
 /** The wait in progress in this tab (survives a refresh; a tab is one ticket). */
-export type PendingQuick = { ticket: string; name: string; spectate: boolean; at: number };
+export type PendingQuick = { ticket: string; name: string; spectate: boolean; at: number; base?: string; cancelling?: boolean };
 export function pendingQuick(): PendingQuick | null {
   try {
     const p = JSON.parse(sessionStorage.getItem(QUICK_KEY) ?? "null") as PendingQuick | null;
@@ -243,6 +261,8 @@ export type QuickMatched = { code: string; playerId: string; token: string; name
 export type QuickEvents = {
   onQueued(since: number): void;
   onMatched(m: QuickMatched): void;
+  onReconnect?(): void;
+  onPairing?(): void;
   /** A final answer: refused, expired, server limit… (`room` = the match this player is already in). */
   onEnd(code: string, message: string, room?: string): void;
 };
@@ -258,85 +278,110 @@ export class QuickMatch {
   private retry: ReturnType<typeof setTimeout> | undefined;
   private done = false;
   private attempts = 0;
+  private deadline: ReturnType<typeof setTimeout> | undefined;
+  private readonly auth = session();
   readonly pending: PendingQuick;
   constructor(
     private readonly base: string,
-    opts: { name: string; spectate: boolean; resume?: PendingQuick | null },
+    opts: { name: string; spectate: boolean; resume?: PendingQuick | null; background?: boolean },
     private readonly events: QuickEvents,
   ) {
-    this.pending = opts.resume ?? { ticket: randomId(), name: opts.name, spectate: opts.spectate, at: Date.now() };
+    this.background = opts.background === true;
+    this.pending = opts.resume ?? { ticket: randomId(), name: opts.name, spectate: opts.spectate, at: Date.now(), base };
   }
+  private readonly background: boolean;
+
   start() {
     savePending(this.pending);
+    this.deadline = setTimeout(() => this.end("EXPIRED", "매칭 대기 시간이 끝났어요."), Math.max(0, this.pending.at + 5 * 60_000 + 15_000 - Date.now()));
     this.open();
   }
+
   private open() {
     if (this.done) return;
     const ws = new WebSocket(this.base.replace(/^http/, "ws") + "/ws/match");
     this.ws = ws;
     ws.onopen = () => {
-      this.attempts = 0;
-      ws.send(JSON.stringify({ t: "queue", name: this.pending.name, ticket: this.pending.ticket, device: deviceId(), spectate: true, ...(session() ? { session: session() } : {}) }));
-      clearInterval(this.alive);
-      this.alive = setInterval(() => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify({ t: "alive" })), 15_000);
+      if (this.done) return;
+      ws.send(JSON.stringify({
+        t: this.pending.cancelling && this.background ? "cancel" : "queue",
+        name: this.pending.name, ticket: this.pending.ticket, device: deviceId(), spectate: this.pending.spectate,
+        ...(this.auth ? { session: this.auth } : {}),
+        ...(this.background ? { v: 2 } : {}),
+      }));
+      this.alive = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: "alive" }));
+      }, 15_000);
     };
     ws.onmessage = (e) => {
+      if (this.done || this.ws !== ws) return;
       let m: Record<string, unknown>;
       try {
         m = JSON.parse(String(e.data));
       } catch {
         return;
       }
-      if (m.t === "queued") this.events.onQueued(Number(m.since) || Date.now());
-      else if (m.t === "matched") {
+      if (m.t === "queued") {
+        this.attempts = 0;
+        if (!this.pending.cancelling) this.events.onQueued(Number(m.since) || Date.now());
+      } else if (m.t === "pairing") {
+        this.events.onPairing?.();
+      } else if (m.t === "check") {
+        if (!this.pending.cancelling) ws.send(JSON.stringify({ t: "ready", id: m.id, ...(this.auth ? { session: this.auth } : {}) }));
+      } else if (m.t === "matched") {
+        const match = m as unknown as QuickMatched;
+        saveSeat({ ...match, at: Date.now() });
         this.finish();
-        this.events.onMatched(m as unknown as QuickMatched);
+        this.events.onMatched(match);
+      } else if (m.t === "cancelled") {
+        this.end("CANCELLED", "");
       } else if (m.t === "expired") {
-        this.finish();
-        this.events.onEnd("EXPIRED", String(m.message ?? "상대를 찾지 못했어요."));
-      } else if (m.t === "error") {
-        this.finish();
-        this.events.onEnd(String(m.code), String(m.message), typeof m.room === "string" ? m.room : undefined);
+        this.end("EXPIRED", String(m.message ?? "상대를 찾지 못했어요."));
+      } else if (m.t === "error" && m.code !== "PAIRING") {
+        this.end(String(m.code), String(m.message), typeof m.room === "string" ? m.room : undefined);
       }
     };
-    ws.onclose = () => {
-      clearInterval(this.alive);
+    ws.onclose = (event) => {
       if (this.ws !== ws || this.done) return;
-      // Network drop: come back with the same ticket (the server keeps the place / the result).
-      if (++this.attempts > 6 || Date.now() - this.pending.at > 5 * 60_000) {
-        this.finish();
-        return this.events.onEnd("NETWORK", "서버와 연결이 끊어졌어요. 다시 시도해 주세요.");
-      }
-      this.retry = setTimeout(() => this.open(), Math.min(8000, 500 * 2 ** this.attempts));
+      clearInterval(this.alive);
+      if (event.code === 4010) return this.end("REPLACED", "다른 화면에서 매칭을 이어가고 있어요.");
+      this.reconnect();
     };
+  }
+  private reconnect() {
+    if (++this.attempts > 6) {
+      this.stop();
+      return this.events.onEnd("NETWORK", "서버와 연결이 끊어졌어요. 같은 매칭을 다시 확인할 수 있어요.");
+    }
+    this.events.onReconnect?.();
+    this.retry = setTimeout(() => this.open(), Math.min(8000, 500 * 2 ** this.attempts));
+  }
+  private end(code: string, message: string, room?: string) {
+    this.finish();
+    this.events.onEnd(code, message, room);
   }
   private finish() {
-    this.done = true;
     savePending(null);
-    clearInterval(this.alive);
-    clearTimeout(this.retry);
+    this.stop();
   }
-  /** Leave the queue. */
   cancel() {
-    const ws = this.ws;
-    this.finish();
-    try {
-      if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: "cancel" }));
-      ws?.close();
-    } catch {
-      /* closed */
+    if (this.done || this.pending.cancelling) return;
+    if (!this.background) {
+      if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({ t: "cancel" }));
+      this.end("CANCELLED", "");
+      return;
     }
+    this.pending.cancelling = true;
+    savePending(this.pending);
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify({ t: "cancel", v: 2, ticket: this.pending.ticket, ...(this.auth ? { session: this.auth } : {}) }));
   }
-  /** The screen went away without cancelling (navigation): keep nothing running. */
+  /** Preserve the ticket across browser refresh and recoverable network failures. */
   stop() {
     this.done = true;
     clearInterval(this.alive);
     clearTimeout(this.retry);
-    try {
-      this.ws?.close();
-    } catch {
-      /* closed */
-    }
+    clearTimeout(this.deadline);
+    this.ws?.close();
   }
 }
 
@@ -463,6 +508,7 @@ export class OnlineConnection {
     ws.onopen = () =>
       ws.send(JSON.stringify(typeof this.token === "string" ? { t: "hello", token: this.token, since: this.since } : { t: "watch", key: this.token.watchKey, since: this.since }));
     ws.onmessage = (e) => {
+      if (this.ws !== ws || this.stopped) return;
       this.lastMessage = Date.now();
       let msg: ServerMessage;
       try {
@@ -591,8 +637,8 @@ export class OnlineConnection {
     return this.sendNow({ t: "rematch", op });
   }
   /** Players: allow / stop spectators. */
-  spectate(allow: boolean) {
-    return this.sendNow({ t: "spectate", allow });
+  spectate(allow: boolean, visibility?: "private" | "invite" | "public") {
+    return this.sendNow({ t: "spectate", allow, ...(visibility ? { visibility } : {}) });
   }
   /** Lobby: ready / not ready. */
   ready(ready: boolean) {

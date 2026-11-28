@@ -1,11 +1,9 @@
 import { BrandMark } from "../ui/BrandLoading";
-import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Bot, Eye, LogIn, Plus, Shuffle, UserRound, UsersRound, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, Bot, Eye, LogIn, Plus, Shuffle, UserRound, UsersRound } from "lucide-react";
 import {
-  QuickMatch,
   createRoom,
   joinRoom,
-  pendingQuick,
   publicRooms,
   publicWatchKey,
   roomFromUrl,
@@ -16,11 +14,13 @@ import {
   savedSeats,
   serverFeatures,
   setRoomInUrl,
-  watchLink,
+  serverActivity,
+  type ServerActivity,
   type Features,
   type PublicRoom,
   type SavedSeat,
 } from "../online/client";
+import type { MatchController } from "../online/useBackgroundMatch";
 import type { RoomSummary } from "../online/wire";
 import { session } from "../identity/account-client";
 import { startServerAi } from "../identity/economy-client";
@@ -145,21 +145,16 @@ const readTab = (): Tab => {
     return "quick";
   }
 };
-const clock = (ms: number) => {
-  const s = Math.max(0, Math.floor(ms / 1000));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-};
-
 /**
  * Online start screen with three tabs: 빠른 대전 (random opponent), 친구 대전 (invite code), 관전방
  * (public matches). An invite link (`?room=CODE`) opens InviteJoin for that room instead.
  * A server without quick match (older Worker, local Node dev server) shows the friend tab only.
  */
-export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server: string; onEnter: (code: string, quick?: boolean) => void; onBack: () => void; onAi?: () => void }) {
+export default function OnlineEntry({ server, onEnter, onBack, match, onWatch }: { server: string; onEnter: (code: string, quick?: boolean) => void; onBack: () => void; match: MatchController; onWatch: (code: string, key: string) => void }) {
   const name = useNickname();
   const [inviteCode, setInviteCode] = useState<string | null>(roomFromUrl);
   const [features, setFeatures] = useState<Features | null>(null);
-  const [tab, setTabState] = useState<Tab>(() => (pendingQuick() ? "quick" : readTab()));
+  const [tab, setTabState] = useState<Tab>(readTab);
   const setTab = (t: Tab) => {
     setTabState(t);
     try {
@@ -229,9 +224,9 @@ export default function OnlineEntry({ server, onEnter, onBack, onAi }: { server:
             <BrandMark /> 서버 정보를 불러오는 중…
           </p>
         ) : shown === "quick" ? (
-          <QuickPanel server={server} name={trimmed} serverAi={!!features.serverAi} onMatched={enter} onAi={onAi} onReturn={onEnter} />
+          <QuickPanel server={server} name={trimmed} serverAi={!!features.serverAi} onMatched={enter} match={match} />
         ) : shown === "watch" ? (
-          <WatchRooms server={server} />
+          <WatchRooms server={server} activityOn={!!features.activity} onWatch={onWatch} />
         ) : (
           <FriendPanel defaultTurnTimeoutMs={features.defaultTurnTimeoutMs} createSettings={!!features.createSettings} server={server} name={trimmed} enter={enter} onEnter={onEnter} />
         )}
@@ -375,144 +370,47 @@ function FriendPanel({ server, name, enter, onEnter, createSettings, defaultTurn
   );
 }
 
-/**
- * Quick match: wait for a random real player. The public-spectating choice is asked before waiting
- * (off by default; only matches both players allowed are listed). After 20 s without an opponent the
- * player may keep waiting or play an AI match instead — an AI is always shown as an AI.
- */
-function QuickPanel({ server, name, serverAi, onMatched, onAi, onReturn }: { server: string; name: string; serverAi: boolean; onMatched: (seat: Seat, as: string, quick?: boolean) => void; onAi?: () => void; onReturn: (code: string) => void }) {
+function QuickPanel({ server, name, serverAi, onMatched, match }: {
+  server: string; name: string; serverAi: boolean; onMatched: (seat: Seat, as: string) => void; match: MatchController;
+}) {
   const [aiBusy, setAiBusy] = useState(false);
-  const member = !!session();
-  /** Server-verified AI match (members): the server rolls the dice and plays the AI seat. */
+  const [error, setError] = useState("");
+  const idle = match.state.phase === "idle" || (match.state.phase === "error" && match.state.code !== "NETWORK");
   const startAi = async () => {
-    qm.current?.cancel();
-    qm.current = null;
-    setSince(null);
     setAiBusy(true);
     setError("");
     try {
-      const seat = await startServerAi(server, name);
-      saveName(name);
-      onMatched(seat, name);
+      onMatched(await startServerAi(server, name), name);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setAiBusy(false);
     }
   };
-  const [since, setSince] = useState<number | null>(null);
-  const [now, setNow] = useState(Date.now);
-  const [error, setError] = useState("");
-  const [inMatch, setInMatch] = useState<string | null>(null);
-  const qm = useRef<QuickMatch | null>(null);
-  const start = (resume = pendingQuick()) => {
-    setError("");
-    setInMatch(null);
-    const started = Date.now();
-    setNow(started);
-    setSince(resume?.at ?? started);
-    const as = resume?.name ?? name;
-    if (!resume) saveName(as);
-    const q = new QuickMatch(
-      server,
-      { name: as, spectate: true, resume },
-      {
-        onQueued: () => undefined,
-        onMatched: (m) => {
-          qm.current = null;
-          onMatched({ code: m.code, playerId: m.playerId, token: m.token }, m.name, true);
-        },
-        onEnd: (code, message, room) => {
-          qm.current = null;
-          setSince(null);
-          setError(message);
-          if (code === "IN_MATCH" && room && savedSeat(room)) setInMatch(room);
-        },
-      },
-    );
-    qm.current = q;
-    q.start();
-  };
-  // A refresh while waiting continues the same wait (same ticket, same place).
-  useEffect(() => {
-    if (pendingQuick()) start();
-    return () => qm.current?.stop();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  useEffect(() => {
-    if (since === null) return;
-    const t = setInterval(() => setNow(Date.now()), 500);
-    return () => clearInterval(t);
-  }, [since]);
-  const cancel = () => {
-    qm.current?.cancel();
-    qm.current = null;
-    setSince(null);
-  };
-  const waited = since === null ? 0 : now - since;
-  if (since !== null)
-    return (
-      <div className="quick-wait">
-        <BrandMark radar />
-        <strong role="status">상대를 찾는 중이에요</strong>
-        <span className="quick-wait-time" role="timer" aria-label="매칭 경과 시간">{clock(waited)}</span>
-        <span className="quick-wait-note">{session() ? "회원으로 매칭돼요." : "게스트로 매칭돼요."} 상대를 찾으면 바로 경기 화면으로 이동해요.</span>
-        {waited >= 20_000 && (
-          <div className="quick-wait-alt">
-            <span>상대가 아직 없어요. 계속 기다리거나 AI와 대전할 수 있어요.</span>
-            {serverAi && member && (
-              <button type="button" className="secondary" disabled={aiBusy} onClick={() => void startAi()}>
-                <Bot size={16} /> 서버 AI와 대전하기
-              </button>
-            )}
-            {onAi && (
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => {
-                  cancel();
-                  onAi();
-                }}
-              >
-                <Bot size={16} /> {serverAi && member ? "로컬 AI와 대전하기" : "AI와 대전하기"}
-              </button>
-            )}
-          </div>
-        )}
-        <button type="button" className="secondary" onClick={cancel}>
-          <X size={15} /> 매칭 취소
-        </button>
-      </div>
-    );
   return (
     <>
-      <button type="button" className="primary online-start" onClick={() => start(null)}>
+      <button type="button" className="primary online-start" disabled={!idle || aiBusy} onClick={() => match.start(name)}>
         <Shuffle size={17} /> 빠른 대전 시작
       </button>
       <p className="quick-public-note">
         <Eye size={13} aria-hidden="true" /> 빠른 대전은 관전방에 공개돼요(보기 전용).
       </p>
-      {serverAi && member && (
-        <button type="button" className="secondary" disabled={aiBusy} onClick={() => void startAi()}>
-          {aiBusy ? <BrandMark /> : <Bot size={16} />} {aiBusy ? "AI 대전 준비 중…" : "서버 AI와 대전 (보통)"}
-        </button>
+      {idle && serverAi && session() && (
+        <details>
+          <summary>다른 대전</summary>
+          <button type="button" className="secondary" disabled={aiBusy} onClick={() => void startAi()}>
+            {aiBusy ? <BrandMark /> : <Bot size={16} />} {aiBusy ? "AI 대전 준비 중…" : "서버 AI와 대전 (보통)"}
+          </button>
+        </details>
       )}
-      {error && (
-        <p className="error-message" role="alert">
-          {error}
-        </p>
-      )}
-      {inMatch && (
-        <button type="button" className="secondary" onClick={() => onReturn(inMatch)}>
-          진행 중인 경기로 돌아가기 <ArrowRight size={15} />
-        </button>
-      )}
+      {error && <p className="error-message" role="alert">{error}</p>}
     </>
   );
 }
 
 /** Public spectating list: refreshed every 10 s while this tab is visible; the live connection opens only on 관전하기. */
-function WatchRooms({ server }: { server: string }) {
+function WatchRooms({ server, activityOn, onWatch }: { server: string; activityOn: boolean; onWatch: (code: string, key: string) => void }) {
+  const [activity, setActivity] = useState<ServerActivity | null>(null);
   const [rooms, setRooms] = useState<PublicRoom[] | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -525,18 +423,26 @@ function WatchRooms({ server }: { server: string }) {
         .catch((e: Error) => live && setError(e.message));
     };
     load();
+    const loadActivity = () => {
+      if (activityOn && document.visibilityState !== "hidden") {
+        void serverActivity(server).then((data) => live && setActivity(data)).catch(() => live && setActivity(null));
+      }
+    };
+    loadActivity();
+    const updateActivity = activityOn ? setInterval(loadActivity, 30_000) : undefined;
     const t = setInterval(load, 10_000);
     return () => {
       live = false;
       clearInterval(t);
+      clearInterval(updateActivity);
     };
-  }, [server]);
+  }, [server, activityOn]);
   const watch = async (code: string) => {
     setBusy(code);
     setError("");
     try {
       const { key } = await publicWatchKey(server, code);
-      location.assign(watchLink(code, key));
+      onWatch(code, key);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setBusy(null);
@@ -544,6 +450,11 @@ function WatchRooms({ server }: { server: string }) {
   };
   return (
     <div className="watch-rooms">
+      {activity && <p>
+        빠른 대전 대기 {activity.waiting}명
+        {activity.playing && ` · 진행 중 ${Object.values(activity.playing).reduce((sum, count) => sum + count, 0)}경기`}
+        {activity.privatePlaying !== null && ` · 비공개 ${activity.privatePlaying}경기`}
+      </p>}
       {error && (
         <p className="error-message" role="alert">
           {error}
@@ -568,7 +479,7 @@ function WatchRooms({ server }: { server: string }) {
                 ))}
               </div>
               <span className="watch-meta">
-                {r.round}/12 라운드 · 관전 {r.spectators}/{r.max}
+                {r.kind === "friend" ? "친구 대전 · " : ""}{r.round}/{r.rounds ?? 12} 라운드 · 관전 {r.spectators}/{r.max}
               </span>
               <button type="button" className="secondary" disabled={busy !== null || r.spectators >= r.max} onClick={() => void watch(r.code)}>
                 <Eye size={15} /> {r.spectators >= r.max ? "가득 참" : busy === r.code ? "연결 중…" : "관전하기"}

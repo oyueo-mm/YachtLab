@@ -313,3 +313,44 @@
 .profile-themes li small { font-weight: 500; color: var(--muted); }
 .profile-themes li.empty { opacity: .6; }
 .profile-themes li.complete { background: #fff; box-shadow: inset 0 0 0 1px var(--col); }
+
+/* ---- A4: profile readability (equipped levels, ownership summary, pin slots, match rows) ---- */
+.profile-slots dd { display: flex; flex-direction: column; gap: 3px; }
+.profile-slots .slot-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lv-pips { display: inline-flex; align-items: center; gap: 3px; }
+.lv-pips i { width: 14px; height: 5px; border-radius: 3px; background: var(--line); }
+.lv-pips i.on { background: var(--red); }
+.lv-pips small { margin-left: 4px; font-size: 11px; }
+.profile-slots > div { border-left: 3px solid transparent; }
+.profile-slots > .tier-rare { border-left-color: #4dabf7; }
+.profile-slots > .tier-epic { border-left-color: #9775fa; }
+.profile-slots > .tier-legendary { border-left-color: #f59f00; }
+.profile-slots > .tier-mythic { border-left-color: #f03e3e; }
+.profile-own-summary { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+.profile-own-summary b { font-size: 18px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.pin-slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0 0 4px; padding: 0; list-style: none; }
+.pin-slots li { min-height: 44px; display: grid; }
+.pin-slots li.empty span { display: grid; place-items: center; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); font-size: 12px; }
+.pin-slots li.filled button { display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; padding: 0 8px; border-radius: 10px; background: var(--ink); color: #fff; font-size: 12px; font-weight: 700; }
+.pin-slots li.filled button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-score-line { display: flex; align-items: baseline; gap: 5px; }
+.profile-score-line b { font-size: 17px; font-weight: 800; }
+.profile-score-line i { font-style: normal; color: var(--muted); }
+.profile-score-line small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-loss .profile-outcome { background: #f1f3f5; color: #495057; }
+.result-draw .profile-outcome { background: #fff3bf; border-color: #fcc419; color: #8a6d00; }
+@media (max-width: 560px) {
+  .profile-grid { gap: 10px; margin-top: 10px; }
+  .profile-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile-kpis dd { font-size: 22px; }
+  .profile-slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile-collect li { grid-template-columns: 64px 1fr 40px; }
+  .profile-themes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile-matches li { padding: 8px; gap: 8px; }
+  .profile-hero { padding: 12px; }
+  .profile-fine, .profile-empty { font-size: 12px; }
+}
+.profile-matches li { min-width: 0; }
+.profile-match-main { flex: 1 1 0; min-width: 0; }
+.profile-match-main > small { max-width: 100%; }
+.profile-score-line { min-width: 0; }

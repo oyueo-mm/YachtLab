@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { RecentOpponents } from "../social/RecentOpponents";
 import { Ban, Check, Copy, LoaderCircle, Mail, Search, UserMinus, UserPlus, UserRound, X } from "lucide-react";
 import { session } from "../identity/account-client";
 import { acceptInvite, declineInvite, friendAction, friendProfile, friends, inbox, inviteFriends, searchFriends, type FriendData, type FriendProfile, type RoomInvite, type SearchResult } from "../identity/friends-client";
@@ -320,6 +321,7 @@ export function FriendsPage({ server, go }: { server: string | null; go: (r: Rou
               ))}
             </ul>
           )}
+          <RecentOpponents server={server} />
           {data.outgoing.length > 0 && (
             <>
               <h2 className="econ-sub">보낸 요청</h2>

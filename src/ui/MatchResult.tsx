@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { ActivityVisible } from "../shell/activity-visible";
+import { useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Trophy, X } from "lucide-react";
 import { useScoreFx } from "../score-fx";
 import { motionLevel } from "../settings";
@@ -17,6 +18,7 @@ export function MatchResult({ title, children, actions, className = "", waiting,
   mood?: "win" | "lose";
 }) {
   const id = useId();
+  const visible = useContext(ActivityVisible);
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const [opened, setOpened] = useState(false);
@@ -38,12 +40,12 @@ export function MatchResult({ title, children, actions, className = "", waiting,
 
   useEffect(() => {
     const surface = dialog.current;
-    if (opened && !surface?.open) surface?.showModal();
-    if (!opened && surface?.open) {
+    if (opened && visible && !surface?.open) surface?.showModal();
+    if ((!opened || !visible) && surface?.open) {
       surface.close();
       trigger.current?.focus();
     }
-  }, [opened]);
+  }, [opened, visible]);
 
   return <>
     {shown && <button ref={trigger} type="button" className="secondary match-result-reopen" onClick={() => setOpened(true)}>

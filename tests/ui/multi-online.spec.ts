@@ -153,14 +153,15 @@ test("3인 동시 진행 관전: 모두 허용하면 관전 링크가 생기고,
     players.push(g);
   }
   await host.getByText("동시 진행").click();
-  // friend rooms keep consent-based spectating: every player switches it on
-  for (const p of players) {
+  // D-095: the host alone sets the friend room's spectating range; the others see it read-only
+  for (const p of players.slice(1)) {
     await p.getByRole("button", { name: "관전 설정" }).click();
-    await p.getByRole("switch").check();
-    await p.keyboard.press("Escape");
+    await expect(p.getByRole("dialog", { name: "관전 설정" }).getByRole("combobox")).toHaveCount(0);
+    await expect(p.getByLabel("현재 관전 범위")).toContainText("비공개");
     await p.locator("body").click({ position: { x: 5, y: 5 } });
   }
   await host.getByRole("button", { name: "관전 설정" }).click();
+  await host.getByLabel("관전 범위").selectOption("invite");
   const link = await host.getByLabel("관전 링크").inputValue();
   await host.locator("body").click({ position: { x: 5, y: 5 } });
   await host.getByRole("button", { name: /게임 시작/ }).click();
@@ -225,6 +226,9 @@ for (const simultaneous of [false, true]) {
     await expect(player.locator(".board-top b")).toHaveText("0");
     await player.keyboard.press("Space");
     await expect(player.locator(".board-top b")).toHaveText("1");
+    // The roll is shown before the turn is actionable again: dice keys and arrows act only while `can`
+    // holds (server ack received, dice settled) — the same condition that enables the die buttons.
+    await expect(player.locator("button[data-die-id]:enabled, [data-die-id] > button:enabled")).toHaveCount(5);
 
     const kept = player.locator('[data-die-id][aria-pressed="true"], [data-die-id] [aria-pressed="true"]');
     await player.keyboard.press("1");

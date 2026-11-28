@@ -182,7 +182,7 @@ test("PPO와 12라운드 완주, 최종 승패와 재대결", async ({ page }) =
     await page.getByRole("button", { name: "주사위 굴리기" }).click();
     await scoreCategory(page);
   }
-  await expect(page.locator(".game-result")).toBeVisible({ timeout: 15000 });
+  await expect(page.locator(".a3-result")).toBeVisible({ timeout: 15000 });
   await expect(page.locator(".scoreboard .fixed-score")).toHaveCount(24);
   expect(errors).toEqual([]);
   await page.getByRole("button", { name: "한 번 더 플레이" }).click();

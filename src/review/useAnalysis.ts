@@ -15,6 +15,8 @@ export function useReviewAnalysis(match: ReviewMatch) {
     total ? { state: "preparing", total } : { state: "unassessed", reason: "no-actions" });
   const operation = useRef<AbortController | null>(null);
   const [fallback, setFallback] = useState(false);
+  /** The finished result came from this tab's memory or the device cache, not a new run. */
+  const [cached, setCached] = useState(false);
   const serialized = useMemo(() => JSON.stringify([!!match.solo, match.steps, match.unpairedFirstRolls]), [match]);
 
   useEffect(() => {
@@ -53,6 +55,7 @@ export function useReviewAnalysis(match: ReviewMatch) {
         if (history.size >= 10) history.delete(history.keys().next().value!);
         history.set(key, result);
         setValues(result.values);
+        setCached(result === hit);
         setStatus({ state: "complete", report: createReviewReport(match, result.values, model.version, result.openings) });
         if (diskKey && result !== hit) void saveAnalysis(diskKey, match, result, model.version).catch(() => {});
       };
@@ -96,7 +99,7 @@ export function useReviewAnalysis(match: ReviewMatch) {
   }, [match, model, run, serialized, total]);
 
   return {
-    model, values, status, fallback,
+    model, values, status, fallback, cached,
     cancel() {
       if (status.state !== "analyzing" && status.state !== "preparing") return;
       operation.current?.abort();
@@ -104,6 +107,7 @@ export function useReviewAnalysis(match: ReviewMatch) {
     },
     retry() {
       setFallback(false);
+      setCached(false);
       setModel(match.solo ? reviewModel : productReviewModel);
       setStatus({ state: "preparing", total });
       setRun((current) => current + 1);

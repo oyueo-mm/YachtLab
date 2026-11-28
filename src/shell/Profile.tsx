@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useServerRecords } from "../match-result/account-refresh";
 import { LogIn, LogOut, Pencil, ShieldCheck, Trash2 } from "lucide-react";
 import { validateNickname } from "../identity/nickname";
 import { computeStats, type MatchRecord } from "../identity/records";
@@ -56,10 +57,9 @@ export default function Profile({ server, notice, snapshot, accountSettings = fa
     me(server)
       .then(setAccount)
       .catch((e) => setMessage(e.message));
-    serverRecords(server)
-      .then(setRemote)
-      .catch(() => setRemote(null));
   }, [signedIn, server]);
+  // H-A3-2: server records follow finished matches and account changes; late responses for another account are dropped.
+  useServerRecords(signedIn ? server : null, (_owner, records) => setRemote(records));
 
   useEffect(() => {
     if (!accountSettings) return;

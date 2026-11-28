@@ -1,6 +1,10 @@
 import { BrandMark } from "../ui/BrandLoading";
+import { OpponentProfile } from "../social/OpponentProfileDialog";
 import { BonusMoments } from "../bonus-moment";
 import { MatchRewardSummary } from "../shell/MatchRewards";
+import { useAccountRefreshAfterMatch } from "../match-result/account-refresh";
+import { ZeroScoreToast } from "../match-result/ZeroScoreToast";
+import { useZeroScoreNotice } from "../match-result/useZeroScore";
 import { MatchResult } from "../ui/MatchResult";
 import { ShareResultButton } from "../ui/ShareResult";
 import ReviewLauncher from "../review/ReviewLauncher";
@@ -87,7 +91,7 @@ function recordOnDevice(view: PlayerView, me: string) {
   });
 }
 
-export default function OnlineGame({ server, code, quickIntro = false, onLeave, onProgress, onFinished }: { server: string; code: string; quickIntro?: boolean; onFinished?: (matchId: string) => void; onLeave: (message?: string, destination?: "home") => void; onProgress?: (inProgress: boolean) => void }) {
+export default function OnlineGame({ server, code, quickIntro = false, onEntered, entryTimeoutMs, onLeave, onProgress, onFinished }: { server: string; code: string; quickIntro?: boolean; onEntered?: () => void; entryTimeoutMs?: number; onFinished?: (matchId: string) => void; onLeave: (message?: string, destination?: "home") => void; onProgress?: (inProgress: boolean) => void }) {
   const seat = useMemo(() => savedSeat(code), [code]);
   const [view, setView] = useState<PlayerView | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
@@ -146,6 +150,10 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
       return;
     }
     clearScoreFx();
+    const entryTimeout = entryTimeoutMs === undefined ? undefined : window.setTimeout(
+      () => onLeave("경기 연결을 확인하지 못했어요. 다시 연결할 수 있어요."),
+      entryTimeoutMs,
+    );
     const c = new OnlineConnection(server, code, seat.token, {
       onView(next, live, hold) {
         const prev = viewRef.current;
@@ -291,13 +299,18 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
       onStatus(next) {
         setStatus(next);
         // A new socket has a fresh server-side rate bucket; a pending send on the old one is lost.
-        if (next === "online") chat.reset();
+        if (next === "online") {
+          chat.reset();
+          window.clearTimeout(entryTimeout);
+          onEntered?.();
+        }
       },
       onFatal: (message) => onLeave(message),
     });
     conn.current = c;
     c.start();
     return () => {
+      window.clearTimeout(entryTimeout);
       c.stop();
       conn.current = null;
     };
@@ -426,6 +439,11 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
   const myRank = view?.standings?.find((x) => x.playerId === me?.playerId)?.rank;
   const soundOutcome = !finished ? null : players.length > 2 ? (myRank === 1 ? (winners.length > 1 ? "winShared" : "win") : "lose") : outcome;
   const celebration = useGameSounds(players.length > 2 ? [players[meIndex]?.card ?? {}] : game.cards, finished, soundOutcome, syncKey);
+  // H-A3-1: after a seated player's match ends, re-read the account (wallet, quests, records) once the server
+  // receipt settles, so a rematch in the same room shows the server's balance without going home.
+  useAccountRefreshAfterMatch(server, view?.matchId ?? null, finished && !!me);
+  // A3 0-point notice: only my own seat in a 1:1 match; reconnect/resync catch-up is ignored (syncKey).
+  const [zeroNotice, clearZero] = useZeroScoreNotice(players.length === 2 ? game.cards : [], (seat) => (me && seat === meIndex ? {} : null), syncKey);
 
 
   if (!seat) return null;
@@ -519,7 +537,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
           <input className="online-invite-link" aria-label="초대 링크" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
         </div>
         <div className="online-lobby-tools">
-          <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />
+          <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} onVisibility={(visibility) => conn.current?.spectate(visibility !== "private", visibility)} linkFor={(key, sid) => watchLink(sid ?? code, key)} disabled={status !== "online"} />
         </div>
         <LobbyPanel
           lobby={lobby}
@@ -575,7 +593,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
     <>
             {/* Room settings (chat and emotes are in the bar under the board). */}
             <div className="online-tool-group online-room-tools">
-              {!aiSeat && <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} linkFor={(key) => watchLink(code, key)} disabled={status !== "online"} />}
+              {!aiSeat && <SpectateControl state={spectate} me={me?.playerId ?? ""} onToggle={(allow) => conn.current?.spectate(allow)} onVisibility={(visibility) => conn.current?.spectate(visibility !== "private", visibility)} linkFor={(key, sid) => watchLink(sid ?? code, key)} disabled={status !== "online"} />}
               {playing && (
                 <button
                   type="button"
@@ -674,6 +692,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onLeave, 
             {...gesture}
           >
             <Celebrate value={celebration} />
+            <ZeroScoreToast notice={zeroNotice} onDone={clearZero} />
             <BonusMoments scope={view.matchId} players={players.map((x) => ({ id: x.playerId, name: x.name, card: x.card, mine: x.playerId === me?.playerId, look: looks[x.playerId] }))} />
             <BoardFx itemId={stage.look?.board} level={stage.look?.boardLv ?? 1} host={boardRef} />
             <SynergyFx dice={stage.look?.dice} board={stage.look?.board} level={Math.min(stage.look?.diceLv ?? 1, stage.look?.boardLv ?? 1)} host={boardRef} />
@@ -845,35 +864,3 @@ function RematchControls({ rematch, me, opponentName, onOp }: { rematch: Rematch
 }
 
 /** An opponent's public profile: nickname, join month and server-verified online totals only. */
-function OpponentProfile({ server, userId, onClose }: { server: string; userId: string; onClose: () => void }) {
-  const [p, setP] = useState<PublicProfile | null>(null);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    publicProfile(server, userId)
-      .then(setP)
-      .catch((e) => setError(e.message));
-  }, [server, userId]);
-  return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div className="modal opponent-profile" role="dialog" aria-label="상대 프로필" onClick={(e) => e.stopPropagation()}>
-        {error ? (
-          <p>{error}</p>
-        ) : !p ? (
-          <p>불러오는 중…</p>
-        ) : (
-          <>
-            <h2>{p.nickname}</h2>
-            <p className="profile-fine">{new Date(p.joinedAt).toLocaleDateString("ko-KR", { year: "numeric", month: "long" })} 가입 · 서버가 확인한 온라인 경기 기준</p>
-            <p>
-              {p.online.games}경기 · {p.online.wins}승 {p.online.losses}패{p.online.draws ? ` ${p.online.draws}무` : ""}
-              {p.online.best !== null ? ` · 최고 ${p.online.best}점` : ""}
-            </p>
-          </>
-        )}
-        <button type="button" className="secondary" onClick={onClose}>
-          닫기
-        </button>
-      </div>
-    </div>
-  );
-}

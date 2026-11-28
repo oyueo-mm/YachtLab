@@ -1,5 +1,7 @@
 # 빠른 대전·공개 관전방·PC 온라인 도구 줄 (제품 Phase 4.5, 2026-11-24)
 
+> 최신 전역 큐, D-045 공개 빠른 대전, 친구 대전 권한 및 A6 계약은 [C3 전역 매칭과 관전](./C3-BACKGROUND-MATCH.md)을 참조한다. 아래 내용은 제품 Phase 4.5 시점의 기록이다.
+
 > 결정 기록: DECISIONS D-038. 이전 계획: [MATCHMAKING-SPECTATE-PLAN](./MATCHMAKING-SPECTATE-PLAN.md)(계획 → 이 문서가 구현).
 
 ## 1. 온라인 메뉴

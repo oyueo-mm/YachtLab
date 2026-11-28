@@ -22,10 +22,12 @@ export type OnlineConfig = {
   maxAgeMs: number;
   /** Server AI matches per UTC day (a sub-budget of dailyRoomLimit). */
   dailyAiLimit: number;
+  /** PR118-02: how long the hub reuses one `/api/activity` aggregate (0 = always fresh, for tests). */
+  activityCacheMs: number;
 };
 
 export type ConfigVars = Partial<Record<
-  "ALLOWED_ORIGINS" | "TURN_TIMEOUT_MS" | "MAX_ROOMS" | "DAILY_ROOM_LIMIT" | "CREATE_PER_MINUTE" | "JOIN_PER_MINUTE" | "LOBBY_IDLE_MS" | "FINISHED_IDLE_MS" | "RESULT_IDLE_MS" | "PLAYING_IDLE_MS" | "ROOM_MAX_AGE_MS" | "DAILY_AI_LIMIT",
+  "ALLOWED_ORIGINS" | "TURN_TIMEOUT_MS" | "MAX_ROOMS" | "DAILY_ROOM_LIMIT" | "CREATE_PER_MINUTE" | "JOIN_PER_MINUTE" | "LOBBY_IDLE_MS" | "FINISHED_IDLE_MS" | "RESULT_IDLE_MS" | "PLAYING_IDLE_MS" | "ROOM_MAX_AGE_MS" | "DAILY_AI_LIMIT" | "ACTIVITY_CACHE_MS",
   string
 >>;
 
@@ -49,5 +51,6 @@ export function readConfig(env: ConfigVars): OnlineConfig {
     playingIdleMs: num(env.PLAYING_IDLE_MS, 24 * 3600_000, 1000),
     maxAgeMs: num(env.ROOM_MAX_AGE_MS, 48 * 3600_000, 1000),
     dailyAiLimit: num(env.DAILY_AI_LIMIT, 100, 0),
+    activityCacheMs: Math.min(60_000, num(env.ACTIVITY_CACHE_MS, 10_000, 0)),
   };
 }

@@ -12,15 +12,19 @@ import SoloGame from "./play/SoloGame";
 import { setOwnLook } from "./play/own-look";
 import { useNickname } from "./identity/display-name";
 import OnlineEntry from "./play/OnlineEntry";
+import { useBackgroundMatch } from "./online/useBackgroundMatch";
+import { MatchPopup } from "./play/MatchPopup";
+import { ActivityVisible } from "./shell/activity-visible";
 import OnlineGame from "./play/OnlineGame";
 import OnlineWatch from "./play/OnlineWatch";
 import Profile from "./shell/Profile";
-import MatchRewards, { type PendingReward } from "./shell/MatchRewards";
+import MatchRewards from "./shell/MatchRewards";
+import { addNotice, dropNotices, noticesFor, type PendingNotice } from "./match-result/reward-notices";
 import { completeSignIn, session } from "./identity/account-client";
 import { peekResume } from "./shell/login-resume";
 import { syncAccountNickname } from "./identity/display-name";
 import { FriendsPage, InviteToasts, refreshInbox, startInbox } from "./shell/Friends";
-import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl } from "./online/client";
+import { onlineServerUrl, roomFromUrl, setRoomInUrl, watchFromUrl, watchLink } from "./online/client";
 import { currentRoute, researchToolsEnabled, routes, type Route } from "./routes";
 import { useProfileEconomy } from "./shell/profile-economy";
 import { LabNav, SettingsDialog, TopBar } from "./shell/Chrome";
@@ -83,9 +87,10 @@ export default function App() {
   const nickname = useNickname();
   const [onlineCode, setOnlineCode] = useState<string | null>(roomFromUrl);
   const [quickIntro, setQuickIntro] = useState<string | null>(null);
-  const [pendingReward, setPendingReward] = useState<PendingReward | null>(null);
+  // H-A3-3: every finished online match keeps its home notice (deduplicated by matchId, per account).
+  const [pendingRewards, setPendingRewards] = useState<PendingNotice[]>([]);
   const [onlineNotice, setOnlineNotice] = useState("");
-  const [watchTarget] = useState(watchFromUrl);
+  const [watchTarget, setWatchTarget] = useState(watchFromUrl);
   const [profileNotice, setProfileNotice] = useState("");
   // Members: friend requests and room invites (checked once a minute while the site is visible).
   useEffect(() => startInbox(onlineServer), [onlineServer]);
@@ -124,6 +129,10 @@ export default function App() {
   const historyIndex = useRef(typeof history.state?.idx === "number" ? (history.state.idx as number) : 0);
   const pageRef = useRef(page);
   pageRef.current = page;
+  const [suspended, setSuspended] = useState<{ route: Route; scroll: number; inProgress: boolean } | null>(null);
+  const suspendedRef = useRef(suspended);
+  suspendedRef.current = suspended;
+  const preserve = (route: Route) => ["play", "pvp", "solo", "shop", "inventory", "draw", "quests", "achievements", "records", "profile"].includes(route);
   const ignoreNextHash = useRef(false);
   const pendingHistory = useRef<{ idx: number; undo: () => void } | null>(null);
   const historyKey = () => location.href + ":" + history.state?.idx;
@@ -132,12 +141,17 @@ export default function App() {
   const enter = (p: Route) => {
     if (p === "online" || p === "online-room") setOnlineCode(roomFromUrl());
     else if (new URLSearchParams(location.search).has("room")) setRoomInUrl(null);
-    if ((p === "play" || p === "pvp" || p === "solo") && pageRef.current !== p) {
+    if (suspendedRef.current?.route === p) {
+      inProgress.current = suspendedRef.current.inProgress;
+      setSuspended(null);
+    } else if ((p === "play" || p === "pvp" || p === "solo") && pageRef.current !== p) {
       // Entering a game screen from elsewhere starts from the latest saved setup.
       if (p === "play") setAiConfig(localAiConfig());
       else setLocal(localConfig());
       setGameKey((k) => k + 1);
+      if (suspendedRef.current) setSuspended(null);
     }
+    if (p === "spectate") setWatchTarget(watchFromUrl());
     if (p !== "tutorial") tutorialDestination.current = null;
     pageRef.current = p;
     setPage(p);
@@ -145,6 +159,10 @@ export default function App() {
   const pushRoute = (p: Route, room?: string, replace = false) => {
     const url = new URL(location.href);
     url.hash = p;
+    if (p !== "spectate") {
+      url.searchParams.delete("watch");
+      url.searchParams.delete("k");
+    }
     if (room) url.searchParams.set("room", room);
     else url.searchParams.delete("room");
     if (replace) history.replaceState({ ...history.state, idx: historyIndex.current }, "", url);
@@ -155,9 +173,50 @@ export default function App() {
     setQuickIntro(quick ? code : null);
     setOnlineNotice("");
     // An invite becomes the room entry. Going back cannot reopen and auto-join the same invite.
+    if (pendingOnline.current && pendingOnline.current !== code) return;
     const replace = pageRef.current === "online-room" || (pageRef.current === "online" && roomFromUrl() === code);
     pushRoute("online-room", code, replace);
     enter("online-room");
+  };
+  const pendingOnline = useRef<string | null>(null);
+  const match = useBackgroundMatch(onlineServer, (found) => {
+    const route = pageRef.current;
+    pendingOnline.current = found.code;
+    if (preserve(route)) {
+      setSuspended({ route, scroll: window.scrollY, inProgress: inProgress.current });
+    }
+    setLeaveTo(null);
+    pendingHistory.current = null;
+    inProgress.current = false;
+    enterRoom(found.code, true);
+  });
+  const enterWatch = (code: string, key: string) => {
+    if (pageRef.current !== "online" || pendingOnline.current) return;
+    history.pushState({ idx: ++historyIndex.current }, "", watchLink(code, key));
+    handledHistory.current = historyKey();
+    enter("spectate");
+  };
+  const restoreActivity = () => {
+    const previous = suspendedRef.current;
+    if (!previous) return false;
+    // Keep the same mounted game and its setup, even if the normal route has since changed.
+    pushRoute(previous.route, undefined, true);
+    pageRef.current = previous.route;
+    setPage(previous.route);
+    inProgress.current = previous.inProgress;
+    setSuspended(null);
+    requestAnimationFrame(() => window.scrollTo(0, previous.scroll));
+    return true;
+  };
+  const activity = (route: Route | readonly Route[], children: React.ReactNode) => {
+    const matches = (p: Route) => typeof route === "string" ? route === p : route.includes(p);
+    const visible = matches(page);
+    if (!visible && (!suspended || !matches(suspended.route))) return null;
+    return (
+      <div className="activity-scope" hidden={!visible} inert={!visible} style={{ display: visible ? "contents" : "none" }}>
+        <ActivityVisible.Provider value={visible}>{children}</ActivityVisible.Provider>
+      </div>
+    );
   };
   const go = (p: Route) => {
     if (p === "watch") {
@@ -165,6 +224,7 @@ export default function App() {
       setReplay(null);
     }
     if (p === "analysis") setAnalysisSource(null);
+    if ((p === "play" || p === "pvp" || p === "solo") && suspendedRef.current?.route !== p) setSuspended(null);
     pushRoute(p);
     enter(p);
   };
@@ -176,6 +236,7 @@ export default function App() {
   };
   /** Leaving a game in progress asks first (top-bar home, settings links). */
   const navigate = (p: Route) => {
+    if (pendingOnline.current && p !== page) return;
     if (routes[page].shell === "game" && inProgress.current && p !== page) setLeaveTo(p);
     else go(p);
   };
@@ -218,6 +279,11 @@ export default function App() {
         idx = historyIndex.current + 1;
         history.replaceState({ idx }, "");
         undo = () => history.back();
+      }
+      if (pendingOnline.current && next !== pageRef.current) {
+        ignoreNextHash.current = true;
+        undo();
+        return;
       }
       if (routes[pageRef.current].shell === "game" && inProgress.current && next !== pageRef.current) {
         pendingHistory.current = { idx, undo };
@@ -269,12 +335,14 @@ export default function App() {
             </button>
           </p>
         )}
+        <MatchPopup match={match} onAi={() => navigate("play-setup")} onRoom={(code) => enterRoom(code)} offerAfterMs={30_000} />
+        {suspended && page !== "online-room" && <button type="button" className="secondary" onClick={restoreActivity}>이전 활동으로 돌아가기</button>}
         <InstallBanner active={page === "home"} />
-        {page === "home" && onlineServer && pendingReward && <MatchRewards
-          key={pendingReward.matchId}
+        {page === "home" && onlineServer && noticesFor(pendingRewards, session()).length > 0 && <MatchRewards
+          key={noticesFor(pendingRewards, session()).map((n) => n.matchId).join(",")}
           server={onlineServer}
-          pending={pendingReward}
-          consume={() => setPendingReward(null)}
+          pending={noticesFor(pendingRewards, session())}
+          consume={(ids) => setPendingRewards((list) => dropNotices(list, ids))}
         />}
         {page === "home" && <Lobby navigate={navigate} />}
         {page === "tutorial" && <Tutorial onExit={() => {
@@ -295,7 +363,8 @@ export default function App() {
               key={onlineCode ?? "online"}
               server={onlineServer}
               onBack={() => navigate("home")}
-              onAi={() => navigate("play-setup")}
+              match={match}
+              onWatch={enterWatch}
               onEnter={enterRoom}
             />
           </>
@@ -306,28 +375,40 @@ export default function App() {
             server={onlineServer}
             code={onlineCode}
             quickIntro={quickIntro === onlineCode}
+            entryTimeoutMs={pendingOnline.current === onlineCode ? 20_000 : undefined}
+            onEntered={() => {
+              if (pendingOnline.current !== onlineCode) return;
+              pendingOnline.current = null;
+              match.entered();
+            }}
             onFinished={(matchId) => {
               const account = session();
-              if (account) setPendingReward({ matchId, account });
+              if (account) setPendingRewards((list) => addNotice(list, { matchId, account, at: Date.now() }));
             }}
             onProgress={progress}
             onLeave={(message, destination) => {
               inProgress.current = false;
+              if (pendingOnline.current === onlineCode) {
+                pendingOnline.current = null;
+                match.entryFailed(message ?? "경기에 입장하지 못했어요.", onlineCode);
+              }
               setOnlineNotice(message ?? "");
               setOnlineCode(null);
               setQuickIntro(null);
               setRoomInUrl(null);
-              go(destination ?? "online");
+              if (!restoreActivity()) go(destination ?? "online");
             }}
           />
         )}
-        {(page === "profile" || page === "account") && <Profile key={JSON.stringify([session(), profileNotice])} server={onlineServer} notice={profileNotice} snapshot={profile.snapshot} accountSettings={page === "account"} />}
-        {(page === "shop" || page === "inventory" || page === "draw" || page === "quests" || page === "achievements") && (
-          <Suspense fallback={<p className="econ-note" role="status"><BrandMark /> 불러오는 중…</p>}>
-            {(page === "shop" || page === "inventory" || page === "draw") && <ItemsPage key={session() ?? "guest"} server={onlineServer} go={navigate} route={page} />}
-            {(page === "quests" || page === "achievements") && <QuestsPage key={session() ?? "guest"} server={onlineServer} go={navigate} achievements={page === "achievements"} />}
-          </Suspense>
-        )}
+        {activity("profile", <Profile key={JSON.stringify([session(), profileNotice])} server={onlineServer} notice={profileNotice} snapshot={profile.snapshot} accountSettings={false} />)}
+        {page === "account" && <Profile key={JSON.stringify([session(), profileNotice])} server={onlineServer} notice={profileNotice} snapshot={profile.snapshot} accountSettings />}
+        <Suspense fallback={["shop", "inventory", "draw", "quests", "achievements"].includes(page) ? <p className="econ-note" role="status"><BrandMark /> 불러오는 중…</p> : null}>
+          {activity(["shop", "inventory", "draw"], <ItemsPage key={session() ?? "guest"} server={onlineServer} go={navigate}
+            route={page === "shop" || page === "inventory" || page === "draw" ? page :
+              suspended?.route === "inventory" || suspended?.route === "draw" ? suspended.route : "shop"} />)}
+          {activity(["quests", "achievements"], <QuestsPage key={session() ?? "guest"} server={onlineServer} go={navigate}
+            achievements={page === "achievements" || (page !== "quests" && suspended?.route === "achievements")} />)}
+        </Suspense>
         {page === "friends" && <FriendsPage server={onlineServer} go={navigate} />}
         {page === "spectate" && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "spectate" && onlineServer && (watchTarget ? <OnlineWatch key={watchTarget.code + watchTarget.key} server={onlineServer} code={watchTarget.code} watchKey={watchTarget.key} onLeave={() => navigate("home")} /> : (
@@ -335,13 +416,13 @@ export default function App() {
             관전 링크가 올바르지 않아요.
           </p>
         ))}
-        {page === "online-room" && onlineServer && !onlineCode && <OnlineEntry server={onlineServer} onBack={() => navigate("home")} onEnter={enterRoom} />}
+        {page === "online-room" && onlineServer && !onlineCode && <OnlineEntry server={onlineServer} onBack={() => navigate("home")} onEnter={enterRoom} match={match} onWatch={enterWatch} />}
         {page === "play-setup" && <AiSetupScreen onBack={() => navigate("offline")} onStart={() => startLocalGame("play")} />}
         {page === "pvp-setup" && <LocalSetupScreen onBack={() => navigate("offline")} onStart={() => startLocalGame("pvp")} />}
-        {page === "play" && <HumanGame key={gameKey} config={aiConfig} onBranch={branch} onAnalyze={analyze} onChangeSetup={() => go("play-setup")} onLeave={() => go("home")} onProgress={progress} />}
-        {page === "pvp" && <LocalGame key={gameKey} players={local.players} order={local.order} onChangeSetup={() => go("pvp-setup")} onLeave={() => go("home")} onProgress={progress} />}
-        {page === "solo" && <SoloGame key={gameKey} name={nickname || getAiSetup().name || "나"} server={onlineServer} onLeave={() => go("offline")} onRecords={() => go("records")} onProgress={progress} />}
-        {page === "records" && <MyGames server={onlineServer} onBranch={branch} onAnalyze={analyze} />}
+        {activity("play", <HumanGame key={gameKey} suspended={page !== "play"} config={aiConfig} onBranch={branch} onAnalyze={analyze} onChangeSetup={() => go("play-setup")} onLeave={() => go("home")} onProgress={(value) => { if (pageRef.current === "play") progress(value); }} />)}
+        {activity("pvp", <LocalGame key={gameKey} players={local.players} order={local.order} onChangeSetup={() => go("pvp-setup")} onLeave={() => go("home")} onProgress={(value) => { if (pageRef.current === "pvp") progress(value); }} />)}
+        {activity("solo", <SoloGame key={gameKey} name={nickname || getAiSetup().name || "나"} server={onlineServer} onLeave={() => go("offline")} onRecords={() => go("records")} onProgress={(value) => { if (pageRef.current === "solo") progress(value); }} />)}
+        {activity("records", <MyGames server={onlineServer} onBranch={branch} onAnalyze={analyze} />)}
         {shell === "lab" && (
           <Suspense
             fallback={

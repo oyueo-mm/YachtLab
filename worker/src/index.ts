@@ -2,7 +2,7 @@ import type { SoloRecord } from "../../src/solo/records";
 import type { DrawPool } from "../../src/economy/live/draw";
 import type { MatchEconomyResult } from "./economy";
 import { DurableObject } from "cloudflare:workers";
-import { newRoomCode, normalizeCode, parseRoomSettings, ROOM_LIMITS, type RoomRecord, type RoomSettings } from "../../src/online/room";
+import { newRoomCode, normalizeCode, normalizeSpectateId, parseRoomSettings, ROOM_LIMITS, type RoomRecord, type RoomSettings } from "../../src/online/room";
 import { readConfig, type ConfigVars, type OnlineConfig } from "./config";
 import { RoomHost, type HostSocket, type HostStorage } from "./host";
 import { AccountStore, type Sql } from "./account";
@@ -13,8 +13,9 @@ import { itemById } from "../../src/economy/live/catalog";
 /** Coin balance bucket for the privacy-light balance distribution. */
 const bucket = (c: number) => (c < 100 ? "0-99" : c < 500 ? "100-499" : c < 2000 ? "500-1999" : c < 10000 ? "2000-9999" : c < 50000 ? "10k-49k" : "50k+");
 import { validateNickname } from "../../src/identity/nickname";
-import { FriendIndexStore, FriendStore, Presence, type FriendSql } from "./friends";
-import { handleFriendRoute, sendInvites, type FriendDeps, type FriendUser } from "./friends-api";
+import { ABSENT_ACCOUNT, FriendIndexStore, FriendStore, Presence, type FriendSql } from "./friends";
+import { handleFriendRoute, sendInvites, type FriendDeps, type FriendUser, type ResidueMode } from "./friends-api";
+import { CLEANUP_PARKED_CHECK_MS, CleanupQueue, INDEX_TARGET, runCleanup, type CleanupJob } from "./account-cleanup";
 import { sameText } from "./oidc";
 import { authConfig, handleAccountRoute, sessionUser, type AccountBackends, type GuestApi, type UserApi } from "./accounts-api";
 import type { MatchRecord } from "../../src/identity/records";
@@ -22,6 +23,7 @@ import type { SeatSpec } from "../../src/online/room";
 import type { PublicLook } from "../../src/economy/live/catalog";
 import type { MatchKind } from "../../src/economy/live/config";
 import { HubCore, type HubSql, type QueueSeat } from "./hub";
+import { clearStaleReservations, migrateReservations, reserve, type ReservationSql } from "./reservations";
 
 /**
  * YachtLab Online — Cloudflare Worker + SQLite-backed Durable Objects (Phase 3).
@@ -48,6 +50,16 @@ export interface Env extends ConfigVars {
   DICE_DRAW?: string;
   /** "off" disables server AI matches (kill switch, default on). */
   SERVER_AI?: string;
+  /**
+   * C4.2: friend-list residue of accounts deleted before the deletion cleanup existed — "off" (default),
+   * "dry-run" (count only) or "on". Operator decision (docs/audits/c4-2026-11-28/C4-2-ACCOUNT-SECURITY.md).
+   */
+  FRIEND_RESIDUE_CLEANUP?: string;
+  /**
+   * C4.2: deploy a NEW value (e.g. a date) to have every parked deletion cleanup (16 failed attempts)
+   * retried; each parked account checks weekly. No admin endpoint involved.
+   */
+  ACCOUNT_CLEANUP_RETRY_EPOCH?: string;
   /** Operations metrics endpoint (`GET /api/admin/metrics`), off unless this secret (≥ 32 chars) is set. */
   ADMIN_TOKEN?: string;
   /** Sign-in (all four must be set, as Worker secrets / vars, or sign-in stays off). */
@@ -95,14 +107,18 @@ export class YachtRoom extends DurableObject<Env> {
       },
       // Each rematch reuses this room and reserves the daily budget once.
       deliverRecord: async (userId, record) => env.USERS.get(env.USERS.idFromName(userId)).recordMatch(record),
-      allowMatch: async (code, weight, matchNo) => {
-        const verdict = await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).allocateMatch(code, matchNo, weight);
+      releaseMatch: async (code, matchNo) => env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).releaseMatch(code, matchNo),
+      registerSpectate: async (code, sid) => env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).registerSpectate(code, sid),
+      allowMatch: async (code, weight, matchNo, users) => {
+        const verdict = await env.DIRECTORY.get(env.DIRECTORY.idFromName("directory")).allocateMatch(code, matchNo, weight, users);
         return verdict.ok ? null : verdict.message;
       },
       publish: async (code, entry) => {
         const hub = env.HUB.get(env.HUB.idFromName("hub"));
-        await (entry ? hub.publish(entry) : hub.unpublish(code));
+        await (entry ? hub.publish(entry, code) : hub.unpublish(code));
       },
+      yachts: async (id, events) => env.HUB.get(env.HUB.idFromName("hub")).yachts(id, events),
+      activity: async (code, info) => env.HUB.get(env.HUB.idFromName("hub")).observeRoom(code, info),
       matchEnded: async (code) => env.HUB.get(env.HUB.idFromName("hub")).ended(code),
       // Friends see "경기 중" (memory only on each account object; no storage write).
       memberStatus: async (userIds, room) => {
@@ -111,7 +127,10 @@ export class YachtRoom extends DurableObject<Env> {
       finished: async (info) => {
         const hub = env.HUB.get(env.HUB.idFromName("hub"));
         await hub.count(`finished.${info.kind}.${info.completed ? "completed" : "forfeit"}`);
-        if (info.completed) await hub.count(`duration.${info.kind}.totalSec`, Math.round(info.durationMs / 1000));
+        if (info.completed) {
+          await hub.completed(info.matchId, info.at);
+          await hub.count(`duration.${info.kind}.totalSec`, Math.round(info.durationMs / 1000));
+        }
       },
     });
     // Keep-alive pings are answered by the runtime without waking the object (no duration, no request).
@@ -137,8 +156,9 @@ export class YachtRoom extends DurableObject<Env> {
   async createMatched(code: string, seats: SeatSpec[], options: { kind: MatchKind; public: boolean }) {
     return this.host.createMatched(code, seats, options);
   }
-  async publicWatch() {
-    return this.host.publicWatch();
+  /** Public-list watch key, only when `sid` is this room's spectate id (the caller never knows the room code). */
+  async publicWatch(sid: string) {
+    return this.host.publicWatch(sid);
   }
   /** Friend invites: is this account seated in this friend room, and is there a free seat in the waiting room? */
   async inviteState(userId: string) {
@@ -146,6 +166,9 @@ export class YachtRoom extends DurableObject<Env> {
   }
   async summary() {
     return this.host.summary();
+  }
+  async holdsAccount(userId: string, matchNo: number) {
+    return this.host.holdsAccount(userId, matchNo);
   }
 
   /** WebSocket upgrade (must be an HTTP request, not RPC). */
@@ -202,6 +225,12 @@ export class RoomDirectory extends DurableObject<Env> {
     ctx.blockConcurrencyWhile(async () => {
       this.sql.exec("CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, created_at INTEGER NOT NULL)");
       this.sql.exec("CREATE TABLE IF NOT EXISTS daily (day INTEGER PRIMARY KEY, rooms INTEGER NOT NULL)");
+      this.sql.exec("CREATE TABLE IF NOT EXISTS match_allocations (id TEXT PRIMARY KEY, code TEXT NOT NULL)");
+      this.sql.exec("CREATE INDEX IF NOT EXISTS match_allocations_code ON match_allocations (code)");
+      migrateReservations(this.sql as unknown as ReservationSql);
+      // PR118-01: spectate id → room code. Watch links and the public list carry only the id.
+      this.sql.exec("CREATE TABLE IF NOT EXISTS spectate_ids (sid TEXT PRIMARY KEY, code TEXT NOT NULL)");
+      this.sql.exec("CREATE INDEX IF NOT EXISTS spectate_ids_code ON spectate_ids (code)");
       this.sql.exec("CREATE TABLE IF NOT EXISTS match_budget (code TEXT NOT NULL, match_no INTEGER NOT NULL, units INTEGER NOT NULL, PRIMARY KEY(code, match_no))");
       if ((await ctx.storage.getAlarm()) === null) await ctx.storage.setAlarm(Date.now() + 6 * 3600_000);
     });
@@ -246,7 +275,27 @@ export class RoomDirectory extends DurableObject<Env> {
    * invite room, without the per-IP creation limit (the matchmaker paces it). `kind` "ai" also has
    * its own daily sub-budget so AI matches can never use up the whole day.
    */
-  async allocateFor(kind: "random" | "ai"): Promise<Verdict & { code?: string }> {
+  async allocateFor(kind: "random" | "ai", users: string[] = [], assignmentId?: string): Promise<Verdict & { code?: string }> {
+    const first = this.allocateForOnce(kind, users, assignmentId);
+    if (first.ok || first.code !== "IN_MATCH" || !(await this.clearStaleReservations(users))) return first;
+    return this.allocateForOnce(kind, users, assignmentId);
+  }
+
+  private allocateForOnce(kind: "random" | "ai", users: string[], assignmentId?: string): Verdict & { code?: string } {
+    return this.storage.transactionSync(() => {
+      if (assignmentId) {
+        const allocation = this.sql.exec<{ code: string }>("SELECT code FROM match_allocations WHERE id = ?", assignmentId).toArray()[0];
+        if (allocation) return { ok: true, code: allocation.code };
+      }
+      const conflict = this.playingConflict(users);
+      if (conflict) return conflict;
+      const slot = this.allocateMatchRoom(kind, users);
+      if (slot.ok && assignmentId) this.sql.exec("INSERT INTO match_allocations (id, code) VALUES (?, ?)", assignmentId, slot.code!);
+      return slot;
+    });
+  }
+
+  private allocateMatchRoom(kind: "random" | "ai", users: string[]): Verdict & { code?: string } {
     const day = Math.floor(Date.now() / 86_400_000);
     const today = this.sql.exec<{ rooms: number }>("SELECT rooms FROM daily WHERE day = ?", day).toArray()[0]?.rooms ?? 0;
     if (today >= this.config.dailyRoomLimit) return { ok: false, status: 503, code: "DAILY_LIMIT", message: "오늘은 온라인 경기를 더 만들 수 없어요. 내일 다시 시도해 주세요." };
@@ -265,6 +314,7 @@ export class RoomDirectory extends DurableObject<Env> {
       this.sql.exec("INSERT INTO rooms (code, created_at) VALUES (?, ?)", code, Date.now());
       this.sql.exec("INSERT INTO daily (day, rooms) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET rooms = rooms + 1", day);
       if (kind === "ai") this.sql.exec("INSERT INTO daily_ai (day, rooms) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET rooms = rooms + 1", day);
+      this.reservePlayers(users, code, 1);
       return { ok: true, code };
     }
     return { ok: false, status: 503, code: "ROOM_LIMIT", message: "방 코드를 만들지 못했어요." };
@@ -278,26 +328,60 @@ export class RoomDirectory extends DurableObject<Env> {
     return { ok: true };
   }
 
+  private playingConflict(users: string[], code?: string): Extract<Verdict, { ok: false }> | null {
+    if (new Set(users).size !== users.length) return { ok: false, status: 409, code: "DUPLICATE", message: "같은 계정은 한 좌석에서만 경기할 수 있어요." };
+    for (const id of users) {
+      const active = this.sql.exec<{ code: string }>("SELECT code FROM playing_users WHERE user_id = ?", id).toArray()[0];
+      if (active && active.code !== code) return { ok: false, status: 409, code: "IN_MATCH", message: "이미 다른 온라인 경기에 참가 중인 계정이 있어요." };
+    }
+    return null;
+  }
+
+  private reservePlayers(users: string[], code: string, matchNo: number) {
+    reserve(this.sql as unknown as ReservationSql, users, code, matchNo, Date.now());
+  }
+
+  /** PR118-03: before refusing with IN_MATCH, drop reservations their room no longer holds. */
+  private clearStaleReservations(users: string[], except?: string): Promise<boolean> {
+    return clearStaleReservations(this.sql as unknown as ReservationSql, users, (code, userId, matchNo) => this.env.ROOMS.get(this.env.ROOMS.idFromName(code)).holdsAccount(userId, matchNo), Date.now(), except);
+  }
+
+  async releaseMatch(code: string, matchNo: number) {
+    this.sql.exec("DELETE FROM playing_users WHERE code = ? AND match_no = ?", code, matchNo);
+  }
+
   /**
    * One more match in an existing room (rematch). Shares the daily cap with room creation, so the
    * daily budget still bounds this service's share of the free plan; no new room code or object.
    */
-  async allocateMatch(code: string, matchNo: number, weight: number): Promise<Verdict> {
-    const units = Math.max(1, Math.min(10, Math.floor(weight)));
+  async allocateMatch(code: string, matchNo: number, weight: number, users: string[] = []): Promise<Verdict> {
+    const first = this.allocateMatchOnce(code, matchNo, weight, users);
+    if (first.ok || first.code !== "IN_MATCH" || !(await this.clearStaleReservations(users, code))) return first;
+    return this.allocateMatchOnce(code, matchNo, weight, users);
+  }
+
+  private allocateMatchOnce(code: string, matchNo: number, weight: number, users: string[]): Verdict {
+    const units = Math.max(0, Math.min(10, Math.floor(weight)));
     return this.storage.transactionSync(() => {
       if (!this.sql.exec("SELECT 1 FROM rooms WHERE code = ?", code).toArray().length)
         return { ok: false, status: 404, code: "ROOM_NOT_FOUND", message: "방을 찾을 수 없어요." };
+      const conflict = this.playingConflict(users, code);
+      if (conflict) return conflict;
       const reserved = this.sql.exec<{ units: number }>("SELECT units FROM match_budget WHERE code = ? AND match_no = ?", code, matchNo).toArray()[0]?.units ?? 0;
       // If a retry includes more seats, reserve only the additional units. A smaller roster
       // can still start using the units previously reserved for this logical match.
       const extra = units - reserved;
-      if (extra <= 0) return { ok: true };
+      if (extra <= 0) {
+        this.reservePlayers(users, code, matchNo);
+        return { ok: true };
+      }
       const day = Math.floor(Date.now() / 86_400_000);
       const today = this.sql.exec<{ rooms: number }>("SELECT rooms FROM daily WHERE day = ?", day).toArray()[0]?.rooms ?? 0;
       if (today + extra > this.config.dailyRoomLimit)
         return { ok: false, status: 503, code: "DAILY_LIMIT", message: "오늘은 온라인 경기를 더 할 수 없어요. 내일 다시 시도해 주세요." };
       this.sql.exec("INSERT INTO daily (day, rooms) VALUES (?, ?) ON CONFLICT(day) DO UPDATE SET rooms = rooms + ?", day, extra, extra);
       this.sql.exec("INSERT INTO match_budget (code, match_no, units) VALUES (?, ?, ?) ON CONFLICT(code, match_no) DO UPDATE SET units = excluded.units", code, matchNo, units);
+      this.reservePlayers(users, code, matchNo);
       return { ok: true };
     });
   }
@@ -307,11 +391,33 @@ export class RoomDirectory extends DurableObject<Env> {
     return this.limited(key, perMinute);
   }
 
+  /** A room's spectate id (one row per room that ever allowed spectators; removed with the room). */
+  async registerSpectate(code: string, sid: string) {
+    if (!this.sql.exec("SELECT 1 FROM rooms WHERE code = ?", code).toArray().length) throw Error("room not found");
+    this.sql.exec("INSERT INTO spectate_ids (sid, code) VALUES (?, ?) ON CONFLICT(sid) DO NOTHING", sid, code);
+    const row = this.sql.exec<{ code: string }>("SELECT code FROM spectate_ids WHERE sid = ?", sid).toArray()[0];
+    if (row?.code !== code) throw Error("spectate id taken");
+  }
+
+  /** Rate-limited lookup of a spectate id (watch links, the public list). Never reveals the code to the caller's client. */
+  async resolveSpectate(client: string, sid: string): Promise<(Verdict & { code?: string })> {
+    if (this.limited(`peek:${client}`, this.config.joinPerMinute * 4)) return { ok: false, status: 429, code: "RATE_LIMITED", message: "잠시 후 다시 시도해 주세요." };
+    const row = this.sql.exec<{ code: string }>("SELECT s.code AS code FROM spectate_ids s JOIN rooms r ON r.code = s.code WHERE s.sid = ?", sid).toArray()[0];
+    return row ? { ok: true, code: row.code } : { ok: false, status: 404, code: "ROOM_NOT_FOUND", message: "경기를 찾을 수 없어요." };
+  }
+
   async release(code: string) {
     this.storage.transactionSync(() => {
+      this.sql.exec("DELETE FROM spectate_ids WHERE code = ?", code);
       this.sql.exec("DELETE FROM match_budget WHERE code = ?", code);
+      this.sql.exec("DELETE FROM match_allocations WHERE code = ?", code);
+      this.sql.exec("DELETE FROM playing_users WHERE code = ?", code);
       this.sql.exec("DELETE FROM rooms WHERE code = ?", code);
     });
+  }
+
+  async liveCodes() {
+    return this.sql.exec<{ code: string }>("SELECT code FROM rooms").toArray().map((row) => row.code);
   }
 
   async count() {
@@ -333,6 +439,9 @@ export class RoomDirectory extends DurableObject<Env> {
     this.storage.transactionSync(() => {
       this.sql.exec("DELETE FROM rooms WHERE created_at < ?", now - this.config.maxAgeMs - 3600_000);
       this.sql.exec("DELETE FROM match_budget WHERE code NOT IN (SELECT code FROM rooms)");
+      this.sql.exec("DELETE FROM playing_users WHERE code NOT IN (SELECT code FROM rooms)");
+      this.sql.exec("DELETE FROM match_allocations WHERE code NOT IN (SELECT code FROM rooms)");
+      this.sql.exec("DELETE FROM spectate_ids WHERE code NOT IN (SELECT code FROM rooms)");
     });
     this.sql.exec("DELETE FROM daily WHERE day < ?", Math.floor(now / 86_400_000) - 2);
     this.sql.exec("CREATE TABLE IF NOT EXISTS daily_ai (day INTEGER PRIMARY KEY, rooms INTEGER NOT NULL)");
@@ -349,29 +458,35 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   private store: AccountStore;
   private econ: EconomyStore;
   private friends: FriendStore;
+  private cleanup: CleanupQueue;
   private presenceState = new Presence();
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.store = new AccountStore(ctx.storage.sql as unknown as Sql);
     this.econ = new EconomyStore(this.econSql());
     this.friends = new FriendStore(this.econSql() as unknown as FriendSql);
+    this.cleanup = new CleanupQueue(ctx.storage.sql as unknown as Sql);
     ctx.blockConcurrencyWhile(async () => {
       this.store.init();
       this.econ.init();
       this.friends.init();
+      this.cleanup.init();
     });
   }
   /* ---------------------------------------------- friends (I/J): one generic RPC over FriendStore ---------------------------------------------- */
-  private static FR_OPS = new Set(["code", "setCode", "spend", "isFriend", "isBlocking", "relation", "friendIds", "peerId", "lists", "canRequest", "recordOutgoing", "addFriend", "removeFriend", "cancelOutgoing", "declineIncoming", "incomingPeer", "block", "unblock", "receiveRequest", "outgoingDeclined", "incomingCancelled", "blockedBy", "refresh", "receiveInvite", "invites", "takeInvite", "inboxCount"]);
+  private static FR_OPS = new Set(["code", "setCode", "spend", "isFriend", "isBlocking", "relation", "friendIds", "peerId", "lists", "canRequest", "recordOutgoing", "addFriend", "removeFriend", "cancelOutgoing", "declineIncoming", "dropIncoming", "incomingPeer", "block", "unblock", "receiveRequest", "outgoingDeclined", "incomingCancelled", "blockedBy", "unblockedBy", "acceptedBy", "forget", "forgetMany", "retiredCodes", "residuePairs", "refresh", "receiveInvite", "invites", "takeInvite", "inboxCount"]);
   async fr(op: string, ...args: unknown[]) {
     if (!UserStore.FR_OPS.has(op)) throw Error("unknown op");
+    // an account that does not exist (never created, or deleted) answers neutrally and stores nothing
+    if (!this.store.exists()) return ABSENT_ACCOUNT[op];
     return (this.friends as unknown as Record<string, (...a: unknown[]) => unknown>)[op](...args);
   }
   async nickname() {
     return this.store.profile()?.nickname ?? null;
   }
-  /** Friends' view of this account (memory only, never stored). */
-  async presence() {
+  /** Friends' view of this account (memory only, never stored) — only for a viewer this account lists as a friend. */
+  async presence(viewer?: string) {
+    if (viewer !== undefined && (!this.store.exists() || !this.friends.isFriend(viewer))) return "offline" as const;
     return this.presenceState.status(Date.now());
   }
   async ping() {
@@ -478,7 +593,10 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     return this.store.createLoginCode(clientStateHash, Date.now());
   }
   async exchange(code: string, clientState: string) {
-    return this.store.exchange(code, clientState, Date.now());
+    const session = await this.store.exchange(code, clientState, Date.now());
+    // the alarm removes the session once expired, even if the account never comes back (SEC-04)
+    if (session) await this.scheduleAlarm();
+    return session;
   }
   async authenticate(session: string) {
     return this.store.authenticate(session, Date.now());
@@ -499,7 +617,9 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     const r = this.store.setNickname(nickname, Date.now());
     // Keep the friend search index in step (only for accounts that already have a friend code).
     const p = this.store.profile();
-    if (r.ok && p && this.friends.code()) await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).register(p.userId, r.nickname).catch(() => undefined);
+    // `keep`: if the index lost this account's entry, it is restored with the SAME code (never a new one).
+    const code = this.friends.code();
+    if (r.ok && p && code) await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).register(p.userId, r.nickname, [], code).catch(() => undefined);
     return r;
   }
   async soloRecords(limit: number) {
@@ -519,27 +639,77 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   async logoutAll() {
     this.store.logoutAll();
   }
-  /** Delete everything this account stores; returns linked guest ids so their claims can be released. */
+  /**
+   * Delete everything this account stores; returns linked guest ids so their claims can be released.
+   *
+   * C4.2 (SEC-03): in ONE transaction (nothing else can run on this object in between) the account's
+   * tables are dropped and a cleanup queue is written: every account holding a row about this one
+   * (friends, requests both ways, blocks either way) is told to forget this generation, and the global
+   * friend-code index drops its code. The queue is worked through at once and retried from the alarm.
+   * Kept afterwards: the deletion time (30-day re-join grant cooldown), the retired friend code (so a
+   * re-join is never handed it again) and the pending queue — no nickname, record, session or relation.
+   */
   async deleteAccount() {
     const guests = this.store.exists() ? this.store.guests() : [];
-    // Friends: everyone in my lists forgets me, and the search index drops me.
-    const me = this.store.profile();
-    if (me) {
-      for (const id of this.friends.friendIds()) await (this.env.USERS.get(this.env.USERS.idFromName(id)) as unknown as FriendUser).fr("blockedBy", me.userId).catch(() => undefined);
-      await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).remove(me.userId).catch(() => undefined);
-    }
-    await this.ctx.storage.deleteAll();
-    this.store = new AccountStore(this.ctx.storage.sql as unknown as Sql);
+    const owner = this.store.profile()?.userId ?? null;
+    const plan = owner ? this.friends.deletionPlan() : { code: null, peers: [] };
+    const now = Date.now();
+    const sql = this.ctx.storage.sql;
+    const keep = new Set(["tomb", "acct_cleanup", "fr_retired"]);
+    this.ctx.storage.transactionSync(() => {
+      const tables = sql.exec<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table'").toArray().map((r) => r.name);
+      for (const t of tables) if (!keep.has(t) && !t.startsWith("_cf_") && !t.startsWith("sqlite_")) sql.exec(`DROP TABLE IF EXISTS "${t.replace(/"/g, '""')}"`);
+      sql.exec("CREATE TABLE IF NOT EXISTS tomb (id INTEGER PRIMARY KEY CHECK (id = 1), deleted_at INTEGER NOT NULL)");
+      sql.exec("INSERT OR REPLACE INTO tomb (id, deleted_at) VALUES (1, ?)", now);
+      sql.exec("CREATE TABLE IF NOT EXISTS fr_retired (code TEXT PRIMARY KEY, at INTEGER NOT NULL)");
+      if (plan.code) sql.exec("INSERT OR IGNORE INTO fr_retired (code, at) VALUES (?, ?)", plan.code, now);
+      this.cleanup.init();
+      if (owner && (plan.code || plan.peers.length)) this.cleanup.enqueue(owner, [INDEX_TARGET, ...plan.peers], plan.code, now);
+    });
+    // Fresh, empty objects over the (re-created) empty tables; presence is forgotten too.
+    this.store = new AccountStore(sql as unknown as Sql);
     this.store.init();
     this.econ = new EconomyStore(this.econSql());
     this.econ.init();
-    // Everything is gone. Only "deleted at" is kept for 30 days so a delete-and-rejoin loop cannot
-    // collect the new-member grant again; an alarm removes it afterwards.
-    const now = Date.now();
-    this.ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS tomb (id INTEGER PRIMARY KEY CHECK (id = 1), deleted_at INTEGER NOT NULL)");
-    this.ctx.storage.sql.exec("INSERT OR REPLACE INTO tomb (id, deleted_at) VALUES (1, ?)", now);
-    await this.ctx.storage.setAlarm(now + ECONOMY.rejoinWelcomeCooldownMs + 60_000);
+    this.friends = new FriendStore(this.econSql() as unknown as FriendSql);
+    this.friends.init();
+    this.presenceState = new Presence();
+    await this.runCleanup();
+    await this.scheduleAlarm();
     return guests;
+  }
+  private async runCleanup() {
+    const send = async (job: CleanupJob, userId: string) => {
+      if (job.target === INDEX_TARGET) await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).removeCode(userId, job.code);
+      else await (this.env.USERS.get(this.env.USERS.idFromName(job.target)) as unknown as FriendUser).fr("forget", userId, job.code);
+    };
+    const run = await runCleanup(this.cleanup, send, Date.now);
+    if (run.failed || run.gaveUp) await this.cleanupReport({ retry: run.failed, gaveUp: run.gaveUp, remaining: run.remaining });
+    return run;
+  }
+  /**
+   * Cleanup counters (no ids): Hub metrics for `/api/admin/metrics`, and the same numbers as an
+   * application log line, readable in Workers Logs / `wrangler tail` even without ADMIN_TOKEN.
+   */
+  private async cleanupReport(c: Record<string, number>) {
+    console.warn("ACCOUNT_CLEANUP", JSON.stringify(c));
+    const hub = this.hub();
+    await Promise.all(Object.entries(c).filter(([k, n]) => n > 0 && k !== "remaining").map(([k, n]) => hub.count("account.cleanup." + k, n))).catch(() => undefined);
+  }
+  /** One alarm per object: next session expiry, next cleanup retry, end of the re-join cooldown. */
+  private async scheduleAlarm() {
+    const until = this.rejoinBlockedUntil();
+    const expiry = this.store.exists() ? this.store.nextSessionExpiry() : null;
+    // parked cleanup: look for an operator retry request weekly, until the deletion record ends
+    const parkedCheck = this.cleanup.parked() ? Date.now() + CLEANUP_PARKED_CHECK_MS : null;
+    // a deletion record already past its end waits for the active retries (handled in the same alarm run
+    // as the last one), so it never schedules on its own — otherwise the alarm would fire every second
+    const end = until === null ? null : until + 60_000 > Date.now() || this.cleanup.nextAt() === null ? until + 60_000 : null;
+    const times = [expiry === null ? null : expiry + 60_000, this.cleanup.nextAt(), parkedCheck, end].filter((t): t is number => t !== null);
+    if (!times.length) return;
+    const want = Math.max(Math.min(...times), Date.now() + 1000);
+    const current = await this.ctx.storage.getAlarm();
+    if (current === null || current > want) await this.ctx.storage.setAlarm(want);
   }
   async publicProfile() {
     return this.store.publicProfile();
@@ -593,12 +763,27 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     return true;
   }
   async alarm() {
-    // Forget the deletion timestamp once the re-join cooldown is over.
+    const now = Date.now();
+    // Expired sessions / login codes go even if the account never signs in again (SEC-04).
+    if (this.store.exists()) this.store.pruneSessions(now);
+    // Deletion cleanup retries (SEC-03); parked jobs restart when the operator deploys a new retry epoch.
+    const requeued = this.cleanup.requeue(this.env.ACCOUNT_CLEANUP_RETRY_EPOCH ?? "", now);
+    if (requeued) await this.cleanupReport({ requeued });
+    if (this.cleanup.pending()) await this.runCleanup();
+    // Forget the deletion timestamp once the re-join cooldown is over (and the cleanup has finished;
+    // jobs still parked then are dropped — the peer-side residue check is the remaining path).
     const until = this.rejoinBlockedUntil();
-    if (until !== null && Date.now() >= until) {
-      if (!this.store.exists()) await this.ctx.storage.deleteAll();
-      else this.ctx.storage.sql.exec("DELETE FROM tomb WHERE id = 1");
+    if (until !== null && now >= until && this.cleanup.parked() === this.cleanup.pending()) {
+      const expired = this.cleanup.expireParked();
+      if (expired) await this.cleanupReport({ expired });
+      if (!this.store.exists()) {
+        await this.ctx.storage.deleteAll();
+        return;
+      }
+      this.ctx.storage.sql.exec("DELETE FROM tomb WHERE id = 1");
+      this.ctx.storage.sql.exec("DELETE FROM fr_retired");
     }
+    await this.scheduleAlarm();
   }
 }
 
@@ -611,8 +796,14 @@ export class FriendIndex extends DurableObject<Env> {
     this.core = new FriendIndexStore(ctx.storage.sql as unknown as FriendSql);
     ctx.blockConcurrencyWhile(async () => this.core.init());
   }
-  async register(userId: string, nickname: string) {
-    return this.core.register(userId, nickname);
+  async register(userId: string, nickname: string, avoid?: string[], keep?: string | null) {
+    return this.core.register(userId, nickname, avoid ?? [], keep ?? null);
+  }
+  async removeCode(userId: string, code: string | null) {
+    this.core.removeCode(userId, code);
+  }
+  async live(pairs: { userId: string; code: string }[]) {
+    return this.core.live(pairs);
   }
   async lookup(code: string) {
     return this.core.lookup(code);
@@ -661,6 +852,7 @@ export class MatchHub extends DurableObject<Env> {
       sockets: () => ctx.getWebSockets() as unknown as HostSocket[],
       sql: ctx.storage.sql as unknown as HubSql,
       setAlarm: (at) => void ctx.storage.setAlarm(at),
+      transaction: (run) => ctx.storage.transactionSync(run),
       auth: async (session) => {
         const m = /^s1\.(u_[A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{43})$/.exec(session);
         if (!m || !authConfig(env)) return null;
@@ -668,13 +860,13 @@ export class MatchHub extends DurableObject<Env> {
       },
       createMatch: async (a: QueueSeat, b: QueueSeat, options) => {
         const directory = env.DIRECTORY.get(env.DIRECTORY.idFromName("directory"));
-        const slot = await directory.allocateFor("random");
+        const slot = await directory.allocateFor("random", [a, b].flatMap((seat) => seat.userId ?? []), options.assignmentId);
         if (!slot.ok) return { ok: false, message: slot.message };
         const seats: SeatSpec[] = [];
-        for (const p of [a, b]) {
+        for (const [i, p] of [a, b].entries()) {
           // Members: the account nickname (validated when it was set) and the validated look.
           const info = p.userId ? await env.USERS.get(env.USERS.idFromName(p.userId)).seat().catch(() => null) : null;
-          seats.push({ name: info?.nickname ?? p.name, identity: p.userId ? { userId: p.userId } : null, look: info?.look ?? null });
+          seats.push({ name: info?.nickname ?? p.name, identity: p.userId ? { userId: p.userId } : null, look: info?.look ?? null, token: options.secrets[i] });
         }
         const made = await env.ROOMS.get(env.ROOMS.idFromName(slot.code!)).createMatched(slot.code!, seats, { kind: "random", public: options.public });
         if (!made.ok) {
@@ -713,14 +905,46 @@ export class MatchHub extends DurableObject<Env> {
     this.core.flush();
   }
   /* RPC from rooms and the Worker */
-  async publish(entry: unknown) {
-    this.core.publish(entry);
+  async publish(entry: unknown, room?: string) {
+    this.core.publish(entry, room);
   }
   async unpublish(code: string) {
     this.core.unpublish(code);
   }
   async ended(code: string) {
     this.core.ended(code);
+  }
+  async observeRoom(code: string, info: Parameters<HubCore["observeRoom"]>[1]) {
+    this.core.observeRoom(code, info);
+  }
+  async yachts(id: string, events: { seq: number; at: number }[]) {
+    this.core.yachts(id, events);
+  }
+  async completed(id: string, at: number) {
+    this.core.completed(id, at);
+  }
+  /**
+   * PR118-02: one aggregate shared by every caller for `activityCacheMs`. The directory is asked for
+   * the live room codes at most once per window (was: once per request, plus this call).
+   */
+  private activityCache: { at: number; value: ReturnType<HubCore["activity"]> } | null = null;
+  private activityLoad: Promise<ReturnType<HubCore["activity"]>> | null = null;
+  async activity(liveCodes?: string[]) {
+    if (liveCodes) return this.core.activity(liveCodes);
+    const ttl = readConfig(this.env).activityCacheMs;
+    const cached = this.activityCache;
+    if (cached && Date.now() - cached.at < ttl) return cached.value;
+    this.activityLoad ??= (async () => {
+      try {
+        const codes = await this.env.DIRECTORY.get(this.env.DIRECTORY.idFromName("directory")).liveCodes();
+        const value = this.core.activity(codes);
+        this.activityCache = { at: Date.now(), value };
+        return value;
+      } finally {
+        this.activityLoad = null;
+      }
+    })();
+    return this.activityLoad;
   }
   async list() {
     return this.core.list();
@@ -754,6 +978,8 @@ const fail = (status: number, code: string, message: string, origin: string | nu
 
 /** Soft per-isolate fixed-window limiter (no storage, no Durable Object request). */
 const isolateHits = new Map<string, { window: number; count: number }>();
+/** PR118-02: last `/api/activity` answer in this isolate (memory only, no storage, no Cache API). */
+let isolateActivity: { at: number; value: unknown } | null = null;
 function isolateLimited(key: string, perMinute: number): boolean {
   const window = Math.floor(Date.now() / 60_000);
   const row = isolateHits.get(key);
@@ -845,19 +1071,28 @@ export default {
       }
       // What this server offers (the page hides what is not available).
       if (url.pathname === "/api/features" && request.method === "GET")
-        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, createSettings: true, defaultTurnTimeoutMs: config.turnTimeoutMs, serverAi: !!auth && env.SERVER_AI !== "off", economy: !!auth && env.ECONOMY === "on" }, allowed, "public, max-age=60");
+        return json(200, { quickMatch: true, publicSpectate: true, signIn: !!auth, createSettings: true, defaultTurnTimeoutMs: config.turnTimeoutMs, backgroundMatch: true, activity: true, friendPublicSpectate: true, serverAi: !!auth && env.SERVER_AI !== "off", economy: !!auth && env.ECONOMY === "on" }, allowed, "public, max-age=60");
+      if (url.pathname === "/api/activity" && request.method === "GET") {
+        if (isolateLimited("activity:" + (await clientKey(request)), 15)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
+        // PR118-02: one hub call (the hub caches the directory lookup), and this isolate reuses the
+        // answer for half the hub window. Data is at most about 1.5 × ACTIVITY_CACHE_MS old.
+        const ttl = config.activityCacheMs / 2;
+        if (!isolateActivity || Date.now() - isolateActivity.at >= ttl) isolateActivity = { at: Date.now(), value: await hub().activity() };
+        return json(200, isolateActivity.value, allowed, `public, max-age=${Math.max(1, Math.round(config.activityCacheMs / 1000))}`);
+      }
       // Public spectating list: cheap, cached briefly; no tokens, no keys, no account ids in it.
       if (url.pathname === "/api/spectate/rooms" && request.method === "GET") {
         if (await directory.hit("list:" + (await clientKey(request)), 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
         return json(200, { rooms: await hub().list() }, allowed, "public, max-age=5");
       }
+      // Public list → watch key. Addressed by the spectate id only; the room code is never returned (PR118-01).
       if (parts[0] === "api" && parts[1] === "spectate" && parts.length === 4 && parts[3] === "watch" && request.method === "POST") {
-        const code = normalizeCode(parts[2]);
-        if (!code) return fail(404, "ROOM_NOT_FOUND", "경기를 찾을 수 없어요.", allowed);
-        const verdict = await directory.check(await clientKey(request), code, "peek");
+        const sid = normalizeSpectateId(parts[2]);
+        if (!sid) return fail(404, "ROOM_NOT_FOUND", "경기를 찾을 수 없어요.", allowed);
+        const verdict = await directory.resolveSpectate(await clientKey(request), sid);
         if (!verdict.ok) return fail(verdict.status, verdict.code, verdict.message, allowed);
-        const key = await roomStub(code).publicWatch();
-        return key ? json(200, { code, key }, allowed) : fail(409, "NOT_PUBLIC", "지금은 이 경기를 관전할 수 없어요. 끝났거나 관전 인원이 가득 찼어요.", allowed);
+        const key = await roomStub(verdict.code!).publicWatch(sid);
+        return key ? json(200, { id: sid, code: sid, key }, allowed) : fail(409, "NOT_PUBLIC", "지금은 이 경기를 관전할 수 없어요. 끝났거나 관전 인원이 가득 찼어요.", allowed);
       }
       // Operations metrics (administrator only: a Worker secret, never in the web bundle).
       if (parts[0] === "api" && parts[1] === "admin") {
@@ -882,7 +1117,7 @@ export default {
         if (!nick.ok) return fail(400, "INVALID_COMMAND", nick.message, allowed);
         const started = await user.startAi();
         if (!started.ok) return fail(429, started.code, started.message, allowed);
-        const slot = await directory.allocateFor("ai");
+        const slot = await directory.allocateFor("ai", [me.userId]);
         if (!slot.ok) return fail(slot.status, slot.code, slot.message, allowed);
         const human: SeatSpec = { name: nick.name, identity: { userId: me.userId }, look: info?.look ?? null };
         const bot: SeatSpec = { name: "AI (보통)", ai: true };
@@ -899,11 +1134,13 @@ export default {
       if (parts[0] === "ws" && parts.length === 2) {
         if (request.headers.get("Upgrade") !== "websocket") return new Response("expected websocket", { status: 426 });
         if (!allowed) return new Response("forbidden", { status: 403 });
+        // /ws/:code (players; legacy watch links) or /ws/:sid (watch links and the public list).
         const code = normalizeCode(parts[1]);
-        if (!code) return new Response("not found", { status: 404 });
-        const verdict = await directory.check(await clientKey(request), code, "peek");
+        const sid = code ? null : normalizeSpectateId(parts[1]);
+        if (!code && !sid) return new Response("not found", { status: 404 });
+        const verdict = code ? await directory.check(await clientKey(request), code, "peek") : await directory.resolveSpectate(await clientKey(request), sid!);
         if (!verdict.ok) return new Response(null, { status: verdict.status });
-        return roomStub(code).fetch(request);
+        return roomStub(code ?? (verdict as unknown as { code: string }).code).fetch(request);
       }
       // Friends & invites (I/J): members only; players are addressed by friend code.
       const friendPath = url.pathname.startsWith("/api/me/friends") || url.pathname === "/api/me/inbox" || url.pathname.startsWith("/api/me/invites");
@@ -919,6 +1156,11 @@ export default {
           index: env.FRIENDS.get(env.FRIENDS.idFromName("index")) as unknown as FriendDeps["index"],
           limited: (key, perMinute) => Promise.resolve(isolateLimited(key, perMinute)),
           now: Date.now,
+          residue: (["dry-run", "on"].includes(env.FRIEND_RESIDUE_CLEANUP ?? "") ? env.FRIEND_RESIDUE_CLEANUP : "off") as ResidueMode,
+          metric: (key, n) => {
+            console.log("FRIEND_RESIDUE", JSON.stringify({ [key]: n })); // counts only, no ids
+            return hub().count(key, n).catch(() => undefined);
+          },
         };
         const readJson = async () => {
           const text = await request.text();

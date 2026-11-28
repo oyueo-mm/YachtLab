@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DatabaseSync } from "node:sqlite";
 import { seededDiceSource } from "../src/online";
 import type { RoomRecord } from "../src/online/room";
-import { HubCore, HUB_LIMITS, type HubSql, type QueueSeat } from "../worker/src/hub";
+import { HubCore, HUB_LIMITS, type HubSql, type MatchResult, type QueueSeat } from "../worker/src/hub";
 import { RoomHost, type HostSocket, type HostStorage } from "../worker/src/host";
 import { readConfig } from "../worker/src/config";
 
@@ -43,24 +43,32 @@ function sqlite(): HubSql {
 const ticket = (n: number) => ("ticket" + n).padEnd(30, "x");
 const device = (n: number) => ("device" + n).padEnd(30, "y");
 
-function harness(opts: { sessions?: Record<string, string>; fail?: string; slow?: boolean } = {}) {
+function harness(opts: { sessions?: Record<string, string>; fail?: string; slow?: boolean; beforeCreate?: () => Promise<void>; afterCreate?: () => void } = {}) {
   let t = 1_700_000_000_000;
   const open: Sock[] = [];
   const made: { a: QueueSeat; b: QueueSeat; pub: boolean; code: string }[] = [];
   let n = 0;
+  const allocations = new Map<string, MatchResult>();
   const sql = sqlite();
+  async function createMatch(a: QueueSeat, b: QueueSeat, o: { public: boolean; assignmentId: string }) {
+    await opts.beforeCreate?.();
+    const old = allocations.get(o.assignmentId);
+    if (old) return old;
+    if (opts.slow) await new Promise((r) => setTimeout(r, 5));
+    if (opts.fail) return { ok: false as const, message: opts.fail };
+    const code = "ROOM" + String.fromCharCode(65 + n++) + "Z";
+    made.push({ a, b, pub: o.public, code });
+    const result = { ok: true as const, code, seats: [{ playerId: "p_a" + n, token: "tok-a" + n }, { playerId: "p_b" + n, token: "tok-b" + n }] as [{ playerId: string; token: string }, { playerId: string; token: string }] };
+    allocations.set(o.assignmentId, result);
+    opts.afterCreate?.();
+    return result;
+  }
   const deps = {
     now: () => t,
     sockets: () => open.filter((s) => s.closed === null),
     sql,
     auth: async (s: string) => opts.sessions?.[s] ?? null,
-    createMatch: async (a: QueueSeat, b: QueueSeat, o: { public: boolean }) => {
-      if (opts.slow) await new Promise((r) => setTimeout(r, 5));
-      if (opts.fail) return { ok: false as const, message: opts.fail };
-      const code = "ROOM" + String.fromCharCode(65 + n++) + "Z";
-      made.push({ a, b, pub: o.public, code });
-      return { ok: true as const, code, seats: [{ playerId: "p_a" + n, token: "tok-a" + n }, { playerId: "p_b" + n, token: "tok-b" + n }] as [{ playerId: string; token: string }, { playerId: string; token: string }] };
-    },
+    createMatch,
   };
   let hub = new HubCore(deps);
   hub.init();
@@ -171,6 +179,21 @@ describe("빠른 대전 매칭 큐", () => {
     expect(a4.last("matched")).toBeUndefined();
   });
 
+  it("짧게 끊긴 탭은 살아 있는 동일 티켓으로 다시 연결해 큐 순서를 유지한다", async () => {
+    const h = harness();
+    const a = h.connect();
+    const info = { name: "민수", ticket: ticket(1), device: device(1), v: 2 };
+    await h.queue(a, info);
+    const since = a.last("queued")?.since;
+    a.close();
+    h.hub().closed(a);
+    h.advance(1_000);
+    const b = h.connect();
+    await h.queue(b, info);
+    expect(b.last("queued")?.since).toBe(since);
+    expect(h.hub().waiting()).toBe(1);
+  });
+
   it("진행 중인 무작위 대전이 있으면 다시 매칭하지 않고, 경기가 끝나면 다시 가능하다", async () => {
     const h = harness();
     await h.queue(h.connect(), { name: "민수", ticket: ticket(1), device: device(1) });
@@ -252,6 +275,109 @@ describe("빠른 대전 매칭 큐", () => {
     expect(c.last("error")?.code).toBe("UNAVAILABLE");
   });
 
+  it("두 탭 중 하나만 대기하고, 체크 중 취소하면 상대는 기존 대기로 복귀한다", async () => {
+    const h = harness();
+    const a = h.connect(), duplicate = h.connect(), b = h.connect();
+    await h.queue(a, { name: "민수", ticket: ticket(1), device: device(1), v: 2 });
+    await h.queue(duplicate, { name: "민수", ticket: ticket(2), device: device(1), v: 2 });
+    expect(duplicate.last("error")?.code).toBe("DUPLICATE");
+    const pairing = h.queue(b, { name: "지민", ticket: ticket(3), device: device(3), v: 2 });
+    await expect.poll(() => a.last("check")).toBeTruthy();
+    await h.hub().message(b, JSON.stringify({ t: "ready", id: b.last("check")!.id }));
+    await h.hub().message(a, JSON.stringify({ t: "cancel", v: 2 }));
+    await pairing;
+    expect(a.last("cancelled")).toBeTruthy();
+    expect(b.last("queued")).toBeTruthy();
+    expect(h.hub().waiting()).toBe(1);
+    expect(h.made).toHaveLength(0);
+  });
+
+  it("상대방이 연결 확인 중 끊기면 방을 만들지 않고 남은 대기자를 보존한다", async () => {
+    const h = harness();
+    const a = h.connect(), b = h.connect();
+    await h.queue(a, { name: "민수", ticket: ticket(1), device: device(1), v: 2 });
+    const pairing = h.queue(b, { name: "지민", ticket: ticket(2), device: device(2), v: 2 });
+    await expect.poll(() => a.last("check")).toBeTruthy();
+    await h.hub().message(a, JSON.stringify({ t: "ready", id: a.last("check")!.id }));
+    h.hub().closed(b);
+    await pairing;
+    expect(h.made).toHaveLength(0);
+    expect(h.hub().waiting()).toBe(1);
+  });
+
+  it("할당 이후 취소·연결 종료·허브 재시작에도 동일한 좌석 결과를 회수한다", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const h = harness({ beforeCreate: () => gate });
+    const a = h.connect(), b = h.connect();
+    await h.queue(a, { name: "민수", ticket: ticket(1), device: device(1), v: 2 });
+    const pairing = h.queue(b, { name: "지민", ticket: ticket(2), device: device(2), v: 2 });
+    await expect.poll(() => a.last("check")).toBeTruthy();
+    await h.hub().message(a, JSON.stringify({ t: "ready", id: a.last("check")!.id }));
+    await h.hub().message(b, JSON.stringify({ t: "ready", id: b.last("check")!.id }));
+    await expect.poll(() => a.last("pairing")).toBeTruthy();
+    await h.hub().message(a, JSON.stringify({ t: "cancel", v: 2 }));
+    expect(a.last("cancelled")).toBeUndefined();
+    a.close();
+    h.hub().closed(a);
+    release();
+    await pairing;
+    h.evict();
+    const recovered = h.connect();
+    await h.hub().message(recovered, JSON.stringify({ t: "cancel", v: 2, ticket: ticket(1) }));
+    expect(recovered.last("matched")?.code).toBe(b.last("matched")?.code);
+    const duplicate = h.connect();
+    await h.queue(duplicate, { name: "민수", ticket: ticket(3), device: device(1), v: 2 });
+    expect(duplicate.last("error")?.code).toBe("IN_MATCH");
+    expect(h.made).toHaveLength(1);
+  });
+
+  it("방 생성 응답 유실 후 허브 재시작에서도 새 방을 할당하지 않는다", async () => {
+    let created = 0;
+    let losingReply = true;
+    const h = harness({ afterCreate: () => {
+      if (!losingReply) return;
+      losingReply = false;
+      created++;
+      throw new Error("room committed, reply lost");
+    } });
+    const a = h.connect(), b = h.connect();
+    await h.queue(a, { name: "민수", ticket: ticket(1), device: device(1) });
+    await h.queue(b, { name: "지민", ticket: ticket(2), device: device(2) });
+    expect(a.closed).toBe(1012);
+    h.evict();
+    const resumed = h.connect();
+    await h.queue(resumed, { name: "민수", ticket: ticket(1), device: device(1) });
+    const other = h.connect();
+    await h.queue(other, { name: "지민", ticket: ticket(2), device: device(2) });
+    expect(created).toBe(1);
+    expect(h.made).toHaveLength(1);
+    expect(resumed.last("matched")?.code).toBe(other.last("matched")?.code);
+  });
+
+  it("서버 현황은 관측 범위를 확인하고 완료·요트 이벤트를 UTC 일자로 중복 제거한다", () => {
+    const h = harness();
+    expect(h.hub().activity(["MISSING"])).toMatchObject({ playing: null, activeUsers: null, spectators: null, privatePlaying: null });
+    h.hub().observeRoom("SECRET", { kind: "friend", status: "playing", spectators: 1, public: false });
+    const now = h.hub().activity(["SECRET"]).asOf;
+    h.hub().completed("m_a", now);
+    h.hub().completed("m_a", now);
+    h.hub().yachts("m_a", [{ at: now, seq: 4 }, { at: now, seq: 4 }, { at: now - 86_400_000, seq: 2 }]);
+    const activity = h.hub().activity(["SECRET"]);
+    expect(activity).toMatchObject({ playing: { random: 0, friend: 1, ai: 0 }, spectators: 1, privatePlaying: 1, completedToday: 1, yachtsToday: 1, timezone: "UTC" });
+    expect(JSON.stringify(activity)).not.toContain("SECRET");
+    h.advance(86_400_000);
+    expect(h.hub().activity(["SECRET"])).toMatchObject({ completedToday: 0, yachtsToday: 0 });
+  });
+
+  it("C3 세션이 만료되면 게스트로 바꾸지 않고 재로그인을 안내한다", async () => {
+    const h = harness();
+    const a = h.connect();
+    await h.queue(a, { name: "민수", ticket: ticket(1), device: device(1), v: 2, session: "s1.u_" + "a".repeat(22) + "." + "b".repeat(43) });
+    expect(a.last("error")?.code).toBe("SESSION_EXPIRED");
+    expect(h.hub().waiting()).toBe(0);
+  });
+
   it("잘못된 닉네임·티켓은 거부한다", async () => {
     const h = harness();
     const a = h.connect();
@@ -310,11 +436,16 @@ describe("빠른 대전 방 (RoomHost)", () => {
     expect(host.room!.match.status).toBe("playing");
     expect(host.room!.kind).toBe("random");
     expect((await host.join("수아")).ok).toBe(false);
-    expect(published.at(-1)).toMatchObject({ code: "ABCDEF", round: 1, spectators: 0, max: 5 });
+    // PR118-01: the entry is addressed by a spectate id, never the room code
+    const listed = published.at(-1) as { id: string; code: string };
+    expect(listed).toMatchObject({ round: 1, spectators: 0, max: 5 });
+    expect(listed.id).toMatch(/^[A-Z2-9]{10}$/);
+    expect(listed.code).toBe(listed.id);
+    expect(JSON.stringify(published)).not.toContain("ABCDEF");
     expect(JSON.stringify(published)).not.toContain("tok");
     expect(host.publicWatch()).toBeTruthy();
     // the list entry carries no seat token, watch key or account id
-    for (const e of published) expect(Object.keys(e as object).sort()).toEqual(["code", "max", "players", "round", "spectators"]);
+    for (const e of published) expect(Object.keys(e as object).sort()).toEqual(["code", "id", "kind", "max", "participants", "players", "round", "rounds", "spectators", "status"]);
     expect(JSON.stringify(published)).not.toContain(made.seats[0].token);
     // a player cannot switch the public match off (refused, the entry and key stay)
     const [a] = [new Sock()];

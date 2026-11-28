@@ -267,6 +267,64 @@ function queueSocket(w: LocalWorker, body: Record<string, unknown>) {
 }
 const tk = (n: number) => ("tk" + n).padEnd(30, "q");
 
+describe("C3 친구 대전 관전과 공개 서버 현황", () => {
+  it("현황 API는 공유 집계를 재사용한다(PR118-02): 창 안의 연속 요청은 같은 집계 시각을 돌려준다", async () => {
+    const worker = await boot({ ACTIVITY_CACHE_MS: "60000" });
+    const first = (await api(worker, "/api/activity")).body;
+    const second = (await api(worker, "/api/activity")).body;
+    expect(second.asOf).toBe(first.asOf);
+    expect(first).toMatchObject({ timezone: "UTC", activeUsers: null });
+  });
+
+  it("방장만 관전 범위를 정하고, 목록·관전 링크는 관전 ID만 쓰며, 비공개 상태는 숫자로만 집계하고 권한을 실시간으로 검증한다", async () => {
+    // Fresh aggregates for the polls below; caching itself is checked in the test above.
+    const worker = await boot({ TURN_TIMEOUT_MS: "0", ACTIVITY_CACHE_MS: "0" });
+    const { code, a, b } = await twoPlayerRoom(worker);
+    expect((await a.cmd({ type: "start" })).ok).toBe(true);
+    const list = async () => (await api(worker, "/api/spectate/rooms")).body.rooms as { id: string; code: string }[];
+    const activity = async () => (await api(worker, "/api/activity")).body;
+    await expect.poll(async () => (await activity()).playing?.friend ?? 0).toBeGreaterThanOrEqual(1);
+    expect(await list()).toEqual([]);
+    expect(JSON.stringify(await activity())).not.toContain(code);
+    const range = (client: Client, visibility: string) => client.ws.send(JSON.stringify({ t: "spectate", allow: visibility !== "private", visibility }));
+    // a non-host player is refused by the server
+    range(b, "public");
+    await expect.poll(() => b.messages.some((m) => m.t === "error" && m.code === "NOT_HOST")).toBe(true);
+    expect(await list()).toEqual([]);
+    // the host makes it public: listed under its spectate id only
+    range(a, "public");
+    await expect.poll(() => [...a.messages].reverse().find((m) => m.t === "spectate")?.spectate?.visibility).toBe("public");
+    const sid = [...a.messages].reverse().find((m) => m.t === "spectate")!.spectate!.sid!;
+    expect(sid).toMatch(/^[A-Z2-9]{10}$/);
+    await expect.poll(list).toMatchObject([{ id: sid, code: sid, kind: "friend", participants: 2, status: "playing", round: 1 }]);
+    expect(JSON.stringify(await list())).not.toContain(code);
+    await expect.poll(() => [...b.messages].reverse().find((m) => m.t === "spectate")?.spectate?.visibility).toBe("public");
+    const publicKey = (await api(worker, `/api/spectate/${sid}/watch`, {})).body.key;
+    expect(typeof publicKey).toBe("string");
+    const watcher = new Client(worker.url, sid);
+    await watcher.opened();
+    const watching = watcher.next((m) => m.t === "watching");
+    watcher.ws.send(JSON.stringify({ t: "watch", key: publicKey }));
+    expect(((await watching) as { code: string }).code).toBe(sid);
+    expect(JSON.stringify(watcher.messages)).not.toContain(code);
+    await expect.poll(async () => (await activity()).spectators ?? 0).toBeGreaterThanOrEqual(1);
+    // a watch credential never becomes a seat: not by key, not by spectate id
+    expect((await api(worker, `/api/rooms/${code}/join`, { name: "관전자", key: publicKey })).status).toBe(409);
+    expect((await api(worker, `/api/rooms/${sid}/join`, { name: "관전자" })).status).toBe(404);
+    const intruder = new Client(worker.url, sid);
+    await intruder.opened();
+    intruder.ws.send(JSON.stringify({ t: "hello", token: publicKey }));
+    await intruder.waitForClose();
+    expect(intruder.messages.some((m) => m.t === "welcome")).toBe(false);
+    // the host narrows to private: the viewer is cut off, the list and the key are gone
+    range(a, "private");
+    await watcher.waitForClose();
+    await expect.poll(list).toEqual([]);
+    expect((await api(worker, `/api/spectate/${sid}/watch`, {})).status).toBe(409);
+  });
+
+});
+
 describe("Phase 4.5 — 빠른 대전·공개 관전 (wrangler dev, local)", () => {
   it("두 게스트가 매칭되어 시작된 방에 들어가고, 빠른 대전은 항상 관전방 목록에 뜨며(끌 수 없음) 끝나면 바로 빠진다", async () => {
     const features = await (await fetch(main.url + "/api/features", { headers: { origin: "http://127.0.0.1:5173" } })).json();
@@ -288,12 +346,18 @@ describe("Phase 4.5 — 빠른 대전·공개 관전 (wrangler dev, local)", () 
     expect((await api(main, `/api/rooms/${ma.code}/join`, { name: "끼어들기" })).status).toBe(409);
     // public list: names, scores, round — no tokens or keys
     const list = await (await fetch(main.url + "/api/spectate/rooms", { headers: { origin: "http://127.0.0.1:5173" } })).json();
-    const entry = list.rooms.find((r: { code: string }) => r.code === ma.code);
-    expect(entry).toMatchObject({ round: 1, spectators: 0, max: 5 });
+    // PR118-01: the list and the watch API use the spectate id, never the room code
+    const sid = wa.spectate!.sid!;
+    expect(sid).toMatch(/^[A-Z2-9]{10}$/);
+    const entry = list.rooms.find((r: { id: string }) => r.id === sid);
+    expect(entry).toMatchObject({ code: sid, round: 1, spectators: 0, max: 5 });
     expect(JSON.stringify(list)).not.toContain(ma.token);
-    const watch = await api(main, `/api/spectate/${ma.code}/watch`, {});
+    expect(JSON.stringify(list)).not.toContain(ma.code);
+    expect((await api(main, `/api/spectate/${ma.code}/watch`, {})).status).toBe(404);
+    const watch = await api(main, `/api/spectate/${sid}/watch`, {});
     expect(watch.status).toBe(200);
-    const spectator = new Client(main.url, ma.code);
+    expect(watch.body).toEqual({ id: sid, code: sid, key: watch.body.key });
+    const spectator = new Client(main.url, sid);
     await spectator.opened();
     const watching = spectator.next((m) => m.t === "watching");
     spectator.ws.send(JSON.stringify({ t: "watch", key: watch.body.key }));
@@ -307,8 +371,8 @@ describe("Phase 4.5 — 빠른 대전·공개 관전 (wrangler dev, local)", () 
     expect((await ca.cmd({ type: "resign" })).ok).toBe(true);
     await new Promise((r) => setTimeout(r, 400));
     const after = await (await fetch(main.url + "/api/spectate/rooms?x=1", { headers: { origin: "http://127.0.0.1:5173" } })).json();
-    expect(after.rooms.find((r: { code: string }) => r.code === ma.code)).toBeUndefined();
-    expect((await api(main, `/api/spectate/${ma.code}/watch`, {})).status).toBe(409);
+    expect(after.rooms.find((r: { id: string }) => r.id === sid)).toBeUndefined();
+    expect((await api(main, `/api/spectate/${sid}/watch`, {})).status).toBe(409);
   }, 60_000);
 
   it("서버 AI 대전은 회원 전용: 로그인이 꺼진 서버·세션 없는 요청은 방을 만들지 않는다", async () => {

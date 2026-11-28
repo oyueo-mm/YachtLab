@@ -1,0 +1,33 @@
+name: A3 match result preview
+on:
+  pull_request:
+    paths:
+      - src/match-result/**
+      - match-result-preview.html
+      - tests/match-result-a3.test.ts
+      - tests/ui-preview/**
+      - playwright.preview.config.ts
+      - .github/workflows/a3-match-result-preview.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run tests/match-result-a3.test.ts
+      - run: npx playwright install --only-shell chromium
+      - name: Dev-only preview in desktop, Pixel 7 and 320px
+        run: npx playwright test -c playwright.preview.config.ts
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: a3-preview-failures
+          path: test-results

@@ -24,6 +24,7 @@ import {
   type SeriesSummary,
   type ServerMessage,
   type SpectateState,
+  type SpectateMode,
   type LobbyState,
 } from "./wire";
 import { allowSocial, canSend, newSocialBucket, socialRetryMs, type SocialBucket } from "../social/catalog";
@@ -111,7 +112,21 @@ export type RoomRecord = {
   /** Players who left the finished room for good. */
   departed?: string[];
   /** Spectating consent per player and the current watch key (null = off / revoked). */
-  spectate?: { allow: Record<string, boolean>; key: string | null };
+  spectate?: {
+    allow: Record<string, boolean>;
+    key: string | null;
+    /** C3 draft field (per-player public consent). Never deployed; ignored except by legacy readers. */
+    publicAllow?: Record<string, boolean>;
+    /**
+     * Friend rooms (D-095): the range the host chose. Absent = a record written before host control,
+     * read with the legacy rule (every player allowed → link only, never public).
+     */
+    mode?: SpectateMode;
+    /** Key handed out from the public list (friend rooms, mode "public" only). Separate from the link key. */
+    publicKey?: string | null;
+    /** Spectate id used in watch links and the public list instead of the room (= invite) code. */
+    sid?: string;
+  };
   /** Seats taken by signed-in players: playerId → account id (verified by the host at join time). */
   identities?: Record<string, { userId: string }>;
   /** Server-verified results not yet delivered to the players' accounts (retried; idempotent). */
@@ -132,7 +147,7 @@ export type RoomRecord = {
   hostId?: string;
 };
 /** A seat given by the matchmaker (or the AI starter): name, verified account and its validated look. */
-export type SeatSpec = { name: string; identity?: { userId: string } | null; look?: PublicLook | null; ai?: boolean };
+export type SeatSpec = { name: string; identity?: { userId: string } | null; look?: PublicLook | null; ai?: boolean; token?: string };
 
 export type RoomDeps = {
   now: () => number;
@@ -147,7 +162,10 @@ export type RoomDeps = {
    * May one more match start in this room? Returns null when it may, otherwise a message for the
    * players. The Durable Object host counts it toward the daily cap (rooms + rematches).
    */
-  allowMatch?: (weight: number, matchNo: number) => Promise<string | null> | string | null;
+  releaseMatch?: (matchNo: number) => void | Promise<void>;
+  allowMatch?: (weight: number, matchNo: number, users: string[]) => Promise<string | null> | string | null;
+  /** Make a spectate id resolvable to this room (Worker: directory row). Must succeed before links are shown. */
+  registerSpectate?: (sid: string) => void | Promise<void>;
 };
 
 /** A live socket, as seen by the room. `playerId` is set only after a successful `hello`. */
@@ -215,6 +233,21 @@ export const normalizeCode = (value: unknown): string | null => {
   if (typeof value !== "string") return null;
   const code = value.trim().toUpperCase();
   return CODE_PATTERN.test(code) ? code : null;
+};
+
+/** Spectate id: 10 characters from the room-code alphabet, so it can never be mistaken for a 6-character room code. */
+const SID_PATTERN = new RegExp(`^[${CODE_ALPHABET}]{10}$`);
+export function newSpectateId(random: (b: Uint8Array) => Uint8Array = (b) => crypto.getRandomValues(b)): string {
+  const out: string[] = [];
+  while (out.length < 10) {
+    for (const b of random(new Uint8Array(16))) if (b < 248 && out.length < 10) out.push(CODE_ALPHABET[b % CODE_ALPHABET.length]);
+  }
+  return out.join("");
+}
+export const normalizeSpectateId = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const id = value.trim().toUpperCase();
+  return SID_PATTERN.test(id) ? id : null;
 };
 
 /** Random match id, `m_` + 16 url-safe characters (96 bits). */
@@ -362,7 +395,7 @@ export class OnlineRoom {
       const name = checked.ok ? normalizeName(checked.name) : null;
       if (!name) throw Error("닉네임을 확인해 주세요.");
       const playerId = "p_" + base64url(room.random(new Uint8Array(12)));
-      const token = base64url(room.random(new Uint8Array(32)));
+      const token = seat.token ?? base64url(room.random(new Uint8Array(32)));
       const joined = applyCommand(state, { commandId: `match-join-${i}`, playerId, action: { type: "join", name } }, ctx);
       if (!joined.ok) throw Error(joined.error.message);
       state = joined.state;
@@ -376,7 +409,12 @@ export class OnlineRoom {
     const started = applyCommand(state, { commandId: "match-start", playerId: out[0].playerId, action: { type: "start" } }, ctx);
     if (!started.ok) throw Error(started.error.message);
     events.push(...started.events);
-    const spectate = options.public ? { allow: Object.fromEntries(out.map((s) => [s.playerId, true])), key: base64url(room.random(new Uint8Array(18))) } : undefined;
+    let spectate: RoomRecord["spectate"];
+    if (options.public && !ai) {
+      const sid = newSpectateId(room.random);
+      await deps.registerSpectate?.(sid);
+      spectate = { allow: Object.fromEntries(out.map((s) => [s.playerId, true])), key: base64url(room.random(new Uint8Array(18))), sid };
+    }
     await room.commit(started.state, events, { ...room.record, credentials, identities, looks, kind: options.kind, ...(ai ? { ai } : {}), ...(options.public && !ai ? { public: true, spectate } : {}) });
     return { room, seats: out };
   }
@@ -570,7 +608,7 @@ export class OnlineRoom {
   adopt(conn: RoomConnection) {
     if (this.closed) return;
     // A spectator whose link was revoked while the object slept is not re-admitted.
-    if (conn.spectator && (!this.spectateActive() || !sameHash(conn.spectator.key, this.record.spectate!.key!))) return conn.close(4003, "spectating off");
+    if (conn.spectator && !this.spectateKeyValid(conn.spectator.key)) return conn.close(4003, "spectating off");
     this.connections.add(conn);
   }
 
@@ -635,7 +673,7 @@ export class OnlineRoom {
     if (msg.t === "say") return this.say(conn, playerId, msg.id);
     if (msg.t === "rematch") return this.rematch(conn, playerId, msg.op);
     if (msg.t === "bye") return this.bye(playerId);
-    if (msg.t === "spectate") return this.setSpectate(conn, playerId, msg.allow);
+    if (msg.t === "spectate") return this.setSpectate(conn, playerId, msg.allow, msg.visibility);
     if (msg.t === "ready" || msg.t === "settings" || msg.t === "host") return this.lobbyChange(conn, playerId, msg);
     if (msg.t === "cmd" && msg.action.type === "start" && this.kind === "friend") return this.startFromLobby(conn, playerId, msg.id);
     if (msg.t === "hold") {
@@ -738,6 +776,8 @@ export class OnlineRoom {
     this.lobbyOps++;
     await this.saveRecord(next);
     this.broadcastLobby();
+    // The host can change the spectating range: pages show the new host's controls.
+    if (msg.t === "host") this.broadcastSpectate();
   }
 
   /**
@@ -757,9 +797,10 @@ export class OnlineRoom {
     // Larger matches cost more of the shared daily budget (about one unit per two players; the room
     // creation already used one).
     const extra = Math.ceil(players.length / 2) - 1;
-    if (extra > 0) {
-      const block = (await this.deps.allowMatch?.(extra, this.record.matchNo ?? 1)) ?? null;
-      if (block) return nack("DAILY_LIMIT", block);
+    const users = Object.values(this.members());
+    if (extra > 0 || users.length) {
+      const block = (await this.deps.allowMatch?.(extra, this.matchNumber, users)) ?? null;
+      if (block) return nack("MATCH_UNAVAILABLE", block);
     }
     const ordered = [players.find((p) => p.playerId === playerId)!, ...players.filter((p) => p.playerId !== playerId).sort((a, b) => a.seat - b.seat)];
     const started = this.buildMatch(ordered, `start-${commandId}`);
@@ -770,6 +811,7 @@ export class OnlineRoom {
     } catch {
       this.state = before.state;
       this.record = before.record;
+      await this.deps.releaseMatch?.(this.matchNumber);
       return nack("INVALID_COMMAND", "서버에서 명령을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
     }
     this.lobbyOps = 0;
@@ -802,18 +844,49 @@ export class OnlineRoom {
     return [...this.connections].filter((c) => c.spectator);
   }
 
-  /** Spectating is on only while every seated player allows it and a key exists. */
-  private spectateActive(): boolean {
+  /**
+   * The spectating range in force. Quick matches are public by rule (D-045). Friend rooms use the
+   * host's choice (D-095); a record from before host control keeps the legacy rule: every seated
+   * player allowed → link only. Nothing becomes public without an explicit choice.
+   */
+  spectateMode(): SpectateMode {
     const sp = this.record.spectate;
-    if (!sp?.key || !this.state.players.length) return false;
-    return this.state.players.every((p) => sp.allow[p.playerId] === true);
+    if (!sp?.key || !this.state.players.length || this.closed || this.record.ai) return "private";
+    if (this.isPublic) return "public";
+    if (sp.mode) return sp.mode;
+    return this.state.players.every((p) => sp.allow[p.playerId] === true) ? "invite" : "private";
+  }
+
+  private spectateActive(): boolean {
+    return this.spectateMode() !== "private";
+  }
+
+  publicSpectating(): boolean {
+    const mode = this.spectateMode();
+    if (mode !== "public") return false;
+    return this.isPublic || (this.kind === "friend" && !!this.record.spectate?.publicKey);
+  }
+
+  /** Is this key (link key, or public-list key while public) still a valid read-only credential? */
+  private spectateKeyValid(key: string): boolean {
+    const sp = this.record.spectate;
+    if (!sp?.key || !this.spectateActive()) return false;
+    if (sameHash(key, sp.key)) return true;
+    return this.publicSpectating() && !this.isPublic && !!sp.publicKey && sameHash(key, sp.publicKey);
   }
 
   spectateState(): SpectateState {
-    const sp = this.record.spectate ?? { allow: {}, key: null };
-    const active = this.spectateActive();
-    const allow = Object.fromEntries(this.state.players.map((p) => [p.playerId, sp.allow[p.playerId] === true]));
-    return { allow, active, key: active ? sp.key : null, spectators: this.spectators().length, max: ROOM_LIMITS.maxSpectators, public: this.isPublic && active };
+    const mode = this.spectateMode();
+    const active = mode !== "private";
+    const sp = this.record.spectate;
+    // `allow` mirrors the range for every seat, so older pages (a per-player switch) show the real state.
+    const allow = Object.fromEntries(this.state.players.map((p) => [p.playerId, active]));
+    return {
+      allow, active, key: active ? sp!.key : null, spectators: this.spectators().length, max: ROOM_LIMITS.maxSpectators,
+      public: this.isPublic && active, visibility: mode,
+      ...(this.kind === "friend" && !this.record.ai ? { hostControl: true, host: this.hostId(), ...(active && sp?.sid ? { sid: sp.sid } : {}) } : {}),
+      ...(this.isPublic && sp?.sid ? { sid: sp.sid } : {}),
+    };
   }
 
   private broadcastSpectate() {
@@ -821,13 +894,11 @@ export class OnlineRoom {
     for (const c of this.connections) if (c.playerId) c.send({ t: "spectate", spectate });
   }
 
-  /** Close spectator sockets that are no longer allowed (consent withdrawn, key replaced, new player). */
+  /** Close spectator sockets that are no longer allowed (range narrowed, key replaced). */
   private enforceSpectate() {
-    const active = this.spectateActive();
-    const key = this.record.spectate?.key ?? "";
     let kicked = false;
     for (const c of this.spectators())
-      if (!active || c.spectator!.key !== key) {
+      if (!this.spectateKeyValid(c.spectator!.key)) {
         this.connections.delete(c);
         c.close(4003, "spectating off");
         kicked = true;
@@ -835,33 +906,55 @@ export class OnlineRoom {
     if (kicked) this.broadcastSpectate();
   }
 
-  private spectateAt = new Map<string, number>();
-  /** A player turns spectating on or off. Off by anyone revokes the link (a new key next time). */
-  private async setSpectate(conn: RoomConnection, playerId: string, allow: boolean) {
+  private spectateAt = -Infinity;
+  /**
+   * The host sets the friend room's spectating range (D-095). Every player can read it; only the host
+   * can change it, checked here. Older pages send `{allow}` only: the host's `allow:true` means "link",
+   * `false` means "private". Narrowing is honoured at once and revokes what it no longer covers
+   * (private: both keys; public → link: the public-list key); widening is paced and issues new keys.
+   */
+  private async setSpectate(conn: RoomConnection, playerId: string, allow: boolean, visibility?: SpectateMode) {
     if (this.record.ai) return conn.send({ t: "error", code: "SPECTATE", message: "AI 대전은 관전할 수 없어요." });
     // Quick matches are public by rule (D-045): nobody can switch spectating off during the match.
     if (this.isPublic) {
-      if (!allow) conn.send({ t: "error", code: "SPECTATE", message: "빠른 대전은 관전방에 공개되는 경기예요. 공개를 끌 수 없어요." });
+      if (!allow || (visibility && visibility !== "public")) conn.send({ t: "error", code: "SPECTATE", message: "빠른 대전은 관전방에 공개되는 경기예요. 공개를 끌 수 없어요." });
       return conn.send({ t: "spectate", spectate: this.spectateState() });
     }
+    if (this.hostId() !== playerId) {
+      conn.send({ t: "error", code: "NOT_HOST", message: "관전 범위는 방장만 바꿀 수 있어요." });
+      return conn.send({ t: "spectate", spectate: this.spectateState() });
+    }
+    const target: SpectateMode = visibility ?? (allow ? "invite" : "private");
+    const current = this.spectateMode();
     const sp = this.record.spectate ?? { allow: {}, key: null };
-    if ((sp.allow[playerId] === true) === allow && (!allow || sp.key)) return conn.send({ t: "spectate", spectate: this.spectateState() });
-    // Turning spectating OFF is a privacy action: always honoured at once. Only turning it on (a new
-    // key) is paced, which also bounds on/off write loops to one pair per second per player.
+    if (target === current && (this.record.spectate?.mode || target === "private")) return conn.send({ t: "spectate", spectate: this.spectateState() });
+    const rank = { private: 0, invite: 1, public: 2 } as const;
     const now = this.deps.now();
-    if (allow && now - (this.spectateAt.get(playerId) ?? -Infinity) < ROOM_LIMITS.rematchCooldownMs) return conn.send({ t: "error", code: "SPECTATE", message: "잠시 후 다시 눌러 주세요." });
-    if (allow) this.spectateAt.set(playerId, now);
-    const key = allow ? (sp.key ?? base64url(this.random(new Uint8Array(18)))) : null;
-    await this.saveRecord({ ...this.record, spectate: { allow: { ...sp.allow, [playerId]: allow }, key } });
+    if (rank[target] > rank[current]) {
+      if (now - this.spectateAt < ROOM_LIMITS.rematchCooldownMs) return conn.send({ t: "error", code: "SPECTATE", message: "잠시 후 다시 눌러 주세요." });
+      this.spectateAt = now;
+    }
+    let sid = sp.sid;
+    if (target !== "private" && !sid) {
+      sid = newSpectateId(this.random);
+      try {
+        await this.deps.registerSpectate?.(sid);
+      } catch {
+        return conn.send({ t: "error", code: "SPECTATE", message: "관전 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요." });
+      }
+    }
+    const fresh = () => base64url(this.random(new Uint8Array(18)));
+    const key = target === "private" ? null : current !== "private" && sp.key ? sp.key : fresh();
+    const publicKey = target === "public" ? (current === "public" && sp.publicKey ? sp.publicKey : fresh()) : null;
+    await this.saveRecord({ ...this.record, spectate: { allow: {}, key, publicKey, mode: target, ...(sid ? { sid } : {}) } });
     this.enforceSpectate();
     this.broadcastSpectate();
   }
 
-  /** A spectator socket: read-only, admitted with the watch key while every player allows it. */
+  /** A spectator socket: read-only, admitted with a valid watch key (link or public list). */
   private watch(conn: RoomConnection, key: string, since: number) {
     if (conn.playerId || conn.spectator) return conn.send({ t: "error", code: "SPECTATOR", message: "이미 연결된 화면이에요." });
-    const sp = this.record.spectate;
-    if (!this.spectateActive() || !sp?.key || !sameHash(key, sp.key)) {
+    if (!this.spectateKeyValid(key)) {
       conn.send({ t: "error", code: "SPECTATE_OFF", message: "지금은 이 경기를 관전할 수 없어요." });
       return conn.close(4003, "spectating off");
     }
@@ -869,10 +962,13 @@ export class OnlineRoom {
       conn.send({ t: "error", code: "SPECTATORS_FULL", message: "관전 인원이 가득 찼어요." });
       return conn.close(4005, "spectators full");
     }
-    conn.spectator = { key: sp.key };
+    conn.spectator = { key };
     const from = Math.max(0, Math.min(since, this.state.log.length));
     conn.seenSeq = this.state.log.length;
-    conn.send({ t: "watching", code: this.code, view: viewFor(this.state, null, this.deps.now(), from), online: this.onlinePlayers(), hold: this.currentHold(), series: this.seriesSummary(), spectators: this.spectators().length, looks: this.looks(), kind: this.kind, ai: this.aiSeat(), lobby: this.lobbyState() });
+    // A spectator learns the spectate id, never the room (= invite) code (PR118-01). Old records without
+    // an id were watched through the room code, which the viewer already had.
+    const sid = this.record.spectate?.sid ?? this.code;
+    conn.send({ t: "watching", code: sid, view: viewFor(this.state, null, this.deps.now(), from), online: this.onlinePlayers(), hold: this.currentHold(), series: this.seriesSummary(), spectators: this.spectators().length, looks: this.looks(), kind: this.kind, ai: this.aiSeat(), lobby: this.lobbyState() });
     this.broadcastSpectate();
   }
 
@@ -900,6 +996,9 @@ export class OnlineRoom {
   looks(): Record<string, PublicLook> {
     return Object.fromEntries(this.state.players.map((p) => [p.playerId, this.lookOf(p.playerId)]));
   }
+  get matchNumber() {
+    return this.record.matchNo ?? 1;
+  }
   get kind(): MatchKind {
     return this.record.kind ?? "friend";
   }
@@ -907,16 +1006,33 @@ export class OnlineRoom {
     return this.record.public === true;
   }
 
-  /** Public list entry while a public match is being played and spectating is on, else null. */
-  publicEntry(): { code: string; players: { name: string; score: number; look: PublicLook }[]; round: number; spectators: number; max: number } | null {
-    if (!this.isPublic || this.closed || this.state.status !== "playing" || !this.spectateActive()) return null;
+  /**
+   * Public list entry while a public match is being played, else null. It carries the spectate id
+   * (`id`; `code` repeats it for older pages), never the room code (PR118-01).
+   */
+  publicEntry(): { id: string; code: string; kind: "random" | "friend"; status: "playing"; participants: number; rounds: number; players: { name: string; score: number; look: PublicLook }[]; round: number; spectators: number; max: number } | null {
+    const sid = this.record.spectate?.sid;
+    if (!sid || this.kind === "ai" || this.closed || this.state.status !== "playing" || !this.publicSpectating()) return null;
     const players = [...this.state.players].sort((a, b) => a.seat - b.seat);
-    return { code: this.code, players: players.map((p) => ({ name: p.name, score: total(p.card), look: this.lookOf(p.playerId) })), round: this.state.turn?.round ?? 12, spectators: this.spectators().length, max: ROOM_LIMITS.maxSpectators };
+    return { id: sid, code: sid, kind: this.kind, status: "playing", participants: players.length, rounds: 12, players: players.map((p) => ({ name: p.name, score: total(p.card), look: this.lookOf(p.playerId) })), round: this.state.round ?? this.state.turn?.round ?? 12, spectators: this.spectators().length, max: ROOM_LIMITS.maxSpectators };
   }
   /** The watch key for someone who picked this room from the public list (only while it is listed). */
   publicWatchKey(): string | null {
     if (!this.publicEntry() || this.spectators().length >= ROOM_LIMITS.maxSpectators) return null;
-    return this.record.spectate?.key ?? null;
+    const sp = this.record.spectate!;
+    return (this.isPublic ? sp.key : sp.publicKey) ?? null;
+  }
+  /**
+   * PR118-03: does this account still hold a live seat in match `matchNo` here? Used only to clear a
+   * reservation whose release was lost; a match in progress always answers true.
+   */
+  holdsAccount(userId: string, matchNo: number): boolean {
+    if (this.closed || this.state.status !== "playing" || this.matchNumber !== matchNo) return false;
+    const playerId = Object.entries(this.record.identities ?? {}).find(([, v]) => v.userId === userId)?.[0];
+    return !!playerId && this.state.players.some((p) => p.playerId === playerId && p.status === "active");
+  }
+  get spectateId(): string | null {
+    return this.record.spectate?.sid ?? null;
   }
 
   /** The official result of a finished match for each signed-in seat, from the engine's own state. */
@@ -1088,7 +1204,8 @@ export class OnlineRoom {
   private async startRematch(requests: string[]) {
     const joining = this.state.players.filter((p) => requests.includes(p.playerId));
     const matchNo = (this.record.matchNo ?? 1) + 1;
-    const block = (await this.deps.allowMatch?.(Math.max(1, Math.ceil(joining.length / 2)), matchNo)) ?? null;
+    const users = joining.flatMap(({ playerId }) => this.record.identities?.[playerId]?.userId ?? []);
+    const block = (await this.deps.allowMatch?.(Math.max(1, Math.ceil(joining.length / 2)), matchNo, users)) ?? null;
     if (block) {
       this.rematchBlocked = block;
       await this.saveRecord({ ...this.record, rematch: null });
@@ -1108,6 +1225,7 @@ export class OnlineRoom {
     } catch (error) {
       this.state = before.state;
       this.record = before.record;
+      await this.deps.releaseMatch?.(matchNo);
       throw error;
     }
     this.rematchOps = 0;

@@ -633,3 +633,19 @@
     overflow-y: auto;
   }
 }
+
+/* D-095: the host changed the spectating range — shown to every player for a few seconds. */
+.spectate-change {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 5;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 12%);
+}

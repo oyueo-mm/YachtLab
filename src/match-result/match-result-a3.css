@@ -1,0 +1,117 @@
+/* A3 경기 종료 화면 · 0점 팝업. 기존 match-result.css와 클래스 이름이 겹치지 않도록 a3- 접두사만 쓴다. */
+.a3-result-dialog {
+  --a3-win: #d98a00;
+  --a3-win-soft: #fff6e0;
+  --a3-lose: #5d6470;
+  --a3-accent: var(--red, #d93636);
+  width: 100%;
+  max-width: min(460px, calc(100vw - 24px));
+  max-height: min(720px, calc(100dvh - 24px));
+  border: 1px solid var(--line, #e5e5e5);
+  border-radius: 18px;
+  padding: 0;
+  background: #fff;
+  color: var(--ink, #202020);
+  box-shadow: 0 14px 50px #25141944;
+  overscroll-behavior: contain;
+  overflow: auto;
+}
+.a3-result-dialog:modal { margin: auto; }
+.a3-result-dialog::backdrop { background: #21181688; }
+.a3-result { position: relative; display: grid; gap: 12px; padding: clamp(16px, 5vw, 26px); text-align: center; overflow: hidden; }
+.a3-result-dialog[data-tone="win"] .a3-result { background: linear-gradient(180deg, var(--a3-win-soft), #fff 46%); }
+.a3-result-dialog[data-drama="grand-comeback"] .a3-result { background: linear-gradient(180deg, #ffe9b8, #fff7e6 30%, #fff 60%); }
+.a3-result-close { position: absolute; right: 6px; top: 6px; min-width: 44px; min-height: 44px; z-index: 3; }
+
+.a3-result-head { position: relative; z-index: 1; display: grid; justify-items: center; gap: 2px; }
+.a3-result-head h2 { margin: 2px 36px 0; font-size: clamp(26px, 8vw, 34px); line-height: 1.15; text-wrap: balance; }
+.a3-result-dialog[data-tone="win"] h2 { color: var(--a3-win); }
+.a3-result-dialog[data-tone="lose"] h2 { color: var(--a3-lose); }
+.a3-result-icon { color: var(--a3-win); }
+.a3-result-dialog[data-tone="neutral"] .a3-result-icon { color: var(--muted, #6b6b6b); }
+.a3-result-sub { margin: 0; color: var(--muted, #6b6b6b); font-size: 14px; }
+.a3-drama-ribbon { margin: 0; padding: 3px 12px; border-radius: 999px; background: var(--a3-accent); color: #fff; font-weight: 700; font-size: 13px; letter-spacing: .02em; }
+
+.a3-standings { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; text-align: start; max-height: 38vh; overflow: auto; }
+.a3-standings li { color: var(--ink, #202020); font-size: 15px; opacity: 1; display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line, #e5e5e5); border-radius: 12px; background: #fff; }
+.a3-standings.solo li { grid-template-columns: auto minmax(0, 1fr) auto; }
+.a3-standings li.you { border-color: var(--a3-accent); box-shadow: 0 0 0 1px var(--a3-accent) inset; }
+.a3-standings li.winner .a3-rank { background: var(--a3-win); color: #fff; }
+.a3-rank { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--soft, #f7f7f7); font-weight: 700; font-size: 13px; }
+.a3-avatar { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; overflow: hidden; background: var(--soft, #f7f7f7); }
+.a3-avatar i { font-style: normal; font-weight: 700; }
+.a3-name { display: grid; min-width: 0; }
+.a3-name b { overflow-wrap: anywhere; font-size: 15px; color: var(--ink, #202020); }
+.a3-name small { color: var(--muted, #6b6b6b); font-size: 12px; }
+.a3-you { font-weight: 400; }
+.a3-forfeit { color: var(--a3-lose) !important; }
+.a3-score { color: var(--ink, #202020); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 800; }
+.a3-score small { font-size: 12px; font-weight: 400; margin-inline-start: 2px; color: var(--muted, #6b6b6b); }
+.a3-standings.field .a3-score { font-size: 18px; }
+
+.a3-meta { margin: 0; display: inline-flex; justify-content: center; align-items: center; gap: 4px; color: var(--muted, #6b6b6b); font-size: 13px; }
+.a3-highlights { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.a3-highlights li { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; background: var(--soft, #f7f7f7); font-size: 13px; }
+.a3-who { font-weight: 700; color: var(--muted, #6b6b6b); }
+.a3-highlights li small { color: var(--muted, #6b6b6b); }
+.a3-highlights li[data-kind="yacht"], .a3-highlights li[data-kind="grand-comeback"], .a3-highlights li[data-kind="comeback"], .a3-highlights li[data-kind="final-turn"] { background: var(--a3-win-soft); color: #7a4a00; }
+
+.a3-rewards { display: grid; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--soft, #f7f7f7); text-align: start; }
+.a3-wallet { margin: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-weight: 700; }
+.a3-wallet span { display: inline-flex; align-items: center; gap: 4px; }
+.a3-wallet small { flex-basis: 100%; font-weight: 400; color: var(--muted, #6b6b6b); }
+.a3-done, .a3-progress { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.a3-done li { display: flex; align-items: center; gap: 5px; }
+.a3-progress li { display: grid; grid-template-columns: minmax(0, 1fr) 80px auto; gap: 8px; align-items: center; }
+.a3-bar { height: 6px; border-radius: 3px; background: #e2e2e2; overflow: hidden; }
+.a3-bar i { display: block; height: 100%; background: var(--a3-accent); }
+.a3-reward-note { margin: 0; font-size: 13px; color: var(--muted, #6b6b6b); }
+.a3-reward-note[data-tone="warn"] { color: #9a3b00; }
+
+.a3-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; position: relative; z-index: 1; }
+.a3-actions button { min-height: 44px; display: inline-flex; align-items: center; gap: 5px; }
+.a3-actions .rematch { display: contents; }
+.a3-result-reopen { display: flex; gap: 6px; align-items: center; margin: 12px auto 0; min-height: 44px; }
+
+/* 축하 조각: 중앙에서 퍼졌다 사라짐 (한 번). */
+.a3-burst { position: absolute; left: 50%; top: 64px; width: 0; height: 0; pointer-events: none; z-index: 0; }
+.a3-burst i { position: absolute; width: 7px; height: 12px; border-radius: 2px; background: var(--a3-win); opacity: 0; animation: a3-burst 1100ms cubic-bezier(.2,.7,.3,1) var(--d) 1 both; }
+.a3-burst i:nth-child(3n) { background: var(--a3-accent); }
+.a3-burst i:nth-child(4n) { background: #3aa0d8; }
+.a3-burst.grand i { width: 8px; height: 14px; animation-duration: 1500ms; }
+@keyframes a3-burst {
+  0% { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(.6); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(-1 * var(--r))) rotate(160deg) scale(1); }
+}
+.a3-result-dialog[data-motion="full"][open] .a3-result-head h2 { animation: a3-pop 420ms cubic-bezier(.2,1.4,.4,1) both; }
+.a3-result-dialog[data-motion="full"][data-drama="grand-comeback"][open] .a3-drama-ribbon,
+.a3-result-dialog[data-motion="full"][data-drama="comeback"][open] .a3-drama-ribbon { animation: a3-ribbon 700ms cubic-bezier(.2,1.2,.4,1) 120ms both; }
+.a3-result-dialog[data-motion="full"][data-drama="close"][open] li.you .a3-score { animation: a3-pulse 900ms ease-in-out 2; }
+@keyframes a3-pop { from { transform: scale(.7); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes a3-ribbon { from { transform: translateY(-8px) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes a3-pulse { 50% { color: var(--a3-win); } }
+
+/* 0점 기록 팝업: 차분한 회색, 1.6초. */
+.a3-zero-toast { position: absolute; left: 50%; top: 14%; transform: translateX(-50%); z-index: 20; pointer-events: none; display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 12px; background: #2b2b2bee; color: #fff; box-shadow: 0 6px 20px #0004; max-width: calc(100% - 32px); }
+.a3-zero-toast span { display: grid; text-align: start; }
+.a3-zero-toast small { opacity: .8; font-size: 12px; }
+.a3-zero-toast[data-motion="full"], .a3-zero-toast[data-motion="lite"] { animation: a3-zero 1600ms ease both; }
+@keyframes a3-zero {
+  0% { opacity: 0; transform: translate(-50%, 6px); }
+  12%, 80% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -4px); }
+}
+
+@media (max-width: 420px) {
+  .a3-result-dialog { max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); border-radius: 14px; }
+  .a3-standings li { gap: 8px; padding: 6px 8px; }
+  .a3-avatar { width: 30px; height: 30px; }
+  .a3-actions button { flex: 1 1 calc(50% - 8px); justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .a3-burst, .a3-result-dialog .a3-result-head h2, .a3-drama-ribbon, .a3-zero-toast { animation: none !important; }
+}
+.a3-extra { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; color: var(--muted, #6b6b6b); font-size: 13px; }
+/* 장착 승리 효과(FxBurst)는 결과 카드 위에서 떨어진다. */
+.a3-result > .fx-burst { position: absolute; inset: 0; pointer-events: none; z-index: 2; }

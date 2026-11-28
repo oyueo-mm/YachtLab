@@ -1,8 +1,16 @@
 # 새 채팅을 위한 YachtLab 인수인계
 
+> **2026-11-28 제품 통합 출시**는 [RELEASE-2026-11-28](../operations/RELEASE-2026-11-28.md)과 D-099에서 시작한다(통합 범위, 호환성, 배포·롤백 순서, 출시 기록).
+
+> **C3 전역 매칭과 관전**은 [C3 · A6 인수인계](../online/C3-BACKGROUND-MATCH.md)에서 시작한다. 친구 대전 관전 범위는 방장이 정하고, 링크와 공개 목록은 초대 코드가 아닌 관전 ID를 쓴다(D-094·D-095). C3.1 대기실 참가/관전 분리는 요구사항만 기록되어 있다. A6는 App의 `MatchController`와 관전·현황 계약을 사용한다. C0의 Worker 운영 배포 보류를 유지한다.
+
+
 이 문서는 대화가 바뀌어도 프로젝트를 정확하게 이어가기 위한 **공용 핸드오프 지침**이다.
 
 ## 새로운 ChatGPT/에이전트가 해야 할 일
+
+> **계정 탈퇴·친구 관계·세션 보안(C4.2)** → [C4-2-ACCOUNT-SECURITY](../audits/c4-2026-11-28/C4-2-ACCOUNT-SECURITY.md), D-C42-1~4. 코드: `worker/src/friends.ts`(세대 코드·`forget`·`acceptedBy`), `worker/src/account-cleanup.ts`(정리 대기열), `worker/src/account.ts`(세션 정리·상한), `UserStore.deleteAccount`/`alarm`. 테스트: `tests/account-security*.test.ts`.
+> **C0 운영 점검(2026-11-27)**은 [검증 보고서](../operations/C0-PRODUCTION-VERIFICATION-2026-11-27.md)를 먼저 확인한다. 마지막 성공 Pages 배포와 기준 main의 제품 코드는 같다. Worker는 현재 운영 버전·Workers Free·유료 결제 비활성·롤백 대상 확인 후 배포 여부를 결정한다. C1 연구와 A1 로컬 개발은 병행할 수 있다.
 
 > **공개 검색·연구 콘텐츠**는 [검색 의도 조사](./SEARCH-INTENT-2026-11-26.md), [SEO 자동화](./SEO-AUTOMATION.md), `scripts/seo/research-content.mjs`에서 시작한다. 공개 한국어·영어 보고서는 동일한 실험 표와 출처를 사용한다.
 
@@ -10,7 +18,11 @@
 
 > **1인 플레이·프로필·컬렉션·시너지·한정판·상점 안내·오디오 믹스(2026-11-27)** → [COLLECTIONS-2026-11-27](./COLLECTIONS-2026-11-27.md), [STREAK-REVIEW-2026-11-27](./STREAK-REVIEW-2026-11-27.md), [오디오 믹스](../audio/MIX.md), D-074~D-078. 코드: 1인 플레이 `src/play/SoloGame.tsx`·`src/solo/`(기록·동기화), 오프라인 장착 `src/play/own-look.ts`, 프로필 `src/shell/ProfileSections.tsx`, 컬렉션 `src/economy/live/collections.ts`, 시너지 `src/play/board-synergy.ts`, 2.5D 효과 `src/dice3d/Dice25Fx.tsx`·`src/play/tray-attach.ts`, 안내 `src/ui/Coach.tsx`, 믹스 `src/sound.ts`(버스·`volumeCurve`)·`src/audio/bgm-render.ts`(`normalize`). **워커 배포 전**에는 1인 기록 계정 보관과 신규 11종 판매가 꺼져 있다(의도된 안전 동작).
 >
+> **모바일 UX·프로필·친구 추가·가이드(A4, 2026-11-27)** → [A4-MOBILE-PROFILE-FRIENDS](./A4-MOBILE-PROFILE-FRIENDS-2026-11-27.md), [서버 계약 후보](./A4-CONTRACT-CANDIDATES-2026-11-27.md), D-091~D-093. 코드: `src/social/`(친구 요청 공용 버튼 — A3가 재사용), `src/mobile-a4.css`, `src/play/multi-compact.css`, `src/ui/feature-guides.ts`. Worker·경제·카탈로그 변경 없음.
+>
 > **꾸미기·채팅 연출(A2, 2026-11-27)** → [A2-COSMETICS-CHAT](./A2-COSMETICS-CHAT-2026-11-27.md), [C5 카탈로그 제안](./A2-C5-CATALOG-PROPOSAL-2026-11-27.md), D-085~D-090. 코드: `src/cosmetics-a2.css`, 공용 렌더러 `src/play/ChatMessage.tsx`, 미리보기 `#cosmetics-lab`(`src/lab/CosmeticsLab.tsx`), 채팅 fixture `src/chat/`. 카탈로그 파일·워커·경제는 건드리지 않았다(C5 담당).
+
+> **경기 종료 화면·0점 기록 연출·재대결 전적 조사(A3, 2026-11-27)** → [A3-MATCH-RESULT-2026-11-27](./A3-MATCH-RESULT-2026-11-27.md), D-A3-1·D-A3-2. 코드: `src/match-result/`(게임 화면 미연결), 미리보기 `npx vite` 후 `/YachtLab/match-result-preview.html`, 테스트 `tests/match-result-a3.test.ts`·`npx playwright test -c playwright.preview.config.ts`. 재대결 전적 Hotfix 후보 H-A3-1~3은 §7.
 >
 > **주사위 물리·보드판 강화 단계·시너지·효과 성능(A1, 2026-11-27)** → [A1-DICE-BOARD-2026-11-27](./A1-DICE-BOARD-2026-11-27.md), D-079~D-083. 코드: 물리 `src/dice3d/physics.ts`(`impulse`), 사전 계산 워커 `src/dice3d/physics-worker.ts`, 적응형 효과 품질 `src/fx-quality.ts`, 이동 `carryPose`(`src/dice3d/table.ts`), 표면음 `SURFACES`(`src/sound.ts`), 보드 장면 `src/play/board-scene.ts`·`BoardFxLayer.tsx`, 시너지 `src/play/board-synergy.ts`, 측정 `scripts/measure-board-fx-perf.mjs`.
 >
