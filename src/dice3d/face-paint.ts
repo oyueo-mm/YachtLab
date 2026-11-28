@@ -5,6 +5,7 @@
  * the face (readability is checked in tests), whatever the pattern.
  */
 import type { DiceLook } from "./dice-look";
+import type { DiceMaterialSpec } from "./dice-material";
 export type { DiceAnim, DiceFinish, DiceLook, DicePattern } from "./dice-look";
 
 export const PIPS: Record<number, number[][]> = {
@@ -448,5 +449,272 @@ export function paintGlowMap(g: Ctx, value: number, px: number, look: DiceLook) 
     g.beginPath();
     g.arc(x * k, y * k, 7.4 * k, 0, Math.PI * 2);
     g.fill();
+  }
+}
+
+/* ------------------------------------------------------------------ FX-1 surface maps ------------------------------------------------------------------ */
+
+/** Pip dimple: dark (deep) in the middle, a soft wall, flush at the rim — a bump map reads it as engraved. */
+function dimple(g: Ctx, x: number, y: number, r: number, depth: number) {
+  const grad = g.createRadialGradient(x, y, 0, x, y, r * 1.12);
+  const floor = Math.round(128 - 110 * depth);
+  grad.addColorStop(0, `rgb(${floor},${floor},${floor})`);
+  grad.addColorStop(0.72, `rgb(${floor + 10},${floor + 10},${floor + 10})`);
+  grad.addColorStop(1, "rgb(128,128,128)");
+  g.fillStyle = grad;
+  g.beginPath();
+  g.arc(x, y, r * 1.12, 0, Math.PI * 2);
+  g.fill();
+}
+
+/** Relief detail of a material (grey around 128 = flat). Seeded like the colour pattern. */
+function paintDetail(g: Ctx, detail: DiceMaterialSpec["detail"], strength: number, value: number, k: number) {
+  const r = rng(value * 4099 + detail.length * 7919);
+  const size = 100 * k;
+  const a = Math.min(1, strength);
+  switch (detail) {
+    case "grain":
+      for (let i = 0; i < 46; i++) {
+        const y = r() * size, w = (0.4 + r() * 1.6) * k;
+        g.strokeStyle = r() > 0.5 ? `rgba(90,90,90,${0.5 * a})` : `rgba(170,170,170,${0.4 * a})`;
+        g.lineWidth = w;
+        g.beginPath();
+        g.moveTo(0, y);
+        g.bezierCurveTo(size * 0.3, y + (r() - 0.5) * 8 * k, size * 0.7, y + (r() - 0.5) * 8 * k, size, y + (r() - 0.5) * 4 * k);
+        g.stroke();
+      }
+      return;
+    case "brushed":
+      for (let i = 0; i < 160; i++) {
+        const y = r() * size;
+        g.strokeStyle = `rgba(${r() > 0.5 ? 160 : 100},${r() > 0.5 ? 160 : 100},${r() > 0.5 ? 160 : 100},${0.35 * a})`;
+        g.lineWidth = 0.35 * k;
+        g.beginPath();
+        g.moveTo(0, y);
+        g.lineTo(size, y + (r() - 0.5) * 1.5 * k);
+        g.stroke();
+      }
+      return;
+    case "veins":
+      g.lineCap = "round";
+      for (let i = 0; i < 6; i++) {
+        g.strokeStyle = `rgba(105,105,105,${0.6 * a})`;
+        g.lineWidth = (0.5 + r() * 1.2) * k;
+        g.beginPath();
+        let x = r() * size, y = 0;
+        g.moveTo(x, y);
+        while (y < size) {
+          x += (r() - 0.5) * 22 * k;
+          y += (6 + r() * 10) * k;
+          g.lineTo(x, y);
+        }
+        g.stroke();
+      }
+      return;
+    case "frost":
+      for (let i = 0; i < 26; i++) {
+        const cx = r() * size, cy = r() * size, len = (3 + r() * 9) * k;
+        g.strokeStyle = `rgba(175,175,175,${0.55 * a})`;
+        g.lineWidth = 0.6 * k;
+        for (let s = 0; s < 6; s++) {
+          const t = (s / 6) * Math.PI * 2 + r() * 0.3;
+          g.beginPath();
+          g.moveTo(cx, cy);
+          g.lineTo(cx + Math.cos(t) * len, cy + Math.sin(t) * len);
+          g.stroke();
+        }
+      }
+      return;
+    case "weave":
+      for (let y = 0; y < 100; y += 6)
+        for (let x = (y / 6) % 2 ? 3 : 0; x < 100; x += 6) {
+          const grad = g.createLinearGradient(x * k, y * k, (x + 3) * k, y * k);
+          grad.addColorStop(0, `rgba(100,100,100,${0.6 * a})`);
+          grad.addColorStop(0.5, `rgba(165,165,165,${0.6 * a})`);
+          grad.addColorStop(1, `rgba(100,100,100,${0.6 * a})`);
+          g.fillStyle = grad;
+          g.fillRect(x * k, y * k, 3 * k, 3 * k);
+        }
+      return;
+    case "facets":
+      for (let i = 0; i < 8; i++) {
+        const t0 = (i / 8) * Math.PI * 2, t1 = ((i + 1) / 8) * Math.PI * 2, c = 112 + Math.round(r() * 34);
+        g.fillStyle = `rgba(${c},${c},${c},${0.7 * a})`;
+        g.beginPath();
+        g.moveTo(50 * k, 50 * k);
+        g.lineTo(50 * k + Math.cos(t0) * 72 * k, 50 * k + Math.sin(t0) * 72 * k);
+        g.lineTo(50 * k + Math.cos(t1) * 72 * k, 50 * k + Math.sin(t1) * 72 * k);
+        g.fill();
+      }
+      return;
+    case "crackle":
+      // Cooled crust: lumpy plates, cracks between them sit lower.
+      for (let i = 0; i < 18; i++) {
+        const c = 128 + Math.round((r() - 0.3) * 50);
+        g.fillStyle = `rgba(${c},${c},${c},${0.6 * a})`;
+        g.beginPath();
+        g.arc(r() * size, r() * size, (5 + r() * 12) * k, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.strokeStyle = `rgba(40,40,40,${0.8 * a})`;
+      g.lineJoin = "round";
+      for (let i = 0; i < 7; i++) {
+        g.lineWidth = (1 + r() * 2.2) * k;
+        g.beginPath();
+        let x = r() * size, y = r() * size;
+        g.moveTo(x, y);
+        for (let j = 0; j < 4; j++) {
+          x += (r() - 0.5) * 30 * k;
+          y += (r() - 0.5) * 30 * k;
+          g.lineTo(x, y);
+        }
+        g.stroke();
+      }
+      return;
+    case "fibers":
+      g.lineCap = "round";
+      for (let i = 0; i < 120; i++) {
+        const x = r() * size, y = r() * size, t = -Math.PI / 2 + (r() - 0.5) * 0.8, len = (2 + r() * 4) * k;
+        g.strokeStyle = `rgba(160,160,160,${0.45 * a})`;
+        g.lineWidth = 0.5 * k;
+        g.beginPath();
+        g.moveTo(x, y);
+        g.lineTo(x + Math.cos(t) * len, y + Math.sin(t) * len);
+        g.stroke();
+      }
+      return;
+    default:
+      return;
+  }
+}
+
+/**
+ * Bump map of one face: flat body, a slight roll-off at the bevel, the material's relief detail and
+ * engraved pips. Grey 128 = the face plane.
+ */
+export function paintBumpMap(g: Ctx, value: number, px: number, look: DiceLook, s: DiceMaterialSpec) {
+  const k = px / 100;
+  g.fillStyle = "rgb(128,128,128)";
+  g.fillRect(0, 0, px, px);
+  // bevel roll-off: the edge band sits a little lower than the face (reads as a soft rounded edge)
+  g.strokeStyle = "rgb(104,104,104)";
+  g.lineWidth = 4 * k;
+  g.beginPath();
+  g.roundRect(1 * k, 1 * k, 98 * k, 98 * k, 19 * k);
+  g.stroke();
+  if (s.detail !== "none" && s.relief > 0) {
+    g.save();
+    g.beginPath();
+    g.roundRect(3 * k, 3 * k, 94 * k, 94 * k, 18 * k);
+    g.clip();
+    paintDetail(g, s.detail, s.relief, value, k);
+    g.restore();
+  }
+  if (s.pipDepth > 0) for (const [x, y] of PIPS[value]) dimple(g, x * k, y * k, 7.4 * k, s.pipDepth);
+  void look;
+}
+
+/**
+ * Roughness (green) and metalness (blue) map, absolute values (the material's own factors are 1).
+ * Pips are paint: never metallic, a little rougher than a polished body. Detail varies roughness.
+ */
+export function paintSurfaceMap(g: Ctx, value: number, px: number, look: DiceLook, s: DiceMaterialSpec) {
+  const k = px / 100;
+  const rough = (v: number) => Math.round(Math.max(0.02, Math.min(1, v)) * 255);
+  const body = `rgb(0,${rough(s.roughness)},${Math.round(s.metalness * 255)})`;
+  g.fillStyle = body;
+  g.fillRect(0, 0, px, px);
+  const r = rng(value * 131 + 17);
+  if (s.detail === "brushed") {
+    for (let i = 0; i < 120; i++) {
+      g.strokeStyle = `rgba(0,${rough(s.roughness + (r() - 0.5) * 0.18)},${Math.round(s.metalness * 255)},0.6)`;
+      g.lineWidth = 0.4 * k;
+      const y = r() * px;
+      g.beginPath();
+      g.moveTo(0, y);
+      g.lineTo(px, y);
+      g.stroke();
+    }
+  } else if (s.detail === "frost") {
+    for (let i = 0; i < 14; i++) {
+      g.fillStyle = `rgba(0,${rough(0.75)},0,${0.25 + r() * 0.3})`;
+      g.beginPath();
+      g.arc(r() * px, r() * px, (6 + r() * 16) * k, 0, Math.PI * 2);
+      g.fill();
+    }
+  } else if (s.detail === "grain" || s.detail === "crackle" || s.detail === "veins") {
+    for (let i = 0; i < 30; i++) {
+      g.fillStyle = `rgba(0,${rough(s.roughness + (r() - 0.5) * 0.25)},${Math.round(s.metalness * 255)},0.35)`;
+      g.fillRect(0, r() * px, px, (1 + r() * 3) * k);
+    }
+  }
+  // the bevel band is slightly less polished than the face
+  g.strokeStyle = `rgb(0,${rough(s.roughness + 0.08)},${Math.round(s.metalness * 255)})`;
+  g.lineWidth = 3 * k;
+  g.strokeRect(1.5 * k, 1.5 * k, 97 * k, 97 * k);
+  g.fillStyle = `rgb(0,${rough(Math.max(0.38, s.roughness))},0)`;
+  for (const [x, y] of PIPS[value]) {
+    g.beginPath();
+    g.arc(x * k, y * k, 7.6 * k, 0, Math.PI * 2);
+    g.fill();
+  }
+  void look;
+}
+
+/** Alpha map for see-through bodies (green channel): the body at `s.opacity`, pips solid. */
+export function paintAlphaMap(g: Ctx, value: number, px: number, s: DiceMaterialSpec) {
+  const k = px / 100;
+  const a = Math.round(s.opacity * 255);
+  g.fillStyle = `rgb(${a},${a},${a})`;
+  g.fillRect(0, 0, px, px);
+  g.fillStyle = "#fff";
+  // the bevel band is denser glass (it is seen edge-on)
+  g.strokeStyle = `rgb(${Math.min(255, a + 30)},${Math.min(255, a + 30)},${Math.min(255, a + 30)})`;
+  g.lineWidth = 4 * k;
+  g.strokeRect(2 * k, 2 * k, 96 * k, 96 * k);
+  for (const [x, y] of PIPS[value]) {
+    g.beginPath();
+    g.arc(x * k, y * k, 7.6 * k, 0, Math.PI * 2);
+    g.fill();
+  }
+}
+
+/**
+ * Self-glow mask (FX-1): the parts of the pattern that give off light by themselves (lava cracks,
+ * lightning, abyss plankton) in white on black, painted with the same seeded pattern as the face.
+ * `withPips` adds the pips (Lv.2+ glowing dice, same as paintGlowMap).
+ */
+export function paintSelfGlowMap(g: Ctx, value: number, px: number, look: DiceLook, withPips: boolean) {
+  const k = px / 100;
+  g.fillStyle = "#000";
+  g.fillRect(0, 0, px, px);
+  g.save();
+  g.beginPath();
+  g.roundRect(3 * k, 3 * k, 94 * k, 94 * k, 18 * k);
+  g.clip();
+  paintPattern(g, { ...look, face: "#000000", accent: "#ffffff", edge: "#000000", glow: "#ffffff" }, value, k);
+  g.restore();
+  if (withPips) {
+    g.fillStyle = "#fff";
+    if (look.pattern === "neon") {
+      g.strokeStyle = "#fff";
+      g.lineWidth = 3 * k;
+      g.beginPath();
+      g.roundRect(9 * k, 9 * k, 82 * k, 82 * k, 14 * k);
+      g.stroke();
+    }
+    for (const [x, y] of PIPS[value]) {
+      g.beginPath();
+      g.arc(x * k, y * k, 7.4 * k, 0, Math.PI * 2);
+      g.fill();
+    }
+  } else {
+    // keep pips dark so the numbers never glow at Lv.1
+    g.fillStyle = "#000";
+    for (const [x, y] of PIPS[value]) {
+      g.beginPath();
+      g.arc(x * k, y * k, 8.6 * k, 0, Math.PI * 2);
+      g.fill();
+    }
   }
 }

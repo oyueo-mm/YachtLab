@@ -4,16 +4,22 @@ import { emitFx } from "../fx-bus";
 import { fxBudget } from "../settings";
 import { applyPendingFxTier, fxTierParams, reportThrowFrames } from "../fx-quality";
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { studioScene } from "./studio-env";
+import { diceMaterialSpec, liteSpec, motionGlow, stepEnergy, type DiceMaterialSpec } from "./dice-material";
 import { MATERIAL_ORDER, canonicalOrientation, finalValue, playRate, prepareThrow, throwKey, qAxisAngle, qDot, qMul, qSlerp, simulateThrow, topFace, type PreparedThrow, type Quat, type SimResult } from "./physics";
-import { CLASSIC_DICE, blobTexture, faceTexture, glowTexture, type DiceColors, type Quality } from "./stage";
+import { CLASSIC_DICE, alphaTexture, blobTexture, bumpTexture, faceTexture, glowTexture, selfGlowTexture, surfaceTexture, type DiceColors, type Quality } from "./stage";
 
 /**
  * Persistent 3D dice table: a roll tray and a hold shelf below it, drawn on one canvas.
  * Dice stay exactly where physics left them (no row alignment, no 2D swap). Rendering happens on
  * demand — the GPU is idle unless a die is moving.
  *
- * Look: matte. Even, soft light, no glossy highlights, no cast-shadow map — the only shadow is a
- * small contact shadow under each die that tightens as the die touches the floor.
+ * Look (FX-1, 2026-11-28): rounded-edge dice with a physical material per item (dice-material.ts):
+ * engraved pips (bump), roughness / metalness maps, studio reflections only for materials that need them
+ * (metal, glass, gems, lacquer; built once, lazily), clearcoat / iridescence / sheen on the high quality
+ * only. The classic die stays matte plastic. Still no cast-shadow map — the only shadow is a small
+ * contact shadow under each die that tightens as the die touches the floor.
  *
  * World units are die edges; x → right, z → down the screen. The tray is z ∈ [0, trayH],
  * the hold shelf is z ∈ [trayH, totalH]. The camera maps the top-face plane (y = 1) 1:1 to CSS pixels,
@@ -127,11 +133,24 @@ export class DiceTable {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(24, 1, 0.1, 200);
-  private geometry = new THREE.BoxGeometry(1, 1, 1);
-  private materials: THREE.MeshStandardMaterial[];
+  /** Rounded cube (bevel radius 0.085 edge, close to the physics chamfer 0.1). */
+  private geometry: THREE.BufferGeometry = new RoundedBoxGeometry(1, 1, 1, 3, 0.085);
+  /** Six face materials of the current look (template); each die draws with its own clones (per-die glow). */
+  private materials: THREE.MeshStandardMaterial[] = [];
+  private dieMaterials = new Map<number, THREE.MeshStandardMaterial[]>();
+  private textures: THREE.Texture[] = [];
+  private spec: DiceMaterialSpec = diceMaterialSpec(null);
+  private envTexture: THREE.Texture | null = null;
+  /** Glow of a Lv.2+ die: ambient level (pulse / shimmer timer) × motion response per die. */
+  private glowBase = 0;
+  private ambientGlow = 0;
+  private motionOn = false;
+  private energy = new Map<number, number>();
+  private glowStep: ((now: number) => boolean) | null = null;
   private meshes = new Map<number, THREE.Mesh>();
   private blobs = new Map<number, THREE.Mesh>();
   private light: THREE.DirectionalLight;
+  private rim: THREE.DirectionalLight;
   private blob: THREE.CanvasTexture;
   private blobGeometry = new THREE.PlaneGeometry(1.5, 1.5);
   private blobMaterials: THREE.MeshBasicMaterial[] = [];
@@ -164,17 +183,15 @@ export class DiceTable {
     this.renderer.setPixelRatio(policy.pixelRatio);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.setClearColor(0x000000, 0);
-    // Matte dice: high roughness, no metalness, no environment reflections. Faces are always 256 px
-    // (cheap: six small textures) with mipmaps and the GPU's anisotropic filtering, so pips stay crisp.
-    const anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy?.() ?? 4);
-    this.materials = MATERIAL_ORDER.map((v) => {
-      const map = faceTexture(v, 256);
-      map.anisotropy = anisotropy;
-      return new THREE.MeshStandardMaterial({ map, roughness: 0.62, metalness: 0 });
-    });
-    this.scene.add(new THREE.HemisphereLight(0xffffff, 0xa8a8a8, 1.55));
-    this.light = new THREE.DirectionalLight(0xffffff, 0.85);
+    // Faces are always 256 px (cheap: six small textures) with mipmaps and the GPU's anisotropic
+    // filtering, so pips stay crisp; relief / roughness maps come from the same seeded painter.
+    this.buildMaterials(CLASSIC_DICE);
+    this.scene.add(new THREE.HemisphereLight(0xffffff, 0xa8a8a8, 1.45));
+    this.light = new THREE.DirectionalLight(0xffffff, 0.95);
     this.scene.add(this.light, this.light.target);
+    // A weak back light from the far side: an edge highlight that separates polished dice from the board.
+    this.rim = new THREE.DirectionalLight(0xdfe8ff, 0.32);
+    this.scene.add(this.rim, this.rim.target);
     this.blob = blobTexture();
     host.appendChild(this.canvas);
     addEventListener("scroll", this.dropRect, { passive: true, capture: true });
@@ -184,7 +201,7 @@ export class DiceTable {
   private mesh(id: number) {
     let m = this.meshes.get(id);
     if (!m) {
-      m = new THREE.Mesh(this.geometry, this.materials);
+      m = new THREE.Mesh(this.geometry, this.materialsFor(id));
       this.scene.add(m);
       this.meshes.set(id, m);
       const material = new THREE.MeshBasicMaterial({ map: this.blob, transparent: true, depthWrite: false });
@@ -222,6 +239,8 @@ export class DiceTable {
     this.camera.updateProjectionMatrix();
     this.light.position.set(this.width / 2 - 2.5, 9, this.height / 2 - 4);
     this.light.target.position.set(this.width / 2, 0, this.height / 2);
+    this.rim.position.set(this.width / 2 + 3, 6, this.height / 2 + 6);
+    this.rim.target.position.set(this.width / 2, 0, this.height / 2);
     this.scheduleWarmUp();
     this.requestRender();
   }
@@ -259,7 +278,7 @@ export class DiceTable {
     });
     try {
       this.renderer.compile(this.scene, this.camera);
-      for (const m of this.materials) if (m.map) this.renderer.initTexture(m.map);
+      for (const t of this.textures) this.renderer.initTexture(t);
       this.renderer.initTexture(this.blob);
       if (hidden.length) {
         this.renderer.render(this.scene, this.camera);
@@ -311,35 +330,154 @@ export class DiceTable {
   }
 
   private colors: DiceColors = CLASSIC_DICE;
-  /** Dice theme of the player whose turn it is (repaints the six face textures; no physics change). */
+  /** Dice theme of the player whose turn it is (repaints the face textures; no physics change). */
   setColors(colors: DiceColors | null) {
     const next = colors ?? CLASSIC_DICE;
     if (JSON.stringify(next) === JSON.stringify(this.colors)) return;
     this.colors = next;
-    const anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy?.() ?? 4);
-    const finish = next.finish ?? "matte";
-    const surface = { matte: [0.62, 0], satin: [0.42, 0.05], gloss: [0.22, 0.05], metal: [0.32, 0.55], glass: [0.12, 0] }[finish];
-    MATERIAL_ORDER.forEach((v, i) => {
-      const m = this.materials[i];
-      const map = faceTexture(v, 256, next);
-      map.anisotropy = anisotropy;
-      m.map?.dispose();
-      m.map = map;
-      m.roughness = surface[0];
-      m.metalness = surface[1];
-      m.transparent = finish === "glass";
-      m.opacity = finish === "glass" ? 0.86 : 1;
-      // Glow lights the pips (and a neon rim) through an emission mask; the body keeps its colour.
-      m.emissiveMap?.dispose();
-      m.emissiveMap = next.glow ? glowTexture(v, 128, next) : null;
-      m.emissive.set(next.glow ?? "#000000");
-      m.emissiveIntensity = next.glow ? GLOW_BASE : 0;
-      m.needsUpdate = true;
-    });
+    this.buildMaterials(next);
     this.profile = diceFx(next.fx);
     this.fxLevel = this.profile ? (next.fxLevel ?? 1) : 1;
     this.setAnimation(next.glow ? (next.anim ?? null) : null);
     this.requestRender();
+  }
+
+  /** Physical layers (clearcoat, iridescence, sheen) only on the high quality and a non-degraded device. */
+  private get physical() {
+    return this.quality === "3d-high" && (!this.options.adaptive || adaptiveLevel() < 2);
+  }
+  /** Studio reflections (built once per table, only when a material needs them). */
+  private environment() {
+    if (!this.envTexture) {
+      const pmrem = new THREE.PMREMGenerator(this.renderer);
+      const studio = studioScene();
+      this.envTexture = pmrem.fromScene(studio.scene, 0.03).texture;
+      studio.dispose();
+      pmrem.dispose();
+    }
+    return this.envTexture;
+  }
+
+  /** (Re)build the six face materials of a look and every die's clones. Textures of the old look are freed. */
+  private buildMaterials(look: DiceColors) {
+    const raw = diceMaterialSpec(look, look.fx);
+    const usePhysical = this.physical && (raw.clearcoat > 0 || raw.iridescence > 0 || raw.sheen > 0);
+    const s = this.physical ? raw : liteSpec(raw);
+    this.spec = s;
+    const old = this.textures;
+    this.textures = [];
+    const keep = <T extends THREE.Texture>(t: T) => (this.textures.push(t), t);
+    const anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy?.() ?? 4);
+    const env = s.env > 0 ? this.environment() : null;
+    const glowColor = look.glow ?? (s.selfGlow > 0 ? look.accent ?? look.edge : null);
+    this.glowBase = look.glow ? GLOW_BASE + (s.selfGlow ? 0.25 : 0) : s.selfGlow;
+    this.ambientGlow = this.glowBase;
+    this.motionOn = !!look.glow && (look.fxLevel ?? 1) >= 2 && s.motion !== "none";
+    this.materials.forEach((m) => m.dispose());
+    this.materials = MATERIAL_ORDER.map((v) => {
+      const m = usePhysical ? new THREE.MeshPhysicalMaterial() : new THREE.MeshStandardMaterial();
+      const map = keep(faceTexture(v, 256, look));
+      map.anisotropy = anisotropy;
+      m.map = map;
+      m.bumpMap = keep(bumpTexture(v, 256, look, s));
+      m.bumpScale = 1.4;
+      const surface = keep(surfaceTexture(v, 128, look, s));
+      m.roughnessMap = surface;
+      m.metalnessMap = surface;
+      m.roughness = 1;
+      m.metalness = 1;
+      if (s.opacity < 1) {
+        m.transparent = true;
+        m.alphaMap = keep(alphaTexture(v, 128, s));
+      }
+      if (env) {
+        m.envMap = env;
+        m.envMapIntensity = s.env;
+      }
+      if (m instanceof THREE.MeshPhysicalMaterial) {
+        m.clearcoat = s.clearcoat;
+        m.clearcoatRoughness = s.clearcoatRoughness;
+        if (s.iridescence) {
+          m.iridescence = s.iridescence;
+          m.iridescenceIOR = 1.3;
+          m.iridescenceThicknessRange = [120, 420];
+        }
+        if (s.sheen) {
+          m.sheen = s.sheen;
+          m.sheenRoughness = 0.55;
+          m.sheenColor.set(s.sheenColor ?? "#ffffff");
+        }
+        if (s.class === "gem") m.ior = 1.77;
+      }
+      if (glowColor) {
+        // Glow lights the pips / rim (and a material's own glowing pattern) through an emission mask;
+        // the body keeps its colour.
+        m.emissiveMap = keep(s.selfGlow > 0 ? selfGlowTexture(v, 128, look, !!look.glow) : glowTexture(v, 128, look));
+        m.emissive.set(glowColor);
+        m.emissiveIntensity = this.glowBase;
+      }
+      return m;
+    });
+    for (const [id, mats] of this.dieMaterials) {
+      mats.forEach((m) => m.dispose());
+      const fresh = this.materials.map((m) => m.clone());
+      this.dieMaterials.set(id, fresh);
+      const mesh = this.meshes.get(id);
+      if (mesh) mesh.material = fresh;
+    }
+    old.forEach((t) => t.dispose());
+    this.energy.clear();
+  }
+  private materialsFor(id: number) {
+    let mats = this.dieMaterials.get(id);
+    if (!mats) {
+      mats = this.materials.map((m) => m.clone());
+      this.dieMaterials.set(id, mats);
+    }
+    return mats;
+  }
+  /** Material class of the current look (diagnostics / tests). */
+  get materialClass() {
+    return this.spec.class;
+  }
+
+  /** Emission of every die = ambient level (timer) × its motion response. */
+  private applyGlow(now: number) {
+    if (!this.glowBase) return;
+    const t = now / 1000;
+    for (const [id, mats] of this.dieMaterials) {
+      const k = this.motionOn ? motionGlow(this.spec.motion, this.energy.get(id) ?? 0, t + id * 0.37) : 1;
+      const level = this.ambientGlow * k;
+      for (const m of mats) m.emissiveIntensity = level;
+    }
+  }
+  /** Feed the motion response of one die (speed in die edges / s, hit strength). */
+  private feedEnergy(id: number, dt: number, speed: number, hit: number) {
+    if (!this.motionOn) return;
+    this.energy.set(id, stepEnergy(this.spec.motion, this.energy.get(id) ?? 0, dt, speed, hit));
+  }
+  /** After a throw the dice's light lingers and fades by itself (not counted as "moving"). */
+  private fadeGlow() {
+    if (!this.motionOn || this.glowStep) return;
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      let alive = false;
+      for (const id of this.energy.keys()) {
+        this.feedEnergy(id, dt, 0, 0);
+        if ((this.energy.get(id) ?? 0) > 0.01) alive = true;
+      }
+      this.applyGlow(now);
+      if (!alive) {
+        this.energy.clear();
+        this.applyGlow(now);
+        this.glowStep = null;
+      }
+      return alive;
+    };
+    this.glowStep = step;
+    this.loop(step);
   }
 
   /**
@@ -365,10 +503,10 @@ export class DiceTable {
         const t = (performance.now() - start) / 1000;
         const base = GLOW_BASE;
         const level = this.anim === "pulse" ? base + 0.5 * (0.5 + 0.5 * Math.sin(t * 2.4)) : this.anim === "sparkle" ? base + 0.7 * Math.abs(Math.sin(t * 5.1) * Math.sin(t * 1.7)) : base + 0.35 * (0.5 + 0.5 * Math.sin(t * 1.3));
-        this.materials.forEach((m, i) => {
-          m.emissiveIntensity = level;
-          if (this.anim === "shimmer") m.emissive.offsetHSL(0.004 * (i % 2 ? 1 : -1), 0, 0);
-        });
+        this.ambientGlow = level + (this.glowBase - GLOW_BASE);
+        if (this.anim === "shimmer")
+          for (const mats of this.dieMaterials.values()) mats.forEach((m, i) => m.emissive.offsetHSL(0.004 * (i % 2 ? 1 : -1), 0, 0));
+        this.applyGlow(performance.now());
         this.requestRender();
       }, 66);
     }
@@ -493,7 +631,7 @@ export class DiceTable {
   private drainStep: ((now: number) => boolean) | null = null;
   /** True while dice themselves move (a throw, a slide, a score effect) — not while particles fade. */
   get moving() {
-    for (const s of this.steps) if (s !== this.drainStep) return true;
+    for (const s of this.steps) if (s !== this.drainStep && s !== this.glowStep) return true;
     return false;
   }
   private trailAt(id: number, now: number, scale = 1) {
@@ -538,6 +676,8 @@ export class DiceTable {
     const lastBus = new Map<number, number>();
     let lastTrailBus = 0;
     const landStrength = new Map<number, number>();
+    const hitsNow = new Map<number, number>();
+    let lastGlow = started;
     emitFx({ type: "roll" });
     const stop = this.loop((now) => {
       this.frameTimes.push(now - last);
@@ -563,6 +703,7 @@ export class DiceTable {
       while (next < impacts.length && impacts[next].frame <= f) {
         const hit = impacts[next++];
         if (hit.kind === "floor") landStrength.set(hit.id, hit.strength); // the last floor hit before rest
+        hitsNow.set(hit.id, Math.max(hitsNow.get(hit.id) ?? 0, hit.strength));
         const m = this.meshes.get(hit.id);
         opts.onImpact?.({ strength: hit.strength, kind: hit.kind, x: m ? m.position.x / this.width : 0.5 });
         if (fx && hit.strength > 1.5 && now - lastBurst >= 110) {
@@ -600,6 +741,18 @@ export class DiceTable {
           if (c) emitFx({ type: "trail", x: c.x, y: c.y, id: t.id });
         }
       }
+      // Lv.2+ motion response: each die's own light follows its speed and its hits (dice-material.ts).
+      if (this.motionOn) {
+        const dt = Math.min(0.1, (now - lastGlow) / 1000);
+        lastGlow = now;
+        for (const t of result.tracks) {
+          const fr = t.frames, o = i * 7, p = j * 7;
+          const speed = Math.hypot(fr[p] - fr[o], fr[p + 1] - fr[o + 1], fr[p + 2] - fr[o + 2]) * result.fps;
+          this.feedEnergy(t.id, dt, speed, hitsNow.get(t.id) ?? 0);
+        }
+        hitsNow.clear();
+        this.applyGlow(now);
+      }
       fx?.frame(now);
       opts.onFrame?.();
       if (f >= result.frameCount - 1) {
@@ -609,6 +762,7 @@ export class DiceTable {
           if (c) emitFx({ type: "land", x: c.x, y: c.y, strength: landStrength.get(id) ?? 6, id });
         }
         this.drainFx();
+        this.fadeGlow();
         this.adapt(this.frameTimes);
         reportThrowFrames(this.frameTimes);
         opts.onDone();
@@ -734,11 +888,13 @@ export class DiceTable {
     this.renderer.forceContextLoss?.();
     this.geometry.dispose();
     this.blobGeometry.dispose();
-    this.materials.forEach((m) => {
-      m.map?.dispose();
-      m.emissiveMap?.dispose();
-      m.dispose();
-    });
+    this.materials.forEach((m) => m.dispose());
+    for (const mats of this.dieMaterials.values()) mats.forEach((m) => m.dispose());
+    this.dieMaterials.clear();
+    this.textures.forEach((t) => t.dispose());
+    this.textures = [];
+    this.envTexture?.dispose();
+    this.envTexture = null;
     if (this.animTimer) window.clearInterval(this.animTimer);
     this.observer?.disconnect();
     this.blobMaterials.forEach((m) => m.dispose());
