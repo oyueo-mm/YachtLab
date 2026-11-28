@@ -82,6 +82,8 @@ export type AdminBackends = {
   /** FEEDBACK=on: suggestions, reports and appeals. */
   feedback: boolean;
   economy: boolean;
+  /** SEC-1 2차 INT-3: C5 reward master switch (ECONOMY+RETENTION). false → claim / redeem answer before any AdminHub call. */
+  rewards?: boolean;
   /** Admin routes contributed by other modules (LIVE-1 daily, …). */
   extensions?: AdminExtensionRoute[];
 };
@@ -590,6 +592,7 @@ export async function handleEngagementRoute(request: Request, url: URL, b: Admin
     const claim = /^\/api\/me\/mailbox\/([A-Za-z0-9_:-]{4,80})\/claim$/.exec(path);
     if (claim) {
       if (!b.economy) return fail(404, "ECONOMY_OFF", "재화 기능은 아직 준비 중이에요.");
+      if (b.rewards === false) return fail(404, "RETENTION_OFF", "보상 기능은 아직 준비 중이에요.");
       const r = await user.claim?.(claim[1]);
       if (!r) return fail(404, "NOT_FOUND", "없는 주소입니다.");
       if (r.ok) await Promise.all([b.count?.("grant.admin.coins", r.coins), b.count?.("grant.admin.gems", r.gems)]).catch(() => undefined);
@@ -598,6 +601,8 @@ export async function handleEngagementRoute(request: Request, url: URL, b: Admin
     // INT-1: one redeem flow for the C5 reward page (/api/me/rewards/redeem) and the ADMIN-1 route (/api/me/redeem).
     if (path === "/api/me/redeem" || path === "/api/me/rewards/redeem") {
       if (!b.economy) return fail(404, "ECONOMY_OFF", "재화 기능은 아직 준비 중이에요.");
+      // switch off: no code lookup, no reservation, no AdminHub request
+      if (b.rewards === false) return fail(404, "RETENTION_OFF", "보상 기능은 아직 준비 중이에요.");
       if ((await b.limited("redeem:" + me.userId, 5)) || (await b.limited("redeem-ip:" + b.client, 20))) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
       const profile = await user.me();
       if (!profile) return fail(401, "UNAUTHENTICATED", "로그인이 필요해요.");

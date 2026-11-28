@@ -156,6 +156,7 @@ export function world(env: { ADMIN_ACCOUNTS?: string; ADMIN_WRITES?: string; ADM
     now: clock,
     feedback: true,
     economy: true,
+    rewards: env.RETENTION !== "off",
   });
   /**
    * Admin sign-in as production does it: the Google re-authentication callback (simulated here by the

@@ -1797,6 +1797,7 @@ export default {
         now: Date.now,
         feedback: !!auth && env.FEEDBACK_BOARD === "on",
         economy: !!auth && env.ECONOMY === "on",
+        rewards: !!auth && env.ECONOMY === "on" && env.RETENTION === "on",
         // INT-1: LIVE-1 daily operations as admin console extensions (stats.read / content.write + audit).
         // The shared ADMIN_TOKEN path for daily routes stays removed.
         extensions: dailyAdminRoutes({ board: dailyBoard, now: dailyClock(env) }),

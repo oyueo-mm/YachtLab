@@ -135,3 +135,21 @@ describe("SEC-1 2차 INT-7 · 롤백에도 관리자·게시판 탈퇴 정리가
     expect(() => new CleanupQueue(sqlite(), 'x"; DROP TABLE tomb; --')).toThrow();
   });
 });
+
+describe("SEC-1 2차 · 기능이 꺼진 상태의 경로", () => {
+  it("RETENTION이 꺼지면 쿠폰·알림함 수령은 관리자 허브를 부르기 전에 404 RETENTION_OFF", async () => {
+    const w = world({ RETENTION: "off" });
+    const m = w.account(U);
+    const calls: string[] = [];
+    const backends = w.backends();
+    const admin = backends.admin;
+    backends.admin = { op: (name: string, ...a: unknown[]) => (calls.push(name), (admin.op as (n: string, ...x: unknown[]) => Promise<unknown>)(name, ...a)) } as typeof admin;
+    for (const path of ["/api/me/redeem", "/api/me/rewards/redeem", `/api/me/mailbox/op:rw_${"a".repeat(16)}/claim`]) {
+      const request = new Request("https://w.example" + path, { method: "POST", headers: { authorization: "Bearer " + m.session, "content-type": "application/json" }, body: JSON.stringify({ code: "ANYCODE1" }) });
+      const r = (await handleEngagementRoute(request, new URL(request.url), backends, reply))!;
+      expect(r.status).toBe(404);
+      expect(((await r.json()) as { error: { code: string } }).error.code).toBe("RETENTION_OFF");
+    }
+    expect(calls.filter((c) => c === "redeem" || c === "code")).toEqual([]);
+  });
+});
