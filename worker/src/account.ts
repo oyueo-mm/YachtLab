@@ -280,6 +280,28 @@ export class AccountStore {
     return row ? { review: row.review ? JSON.parse(row.review) as ReviewMatch : null } : null;
   }
 
+  /* ---------------------------------------------------------- ADMIN-1 (read / sanction) ---------------------------------------------------------- */
+
+  /** Sanction "닉네임 초기화": the account chooses a new nickname at its next visit. */
+  resetNickname(now: number) {
+    this.sql.exec("UPDATE user SET nickname = NULL, updated_at = ? WHERE id = 1", now);
+  }
+  /** Aggregates for the admin console — no session secrets, no provider subject, no guest ids. */
+  adminSummary() {
+    const p = this.profile();
+    if (!p) return null;
+    const byMode = this.sql.exec<{ mode: string; verification: string; outcome: string; n: number }>("SELECT mode, verification, outcome, count(*) AS n FROM matches GROUP BY mode, verification, outcome").toArray();
+    const last = this.sql.exec<{ ended_at: number }>("SELECT max(ended_at) AS ended_at FROM matches").toArray()[0]?.ended_at ?? null;
+    const sessions = this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM sessions WHERE expires_at > ?", Date.now()).toArray()[0]?.n ?? 0;
+    const solo = this.sql.exec<{ n: number }>("SELECT count(*) AS n FROM solo_records").toArray()[0]?.n ?? 0;
+    return { userId: p.userId, provider: p.provider, nickname: p.nickname, createdAt: p.createdAt, lastMatchAt: last, liveSessions: sessions, soloRecords: solo, online: this.publicProfile()?.online ?? null, records: byMode };
+  }
+  /** One server-verified record (report evidence). The review archive is not included. */
+  adminRecord(recordId: string): MatchRecord | null {
+    const row = this.sql.exec<{ data: string }>("SELECT data FROM matches WHERE record_id = ? AND verification = 'server-verified'", recordId).toArray()[0];
+    return row ? (JSON.parse(row.data) as MatchRecord) : null;
+  }
+
   linkGuest(guestId: string, now: number) {
     this.sql.exec("INSERT OR IGNORE INTO guests (guest_id, linked_at) VALUES (?, ?)", guestId, now);
   }

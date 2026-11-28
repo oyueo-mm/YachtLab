@@ -73,12 +73,16 @@ export async function unseal<T>(sealed: string | null | undefined, secret: strin
 
 /* ------------------------------------------------------------- login start ------------------------------------------------------------- */
 
-export type LoginState = { state: string; nonce: string; verifier: string; cs: string; exp: number };
+/**
+ * `purpose: "admin"` (ADMIN-1 re-authentication): the redirect asks Google for a NEW authentication
+ * (`prompt=login`, `max_age=0`) and the callback requires an `auth_time` not older than this login's start.
+ */
+export type LoginState = { state: string; nonce: string; verifier: string; cs: string; exp: number; purpose?: "admin"; startedAt?: number };
 export const LOGIN_TTL_MS = 10 * 60_000;
 
 /** Build the authorization redirect and the state to remember (in the sealed cookie). */
-export async function beginLogin(opts: { provider: OidcProvider; clientId: string; redirectUri: string; clientStateHash: string; now: number }) {
-  const login: LoginState = { state: randomToken(), nonce: randomToken(), verifier: randomToken(48), cs: opts.clientStateHash, exp: opts.now + LOGIN_TTL_MS };
+export async function beginLogin(opts: { provider: OidcProvider; clientId: string; redirectUri: string; clientStateHash: string; now: number; purpose?: "admin" }) {
+  const login: LoginState = { state: randomToken(), nonce: randomToken(), verifier: randomToken(48), cs: opts.clientStateHash, exp: opts.now + LOGIN_TTL_MS, ...(opts.purpose ? { purpose: opts.purpose, startedAt: opts.now } : {}) };
   const challenge = b64url(new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(login.verifier))));
   const url = new URL(opts.provider.authorizationEndpoint);
   url.search = new URLSearchParams({
@@ -90,7 +94,8 @@ export async function beginLogin(opts: { provider: OidcProvider; clientId: strin
     nonce: login.nonce,
     code_challenge: challenge,
     code_challenge_method: "S256",
-    prompt: "select_account",
+    // admin re-authentication: Google must authenticate again (not reuse its session) and report when
+    ...(opts.purpose === "admin" ? { prompt: "login", max_age: "0" } : { prompt: "select_account" }),
   }).toString();
   return { url: url.toString(), login };
 }
@@ -119,7 +124,19 @@ export class OidcError extends Error {
   }
 }
 
-export type IdClaims = { iss: string; aud: string | string[]; sub: string; exp: number; iat: number; nonce?: string; azp?: string };
+export type IdClaims = { iss: string; aud: string | string[]; sub: string; exp: number; iat: number; nonce?: string; azp?: string; auth_time?: number };
+/** Admin re-authentication tolerance for clock skew between Google and the Worker. */
+export const REAUTH_SKEW_MS = 60_000;
+/**
+ * ADMIN-1: a re-authentication is accepted only when the ID token says the user authenticated AFTER
+ * this login started (minus skew). Returns the authentication time (ms) or throws.
+ */
+export function requireFreshAuth(claims: IdClaims, login: LoginState): number {
+  const at = typeof claims.auth_time === "number" && Number.isFinite(claims.auth_time) ? claims.auth_time * 1000 : null;
+  if (at === null) throw new OidcError("AUTH_TIME", "재인증 시각을 확인할 수 없어요.");
+  if (at < (login.startedAt ?? Infinity) - REAUTH_SKEW_MS) throw new OidcError("AUTH_TIME", "다시 로그인해야 해요.");
+  return at;
+}
 
 /** Verify a compact JWS ID token: RS256 signature (kid from JWKS), iss, aud, exp, iat, nonce. */
 export async function verifyIdToken(token: string, opts: { provider: OidcProvider; clientId: string; nonce: string; now: number; fetcher: typeof fetch }): Promise<IdClaims> {

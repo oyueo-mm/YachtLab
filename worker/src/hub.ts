@@ -290,6 +290,8 @@ export class HubCore {
     this.detached.delete(ticket);
     ws.serializeAttachment(w);
     this.count("queue.join");
+    // ADMIN-1: hourly demand (UTC hour only, no ids)
+    this.count("queue.hour." + String(new Date(t).getUTCHours()).padStart(2, "0"));
     this.send(ws, { t: "queued", since: w.since, waiting: this.waiting() });
     await this.pairAll();
   }

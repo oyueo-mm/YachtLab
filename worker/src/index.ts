@@ -19,6 +19,9 @@ import { validateNickname } from "../../src/identity/nickname";
 import { ABSENT_ACCOUNT, FriendIndexStore, FriendStore, Presence, type FriendSql } from "./friends";
 import { handleFriendRoute, sendInvites, type FriendDeps, type FriendUser, type ResidueMode } from "./friends-api";
 import { CLEANUP_PARKED_CHECK_MS, CleanupQueue, INDEX_TARGET, runCleanup, type CleanupJob } from "./account-cleanup";
+/** ADMIN-1 / FEEDBACK-1 cleanup targets (account ids start with "u_", so these never collide). */
+const ADMIN_TARGET = "@admin";
+const BOARD_TARGET = "@board";
 import { sameText } from "./oidc";
 import { authConfig, handleAccountRoute, sessionUser, type AccountBackends, type GuestApi, type UserApi } from "./accounts-api";
 import type { MatchRecord } from "../../src/identity/records";
@@ -27,6 +30,11 @@ import type { PublicLook } from "../../src/economy/live/catalog";
 import type { MatchKind } from "../../src/economy/live/config";
 import { HubCore, type HubSql, type QueueSeat } from "./hub";
 import { clearStaleReservations, migrateReservations, reserve, type ReservationSql } from "./reservations";
+import { adminSettings, legacyTokenRoutes } from "./admin/roles";
+import { AdminCore, utcDay, type ActivityReport, type AdminSql, type InboxItem } from "./admin/store";
+import { MemberOps, type MemberSql } from "./admin/member";
+import { handleAdminRoute, handleEngagementRoute, type AdminBackends, type AdminUserApi } from "./admin/api";
+import { BoardCore, type BoardSql } from "./feedback/board";
 
 /**
  * YachtLab Online — Cloudflare Worker + SQLite-backed Durable Objects (Phase 3).
@@ -76,6 +84,24 @@ export interface Env extends ConfigVars {
   ACCOUNT_CLEANUP_RETRY_EPOCH?: string;
   /** Operations metrics endpoint (`GET /api/admin/metrics`), off unless this secret (≥ 32 chars) is set. */
   ADMIN_TOKEN?: string;
+  /** ADMIN-1: one global object — admin sessions, audit log, member index, campaigns, codes, notices, reports, sanctions. */
+  ADMIN: DurableObjectNamespace<AdminHub>;
+  /** FEEDBACK-1: one global object — the service suggestion board. */
+  FEEDBACK: DurableObjectNamespace<SuggestionBoard>;
+  /** ADMIN-1 Worker SECRET: `u_…:role,…` (viewer | support | operator | owner). Unset = no admin console. */
+  ADMIN_ACCOUNTS?: string;
+  /** "on" allows admin writes (drafts, approvals, execution). Default off. */
+  ADMIN_WRITES?: string;
+  /** "self" lets an owner approve their own drafts; default needs a second administrator. */
+  ADMIN_APPROVAL?: string;
+  /** ADMIN-1: "google" (default) re-authentication for admin sessions; "off" honoured only for a loopback APP_URL (tests). */
+  ADMIN_REAUTH?: string;
+  /** ADMIN-1: approved reward-amount policy version. Unset = reward/code/adoption-reward drafts refused. */
+  ADMIN_REWARD_POLICY?: string;
+  /** D-ADM-9: legacy ADMIN_TOKEN routes — "metrics,ledger" (default), "metrics", "off". */
+  ADMIN_TOKEN_ROUTES?: string;
+  /** "on" opens the suggestion board, reports and appeals to members. Default off. */
+  FEEDBACK_BOARD?: string;
   /** Sign-in (all four must be set, as Worker secrets / vars, or sign-in stays off). */
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
@@ -141,6 +167,7 @@ export class YachtRoom extends DurableObject<Env> {
       finished: async (info) => {
         const hub = env.HUB.get(env.HUB.idFromName("hub"));
         await hub.count(`finished.${info.kind}.${info.completed ? "completed" : "forfeit"}`);
+        if (info.players) await hub.count(`players.${Math.min(20, info.players)}`);
         if (info.completed) {
           await hub.completed(info.matchId, info.at);
           await hub.count(`duration.${info.kind}.totalSec`, Math.round(info.durationMs / 1000));
@@ -491,10 +518,12 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   private retention: RetentionStore;
   private friends: FriendStore;
   private cleanup: CleanupQueue;
+  private member: MemberOps;
   private presenceState = new Presence();
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.store = new AccountStore(ctx.storage.sql as unknown as Sql);
+    this.member = new MemberOps(ctx.storage.sql as unknown as MemberSql);
     this.econ = new EconomyStore(this.econSql());
     // C5: only the approved C5-CORE sources can pay (operator, suggestion, daily content, redeem codes: off)
     this.grants = new RewardGrants(this.econSql(), this.econ);
@@ -508,6 +537,7 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       this.retention.init();
       this.friends.init();
       this.cleanup.init();
+      this.member.init();
     });
   }
   /* ---------------------------------------------- friends (I/J): one generic RPC over FriendStore ---------------------------------------------- */
@@ -579,25 +609,34 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     if (g.length) await this.hub().count("econ.welcome").catch(() => undefined);
     return { ok: true as const, snapshot: this.econ.snapshot(p.userId, Date.now()) };
   }
-  private async econAction<T extends { ok: true; duplicate?: boolean; snapshot: unknown } | { ok: false; code: string; message: string }>(kind: string, fn: (userId: string, now: number) => T, metric?: (r: { ok: true; duplicate?: boolean }) => string | null) {
+  private async econAction<T extends { ok: true; duplicate?: boolean; snapshot: unknown } | { ok: false; code: string; message: string }>(kind: string, fn: (userId: string, now: number) => T, metric?: (r: T & { ok: true; duplicate?: boolean }) => string | (string | [string, number])[] | null) {
     if (!this.economyOn) return { ok: false as const, code: "ECONOMY_OFF", message: "재화 기능은 아직 준비 중이에요." };
     const p = this.store.profile();
     if (!p) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
     this.welcome(Date.now());
+    const before = this.econ.wallet();
     const r = fn(p.userId, Date.now());
     if (r.ok && !r.duplicate) {
-      const m = metric?.(r);
-      if (m) await this.hub().count(m).catch(() => undefined);
+      const m = metric?.(r as T & { ok: true });
+      // ADMIN-1: spending is counted as the balance drop of the action (no ids, privacy-light)
+      const after = this.econ.wallet();
+      const counts: [string, number][] = [...(m === null || m === undefined ? [] : Array.isArray(m) ? m : [m]).map((x): [string, number] => (typeof x === "string" ? [x, 1] : x)),
+        ["spend.coins", Math.max(0, before.coins - after.coins)], ["spend.gems", Math.max(0, before.gems - after.gems)]];
+      const hub = this.hub();
+      await Promise.all(counts.filter(([, n]) => n > 0).map(([k, n]) => hub.count(k, n))).catch(() => undefined);
     }
     void kind;
     return r;
   }
   async buy(itemId: unknown, currency: unknown, requestId: string, quote: Quote = {}) {
     const tier = itemById(itemId)?.tier ?? "unknown";
-    return this.econAction("buy", (u, n) => this.econ.buy(u, itemId, currency, requestId, n, quote), () => `buy.${tier}.${currency === "gems" ? "gems" : "coins"}`);
+    return this.econAction("buy", (u, n) => this.econ.buy(u, itemId, currency, requestId, n, quote), () => [`buy.${tier}.${currency === "gems" ? "gems" : "coins"}`, ...(itemById(itemId) ? [`item.${itemById(itemId)!.id}`] : [])]);
   }
   async upgrade(itemId: unknown, requestId: string, quote: Quote = {}) {
-    return this.econAction("upgrade", (u, n) => this.econ.upgrade(u, itemId, requestId, n, quote), () => "upgrade");
+    return this.econAction("upgrade", (u, n) => this.econ.upgrade(u, itemId, requestId, n, quote), () => {
+      const level = itemById(itemId) ? this.econ.owned().get(itemById(itemId)!.id) : undefined;
+      return ["upgrade", ...(level ? [`upgrade.level.${level}`] : [])];
+    });
   }
   async buySlot(kind: unknown, currency: unknown, requestId: string, quote: Quote = {}) {
     return this.econAction("slot", (u, n) => this.econ.buySlot(u, kind, currency, requestId, n, quote), () => `slot.${kind === "chat" ? "chat" : "emote"}`);
@@ -616,7 +655,10 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   }
   async draw(pool: DrawPool, requestId: string, quote: Quote = {}) {
     if (this.env.DICE_DRAW !== "on") return { ok: false as const, code: "ECONOMY_OFF", message: "뽑기는 아직 준비 중이에요." };
-    return this.econAction("draw", (u, n) => this.econ.draw(u, pool, requestId, n, quote), () => "shop.draw");
+    return this.econAction("draw", (u, n) => this.econ.draw(u, pool, requestId, n, quote), (r) => {
+      const receipt = (r as { receipt?: { hand: string; duplicateCoins: number } }).receipt;
+      return ["shop.draw", ...(receipt ? [`draw.hand.${receipt.hand}`, ...(receipt.duplicateCoins ? ["draw.duplicate"] : [])] : [])];
+    });
   }
   /** Ledger ↔ balance check (administrator), including the grant records (C5). */
   async verifyLedger() {
@@ -705,7 +747,12 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     return this.econ.startAi(p.userId, Date.now());
   }
   async ensureAndCode(userId: string, provider: string, clientStateHash: string) {
+    const isNew = !this.store.exists();
     this.store.ensureUser(userId, provider, Date.now());
+    if (isNew) {
+      const carried = await this.admin().op("signup", userId, Date.now()).catch(() => []) as { id: string; kind: "restrict" | "suspend"; reason: string; until: number | null }[];
+      for (const c of carried) this.member.applySanction(c, Date.now());
+    }
     return this.store.createLoginCode(clientStateHash, Date.now());
   }
   async exchange(code: string, clientState: string) {
@@ -715,7 +762,110 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     return session;
   }
   async authenticate(session: string) {
-    return this.store.authenticate(session, Date.now());
+    const ok = await this.store.authenticate(session, Date.now());
+    if (ok) this.reportActivity();
+    return ok;
+  }
+  /** ADMIN-1: authentication and sanction standing in one call (enforced by the Worker routes). */
+  async authenticateStanding(session: string) {
+    const ok = await this.authenticate(session);
+    const s = this.member.standing(Date.now());
+    return { ok, suspended: s.suspended, restricted: s.restricted, until: s.suspendedUntil ?? s.restrictedUntil };
+  }
+  private admin(): { op(name: string, ...args: unknown[]): Promise<unknown> } {
+    return this.env.ADMIN.get(this.env.ADMIN.idFromName("admin")) as unknown as { op(name: string, ...args: unknown[]): Promise<unknown> };
+  }
+  /**
+   * First authenticated request of a KST day queues an activity report; the whole unacknowledged queue
+   * (oldest first, one call, one at a time) goes to the admin index and is removed only on success, so a
+   * failure is retried at a later request (at most once a minute). The index counts each day once.
+   */
+  private activitySending = false;
+  private activityTriedAt = 0;
+  private reportActivity() {
+    const p = this.store.profile();
+    if (!p || !this.env.ADMIN) return;
+    const fresh = this.member.activity(p, Date.now());
+    if (this.activitySending || (!fresh && Date.now() - this.activityTriedAt < 60_000)) return;
+    const queue = this.member.outbox();
+    if (!queue.length) return;
+    this.activitySending = true;
+    this.activityTriedAt = Date.now();
+    this.ctx.waitUntil(this.admin().op("activityBatch", queue satisfies ActivityReport[])
+      .then(() => this.member.ack(queue.map((r) => r.day)))
+      .catch(() => undefined)
+      .finally(() => (this.activitySending = false)));
+  }
+  /* ------------------------------------------------------------- ADMIN-1 (admin console RPC) ------------------------------------------------------------- */
+  async adminView() {
+    const account = this.store.adminSummary();
+    if (!account) return null;
+    const now = Date.now();
+    const snap = this.econ.snapshot(account.userId, now, 20);
+    return {
+      account,
+      lastActiveDay: this.member.lastActiveDay() === null ? null : new Date(this.member.lastActiveDay()! * 86_400_000).toISOString().slice(0, 10),
+      economy: { enabled: this.economyOn, wallet: snap.wallet, items: snap.inventory.length, topItems: [...snap.inventory].sort((a, b) => b.level - a.level).slice(0, 10), achievements: Object.keys(snap.state.achievements ?? {}).length, slots: snap.slots, loadout: snap.loadout, recentLedger: snap.ledger },
+      ledger: this.econ.verify(),
+      standing: this.member.standing(now),
+      sanctions: this.member.sanctions(),
+      inbox: this.member.inbox(now, 20),
+    };
+  }
+  async adminRecord(matchId: string) {
+    return this.store.exists() ? this.store.adminRecord(matchId) : null;
+  }
+  async deliver(item: InboxItem) {
+    if (!this.store.exists()) return "absent" as const;
+    this.member.deliver(item, Date.now());
+    return "ok" as const;
+  }
+  async revokeItem(id: string) {
+    return this.store.exists() && this.member.revoke(id);
+  }
+  async applySanction(s: { id: string; kind: "warning" | "nickname_reset" | "restrict" | "suspend"; reason: string; until: number | null }) {
+    const p = this.store.profile();
+    if (!p) return "absent" as const;
+    const now = Date.now();
+    this.ctx.storage.transactionSync(() => {
+      if (this.member.applySanction(s, now) && s.kind === "nickname_reset") this.store.resetNickname(now);
+    });
+    if (s.kind === "nickname_reset") await this.admin().op("nicknameChanged", p.userId, null).catch(() => undefined);
+    return "ok" as const;
+  }
+  async liftSanction(id: string) {
+    return this.store.exists() && this.member.liftSanction(id, Date.now());
+  }
+  async inbox() {
+    const now = Date.now();
+    return this.store.exists() ? { items: this.member.inbox(now), unclaimed: this.member.unclaimed(now) } : { items: [], unclaimed: 0 };
+  }
+  async mySanctions() {
+    return this.store.exists() ? this.member.sanctions() : [];
+  }
+  /** Claim a mailbox reward: ONE transaction — mailbox row + the economy ledger row `admin:<id>`. */
+  async claim(id: string) {
+    const p = this.store.profile();
+    if (!p) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+    if (!this.economyOn) return { ok: false as const, code: "ECONOMY_OFF", message: "재화 기능은 아직 준비 중이에요." };
+    const now = Date.now();
+    this.welcome(now);
+    const r = this.econSql().transaction(() => this.member.claim(id, now, (eventId, coins, gems, label) => void this.econ.adminGrant(p.userId, eventId, coins, gems, label, now)));
+    return r.ok ? { ...r, snapshot: this.econ.snapshot(p.userId, now) } : r;
+  }
+  /** Redeem code: deliver and claim together (idempotent by the redemption id). */
+  async redeemGrant(item: InboxItem) {
+    const p = this.store.profile();
+    if (!p) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+    if (!this.economyOn) return { ok: false as const, code: "ECONOMY_OFF", message: "재화 기능은 아직 준비 중이에요." };
+    const now = Date.now();
+    this.welcome(now);
+    return this.econSql().transaction(() => {
+      this.member.deliver(item, now);
+      const r = this.member.claim(item.id, now, (eventId, coins, gems, label) => void this.econ.adminGrant(p.userId, eventId, coins, gems, label, now));
+      // already claimed by an earlier, interrupted attempt: the grant exists, report it as done
+      return r.ok ? r : r.code === "CLAIMED" ? { ok: true as const, coins: item.coins, gems: item.gems } : r;
+    });
   }
   async me() {
     return this.store.profile();
@@ -731,6 +881,7 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   }
   async setNickname(nickname: unknown) {
     const r = this.store.setNickname(nickname, Date.now());
+    if (r.ok && this.store.profile()) await this.admin().op("nicknameChanged", this.store.profile()!.userId, r.nickname).catch(() => undefined);
     // Keep the friend search index in step (only for accounts that already have a friend code).
     const p = this.store.profile();
     // `keep`: if the index lost this account's entry, it is restored with the SAME code (never a new one).
@@ -780,7 +931,9 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       sql.exec("CREATE TABLE IF NOT EXISTS fr_retired (code TEXT PRIMARY KEY, at INTEGER NOT NULL)");
       if (plan.code) sql.exec("INSERT OR IGNORE INTO fr_retired (code, at) VALUES (?, ?)", plan.code, now);
       this.cleanup.init();
-      if (owner && (plan.code || plan.peers.length)) this.cleanup.enqueue(owner, [INDEX_TARGET, ...plan.peers], plan.code, now);
+      // ADMIN-1/FEEDBACK-1 (D-ADM-8): the admin index and the board are cleanup targets too — same durable,
+      // retried, generation-safe queue as the friend relations (they act only on data from before `now`).
+      if (owner) this.cleanup.enqueue(owner, [...(plan.code || plan.peers.length ? [INDEX_TARGET, ...plan.peers] : []), ADMIN_TARGET, BOARD_TARGET], plan.code, now);
     });
     // Fresh, empty objects over the (re-created) empty tables; presence is forgotten too.
     this.store = new AccountStore(sql as unknown as Sql);
@@ -790,6 +943,8 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     this.friends = new FriendStore(this.econSql() as unknown as FriendSql);
     this.friends.init();
     this.presenceState = new Presence();
+    this.member = new MemberOps(sql as unknown as MemberSql);
+    this.member.init();
     await this.runCleanup();
     await this.scheduleAlarm();
     return guests;
@@ -797,6 +952,13 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   private async runCleanup() {
     const send = async (job: CleanupJob, userId: string) => {
       if (job.target === INDEX_TARGET) await this.env.FRIENDS.get(this.env.FRIENDS.idFromName("index")).removeCode(userId, job.code);
+      else if (job.target === ADMIN_TARGET || job.target === BOARD_TARGET) {
+        // generation bound: the deletion time of THIS deletion record (a later re-join is never touched)
+        const deletedAt = this.ctx.storage.sql.exec<{ deleted_at: number }>("SELECT deleted_at FROM tomb WHERE id = 1").toArray()[0]?.deleted_at;
+        if (deletedAt === undefined) return; // record already ended: nothing left to bound the cleanup → done
+        if (job.target === ADMIN_TARGET) await this.admin().op("deleted", userId, deletedAt);
+        else await (this.env.FEEDBACK.get(this.env.FEEDBACK.idFromName("board")) as unknown as { op(n: string, ...a: unknown[]): Promise<unknown> }).op("forget", userId, deletedAt);
+      }
       else await (this.env.USERS.get(this.env.USERS.idFromName(job.target)) as unknown as FriendUser).fr("forget", userId, job.code);
     };
     const run = await runCleanup(this.cleanup, send, Date.now);
@@ -878,6 +1040,8 @@ export class UserStore extends DurableObject<Env> implements UserApi {
         ["achievement.unlock", result.grants.filter((g) => g.kind === "achievement").length],
         ["dau.members", result.firstToday ? 1 : 0],
         ...grantCounts(settlement.retention ?? []),
+        ...result.grants.filter((g) => g.kind === "quest").map((g): [string, number] => [`quest.id.${g.key.split(":")[3] ?? "unknown"}`, 1]),
+        ...result.grants.filter((g) => g.kind === "achievement").map((g): [string, number] => [`achievement.id.${g.key.slice(2)}`, 1]),
       ];
       await Promise.all(counts.filter(([, n]) => n > 0).map(([k, n]) => hub.count(k, n))).catch(() => undefined);
       if (result.firstToday && result.wallet) await hub.count("balance." + bucket(result.wallet.coins)).catch(() => undefined);
@@ -958,6 +1122,70 @@ export class GuestLink extends DurableObject<Env> implements GuestApi {
   }
 }
 
+/* ------------------------------------------------------------- admin (ADMIN-1) ------------------------------------------------------------- */
+
+/** Allowlisted AdminCore methods callable over RPC (one generic method keeps the shell thin). */
+const ADMIN_OPS = new Set(["createSession", "checkSession", "endSession", "endSessionsOf", "audit", "auditLog", "activity", "activityBatch", "signup", "deleted", "purgeRetention", "createReauth", "consumeReauth", "useSelfApproval", "nicknameChanged", "activityReport", "searchMembers", "draft", "action", "actions", "decide", "finishAction", "checkReward", "previewReward", "scheduleCampaign", "campaigns", "cancelCampaign", "retryFailed", "createCode", "code", "codes", "setCodeStatus", "redemptions", "redeem", "confirmRedeem", "saveNotice", "endNotice", "notices", "createReport", "reports", "report", "updateReport", "checkSanction", "recordSanction", "sanctions", "liftSanction", "createAppeal", "appeals", "answerAppeal"]);
+
+/**
+ * ADMIN-1: one object for the service (`idFromName("admin")`). Only the Worker and account objects
+ * call it; it is never reachable from a browser except through the checked routes in admin/api.ts.
+ * Its alarm sends due reward deliveries in small batches and expires time-limited sanctions.
+ */
+export class AdminHub extends DurableObject<Env> {
+  private core: AdminCore;
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    const sql = ctx.storage.sql;
+    this.core = new AdminCore({
+      exec: (q: string, ...p: unknown[]) => sql.exec(q, ...(p as SqlStorageValue[])) as unknown as { toArray(): never[] },
+      transaction: <T>(fn: () => T) => ctx.storage.transactionSync(fn),
+    } as AdminSql);
+    ctx.blockConcurrencyWhile(async () => this.core.init());
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structured-clone values; typed at the call sites (admin/api.ts)
+  async op(name: string, ...args: unknown[]): Promise<any> {
+    if (!ADMIN_OPS.has(name)) throw Error("unknown op");
+    return (this.core as unknown as Record<string, (...a: unknown[]) => unknown>)[name](...args);
+  }
+  async schedule() {
+    const next = this.core.nextWorkAt();
+    const want = Math.max(Date.now() + 1000, next ?? Date.now() + 6 * 3600_000);
+    const current = await this.ctx.storage.getAlarm();
+    if (current === null || current > want) await this.ctx.storage.setAlarm(want);
+  }
+  async alarm() {
+    const now = Date.now();
+    await this.core.process(now, async (userId, item) => this.env.USERS.get(this.env.USERS.idFromName(userId)).deliver(item));
+    this.core.expireSanctions(now);
+    this.core.pruneSessions(now, adminSettings(this.env).absoluteMs);
+    this.core.purgeRetention(now);
+    const next = this.core.nextWorkAt();
+    // idle: wake every 6 hours for sanction expiry / session pruning; busy: as soon as work is due
+    await this.ctx.storage.setAlarm(Math.max(now + 1000, Math.min(next ?? Infinity, now + 6 * 3600_000)));
+  }
+}
+
+const BOARD_OPS = new Set(["create", "list", "get", "vote", "report", "setCredit", "contributors", "moderate", "rewardTarget", "markReward", "history", "forget", "stats"]);
+/** FEEDBACK-1: the suggestion board (`idFromName("board")`). */
+export class SuggestionBoard extends DurableObject<Env> {
+  private core: BoardCore;
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    const sql = ctx.storage.sql;
+    this.core = new BoardCore({
+      exec: (q: string, ...p: unknown[]) => sql.exec(q, ...(p as SqlStorageValue[])) as unknown as { toArray(): never[] },
+      transaction: <T>(fn: () => T) => ctx.storage.transactionSync(fn),
+    } as BoardSql);
+    ctx.blockConcurrencyWhile(async () => this.core.init());
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see AdminHub.op
+  async op(name: string, ...args: unknown[]): Promise<any> {
+    if (!BOARD_OPS.has(name)) throw Error("unknown op");
+    return (this.core as unknown as Record<string, (...a: unknown[]) => unknown>)[name](...args);
+  }
+}
+
 /* ------------------------------------------------------------------ hub ------------------------------------------------------------------ */
 
 /**
@@ -979,7 +1207,9 @@ export class MatchHub extends DurableObject<Env> {
       auth: async (session) => {
         const m = /^s1\.(u_[A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{43})$/.exec(session);
         if (!m || !authConfig(env)) return null;
-        return (await env.USERS.get(env.USERS.idFromName(m[1])).authenticate(m[2])) ? m[1] : null;
+        // ADMIN-1: a restricted / suspended account cannot queue as a member
+        const r = await env.USERS.get(env.USERS.idFromName(m[1])).authenticateStanding(m[2]);
+        return r.ok && !r.restricted ? m[1] : null;
       },
       createMatch: async (a: QueueSeat, b: QueueSeat, options) => {
         const directory = env.DIRECTORY.get(env.DIRECTORY.idFromName("directory"));
@@ -1165,6 +1395,8 @@ export default {
       // 2026-11-24 dashboard). Limits by IP (login, exchange, profiles) stay global in the directory.
       limited: (key, perMinute) => (key.startsWith("me:") ? Promise.resolve(isolateLimited(key, perMinute)) : directory.hit(key, perMinute)),
       fetcher: (input, init) => fetch(input, init),
+      // ADMIN-1: Google re-authentication → one-time admin ticket, only for accounts in ADMIN_ACCOUNTS
+      adminReauth: env.ADMIN ? async (userId, cs, authTime) => (adminSettings(env).accounts.has(userId) ? ((await (env.ADMIN.get(env.ADMIN.idFromName("admin")) as unknown as { op(n: string, ...a: unknown[]): Promise<unknown> }).op("createReauth", userId, cs, authTime, Date.now())) as string) : null) : undefined,
       now: Date.now,
       quoteRequired: env.ECONOMY_QUOTE === "required",
     };
@@ -1172,6 +1404,8 @@ export default {
     const seatIdentity = async () => {
       if (!auth) return null;
       const user = await sessionUser(request, backends);
+      // ADMIN-1: a restricted / suspended member cannot take an account seat (enforced in the catch below)
+      if (user?.restricted) throw new Error("SANCTIONED");
       return user ? { userId: user.userId } : null;
     };
     /**
@@ -1218,14 +1452,50 @@ export default {
         const key = await roomStub(verdict.code!).publicWatch(sid);
         return key ? json(200, { id: sid, code: sid, key }, allowed) : fail(409, "NOT_PUBLIC", "지금은 이 경기를 관전할 수 없어요. 끝났거나 관전 인원이 가득 찼어요.", allowed);
       }
+      // ADMIN-1 / FEEDBACK-1 backends (Durable Object stubs; admin/api.ts holds every check).
+      const engagement = (): AdminBackends => ({
+        settings: adminSettings(env),
+        admin: { op: (name, ...args) => (env.ADMIN.get(env.ADMIN.idFromName("admin")) as unknown as { op(n: string, ...a: unknown[]): Promise<never> }).op(name, ...args), schedule: () => env.ADMIN.get(env.ADMIN.idFromName("admin")).schedule() },
+        board: { op: (name, ...args) => (env.FEEDBACK.get(env.FEEDBACK.idFromName("board")) as unknown as { op(n: string, ...a: unknown[]): Promise<never> }).op(name, ...args) },
+        user: (id) => env.USERS.get(env.USERS.idFromName(id)) as unknown as AdminUserApi,
+        sessionUser: (r) => (auth ? sessionUser(r, backends) : Promise.resolve(null)),
+        hubReport: (d) => hub().report(d) as never,
+        usage: () => directory.usage(),
+        liveActivity: () => hub().activity(),
+        flags: { signIn: !!auth, economy: env.ECONOMY === "on", diceDraw: env.DICE_DRAW === "on", serverAi: env.SERVER_AI !== "off", adminWrites: env.ADMIN_WRITES === "on", approval: env.ADMIN_APPROVAL === "self" ? "self" : "two-person", feedback: env.FEEDBACK_BOARD === "on", attachments: false, friendResidueCleanup: env.FRIEND_RESIDUE_CLEANUP ?? "off" },
+        limited: (key, perMinute) => directory.hit(key, perMinute),
+        count: (name, n) => hub().count(name, n),
+        client: "",
+        now: Date.now,
+        feedback: !!auth && env.FEEDBACK_BOARD === "on",
+        economy: !!auth && env.ECONOMY === "on",
+      });
+      if (parts[0] === "api" && (parts[1] === "notices" || parts[1] === "suggestions" || parts[1] === "reports" || (parts[1] === "me" && ["mailbox", "redeem", "sanctions", "appeals"].includes(parts[2] ?? "")))) {
+        if (request.method !== "GET" && !allowed) return fail(403, "ORIGIN", "허용되지 않은 출처입니다.", null);
+        const reply = (status: number, body: unknown) => json(status, body, allowed, parts[1] === "notices" && status === 200 ? "public, max-age=60" : "no-store");
+        if (parts[1] === "notices" && !env.ADMIN) return reply(200, { notices: [] });
+        const routed = await handleEngagementRoute(request, url, { ...engagement(), client: await clientKey(request) }, reply);
+        if (routed) return routed;
+      }
       // Operations metrics (administrator only: a Worker secret, never in the web bundle).
       if (parts[0] === "api" && parts[1] === "admin") {
         const token = env.ADMIN_TOKEN;
         const given = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-        if (!token || token.length < 32 || given.length !== token.length || !sameText(given, token)) return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
-        if (url.pathname === "/api/admin/metrics" && request.method === "GET") return json(200, { usage: await directory.usage(), hub: await hub().report(Math.min(60, Number(url.searchParams.get("days") ?? 14) || 14)) }, null);
-        if (parts[2] === "ledger" && parts.length === 4 && /^u_[A-Za-z0-9_-]{22}$/.test(parts[3])) return json(200, await env.USERS.get(env.USERS.idFromName(parts[3])).verifyLedger(), null);
-        return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
+        const legacy = !!token && token.length >= 32 && given.length === token.length && sameText(given, token);
+        // ADMIN-1 console: member session → admin session, role from the ADMIN_ACCOUNTS secret (admin/api.ts).
+        if (!legacy) {
+          if (!env.ADMIN || !auth) return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
+          return handleAdminRoute(request, url, { ...engagement(), client: await clientKey(request) }, (status, body) => json(status, body, allowed));
+        }
+        // Legacy shared token (D-ADM-9): read-only allowlist, rate-limited, every use in the admin audit log.
+        // No write and no new route may be served here — modules register console routes instead.
+        const routes = legacyTokenRoutes(env.ADMIN_TOKEN_ROUTES);
+        const route = url.pathname === "/api/admin/metrics" ? "metrics" : parts[2] === "ledger" && parts.length === 4 && /^u_[A-Za-z0-9_-]{22}$/.test(parts[3]) ? "ledger" : null;
+        if (request.method !== "GET" || !route || !routes.has(route)) return fail(404, "NOT_FOUND", "없는 주소입니다.", null);
+        if (await directory.hit("admin-legacy:" + (await clientKey(request)), 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", null);
+        await (env.ADMIN?.get(env.ADMIN.idFromName("admin")) as unknown as { op(n: string, ...a: unknown[]): Promise<unknown> } | undefined)?.op("audit", { at: Date.now(), actor: "token:ADMIN_TOKEN", role: "legacy-token", action: "legacy." + route, target: route === "ledger" ? parts[3] : "", result: "ok", client: await clientKey(request) }).catch(() => console.warn("ADMIN_LEGACY_AUDIT_FAILED"));
+        if (route === "metrics") return json(200, { usage: await directory.usage(), hub: await hub().report(Math.min(60, Number(url.searchParams.get("days") ?? 14) || 14)) }, null);
+        return json(200, await env.USERS.get(env.USERS.idFromName(parts[3])).verifyLedger(), null);
       }
       // Server-verified AI match (Phase 4.5): members only, the room plays the AI seat itself.
       if (url.pathname === "/api/ai/start" && request.method === "POST") {
@@ -1234,6 +1504,7 @@ export default {
         if (!auth) return fail(404, "AUTH_DISABLED", "회원 로그인은 아직 준비 중이에요.", allowed);
         const me = await sessionUser(request, backends);
         if (!me) return fail(401, "UNAUTHENTICATED", "서버 AI 대전은 로그인한 회원만 할 수 있어요.", allowed);
+        if (me.restricted) return fail(403, "SANCTIONED", "이용 제한 중에는 온라인 대전을 할 수 없어요.", allowed);
         if (await directory.hit("ai:" + me.userId, 6)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
         const user = env.USERS.get(env.USERS.idFromName(me.userId));
         const info = await user.seat().catch(() => null);
@@ -1274,6 +1545,7 @@ export default {
         if (!auth) return fail(404, "AUTH_DISABLED", "회원 로그인은 아직 준비 중이에요.", allowed);
         const me = await sessionUser(request, backends);
         if (!me) return fail(401, "UNAUTHENTICATED", "친구 기능은 로그인한 회원만 쓸 수 있어요.", allowed);
+        if (me.suspended || (me.restricted && request.method !== "GET")) return fail(403, "SANCTIONED", "이용 제한 중에는 친구 기능을 쓸 수 없어요.", allowed);
         if (isolateLimited("me:" + me.userId, 120)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
         const deps: FriendDeps = {
           user: (id) => env.USERS.get(env.USERS.idFromName(id)) as unknown as FriendUser,
@@ -1372,7 +1644,10 @@ export default {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       if (msg === "too large" || error instanceof SyntaxError || error instanceof TypeError) return fail(400, "INVALID_COMMAND", "요청 형식이 올바르지 않습니다.", allowed);
+      if (msg === "SANCTIONED") return fail(403, "SANCTIONED", "이용 제한 중에는 온라인 대전을 할 수 없어요.", allowed);
       console.error("ONLINE_WORKER_UNEXPECTED");
+      // ADMIN-1 system status: an error counter only (no request data)
+      await env.HUB.get(env.HUB.idFromName("hub")).count("worker.error").catch(() => undefined);
       return fail(500, "SERVER", "서버 오류가 발생했어요.", allowed);
     }
   },
