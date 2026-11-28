@@ -27,6 +27,11 @@ export const GUARDED = [
   /^worker\/wrangler\.toml$/, // bindings, DO migrations, runtime vars (kill switches, cleanup flags)
   /^worker\/src\/economy\.ts$/, // ledger
   /^src\/economy\/live\/(config|rewards|draw)\.ts$/, // economy policy: rewards, prices, draw odds
+  // SEC-1 2차 INT-8: non-match payouts (C5) and the admin payout path added by INT-1
+  /^worker\/src\/(grants|retention)\.ts$/, // grant engine: approved sources, limits, crediting; retention payouts
+  /^src\/economy\/retention\/policy\.ts$/, // attendance / streak amounts
+  /^worker\/src\/admin\/(grant-port|roles)\.ts$/, // admin grants → C5, admin roles, permissions and caps
+  /^src\/daily\/contract\.ts$/, // daily reward approval (NO_DAILY_REWARDS / DAILY_REWARDS_APPROVED)
 ];
 
 export async function workerInputs(root = ROOT) {

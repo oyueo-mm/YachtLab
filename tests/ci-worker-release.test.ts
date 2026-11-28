@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 // @ts-expect-error plain ESM script without types
-import { deployedCommit, planRelease, workerInputs } from "../scripts/ci/worker-release-plan.mjs";
+import { GUARDED, deployedCommit, planRelease, workerInputs } from "../scripts/ci/worker-release-plan.mjs";
 // @ts-expect-error plain ESM script without types
 import { releaseLock, LockReadError, MAX_PAGES, PER_PAGE } from "../scripts/ci/worker-release-lock.mjs";
 // @ts-expect-error plain ESM script without types
@@ -40,6 +40,16 @@ describe("release plan", () => {
       expect(planRelease(["worker/src/index.ts", f], inputs)).toMatchObject({ kind: "manual", guarded: [f] });
     }
   });
+  it("SEC-1 2차 INT-8: C5 grant engine, retention policy, the admin payout path and daily reward approval are guarded", () => {
+    const files = ["worker/src/grants.ts", "worker/src/retention.ts", "src/economy/retention/policy.ts", "worker/src/admin/grant-port.ts", "worker/src/admin/roles.ts", "src/daily/contract.ts"];
+    for (const f of files) expect(planRelease([f], [...inputs, f])).toMatchObject({ kind: "manual", guarded: [f] });
+    // other admin / daily code stays on the automatic path
+    for (const f of ["worker/src/admin/api.ts", "worker/src/daily-api.ts"]) expect(planRelease([f], [...inputs, f])).toMatchObject({ kind: "auto" });
+  });
+  it("every guarded pattern matches a real Worker input (no dead entries)", async () => {
+    const real = await workerInputs();
+    for (const re of GUARDED) expect(real.some((f) => re.test(f)), String(re)).toBe(true);
+  }, 60_000);
   it("reads only this pipeline's release annotation", () => {
     const sha = "ddf208f1800e859afd61d330bd6ae322b207d5c5";
     expect(deployedCommit(`git:${sha} actions:46113118303/1`)).toBe(sha);
