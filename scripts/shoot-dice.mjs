@@ -16,11 +16,14 @@ const LV = Number(arg("lv", 1));
 const BOARD = arg("board", "");
 const DPR = Number(arg("dpr", 2));
 const MID = process.argv.includes("--mid");
+const MAT = arg("mattier", ""); // FX-1 material tier override (0 full · 1 standard · 2 flat); "" = the app decides
+const QUALITY = arg("quality", "3d-high"); // or "2.5d"
+const DIST = arg("dist", "dist");
 const PORT = Number(arg("port", 4196));
 const BASE = `http://127.0.0.1:${PORT}/YachtLab/`;
 export const DICE = ["dice.classic", "dice.mint", "dice.wood_oak", "dice.marble_white", "dice.marble_black", "dice.frost", "dice.carbon", "dice.ruby", "dice.emerald", "dice.glass_blue", "dice.glass_amber", "dice.silver", "dice.bronze", "dice.gold", "dice.lava", "dice.galaxy", "dice.aurora", "dice.hologram", "dice.neon_pink", "dice.thunder", "dice.meadow", "dice.flower", "dice.sakura", "dice.abyss"];
 mkdirSync(OUT, { recursive: true });
-const preview = await startPreview("dist", PORT);
+const preview = await startPreview(DIST, PORT);
 const browser = await chromium.launch({ executablePath: process.env.PW_CHROMIUM_PATH || undefined });
 for (const dice of DICE.filter((d) => !ONLY || ONLY.split(",").includes(d))) {
   const ctx = await browser.newContext({ viewport: { width: 900, height: 760 }, deviceScaleFactor: DPR, reducedMotion: "no-preference" });
@@ -29,8 +32,9 @@ for (const dice of DICE.filter((d) => !ONLY || ONLY.split(",").includes(d))) {
     const u = "u_" + "a".repeat(22);
     localStorage.setItem("yachtlab.session.v1", "s1." + u + "." + "b".repeat(43));
     localStorage.setItem("yachtlab.own-look.v1", JSON.stringify({ account: u, look: { emotes: [], chats: [], ...l } }));
-    localStorage.setItem("yachtlab.settings.v1", JSON.stringify({ muted: true, diceQuality: "3d-high" }));
-  }, { dice, diceLv: LV, ...(BOARD ? { board: BOARD, boardLv: 1 } : {}) });
+    localStorage.setItem("yachtlab.settings.v1", JSON.stringify({ muted: true, diceQuality: l.__q }));
+    if (l.__mat !== "") sessionStorage.setItem("yachtlab.dice.material", l.__mat);
+  }, { dice, diceLv: LV, ...(BOARD ? { board: BOARD, boardLv: 1 } : {}), __mat: MAT, __q: QUALITY });
   const page = await ctx.newPage();
   await page.goto(BASE + "#solo");
   const tray = page.locator(".game-board").first();

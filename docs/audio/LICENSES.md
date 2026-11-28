@@ -6,6 +6,7 @@
 | 효과음(주사위·점수·결과·특수 연출) | `src/sound.ts`, `src/sound-packs.ts` | 기존과 동일, Web Audio 오실레이터·생성 노이즈 합성 | 프로젝트 자체 저작물 | 없음 |
 | 강화 주사위 착지음·보드 반응음 14종 | `src/sound.ts` `landVoice` | 이번 작업에서 합성 | 프로젝트 자체 저작물 | 없음 |
 | FX-1 재질 기본음 `resin`·라운드로빈 4테이크·Lv.3 투척 보조음 `diceFxRoll` (2026-11-28) | `src/sound.ts`, `src/sound-packs.ts` | 이번 작업에서 합성(감쇠 정현 모드·필터 노이즈, 녹음·샘플 없음) | 프로젝트 자체 저작물 | 없음 |
+| FX-1 보드 Lv.1 절차 무늬(노이즈 타일) | `src/board-grain.ts` | SVG `feTurbulence`를 브라우저에서 PNG로 굽기(이미지 파일 없음) | 프로젝트 자체 저작물 | 없음 |
 | FX-1 주사위 재질 맵·반사 환경(범프·거칠기·금속·투명 맵, 스튜디오 환경) | `src/dice3d/face-paint.ts`, `src/dice3d/studio-env.ts` | 캔버스 절차 생성·three.js 기본 도형으로 렌더(이미지·HDR 파일 없음) | 프로젝트 자체 저작물(three.js MIT 라이브러리 사용) | 없음 |
 | 이모티콘 Lv.3 전용음 41종 | `src/sound.ts` `EMOTE_VOICES` | 이번 작업에서 합성(웃음·울음은 성대 펄스+대역 필터 근사, 녹음 아님) | 프로젝트 자체 저작물 | 없음 |
 

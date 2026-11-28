@@ -13,6 +13,8 @@ async function openDice(page: Page, name: string) {
 
 test("상점 미리보기: 재질이 렌더러와 소리에 같이 적용되고, Lv.3에서 요트·스트레이트 연출이 경기와 같은 경로로 재생된다", async ({ page }) => {
   test.skip(test.info().project.name === "mobile", "one viewport is enough for the data paths");
+  // The full material tier (what a GPU device starts with); headless Chromium is software GL → tier 2 by default.
+  await page.addInitScript(() => sessionStorage.setItem("yachtlab.dice.material", "0"));
   await withMotion(page, "3d-high");
   const dialog = await openDice(page, "황금");
   const canvas = dialog.locator(".dice-table-canvas");
@@ -69,4 +71,14 @@ test("성능 우선(3d)에서는 물리 재질 레이어를 끄고, 상세 창�
   const gl = await page.evaluate(() => (window as any).__gl);
   expect(gl.created).toBeGreaterThanOrEqual(4);
   expect(gl.created - gl.lost).toBeLessThanOrEqual(1);
+});
+
+test("소프트웨어 GL(CPU 래스터)에서는 가장 가벼운 재질 단계로 시작하고 움직임 반응을 끈다", async ({ page }) => {
+  test.skip(test.info().project.name === "mobile", "data check");
+  await withMotion(page, "3d-high");
+  const dialog = await openDice(page, "황금");
+  const canvas = dialog.locator(".dice-table-canvas");
+  await expect(canvas).toHaveAttribute("data-material-tier", "2");
+  await expect(canvas).toHaveAttribute("data-physical", "false");
+  await expect(canvas).toHaveAttribute("data-material", "metal"); // the material identity is kept
 });
