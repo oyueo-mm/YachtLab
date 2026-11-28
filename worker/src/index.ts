@@ -1302,7 +1302,8 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       settlement.current = this.econ.applyMatch(p.userId, p.createdAt, input, now);
       const receipt = settlement.current.receipt;
       // C5-CORE: activity streak + weekly best streak, same transaction (server-verified records only)
-      if (this.retentionOn) {
+      // SEC-1 2차 ECO-8: a suspended account earns no activity / streak grant from a match (same rule as daily content)
+      if (this.retentionOn && !this.member.standing(now).suspended) {
         const countable = settlement.current.reason !== "own-forfeit" && settlement.current.reason !== "too-short";
         const paid = this.retention.onMatch(p.userId, record, input, { countable, reason: settlement.current.reason }, now);
         if (paid.length) {

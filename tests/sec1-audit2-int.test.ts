@@ -374,3 +374,9 @@ describe("SEC-1 2차 Low(원본) · ADM-8·ECO-4·ECO-5·SOC-4·DLY-6", () => {
     expect(read("worker/src/daily-api.ts")).toContain("now < closesAt(date) + 60_000");
   });
 });
+
+describe("SEC-1 2차 ECO-8(의심 → 수정) · 정지 계정의 경기 재방문 보상", () => {
+  it("정지 중이면 경기 정산에서 활동·연승 보상을 계산하지 않는다", () => {
+    expect(readFileSync("worker/src/index.ts", "utf8")).toContain("if (this.retentionOn && !this.member.standing(now).suspended) {");
+  });
+});
