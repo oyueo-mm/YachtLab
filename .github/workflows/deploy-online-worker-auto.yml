@@ -18,13 +18,42 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  # SEC-1-04: everything that runs repository build code or dependency install scripts happens here, without
+  # production credentials. The release job only receives the bundle, its SHA-256 and the Worker input list.
+  prepare:
     # Only a push to main whose full pipeline (tests, build, browser, Pages deploy) succeeded.
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build the Worker bundle and its manifest (no Cloudflare credentials)
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: node scripts/ci/worker-artifact.mjs prepare "$RUNNER_TEMP/worker-release" "$HEAD_SHA"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: worker-release
+          path: ${{ runner.temp }}/worker-release
+          retention-days: 3
+          if-no-files-found: error
+
+  release:
+    needs: prepare
     environment: worker-production
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -32,6 +61,9 @@ jobs:
       contents: read
       actions: read
     steps:
+      - name: Never retry a release
+        run: |
+          [ "$GITHUB_RUN_ATTEMPT" = 1 ] || { echo 'Re-runs are not allowed: investigate, then release once with the manual workflow.'; exit 1; }
       - name: Emergency stop
         id: switch
         env:
@@ -50,19 +82,21 @@ jobs:
         if: steps.switch.outputs.enabled == 'true'
         with:
           node-version: 24
-          cache: npm
-      - if: steps.switch.outputs.enabled == 'true'
-        run: npm ci
-      - name: Validate the Worker bundle without Cloudflare credentials
+      # Wrangler only: no install scripts, no build, no cache restored into the credentialed job.
+      - name: Install the deploy tool without install scripts
         if: steps.switch.outputs.enabled == 'true'
-        env:
-          WRANGLER_SEND_METRICS: "false"
-        run: npx --no-install wrangler deploy --dry-run --config worker/wrangler.toml --outdir "$RUNNER_TEMP/worker-dry-run"
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - uses: actions/download-artifact@v4
+        if: steps.switch.outputs.enabled == 'true'
+        with:
+          name: worker-release
+          path: ${{ runner.temp }}/worker-release
       - name: Plan, release and record the yachtlab-online Worker
         if: steps.switch.outputs.enabled == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.WORKER_PRODUCTION_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.WORKER_PRODUCTION_ACCOUNT_ID }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          RELEASE_DIR: ${{ runner.temp }}/worker-release
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/ci/auto-deploy-online-worker.mjs
