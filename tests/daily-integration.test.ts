@@ -85,7 +85,7 @@ describe("ADMIN-1 AdminExtensionRoute 계약", () => {
     const out = await report.handle(c);
     expect(out.status).toBe(200);
     expect(JSON.stringify(out.body)).not.toMatch(/u_secret|비밀닉/);
-    expect(out.body).toMatchObject({ official: { ranked: 1 }, puzzleBank: { lastScheduledDate: lastScheduledDate(), rerun: false } });
+    expect(out.body).toMatchObject({ official: { ranked: 0, completed: 1 }, puzzleBank: { lastScheduledDate: lastScheduledDate(), rerun: false } });
     expect((await report.handle(ctx("/api/admin/daily?date=bad").ctx)).status).toBe(400);
   });
 

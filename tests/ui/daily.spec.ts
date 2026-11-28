@@ -72,14 +72,16 @@ test("플래그가 꺼진 서버에서는 준비 중 안내만 보인다", async
   await expect(page.locator(".daily-cards")).toHaveCount(0);
 });
 
-test("공식 도전 12라운드 → 공식 기록·순위·공유, 연습 잠금 해제, 퍼즐 정답·해설, 게스트 안내", async ({ browser }, testInfo) => {
+test("공식 도전 12라운드 → 공식 기록·AI 참고 점수·공유(순위 없음), 연습 잠금 해제, 퍼즐 정답·해설, 게스트 안내", async ({ browser }, testInfo) => {
   test.setTimeout(180_000);
   const sub = "daily-ui-" + testInfo.project.name; // one account per project (the official attempt is once a day)
-  // guest: cards, sign-in prompt, ranking visible, no official start
+  // guest: cards, sign-in prompt, no ranking anywhere (D-141), no official start
   const guest = await visitor(browser, null);
   await guest.goto(at(worker, "daily"));
   await expect(guest.locator(".daily-date")).toContainText(DATE);
   await expect(guest.getByRole("button", { name: "로그인하고 도전하기" })).toBeVisible();
+  await expect(guest.locator(".daily-ranking, .daily-rank-list")).toHaveCount(0);
+  await expect(guest.getByText(/오늘의 순위|\d+위/)).toHaveCount(0);
 
   const page = await visitor(browser, await member(sub, "데일리"));
   await page.goto(at(worker, "daily"));
@@ -106,16 +108,18 @@ test("공식 도전 12라운드 → 공식 기록·순위·공유, 연습 잠금
   await noOverflow(); // finished game screen
   const after = page.getByRole("region", { name: "공식 도전 결과" });
   await expect(after).toContainText("공식 기록");
-  await expect(after).toContainText(/1위 \/ [12]명/);
+  await expect(after).toContainText(/AI\(DP Expert\).*평균 약 192점/); // personal reference only
+  await expect(after).not.toContainText(/\d+위/);
   await after.getByRole("button", { name: "결과 공유" }).click();
   const share = page.getByRole("dialog", { name: "오늘의 요트 결과 공유" });
   await expect(share.locator(".daily-share-text")).toContainText(`오늘의 요트 ${DATE}`);
+  await expect(share.locator(".daily-share-text")).not.toContainText(/\d+위/);
   await share.getByRole("button", { name: "닫기" }).click();
   await page.getByRole("button", { name: "나가기" }).click();
-  // home: finished card, practice unlocked, ranking with my row
+  // home: finished card, practice unlocked, no ranking list (D-141)
   await expect(page.locator(".daily-card.is-done")).toBeVisible();
   await expect(page.getByRole("button", { name: /같은 주사위로 연습/ })).toBeEnabled();
-  await expect(page.locator(".daily-rank-list li.me")).toContainText("데일리");
+  await expect(page.locator(".daily-ranking, .daily-rank-list, .daily-visibility")).toHaveCount(0);
   await expect(page.locator(".daily-records")).toContainText("개인 최고");
   // puzzles: answer the intro one, see the verdict and the explanation table
   await page.getByRole("button", { name: "퍼즐 풀기" }).click();

@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Puzzle, ShieldCheck, Trophy, Users } from "lucide-react";
+import { CalendarDays, Puzzle, ShieldCheck, Trophy } from "lucide-react";
 import { serverFeatures } from "../online/client";
 import { useNickname } from "../identity/display-name";
 import { archiveDates, dailyStreak, kstDate } from "./calendar";
 import { archiveDriver, archiveResults, saveArchiveResult } from "./archive";
 import * as api from "./client";
 import type { DailyView } from "./game";
-import { isVisibility, type RankedEntry, type Visibility } from "./ranking";
 import DailyGame, { type Driver } from "./DailyGame";
 import DailyPuzzles from "./DailyPuzzles";
 import { DailyShareButton } from "./DailyShare";
@@ -62,7 +61,7 @@ export default function DailyPage({ server, go }: { server: string | null; go: (
     return (
       <section className="econ-page daily-page" aria-labelledby="daily-title">
         <h1 id="daily-title">오늘의 요트</h1>
-        <p className="econ-note">오늘의 요트와 오늘의 퍼즐은 준비 중이에요. 공식 랭킹의 신뢰성 검증이 끝나면 열려요.</p>
+        <p className="econ-note">오늘의 요트와 오늘의 퍼즐은 준비 중이에요.</p>
         <button className="secondary" onClick={() => go("home")}>홈으로</button>
       </section>
     );
@@ -139,7 +138,6 @@ function DailyHub({ server, go }: { server: string; go: (route: "profile" | "hom
       {!today ? <p className="econ-note" role="status">불러오는 중…</p> : (
         <>
           <DailyHomeCards today={today} member={member} onOfficial={() => void openOfficial("official")} onPractice={() => void openOfficial("practice")} onPuzzles={() => setScreen({ kind: "puzzles", date: today.date, closed: false })} onSignIn={() => go("profile")} />
-          <RankingPanel server={server} date={today.date} member={member} visibility={today.me?.visibility ?? null} onVisibility={reload} />
           {member && history && <MyRecords history={history} />}
           <ArchivePanel now={Date.now() + skew} onPlay={(d) => void openArchive(d)} onPuzzles={(d) => setScreen({ kind: "puzzles", date: d, closed: true })} />
           <details className="daily-fairness">
@@ -147,6 +145,7 @@ function DailyHub({ server, go }: { server: string; go: (route: "profile" | "hom
             <p>오늘의 주사위는 서버만 아는 비밀 키로 정해져요. 키는 하루가 끝난 뒤(한국 시간 자정 + 30분) 공개되고, 오늘 아침 공개한 확인값과 맞는지, 내 기록이 그 키로 그대로 재현되는지 누구나 검사할 수 있어요.</p>
             <p>오늘의 확인값: <code>{today.commitment.slice(0, 16)}…</code></p>
             <p>같은 날 연습은 공식 도전을 마친 뒤에만 열려요. 결과 공유에는 주사위 눈이 들어가지 않아요.</p>
+            <p>오늘의 요트는 경쟁 순위가 없는 개인 기록 콘텐츠예요. 점수에 따라 달라지는 보상도 없어요.</p>
           </details>
         </>
       )}
@@ -162,7 +161,7 @@ export function DailyHomeCards({ today, member, onOfficial, onPractice, onPuzzle
     <div className="daily-cards">
       <article className={"daily-card" + (o?.status === "finished" ? " is-done" : "")} aria-labelledby="daily-card-yacht">
         <h2 id="daily-card-yacht"><Trophy size={18} aria-hidden="true" /> 오늘의 도전</h2>
-        <p>모든 참가자가 같은 주사위로 겨뤄요. 첫 공식 도전만 순위에 들어가요.</p>
+        <p>모든 참가자가 같은 주사위로 하루 한 번 도전해요. 순위 없이 내 기록만 남아요.</p>
         {!member ? (
           <button className="primary" onClick={onSignIn}>로그인하고 도전하기</button>
         ) : !o ? (
@@ -171,7 +170,7 @@ export function DailyHomeCards({ today, member, onOfficial, onPractice, onPuzzle
           <button className="primary" onClick={onOfficial}>이어서 하기 · 라운드 {Math.min(12, o.state.round)}</button>
         ) : (
           <>
-            <p className="daily-score"><strong>{o.state.score}</strong>점 <span className="daily-badge daily-badge-official">{o.status === "finished" ? "공식 기록" : "시간 종료"}</span>{!o.ranked && <small> · 오늘 가입한 계정은 내일부터 순위 반영</small>}</p>
+            <p className="daily-score"><strong>{o.state.score}</strong>점 <span className="daily-badge daily-badge-official">{o.status === "finished" ? "공식 기록" : "시간 종료"}</span></p>
             <div className="daily-card-actions">
               {o.status === "finished" && <DailyShareButton input={{ date: today.date, score: o.state.score, card: o.state.card }} />}
               <button className="secondary" disabled={!today.me?.practiceLeft} onClick={onPractice}>같은 주사위로 연습 ({today.me?.practiceLeft ?? 0}회 남음)</button>
@@ -194,68 +193,20 @@ export function DailyHomeCards({ today, member, onOfficial, onPractice, onPuzzle
   );
 }
 
-/** Shown under a finished official game: server score, current rank (one request), share, practice. */
-function OfficialAfter({ server, date, view, ranked, onPractice }: { server: string; date: string; view: DailyView; ranked: boolean; onPractice: () => void }) {
-  const [me, setMe] = useState<RankedEntry | null>(null);
-  const [total, setTotal] = useState(0);
-  useEffect(() => {
-    if (ranked) api.ranking(server, date, 0, 1).then((p) => (setMe(p.me), setTotal(p.total))).catch(() => undefined);
-  }, [server, date, ranked]);
+/**
+ * D-141: an AI reference score for the player's own comparison only (not a ranking, no rewards by score).
+ * DP Expert's average on the daily dice (LIVE-1 measurement over 200 days: 191.98).
+ */
+export const AI_REFERENCE_SCORE = 192;
+
+/** Shown under a finished official game: server score, AI reference (personal), share, practice. */
+function OfficialAfter({ date, view, onPractice }: { server: string; date: string; view: DailyView; ranked: boolean; onPractice: () => void }) {
   return (
     <section className="daily-after" aria-label="공식 도전 결과">
-      <p><strong>{view.score}점</strong> · 공식 기록{me ? ` · 지금 ${me.rank}위 / ${total}명` : ranked ? "" : " · 오늘 가입한 계정은 내일부터 순위에 들어가요"}</p>
-      <DailyShareButton input={{ date, score: view.score, card: view.card, rank: me?.rank, players: total || null }} />
+      <p><strong>{view.score}점</strong> · 오늘의 공식 기록</p>
+      <p className="daily-rank-note">참고: AI(DP Expert)는 같은 방식의 주사위에서 평균 약 {AI_REFERENCE_SCORE}점이에요. 순위나 점수별 보상은 없어요.</p>
+      <DailyShareButton input={{ date, score: view.score, card: view.card }} />
       <button className="secondary" onClick={onPractice}>같은 주사위로 연습</button>
-    </section>
-  );
-}
-
-function RankingPanel({ server, date, member, visibility, onVisibility }: { server: string; date: string; member: boolean; visibility: Visibility | null; onVisibility: () => void }) {
-  const [tab, setTab] = useState<"all" | "friends">("all");
-  const [page, setPage] = useState<api.RankingPage | null>(null);
-  const [friends, setFriends] = useState<api.FriendsRanking | null>(null);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    setError("");
-    if (tab === "all") api.ranking(server, date).then(setPage).catch((e: Error) => setError(e.message));
-    else api.friendsRanking(server, date).then(setFriends).catch((e: Error) => setError(e.message));
-  }, [server, date, tab]);
-  const more = () => page && api.ranking(server, date, page.offset + page.limit, page.limit).then((next) => setPage({ ...next, entries: [...page.entries, ...next.entries], offset: next.offset }));
-  const rows = tab === "all" ? page?.entries ?? [] : friends?.entries ?? [];
-  return (
-    <section className="daily-ranking" aria-labelledby="daily-ranking-title">
-      <div className="econ-head">
-        <h2 id="daily-ranking-title"><Users size={18} aria-hidden="true" /> 오늘의 순위</h2>
-        <div role="tablist" aria-label="순위 범위" className="ui-tabs">
-          <button role="tab" aria-selected={tab === "all"} className={tab === "all" ? "active" : ""} onClick={() => setTab("all")}>전체</button>
-          <button role="tab" aria-selected={tab === "friends"} className={tab === "friends" ? "active" : ""} disabled={!member} onClick={() => setTab("friends")}>친구</button>
-        </div>
-      </div>
-      {error && <p role="alert" className="error">{error}</p>}
-      {tab === "all" && page?.me && <p className="daily-me-rank">내 순위 {page.me.rank}위 / {page.total}명 · {page.me.score}점</p>}
-      {rows.length ? (
-        <ol className="daily-rank-list">
-          {rows.map((e, i) => (
-            <li key={i + e.nickname + e.finishedAt} className={e.me ? "me" : ""}>
-              <span className="rank">{e.rank}</span>
-              <span className="name">{e.nickname}{e.yacht ? " ⭐" : ""}</span>
-              <span className="score">{e.score}점</span>
-              {"globalRank" in e && <small>전체 {(e as { globalRank: number }).globalRank}위</small>}
-            </li>
-          ))}
-        </ol>
-      ) : <p className="econ-note">{tab === "friends" ? "오늘 도전한 친구가 아직 없어요." : "아직 기록이 없어요. 첫 기록을 남겨 보세요."}</p>}
-      {tab === "all" && page && page.offset + page.limit < page.total && <button className="secondary" onClick={() => void more()}>더 보기</button>}
-      <p className="daily-rank-note">같은 점수는 같은 순위예요(먼저 끝낸 사람이 위에 표시). 날짜와 규칙 버전({"yacht-12@1"})마다 따로 집계해요.</p>
-      {member && visibility && (
-        <label className="daily-visibility">내 기록 공개 범위
-          <select value={visibility} onChange={(e) => isVisibility(e.target.value) && api.setVisibility(server, e.target.value).then(onVisibility)}>
-            <option value="public">전체 공개</option>
-            <option value="friends">친구에게만</option>
-            <option value="private">나만 보기</option>
-          </select>
-        </label>
-      )}
     </section>
   );
 }
@@ -269,13 +220,13 @@ function MyRecords({ history }: { history: api.History }) {
       <ul className="daily-stats">
         <li><span>개인 최고</span><strong>{h.best ? `${h.best.score}점` : "—"}</strong>{h.best && <small>{h.best.date}</small>}</li>
         <li><span>참여</span><strong>{h.played}일</strong><small>완료 {h.completed}</small></li>
-        <li><span>평균</span><strong>{h.average === null ? "—" : h.average.toFixed(1)}</strong></li>
+        <li><span>평균</span><strong>{h.average === null ? "—" : h.average.toFixed(1)}</strong><small>AI 참고 약 {AI_REFERENCE_SCORE}</small></li>
         <li><span>연속 참여</span><strong>{streak}일</strong></li>
         <li><span>퍼즐</span><strong>{h.puzzles.correct}/{h.puzzles.answered}</strong><small>정답/참여</small></li>
       </ul>
       {h.records.length > 0 && (
         <ol className="daily-history">
-          {h.records.slice(0, 14).map((r) => <li key={r.date}><span>{r.date}</span><span>{r.status === "finished" ? `${r.score}점` : r.status === "playing" ? "진행 중" : "시간 종료"}</span>{!r.ranked && <small>순위 제외</small>}</li>)}
+          {h.records.slice(0, 14).map((r) => <li key={r.date}><span>{r.date}</span><span>{r.status === "finished" ? `${r.score}점` : r.status === "playing" ? "진행 중" : "시간 종료"}</span></li>)}
         </ol>
       )}
     </section>
@@ -303,7 +254,7 @@ function ArchivePanel({ now, onPlay, onPuzzles }: { now: number; onPlay: (date: 
           })}
         </ul>
       )}
-      <p className="daily-rank-note">지난 도전은 공개된 그날의 주사위로 이 기기에서 연습해요. 순위에는 들어가지 않아요.</p>
+      <p className="daily-rank-note">지난 도전은 공개된 그날의 주사위로 이 기기에서 연습해요. 공식 기록과 보상에는 들어가지 않아요.</p>
     </section>
   );
 }

@@ -155,35 +155,19 @@ describe("오늘의 요트 (wrangler dev + 가짜 로컬 로그인)", () => {
     expect(sb.body.attempt.state.dice).toEqual(firstOfficialRoll);
     expect(sc.body.attempt.state.dice).toEqual(firstOfficialRoll);
 
-    const all = await call(worker, null, `/api/daily/ranking?date=${DATE}`);
-    expect(all.body.total).toBe(3);
-    expect(all.body.entries.map((e: any) => e.score).sort()).toEqual([endA.score, endB.score, endC.score].sort());
-    expect(JSON.stringify(all.body)).not.toMatch(/u_[A-Za-z0-9_-]{22}/);
-    expect(all.cache).toBe("public, max-age=15");
-    const scores = [endA.score, endB.score, endC.score];
-    const rankA = 1 + scores.filter((x) => x > endA.score).length;
-    expect((await call(worker, a, `/api/daily/ranking?date=${DATE}`)).body.me).toMatchObject({ rank: rankA, score: endA.score, nickname: "에이", me: true });
-
-    // A and B become friends; C blocks A
-    const codeOf = async (s: string) => (await call(worker, s, "/api/me/friends")).body.me.code as string;
-    const [ca, cb] = [await codeOf(a), await codeOf(b)];
-    const cc = await codeOf(c);
-    await call(worker, a, "/api/me/friends/request", { code: cb });
-    await call(worker, b, "/api/me/friends/accept", { code: ca });
-    await call(worker, c, "/api/me/friends/block", { code: ca });
-    void cc;
-    const fr = await call(worker, a, `/api/daily/ranking/friends?date=${DATE}`);
-    expect(fr.body.entries.map((e: any) => e.nickname).sort()).toEqual(["비", "에이"]);
-    // blocks both ways: A no longer sees C, C no longer sees A (after the 15 s page cache, the filter is per viewer)
-    const forA = await call(worker, a, `/api/daily/ranking?date=${DATE}`);
-    expect(forA.body.entries.map((e: any) => e.nickname)).not.toContain("씨");
-    const forC = await call(worker, c, `/api/daily/ranking?date=${DATE}`);
-    expect(forC.body.entries.map((e: any) => e.nickname)).not.toContain("에이");
-    // B goes private: hidden from friends and from the (uncached viewer-specific) global list of A after cache expiry
-    expect((await call(worker, b, "/api/daily/visibility", { visibility: "private" })).body.visibility).toBe("private");
-    const fr2 = await call(worker, a, `/api/daily/ranking/friends?date=${DATE}`);
-    expect(fr2.body.entries.map((e: any) => e.nickname)).toEqual(["에이"]);
-    expect((await call(worker, b, `/api/daily/ranking/friends?date=${DATE}`)).body.entries.map((e: any) => e.nickname)).toContain("비");
+    // D-141: non-competitive — no ranking API (public, friends) and no visibility setting; nothing about other
+    // players' results is exposed anywhere
+    for (const path of [`/api/daily/ranking?date=${DATE}`, `/api/daily/ranking/friends?date=${DATE}`]) {
+      for (const who of [null, a]) {
+        const r = await call(worker, who, path);
+        expect([r.status, r.body.error?.code]).toEqual([410, "RANKING_REMOVED"]);
+        expect(JSON.stringify(r.body)).not.toMatch(/u_[A-Za-z0-9_-]{22}|에이|비|씨/);
+      }
+    }
+    expect((await call(worker, b, "/api/daily/visibility", { visibility: "private" })).status).toBe(410);
+    const todayA = await call(worker, a, "/api/daily/today");
+    expect(JSON.stringify(todayA.body)).not.toMatch(/"rank"|"total"|비|씨/);
+    void endB; void endC;
 
     // history, best
     const h = await call(worker, a, "/api/daily/history");
@@ -229,9 +213,7 @@ describe("오늘의 요트 (wrangler dev + 가짜 로컬 로그인)", () => {
     expect(total(verified.card)).toBe(endA.score); // anyone can re-check the official score
     expect((await call(closed, a, "/api/daily/start", { date: DATE, mode: "official" })).body).toMatchObject({ attempt: { status: "finished" } });
     expect((await call(closed, b, "/api/daily/start", { date: DATE, mode: "practice" })).body.error.code).toBe("DAILY_CLOSED");
-    const fin = await call(closed, null, `/api/daily/ranking?date=${DATE}`);
-    expect(fin.body.final).toBe(true);
-    expect(fin.cache).toBe("public, max-age=300");
+    expect((await call(closed, null, `/api/daily/ranking?date=${DATE}`)).status).toBe(410); // D-141
     const pzClosed = await call(closed, b, `/api/daily/puzzles?date=${DATE}`);
     expect(pzClosed.body.puzzles.every((x: any) => x.key !== null)).toBe(true);
     // a closed day's puzzle: anyone answers, gets the key, nothing is recorded

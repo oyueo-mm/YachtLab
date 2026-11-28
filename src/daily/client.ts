@@ -13,8 +13,6 @@ export type Today = {
   puzzles: { id: string; level: string; kind: string; title: string }[];
   me: null | { official: AttemptView | null; practice: AttemptView | null; practiceLeft: number; puzzleResults: PuzzleResult[]; visibility: Visibility };
 };
-export type RankingPage = { date: string; final: boolean; total: number; offset: number; limit: number; entries: RankedEntry[]; me: RankedEntry | null; hiddenCount: number };
-export type FriendsRanking = { date: string; final: boolean; entries: (RankedEntry & { globalRank: number })[]; friends: number };
 export type History = {
   today: string;
   history: { records: { date: string; status: string; score: number | null; ranked: boolean; finishedAt: number | null; card: Record<string, number> | null }[]; best: { date: string; score: number } | null; played: number; completed: number; average: number | null; puzzles: { answered: number; correct: number; days: string[] }; visibility: Visibility };
@@ -49,10 +47,7 @@ export const start = (server: string, date: string, mode: Mode) => call<{ attemp
 export const play = (server: string, date: string, mode: Mode, seq: number, step: DailyStep) => call<{ attempt: AttemptView; duplicate: boolean; finished: boolean }>(server, "/api/daily/play", { date, mode, seq, step });
 export const attempt = (server: string, date: string, mode: Mode) => call<{ attempt: AttemptView | null }>(server, `/api/daily/attempt?date=${date}&mode=${mode}`);
 export const history = (server: string) => call<History>(server, "/api/daily/history");
-export const ranking = (server: string, date: string, offset = 0, limit = 20) => call<RankingPage>(server, `/api/daily/ranking?date=${date}&offset=${offset}&limit=${limit}`);
-export const friendsRanking = (server: string, date: string) => call<FriendsRanking>(server, `/api/daily/ranking/friends?date=${date}`);
 export const reveal = (server: string, date: string) => call<{ date: string; key: string; commitment: string; log: DailyStep[] | null }>(server, `/api/daily/reveal?date=${date}`);
 export const puzzles = (server: string, date: string) => call<{ date: string; closed: boolean; puzzles: PuzzleItem[] }>(server, `/api/daily/puzzles?date=${date}`);
 export const answer = (server: string, date: string, puzzleId: string, answer: ActionKey) =>
   call<{ result: PuzzleResult; first: boolean; recorded: boolean; key: PuzzleItem["key"] }>(server, "/api/daily/puzzles/answer", { date, puzzleId, answer });
-export const setVisibility = (server: string, visibility: Visibility) => call<{ visibility: Visibility }>(server, "/api/daily/visibility", { visibility });

@@ -293,7 +293,12 @@ describe("일일 랭킹", () => {
     b.puzzleAnswered("p", true);
     b.puzzleAnswered("p", false);
     const s = b.stats();
-    expect(s).toMatchObject({ started: 2, completed: 2, ranked: 1, best: 210, puzzles: { p: { answered: 2, correct: 1 } } });
+    // D-141: no ranking — older entries still count as completions, new completions are counters only
+    expect(s).toMatchObject({ started: 2, completed: 2, ranked: 0, best: 210, puzzles: { p: { answered: 2, correct: 1 } } });
+    b.count("completed");
+    b.count("score.175");
+    b.count("score.sum", 190);
+    expect(b.stats()).toMatchObject({ completed: 3, average: 200, buckets: { "200-224": 1, "175-199": 1 } });
     b.remove("a");
     expect(b.total()).toBe(0);
   });
@@ -304,7 +309,7 @@ describe("결과 공유", () => {
     const card = Object.fromEntries(categories.map((c, i) => [c, i === 11 ? 50 : i === 3 ? 0 : 10])) as Record<Category, number>;
     const text = shareText({ date: DATE, score: 222, card, rank: 3, players: 40, url: "https://example.test/#daily" });
     expect(text).toContain("오늘의 요트 2026-12-03 · 222점");
-    expect(text).toContain("전체 3위 / 40명");
+    expect(text).not.toMatch(/위|명/); // D-141: a share never carries a rank (even if an old caller passes one)
     expect(text).toContain("⭐");
     expect(text).not.toMatch(/[1-6]·[1-6]/);
   });

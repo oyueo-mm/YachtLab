@@ -1,7 +1,7 @@
 import { addDays, closesAt, dayPhase, DAILY_EPOCH, DAILY_RULES, daysBetween, isDailyDate, kstDate } from "../../src/daily/calendar";
 import { commitmentOf } from "../../src/daily/tape";
 import { toHex } from "../../src/daily/sha256";
-import { boardName, isVisibility, pageParams, withRanks, type BoardEntry, type RankedEntry, type Visibility } from "../../src/daily/ranking";
+import { boardName, type BoardEntry, type Visibility } from "../../src/daily/ranking";
 import { grade, questionOf, type Puzzle, type PuzzleBank, type PuzzleKey, type PuzzleResult } from "../../src/daily/puzzles/types";
 import { NO_DAILY_REWARDS, type DailyAdminReport } from "../../src/daily/contract";
 import type { AttemptView, DailyError, Mode } from "./daily";
@@ -114,19 +114,13 @@ export function puzzleById(id: string): Puzzle | null {
 export const puzzleRunway = (today: string) => Math.max(0, daysBetween(today, lastScheduledDate()));
 const keyView = (k: PuzzleKey) => ({ best: k.best, values: k.values, unit: k.unit, explanation: k.explanation, ...(k.expected ? { expected: k.expected } : {}), model: k.model });
 
-/* ---------------------------------------------------------------- ranking cache ---------------------------------------------------------------- */
-const pageCache = new Map<string, { at: number; value: { total: number; entries: (BoardEntry & { rank: number })[] } }>();
-async function cachedPage(deps: DailyDeps, date: string, offset: number, limit: number) {
-  const key = `${date}:${offset}:${limit}`;
-  const ttl = dayPhase(date, deps.now()) === "closed" ? 300_000 : 15_000;
-  const hit = pageCache.get(key);
-  if (hit && deps.now() - hit.at < ttl) return hit.value;
-  const value = await deps.board(date).page(offset, limit);
-  pageCache.set(key, { at: deps.now(), value });
-  if (pageCache.size > 500) for (const [k, v] of pageCache) if (deps.now() - v.at > 300_000) pageCache.delete(k);
-  return value;
-}
-const publicEntry = (e: BoardEntry & { rank: number }, me?: string): RankedEntry => ({ rank: e.rank, nickname: e.nickname, score: e.score, finishedAt: e.finishedAt, yacht: e.yacht, bonus: e.bonus, ...(me && e.userId === me ? { me: true as const } : {}) });
+/*
+ * D-141 (owner decision, 2026-11-28): 오늘의 요트 is a NON-competitive daily content. Everyone still gets the same
+ * dice, one official attempt per account per day, personal score and history — but there is no ranking: no
+ * ranking API, no board entries written, no rank in any answer or share. The DailyBoard keeps participants (daily
+ * cap, re-join guard), puzzle statistics and withdrawals, and its old `entries` table is left in place (unused).
+ */
+const RANKING_REMOVED = "오늘의 요트는 순위 없이 내 기록만 남기는 콘텐츠로 바뀌었어요.";
 
 /* --------------------------------------------------------------------- routes --------------------------------------------------------------------- */
 export async function handleDailyRoute(request: Request, url: URL, deps: DailyDeps, readJson: () => Promise<Record<string, unknown>>): Promise<Response | null> {
@@ -170,24 +164,9 @@ export async function handleDailyRoute(request: Request, url: URL, deps: DailyDe
     return deps.reply(200, { date, rules: DAILY_RULES, key: toHex(key), commitment: commitmentOf(key), log }, me ? "private, max-age=300" : "public, max-age=86400");
   }
 
-  if (path === "/api/daily/ranking" && method === "GET") {
-    const date = dateParam(url.searchParams.get("date") ?? today);
-    if (!date) return fail(deps, 404, "NOT_FOUND", "없는 날짜예요.");
-    if (deps.limited("daily-rank:" + (await deps.clientKey()), 60)) return fail(deps, 429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
-    const { offset, limit } = pageParams(url.searchParams.get("offset") ?? 0, url.searchParams.get("limit") ?? 20);
-    const me = await deps.me();
-    const page = await cachedPage(deps, date, offset, limit);
-    const hidden = new Set(me ? await deps.user(me.userId).dailyHidden() : []);
-    const entries = page.entries.filter((e) => (e.visibility === "public" || e.userId === me?.userId) && !hidden.has(e.userId)).map((e) => publicEntry(e, me?.userId));
-    const mine = me ? (await deps.board(date).entriesFor([me.userId]))[0] : undefined;
-    // The shared page cache may predate my own result (just finished): my fresh row joins its page.
-    if (mine && !entries.some((e) => e.me) && mine.rank >= offset + 1 && (mine.rank <= offset + limit || entries.length < limit)) {
-      entries.push(publicEntry(mine, me!.userId));
-      entries.sort((x, y) => x.rank - y.rank || x.finishedAt - y.finishedAt);
-    }
-    return deps.reply(200, { date, rules: DAILY_RULES, final: dayPhase(date, now) === "closed", total: page.total, offset, limit, entries, me: mine ? publicEntry(mine, me!.userId) : null, hiddenCount: page.entries.length - entries.length },
-      me ? "private, no-store" : `public, max-age=${dayPhase(date, now) === "closed" ? 300 : 15}`);
-  }
+  // D-141: the competitive ranking is gone (both the public and the friends list); old pages get a clear 410
+  if ((path === "/api/daily/ranking" || path === "/api/daily/ranking/friends") && method === "GET") return fail(deps, 410, "RANKING_REMOVED", RANKING_REMOVED);
+
 
   if (path === "/api/daily/puzzles" && method === "GET") {
     const date = dateParam(url.searchParams.get("date") ?? today);
@@ -237,16 +216,7 @@ export async function handleDailyRoute(request: Request, url: URL, deps: DailyDe
   if (deps.limited("daily:" + me.userId, 150)) return fail(deps, 429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
   const u = deps.user(me.userId);
 
-  if (path === "/api/daily/ranking/friends" && method === "GET") {
-    const date = dateParam(url.searchParams.get("date") ?? today);
-    if (!date) return fail(deps, 404, "NOT_FOUND", "없는 날짜예요.");
-    const [friends, hidden] = await Promise.all([u.dailyFriendIds(), u.dailyHidden()]);
-    const hide = new Set(hidden);
-    const ids = [me.userId, ...friends.filter((id) => !hide.has(id)).slice(0, 300)];
-    const rows = (await deps.board(date).entriesFor(ids)).filter((e) => e.userId === me.userId || e.visibility !== "private");
-    const ranked = withRanks(rows.map((e) => ({ ...e, globalRank: e.rank })));
-    return deps.reply(200, { date, final: dayPhase(date, now) === "closed", entries: ranked.map((e) => ({ ...publicEntry(e, me.userId), globalRank: e.globalRank })), friends: friends.length }, "private, no-store");
-  }
+
 
   if (path === "/api/daily/history" && method === "GET") return deps.reply(200, { today, history: await u.dailyHistory() }, "private, no-store");
 
@@ -257,14 +227,9 @@ export async function handleDailyRoute(request: Request, url: URL, deps: DailyDe
     return deps.reply(200, { attempt: await u.dailyAttempt(date, mode) }, "private, no-store");
   }
 
-  if (path === "/api/daily/visibility" && method === "POST") {
-    const input = await readJson();
-    if (!isVisibility(input.visibility)) return fail(deps, 400, "INVALID_COMMAND", "공개 범위를 다시 골라 주세요.");
-    const v = await u.dailyVisibility(input.visibility);
-    // today's and yesterday's boards follow the new setting (older days keep what was shown then)
-    await Promise.all([today, addDays(today, -1)].map((d) => deps.board(d).setVisibility(me.userId, v))).catch(() => undefined);
-    return deps.reply(200, { visibility: v });
-  }
+  // D-141: ranking visibility has nothing left to control
+  if (path === "/api/daily/visibility" && method === "POST") return fail(deps, 410, "RANKING_REMOVED", RANKING_REMOVED);
+
 
   if ((path === "/api/daily/start" || path === "/api/daily/play") && method === "POST") {
     const input = await readJson();

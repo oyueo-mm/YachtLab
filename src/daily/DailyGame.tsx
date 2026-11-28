@@ -113,7 +113,7 @@ export default function DailyGame({ driver, initial, name, onFinished, onExit }:
             </div>
             <div className="daily-badge-cell">
               <span className={"daily-badge daily-badge-" + driver.mode}>{driver.mode === "official" ? <ShieldCheck size={13} aria-hidden="true" /> : null}{MODE_LABEL[driver.mode]}</span>
-              <small>{driver.date}{driver.mode === "official" && !initial.ranked ? " · 오늘 가입한 계정은 내일부터 순위 반영" : ""}</small>
+              <small>{driver.date}</small>
             </div>
             <div className="round">
               <span>라운드</span>
@@ -140,7 +140,7 @@ export default function DailyGame({ driver, initial, name, onFinished, onExit }:
               </button>
               {!hidden && playing && view.rolls === 3 && <p>점수 칸을 선택하세요</p>}
               {!hidden && playing && held === 31 && view.rolls < 3 && <p>다시 굴릴 주사위를 하나 이상 풀어 주세요</p>}
-              {status === "expired" && <p role="status">도전 시간이 끝났어요 (한국 시간 자정 + 30분). 기록은 순위에 들어가지 않아요.</p>}
+              {status === "expired" && <p role="status">도전 시간이 끝났어요 (한국 시간 자정 + 30분). 공식 기록으로 남지 않아요.</p>}
             </div>
           </section>
           {busy && <p className="daily-sync" role="status">서버에 기록하는 중…</p>}

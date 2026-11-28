@@ -615,10 +615,14 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       // defence in depth: the stored state must be exactly what its own log replays to
       verify: (state, date) => verifyState(state, this.dailyKey(date)),
       onVerifyFailed: () => console.error("DAILY_VERIFY_FAILED"),
+      // D-141: no ranking — a finished official attempt only counts toward the day's completion statistics
+      // (one counter row; no nickname, score or account id is written to the shared board)
       board: async (a) => {
         const board = this.dailyBoard(a.date);
-        if (a.ranked) await board.submit(entryFrom(p.userId, p.nickname, a.state, a.finishedAt, this.dailyStore.visibility()));
-        else await board.count("completed.unranked");
+        const score = Math.max(0, Math.floor(Number(a.score) || 0));
+        await board.count("completed");
+        await board.count(`score.${Math.floor(score / 25) * 25}`); // anonymous distribution for the operator report
+        await board.count("score.sum", score);
       },
       // C5 (#140) adds UserStore.dailyContentDone; until then the sink is absent and this is a no-op
       activity: async (a) => {
@@ -1382,8 +1386,8 @@ export class DailyBoard extends DurableObject<Env> implements DailyBoardApi {
   async submit(entry: BoardEntry) {
     return this.core.submit(entry);
   }
-  async count(name: string) {
-    this.core.count(name);
+  async count(name: string, by = 1) {
+    this.core.count(name, Math.max(0, Math.min(400, Math.floor(by) || 0)));
   }
   async remove(userId: string) {
     this.core.remove(userId);

@@ -32,7 +32,7 @@ export function drawDailyCard(canvas: HTMLCanvasElement, input: ShareInput) {
   g.fillText(String(input.score), W / 2, 330);
   g.fillStyle = "#e6e6e6";
   g.font = font(700, 36);
-  g.fillText(input.rank && input.players ? `전체 ${input.rank}위 / ${input.players}명` : "점", W / 2, 392);
+  g.fillText("점", W / 2, 392);
   const card: Card = input.card;
   const cols = [categories.slice(0, 6), categories.slice(6)];
   cols.forEach((list, col) => {

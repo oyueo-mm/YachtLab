@@ -380,7 +380,15 @@ export class DailyBoardCore {
     const buckets: Record<string, number> = {};
     for (const r of this.sql.exec<{ b: number; n: number }>("SELECT (score / 25) * 25 AS b, count(*) AS n FROM entries GROUP BY b ORDER BY b").toArray()) buckets[`${r.b}-${r.b + 24}`] = r.n;
     const puzzles = Object.fromEntries(this.sql.exec<{ puzzle_id: string; answered: number; correct: number }>("SELECT * FROM puzzle_stats").toArray().map((r) => [r.puzzle_id, { answered: r.answered, correct: r.correct }]));
-    return { started, completed: agg.n + this.counter("completed.unranked"), ranked: agg.n, average: agg.avg, best: agg.best, buckets, practice: this.counter("practice"), puzzles, flags: this.puzzleFlags() };
+    // D-141: results are counters only (no entries); rows of an older ranking build are still included
+    const completedCounters = this.counter("completed");
+    for (const r of this.sql.exec<{ name: string; n: number }>("SELECT name, n FROM counters WHERE name LIKE 'score.%' AND name != 'score.sum'").toArray()) {
+      const b = Number(r.name.slice(6));
+      if (Number.isFinite(b)) buckets[`${b}-${b + 24}`] = (buckets[`${b}-${b + 24}`] ?? 0) + r.n;
+    }
+    const n = agg.n + completedCounters;
+    const average = n ? ((agg.avg ?? 0) * agg.n + this.counter("score.sum")) / n : null;
+    return { started, completed: n + this.counter("completed.unranked"), ranked: 0, average, best: agg.best, buckets, practice: this.counter("practice"), puzzles, flags: this.puzzleFlags() };
   }
 }
 
