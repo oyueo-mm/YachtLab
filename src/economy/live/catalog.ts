@@ -75,7 +75,7 @@ export type ItemDef = {
   drawExcluded?: true;
 };
 /** The newest catalog revision in this build (a server snapshot reports the one it sells). */
-export const CATALOG_REV = 2;
+export const CATALOG_REV = 3;
 /** Can this server sell the item yet? Older servers report no revision (= 1). */
 export const sellableOn = (item: ItemDef, serverRev: number | undefined) => (item.rev ?? 1) <= (serverRev ?? 1);
 export const upgradeSupportedOn = (item: ItemDef, serverRev: number | undefined) =>
@@ -134,6 +134,12 @@ const items: ItemDef[] = [
   item({ id: "title.dicer", category: "title", tier: "rare", name: "주사위 장인", acquisition: "either", look: { text: "주사위 장인" } }),
   // special tier, achievement only (structure for symbolic achievements; final names are not decided)
   item({ id: "title.lucky_star", category: "title", tier: "special", specialKind: "achievement", name: "행운의 별", acquisition: "achievement", look: { text: "행운의 별" } }),
+  // C5 activity-streak titles (rev 3, approved C5-CORE): granted once by the activity-streak milestones
+  // 30 / 100 / 365 days (src/economy/retention/policy.ts ACT-REST1). Never sold, never in a draw pool.
+  // Names are proposals for owner review (docs/economy/C5-RETENTION-RESEARCH.md §11).
+  item({ id: "title.streak30", category: "title", tier: "special", specialKind: "achievement", name: "한 달 항해사", acquisition: "achievement", rev: 3, drawExcluded: true, look: { text: "한 달 항해사" } }),
+  item({ id: "title.streak100", category: "title", tier: "special", specialKind: "achievement", name: "백일 선장", acquisition: "achievement", rev: 3, drawExcluded: true, look: { text: "백일 선장" } }),
+  item({ id: "title.streak365", category: "title", tier: "special", specialKind: "achievement", name: "사계절 제독", acquisition: "achievement", rev: 3, drawExcluded: true, look: { text: "사계절 제독" } }),
   item({ id: "title.300", category: "title", tier: "special", specialKind: "achievement", name: "300클럽", acquisition: "achievement", look: { text: "300클럽" } }),
   item({ id: "title.310", category: "title", tier: "special", specialKind: "achievement", name: "310클럽", acquisition: "achievement", look: { text: "310클럽" } }),
   item({ id: "title.perfect", category: "title", tier: "special", specialKind: "achievement", name: "완벽한 경기", acquisition: "achievement", look: { text: "완벽한 경기" } }),

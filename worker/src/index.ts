@@ -6,7 +6,10 @@ import { newRoomCode, normalizeCode, normalizeSpectateId, parseRoomSettings, ROO
 import { readConfig, type ConfigVars, type OnlineConfig } from "./config";
 import { RoomHost, type HostSocket, type HostStorage } from "./host";
 import { AccountStore, type Sql } from "./account";
-import { EconomyStore, type EconSql } from "./economy";
+import { EconomyStore, type EconSql, type Quote } from "./economy";
+import { RewardGrants, type GrantRecord } from "./grants";
+import { RetentionStore, type DailyContentActivity } from "./retention";
+import type { RewardInput } from "../../src/economy/live/rewards";
 import { ECONOMY } from "../../src/economy/live/config";
 import { itemById } from "../../src/economy/live/catalog";
 
@@ -48,6 +51,17 @@ export interface Env extends ConfigVars {
   /** "on" enables official coins/gems/quests/achievements/shop (feature flag). */
   ECONOMY?: string;
   DICE_DRAW?: string;
+  /**
+   * C5-CORE retention rewards (attendance, activity streak, weekly best streak) and the reward inbox:
+   * "on" pays them (needs ECONOMY="on"); anything else — the default — keeps them off. Operational
+   * activation is a separate owner approval (docs/economy/C5-RETENTION-RESEARCH.md §11).
+   */
+  RETENTION?: string;
+  /**
+   * Purchase-like requests (buy / upgrade / slot / draw): "required" refuses requests without the quote
+   * fields (CLIENT_UPDATE_REQUIRED); anything else — the default — accepts them (older pages).
+   */
+  ECONOMY_QUOTE?: string;
   /** "off" disables server AI matches (kill switch, default on). */
   SERVER_AI?: string;
   /**
@@ -453,10 +467,28 @@ export class RoomDirectory extends DurableObject<Env> {
 
 /* ---------------------------------------------------------------- accounts ---------------------------------------------------------------- */
 
+/** What the page sees of a grant (no user id, no fingerprint). */
+const publicGrant = (g: GrantRecord) => ({ txId: g.txId, source: g.source, coins: g.coins, gems: g.gems, items: g.items, label: g.label, status: g.status, createdAt: g.createdAt, expiresAt: g.expiresAt });
+/** Operations counters of C5 grants (no ids): count and coins / gems per source. */
+function grantCounts(grants: readonly GrantRecord[]): [string, number][] {
+  const out = new Map<string, number>();
+  const add = (k: string, n: number) => n > 0 && out.set(k, (out.get(k) ?? 0) + n);
+  for (const g of grants) {
+    add(`grant.${g.source}`, 1);
+    add(`grant.${g.source}.coins`, g.coins);
+    add(`grant.${g.source}.gems`, g.gems);
+    add("econ.coins", g.coins);
+    add("econ.gems", g.gems);
+  }
+  return [...out];
+}
+
 /** One account (Phase 4): profile, hashed sessions, match records. Addressed by `idFromName(userId)`. */
 export class UserStore extends DurableObject<Env> implements UserApi {
   private store: AccountStore;
   private econ: EconomyStore;
+  private grants: RewardGrants;
+  private retention: RetentionStore;
   private friends: FriendStore;
   private cleanup: CleanupQueue;
   private presenceState = new Presence();
@@ -464,11 +496,16 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     super(ctx, env);
     this.store = new AccountStore(ctx.storage.sql as unknown as Sql);
     this.econ = new EconomyStore(this.econSql());
+    // C5: only the approved C5-CORE sources can pay (operator, suggestion, daily content, redeem codes: off)
+    this.grants = new RewardGrants(this.econSql(), this.econ);
+    this.retention = new RetentionStore(this.econSql(), this.grants);
     this.friends = new FriendStore(this.econSql() as unknown as FriendSql);
     this.cleanup = new CleanupQueue(ctx.storage.sql as unknown as Sql);
     ctx.blockConcurrencyWhile(async () => {
       this.store.init();
       this.econ.init();
+      this.grants.init();
+      this.retention.init();
       this.friends.init();
       this.cleanup.init();
     });
@@ -516,6 +553,9 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   private get economyOn() {
     return this.env.ECONOMY === "on";
   }
+  private get retentionOn() {
+    return this.economyOn && this.env.RETENTION === "on";
+  }
   private hub() {
     return this.env.HUB.get(this.env.HUB.idFromName("hub"));
   }
@@ -552,15 +592,15 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     void kind;
     return r;
   }
-  async buy(itemId: unknown, currency: unknown, requestId: string) {
+  async buy(itemId: unknown, currency: unknown, requestId: string, quote: Quote = {}) {
     const tier = itemById(itemId)?.tier ?? "unknown";
-    return this.econAction("buy", (u, n) => this.econ.buy(u, itemId, currency, requestId, n), () => `buy.${tier}.${currency === "gems" ? "gems" : "coins"}`);
+    return this.econAction("buy", (u, n) => this.econ.buy(u, itemId, currency, requestId, n, quote), () => `buy.${tier}.${currency === "gems" ? "gems" : "coins"}`);
   }
-  async upgrade(itemId: unknown, requestId: string) {
-    return this.econAction("upgrade", (u, n) => this.econ.upgrade(u, itemId, requestId, n), () => "upgrade");
+  async upgrade(itemId: unknown, requestId: string, quote: Quote = {}) {
+    return this.econAction("upgrade", (u, n) => this.econ.upgrade(u, itemId, requestId, n, quote), () => "upgrade");
   }
-  async buySlot(kind: unknown, currency: unknown, requestId: string) {
-    return this.econAction("slot", (u, n) => this.econ.buySlot(u, kind, currency, requestId, n), () => `slot.${kind === "chat" ? "chat" : "emote"}`);
+  async buySlot(kind: unknown, currency: unknown, requestId: string, quote: Quote = {}) {
+    return this.econAction("slot", (u, n) => this.econ.buySlot(u, kind, currency, requestId, n, quote), () => `slot.${kind === "chat" ? "chat" : "emote"}`);
   }
   async setLoadout(loadout: unknown) {
     return this.econAction("loadout", (u, n) => this.econ.setLoadout(u, loadout, n));
@@ -574,13 +614,89 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       ok: true as const, snapshot: this.econ.snapshot(userId, now), draw: this.econ.drawStatus(now),
     }));
   }
-  async draw(pool: DrawPool, requestId: string) {
+  async draw(pool: DrawPool, requestId: string, quote: Quote = {}) {
     if (this.env.DICE_DRAW !== "on") return { ok: false as const, code: "ECONOMY_OFF", message: "뽑기는 아직 준비 중이에요." };
-    return this.econAction("draw", (u, n) => this.econ.draw(u, pool, requestId, n), () => "shop.draw");
+    return this.econAction("draw", (u, n) => this.econ.draw(u, pool, requestId, n, quote), () => "shop.draw");
   }
-  /** Ledger ↔ balance check (administrator). */
+  /** Ledger ↔ balance check (administrator), including the grant records (C5). */
   async verifyLedger() {
-    return this.econ.verify();
+    const ledger = this.econ.verify();
+    const grants = this.grants.verify();
+    return { ...ledger, ok: ledger.ok && grants.ok, grants: grants.grants, problems: [...ledger.problems, ...grants.problems] };
+  }
+
+  /* --------------------------------------------- C5 rewards: attendance, streaks, inbox, codes --------------------------------------------- */
+
+  /** `snapshot` on changes only, so the page's wallet updates through the usual economy event. */
+  private rewardsView(userId: string, now: number, changed = false) {
+    return {
+      status: this.retention.status(now),
+      inbox: this.grants.inbox(now).map(publicGrant),
+      history: this.grants.history(20).map(publicGrant),
+      redeem: false,
+      wallet: this.econ.balance(),
+      ...(changed ? { snapshot: this.econ.snapshot(userId, now) } : {}),
+    };
+  }
+  private retentionGate(): { ok: false; code: string; message: string } | null {
+    if (!this.retentionOn) return { ok: false, code: "RETENTION_OFF", message: "출석·연속 활동 보상은 아직 준비 중이에요." };
+    return this.store.profile() ? null : { ok: false, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+  }
+  /** GET /api/me/rewards — status of attendance, activity and weekly streak, the inbox and recent grants. */
+  async rewards() {
+    const gate = this.retentionGate();
+    if (gate) return gate;
+    const p = this.store.profile()!;
+    const now = Date.now();
+    this.welcome(now);
+    this.grants.expire(now);
+    return { ok: true as const, ...this.rewardsView(p.userId, now) };
+  }
+  /** POST /api/me/rewards/attendance — once per KST day. */
+  async claimAttendance() {
+    const gate = this.retentionGate();
+    if (gate) return gate;
+    const p = this.store.profile()!;
+    const now = Date.now();
+    this.welcome(now);
+    const r = this.retention.claimAttendance(p.userId, now);
+    if (!r.ok) return r;
+    await Promise.all(grantCounts(r.granted).map(([k, n]) => this.hub().count(k, n))).catch(() => undefined);
+    return { ok: true as const, granted: r.granted.map(publicGrant), ...this.rewardsView(p.userId, now, true) };
+  }
+  /** POST /api/me/rewards/claim — one inbox entry or "all". */
+  async claimReward(txId: string | "all") {
+    const gate = this.retentionGate();
+    if (gate) return gate;
+    const p = this.store.profile()!;
+    const now = Date.now();
+    let claimed: GrantRecord[];
+    if (txId === "all") claimed = this.grants.claimAll(now).claimed;
+    else {
+      const r = this.grants.claim(txId, now);
+      if (!r.ok) return r;
+      claimed = r.duplicate ? [] : [r.record];
+    }
+    await Promise.all(grantCounts(claimed).map(([k, n]) => this.hub().count(k, n))).catch(() => undefined);
+    return { ok: true as const, granted: claimed.map(publicGrant), ...this.rewardsView(p.userId, now, true) };
+  }
+  /**
+   * POST /api/me/rewards/redeem — redeem codes need the global code directory of ADMIN-1 (#141) and an
+   * approved amount; until both exist the route answers REDEEM_OFF and never pays.
+   */
+  async redeemCode(_code: string) {
+    const gate = this.retentionGate();
+    if (gate) return gate;
+    return { ok: false as const, code: "REDEEM_OFF", message: "교환 코드는 아직 준비 중이에요." };
+  }
+  /** LIVE-1 (#142) hook: an approved daily content completion counts as an active day (no daily-content coins). */
+  async dailyContentDone(activity: DailyContentActivity) {
+    if (!this.retentionOn) return [];
+    const p = this.store.profile();
+    if (!p) return [];
+    const now = Date.now();
+    this.welcome(now);
+    return this.retention.onDailyContent(p.userId, activity, now).map(publicGrant);
   }
   /** Count a server AI match start against this account's daily limit. */
   async startAi() {
@@ -728,17 +844,23 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     const now = Date.now();
     // The record and its rewards are stored in ONE transaction, keyed by the match id: a repeated
     // delivery finds the record and grants nothing; a crash leaves neither.
-    const settlement: { current: MatchEconomyResult | null } = { current: null };
+    const settlement: { current: MatchEconomyResult | null; retention?: GrantRecord[] } = { current: null };
     this.econSql().transaction(() => this.store.recordMatch(record, () => {
       if (!p || !this.economyOn) return undefined;
       this.welcome(now);
-      settlement.current = this.econ.applyMatch(
-        p.userId,
-        p.createdAt,
-        { matchId: record.recordId, kind: record.kind ?? "friend", outcome: record.outcome, endReason: record.endReason, score: record.score, card: record.card, opponentUserId: record.opponent.userId, stats: record.stats, endedAt: record.endedAt },
-        now,
-      );
+      const input: RewardInput = { matchId: record.recordId, kind: record.kind ?? "friend", outcome: record.outcome, endReason: record.endReason, score: record.score, card: record.card, opponentUserId: record.opponent.userId, stats: record.stats, endedAt: record.endedAt };
+      settlement.current = this.econ.applyMatch(p.userId, p.createdAt, input, now);
       const receipt = settlement.current.receipt;
+      // C5-CORE: activity streak + weekly best streak, same transaction (server-verified records only)
+      if (this.retentionOn) {
+        const countable = settlement.current.reason !== "own-forfeit" && settlement.current.reason !== "too-short";
+        const paid = this.retention.onMatch(p.userId, record, input, { countable, reason: settlement.current.reason }, now);
+        if (paid.length) {
+          receipt.grants.push(...paid.map((g) => ({ kind: g.source, label: g.label, coins: g.coins, gems: g.gems })));
+          receipt.after = this.econ.balance();
+          settlement.retention = paid;
+        }
+      }
       return receipt.quests.length || receipt.grants.length ? receipt : undefined;
     }));
     const result = settlement.current;
@@ -755,6 +877,7 @@ export class UserStore extends DurableObject<Env> implements UserApi {
         ["quest.allDaily", result.grants.filter((g) => g.key.startsWith("qb:daily")).length],
         ["achievement.unlock", result.grants.filter((g) => g.kind === "achievement").length],
         ["dau.members", result.firstToday ? 1 : 0],
+        ...grantCounts(settlement.retention ?? []),
       ];
       await Promise.all(counts.filter(([, n]) => n > 0).map(([k, n]) => hub.count(k, n))).catch(() => undefined);
       if (result.firstToday && result.wallet) await hub.count("balance." + bucket(result.wallet.coins)).catch(() => undefined);
@@ -1043,6 +1166,7 @@ export default {
       limited: (key, perMinute) => (key.startsWith("me:") ? Promise.resolve(isolateLimited(key, perMinute)) : directory.hit(key, perMinute)),
       fetcher: (input, init) => fetch(input, init),
       now: Date.now,
+      quoteRequired: env.ECONOMY_QUOTE === "required",
     };
     /** Signed-in identity for a seat (an invalid or expired session simply plays as a guest). */
     const seatIdentity = async () => {

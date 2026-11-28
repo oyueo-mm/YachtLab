@@ -396,7 +396,7 @@ describe("아이템 콘텐츠 (H, 2026-11-25)", () => {
     expect(priceOf(itemById("chat.nice")!, "coins")).toBe(165);
     expect(priceOf(itemById("chat.best_try")!, "coins")).toBe(3000);
     expect(priceOf(itemById("emote.fire")!, "coins")).toBe(225);
-    expect(ITEMS.filter((i) => i.tier === "special").map((i) => i.id).sort()).toEqual(["title.300", "title.310", "title.lucky_star", "title.perfect"]);
+    expect(ITEMS.filter((i) => i.tier === "special").map((i) => i.id).sort()).toEqual(["title.300", "title.310", "title.lucky_star", "title.perfect", "title.streak100", "title.streak30", "title.streak365"]);
   });
   it("강화 단계가 있는 상품은 Lv.2·Lv.3 외형이 실제로 다르다", () => {
     for (const i of ITEMS.filter((x) => x.maxLevel > 1 && x.levelLooks)) {

@@ -46,6 +46,7 @@ import { aiMatchConfig, finalizeNames, getAiSetup, getLocalSetup, type AiMatchCo
 const LabScreen = lazy(() => import("./lab/LabScreen"));
 const ItemsPage = lazy(() => import("./shell/EconomyPages").then((module) => ({ default: module.ItemsPage })));
 const QuestsPage = lazy(() => import("./shell/EconomyPages").then((module) => ({ default: module.QuestsPage })));
+const RewardsPage = lazy(() => import("./rewards/RewardsPage"));
 
 type LocalConfig = { players: string[]; order: LocalOrder };
 const localConfig = (): LocalConfig => {
@@ -409,6 +410,7 @@ export default function App() {
           {activity(["quests", "achievements"], <QuestsPage key={session() ?? "guest"} server={onlineServer} go={navigate}
             achievements={page === "achievements" || (page !== "quests" && suspended?.route === "achievements")} />)}
         </Suspense>
+        {page === "rewards" && <Suspense fallback={null}><RewardsPage key={session() ?? "guest"} server={onlineServer} go={navigate} /></Suspense>}
         {page === "friends" && <FriendsPage server={onlineServer} go={navigate} />}
         {page === "spectate" && !onlineServer && <OnlineSoon navigate={navigate} />}
         {page === "spectate" && onlineServer && (watchTarget ? <OnlineWatch key={watchTarget.code + watchTarget.key} server={onlineServer} code={watchTarget.code} watchKey={watchTarget.key} onLeave={() => navigate("home")} /> : (

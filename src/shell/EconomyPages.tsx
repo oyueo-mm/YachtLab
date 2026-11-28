@@ -318,7 +318,7 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
   const ordered = list.slice().sort((a, b) => tierOrder(a) - tierOrder(b));
   const group = (category: ItemCategory) => ordered.filter((item) => item.category === category);
   const purchase = async (i: ItemDef, currency: "coins" | "gems") => {
-    const r = await act(() => buy(server!, i.id, currency), `${i.name}을(를) 샀어요. 인벤토리에서 장착할 수 있어요.`);
+    const r = await act(() => buy(server!, i.id, currency, { expectedPrice: priceOf(i, currency) ?? undefined, configVersion: snap?.config }), `${i.name}을(를) 샀어요. 인벤토리에서 장착할 수 있어요.`);
     if (r) setNotice(r);
   };
   const priceLine = (i: ItemDef) => {
@@ -407,10 +407,10 @@ function ShopPage({ server, go, economyState, active }: EconomyProps) {
                   <span className="shop-owned">최대</span>
                 ) : (
                   <span className="shop-buy">
-                    <button type="button" className="secondary" disabled={busy || !snap || wallet.coins < c} onClick={() => void act(() => buySlot(server!, kind, "coins"))} aria-label={`${kind === "emote" ? "이모티콘" : "채팅"} 슬롯 코인 구매`}>
+                    <button type="button" className="secondary" disabled={busy || !snap || wallet.coins < c} onClick={() => void act(() => buySlot(server!, kind, "coins", { expectedPrice: c, configVersion: snap?.config }))} aria-label={`${kind === "emote" ? "이모티콘" : "채팅"} 슬롯 코인 구매`}>
                       <Coins size={14} /> {fmt(c)}
                     </button>
-                    <button type="button" className="secondary" disabled={busy || !snap || wallet.gems < (g ?? Infinity)} onClick={() => void act(() => buySlot(server!, kind, "gems"))} aria-label={`${kind === "emote" ? "이모티콘" : "채팅"} 슬롯 보석 구매`}>
+                    <button type="button" className="secondary" disabled={busy || !snap || wallet.gems < (g ?? Infinity)} onClick={() => void act(() => buySlot(server!, kind, "gems", { expectedPrice: g ?? undefined, configVersion: snap?.config }))} aria-label={`${kind === "emote" ? "이모티콘" : "채팅"} 슬롯 보석 구매`}>
                       <Gem size={14} /> {g}
                     </button>
                   </span>
@@ -673,7 +673,8 @@ function InventoryPage({ server, go, economyState, active }: EconomyProps) {
           setConfirmUp(null);
           if (!c || !snap || !upgradeSupportedOn(c.item, snap.catalogRev)) return;
           void act(async () => {
-            const updated = await upgrade(server!, c.item.id);
+            // SEC-08: the level the player confirmed from; a second tab or a late retry cannot upgrade twice
+            const updated = await upgrade(server!, c.item.id, { expectedLevel: c.to - 1, expectedPrice: c.cost, configVersion: snap.config });
             if (!updated.inventory.some((entry) => entry.id === c.item.id && entry.level >= c.to)) {
               throw new EconomyError("UPGRADE_UNCONFIRMED", "강화 결과를 확인하지 못했어요. 보유 단계와 재화 내역을 확인해 주세요.");
             }

@@ -5,6 +5,7 @@ import { sanitizeRecord, type MatchRecord } from "../../src/identity/records";
 import { sanitizeSoloRecord, type SoloRecord } from "../../src/solo/records";
 import { GOOGLE, OidcError, USER_ID, beginLogin, finishLogin, seal, sha256, unseal, userIdFor, type LoginState, type OidcProvider } from "./oidc";
 import type { PrivateProfile, PublicProfile } from "./account";
+import { STALE_CODES, type Quote } from "./economy";
 
 /**
  * Account HTTP API (Phase 4). Runtime-free: the Worker passes Durable Object stubs as `AccountBackends`,
@@ -61,13 +62,43 @@ export interface UserApi {
   publicProfile(): Promise<PublicProfile | null>;
   /* Phase 5/6 economy (optional: tests of the account API may omit them) */
   economy?(): Promise<EconResult>;
-  buy?(itemId: unknown, currency: unknown, requestId: string): Promise<EconResult>;
-  upgrade?(itemId: unknown, requestId: string): Promise<EconResult>;
-  buySlot?(kind: unknown, currency: unknown, requestId: string): Promise<EconResult>;
+  buy?(itemId: unknown, currency: unknown, requestId: string, quote?: Quote): Promise<EconResult>;
+  upgrade?(itemId: unknown, requestId: string, quote?: Quote): Promise<EconResult>;
+  buySlot?(kind: unknown, currency: unknown, requestId: string, quote?: Quote): Promise<EconResult>;
   setLoadout?(loadout: unknown): Promise<EconResult>;
   rerollQuest?(index: number | "all", period?: "daily" | "weekly", expected?: number): Promise<EconResult>;
   drawStatus?(): Promise<EconResult>;
-  draw?(pool: DrawPool, requestId: string): Promise<EconResult>;
+  draw?(pool: DrawPool, requestId: string, quote?: Quote): Promise<EconResult>;
+  /* C5 rewards (optional: absent on older objects and in account-API tests) */
+  rewards?(): Promise<RewardResult>;
+  claimAttendance?(): Promise<RewardResult>;
+  claimReward?(txId: string | "all"): Promise<RewardResult>;
+  redeemCode?(code: string): Promise<RewardResult>;
+}
+export type RewardResult = ({ ok: true } & Record<string, unknown>) | { ok: false; code: string; message: string };
+/** Status of a refused reward request. */
+const REWARD_STATUS: Record<string, number> = { RETENTION_OFF: 404, REDEEM_OFF: 404, ECONOMY_OFF: 404, NOT_FOUND: 404, NO_ACCOUNT: 404, ALREADY_CLAIMED: 409, EXPIRED: 410, REVOKED: 410, SOURCE_DISABLED: 409, TRY_LATER: 503 };
+/** The quote fields a purchase-like request must carry once `quoteRequired` is on. */
+export function missingQuote(path: string, q: Quote): boolean {
+  if (q.configVersion === undefined || q.expectedPrice === undefined) return true;
+  if (path === "/api/me/shop/upgrade" && q.expectedLevel === undefined) return true;
+  if (path === "/api/me/shop/draw" && q.oddsVersion === undefined) return true;
+  return false;
+}
+
+/**
+ * The optional "what I saw" fields of a purchase-like request (SEC-08, SEC-10, stale requests). Absent
+ * fields are not checked (older pages); a present field with the wrong type is a 400.
+ */
+export function parseQuote(input: Record<string, unknown>): Quote | null {
+  const q: Quote = {};
+  const int = (v: unknown, max: number) => typeof v === "number" && Number.isSafeInteger(v) && v >= 0 && v <= max;
+  const text = (v: unknown) => typeof v === "string" && v.length > 0 && v.length <= 40 && /^[A-Za-z0-9@._:-]+$/.test(v);
+  if (input.expectedPrice !== undefined) { if (!int(input.expectedPrice, 10_000_000)) return null; q.expectedPrice = input.expectedPrice as number; }
+  if (input.expectedLevel !== undefined) { if (!int(input.expectedLevel, 10) || (input.expectedLevel as number) < 1) return null; q.expectedLevel = input.expectedLevel as number; }
+  if (input.configVersion !== undefined) { if (!text(input.configVersion)) return null; q.configVersion = input.configVersion as string; }
+  if (input.oddsVersion !== undefined) { if (!text(input.oddsVersion)) return null; q.oddsVersion = input.oddsVersion as string; }
+  return q;
 }
 export type EconResult = { ok: true; snapshot: unknown; duplicate?: boolean; receipt?: DrawReceipt; draw?: DrawStatus } | { ok: false; code: string; message: string };
 const REQUEST_ID = /^[A-Za-z0-9_-]{8,64}$/;
@@ -83,6 +114,11 @@ export type AccountBackends = {
   limited(key: string, perMinute: number): Promise<boolean>;
   fetcher: typeof fetch;
   now(): number;
+  /**
+   * C5 phased quote check: true once every supported page sends the quote fields (Worker var
+   * `ECONOMY_QUOTE="required"`). Purchase-like requests without them get 409 CLIENT_UPDATE_REQUIRED.
+   */
+  quoteRequired?: boolean;
 };
 
 const COOKIE = "__Host-yl_oidc";
@@ -223,10 +259,30 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
     return result ? reply(200, result) : fail(404, "NOT_FOUND", "본인 계정에서 이 경기 기록을 찾을 수 없어요.");
   }
   /* ---------------- economy (server-side only; the client never sends amounts) ---------------- */
-  const econ = (r: EconResult) => (r.ok ? reply(200, { snapshot: r.snapshot, duplicate: r.duplicate ?? false, receipt: r.receipt, draw: r.draw }) : fail(r.code === "ECONOMY_OFF" ? 404 : r.code === "INSUFFICIENT" ? 402 : 400, r.code, r.message));
+  const econ = (r: EconResult) => (r.ok ? reply(200, { snapshot: r.snapshot, duplicate: r.duplicate ?? false, receipt: r.receipt, draw: r.draw }) : fail(r.code === "ECONOMY_OFF" ? 404 : r.code === "INSUFFICIENT" ? 402 : STALE_CODES.has(r.code) ? 409 : 400, r.code, r.message));
   if (path === "/api/me/economy" && method === "GET" && user.economy) return econ(await user.economy());
   if (path === "/api/me/shop/draw" && method === "GET" && user.drawStatus) return econ(await user.drawStatus());
+  /* ---------------- C5 rewards: attendance, streaks, reward inbox, redeem codes ---------------- */
+  const rewardReply = (r: RewardResult) => {
+    if (!r.ok) return fail(REWARD_STATUS[r.code] ?? 400, r.code, r.message);
+    const { ok: _ok, ...rest } = r;
+    return reply(200, rest);
+  };
+  if (path === "/api/me/rewards" && method === "GET") return user.rewards ? rewardReply(await user.rewards()) : fail(404, "RETENTION_OFF", "출석·연속 활동 보상은 아직 준비 중이에요.");
   if (method !== "POST") return fail(404, "NOT_FOUND", "없는 주소입니다.");
+  if (path === "/api/me/rewards/attendance" || path === "/api/me/rewards/claim" || path === "/api/me/rewards/redeem") {
+    if (!user.rewards) return fail(404, "RETENTION_OFF", "출석·연속 활동 보상은 아직 준비 중이에요.");
+    const input = await body(request, 1024);
+    if (path === "/api/me/rewards/attendance") return rewardReply(await user.claimAttendance!());
+    if (path === "/api/me/rewards/claim") {
+      const tx = input.txId;
+      if (tx !== "all" && (typeof tx !== "string" || !/^[A-Za-z0-9:._-]{4,96}$/.test(tx))) return fail(400, "INVALID", "받을 보상을 확인해 주세요.");
+      return rewardReply(await user.claimReward!(tx as string));
+    }
+    const code = input.code;
+    if (typeof code !== "string" || code.length < 4 || code.length > 40) return fail(400, "INVALID", "코드를 확인해 주세요.");
+    return rewardReply(await user.redeemCode!(code));
+  }
   if (path.startsWith("/api/me/shop/") || path === "/api/me/loadout" || path === "/api/me/quests/reroll") {
     if (!user.buy) return fail(404, "ECONOMY_OFF", "재화 기능은 아직 준비 중이에요.");
     const input = await body(request, 4096);
@@ -243,14 +299,17 @@ export async function handleAccountRoute(request: Request, url: URL, cfg: AuthCo
         typeof input.expected === "number" ? input.expected : undefined));
     }
     if (!rid) return fail(400, "INVALID", "요청 정보가 올바르지 않아요.");
+    const quote = parseQuote(input);
+    if (!quote) return fail(400, "INVALID", "요청 정보가 올바르지 않아요.");
+    if (b.quoteRequired && missingQuote(path, quote)) return fail(409, "CLIENT_UPDATE_REQUIRED", "상점이 업데이트됐어요. 페이지를 새로 고친 뒤 다시 시도해 주세요.");
     if (path === "/api/me/shop/draw" && user.draw) {
       const pool = drawPool(input.pool);
       if (!pool) return fail(400, "INVALID", "뽑기 종류를 확인해 주세요.");
-      return econ(await user.draw(pool, rid));
+      return econ(await user.draw(pool, rid, quote));
     }
-    if (path === "/api/me/shop/buy") return econ(await user.buy(input.itemId, input.currency, rid));
-    if (path === "/api/me/shop/upgrade") return econ(await user.upgrade!(input.itemId, rid));
-    if (path === "/api/me/shop/slot") return econ(await user.buySlot!(input.kind, input.currency, rid));
+    if (path === "/api/me/shop/buy") return econ(await user.buy(input.itemId, input.currency, rid, quote));
+    if (path === "/api/me/shop/upgrade") return econ(await user.upgrade!(input.itemId, rid, quote));
+    if (path === "/api/me/shop/slot") return econ(await user.buySlot!(input.kind, input.currency, rid, quote));
   }
   if (path === "/api/me/nickname") {
     const result = await user.setNickname((await body(request, 1024)).nickname);
