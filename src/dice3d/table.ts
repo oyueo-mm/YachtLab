@@ -423,7 +423,8 @@ export class DiceTable {
     this.textures = built.textures;
     this.glowBase = built.glowBase;
     this.ambientGlow = this.glowBase;
-    this.motionOn = !!look.glow && (look.fxLevel ?? 1) >= 2 && s.motion !== "none";
+    // Motion response needs per-die materials: not on the flat tier (weakest devices keep the shared glow).
+    this.motionOn = !flat && !!look.glow && (look.fxLevel ?? 1) >= 2 && s.motion !== "none";
     this.materials.forEach((m) => m.dispose());
     this.materials = built.materials;
     // Per-die clones only when dice glow (their light follows each die's motion); otherwise all dice share
@@ -435,7 +436,7 @@ export class DiceTable {
     this.energy.clear();
   }
   private materialsFor(id: number) {
-    if (!this.glowBase) return this.materials;
+    if (!this.motionOn) return this.materials;
     let mats = this.dieMaterials.get(id);
     if (!mats) {
       mats = this.materials.map((m) => m.clone());
@@ -451,6 +452,10 @@ export class DiceTable {
   /** Emission of every die = ambient level (timer) × its motion response. */
   private applyGlow(now: number) {
     if (!this.glowBase) return;
+    if (!this.motionOn) {
+      for (const m of this.materials) m.emissiveIntensity = this.ambientGlow;
+      return;
+    }
     const t = now / 1000;
     for (const [id, mats] of this.dieMaterials) {
       const k = this.motionOn ? motionGlow(this.spec.motion, this.energy.get(id) ?? 0, t + id * 0.37) : 1;
@@ -513,7 +518,7 @@ export class DiceTable {
         const level = this.anim === "pulse" ? base + 0.5 * (0.5 + 0.5 * Math.sin(t * 2.4)) : this.anim === "sparkle" ? base + 0.7 * Math.abs(Math.sin(t * 5.1) * Math.sin(t * 1.7)) : base + 0.35 * (0.5 + 0.5 * Math.sin(t * 1.3));
         this.ambientGlow = level + (this.glowBase - GLOW_BASE);
         if (this.anim === "shimmer")
-          for (const mats of this.dieMaterials.values()) mats.forEach((m, i) => m.emissive.offsetHSL(0.004 * (i % 2 ? 1 : -1), 0, 0));
+          for (const mats of this.motionOn ? this.dieMaterials.values() : [this.materials]) mats.forEach((m, i) => m.emissive.offsetHSL(0.004 * (i % 2 ? 1 : -1), 0, 0));
         this.applyGlow(performance.now());
         this.requestRender();
       }, 66);
