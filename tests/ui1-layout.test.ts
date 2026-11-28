@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sheetLayout, SHEET_MIN } from "../src/ui/sheet-layout";
+import { sheetLayout, SHEET_TIERS } from "../src/ui/sheet-layout";
 import { anchorPoint, clampPoint, defaultPoint } from "../src/ui/floating";
 
 const seats = (n: number) => Array.from({ length: n }, (_, i) => i);
@@ -12,13 +12,20 @@ describe("UI-1 score sheet layout", () => {
   it("pins the given seat first and scrolls when columns cannot fit (2–20 players)", () => {
     for (const n of [2, 4, 8, 12, 20]) for (const width of [320, 360, 390, 430, 768, 1024, 1280, 1440, 1920]) {
       const l = sheetLayout({ width, seats: seats(n), pinned: n - 1 });
-      const need = SHEET_MIN.category(width) + n * SHEET_MIN.column(width);
+      const need = SHEET_TIERS.tight.category + n * SHEET_TIERS.tight.column;
       expect(l.scroll).toBe(need > width);
+      if (!l.scroll) expect(l.category + n * l.column).toBeLessThanOrEqual(width);
       if (l.scroll) expect(l.order[0]).toBe(n - 1);
       expect([...l.order].sort((a, b) => a - b)).toEqual(seats(n));
-      expect(l.column).toBeGreaterThanOrEqual(60);
-      expect(l.category).toBeGreaterThanOrEqual(96);
+      expect(l.column).toBeGreaterThanOrEqual(50); // 44px button + 3px padding each side
+      expect(l.category).toBeGreaterThanOrEqual(88);
     }
+  });
+  it("uses the roomiest tier that fits (A4: 2–4 players fit a 320px phone without scrolling)", () => {
+    expect(sheetLayout({ width: 1200, seats: seats(4) }).tier).toBe("wide");
+    expect(sheetLayout({ width: 364, seats: seats(2) }).tier).toBe("wide");
+    expect(sheetLayout({ width: 294, seats: seats(4) })).toMatchObject({ tier: "tight", scroll: false });
+    expect(sheetLayout({ width: 1000, seats: seats(20), pinned: 3 })).toMatchObject({ tier: "mid", scroll: true, order: [3, ...seats(20).filter((s) => s !== 3)] });
   });
   it("does not decide before the width is known", () => {
     expect(sheetLayout({ width: 0, seats: seats(20), pinned: 5 })).toMatchObject({ scroll: false, order: seats(20) });

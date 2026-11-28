@@ -68,3 +68,18 @@ dialog.modal:not(.ui-sheet), dialog.match-result-dialog, dialog.a3-result-dialog
 @media (min-width: 1100px) {
   .profile .profile-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* ---- A3 result panel for online multi / spectators (UI-1) ---- */
+/* up to 20 players: compact rows, the list scrolls inside the dialog, my row stays highlighted */
+.a3-standings.many { max-height: min(46vh, 520px); gap: 4px; overscroll-behavior: contain; }
+.a3-standings.many li { padding: 4px 8px; gap: 8px; font-size: 14px; border-radius: 10px; }
+.a3-standings.many .a3-avatar { width: 26px; height: 26px; font-size: 12px; }
+.a3-standings.many .a3-rank { min-width: 26px; height: 26px; font-size: 12px; }
+.a3-standings.many .a3-score { font-size: 16px; }
+.a3-standings li.forfeited { opacity: 0.72; }
+.a3-standings .a3-forfeit { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 6px; background: #f2efee; color: #6b6461; font-size: 11px; font-weight: 700; }
+.a3-standings .a3-forfeit[data-reason="timeout"] { background: #fff4e0; color: #8a5a00; }
+.a3-standings .a3-name b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.a3-result-dialog[data-kind="observer"] .a3-result-head h2 { font-size: clamp(22px, 5vw, 28px); }
+.a3-result-dialog[data-kind="void"] .a3-result { background: #fafafa; }
+.a3-review-unavailable[disabled] { opacity: 0.6; cursor: not-allowed; }

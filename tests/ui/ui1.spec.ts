@@ -24,7 +24,8 @@ async function sheetIsUsable(page: Page, scope: string) {
       const b = button.getBoundingClientRect();
       const cell = button.parentElement!.getBoundingClientRect();
       if (b.width < 43.5) return `button ${b.width}px`;
-      if (b.height < 35.5) return `button height ${b.height}px`;
+      const minHeight = matchMedia("(pointer: fine)").matches ? 25.5 : 35.5; // mouse: compact rows (26px); touch: 36px
+      if (b.height < minHeight) return `button height ${b.height}px`;
       if (b.left < cell.left - 0.5 || b.right > cell.right + 0.5) return `button outside its cell`;
       if (b.left < catRight - 0.5) return "button under the category column";
     }
@@ -215,3 +216,4 @@ test.describe("quick-match popup", () => {
     }
   });
 });
+

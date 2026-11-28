@@ -6,13 +6,13 @@
  * through --ui1-cat / --ui1-col / --ui1-cols.
  */
 .ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet {
-  container: ui1-sheet / inline-size;
   overflow: hidden;
   width: 100%;
   max-width: 100%;
   min-width: 0;
 }
-.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .score-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .score-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 0; padding: 8px 14px 4px; }
+.ui1-sheet.ui1-sheet.ui1-sheet .score-title h2 { margin: 0; font-size: 14px; }
 .ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet.compact .score-title { display: none; }
 .ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet.compact.ui1-scrolls .score-title { display: flex; padding: 8px 12px 4px; }
 .ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet.compact.ui1-scrolls .score-title h2 { font-size: 13px; margin: 0; }
@@ -160,18 +160,23 @@
 .ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .total-row td { background: #262626; color: #fff; font-weight: 750; }
 .ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .total-row td:is(.multi-current-cell, .ui1-pinned) { background: #4b1f1c; color: #fff; }
 
-/* medium sheets: drop the die icons so names like "에이스 (1)" fit the category column */
-@container ui1-sheet (max-width: 759px) {
-  .ui1-sheet .category-icon, .ui1-sheet tbody th svg { display: none !important; }
-}
-/* narrow sheets (phones, many columns): text only, no help icons */
-@container ui1-sheet (max-width: 479px) {
-  .ui1-sheet .category-icon, .ui1-sheet .category-help, .ui1-sheet tbody th svg { display: none !important; }
-  .ui1-sheet .category-label { font-size: 12px !important; }
-  .ui1-sheet .bonus-progress small, .ui1-sheet .category-label small { display: none !important; }
-  .ui1-sheet :is(th, td) { padding-left: 3px !important; padding-right: 3px !important; }
-  .ui1-sheet :is(tbody th, thead th:first-child) { padding-left: 8px !important; }
-  .ui1-scroll-hint { font-size: 10px; }
+/* tiers come from sheetLayout(): "mid" drops the die icons, "tight" is text only with no help icons */
+.ui1-sheet.ui1-mid .category-icon, .ui1-sheet.ui1-mid tbody th svg,
+.ui1-sheet.ui1-tight .category-icon, .ui1-sheet.ui1-tight tbody th svg,
+.ui1-sheet.ui1-tight .category-help { display: none !important; }
+.ui1-sheet.ui1-tight .category-label { font-size: 12px !important; }
+.ui1-sheet.ui1-tight .bonus-progress small, .ui1-sheet.ui1-tight .category-label small { display: none !important; }
+.ui1-sheet.ui1-tight :is(th, td) { padding-left: 3px !important; padding-right: 3px !important; }
+.ui1-sheet.ui1-tight :is(tbody th, thead th:first-child) { padding-left: 8px !important; }
+.ui1-sheet.ui1-tight .ui1-scroll-hint { font-size: 10px; }
+
+/* mouse-driven screens: compact rows so a full sheet fits one laptop screen (touch keeps 40/36px) */
+@media (pointer: fine) {
+  .ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet :is(th, td) { height: 29px; padding-top: 1px; padding-bottom: 1px; }
+  .ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .score-option { min-height: 26px; }
+  .ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .section-row th { height: 18px; }
+  .ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .bonus-row :is(th, td),
+  .ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet .total-row :is(th, td) { height: 32px; }
 }
 
 /* ---- N-player game grid (local + online multi) ---- */
@@ -198,3 +203,5 @@
 .ui1-sheet-switch { display: flex; width: 100%; margin: 0 0 10px; }
 .ui1-sheet-switch > button { flex: 1 1 0; min-height: 40px; }
 .mobile-score-scroll .ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet { border: 1px solid var(--line); border-radius: 12px; }
+/* 1인 플레이: the summary row above the board already names the sheet; keep the 12 rows on one laptop screen */
+.ui1-sheet.ui1-sheet.ui1-sheet.ui1-sheet[data-players="1"] .score-title { display: none; }

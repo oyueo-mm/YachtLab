@@ -62,7 +62,7 @@ export function MultiScoreboard({
   const cellClass = (i: number) => [i === current && !state.done ? "multi-current-cell" : "", layout.scroll && i === layout.pinned ? "ui1-pinned" : ""].filter(Boolean).join(" ") || undefined;
   return (
     <section
-      className={"scoreboard panel multi-scoreboard ui1-sheet" + (compact ? " compact" : "") + (layout.scroll ? " ui1-scrolls" : " ui1-fits")}
+      className={"scoreboard panel multi-scoreboard ui1-sheet" + (compact ? " compact" : "") + (layout.scroll ? " ui1-scrolls" : " ui1-fits") + " ui1-" + layout.tier}
       aria-label="점수판"
       data-players={state.cards.length}
       style={{ "--ui1-cols": indices.length, "--ui1-cat": layout.category + "px", "--ui1-col": layout.column + "px" } as React.CSSProperties}

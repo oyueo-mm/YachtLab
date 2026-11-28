@@ -1,8 +1,10 @@
 import { useSettings } from "../settings";
 import { BonusMoments } from "../bonus-moment";
-import { MatchResult } from "../ui/MatchResult";
+import { MatchResultPanel } from "../match-result/MatchResultPanel";
+import { ReviewUnavailable } from "../match-result/ReviewUnavailable";
+import type { ResultInput } from "../match-result/model";
 import { FirstTurnGuide } from "./Tutorial";
-import { MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
+import { nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useRef, useState } from "react";
 import { Check, Crown, Dices, Flag, Play, RotateCcw, Timer, Wifi, WifiOff } from "lucide-react";
 import { categories, type Category } from "../engine";
@@ -194,6 +196,11 @@ export function MultiTable(p: {
   tools: React.ReactNode;
   review?: React.ReactNode;
   reward?: React.ReactNode;
+  /** A3 result input built from the public event log (fromOnline). */
+  result?: ResultInput;
+  visible?: boolean;
+  effect?: React.ReactNode;
+  effectSound?: boolean;
   banner: React.ReactNode;
   dice: { id: number; value: number; held: boolean }[];
   keep: number[];
@@ -283,22 +290,19 @@ export function MultiTable(p: {
             <p className="online-turn-line">{waiting ? `아직 기록하지 않은 ${Object.keys(view.progress ?? {}).length}명을 기다리고 있어요.` : myTurn && !p.showGuide && p.rolls === 3 ? "점수 칸을 선택하세요" : ""}</p>
             <QuickPicks values={p.dice.map((d) => d.value)} card={players[meIndex]?.card ?? {}} rolls={p.rolls} canScore={p.can} onScore={p.onScore} />
           </div>
-          {finished && (
-            <MatchResult key={view.matchId} className="online-result" title={resultTitle(view, p.me)} waiting={!!p.celebration}
-              invitation={!!p.rematch?.requests.some((id) => id !== p.me)}
-              actions={<>
-                {p.review}
-                <MultiRematch rematch={p.rematch} isHost={p.isHost} mine={mine} onOp={p.onRematch} />
-                <button className="secondary" onClick={p.onHome}>나가기</button>
-              </>}>
-              <ol className="match-result-standings">
-                {view.standings?.map(({ playerId, points, rank }) =>
-                  <li key={playerId}><strong>{rank}위</strong><span>{players.find((player) => player.playerId === playerId)?.name}</span><strong>{points}점</strong></li>
-                )}
-              </ol>
-              <MatchMilestones {...p.milestones} />
+          {finished && p.result && (
+            // UI-1: the shared A3 result panel. 2 players → duel layout, 3+ → ranking list (shared ranks and
+            // forfeits come from the model). No advanced analysis here; rewards only from the server receipt.
+            <MatchResultPanel key={view.matchId} className="online-result" input={p.result} waiting={!!p.celebration} visible={p.visible}
+              invitation={!!p.rematch?.requests.some((id) => id !== p.me)} effect={p.effect} effectSound={p.effectSound}
+              actions={{
+                rematchSlot: <MultiRematch rematch={p.rematch} isHost={p.isHost} mine={mine} onOp={p.onRematch} />,
+                reviewSlot: p.review ?? <ReviewUnavailable reason={players.length > 2 ? "다인전 게임 리뷰는 아직 지원하지 않아요" : undefined} />,
+                onHome: p.onHome,
+                homeLabel: "나가기",
+              }}>
               {p.reward}
-            </MatchResult>
+            </MatchResultPanel>
           )}
         </section>
         {p.feedback && (
@@ -339,13 +343,6 @@ export function MultiTable(p: {
   );
 }
 
-function resultTitle(view: PlayerView, me: string) {
-  const mine = view.standings?.find((s) => s.playerId === me);
-  if (!mine) return "경기 종료";
-  if (mine.rank === 1 && view.players.length === 2 && view.winners.length === 2) return "무승부";
-  if (mine.rank === 1) return view.winners.length > 1 ? "공동 1위!" : "1위로 승리했습니다!";
-  return `${mine.rank}위 · ${mine.points}점`;
-}
 const rematchMine = (r: RematchState | null, me: string) => !!r?.requests.includes(me);
 
 function MultiRematch({ rematch, isHost, mine, onOp }: { rematch: RematchState | null; isHost: boolean; mine: boolean; onOp: (op: "request" | "cancel" | "start") => void }) {

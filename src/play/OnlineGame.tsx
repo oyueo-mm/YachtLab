@@ -8,15 +8,16 @@ import { useZeroScoreNotice } from "../match-result/useZeroScore";
 import { MatchResultPanel } from "../match-result/MatchResultPanel";
 import { fromOnline as resultFromOnline } from "../match-result/adapters";
 import { ActivityVisible } from "../shell/activity-visible";
+import { ReviewUnavailable } from "../match-result/ReviewUnavailable";
 import { ShareResultButton } from "../ui/ShareResult";
 import ReviewLauncher from "../review/ReviewLauncher";
 import { rememberOnlineReview } from "../review/online-history";
 import { fromOnline } from "../review/sources";
 import type { OnlineEvent } from "../online/protocol";
 import { FirstTurnGuide, hasRecordedFirstScore, markFirstScoreRecorded } from "./Tutorial";
-import { beatDeviceScore, behindAfterNine, MatchMilestones, nearYacht, ScoreTotal } from "../ui/GameMoments";
+import { beatDeviceScore, behindAfterNine, nearYacht, ScoreTotal } from "../ui/GameMoments";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Crown, Dices, Flag, LogOut, Play, RotateCcw, Search, Share2, UserRound, Wifi, WifiOff, X } from "lucide-react";
+import { Copy, Crown, Dices, Flag, LogOut, Play, RotateCcw, Share2, UserRound, Wifi, WifiOff, X } from "lucide-react";
 import { names, type Category, type Game } from "../engine";
 import { useGameShortcuts } from "../ui/shortcuts";
 import { useBgmScene } from "../audio/useBgm";
@@ -632,7 +633,11 @@ export default function OnlineGame({ server, code, quickIntro = false, onEntered
           }
           status={status}
           review={reviewButton}
-          reward={finished && <MatchRewardSummary key={view.matchId} server={server} matchId={view.matchId} />}
+          reward={finished && me && <MatchRewardSummary key={view.matchId} server={server} matchId={view.matchId} />}
+          result={finished ? resultFromOnline(view, [...reviewEvents.current.values()], me?.playerId ?? null) : undefined}
+          visible={screenVisible}
+          effect={winnerFxLook && winnerFxItem ? <FxBurst fx={winnerFxLook} level={winnerFxItem.fxLv} seed={view.matchId} /> : undefined}
+          effectSound={!!winnerFxItem && winnerFxItem.fxLv >= 3}
           tools={toolGroups}
           banner={banner}
           dice={game.dice}
@@ -869,12 +874,3 @@ function RematchControls({ rematch, me, opponentName, onOp }: { rematch: Rematch
 }
 
 /** An opponent's public profile: nickname, join month and server-verified online totals only. */
-
-/** Review is offered only when this screen kept the match's event log (a reload mid-match loses it). */
-function ReviewUnavailable() {
-  return (
-    <button type="button" className="secondary" disabled title="이 기기에 이번 경기의 진행 기록이 없어 리뷰할 수 없어요">
-      <Search size={16} aria-hidden="true" /> 리뷰 기록 없음
-    </button>
-  );
-}

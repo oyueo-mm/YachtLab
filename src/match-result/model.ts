@@ -49,6 +49,13 @@ export type ResultInput = {
   /** 서버가 확인한 빠른 대전 연승(경기 후 값). 서버 값이 없으면 생략한다. */
   streak?: { current: number; best: number } | null;
   rewards?: RewardState;
+  /** 관전자 화면: 좌석이 없고 경기 전체 결과만 보여 준다(보상·개인 기록·연승 없음). */
+  spectator?: boolean;
+  /**
+   * 무효 경기(승패를 매기지 않는 종료). 현재 온라인 서버 계약에는 이 종료 사유가 없어 호출하는 쪽이 넣지 않는다
+   * (SOC-1 연동 요구사항, docs/context/UI-1-GAME-UX-2026-11-28.md §10).
+   */
+  voided?: { reason: string } | null;
 };
 
 export type OutcomeKind =
@@ -61,7 +68,8 @@ export type OutcomeKind =
   | "solo-best"
   | "solo-first"
   | "solo"
-  | "observer";
+  | "observer"
+  | "void";
 
 export type Drama = "grand-comeback" | "comeback" | "final-turn" | "close" | null;
 
@@ -222,9 +230,19 @@ export function outcomeOf(input: ResultInput, standings: readonly StandingRow[])
     if (input.personal && best !== null && best !== undefined && score > best) return { kind: "solo-best", title: "최고 기록 갱신!", subtitle: `이전 최고 ${best}점`, tone: "win" };
     return { kind: "solo", title: "경기 종료", subtitle: best != null ? `최고 기록 ${best}점` : undefined, tone: "neutral" };
   }
+  if (input.voided) return { kind: "void", title: "무효 경기", subtitle: input.voided.reason, tone: "neutral" };
   if (!me) {
     const top = standings.filter((s) => s.winner);
-    return { kind: "observer", title: top.length === 1 ? `${top[0].seat.name} 승리` : top.length === input.seats.length && input.seats.length === 2 ? "무승부" : "공동 1위", tone: top.length === 1 ? "win" : "neutral" };
+    const field = input.seats.length > 2;
+    const forfeiter = !field ? input.seats.find((s) => s.forfeited) : undefined;
+    const title = top.length === 1
+      ? `${top[0].seat.name} 승리`
+      : top.length === input.seats.length && input.seats.length === 2 ? "무승부" : "공동 1위";
+    const subtitle = forfeiter ? `${forfeiter.name} 님이 ${forfeitText(forfeiter.forfeited!)}`
+      : field ? `${input.seats.length}명 경기 결과${top.length > 1 ? ` · ${top.map((t) => t.seat.name).join(", ")}` : ""}`
+      : input.spectator ? "관전한 경기 결과" : undefined;
+    // 관전자에게는 본인의 승패가 없다: 승리 색·음악 없이 중립으로 보여 준다.
+    return { kind: "observer", title, subtitle, tone: top.length === 1 && !input.spectator ? "win" : "neutral" };
   }
   const forfeiter = input.seats.find((s) => s.forfeited);
   if (input.seats.length === 2) {
@@ -245,6 +263,8 @@ export function outcomeOf(input: ResultInput, standings: readonly StandingRow[])
     tone: row.rank === 1 ? "win" : row.rank <= Math.ceil(input.seats.length / 2) ? "neutral" : "lose",
   };
 }
+/** 순위표의 기권 표시: 사유를 구분한다. */
+export const forfeitLabel = (r: ForfeitReason) => (r === "resign" ? "기권" : r === "timeout" ? "시간 초과" : "이탈");
 const forfeitText = (r: ForfeitReason) => (r === "resign" ? "기권했어요" : r === "timeout" ? "시간 초과로 기권 처리됐어요" : "경기를 떠났어요");
 const forfeitSelfText = (r: ForfeitReason) => (r === "resign" ? "경기를 기권했어요" : r === "timeout" ? "시간 초과로 기권 처리됐어요" : "경기를 떠나 기권 처리됐어요");
 

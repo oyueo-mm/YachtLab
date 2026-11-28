@@ -353,7 +353,7 @@ for (const kind of ["node", "workers"] as const) {
           await playTurn([a, b]);
         }
         for (const p of [a, b]) await expect(p.locator(".a3-result")).toBeVisible();
-        await expect(w.locator(".game-result")).toBeVisible();
+        await expect(w.locator(".a3-result")).toBeVisible();
         const records = (p: Page) => p.evaluate(() => JSON.parse(localStorage.getItem("yachtlab.records.v1") ?? "[]") as { recordId: string; mode: string; verification: string; score: number }[]);
         const first = await records(a);
         expect(first).toHaveLength(1);
@@ -362,10 +362,10 @@ for (const kind of ["node", "workers"] as const) {
         await a.getByRole("button", { name: "한 번 더 플레이", exact: true }).click();
         await b.getByRole("button", { name: "수락" }).click();
         await expect(b.locator(".turn-indicator")).toContainText("나의 차례");
-        await expect(w.locator(".game-result")).toHaveCount(0);
+        await expect(w.locator(".a3-result:visible")).toHaveCount(0);
         for (let turn = 0; turn < 24; turn++) await playTurn([a, b]);
         for (const p of [a, b]) await expect(p.locator(".a3-result")).toBeVisible();
-        await expect(w.locator(".game-result")).toBeVisible();
+        await expect(w.locator(".a3-result")).toBeVisible();
         const second = await records(a);
         expect(second).toHaveLength(2);
         expect(second[0].recordId).not.toBe(second[1].recordId);
