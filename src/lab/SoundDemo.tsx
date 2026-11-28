@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Volume2 } from "lucide-react";
-import { RESULT_SETS, playSfx, resultSoundSet, setResultSoundSet, setSfxVariant, sfxVariant, unlockAudio, type ResultSet, type Sfx, type SfxVariant } from "../sound";
+import MaterialListening from "./MaterialListening";
+import { RESULT_SETS, playSfx, resultSoundSet, setResultSoundSet, setSfxVariant, setSpeakerSimulation, sfxVariant, unlockAudio, type ResultSet, type Sfx, type SfxVariant } from "../sound";
 
 /** A throw as heard in a game: shake, a few hits of decreasing strength, dice knocking, rolling, rest. */
 function throwSequence() {
@@ -37,8 +38,8 @@ const SINGLE: [string, () => void][] = [
 export default function SoundDemo() {
   const [variant, setVariant] = useState<SfxVariant>(sfxVariant);
   const [result, setResult] = useState<ResultSet>(resultSoundSet);
-  // Leaving the lab restores the current sounds for games.
-  useEffect(() => () => setSfxVariant("v2"), []);
+  // Leaving the lab restores the current sounds for games (and turns the speaker simulation off).
+  useEffect(() => () => { setSfxVariant("v2"); setSpeakerSimulation(false); }, []);
   const pick = (v: SfxVariant) => {
     setSfxVariant(v);
     setVariant(v);
@@ -100,6 +101,7 @@ export default function SoundDemo() {
         ))}
       </div>
       <p className="setup-note">고른 결과 소리는 이 기기의 게임에 그대로 쓰여요(기본: 밝은 팡파르). 음량·음소거 설정을 따라요.</p>
+      <MaterialListening />
       <p className="setup-note">효과음은 모두 브라우저에서 합성해요(외부 음원 없음). 이전·현재·후보 버전으로 같은 소리를 비교해 보세요. 후보(v3)는 휴대폰 스피커에서도 들리는 음역과 짧은 잡음 타격음을 쓴 실험 버전이에요. 게임에는 항상 현재 버전이 쓰여요.</p>
     </div>
   );

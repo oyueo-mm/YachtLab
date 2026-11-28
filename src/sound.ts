@@ -44,6 +44,8 @@ export type Sfx =
   | "fxFanfare"
   /** Lv.3 dice landing accent (theme from the dice effect profile). */
   | "diceFx"
+  /** Lv.3 dice: the theme layer waking up as the dice leave the hand (quieter than the landing accent). */
+  | "diceFxRoll"
   /** Board reaction accents (Lv.3 boards). */
   | "boardFx"
   /** Another player joined the online room. */
@@ -154,6 +156,7 @@ const busOf = (name: Sfx): SfxBus => {
     case "settle":
       return "dice";
     case "diceFx":
+    case "diceFxRoll":
     case "boardFx":
       return "item";
     case "emote":
@@ -209,7 +212,21 @@ function noiseFor(audio: BaseAudioContext) {
   }
   return buffer;
 }
-type Graph = { mix: GainNode; sfx: GainNode; buses: Record<SfxBus, GainNode> };
+type Graph = { mix: GainNode; sfx: GainNode; buses: Record<SfxBus, GainNode>; speaker?: BiquadFilterNode[] };
+/**
+ * Dev listening aid (주사위 실험실 only, FX-1): a rough small-phone-speaker curve — little below ~450 Hz,
+ * a presence bump, a soft top roll-off. Not a measurement of any real device; off unless the lab turns it on.
+ */
+let speakerSim = false;
+export const speakerSimulation = () => speakerSim;
+export function setSpeakerSimulation(on: boolean) {
+  speakerSim = on;
+  const f = graph?.speaker;
+  if (!f || !ctx) return;
+  f[0].frequency.setTargetAtTime(on ? 450 : 10, ctx.currentTime, 0.02);
+  f[1].gain.setTargetAtTime(on ? 4 : 0, ctx.currentTime, 0.02);
+  f[2].frequency.setTargetAtTime(on ? 9000 : 22000, ctx.currentTime, 0.02);
+}
 function buildGraph(audio: BaseAudioContext): Graph {
   const limiter = audio.createDynamicsCompressor();
   limiter.threshold.value = -3;
@@ -218,7 +235,19 @@ function buildGraph(audio: BaseAudioContext): Graph {
   limiter.attack.value = 0.001;
   limiter.release.value = 0.1;
   const mix = audio.createGain();
-  mix.connect(limiter).connect(audio.destination);
+  const hp = audio.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = speakerSim ? 450 : 10;
+  hp.Q.value = 0.9;
+  const bump = audio.createBiquadFilter();
+  bump.type = "peaking";
+  bump.frequency.value = 2500;
+  bump.Q.value = 1;
+  bump.gain.value = speakerSim ? 4 : 0;
+  const lp = audio.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = speakerSim ? 9000 : 22000;
+  mix.connect(hp).connect(bump).connect(lp).connect(limiter).connect(audio.destination);
   const sfx = audio.createGain();
   sfx.connect(mix);
   const buses = {} as Record<SfxBus, GainNode>;
@@ -228,7 +257,7 @@ function buildGraph(audio: BaseAudioContext): Graph {
     g.connect(sfx);
     buses[key] = g;
   }
-  return { mix, sfx, buses };
+  return { mix, sfx, buses, speaker: [hp, bump, lp] };
 }
 let graph: Graph | null = null;
 
@@ -337,6 +366,36 @@ function silentGain(audio: BaseAudioContext) {
 
 const jitter = (amount: number) => 1 + (Math.random() * 2 - 1) * amount;
 
+/**
+ * Round-robin sample sets (FX-1). Every collision voice has four "takes" — like four recorded samples
+ * of the same die — with different mode tunings and decays; a take never repeats twice in a row for the
+ * same voice, on top of the small random jitter. Repeated hits in a long match stop sounding like one
+ * looped sample. Pure (testable): `next(key)` returns the take index.
+ */
+export const ROUND_ROBIN_TAKES: readonly { pitch: number; decay: number; spread: number }[] = [
+  { pitch: 1, decay: 1, spread: 1 },
+  { pitch: 0.955, decay: 1.12, spread: 1.03 },
+  { pitch: 1.048, decay: 0.9, spread: 0.97 },
+  { pitch: 0.985, decay: 1.2, spread: 1.06 },
+];
+export function createRoundRobin(takes = ROUND_ROBIN_TAKES.length, random = Math.random) {
+  const last = new Map<string, number>();
+  return (key: string) => {
+    const prev = last.get(key) ?? -1;
+    let i = Math.floor(random() * (takes - 1));
+    if (i >= prev && prev >= 0) i++;
+    if (prev < 0) i = Math.floor(random() * takes);
+    last.set(key, i);
+    return i;
+  };
+}
+const roundRobin = createRoundRobin();
+/**
+ * Impact speed → pitch and brightness (FX-1): a harder hit excites the higher modes more and sounds a
+ * touch higher (stiffer contact), a soft tap is darker. k is the 0..1 intensity from the impact speed.
+ */
+export const velocityPitch = (k: number) => 0.965 + 0.07 * Math.max(0, Math.min(1, k));
+
 /** Damped sine modes: the ring of a small hard object (each mode: frequency Hz, decay s, level). */
 function modes(audio: BaseAudioContext, out: AudioNode, start: number, list: [number, number, number][]) {
   for (const [freq, decay, gain] of list) {
@@ -356,7 +415,8 @@ function modes(audio: BaseAudioContext, out: AudioNode, start: number, list: [nu
 
 /** A plastic die hitting the felt-and-wood tray: click modes + a body thud, both scaled by strength. */
 function dieOnTable(audio: BaseAudioContext, out: AudioNode, t: number, k: number) {
-  const p = jitter(0.06);
+  const take = ROUND_ROBIN_TAKES[roundRobin("plastic.table")];
+  const p = jitter(0.04) * take.pitch * velocityPitch(k);
   const bright = 0.35 + 0.65 * k;
   modes(audio, out, t, [
     [1850 * p, 0.012, 0.22 * k],
@@ -369,7 +429,8 @@ function dieOnTable(audio: BaseAudioContext, out: AudioNode, t: number, k: numbe
 
 /** Two dice knocking: higher, drier, no thud. */
 function dieOnDie(audio: BaseAudioContext, out: AudioNode, t: number, k: number) {
-  const p = jitter(0.08);
+  const take = ROUND_ROBIN_TAKES[roundRobin("plastic.die")];
+  const p = jitter(0.05) * take.pitch * velocityPitch(k);
   modes(audio, out, t, [
     [3300 * p, 0.009, 0.2 * k],
     [4950 * p * jitter(0.04), 0.006, 0.14 * k],
@@ -479,7 +540,7 @@ function v3Shake(audio: BaseAudioContext, out: AudioNode, t: number, k: number) 
  * at once, and the same kind of sound is not repeated within a few milliseconds (louder hits win).
  */
 export const MAX_VOICES = 10;
-const MIN_GAP: Partial<Record<Sfx, number>> = { emote: 0.3, chat: 0.9, diceFx: 0.25, boardFx: 0.2, impact: 0.018, clack: 0.024, roll: 0.06, settle: 0.08 };
+const MIN_GAP: Partial<Record<Sfx, number>> = { emote: 0.3, chat: 0.9, diceFx: 0.25, diceFxRoll: 0.6, boardFx: 0.2, impact: 0.018, clack: 0.024, roll: 0.06, settle: 0.08 };
 /** Pure admission control for collision sounds (times in seconds, on the audio clock). */
 export function createVoiceBudget(maxVoices = MAX_VOICES) {
   let ends: number[] = [];
@@ -603,10 +664,12 @@ function materialVoice(audio: BaseAudioContext, out: AudioNode, t: number, event
   const taps = event === "throw" ? 3 : event === "roll" ? 2 : 1;
   for (let tap = 0; tap < taps; tap++) {
     const start = t + tap * jitter(.18) * .026;
-    const pitch = profile.frequency * jitter(.095) * (event === "clack" ? 1.24 : 1);
+    const take = ROUND_ROBIN_TAKES[roundRobin(material + "." + event)];
+    const pitch = profile.frequency * jitter(.05) * take.pitch * velocityPitch(k) * (event === "clack" ? 1.24 : 1);
     const strength = k * jitter(.16) * (movement ? (.52 - tap * .08) : 1);
+    // harder hits ring the upper modes relatively more (brightness follows impact speed)
     modes(audio, out, start, profile.overtones.map((ratio, index) => [
-      pitch * ratio, profile.decay * (body ? 1 : .74) / (1 + index * .33), .13 * strength / (1 + index * .8),
+      pitch * Math.pow(ratio, take.spread), profile.decay * take.decay * (body ? 1 : .74) / (1 + index * .33), .13 * strength * (index ? .55 + .45 * k : 1) / (1 + index * .8),
     ]));
   }
   if (body) tone(audio, out, t, profile.body * jitter(.12), .055, .19 * k, "sine", profile.body * .63);
@@ -817,6 +880,28 @@ export async function renderSfx(name: Sfx, options: SfxOptions = {}, volume = 1,
   return off.startRendering();
 }
 
+/**
+ * Render a sequence of effects offline through the live buses, limiter and the real voice budget
+ * (FX-1 stress test: a whole throw's worth of collisions, accents and a yacht moment at once).
+ */
+export async function renderSfxSequence(events: { name: Sfx; at: number; options?: SfxOptions }[], volume = 0.7, seconds = 3, sampleRate = 44100): Promise<{ buffer: AudioBuffer; admitted: number; requested: number }> {
+  const off = new OfflineAudioContext(2, Math.ceil(seconds * sampleRate), sampleRate);
+  const g = buildGraph(off);
+  g.sfx.gain.value = volumeCurve(volume) * SFX_HEADROOM;
+  const budget = createVoiceBudget();
+  let admitted = 0;
+  for (const e of events) {
+    const k = Math.max(0.15, Math.min(1, e.options?.intensity ?? 1));
+    const out = voice(off, g.buses[busOf(e.name)], e.options?.pan ?? 0);
+    dispatch(off, out, e.name, e.options ?? {}, 0.01 + e.at, k, (n, start, length, kk) => {
+      const ok = budget(n, e.at, start - 0.01, length, kk);
+      if (ok) admitted++;
+      return ok;
+    });
+  }
+  return { buffer: await off.startRendering(), admitted, requested: events.length };
+}
+
 export function playSfx(name: Sfx, options: SfxOptions = {}) {
   const delay = Math.max(0, options.delay ?? 0);
   const engine = ready();
@@ -887,6 +972,18 @@ function dispatch(audio: BaseAudioContext, rawOut: AudioNode, name: Sfx, options
     if (!admit(name, t, name === "settle" ? 0.25 : 0.12, k)) return;
     out = surfaced(audio, rawOut, name, options.surface, t, k);
     admit = () => true;
+  }
+  if (name === "diceFxRoll") {
+    if (!admit(name, t, 0.3, k)) return;
+    // The same themed timbre as the landing, softer and swelling in (filtered), so it reads as the
+    // effect switching on — never louder than the dice themselves.
+    const land = options.land ?? "chime";
+    const swell = audio.createBiquadFilter();
+    swell.type = "lowpass";
+    swell.frequency.setValueAtTime(900, t);
+    swell.frequency.exponentialRampToValueAtTime(7000, t + 0.22);
+    swell.connect(trimmed(audio, out, (LAND_TRIM_DB[land] ?? 0) - 2));
+    return landVoice(audio, swell, t, land, k * 0.7);
   }
   if (name === "diceFx" || name === "boardFx") {
     if (!admit(name, t, 0.4, k)) return;

@@ -4,6 +4,26 @@
    Readability rules: nickname effects never hide the name; board patterns stay behind the dice.
    ========================================================================== */
 
+/* FX-1 (2026-11-28) board materials: procedural noise tiles baked once into PNG bitmaps by src/board-grain.ts
+ * (set on :root as --grain-*). Until then (and without JS) they are "none" and the plain surface shows.
+ * Base layer of every level: the Lv.2/Lv.3 canvas scenes (A1) are drawn above it and are unchanged. */
+:root {
+  --grain-felt-light: none;
+  --grain-felt-dark: none;
+  --grain-wood-dark: none;
+  --grain-wood-light: none;
+  --grain-leather: none;
+  --grain-leather-hi: none;
+  --grain-marble-vein: none;
+  --grain-marble-cloud: none;
+  --grain-metal-brush: none;
+  --grain-metal-brush-dark: none;
+  --grain-ice-frost: none;
+  --grain-ice-crack: none;
+  --grain-lava-crack: none;
+  --grain-sand: none;
+}
+
 /* The opaque 3D tray and shelf share their surface with the flat and preview trays. */
 .board-themed {
   --board-frame: color-mix(in srgb, var(--board-color), black 30%);
@@ -20,7 +40,7 @@
 .board-themed .dice-tray-area,
 .board-themed .dice-row,
 .board-themed.board-sample {
-  background: var(--board-surface), var(--board-color) !important;
+  background: var(--board-grain, none), var(--board-surface), var(--board-color) !important;
   box-shadow: inset 0 0 0 1px var(--board-edge), inset 0 7px 25px #0006;
   position: relative;
 }
@@ -47,19 +67,29 @@
   --board-surface: repeating-linear-gradient(45deg, #ffffff0b 0 1px, transparent 1px 3px),
     repeating-linear-gradient(-45deg, #0002 0 1px, transparent 1px 4px), radial-gradient(ellipse at 40% 10%, #ffffff16, #0004);
 }
+/* felt (FX-1): matted fibres instead of a woven cross-hatch; light pools under the lamp, edges fall off */
+.bd-felt {
+  --board-grain: var(--grain-felt-light), var(--grain-felt-dark);
+  --board-surface: radial-gradient(ellipse 75% 70% at 45% 30%, #ffffff14, transparent 70%), radial-gradient(ellipse at 50% 50%, transparent 55%, #0006);
+}
 .bd-navy { --board-edge: #627b9e; --board-slot: #385277; --board-light: #a6c7ff23; }
 .bd-wood {
-  --board-surface: repeating-radial-gradient(ellipse at 15% -80%, #0002 0 2px, #efbf9028 3px 5px, transparent 7px 17px),
-    repeating-linear-gradient(92deg, #0003 0 1px, transparent 2px 24px);
+  /* FX-1: long grain along the planks and plank seams (was a ring grid), a satin sheen from the lamp */
+  --board-grain: var(--grain-wood-dark), var(--grain-wood-light);
+  --board-surface: repeating-linear-gradient(180deg, transparent 0 61px, #0000004d 61px 62px, #ffffff12 62px 63px, transparent 63px 64px),
+    radial-gradient(ellipse 80% 60% at 40% 20%, #ffe9c824, transparent 70%), radial-gradient(ellipse at 50% 50%, transparent 60%, #0005);
   --board-edge: #a98662; --board-slot: #c48e5130;
 }
 .bd-leather {
-  --board-surface: radial-gradient(circle at 2px 2px, #ffffff20 0 1px, transparent 1.7px) 0 0 / 5px 5px,
-    radial-gradient(circle at 50% 45%, #ffffff10, #0006);
+  /* FX-1: pebbled grain (was a dot grid) and a soft sheen */
+  --board-grain: var(--grain-leather), var(--grain-leather-hi);
+  --board-surface: radial-gradient(ellipse 70% 60% at 45% 30%, #ffffff16, transparent 70%), radial-gradient(circle at 50% 45%, transparent 50%, #0007);
   --board-edge: #97765d;
 }
 .bd-marble {
-  --board-surface: repeating-linear-gradient(119deg, transparent 0 46px, #e1ddff42 47px, transparent 51px 93px, #fff3 94px, #0003 98px, transparent 102px 140px),
+  /* FX-1: branching veins and clouding (was straight diagonal stripes), polished highlight */
+  --board-grain: var(--grain-marble-vein), var(--grain-marble-cloud);
+  --board-surface: linear-gradient(115deg, transparent 30%, #ffffff14 45%, transparent 60%),
     conic-gradient(from 120deg at 15% 10%, #383946, #55515c, #2c2a35, #393944);
   --board-edge: #9894a6; --board-light: #e6defb38; --board-accent: #d4c7ff;
 }
@@ -69,12 +99,15 @@
   --board-edge: #6fa7be; --board-light: #5ad8ff44; --board-accent: #72e0ff;
 }
 .bd-desert {
+  --board-grain: var(--grain-sand);
   --board-surface: repeating-radial-gradient(ellipse at 40% 120%, #ffcd7833 0 2px, transparent 4px 24px),
     linear-gradient(155deg, #9a703c, #795128 52%, #4e341a);
   --board-edge: #bf9560; --board-light: #ffe6b339;
 }
 .bd-ice {
-  --board-surface: repeating-conic-gradient(from 40deg at 100% 15%, #d2fcff16 0 10deg, #0000 10deg 27deg, #a4eaff35 29deg 30deg, #0000 31deg 36deg),
+  /* FX-1: frost clouds and hairline fractures inside the ice (was straight rays from one corner) */
+  --board-grain: var(--grain-ice-crack), var(--grain-ice-frost);
+  --board-surface: radial-gradient(ellipse 70% 50% at 35% 15%, #e8fdff30, transparent 70%),
     linear-gradient(140deg, #5b8898, #2e5b76 50%, #143c57);
   --board-edge: #a5d5e7; --board-slot: #a0d4eb33; --board-light: #dafbff55; --board-accent: #c7f8ff;
 }
@@ -95,8 +128,9 @@
   --board-edge: #6ab5ad; --board-slot: #78e7c12f; --board-light: #70e7b966; --board-accent: #7dffcb;
 }
 .bd-gold {
-  --board-surface: repeating-linear-gradient(80deg, #ebba6f16 0 1px, transparent 2px 4px),
-    linear-gradient(110deg, #412a0b, #745324 31%, #ab8241 50%, #654420 72%, #503309);
+  /* FX-1: brushed hairlines with random length/brightness (was an even line pattern) */
+  --board-grain: var(--grain-metal-brush), var(--grain-metal-brush-dark);
+  --board-surface: linear-gradient(110deg, #412a0b, #745324 31%, #ab8241 50%, #654420 72%, #503309);
   --board-edge: #e5bc70; --board-slot: #b68b4044; --board-light: #ffdc9777; --board-accent: #ffe0a1;
 }
 /* 2026-11-27 nature & element collection: each surface has its own structure, not a recolour. */
@@ -130,8 +164,9 @@
   --board-edge: #7f9d6c; --board-slot: #a9dd672a; --board-light: #d9f5a84d; --board-accent: #eaff9e;
 }
 .bd-volcano {
-  --board-surface: repeating-conic-gradient(from 12deg at 37% 71%, #0000 0 22deg, #ff6a1a40 23deg 24deg, #0000 25deg 47deg),
-    radial-gradient(ellipse at 50% 120%, #ff6a1a55, transparent 55%), linear-gradient(160deg, #3a1d14, #24100a 55%, #140806);
+  /* FX-1: a crack network in cooled basalt (was straight rays from one point) */
+  --board-grain: var(--grain-lava-crack);
+  --board-surface: radial-gradient(ellipse at 50% 120%, #ff6a1a55, transparent 55%), linear-gradient(160deg, #3a1d14, #24100a 55%, #140806);
   --board-edge: #a3583a; --board-slot: #ff6a1a26; --board-light: #ff9a3c4d; --board-accent: #ffb067;
 }
 .bd-deepsea {
@@ -1212,3 +1247,7 @@ dialog.modal.item-detail::backdrop { background: #251c1c88; }
 .lobby-intent { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .lobby-intent button[aria-pressed="true"] { outline: 2px solid currentColor; }
 .lobby-watchers { font-size: 13px; margin: 4px 0; }
+
+/* FX-1: marble / ice / volcano draw their own veins, frost and cracks in the Lv.2/Lv.3 scenes (A1, board-scene.ts):
+   the grain is the Lv.1 surface only, so the two networks never overlap with different shapes. */
+.bd-marble.bd-lv2, .bd-marble.bd-lv3, .bd-ice.bd-lv2, .bd-ice.bd-lv3, .bd-volcano.bd-lv2, .bd-volcano.bd-lv3 { --board-grain: none; }

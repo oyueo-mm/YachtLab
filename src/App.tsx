@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { installBoardGrain } from "./board-grain";
 import { BrandMark } from "./ui/BrandLoading";
 import { type Match } from "./match";
 import { type AnalysisSource } from "./ReplayViewer";
@@ -260,6 +261,7 @@ export default function App() {
   };
   useEffect(() => {
     installAudioUnlock();
+    installBoardGrain();
     installBgm();
     installShortcuts();
     if (diceRenderer().startsWith("3d")) preloadDiceTableWhenIdle();

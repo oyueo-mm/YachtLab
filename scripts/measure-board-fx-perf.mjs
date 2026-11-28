@@ -31,6 +31,8 @@ const VIEW = arg("viewport", "desktop");
 const CPU = Number(arg("cpu", 1));
 const ONLY = arg("only", "");
 const OUT = arg("out", "");
+/** FX-1: force a dice material tier (0 full · 1 standard · 2 flat) for the whole run; empty = the app decides. */
+const MAT = arg("mattier", "");
 const BASE = `http://127.0.0.1:${PORT}/YachtLab/`;
 
 export const COMBOS = {
@@ -44,6 +46,10 @@ export const COMBOS = {
   "thunder-synergy": { dice: "dice.thunder", diceLv: 3, board: "board.storm", boardLv: 3 },
   "meadow-synergy": { dice: "dice.meadow", diceLv: 3, board: "board.meadow", boardLv: 3 },
   "sakura-synergy": { dice: "dice.sakura", diceLv: 3, board: "board.sakura", boardLv: 3 },
+  // FX-1 (2026-11-28): physical dice materials (reflections, clearcoat, iridescence, transparency)
+  "gold-lv1": { dice: "dice.gold", diceLv: 1 },
+  "hologram-lv3": { dice: "dice.hologram", diceLv: 3 },
+  "glass_blue-lv3": { dice: "dice.glass_blue", diceLv: 3 },
 };
 
 const preview = await startPreview(DIST, PORT);
@@ -106,7 +112,8 @@ for (const key of keys) {
       localStorage.setItem("yachtlab.session.v1", "s1." + u + "." + "b".repeat(43));
       localStorage.setItem("yachtlab.own-look.v1", JSON.stringify({ account: u, look: { emotes: [], chats: [], ...l } }));
       localStorage.setItem("yachtlab.settings.v1", JSON.stringify({ muted: true }));
-    }, look);
+      if (l.__mat !== "") sessionStorage.setItem("yachtlab.dice.material", l.__mat);
+    }, { ...look, __mat: MAT });
     const page = await ctx.newPage();
     const cdp = await ctx.newCDPSession(page);
     await cdp.send("Performance.enable");
