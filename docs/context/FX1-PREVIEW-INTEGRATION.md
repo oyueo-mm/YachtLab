@@ -104,3 +104,59 @@ stage.current?.playSound("impact"); // 유리 × 석재 충돌음
 ## 5. 01(경기 화면)
 
 경기 화면은 이미 같은 `DiceArea`(3D 테이블 / 2.5D)·`BoardFx`·`SynergyFx`·`YachtFlash`·`StraightFlash`를 쓴다. FX-1의 재질·움직임 반응·소리는 이 경로 안에서 바뀌었으므로 **01의 추가 작업은 없다**. 상대 주사위는 차례인 플레이어의 외형을 같은 테이블에 그리며, "상대 아이템 효과" 끄기는 기존처럼 Lv.1로 그린다(움직임 반응·Lv.3 보조음 없음).
+
+## 6. UI-2 #145와 대조 결과 · 최종 통합 절차 (확정, 2026-11-28)
+
+대조 대상: #145 head의 `src/shell/shop/PreviewStage.tsx`, `src/shell/shop/preview-registry.ts`, `docs/context/UI-2-SHOP-INVENTORY.md` §6. FX-1은 #145를 병합하지 않았다(아래는 INT-1이 둘을 합칠 때의 절차).
+
+### 6.1 인터페이스 일치
+
+| 항목 | UI-2 `PreviewStage` | FX-1 `FxPreview` | 결과 |
+|---|---|---|---|
+| props | `dice·diceLevel·board·boardLevel·autoRoll·renderer·sound·className·label·onRolled·ref` | 같음 | ✅ 동일 |
+| 핸들 | `roll·moment("yacht"\|"straight"\|"win")·playSound·reset·scoreFx("large"\|"yacht")` | 같음 | ✅ 동일 |
+| `previewLevel(id, lv)` | 있음 | `src/fx-preview`에서 재수출 | ✅ |
+| `playSound("accent" \| "board")` | `null`(미구현) | Lv.3 착지 강조(dice-fx `sound`) · 보드 반응음 | FX-1 재수출 후 동작 |
+| 보드 표면 | `surfaceOf(boardId)` | 무대의 `data-surface`(같은 `surfaceOf` 값) | ✅ 같은 결과 |
+| 재질 | `diceMaterial()` | 같은 함수(FX-1에서 렌더러와 같은 표로 바뀜) | ✅ |
+
+UI-2 문서 §6의 재수출 한 줄은 FX-1 `src/fx-preview/index.ts`의 실제 내보내기와 맞다(`FxPreview`, `previewLevel`, `FxPreviewHandle`, `FxMoment`, `FxPreviewSound`, `FxPreviewProps`).
+
+### 6.2 병합 순서 (INT-1)
+
+1. FX-1(#146)과 UI-2(#145) 중 먼저 들어가는 쪽은 그대로. 두 번째 병합에서 충돌 파일은 `src/shell/ItemViews.tsx` 하나(UI-2 모의 병합 결과). **UI-2 쪽을 택한다** — FX-1의 ItemStage 변경(FxPreview 사용, 요트·스트레이트 버튼)은 UI-2 어댑터가 같은 핸들로 이미 포함한다.
+2. `src/shell/shop/PreviewStage.tsx` 전체를 재수출 한 줄로 교체(UI-2 문서 §6-3 그대로).
+3. 확인: `npx tsc -b`, `tests/ui/fx1-preview.spec.ts`(상점 상세의 `.dice-table-canvas[data-material]`, 요트·스트레이트 버튼 이름 "요트 연출"·"스트레이트 연출"에 의존 — UI-2가 버튼 이름을 바꾸면 이 스펙의 선택자만 갱신), `ui2-shop`, `economy`, `collections`.
+
+### 6.3 정적 썸네일 캐시 (확정)
+
+UI-2 `registerPreviewProvider({ thumbnailAsync })` 한 곳에서만 연결한다. 카드마다 WebGL을 만들지 않는다.
+
+```ts
+import { registerPreviewProvider } from "./shell/shop/preview-registry";
+import { lookAt } from "./economy/live/catalog";
+import { loadDiceThumbnail } from "./fx-preview";
+
+registerPreviewProvider({
+  id: "fx1-thumbs",
+  categories: ["dice"],
+  thumbnailAsync: async (item, level, px) => {
+    const look = lookAt(item, level).dice;
+    if (!look) return null;
+    const render = await loadDiceThumbnail(); // three.js 지연 청크, 첫 카드가 화면에 들어올 때만
+    return render(look, px);                  // 실패·WebGL 없음 → null → 2D 썸네일 유지
+  },
+});
+```
+
+- 캐시 키: `px | 물리층 여부 | look JSON`(look에 단계별 glow·fx·fxLevel이 들어 있어 단계가 키에 포함됨). 메모리 Map + sessionStorage(약 1.5 MB 상한, 넘으면 오래된 것부터 버림). 탭을 닫으면 사라진다(지속 캐시가 필요하면 UI-2 제안의 IndexedDB 키 = 상품 ID·단계·렌더러 버전; 렌더러 버전은 재질 코드가 바뀔 때 올린다).
+- 렌더러: 공유 WebGL 컨텍스트 1개, 요청 직렬 처리, 마지막 요청 8 s 뒤 `forceContextLoss`로 해제. 썸네일 1장 ≈ 면 6장 페인팅 + 1회 그리기.
+- 저사양: 썸네일은 기본 `physical: true`(한 번 그리는 정지 화면이라 경기 중 프레임 비용 없음). 기기 부담을 더 줄이려면 `render(look, px, { physical: false })`.
+- 대기 중·실패 시에는 기존 2D `paintFace` 썸네일이 그대로 보인다(레이아웃 변화 없음, 같은 크기).
+
+### 6.4 단일 활성 WebGL 무대 (확정)
+
+- 상호작용 3D 무대는 **열린 상세(또는 인벤토리 조합) 창 하나에만** 마운트한다. 둘러보기 화면(캐러셀·레일·그리드·프리셋)에는 `FxPreview`가 없다(UI-2 테스트: `.stage-board` 0개).
+- UI-2의 `claimStage()`/`isActiveStage()` 토큰을 쓰는 경우: 토큰을 잃은 무대는 `FxPreview`를 **언마운트**한다(FX-1은 언마운트 시 테이블·텍스처·환경 맵·rAF·관찰자를 모두 해제하고 `forceContextLoss` — 테스트로 남은 컨텍스트 ≤ 1 확인). 숨김만 하면 컨텍스트가 남으므로 쓰지 않는다.
+- 동시에 존재할 수 있는 WebGL 컨텍스트: 상세 무대 1 + (썸네일 렌더 중일 때만) 썸네일 1. 경기 화면은 상점과 동시에 열리지 않는다.
+- 재질 단계(FX1-D5)는 세션 공용이라 상점 무대에서 느려 내려간 단계가 경기에도 이어진다(의도: 같은 기기).
