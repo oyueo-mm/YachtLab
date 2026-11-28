@@ -13,7 +13,7 @@
 
 ## 맥락 읽는 순서
 
-> **제품 방향·백로그·병렬 트랙·아이디어 보관(2026-11-28)** → [PRODUCT-PLAN](docs/context/PRODUCT-PLAN.md) · [PRODUCT-BACKLOG](docs/context/PRODUCT-BACKLOG.md) · [PARALLEL-PLAN](docs/context/PARALLEL-PLAN.md) · [IDEAS](docs/context/IDEAS.md). 게임 UI/UX 품질(UI-1): [UI-1 기록](docs/context/UI-1-GAME-UX-2026-11-28.md) (D-101).
+> **제품 방향·백로그·병렬 트랙·아이디어 보관(2026-11-28)** → [PRODUCT-PLAN](docs/context/PRODUCT-PLAN.md) · [PRODUCT-BACKLOG](docs/context/PRODUCT-BACKLOG.md) · [PARALLEL-PLAN](docs/context/PARALLEL-PLAN.md) · [IDEAS](docs/context/IDEAS.md). 게임 UI/UX 품질(UI-1): [UI-1 기록](docs/context/UI-1-GAME-UX-2026-11-28.md) (UI1-D1, 임시).
 >
 > **온라인 요트다이스 제품 개편** → [브랜드, 메뉴, 검색 및 배포 인수인계](docs/context/ONLINE-YACHT-PRODUCT.md).
 >

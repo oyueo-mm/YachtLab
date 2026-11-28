@@ -7,8 +7,8 @@
 2026-11-20 연구 계획. **P0/P1은 우선순위 가설이며 성능을 보장하지 않음.** 사용자는 대규모 연구 작업을 단계별로 여러 번 의뢰하기보다 한 작업에서 여러 후보를 구현·실험·비교하는 구성을 선호한다.
 
 ## UI-1 게임 UI/UX 품질 — 2026-11-28
-완료(PR): 공통 N인 점수판(2~20인 적응형), 전역 플로팅 매칭 팝업, 헤더·친구 패널, 이모티콘·채팅 가독성, 온라인 1:1 A3 결과창, 공유 모달·이미지, 리뷰 주요 장면, 프로필 카드 배치. [기록](./UI-1-GAME-UX-2026-11-28.md)
-남은 일: 온라인 다인전·관전 결과창 A3 교체, 친구 패널의 관전·초대(04 계약), 대표 업적 서버 저장(04), iOS Safari 실기기 확인, 상점·인벤토리(02)에 공통 토큰 적용. 제품 방향·백로그·트랙: [PRODUCT-PLAN](./PRODUCT-PLAN.md) · [PRODUCT-BACKLOG](./PRODUCT-BACKLOG.md) · [PARALLEL-PLAN](./PARALLEL-PLAN.md) · [IDEAS](./IDEAS.md) · [FUTURE-UPDATES](./FUTURE-UPDATES.md).
+완료(PR): 공통 N인 점수판(2~20인 적응형), 전역 플로팅 매칭 팝업, 헤더·친구 패널, 이모티콘·채팅 가독성, 온라인 1:1·다인전·관전 A3 결과창, 공유 모달·이미지, 리뷰 주요 장면, 프로필 카드 배치, 빠른 대전 키보드 선택 경합 수정. [기록](./UI-1-GAME-UX-2026-11-28.md)
+남은 일: 친구 패널의 관전·초대, 무효 경기 종료 사유, 대표 업적 서버 저장(모두 SOC-1 계약 — UI-1 기록 §10), 다인전 리뷰·공유 카드, iOS Safari 실기기 확인, 상점·인벤토리(UI-2)에 공통 토큰 적용, LANG-1 현지화는 이후. 제품 방향·백로그·트랙: [PRODUCT-PLAN](./PRODUCT-PLAN.md) · [PRODUCT-BACKLOG](./PRODUCT-BACKLOG.md) · [PARALLEL-PLAN](./PARALLEL-PLAN.md) · [IDEAS](./IDEAS.md) · [FUTURE-UPDATES](./FUTURE-UPDATES.md).
 
 ## C4.2 계정·친구·세션 보안 — 2026-11-27
 
