@@ -71,6 +71,18 @@ describe("오늘의 요트 (wrangler dev + 가짜 로컬 로그인)", () => {
     expect(readFileSync("worker/wrangler.toml", "utf8")).toMatch(/^DAILY = "off"$/m);
   });
 
+  it("SEC-1 2차 DLY-2: 같은 날 탈퇴·재가입해도 공식 도전을 다시 시작할 수 없다(본 주사위로 재도전 불가)", async () => {
+    const a = await fakeLogin(worker.url, idp, "dly2-rejoin", ORIGIN, "198.51.100.21");
+    const first = await call(worker, a, "/api/daily/start", { date: DATE, mode: "official" });
+    expect(first.status).toBe(200);
+    expect((await call(worker, a, "/api/me/delete", { confirm: "DELETE" })).status).toBe(200);
+    const again = await fakeLogin(worker.url, idp, "dly2-rejoin", ORIGIN, "198.51.100.21");
+    const retry = await call(worker, again, "/api/daily/start", { date: DATE, mode: "official" });
+    expect([retry.status, retry.body.error?.code]).toEqual([409, "DAILY_USED"]);
+    // another account is not affected
+    const other = await fakeLogin(worker.url, idp, "dly2-other", ORIGIN, "198.51.100.22");
+    expect((await call(worker, other, "/api/daily/start", { date: DATE, mode: "official" })).status).toBe(200);
+  }, 60_000);
   it("공식 도전: 하루 한 번, 서버 판정, 중복·다중 탭, 재접속, 연습 잠금, 랭킹·친구·차단·비공개, 퍼즐", async () => {
     expect((await call(worker, null, "/api/features")).body.daily).toBe(true);
     const today = await call(worker, null, "/api/daily/today");
@@ -232,4 +244,6 @@ describe("오늘의 요트 (wrangler dev + 가짜 로컬 로그인)", () => {
     expect((await admin("/api/admin/daily/puzzle", { date: DATE, puzzleId: q.id, disabled: true })).status).toBe(404);
     expect((await call(closed, b, `/api/daily/puzzles?date=${DATE}`)).body.puzzles).toHaveLength(3);
   }, 240_000);
+
 });
+

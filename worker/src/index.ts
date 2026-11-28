@@ -43,7 +43,7 @@ import { handleDailyRoute, type DailyBoardApi, type DailyUserApi } from "./daily
 import { activityFor, reportCompletion, type DailyContentSink } from "./daily-activity";
 import { dailyAdminRoutes } from "./daily-admin";
 import { boardName, type BoardEntry, type Visibility } from "../../src/daily/ranking";
-import { DAILY_RULES, isDailyDate } from "../../src/daily/calendar";
+import { DAILY_RULES, closesAt, isDailyDate } from "../../src/daily/calendar";
 import type { PuzzleResult } from "../../src/daily/puzzles/types";
 
 /**
@@ -632,6 +632,7 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     if (!isDailyDate(date)) return { ok: false as const, status: 400, code: "INVALID_COMMAND", message: "잘못된 날짜예요." };
     const now = this.dailyNow();
     if (mode === "official" && !this.dailyStore.attempt(date, "official", now)) {
+      if (this.dailyUsedBeforeRejoin(date, now)) return { ok: false as const, status: 409, code: "DAILY_USED", message: "오늘의 공식 도전은 이미 했어요. 내일 다시 도전해 주세요." };
       const limit = Number(this.env.DAILY_PARTICIPANT_LIMIT ?? 500);
       const admitted = await this.dailyBoard(date).admit(p.userId, Number.isInteger(limit) && limit > 0 ? limit : 500, now);
       if (!admitted.ok) return { ok: false as const, status: 503, code: "DAILY_FULL", message: "오늘의 요트 참가 인원이 가득 찼어요. 내일 다시 도전해 주세요." };
@@ -641,6 +642,11 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     if (r.ok && r.created && mode === "practice") await this.dailyBoard(date).count("practice").catch(() => undefined);
     if (r.ok && r.created) await this.hub().count(`daily.${mode}.started`).catch(() => undefined);
     return r;
+  }
+  /** DLY-2: an official challenge of this date was taken before a deletion of this account (still open). */
+  private dailyUsedBeforeRejoin(date: string, now: number) {
+    if (!this.ctx.storage.sql.exec<{ n: number }>("SELECT count(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'daily_used'").toArray()[0].n) return false;
+    return this.ctx.storage.sql.exec("SELECT 1 FROM daily_used WHERE date = ? AND closes_at > ?", date, now).toArray().length > 0;
   }
   async dailyAct(date: string, mode: DailyMode, seq: unknown, step: unknown) {
     if (!this.store.profile()) return { ok: false as const, status: 404, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
@@ -1146,11 +1152,15 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     const dailyDates = this.store.exists() ? (this.dailyStore.history(Date.now(), 400).records.map((r) => r.date)) : [];
     const dailyOwner = this.store.profile()?.userId;
     if (dailyOwner) await Promise.all(dailyDates.map((d) => this.dailyBoard(d).remove(dailyOwner).catch(() => undefined)));
+    // SEC-1 2차 DLY-2: dates whose official challenge was already taken and that are still open — a re-join on
+    // the same day must not get a second official attempt with dice already seen. Dates only, in the deletion
+    // record this object already keeps (no id, score or log), and useless once the day closes.
+    const usedDays = this.store.exists() ? this.ctx.storage.sql.exec<{ date: string }>("SELECT DISTINCT date FROM daily_attempts WHERE mode = 'official'").toArray().map((r) => r.date).filter((d) => closesAt(d) > this.dailyNow()) : [];
     const owner = this.store.profile()?.userId ?? null;
     const plan = owner ? this.friends.deletionPlan() : { code: null, peers: [] };
     const now = Date.now();
     const sql = this.ctx.storage.sql;
-    const keep = new Set(["tomb", "acct_cleanup", EXT_CLEANUP_TABLE, "fr_retired"]);
+    const keep = new Set(["tomb", "acct_cleanup", EXT_CLEANUP_TABLE, "fr_retired", "daily_used"]);
     this.ctx.storage.transactionSync(() => {
       const tables = sql.exec<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table'").toArray().map((r) => r.name);
       for (const t of tables) if (!keep.has(t) && !t.startsWith("_cf_") && !t.startsWith("sqlite_")) sql.exec(`DROP TABLE IF EXISTS "${t.replace(/"/g, '""')}"`);
@@ -1158,6 +1168,9 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       sql.exec("INSERT OR REPLACE INTO tomb (id, deleted_at) VALUES (1, ?)", now);
       sql.exec("CREATE TABLE IF NOT EXISTS fr_retired (code TEXT PRIMARY KEY, at INTEGER NOT NULL)");
       if (plan.code) sql.exec("INSERT OR IGNORE INTO fr_retired (code, at) VALUES (?, ?)", plan.code, now);
+      sql.exec("CREATE TABLE IF NOT EXISTS daily_used (date TEXT PRIMARY KEY, closes_at INTEGER NOT NULL)");
+      sql.exec("DELETE FROM daily_used WHERE closes_at <= ?", this.dailyNow());
+      for (const d of usedDays) sql.exec("INSERT OR IGNORE INTO daily_used (date, closes_at) VALUES (?, ?)", d, closesAt(d));
       this.cleanup.init();
       this.extCleanup.init();
       // ADMIN-1/FEEDBACK-1 (D-114): the admin index and the board are cleanup targets too — durable, retried,
@@ -1328,6 +1341,7 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       }
       this.ctx.storage.sql.exec("DELETE FROM tomb WHERE id = 1");
       this.ctx.storage.sql.exec("DELETE FROM fr_retired");
+      this.ctx.storage.sql.exec("DROP TABLE IF EXISTS daily_used");
     }
     await this.scheduleAlarm();
   }
