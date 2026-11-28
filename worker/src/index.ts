@@ -242,6 +242,9 @@ export class YachtRoom extends DurableObject<Env> {
   async sharesRoom(a: string, b: string) {
     return this.host.sharesRoom(a, b);
   }
+  async memberAccountIds() {
+    return this.host.memberAccountIds();
+  }
   async summary() {
     return this.host.summary();
   }
@@ -663,6 +666,13 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   }
   async dailyVisibility(v?: Visibility) {
     return v ? this.dailyStore.setVisibility(v) : this.dailyStore.visibility();
+  }
+  /** SEC-1 2차 SOC-3: is any of these accounts blocked by me, or blocking me? (one call, both directions) */
+  async blockedWithAny(ids: string[]) {
+    if (!this.store.exists() || !ids.length) return false;
+    const list = ids.slice(0, 32);
+    const marks = list.map(() => "?").join(",");
+    return this.ctx.storage.sql.exec(`SELECT 1 FROM fr_blocks WHERE user_id IN (${marks}) UNION SELECT 1 FROM fr_blocked_by WHERE user_id IN (${marks}) LIMIT 1`, ...list, ...list).toArray().length > 0;
   }
   /** Accounts hidden from me in daily lists: those I block and those who block me. Internal ids only. */
   async dailyHidden() {
@@ -2020,6 +2030,13 @@ export default {
         return summary ? json(200, summary, allowed) : fail(404, "ROOM_NOT_FOUND", "방을 찾을 수 없어요. 초대 코드를 확인해 주세요.", allowed);
       }
       const identity = await seatIdentity();
+      // SEC-1 2차 SOC-3: a member does not join a friend room where a block stands between them and a member
+      // (either direction). The answer is the generic "cannot join" one, so it does not tell who blocked whom.
+      if (identity?.userId) {
+        const ids = (await room.memberAccountIds()).filter((id) => id !== identity.userId);
+        const blocked = ids.length ? await (env.USERS.get(env.USERS.idFromName(identity.userId)) as unknown as { blockedWithAny(ids: string[]): Promise<boolean> }).blockedWithAny(ids).catch(() => true) : false;
+        if (blocked) return fail(409, "ROOM_UNAVAILABLE", "지금은 이 방에 들어갈 수 없어요.", allowed);
+      }
       const seat = await seatInfo(identity, name);
       const joined = await room.join(seat.name, identity, seat.look);
       if (!joined.ok) {

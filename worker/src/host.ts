@@ -277,6 +277,12 @@ export class RoomHost {
     const ids = Object.values(room.memberAccounts());
     return ids.includes(a) && ids.includes(b);
   }
+  /** SEC-1 2차 SOC-3: signed-in member accounts of this friend room (block checks on code joins). */
+  memberAccountIds(): string[] {
+    const room = this.room;
+    if (!room || this.deleted || room.isClosed) return [];
+    return [...new Set(Object.values(room.memberAccounts()))];
+  }
   inviteState(userId: string): { ok: true; seats: number; players: number } | { ok: false; reason: "not-member" | "started" | "full" | "closed" } {
     const room = this.room;
     if (!room || this.deleted || room.isClosed) return { ok: false, reason: "closed" };
