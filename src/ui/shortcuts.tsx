@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { categories, names, score, type Category, type Die } from "../engine";
 import { getSettings, updateSettings, useSettings } from "../settings";
 import { unlockAudio } from "../sound";
@@ -121,14 +121,20 @@ export type GameKeys = {
  * The choice never records by itself: a second key (Enter) is needed, and it resets after each roll.
  */
 export function useGameShortcuts(g: GameKeys) {
-  const [picked, setPicked] = useState<Category | null>(null);
   const { shortcuts } = useSettings();
   const ref = useRef(g);
   ref.current = g;
+  // A new roll, a new turn or losing the turn clears the choice. Derived from a key during render rather
+  // than reset in an effect: an online roll arrives as a non-urgent update whose effects can run *after*
+  // an arrow key pressed right away, which used to wipe that fresh choice (quick-match E2E, UI-1).
+  const turnKey = `${g.rolls}|${g.active}`;
+  const keyRef = useRef(turnKey);
+  keyRef.current = turnKey;
+  const [choice, setChoice] = useState<{ key: string; category: Category | null }>({ key: turnKey, category: null });
+  const picked = choice.key === turnKey ? choice.category : null;
+  const setPicked = useCallback((category: Category | null) => setChoice({ key: keyRef.current, category }), []);
   const pickedRef = useRef(picked);
   pickedRef.current = picked;
-  // A new roll, a new turn or losing the turn clears the choice.
-  useEffect(() => setPicked(null), [g.rolls, g.active]);
   useShortcutLayer((e) => {
     const s = ref.current;
     const k = e.key;

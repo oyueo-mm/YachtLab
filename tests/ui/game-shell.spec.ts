@@ -21,9 +21,19 @@ test("사이드바는 닫기 전환을 마친 뒤 포커스를 되돌리고 현�
   await expect(menu.getByRole("button", { name: "메뉴 닫기" })).toBeFocused();
   await expect(menu.getByRole("button", { name: "오프라인 대전" })).toHaveAttribute("aria-current", "page");
   expect(await menu.evaluate((el) => [getComputedStyle(el).animationDuration, getComputedStyle(el, "::backdrop").animationDuration])).toEqual(["0.24s", "0.24s"]);
+  // Record the dialog's states instead of sampling once after Escape: on a loaded CI machine the 240 ms
+  // closing transition can already be over by the time a single snapshot runs (the old flaky check).
+  await menu.evaluate((el: HTMLDialogElement) => {
+    const log: [boolean, string | undefined][] = [];
+    (window as unknown as { __menuPhases: typeof log }).__menuPhases = log;
+    new MutationObserver(() => log.push([el.open, el.dataset.phase])).observe(el, { attributes: true, attributeFilter: ["open", "data-phase"] });
+  });
   await page.keyboard.press("Escape");
-  expect(await menu.evaluate((el: HTMLDialogElement) => [el.open, el.dataset.phase])).toEqual([true, "closing"]);
   await expect(menu).toHaveCount(0);
+  const phases = await page.evaluate(() => (window as unknown as { __menuPhases: [boolean, string | undefined][] }).__menuPhases);
+  // it stayed open while the closing transition ran, and only then closed
+  expect(phases[0]).toEqual([true, "closing"]);
+  expect(phases.at(-1)?.[0]).toBe(false);
   await expect(trigger).toBeFocused();
 
   await trigger.click();

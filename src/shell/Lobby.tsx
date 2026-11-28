@@ -1,9 +1,12 @@
 import { ArrowRight, BookOpen, Bot, Dices, Globe, Smartphone, Trophy, UsersRound } from "lucide-react";
 import type { Route } from "../routes";
+import { asRoute, useServerFeatures, visibleEntries } from "./entries";
 
 type Go = (route: Route) => void;
 
-export function Lobby({ navigate }: { navigate: Go }) {
+export function Lobby({ navigate, server = null, signedIn = false }: { navigate: Go; server?: string | null; signedIn?: boolean }) {
+  // UI-1: at most one small row for daily features, below the two game cards (the start flow stays first).
+  const today = visibleEntries(useServerFeatures(server), signedIn).filter((e) => e.home);
   return (
     <section className="lobby lobby-v3" aria-labelledby="lobby-title">
       <header className="lobby-hero">
@@ -34,6 +37,15 @@ export function Lobby({ navigate }: { navigate: Go }) {
           <ArrowRight className="mode-arrow" size={20} aria-hidden="true" />
         </button>
       </div>
+      {today.length > 0 && (
+        <nav className="lobby-today" aria-label="오늘">
+          {today.map((e) => (
+            <button type="button" key={e.id} className="lobby-today-link" onClick={() => navigate(asRoute(e.id))}>
+              {e.home} <ArrowRight size={14} aria-hidden="true" />
+            </button>
+          ))}
+        </nav>
+      )}
       {/* The static entry and hydrated lobby link to the same help pages. */}
       <nav className="lobby-links" aria-label="도구와 안내">
         <a className="lobby-guide" href={`${import.meta.env.BASE_URL}guide/`}> <BookOpen size={17} aria-hidden="true" /> 규칙</a>

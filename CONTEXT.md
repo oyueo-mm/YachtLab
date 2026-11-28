@@ -13,6 +13,8 @@
 
 ## 맥락 읽는 순서
 
+> **제품 방향·백로그·병렬 트랙·아이디어 보관(2026-11-28)** → [PRODUCT-PLAN](docs/context/PRODUCT-PLAN.md) · [PRODUCT-BACKLOG](docs/context/PRODUCT-BACKLOG.md) · [PARALLEL-PLAN](docs/context/PARALLEL-PLAN.md) · [IDEAS](docs/context/IDEAS.md). 게임 UI/UX 품질(UI-1): [UI-1 기록](docs/context/UI-1-GAME-UX-2026-11-28.md) (UI1-D1, 임시).
+>
 > **온라인 요트다이스 제품 개편** → [브랜드, 메뉴, 검색 및 배포 인수인계](docs/context/ONLINE-YACHT-PRODUCT.md).
 >
 > **콘텐츠 확장(2026-11-27): 1인 플레이·개인 기록, 게임 프로필, 테마 컬렉션 10종·신규 11종·시너지, 기간 한정, 상점·뽑기 안내, 오디오 믹스, 모바일** → [COLLECTIONS-2026-11-27](docs/context/COLLECTIONS-2026-11-27.md), [연승 검토](docs/context/STREAK-REVIEW-2026-11-27.md), [오디오 믹스](docs/audio/MIX.md) (D-074~D-078). 워커 수동 배포 전에는 1인 기록 계정 보관·신규 상품 판매가 대기 상태.

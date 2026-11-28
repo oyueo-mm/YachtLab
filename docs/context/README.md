@@ -18,6 +18,8 @@
 
 **경제(재화·퀘스트·업적·가격) 연구:** [경제 연구 보고서](../economy/ECONOMY-RESEARCH.md) · [1차 결과](../economy/RESULTS-GENERATED.md) · [2차 추가 검증](../economy/FOLLOWUP-GENERATED.md) · [온라인 매칭·관전방 계획](../online/MATCHMAKING-SPECTATE-PLAN.md) · [저장 쓰기·AI 대전 보안](../online/STORAGE-AND-AI-MATCH-SECURITY.md) · 결정 D-029~D-037.
 
+**제품 방향·백로그·병렬 트랙(2026-11-28):** [PRODUCT-PLAN](./PRODUCT-PLAN.md) · [PRODUCT-BACKLOG](./PRODUCT-BACKLOG.md) · [PARALLEL-PLAN](./PARALLEL-PLAN.md) · [아이디어 인덱스](./IDEAS.md) · [향후 출시 후보](./FUTURE-UPDATES.md) · [UI-1 게임 UI/UX](./UI-1-GAME-UX-2026-11-28.md) · 결정 UI1-D1(임시, INT-1 확정).
+
 **제품(게임·온라인·계정) 작업:** [제품 개발 현황 2026-11-24](./PRODUCT-2026-11-24.md) · [온라인 소셜·계정 설계](../online/SOCIAL-AND-ACCOUNTS.md) · [모바일 성능·UI (PR A)](../ui/PHASE-A-2026-11.md) · 결정 D-025~D-028.
 
 **[Win DP v5 연구 — 정확 정책 PMF·정확 2인 종반·PMF 롤아웃 (2026-11-25)](./V5-APEX-RESEARCH.md)** — 전 상태 정확 DP Expert PMF 은행, 정확 expectiminimax 종반, v5-R(Apex 주 후보) 확증 대국. 연구 브랜치, 기본 AI 불변.
