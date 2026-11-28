@@ -1371,6 +1371,8 @@ export default {
           },
         };
         const readJson = async () => {
+          // SEC-15 (C4 B-31): refuse an oversized declared body before reading it, as the other routes do.
+          if (Number(request.headers.get("content-length") ?? "0") > 4096) throw new Error("too large");
           const text = await request.text();
           if (text.length > 4096) throw new Error("too large");
           const v = JSON.parse(text || "{}");
