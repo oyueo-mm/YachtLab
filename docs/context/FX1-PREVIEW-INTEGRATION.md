@@ -97,8 +97,9 @@ stage.current?.playSound("impact"); // 유리 × 석재 충돌음
 | `src/shell/ItemViews.tsx` `ItemStage` | 주사위·보드 분기를 `FxPreview`로 교체(이전: `DiceArea`+`BoardFx`+`SynergyFx` 직접 조립과 자체 굴림 상태). 사용하지 않게 된 import·`randomDice` 제거 | 버튼 라벨 "굴려 보기"·"족보 반응"·"승리 반응", `.stage-board`, `.stage-pair` 체크박스, `aria-label="미리보기 보드"`는 그대로(기존 테스트 통과) |
 | 같은 곳 | 주사위 **Lv.3 탭**에 버튼 2개 추가: "요트 연출", "스트레이트 연출" | UI-2가 위치·문구·노출 조건을 자유롭게 바꿔도 됨(핸들 호출만 유지) |
 | 같은 곳 | 단계 전환 시 다시 굴리는 로직이 `FxPreview.autoRoll`로 이동(이모티콘 재생 로직은 그대로) | |
+| 공용 CSS(상점 전용 아님) | `items-content.css`: 보드 바탕에 `--board-grain` 층 추가(펠트·원목·가죽·대리석·금속·얼음·화산·사막), `items.css`: 2.5D 주사위 `.dice-themed[data-material]` 하이라이트, 스트레이트 줄 페이드, `responsive.css`: 요트 문구 위치 | 상점 카드의 보드 견본(`.board-sample`)도 같은 바탕을 쓰므로 카드에서도 새 재질이 보인다 |
 
-그 밖의 상점 파일(`EconomyPages.tsx`, 카드, 필터, CSS)은 수정하지 않았다. UI-2가 `ItemStage`를 다시 쓰는 경우 `FxPreview`를 그대로 가져다 쓰면 된다.
+그 밖의 상점 파일(`EconomyPages.tsx`, 카드, 필터, 상점 전용 CSS)은 수정하지 않았다. UI-2가 `ItemStage`를 다시 쓰는 경우 `FxPreview`를 그대로 가져다 쓰면 된다.
 
 ## 5. 01(경기 화면)
 
