@@ -641,3 +641,7 @@ C3·A3·A5·A4·C4.2와 문서 PR #112·#121·#122를 하나의 통합 PR(#134)�
 ## D-100. 일반 Worker 배포는 main 파이프라인 성공 뒤 자동, 운영 변수는 비상 정지 스위치 (2026-11-28, CI-1.2)
 
 일반 제품 업데이트는 PR → 필수 `ci-result` → main 병합 → Pages 배포 → (Worker 입력이 바뀐 경우만) Worker 자동 배포로 운영자 승인 없이 진행한다. Worker 입력은 `worker/src/index.ts`의 실제 번들 입력과 Worker 설정이며, UI·문서만 바뀐 커밋은 Cloudflare에 쓰지 않는다. 기준점은 활성 배포에 기록된 `git:<sha>` 주석이고, 주석 없는 배포(대시보드·롤백), 보호 입력(`wrangler.toml`의 바인딩·DO 마이그레이션·런타임 변수, 경제 원장·정책), 자동·수동 배포 실패는 자동 경로를 정지시키며 그 뒤의 수동 배포 성공으로만 재개한다(건너뛴 자동 실행은 잠금을 풀지 않는다). 수동 경로는 고위험 배포용으로 `worker-production-approval` Environment의 Required reviewers 승인을 유지한다. 실패한 배포는 재시도하지 않는다. `WORKER_PRODUCTION_DEPLOY_ENABLED`는 상시 `true`, 비상시 `false`. `worker-production` Environment(main 전용·전용 토큰)와 main 보호는 유지하고 그 Environment의 Required reviewers만 제거한다. 실제 롤백·대량 삭제·경제 정책·유료 설정은 계속 별도 승인. [CI-1.2 Worker 자동 배포](../operations/CI-1-2-WORKER-AUTO-DEPLOY.md)
+
+## D-101. 공통 N인 점수판·전역 매칭 팝업·온라인 1:1 A3 결과창, 아이디어는 내부 문서로만 (2026-11-28, UI-1 · 병합 시 번호 재부여 가능)
+
+로컬·온라인 다인전·1인·기보 점수판은 하나의 `MultiScoreboard`가 최소 크기(족보 96~164px, 플레이어 60~72px, 버튼 ≥ 44×36)를 보장하고, 다 들어가지 않으면 고정 열(온라인 = 나, 로컬 = 현재 차례) + 가로 스크롤로 전환한다. 9인 이상도 기본은 전체 표. 빠른 대전 상태는 body 포털의 떠 있는 창(드래그·최소화·화면 밖 방지)이며 매칭 정책은 서버(04) 소관으로 UI는 상태만 표시한다. 온라인 1:1 결과는 A3 `MatchResultPanel`로 교체(D-099 후속), 다인전·관전은 기존 유지. 모달은 공통 `Sheet` 또는 `margin: auto`가 있는 `<dialog>`만 쓴다. 친구 패널은 기존 친구 화면을 재사용하고 서버 계약이 없는 관전·초대는 표시하지 않는다. 미출시 아이디어(테마·모드·수익화·AI 연구)는 `docs/context/IDEAS.md`·`ideas/*` 내부 문서에만 두고 사용자용 페이지를 만들지 않으며, 후보를 정책으로 기록하지 않는다. [UI-1 기록](./UI-1-GAME-UX-2026-11-28.md)
