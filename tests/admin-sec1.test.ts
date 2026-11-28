@@ -149,12 +149,13 @@ describe("SEC-1 · duplicate votes and duplicate adoption rewards", () => {
     expect((await route(w, `/api/admin/suggestions/${post.body.id}/reward`, a, { coins: 50 })).body.error.code).toBe("DUPLICATE");
     await route(w, `/api/admin/actions/${r1.body.actionId}/approve`, b, { confirm: r1.body.actionId });
     // a forced second delivery of the same item (e.g. a retried execution) adds nothing
-    await author.account.deliver({ id: "sug:" + post.body.id, kind: "suggestion", title: "x", body: "", coins: 50, gems: 0, expiresAt: w.clock() + DAY_MS });
+    await author.account.deliver({ id: "sug:" + post.body.id, kind: "suggestion", title: "x", body: "", coins: 50, gems: 0, expiresAt: w.clock() + DAY_MS, grant: { approver: "u_" + "a".repeat(22), policyVersion: "test-policy" } });
     const box = await eng(w, "/api/me/mailbox", author.session);
     expect(box.body.items.filter((i: any) => i.kind === "suggestion")).toHaveLength(1);
     await eng(w, `/api/me/mailbox/sug:${post.body.id}/claim`, author.session, {});
     await eng(w, `/api/me/mailbox/sug:${post.body.id}/claim`, author.session, {});
-    expect(author.account.econ.verify()).toMatchObject({ ok: true, wallet: { coins: 50 } });
+    expect(author.account.econ.verify()).toMatchObject({ ok: true });
+    expect(author.account.econ.snapshot(author.account.userId, w.clock()).ledger.filter((l) => l.id.startsWith("g:sug:"))).toEqual([expect.objectContaining({ coins: 50 })]); // one C5 grant (welcome is separate)
   });
 });
 
@@ -184,22 +185,29 @@ describe("SEC-1 · no reward path around the C5 economy ledger", () => {
       const src = readFileSync(f, "utf8");
       expect(src, f).not.toMatch(/INSERT INTO ledger|UPDATE econ|coins\s*=\s*coins\s*\+/i);
     }
-    const index = readFileSync("worker/src/index.ts", "utf8");
-    // the only crediting call in the account object for admin rewards is EconomyStore.adminGrant
-    expect(index.match(/adminGrant\(/g)?.length).toBe(2);
-    const econ = readFileSync("worker/src/economy.ts", "utf8");
-    expect(econ).toMatch(/adminGrant[\s\S]*this\.post\(\[\{ id: eventId, kind: "admin-grant"/);
+    // INT-1: the single crediting path is C5 RewardGrants → EconomyStore.grantCredit (ledger g:<txId>);
+    // the former EconomyStore.adminGrant (admin:<id>) and the creditAdminClaim adapter are gone
+    for (const f of [...files("worker/src")]) {
+      const src = readFileSync(f, "utf8");
+      expect(src, f).not.toMatch(/adminGrant\(|creditAdminClaim/);
+      if (!f.endsWith("grants.ts") && !f.endsWith("economy.ts")) expect(src, f).not.toMatch(/\.grantCredit\(/);
+    }
   });
-  it("a claim is a ledger row admin:<id> that verify() re-adds", async () => {
+  it("a claim is one C5 ledger row g:<txId> that verify() re-adds; unapproved or malformed rewards are refused (INT-1)", async () => {
     const w = world({});
     const m = w.account(U);
-    await m.account.deliver({ id: "rw_check", kind: "reward", title: "t", body: "", coins: 9, gems: 1, expiresAt: w.clock() + DAY_MS });
-    await m.account.claim("rw_check");
-    const ledger = m.account.econ.snapshot(U, w.clock()).ledger;
-    expect(ledger.map((l) => l.id)).toEqual(["admin:rw_check"]);
+    const id = "op:rw_" + "c".repeat(16);
+    const grant = { approver: "u_" + "a".repeat(22), policyVersion: "test-policy" };
+    await expect(m.account.deliver({ id, kind: "reward", title: "t", body: "", coins: 9, gems: 1, expiresAt: w.clock() + DAY_MS })).rejects.toThrow(); // no approval record
+    await expect(m.account.deliver({ id: "rw_check", kind: "reward", title: "t", body: "", coins: 9, gems: 1, expiresAt: w.clock() + DAY_MS, grant })).rejects.toThrow(); // not a C5 txId
+    await expect(m.account.deliver({ id, kind: "reward", title: "t", body: "", coins: 99_999, gems: 0, expiresAt: w.clock() + DAY_MS, grant })).rejects.toThrow(); // over the C5 cap
+    await m.account.deliver({ id, kind: "reward", title: "t", body: "", coins: 9, gems: 1, expiresAt: w.clock() + DAY_MS, grant });
+    await m.account.claim(id);
+    await m.account.claim(id);
+    const ledger = m.account.econ.snapshot(U, w.clock()).ledger.filter((l) => !l.id.startsWith("welcome"));
+    expect(ledger.filter((l) => l.id === "g:" + id)).toHaveLength(1);
+    expect(ledger.some((l) => l.id.startsWith("admin:"))).toBe(false);
     expect(m.account.econ.verify().ok).toBe(true);
-    expect(() => m.account.econ.adminGrant(U, "buy:fake", 10, 0, "x", w.clock())).toThrow();
-    expect(() => m.account.econ.adminGrant(U, "admin:neg", -10, 0, "x", w.clock())).toThrow();
   });
 });
 

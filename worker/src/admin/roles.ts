@@ -1,3 +1,4 @@
+import { GRANT_LIMITS } from "../grants";
 /**
  * ADMIN-1 — administrator roles and permissions (runtime-free).
  *
@@ -127,10 +128,11 @@ export type ActionKind = keyof typeof ACTION_KINDS;
  * Per-request ceilings aligned with the C5 RewardGrants contract (#140, GRANT_LIMITS for the matching
  * sources). They are SAFETY CAPS, not amounts: amounts need the approved policy (rewardPolicy).
  */
+/** INT-1: the C5 per-source grant limits are the single set of caps (no second table to drift). */
 export const GRANT_CAPS = {
-  operator: { coins: 5000, gems: 200 },
-  "redeem-code": { coins: 1000, gems: 50 },
-  suggestion: { coins: 2000, gems: 100 },
+  operator: GRANT_LIMITS.operator,
+  "redeem-code": GRANT_LIMITS["redeem-code"],
+  suggestion: GRANT_LIMITS.suggestion,
 } as const;
 
 /**

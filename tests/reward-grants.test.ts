@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DatabaseSync } from "node:sqlite";
 import { EconomyStore, type EconSql } from "../worker/src/economy";
-import { APPROVED_SOURCES, GRANT_SOURCES, RewardGrants, creditAdminClaim, validateGrant, type GrantRequest } from "../worker/src/grants";
+import { APPROVED_SOURCES, GRANT_SOURCES, RewardGrants, validateGrant, type GrantRequest } from "../worker/src/grants";
 import { checkCode, hashCode, normalizeCode, type CodeDef } from "../src/economy/retention/codes";
 
 /**
@@ -206,17 +206,6 @@ describe("출처 승인 (C5-CORE만 기본 활성)", () => {
   });
 });
 
-describe("ADMIN-1 전환 어댑터", () => {
-  it("adminGrant의 admin:<우편함 ID>를 같은 지급 기록·상한·출처 스위치로 처리한다(재수령 1회)", () => {
-    const { econ, grants } = setup();
-    const claim = { eventId: "admin:mb_0001", source: "operator" as const, coins: 300, gems: 0, label: "운영 보상 · 점검 보상", campaign: "camp-2026-12", actor: "admin:ops1" };
-    expect(creditAdminClaim(grants, U, claim, T0).ok).toBe(true);
-    expect(creditAdminClaim(grants, U, claim, T0 + 1)).toMatchObject({ ok: true, duplicate: true });
-    expect(econ.snapshot(U, T0).ledger.filter((l) => l.id === "g:admin:mb_0001")).toHaveLength(1);
-    expect(creditAdminClaim(grants, U, { ...claim, eventId: "op:not-admin" }, T0)).toMatchObject({ code: "TX_ID" });
-    expect(econ.verify().ok && grants.verify().ok).toBe(true);
-  });
-});
 
 describe("교환 코드", () => {
   const def = async (over: Partial<CodeDef> = {}): Promise<CodeDef> => ({

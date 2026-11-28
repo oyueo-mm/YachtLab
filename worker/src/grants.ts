@@ -315,20 +315,3 @@ export class RewardGrants {
     return { ok: problems.length === 0, grants: rows.length, problems };
   }
 }
-
-/**
- * ADMIN-1 (#141) transition adapter. #141's `EconomyStore.adminGrant(userId, "admin:<mailbox id>", coins,
- * gems, label, now)` posts its own ledger row. At integration it delegates here instead, so operator and
- * suggestion rewards use the same grant record, caps, source switch and `verify()`:
- *   adminGrant(...) → creditAdminClaim(grants, userId, { eventId, source, coins, gems, label, campaign }, now)
- * The tx id stays `admin:<mailbox id>` (idempotent with #141's mailbox claim); the ledger row is
- * `g:admin:<mailbox id>`. The preferred end state delivers the reward itself as an inbox grant
- * (`delivery: "inbox"`) and keeps the mailbox row as the message (contract §7).
- */
-export function creditAdminClaim(grants: RewardGrants, userId: string, claim: { eventId: string; source: "operator" | "suggestion" | "compensation"; coins: number; gems: number; label: string; campaign: string; actor: string }, now: number): IssueResult {
-  if (!/^admin:[A-Za-z0-9_:-]{4,90}$/.test(claim.eventId)) return fail("TX_ID", "거래 ID 형식이 올바르지 않아요.");
-  return grants.issue(userId, {
-    txId: claim.eventId, source: claim.source, coins: claim.coins, gems: claim.gems, policyVersion: claim.campaign.slice(0, 40), label: claim.label.slice(0, 80),
-    actor: claim.actor, delivery: "direct", ref: claim.campaign,
-  }, now, { operator: true });
-}

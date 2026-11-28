@@ -77,7 +77,7 @@ export type Target =
   | { type: "users"; userIds: string[] }
   | { type: "segment"; joinedAfter?: number; joinedBefore?: number; activeWithinDays?: number }
   | { type: "all" };
-export type RewardPayload = { title: string; message: string; coins: number; gems: number; target: Target; scheduledAt: number; expiresAt: number; policyVersion?: string };
+export type RewardPayload = { title: string; message: string; coins: number; gems: number; target: Target; scheduledAt: number; expiresAt: number; policyVersion?: string; approvedBy?: string };
 export type CodePayload = { codeId: string };
 export type SanctionKind = "warning" | "nickname_reset" | "restrict" | "suspend";
 export type SanctionPayload = { userId: string; kind: SanctionKind; reason: string; days: number | null; reportId: string | null };
@@ -91,6 +91,8 @@ export type InboxItem = {
   coins: number;
   gems: number;
   expiresAt: number | null;
+  /** INT-1: rewards carry who approved them and under which amount policy (→ C5 grant actor/policyVersion). */
+  grant?: { approver: string; policyVersion: string };
 };
 export type DeliverResult = "ok" | "absent";
 
@@ -136,7 +138,7 @@ export class AdminCore {
     s("CREATE TABLE IF NOT EXISTS campaigns (id TEXT PRIMARY KEY, action_id TEXT NOT NULL UNIQUE, payload TEXT NOT NULL, status TEXT NOT NULL, scheduled_at INTEGER NOT NULL, created_at INTEGER NOT NULL)");
     s("CREATE TABLE IF NOT EXISTS deliveries (campaign_id TEXT NOT NULL, user_id TEXT NOT NULL, status TEXT NOT NULL, attempts INTEGER NOT NULL, next_at INTEGER NOT NULL, at INTEGER, PRIMARY KEY (campaign_id, user_id))");
     s("CREATE INDEX IF NOT EXISTS deliveries_due ON deliveries (status, next_at)");
-    s("CREATE TABLE IF NOT EXISTS codes (id TEXT PRIMARY KEY, code TEXT NOT NULL UNIQUE, title TEXT NOT NULL, coins INTEGER NOT NULL, gems INTEGER NOT NULL, starts_at INTEGER NOT NULL, ends_at INTEGER NOT NULL, max_total INTEGER NOT NULL, per_account INTEGER NOT NULL, joined_before INTEGER, status TEXT NOT NULL, created_by TEXT NOT NULL, created_at INTEGER NOT NULL)");
+    s("CREATE TABLE IF NOT EXISTS codes (id TEXT PRIMARY KEY, code TEXT NOT NULL UNIQUE, title TEXT NOT NULL, coins INTEGER NOT NULL, gems INTEGER NOT NULL, starts_at INTEGER NOT NULL, ends_at INTEGER NOT NULL, max_total INTEGER NOT NULL, per_account INTEGER NOT NULL, joined_before INTEGER, status TEXT NOT NULL, created_by TEXT NOT NULL, created_at INTEGER NOT NULL, approved_by TEXT, policy_version TEXT)");
     s("CREATE TABLE IF NOT EXISTS redemptions (id TEXT NOT NULL, code_id TEXT NOT NULL, user_id TEXT NOT NULL, n INTEGER NOT NULL, status TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (code_id, user_id, n))");
     s("CREATE INDEX IF NOT EXISTS redemptions_code ON redemptions (code_id, user_id)");
     s("CREATE TABLE IF NOT EXISTS notices (id TEXT PRIMARY KEY, kind TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, important INTEGER NOT NULL, publish_at INTEGER NOT NULL, end_at INTEGER, status TEXT NOT NULL, updated_by TEXT NOT NULL, updated_at INTEGER NOT NULL)");
@@ -487,7 +489,7 @@ export class AdminCore {
         continue;
       }
       try {
-        const r = await deliver(d.user_id, { id: "op:" + d.campaign_id, kind: "reward", title: p.title, body: p.message, coins: p.coins, gems: p.gems, expiresAt: p.expiresAt });
+        const r = await deliver(d.user_id, { id: "op:" + d.campaign_id, kind: "reward", title: p.title, body: p.message, coins: p.coins, gems: p.gems, expiresAt: p.expiresAt, ...(p.approvedBy && p.policyVersion ? { grant: { approver: p.approvedBy, policyVersion: p.policyVersion } } : {}) });
         this.sql.exec("UPDATE deliveries SET status = ?, at = ? WHERE campaign_id = ? AND user_id = ?", r === "ok" ? "done" : "skipped", now, d.campaign_id, d.user_id);
         stats[r === "ok" ? "done" : "skipped"]++;
       } catch {
@@ -541,11 +543,12 @@ export class AdminCore {
       ...c, used: this.one<{ n: number }>("SELECT count(*) AS n FROM redemptions WHERE code_id = ? AND status = 'done'", c.id)?.n ?? 0,
     }));
   }
-  setCodeStatus(id: string, status: "active" | "inactive") {
+  setCodeStatus(id: string, status: "active" | "inactive", approval?: { approver: string; policyVersion: string }) {
     const c = this.code(id);
     if (!c) return fail("NOT_FOUND", "코드를 찾을 수 없어요.");
     if (status === "active" && c.status !== "draft") return fail("STATE", "초안 상태의 코드만 활성화할 수 있어요.");
-    this.sql.exec("UPDATE codes SET status = ? WHERE id = ?", status, id);
+    if (status === "active" && approval) this.sql.exec("UPDATE codes SET status = ?, approved_by = ?, policy_version = ? WHERE id = ?", status, approval.approver, approval.policyVersion, id);
+    else this.sql.exec("UPDATE codes SET status = ? WHERE id = ?", status, id);
     return { ok: true as const };
   }
   redemptions(codeId: string, page = 0) {
@@ -559,10 +562,10 @@ export class AdminCore {
     const text = normalizeRedeemCode(raw);
     if (!CODE.test(text)) return fail("INVALID_CODE", "코드를 확인해 주세요.");
     return this.tx(() => {
-      const c = this.one<{ id: string; title: string; coins: number; gems: number; starts_at: number; ends_at: number; max_total: number; per_account: number; joined_before: number | null; status: string }>("SELECT * FROM codes WHERE code = ?", text);
+      const c = this.one<{ id: string; title: string; coins: number; gems: number; starts_at: number; ends_at: number; max_total: number; per_account: number; joined_before: number | null; status: string; approved_by: string | null; policy_version: string | null }>("SELECT * FROM codes WHERE code = ?", text);
       // one neutral answer for unknown, draft and inactive codes (no code enumeration)
       if (!c || c.status !== "active") return fail("INVALID_CODE", "사용할 수 없는 코드예요.");
-      const item = (rid: string): InboxItem => ({ id: rid, kind: "reward", title: c.title, body: "쿠폰 보상", coins: c.coins, gems: c.gems, expiresAt: null });
+      const item = (rid: string): InboxItem => ({ id: rid, kind: "reward", title: c.title, body: "쿠폰 보상", coins: c.coins, gems: c.gems, expiresAt: null, ...(c.approved_by && c.policy_version ? { grant: { approver: c.approved_by, policyVersion: c.policy_version } } : {}) });
       const open = this.one<{ id: string }>("SELECT id FROM redemptions WHERE code_id = ? AND user_id = ? AND status = 'reserved'", c.id, userId);
       if (open) return { ok: true as const, redemptionId: open.id, item: item(open.id) };
       if (now < c.starts_at || now >= c.ends_at) return fail("CODE_PERIOD", "사용 기간이 아닌 코드예요.");

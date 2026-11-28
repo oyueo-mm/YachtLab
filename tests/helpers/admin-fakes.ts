@@ -3,6 +3,8 @@ import { AccountStore, type Sql } from "../../worker/src/account";
 import { EconomyStore, type EconSql } from "../../worker/src/economy";
 import { MemberOps, type MemberSql } from "../../worker/src/admin/member";
 import { AdminCore, type InboxItem } from "../../worker/src/admin/store";
+import { APPROVED_SOURCES, RewardGrants, type GrantSource } from "../../worker/src/grants";
+import { claimAdminItem, deliverAdminItem, redeemAdminItem, revokeAdminItem, type AdminGrantContext } from "../../worker/src/admin/grant-port";
 import { BoardCore } from "../../worker/src/feedback/board";
 import { adminSettings } from "../../worker/src/admin/roles";
 import { handleAdminRoute, type AdminBackends, type AdminUserApi } from "../../worker/src/admin/api";
@@ -37,17 +39,29 @@ export function sqlite(): EconSql & Sql & MemberSql {
   };
 }
 
+/**
+ * C5 grant sources for the admin mechanics tests: production approves only the automatic retention sources
+ * (APPROVED_SOURCES), so admin rewards, adopted-suggestion rewards and redeem codes are refused there. The
+ * mechanics tests simulate a future owner approval of the three admin sources; `PRODUCTION_SOURCES` checks
+ * the real gate (tests/int1-admin-grants.test.ts).
+ */
+export const ADMIN_TEST_SOURCES: ReadonlySet<GrantSource> = new Set([...APPROVED_SOURCES, "operator", "suggestion", "redeem-code"]);
+export const PRODUCTION_SOURCES = APPROVED_SOURCES;
+
 /** One in-memory account (the parts of UserStore the admin routes use, over the real stores). */
 export class FakeAccount implements AdminUserApi {
   sql = sqlite();
   store = new AccountStore(this.sql);
   econ = new EconomyStore(this.sql);
   member = new MemberOps(this.sql);
+  grants: RewardGrants;
   failDeliveries = 0;
-  constructor(readonly userId: string, nickname: string | null, readonly clock: () => number) {
+  constructor(readonly userId: string, nickname: string | null, readonly clock: () => number, sources: ReadonlySet<GrantSource> = ADMIN_TEST_SOURCES) {
     this.store.init();
     this.econ.init();
     this.member.init();
+    this.grants = new RewardGrants(this.sql, this.econ, { enabled: sources });
+    this.grants.init();
     this.store.ensureUser(userId, "google", clock());
     if (nickname) this.store.setNickname(nickname, clock());
   }
@@ -60,16 +74,20 @@ export class FakeAccount implements AdminUserApi {
   async adminRecord(id: string) {
     return this.store.adminRecord(id);
   }
+  /** Same delivery paths as UserStore (worker/src/admin/grant-port.ts): C5 RewardGrants is the only crediting path. */
+  ctx(): AdminGrantContext {
+    return { userId: this.userId, grants: this.grants, member: this.member, transaction: (fn) => this.sql.transaction(fn) };
+  }
   async deliver(item: InboxItem) {
     if (this.failDeliveries > 0) {
       this.failDeliveries--;
       throw new Error("transient");
     }
-    this.member.deliver(item, this.clock());
-    return "ok" as const;
+    if (item.coins > 0 || item.gems > 0) this.econ.welcome(this.userId, this.clock(), null);
+    return deliverAdminItem(this.ctx(), item, this.clock());
   }
   async revokeItem(id: string) {
-    return this.member.revoke(id);
+    return revokeAdminItem(this.ctx(), id, "admin:console", this.clock());
   }
   async applySanction(s: { id: string; kind: string; reason: string; until: number | null }) {
     if (this.member.applySanction(s as never, this.clock()) && s.kind === "nickname_reset") this.store.resetNickname(this.clock());
@@ -79,28 +97,23 @@ export class FakeAccount implements AdminUserApi {
     return this.member.liftSanction(id, this.clock());
   }
   async inbox() {
-    return { items: this.member.inbox(this.clock()), unclaimed: this.member.unclaimed(this.clock()) };
+    return { items: this.member.inbox(this.clock()), unclaimed: this.grants.inbox(this.clock()).length };
   }
   async mySanctions() {
     return this.member.sanctions();
   }
   async claim(id: string) {
-    const now = this.clock();
-    return this.sql.transaction(() => this.member.claim(id, now, (eid, c, g, l) => void this.econ.adminGrant(this.userId, eid, c, g, l, now)));
+    return claimAdminItem(this.ctx(), id, this.clock());
   }
   async redeemGrant(item: InboxItem) {
-    const now = this.clock();
-    return this.sql.transaction(() => {
-      this.member.deliver(item, now);
-      const r = this.member.claim(item.id, now, (eid, c, g, l) => void this.econ.adminGrant(this.userId, eid, c, g, l, now));
-      return r.ok ? r : r.code === "CLAIMED" ? { ok: true as const, coins: item.coins, gems: item.gems } : r;
-    });
+    this.econ.welcome(this.userId, this.clock(), null);
+    return redeemAdminItem(this.ctx(), item, this.clock());
   }
 }
 
 export const uid = (c: string) => "u_" + c.repeat(22).slice(0, 22);
 
-export function world(env: { ADMIN_ACCOUNTS?: string; ADMIN_WRITES?: string; ADMIN_APPROVAL?: string; ADMIN_REWARD_POLICY?: string; ADMIN_REAUTH?: string; APP_URL?: string } = {}) {
+export function world(env: { ADMIN_ACCOUNTS?: string; ADMIN_WRITES?: string; ADMIN_APPROVAL?: string; ADMIN_REWARD_POLICY?: string; ADMIN_REAUTH?: string; APP_URL?: string; GRANT_SOURCES?: "production" | "admin-test" } = {}) {
   let now = Date.UTC(2026, 10, 28, 12);
   const clock = () => now;
   const admin = new AdminCore(sqlite());
@@ -111,7 +124,7 @@ export function world(env: { ADMIN_ACCOUNTS?: string; ADMIN_WRITES?: string; ADM
   const sessions = new Map<string, SessionUser>();
   const counts: Record<string, number> = {};
   const account = (userId: string, nickname: string | null = "닉" + userId.slice(2, 5)) => {
-    const a = new FakeAccount(userId, nickname, clock);
+    const a = new FakeAccount(userId, nickname, clock, env.GRANT_SOURCES === "production" ? PRODUCTION_SOURCES : ADMIN_TEST_SOURCES);
     accounts.set(userId, a);
     const token = "s1." + userId + "." + "x".repeat(43);
     sessions.set(token, { userId, secret: "x", suspended: false, restricted: false, until: null });

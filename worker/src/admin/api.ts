@@ -510,11 +510,12 @@ async function execute(b: AdminBackends, actionId: string, by: string, now: numb
   try {
     let result: Record<string, unknown>;
     if (a.kind === "reward.campaign") {
-      const campaignId = await b.admin.op<string>("scheduleCampaign", actionId, a.payload as RewardPayload, now);
+      const campaignId = await b.admin.op<string>("scheduleCampaign", actionId, { ...(a.payload as RewardPayload), approvedBy: by }, now);
       await b.admin.schedule();
       result = { campaignId, scheduledAt: (a.payload as RewardPayload).scheduledAt };
     } else if (a.kind === "code.activate") {
-      const r = await b.admin.op<{ ok: boolean; message?: string }>("setCodeStatus", (a.payload as { codeId: string }).codeId, "active");
+      const cp = a.payload as { codeId: string; policyVersion?: string };
+      const r = await b.admin.op<{ ok: boolean; message?: string }>("setCodeStatus", cp.codeId, "active", cp.policyVersion ? { approver: by, policyVersion: cp.policyVersion } : undefined);
       if (!r.ok) throw Error(r.message ?? "code");
       result = { codeId: (a.payload as { codeId: string }).codeId, status: "active" };
     } else if (a.kind === "sanction.apply") {
@@ -527,7 +528,7 @@ async function execute(b: AdminBackends, actionId: string, by: string, now: numb
       result = { sanctionId: id, until };
     } else if (a.kind === "suggestion.reward") {
       const p = a.payload as SuggestionRewardPayload;
-      const sent = await b.user(p.userId).deliver?.({ id: "sug:" + p.suggestionId, kind: "suggestion", title: "제안 채택 감사 보상", body: p.reason, coins: p.coins, gems: p.gems, expiresAt: now + 30 * 86_400_000 });
+      const sent = await b.user(p.userId).deliver?.({ id: "sug:" + p.suggestionId, kind: "suggestion", title: "제안 채택 감사 보상", body: p.reason, coins: p.coins, gems: p.gems, expiresAt: now + 30 * 86_400_000, ...(p.policyVersion ? { grant: { approver: by, policyVersion: p.policyVersion } } : {}) });
       if (sent !== "ok") throw Error("account not found");
       result = { delivered: p.userId };
     } else throw Error("unknown action");
@@ -551,7 +552,7 @@ export async function handleEngagementRoute(request: Request, url: URL, b: Admin
   const method = request.method;
   const fail = (status: number, code: string, message: string) => reply(status, { error: { code, message } });
   const now = b.now();
-  const ours = path === "/api/notices" || path.startsWith("/api/suggestions") || path === "/api/reports" || path === "/api/me/mailbox" || path.startsWith("/api/me/mailbox/") || path === "/api/me/redeem" || path === "/api/me/sanctions" || path === "/api/me/appeals";
+  const ours = path === "/api/notices" || path.startsWith("/api/suggestions") || path === "/api/reports" || path === "/api/me/mailbox" || path.startsWith("/api/me/mailbox/") || path === "/api/me/redeem" || path === "/api/me/rewards/redeem" || path === "/api/me/sanctions" || path === "/api/me/appeals";
   if (!ours) return null;
   try {
     if (path === "/api/notices" && method === "GET") return reply(200, { notices: await b.admin.op("notices", false, now) });
@@ -597,7 +598,8 @@ export async function handleEngagementRoute(request: Request, url: URL, b: Admin
       if (r.ok) await Promise.all([b.count?.("grant.admin.coins", r.coins), b.count?.("grant.admin.gems", r.gems)]).catch(() => undefined);
       return r.ok ? reply(200, r) : fail(r.code === "NOT_FOUND" ? 404 : 409, r.code, r.message);
     }
-    if (path === "/api/me/redeem") {
+    // INT-1: one redeem flow for the C5 reward page (/api/me/rewards/redeem) and the ADMIN-1 route (/api/me/redeem).
+    if (path === "/api/me/redeem" || path === "/api/me/rewards/redeem") {
       if (!b.economy) return fail(404, "ECONOMY_OFF", "재화 기능은 아직 준비 중이에요.");
       if ((await b.limited("redeem:" + me.userId, 5)) || (await b.limited("redeem-ip:" + b.client, 20))) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
       const profile = await user.me();
@@ -605,7 +607,12 @@ export async function handleEngagementRoute(request: Request, url: URL, b: Admin
       const r = await b.admin.op<{ ok: true; redemptionId: string; item: InboxItem } | { ok: false; code: string; message: string }>("redeem", me.userId, profile.createdAt, input.code, now);
       if (!r.ok) return fail(400, r.code, r.message);
       const granted = await user.redeemGrant?.(r.item).catch(() => null);
-      if (!granted?.ok) return fail(503, "RETRY", "보상을 지급하지 못했어요. 같은 코드로 다시 시도해 주세요(중복 지급되지 않아요).");
+      if (!granted) return fail(503, "RETRY", "보상을 지급하지 못했어요. 같은 코드로 다시 시도해 주세요(중복 지급되지 않아요).");
+      if (!granted.ok) {
+        // a definite refusal (e.g. C5 SOURCE_DISABLED while redeem codes are not approved): release the reservation
+        await b.admin.op("confirmRedeem", me.userId, r.redemptionId, false);
+        return fail(409, granted.code, granted.message);
+      }
       await b.admin.op("confirmRedeem", me.userId, r.redemptionId, true);
       await Promise.all([b.count?.("grant.admin.coins", granted.coins), b.count?.("grant.admin.gems", granted.gems), b.count?.("code.redeem")]).catch(() => undefined);
       return reply(200, { ok: true, title: r.item.title, coins: granted.coins, gems: granted.gems });

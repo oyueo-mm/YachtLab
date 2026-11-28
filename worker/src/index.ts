@@ -33,6 +33,7 @@ import { clearStaleReservations, migrateReservations, reserve, type ReservationS
 import { adminSettings, legacyTokenRoutes } from "./admin/roles";
 import { AdminCore, utcDay, type ActivityReport, type AdminSql, type InboxItem } from "./admin/store";
 import { MemberOps, type MemberSql } from "./admin/member";
+import { GrantRefused, claimAdminItem, deliverAdminItem, redeemAdminItem, revokeAdminItem, type AdminGrantContext } from "./admin/grant-port";
 import { handleAdminRoute, handleEngagementRoute, type AdminBackends, type AdminUserApi } from "./admin/api";
 import { BoardCore, type BoardSql } from "./feedback/board";
 
@@ -614,12 +615,12 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     const p = this.store.profile();
     if (!p) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
     this.welcome(Date.now());
-    const before = this.econ.wallet();
+    const before = this.econ.balance();
     const r = fn(p.userId, Date.now());
     if (r.ok && !r.duplicate) {
       const m = metric?.(r as T & { ok: true });
       // ADMIN-1: spending is counted as the balance drop of the action (no ids, privacy-light)
-      const after = this.econ.wallet();
+      const after = this.econ.balance();
       const counts: [string, number][] = [...(m === null || m === undefined ? [] : Array.isArray(m) ? m : [m]).map((x): [string, number] => (typeof x === "string" ? [x, 1] : x)),
         ["spend.coins", Math.max(0, before.coins - after.coins)], ["spend.gems", Math.max(0, before.gems - after.gems)]];
       const hub = this.hub();
@@ -815,13 +816,27 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   async adminRecord(matchId: string) {
     return this.store.exists() ? this.store.adminRecord(matchId) : null;
   }
+  /** INT-1: the admin delivery paths on this account (C5 RewardGrants is the only crediting path). */
+  private adminGrants(): AdminGrantContext | null {
+    const p = this.store.profile();
+    return p ? { userId: p.userId, grants: this.grants, member: this.member, transaction: (fn) => this.econSql().transaction(fn) } : null;
+  }
   async deliver(item: InboxItem) {
-    if (!this.store.exists()) return "absent" as const;
-    this.member.deliver(item, Date.now());
-    return "ok" as const;
+    const c = this.adminGrants();
+    if (!c) return "absent" as const;
+    // a reward needs the economy; a refused grant throws (the admin action fails, nothing is delivered)
+    const now = Date.now();
+    if (item.coins > 0 || item.gems > 0) {
+      if (!this.economyOn) throw new GrantRefused("ECONOMY_OFF", "재화 기능이 꺼져 있어요.");
+      this.welcome(now); // a C5 grant needs the account's economy row (same as claim / redeem)
+    }
+    return deliverAdminItem(c, item, now);
   }
   async revokeItem(id: string) {
-    return this.store.exists() && this.member.revoke(id);
+    const c = this.adminGrants();
+    if (!c) return false;
+    // a reward lives in the C5 inbox (txId = mailbox id); a message is hidden in the mailbox
+    return revokeAdminItem(c, id, "admin:console", Date.now());
   }
   async applySanction(s: { id: string; kind: "warning" | "nickname_reset" | "restrict" | "suspend"; reason: string; until: number | null }) {
     const p = this.store.profile();
@@ -838,34 +853,30 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   }
   async inbox() {
     const now = Date.now();
-    return this.store.exists() ? { items: this.member.inbox(now), unclaimed: this.member.unclaimed(now) } : { items: [], unclaimed: 0 };
+    // INT-1: claimable rewards live in the C5 reward inbox (single source); the mailbox lists messages
+    return this.store.exists() ? { items: this.member.inbox(now), unclaimed: this.grants.inbox(now).length } : { items: [], unclaimed: 0 };
   }
   async mySanctions() {
     return this.store.exists() ? this.member.sanctions() : [];
   }
-  /** Claim a mailbox reward: ONE transaction — mailbox row + the economy ledger row `admin:<id>`. */
+  /** Mailbox claim (compatibility route) = C5 claim of the same txId — one crediting path, never twice. */
   async claim(id: string) {
-    const p = this.store.profile();
-    if (!p) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+    const c = this.adminGrants();
+    if (!c) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
     if (!this.economyOn) return { ok: false as const, code: "ECONOMY_OFF", message: "재화 기능은 아직 준비 중이에요." };
     const now = Date.now();
     this.welcome(now);
-    const r = this.econSql().transaction(() => this.member.claim(id, now, (eventId, coins, gems, label) => void this.econ.adminGrant(p.userId, eventId, coins, gems, label, now)));
-    return r.ok ? { ...r, snapshot: this.econ.snapshot(p.userId, now) } : r;
+    const r = claimAdminItem(c, id, now);
+    return r.ok ? { ...r, snapshot: this.econ.snapshot(c.userId, now) } : r;
   }
-  /** Redeem code: deliver and claim together (idempotent by the redemption id). */
+  /** Redeem code: a direct C5 grant keyed by the redemption id (`code:<id>[:<n>]`) — a retry never credits twice. */
   async redeemGrant(item: InboxItem) {
-    const p = this.store.profile();
-    if (!p) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
+    const c = this.adminGrants();
+    if (!c) return { ok: false as const, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." };
     if (!this.economyOn) return { ok: false as const, code: "ECONOMY_OFF", message: "재화 기능은 아직 준비 중이에요." };
     const now = Date.now();
     this.welcome(now);
-    return this.econSql().transaction(() => {
-      this.member.deliver(item, now);
-      const r = this.member.claim(item.id, now, (eventId, coins, gems, label) => void this.econ.adminGrant(p.userId, eventId, coins, gems, label, now));
-      // already claimed by an earlier, interrupted attempt: the grant exists, report it as done
-      return r.ok ? r : r.code === "CLAIMED" ? { ok: true as const, coins: item.coins, gems: item.gems } : r;
-    });
+    return redeemAdminItem(c, item, now);
   }
   async me() {
     return this.store.profile();

@@ -162,23 +162,33 @@ describe("AdminCore", () => {
 });
 
 describe("account mailbox and the economy ledger", () => {
-  it("claims through the existing ledger exactly once; expired and revoked items are refused", async () => {
+  it("claims through the C5 grant path exactly once; expired and revoked items are refused (INT-1)", async () => {
     let now = Date.UTC(2026, 10, 28);
     const a = new FakeAccount(U, "회원", () => now);
-    const item = { id: "rw_x1", kind: "reward" as const, title: "점검 보상", body: "", coins: 120, gems: 3, expiresAt: now + DAY_MS };
+    const approver = "u_" + "a".repeat(22);
+    const grant = { approver, policyVersion: "policy-test-1" };
+    const item = { id: "op:rw_" + "x1".repeat(8), kind: "reward" as const, title: "점검 보상", body: "", coins: 120, gems: 3, expiresAt: now + DAY_MS, grant };
+    // no approval record → refused, nothing delivered
+    await expect(a.deliver({ ...item, grant: undefined })).rejects.toThrow();
+    expect((await a.inbox()).items).toHaveLength(0);
     await a.deliver(item);
-    await a.deliver(item); // re-delivery: still one item
+    await a.deliver(item); // re-delivery: still one message and one grant
     expect((await a.inbox()).items).toHaveLength(1);
-    expect(await a.claim("rw_x1")).toMatchObject({ ok: true, coins: 120, gems: 3 });
-    expect(await a.claim("rw_x1")).toMatchObject({ ok: false, code: "CLAIMED" });
-    expect(a.econ.verify()).toMatchObject({ ok: true, wallet: { coins: 120, gems: 3 } });
-    expect(a.econ.snapshot(U, now).ledger[0]).toMatchObject({ id: "admin:rw_x1", coins: 120 });
-    await a.deliver({ ...item, id: "rw_x2" });
-    expect(await a.revokeItem("rw_x2")).toBe(true);
-    expect(await a.claim("rw_x2")).toMatchObject({ code: "REVOKED" });
-    await a.deliver({ ...item, id: "rw_x3" });
+    expect((await a.inbox()).items[0]).toMatchObject({ coins: 0, gems: 0 }); // the mailbox keeps the message only
+    expect(a.grants.inbox(now).map((g) => g.txId)).toEqual([item.id]); // the C5 inbox is the single reward source
+    expect(await a.claim(item.id)).toMatchObject({ ok: true, coins: 120, gems: 3 });
+    expect(await a.claim(item.id)).toMatchObject({ ok: false, code: "CLAIMED" });
+    expect(a.econ.verify()).toMatchObject({ ok: true });
+    expect(a.econ.snapshot(U, now).ledger.filter((l) => l.id.startsWith("g:"))).toEqual([expect.objectContaining({ id: "g:" + item.id, coins: 120 })]);
+    expect(a.econ.snapshot(U, now).ledger.some((l) => l.id.startsWith("admin:"))).toBe(false);
+    const second = { ...item, id: "op:rw_" + "x2".repeat(8) };
+    await a.deliver(second);
+    expect(await a.revokeItem(second.id)).toBe(true);
+    expect(await a.claim(second.id)).toMatchObject({ code: "REVOKED" });
+    const third = { ...item, id: "op:rw_" + "x3".repeat(8) };
+    await a.deliver(third);
     now += 2 * DAY_MS;
-    expect(await a.claim("rw_x3")).toMatchObject({ code: "EXPIRED" });
+    expect(await a.claim(third.id)).toMatchObject({ code: "EXPIRED" });
     expect(a.econ.verify().ok).toBe(true);
   });
   it("standing: restrict and suspend until their end, lifted early", () => {
@@ -333,7 +343,9 @@ describe("admin routes (fakes, isolated)", () => {
     const claim = await eng(w, `/api/me/mailbox/${inbox.body.items[0].id}/claim`, member.session, {});
     expect(claim.body).toMatchObject({ ok: true, coins: 100, gems: 2 });
     expect((await eng(w, `/api/me/mailbox/${inbox.body.items[0].id}/claim`, member.session, {})).status).toBe(409);
-    expect(member.account.econ.verify()).toMatchObject({ ok: true, wallet: { coins: 100, gems: 2 } });
+    expect(member.account.econ.verify()).toMatchObject({ ok: true });
+    // INT-1: one C5 ledger row g:<txId> (no admin: row); the welcome grant of a first economy use is separate
+    expect(member.account.econ.snapshot(member.account.userId, w.clock()).ledger.filter((l) => l.id.startsWith("g:"))).toEqual([expect.objectContaining({ id: "g:" + inbox.body.items[0].id, coins: 100, gems: 2 })]);
     expect(w.counts["grant.admin.coins"]).toBe(100);
     const log = w.admin.auditLog({}).entries.map((e: any) => `${e.action}:${e.result}`);
     expect(log).toEqual(expect.arrayContaining(["action.draft:pending", "action.approve:refused", "action.execute:ok"]));
@@ -400,7 +412,10 @@ describe("admin routes (fakes, isolated)", () => {
     await route(w, `/api/admin/actions/${c.body.actionId}/approve`, b, { confirm: c.body.actionId });
     expect((await eng(w, "/api/me/redeem", m.session, { code: "thanks-2026" })).body).toMatchObject({ ok: true, coins: 40 });
     expect((await eng(w, "/api/me/redeem", m.session, { code: "THANKS2026" })).body.error.code).toBe("CODE_USED");
-    expect(m.account.econ.verify()).toMatchObject({ ok: true, wallet: { coins: 40 } });
+    expect(m.account.econ.verify()).toMatchObject({ ok: true });
+    // INT-1: the code is a direct C5 grant code:<codeId> — one g: ledger row, and the C5 route is the same flow
+    expect(m.account.econ.snapshot(U, w.clock()).ledger.filter((l) => l.id.startsWith("g:code:"))).toEqual([expect.objectContaining({ coins: 40 })]);
+    expect((await eng(w, "/api/me/rewards/redeem", m.session, { code: "THANKS2026" })).body.error.code).toBe("CODE_USED");
   });
 
   it("suggestions: public board, admin answer + adoption reward via approval", async () => {
@@ -414,7 +429,7 @@ describe("admin routes (fakes, isolated)", () => {
     expect((await eng(w, `/api/suggestions/${post.body.id}/vote`, voter.session, { on: true })).body.votes).toBe(1);
     expect((await eng(w, "/api/suggestions?sort=top", null)).body.items[0]).toMatchObject({ title: "팀전 모드", votes: 1 });
     // writing earns nothing
-    expect(author.account.econ.wallet()).toEqual({ coins: 0, gems: 0 });
+    expect(author.account.econ.balance()).toEqual({ coins: 0, gems: 0 });
     expect((await route(w, `/api/admin/suggestions/${post.body.id}/reward`, a, { coins: 100 })).body.error.code).toBe("STATE");
     await route(w, `/api/admin/suggestions/${post.body.id}`, a, { status: "adopted", adoptReason: "다음 업데이트 반영", answer: "채택했어요!" });
     const r = await route(w, `/api/admin/suggestions/${post.body.id}/reward`, a, { coins: 100 });
