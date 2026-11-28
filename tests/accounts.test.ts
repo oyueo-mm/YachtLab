@@ -148,6 +148,23 @@ describe("계정 저장소 (UserStore 로직, node:sqlite)", () => {
     expect(s.publicProfile()!.online.games).toBe(1); // only the server-verified match counts publicly
     expect(JSON.stringify(s.publicProfile())).not.toContain("google");
   });
+
+  it("SEC-1-01: 같은 matchId의 기기 기록이 있어도 서버 검증 결과가 우선 저장·정산된다", () => {
+    const s = new AccountStore(sqlite());
+    s.init();
+    s.ensureUser("u_" + "c".repeat(22), "google", 1);
+    expect(s.importRecords([record("m_live1", { outcome: "draw" })], "device", 1)).toEqual({ added: 1, skipped: 0 });
+    let settled = 0;
+    expect(s.recordMatch(record("m_live1", { outcome: "loss" }), () => (settled++, undefined))).toBe(true);
+    expect(settled).toBe(1);
+    expect(s.records().filter((r) => r.recordId === "m_live1")).toEqual([expect.objectContaining({ outcome: "loss", verification: "server-verified" })]);
+    expect(s.publicProfile()!.online).toMatchObject({ games: 1, losses: 1 });
+    // still idempotent afterwards, and a later device upload never downgrades it
+    expect(s.recordMatch(record("m_live1", { outcome: "loss" }), () => (settled++, undefined))).toBe(false);
+    expect(s.importRecords([record("m_live1", { outcome: "win" })], "device", 1)).toEqual({ added: 0, skipped: 1 });
+    expect(settled).toBe(1);
+    expect(s.publicProfile()!.online).toMatchObject({ games: 1, losses: 1, wins: 0 });
+  });
 });
 
 describe("기록 검증·통계", () => {
