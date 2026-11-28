@@ -70,3 +70,18 @@ SEC-1-01 브랜치 `claude/eager-pasteur-2oqfw7`(`185c504`) 검토: 변경은 `A
 3. 이후 이 CI PR을 병합한다. 병합 커밋은 Worker 입력을 바꾸지 않으므로 첫 자동 실행은 새 구조(prepare → release)로 Cloudflare를 읽고 건너뛴다(경로 점검).
 4. 두 PR은 `docs/context/DECISIONS.md`·`ROADMAP.md`를 모두 수정한다. 나중에 병합하는 쪽이 main을 합쳐 문서 충돌만 해소한다(D-101 SEC-1-01, D-102 이 PR).
 5. 롤백이 필요하면 Cloudflare Deployments에서 직전 버전으로(별도 승인). 롤백 뒤 자동 배포는 스스로 정지하고 수동 배포로만 재개된다.
+
+## 6. SEC-1 Low/Info(#138) 출시 — 새 배포 구조의 첫 실제 쓰기 (2026-11-28)
+
+| 항목 | 결과 |
+|---|---|
+| 병합 전 | head `31bae0a`(main `083ce9e` 병합본) 필수 CI [46125141385](https://github.com/oyueo-mm/YachtLab/actions/runs/46125141385) 성공(`game-shell.spec.ts:14` 간헐 실패 1회 재실행 — main에서도 24회 중 1회 재현되는 기존 문제), 읽기 점검 [46130510556](https://github.com/oyueo-mm/YachtLab/actions/runs/46130510556) 활성 `6ef2c717…` 100%, 실패 잠금 열림(복구 기준 수동 #19 이후 자동 실행 3건 모두 첫 시도 성공) |
+| 병합 | [#138](https://github.com/oyueo-mm/YachtLab/pull/138) → main `d775ecb5a390488f15ac41ce2acc1abeb3801ec9` |
+| Pages | [46130543903](https://github.com/oyueo-mm/YachtLab/actions/runs/46130543903) → `d775ecb-mx07j30u` |
+| Worker 자동 배포 | [46131383157](https://github.com/oyueo-mm/YachtLab/actions/runs/46131383157): 변경 입력 `src/online/room.ts`·`worker/src/index.ts` |
+| 자격 증명 없는 빌드 | `prepare` 작업(시크릿 없음)이 번들 빌드·`release.json` 작성: `bundle/index.js` sha256 `5219006a281c45a9dff65d7cb747546636f114d8f30cad031110e32dd77c5761`(411,192 bytes), DO 바인딩 6개 그대로 |
+| 토큰 작업 | 재실행 거부 검사 통과, `npm ci --ignore-scripts`, 아티팩트 커밋·SHA-256 검증, 쓰기 직전 재확인, `wrangler deploy <bundle> --no-bundle` |
+| 배포 결과 | 배포 `30c5c433-49ff-4acd-9c82-2f0c452463bf`, **활성 100% `692e00a4-d983-4ccb-b93c-4e52c06deca6`**, 복귀 후보 `6ef2c717-60f1-48c0-89ee-3b7ae8b0f1de`(배포 `c13d98b7…`); 독립 읽기 점검 [46132008550](https://github.com/oyueo-mm/YachtLab/actions/runs/46132008550) 일치 |
+| 운영 점검 | `/healthz` ok, 기능 플래그 전체, 로그인 설정, 게스트 2인 친구 방(생성·입장·양쪽 1턴·관전 설정·재접속·기권 결과 창), 페이지 오류 0 |
+
+이로써 SEC-1-01·02·03·04·07·08·09·11·12와 C4 SEC-15(일부)가 운영에 반영됐다. 남은 SEC-1 항목은 [TRIAGE](../audits/sec-1-2026-11-28/TRIAGE.md) 분류를 따른다.
