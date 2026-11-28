@@ -62,13 +62,40 @@ async function once<T>(fn: (requestId: string) => Promise<T>): Promise<T> {
 
 export const signedIn = () => !!session();
 export const economy = (server: string) => call<{ snapshot: Snapshot }>(server, "/api/me/economy").then((r) => r.snapshot);
-export const buy = (server: string, itemId: string, currency: "coins" | "gems") => once((requestId) => call<{ snapshot: Snapshot }>(server, "/api/me/shop/buy", { itemId, currency, requestId })).then((r) => r.snapshot);
-export const upgrade = (server: string, itemId: string) => once((requestId) => call<{ snapshot: Snapshot }>(server, "/api/me/shop/upgrade", { itemId, requestId })).then((r) => r.snapshot);
-export const buySlot = (server: string, kind: "emote" | "chat", currency: "coins" | "gems") => once((requestId) => call<{ snapshot: Snapshot }>(server, "/api/me/shop/slot", { kind, currency, requestId })).then((r) => r.snapshot);
+/**
+ * What the player saw when confirming (SEC-08 / SEC-10). The server checks each field it receives in the
+ * same transaction as the charge and answers 409 (PRICE_CHANGED, LEVEL_CHANGED, POLICY_CHANGED,
+ * ODDS_CHANGED, REQUEST_REUSED) without charging. Workers older than this ignore the fields.
+ */
+export type Quote = { expectedPrice?: number; expectedLevel?: number; configVersion?: string; oddsVersion?: string };
+const quoteBody = (q: Quote = {}) => Object.fromEntries(Object.entries(q).filter(([, v]) => v !== undefined && v !== null));
+export const buy = (server: string, itemId: string, currency: "coins" | "gems", quote?: Quote) => once((requestId) => call<{ snapshot: Snapshot }>(server, "/api/me/shop/buy", { itemId, currency, requestId, ...quoteBody(quote) })).then((r) => r.snapshot);
+export const upgrade = (server: string, itemId: string, quote?: Quote) => once((requestId) => call<{ snapshot: Snapshot }>(server, "/api/me/shop/upgrade", { itemId, requestId, ...quoteBody(quote) })).then((r) => r.snapshot);
+export const buySlot = (server: string, kind: "emote" | "chat", currency: "coins" | "gems", quote?: Quote) => once((requestId) => call<{ snapshot: Snapshot }>(server, "/api/me/shop/slot", { kind, currency, requestId, ...quoteBody(quote) })).then((r) => r.snapshot);
 export const saveLoadout = (server: string, loadout: Loadout) => call<{ snapshot: Snapshot }>(server, "/api/me/loadout", { loadout }).then((r) => r.snapshot);
 export const rerollQuest = (server: string, index: number | "all", period: "daily" | "weekly", expected: number) =>
   call<{ snapshot: Snapshot }>(server, "/api/me/quests/reroll", { index, period, expected }).then((r) => r.snapshot);
 export const drawStatus = (server: string) => call<{ snapshot: Snapshot; draw: DrawStatus }>(server, "/api/me/shop/draw");
-export const submitDraw = (server: string, pool: DrawPool, requestId: string) =>
-  call<{ snapshot: Snapshot; draw: DrawStatus; receipt: DrawReceipt }>(server, "/api/me/shop/draw", { pool, requestId });
+export const submitDraw = (server: string, pool: DrawPool, requestId: string, quote?: Quote) =>
+  call<{ snapshot: Snapshot; draw: DrawStatus; receipt: DrawReceipt }>(server, "/api/me/shop/draw", { pool, requestId, ...quoteBody(quote) });
 export const startServerAi = (server: string, name: string) => call<{ code: string; playerId: string; token: string }>(server, "/api/ai/start", { name });
+
+/* -------------------------------------------- C5 rewards: attendance, streaks, inbox, codes -------------------------------------------- */
+
+export type RewardGrantView = { txId: string; source: string; coins: number; gems: number; items: string[]; label: string; status: string; createdAt: number; expiresAt: number | null };
+export type RewardsStatus = {
+  enabled: boolean;
+  policy: string;
+  serverTime: number;
+  day: number;
+  week: number;
+  attendance: { claimedToday: boolean; claimed: number; cycle: number; total: number; rewards: { coins: number; gems: number }[]; nextResetAt: number };
+  activity: { current: number; best: number; activeToday: boolean; broken: boolean; restPerWeek: number; restLeft: number; milestones: { days: number; coins: number; gems: number; title?: string; paid: boolean }[] };
+  weeklyStreak: { current: number; best: number; tiers: { streak: number; coins: number; paid: boolean }[]; paidCoins: number; nextResetAt: number };
+};
+export type RewardsView = { status: RewardsStatus; inbox: RewardGrantView[]; history: RewardGrantView[]; redeem: boolean; wallet: { coins: number; gems: number }; granted?: RewardGrantView[]; snapshot?: Snapshot };
+/** Worker without the C5 routes, or RETENTION off: `RETENTION_OFF` (the page shows "준비 중"). */
+export const rewards = (server: string) => call<RewardsView>(server, "/api/me/rewards");
+export const claimAttendance = (server: string) => call<RewardsView>(server, "/api/me/rewards/attendance", {});
+export const claimReward = (server: string, txId: string | "all") => call<RewardsView>(server, "/api/me/rewards/claim", { txId });
+export const redeemCode = (server: string, code: string) => call<RewardsView>(server, "/api/me/rewards/redeem", { code });

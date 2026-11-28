@@ -1,0 +1,27 @@
+/* C5 rewards page (#rewards). Uses the app tokens (--ink, --muted, --line, --soft, --orange) and the
+   economy page classes (.econ-page, .econ-sub, .quest-list, .shop-owned); only the new pieces live here. */
+.rewards-card { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.rewards-card .econ-sub { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin: 0; }
+.rewards-notice { color: var(--ink); }
+
+.att-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.att-cell { position: relative; min-width: 0; display: grid; justify-items: center; gap: 2px; min-height: 58px; padding: 6px 2px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); font-size: 12px; }
+.att-cell .att-day { color: var(--muted); font-size: 11px; }
+.att-cell .att-amount { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px; font-weight: 700; }
+.att-cell.done { background: #fff; color: var(--muted); }
+.att-cell.done > svg { color: var(--orange); }
+.att-cell.next { border-color: var(--orange); background: #fff; }
+
+.ws-tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ws-tiers li { position: relative; display: grid; gap: 2px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); font-size: 13px; }
+.ws-tiers li span:first-child { font-weight: 700; }
+.ws-tiers li span:nth-child(2) { color: var(--muted); font-size: 12px; }
+.ws-tiers li.done { background: #fff; }
+.ws-tiers li.done > svg { position: absolute; top: 6px; right: 6px; color: var(--orange); }
+
+.code-form { display: flex; gap: 8px; }
+.code-form input { flex: 1; min-width: 0; min-height: 40px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase; }
+
+@media (max-width: 380px) {
+  .att-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
