@@ -1,0 +1,80 @@
+{
+  "E0": {
+    "expected": 18,
+    "replayed": 18,
+    "capFieldsChecked": 54,
+    "capFieldsChanged": 36,
+    "otherChanged": 0,
+    "firstDifferences": []
+  },
+  "E1": {
+    "expected": 384,
+    "replayed": 384,
+    "capFieldsChecked": 4608,
+    "capFieldsChanged": 1828,
+    "otherChanged": 0,
+    "firstDifferences": []
+  },
+  "E2": {
+    "expected": 80,
+    "replayed": 80,
+    "capFieldsChecked": 960,
+    "capFieldsChanged": 558,
+    "otherChanged": 0,
+    "firstDifferences": []
+  },
+  "E3": {
+    "expected": 240,
+    "replayed": 240,
+    "capFieldsChecked": 2880,
+    "capFieldsChanged": 1232,
+    "otherChanged": 0,
+    "firstDifferences": []
+  },
+  "E4": {
+    "expected": 304,
+    "replayed": 304,
+    "capFieldsChecked": 3648,
+    "capFieldsChanged": 1375,
+    "otherChanged": 0,
+    "firstDifferences": []
+  },
+  "E5": {
+    "expected": 18,
+    "replayed": 18,
+    "capFieldsChecked": 162,
+    "capFieldsChanged": 108,
+    "otherChanged": 0,
+    "firstDifferences": []
+  },
+  "E6": {
+    "expected": 48,
+    "replayed": 48,
+    "capFieldsChecked": 576,
+    "capFieldsChanged": 215,
+    "otherChanged": 0,
+    "firstDifferences": []
+  },
+  "E7": {
+    "expected": 16,
+    "replayed": 16,
+    "capFieldsChecked": 192,
+    "capFieldsChanged": 76,
+    "otherChanged": 0,
+    "firstDifferences": []
+  },
+  "population": {
+    "otherChanged": 0,
+    "firstDifferences": []
+  },
+  "rawE1": {
+    "original": {
+      "sha256Sorted": "a7626135485c02c079dcaa6876a4bd96535da318328fe9f736eaf54d97d2effe",
+      "rows": 76800
+    },
+    "replayed": {
+      "sha256Sorted": "a7626135485c02c079dcaa6876a4bd96535da318328fe9f736eaf54d97d2effe",
+      "rows": 76800
+    }
+  }
+}

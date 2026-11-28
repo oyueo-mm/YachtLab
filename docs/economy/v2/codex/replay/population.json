@@ -1,0 +1,92 @@
+{
+ "meta": {
+  "generatedBy": "scripts/economy/v2/run.ts",
+  "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
+  "codeHash": "a6630d691acf9946fadcb2dd6f2ca7ee0577a2b25e01439989da2908fae078e6",
+  "settingsHash": "39442d8ae41ebdaf35b1d2da3442ba268721ffcd9ec6b7f98634c31286698b3a",
+  "seed": 20261127,
+  "seeds": [
+   20261127
+  ],
+  "seedNote": "Development experiments; see the per-cell settings",
+  "rev": 2,
+  "t0": "2026-11-29T15:00:00.000Z",
+  "horizons": [
+   1,
+   7,
+   30,
+   90
+  ],
+  "warmupDays": 60,
+  "jobs": 754,
+  "players": 138940,
+  "node": "v24.22.3",
+  "quick": false
+ },
+ "populations": {
+  "BASE|existing": {
+   "n": 2000,
+   "gini": 0.3629,
+   "top10Share": 0.226,
+   "bottom50Share": 0.2317,
+   "p90p10": 6.8,
+   "meanEarned90": 10651
+  },
+  "BASE|new": {
+   "n": 2000,
+   "gini": 0.3615,
+   "top10Share": 0.23,
+   "bottom50Share": 0.2307,
+   "p90p10": 6.84,
+   "meanEarned90": 11992
+  },
+  "V2-BAL|existing": {
+   "n": 2000,
+   "gini": 0.382,
+   "top10Share": 0.2377,
+   "bottom50Share": 0.2185,
+   "p90p10": 7.57,
+   "meanEarned90": 17331
+  },
+  "V2-BAL|new": {
+   "n": 2000,
+   "gini": 0.38,
+   "top10Share": 0.2397,
+   "bottom50Share": 0.2186,
+   "p90p10": 7.57,
+   "meanEarned90": 18525
+  },
+  "V2-CONS|existing": {
+   "n": 2000,
+   "gini": 0.3598,
+   "top10Share": 0.2234,
+   "bottom50Share": 0.2327,
+   "p90p10": 6.53,
+   "meanEarned90": 14144
+  },
+  "V2-CONS|new": {
+   "n": 2000,
+   "gini": 0.3603,
+   "top10Share": 0.228,
+   "bottom50Share": 0.2315,
+   "p90p10": 6.79,
+   "meanEarned90": 15461
+  },
+  "V2-EXP|existing": {
+   "n": 2000,
+   "gini": 0.411,
+   "top10Share": 0.2629,
+   "bottom50Share": 0.2041,
+   "p90p10": 8.58,
+   "meanEarned90": 24463
+  },
+  "V2-EXP|new": {
+   "n": 2000,
+   "gini": 0.4088,
+   "top10Share": 0.2646,
+   "bottom50Share": 0.2047,
+   "p90p10": 8.73,
+   "meanEarned90": 26237
+  }
+ }
+}

@@ -1,0 +1,207 @@
+{
+  "generatedBy": "scripts/economy/v2/run.ts",
+  "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
+  "codeHash": "4cdc64ccf136a3518d9572f064486e3298f78c15dafca242723c4ac2d5d5eb1d",
+  "settingsHash": "765f1803b55c86936f9363f6734e0cacd1f67ac52d4004f2abe5f5712cf21be0",
+  "seed": 20261127,
+  "seedNote": "E0\u2013E7 development runs; E7 uses seed+1",
+  "rev": 2,
+  "t0": "2026-11-29T15:00:00.000Z",
+  "horizons": [
+    1,
+    7,
+    30,
+    90
+  ],
+  "warmupDays": 60,
+  "jobs": 1108,
+  "players": 208140,
+  "node": "v24.22.3",
+  "quick": false,
+  "runs": {
+    "E0": {
+      "generatedBy": "scripts/economy/v2/run.ts",
+      "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
+      "codeHash": "4cdc64ccf136a3518d9572f064486e3298f78c15dafca242723c4ac2d5d5eb1d",
+      "settingsHash": "765f1803b55c86936f9363f6734e0cacd1f67ac52d4004f2abe5f5712cf21be0",
+      "seed": 20261127,
+      "seedNote": "E0\u2013E7 development runs; E7 uses seed+1",
+      "rev": 2,
+      "t0": "2026-11-29T15:00:00.000Z",
+      "horizons": [
+        1,
+        7,
+        30,
+        90
+      ],
+      "warmupDays": 60,
+      "jobs": 1108,
+      "players": 208140,
+      "node": "v24.22.3",
+      "quick": false
+    },
+    "E1": {
+      "generatedBy": "scripts/economy/v2/run.ts",
+      "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
+      "codeHash": "a6630d691acf9946fadcb2dd6f2ca7ee0577a2b25e01439989da2908fae078e6",
+      "settingsHash": "39442d8ae41ebdaf35b1d2da3442ba268721ffcd9ec6b7f98634c31286698b3a",
+      "seed": 20261127,
+      "seeds": [
+        20261127
+      ],
+      "seedNote": "Development experiments; see the per-cell settings",
+      "rev": 2,
+      "t0": "2026-11-29T15:00:00.000Z",
+      "horizons": [
+        1,
+        7,
+        30,
+        90
+      ],
+      "warmupDays": 60,
+      "jobs": 754,
+      "players": 138940,
+      "node": "v24.22.3",
+      "quick": false
+    },
+    "E2": {
+      "generatedBy": "scripts/economy/v2/run.ts",
+      "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
+      "codeHash": "4cdc64ccf136a3518d9572f064486e3298f78c15dafca242723c4ac2d5d5eb1d",
+      "settingsHash": "765f1803b55c86936f9363f6734e0cacd1f67ac52d4004f2abe5f5712cf21be0",
+      "seed": 20261127,
+      "seedNote": "E0\u2013E7 development runs; E7 uses seed+1",
+      "rev": 2,
+      "t0": "2026-11-29T15:00:00.000Z",
+      "horizons": [
+        1,
+        7,
+        30,
+        90
+      ],
+      "warmupDays": 60,
+      "jobs": 1108,
+      "players": 208140,
+      "node": "v24.22.3",
+      "quick": false
+    },
+    "E3": {
+      "generatedBy": "scripts/economy/v2/run.ts",
+      "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
+      "codeHash": "4cdc64ccf136a3518d9572f064486e3298f78c15dafca242723c4ac2d5d5eb1d",
+      "settingsHash": "0c217b2508f41d8871800e2088587534e02eab63ac4bef66e474c607d7909cc8",
+      "seed": 20261127,
+      "seedNote": "E0\u2013E7 development runs; E7 uses seed+1",
+      "rev": 2,
+      "t0": "2026-11-29T15:00:00.000Z",
+      "horizons": [
+        1,
+        7,
+        30,
+        90
+      ],
+      "warmupDays": 60,
+      "jobs": 240,
+      "players": 36000,
+      "node": "v24.22.3",
+      "quick": false
+    },
+    "E4": {
+      "generatedBy": "scripts/economy/v2/run.ts",
+      "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
+      "codeHash": "a6630d691acf9946fadcb2dd6f2ca7ee0577a2b25e01439989da2908fae078e6",
+      "settingsHash": "39442d8ae41ebdaf35b1d2da3442ba268721ffcd9ec6b7f98634c31286698b3a",
+      "seed": 20261127,
+      "seeds": [
+        20261127
+      ],
+      "seedNote": "Development experiments; see the per-cell settings",
+      "rev": 2,
+      "t0": "2026-11-29T15:00:00.000Z",
+      "horizons": [
+        1,
+        7,
+        30,
+        90
+      ],
+      "warmupDays": 60,
+      "jobs": 754,
+      "players": 138940,
+      "node": "v24.22.3",
+      "quick": false
+    },
+    "E5": {
+      "generatedBy": "scripts/economy/v2/run.ts",
+      "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
+      "codeHash": "a6630d691acf9946fadcb2dd6f2ca7ee0577a2b25e01439989da2908fae078e6",
+      "settingsHash": "39442d8ae41ebdaf35b1d2da3442ba268721ffcd9ec6b7f98634c31286698b3a",
+      "seed": 20261127,
+      "seeds": [
+        20261127
+      ],
+      "seedNote": "Development experiments; see the per-cell settings",
+      "rev": 2,
+      "t0": "2026-11-29T15:00:00.000Z",
+      "horizons": [
+        1,
+        7,
+        30,
+        90
+      ],
+      "warmupDays": 60,
+      "jobs": 754,
+      "players": 138940,
+      "node": "v24.22.3",
+      "quick": false
+    },
+    "E6": {
+      "generatedBy": "scripts/economy/v2/run.ts",
+      "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
+      "codeHash": "a6630d691acf9946fadcb2dd6f2ca7ee0577a2b25e01439989da2908fae078e6",
+      "settingsHash": "39442d8ae41ebdaf35b1d2da3442ba268721ffcd9ec6b7f98634c31286698b3a",
+      "seed": 20261127,
+      "seeds": [
+        20261127
+      ],
+      "seedNote": "Development experiments; see the per-cell settings",
+      "rev": 2,
+      "t0": "2026-11-29T15:00:00.000Z",
+      "horizons": [
+        1,
+        7,
+        30,
+        90
+      ],
+      "warmupDays": 60,
+      "jobs": 754,
+      "players": 138940,
+      "node": "v24.22.3",
+      "quick": false
+    },
+    "E7": {
+      "generatedBy": "scripts/economy/v2/run.ts",
+      "config": "M3i-W30@2 baseline (src/economy/live/config.ts)",
+      "codeHash": "4cdc64ccf136a3518d9572f064486e3298f78c15dafca242723c4ac2d5d5eb1d",
+      "settingsHash": "765f1803b55c86936f9363f6734e0cacd1f67ac52d4004f2abe5f5712cf21be0",
+      "seed": 20261127,
+      "seedNote": "E0\u2013E7 development runs; E7 uses seed+1",
+      "rev": 2,
+      "t0": "2026-11-29T15:00:00.000Z",
+      "horizons": [
+        1,
+        7,
+        30,
+        90
+      ],
+      "warmupDays": 60,
+      "jobs": 1108,
+      "players": 208140,
+      "node": "v24.22.3",
+      "quick": false
+    }
+  },
+  "seeds": [
+    20261127,
+    20261128
+  ]
+}

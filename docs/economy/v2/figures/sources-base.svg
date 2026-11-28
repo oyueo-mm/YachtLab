@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="viz" viewBox="0 0 760 320" role="img" aria-label="현행 경제 기존 사용자 30일 코인 출처"><style>
+.viz{--s:#ffffff;--t1:#191919;--t2:#666666;--g:#e5e5e5;--a:#257de0;--b:#f47230;--n:#9c9c9c;font:12px system-ui,-apple-system,sans-serif}
+@media (prefers-color-scheme:dark){.viz{--s:#191919;--t1:#efefef;--t2:#9c9c9c;--g:#333333;--a:#338ced;--b:#e76624;--n:#666666}}
+.bg{fill:var(--s)}.t1{fill:var(--t1)}.t2{fill:var(--t2)}.grid{stroke:var(--g)}.dot{fill:var(--n)}.front{fill:var(--a)}.pol{fill:var(--b)}.fl{stroke:var(--a);fill:none;stroke-width:2}
+</style>
+<rect class="bg" width="760" height="320"/>
+<text class="t1" x="90" y="20" font-weight="600">현행(M3i-W30@2) 기존 사용자 30일 코인 출처 — 하루 플레이 시간별</text>
+<rect x="90" y="32" width="12" height="12" rx="2" fill="var(--a)"/><text class="t2" x="108" y="42">경기</text>
+<rect x="200" y="32" width="12" height="12" rx="2" fill="var(--b)"/><text class="t2" x="218" y="42">퀘스트</text>
+<rect x="310" y="32" width="12" height="12" rx="2" fill="#00b894"/><text class="t2" x="328" y="42">업적</text>
+<rect x="420" y="32" width="12" height="12" rx="2" fill="var(--n)"/><text class="t2" x="438" y="42">기타</text>
+<text class="t2" x="82" y="80" text-anchor="end">15분/일</text>
+<rect x="90" y="64" width="59.46406614373542" height="24" fill="var(--a)"><title>15분 경기: 982.8코인</title></rect>
+<rect x="151.4640661437354" y="64" width="169.57154971380115" height="24" fill="var(--b)"><title>15분 퀘스트: 2,743코인</title></rect>
+<rect x="323.0356158575365" y="64" width="28.19419122323511" height="24" fill="#00b894"><title>15분 업적: 482.8코인</title></rect>
+<rect x="353.22980708077165" y="64" width="4.0350858596565615" height="24" fill="var(--n)"><title>15분 기타: 96.5코인</title></rect>
+<text class="t1" x="365.26489294042824" y="80">4,306</text>
+<text class="t2" x="82" y="120" text-anchor="end">30분/일</text>
+<rect x="90" y="104" width="79.87078651685393" height="24" fill="var(--a)"><title>30분 경기: 1,309코인</title></rect>
+<rect x="171.8707865168539" y="104" width="211.35435658257367" height="24" fill="var(--b)"><title>30분 퀘스트: 3,412코인</title></rect>
+<rect x="385.22514309942756" y="104" width="5.092007631969472" height="24" fill="#00b894"><title>30분 업적: 113.4코인</title></rect>
+<rect x="392.317150731397" y="104" width="5.723659105363579" height="24" fill="var(--n)"><title>30분 기타: 123.5코인</title></rect>
+<text class="t1" x="406.0408098367606" y="120">4,958</text>
+<text class="t2" x="82" y="160" text-anchor="end">1시간/일</text>
+<rect x="90" y="144" width="123.72365910536358" height="24" fill="var(--a)"><title>60분 경기: 2,010코인</title></rect>
+<rect x="215.7236591053636" y="144" width="240.48537205851179" height="24" fill="var(--b)"><title>60분 퀘스트: 3,877코인</title></rect>
+<rect x="458.20903116387535" y="144" width="17.05586177655289" height="24" fill="#00b894"><title>60분 업적: 304.7코인</title></rect>
+<rect x="477.26489294042824" y="144" width="8.012613949544201" height="24" fill="var(--n)"><title>60분 기타: 160.1코인</title></rect>
+<text class="t1" x="493.2775068899724" y="160">6,352</text>
+<text class="t2" x="82" y="200" text-anchor="end">2시간/일</text>
+<rect x="90" y="184" width="201.39177443290228" height="24" fill="var(--a)"><title>120분 경기: 3,252코인</title></rect>
+<rect x="293.39177443290225" y="184" width="255.67627729489078" height="24" fill="var(--b)"><title>120분 퀘스트: 4,120코인</title></rect>
+<rect x="551.0680517277931" y="184" width="69.83941064235744" height="24" fill="#00b894"><title>120분 업적: 1,149코인</title></rect>
+<rect x="622.9074623701505" y="184" width="12.434174263302946" height="24" fill="var(--n)"><title>120분 기타: 230.8코인</title></rect>
+<text class="t1" x="643.3416366334534" y="200">8,752</text>
+<text class="t2" x="82" y="240" text-anchor="end">4시간/일</text>
+<rect x="90" y="224" width="268.3030527877889" height="24" fill="var(--a)"><title>240분 경기: 4,322코인</title></rect>
+<rect x="360.3030527877889" y="224" width="260.73574305702783" height="24" fill="var(--b)"><title>240분 퀘스트: 4,201코인</title></rect>
+<rect x="623.0387958448167" y="224" width="4.347784608861565" height="24" fill="#00b894"><title>240분 업적: 101.5코인</title></rect>
+<rect x="629.3865804536783" y="224" width="16.286622853508582" height="24" fill="var(--n)"><title>240분 기타: 292.4코인</title></rect>
+<text class="t1" x="653.6732033071869" y="240">8,917</text>
+<text class="t2" x="82" y="280" text-anchor="end">8시간/일</text>
+<rect x="90" y="264" width="300.9175323298707" height="24" fill="var(--a)"><title>480분 경기: 4,844코인</title></rect>
+<rect x="392.9175323298707" y="264" width="260.81704473182106" height="24" fill="var(--b)"><title>480분 퀘스트: 4,202코인</title></rect>
+<rect x="655.7345770616918" y="264" width="2.6592113631545473" height="24" fill="#00b894"><title>480분 업적: 74.5코인</title></rect>
+<rect x="660.3937884248463" y="264" width="17.6062115751537" height="24" fill="var(--n)"><title>480분 기타: 313.5코인</title></rect>
+<text class="t1" x="686" y="280">9,434</text>
+</svg>

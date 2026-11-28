@@ -16,3 +16,5 @@ public/ai/*.f64
 .wrangler-state/
 worker/.wrangler/
 training/v6-rust/target/
+docs/economy/v2/results-quick/
+docs/economy/v2/replay/

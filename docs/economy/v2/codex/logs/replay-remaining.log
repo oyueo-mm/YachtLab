@@ -1,0 +1,23 @@
+economy-v2: 754 jobs, 0 resumed, 1 workers
+  E5 complete
+  50/754 (120 s)
+  E6 complete
+  100/754 (389 s)
+  150/754 (625 s)
+economy-v2: 754 jobs, 195 resumed, 2 workers
+  200/754 (13 s)
+  250/754 (75 s)
+  300/754 (107 s)
+  350/754 (136 s)
+  E4 complete
+  400/754 (314 s)
+  450/754 (533 s)
+  500/754 (667 s)
+  550/754 (749 s)
+  600/754 (789 s)
+  650/754 (818 s)
+  700/754 (847 s)
+  750/754 (875 s)
+  E1 complete
+  754/754 (877 s)
+done in 877.1 s → /workspace/work/legacy-fast

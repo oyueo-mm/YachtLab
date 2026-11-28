@@ -1,0 +1,139 @@
+{
+ "source": "worker/wrangler.toml",
+ "accountClock": "KST",
+ "capacityClock": "UTC",
+ "limits": {
+  "BASE": {
+   "random": 190,
+   "minimumDistinctOpponents": 10,
+   "sameOpponent": 39,
+   "friend": 100,
+   "ai": 150,
+   "dailyQuests": 80,
+   "weeklyQuests": 370,
+   "aiGlobalPureMatchCoinsUpper": 900,
+   "welcomeCoins": 200,
+   "newUserFullBandBonus": 50
+  },
+  "V2-CONS": {
+   "random": 260,
+   "minimumDistinctOpponents": 10,
+   "sameOpponent": 60,
+   "friend": 150,
+   "ai": 200,
+   "dailyQuests": 121,
+   "weeklyQuests": 370,
+   "aiGlobalPureMatchCoinsUpper": 1400,
+   "welcomeCoins": 200,
+   "newUserFullBandBonus": 50
+  },
+  "V2-BAL": {
+   "random": 360,
+   "minimumDistinctOpponents": 10,
+   "sameOpponent": 78,
+   "friend": 200,
+   "ai": 280,
+   "dailyQuests": 121,
+   "weeklyQuests": 464,
+   "aiGlobalPureMatchCoinsUpper": 1800,
+   "welcomeCoins": 200,
+   "newUserFullBandBonus": 50
+  },
+  "V2-EXP": {
+   "random": 620,
+   "minimumDistinctOpponents": 14,
+   "sameOpponent": 99,
+   "friend": 250,
+   "ai": 420,
+   "dailyQuests": 160,
+   "weeklyQuests": 555,
+   "aiGlobalPureMatchCoinsUpper": 2300,
+   "welcomeCoins": 200,
+   "newUserFullBandBonus": 75
+  },
+  "C1-SAFE": {
+   "random": 190,
+   "minimumDistinctOpponents": 10,
+   "sameOpponent": 39,
+   "friend": 100,
+   "ai": 150,
+   "dailyQuests": 80,
+   "weeklyQuests": 370,
+   "aiGlobalPureMatchCoinsUpper": 900,
+   "welcomeCoins": 200,
+   "newUserFullBandBonus": 50
+  },
+  "C1-PRICE": {
+   "random": 190,
+   "minimumDistinctOpponents": 10,
+   "sameOpponent": 39,
+   "friend": 100,
+   "ai": 150,
+   "dailyQuests": 80,
+   "weeklyQuests": 370,
+   "aiGlobalPureMatchCoinsUpper": 900,
+   "welcomeCoins": 200,
+   "newUserFullBandBonus": 50
+  },
+  "C1-QUEST": {
+   "random": 190,
+   "minimumDistinctOpponents": 10,
+   "sameOpponent": 39,
+   "friend": 100,
+   "ai": 150,
+   "dailyQuests": 101,
+   "weeklyQuests": 370,
+   "aiGlobalPureMatchCoinsUpper": 900,
+   "welcomeCoins": 200,
+   "newUserFullBandBonus": 50
+  },
+  "C1-LOOP": {
+   "random": 190,
+   "minimumDistinctOpponents": 10,
+   "sameOpponent": 39,
+   "friend": 100,
+   "ai": 150,
+   "dailyQuests": 80,
+   "weeklyQuests": 370,
+   "aiGlobalPureMatchCoinsUpper": 900,
+   "welcomeCoins": 200,
+   "newUserFullBandBonus": 50
+  },
+  "C1-LONG": {
+   "random": 190,
+   "minimumDistinctOpponents": 10,
+   "sameOpponent": 39,
+   "friend": 100,
+   "ai": 150,
+   "dailyQuests": 80,
+   "weeklyQuests": 370,
+   "aiGlobalPureMatchCoinsUpper": 900,
+   "welcomeCoins": 200,
+   "newUserFullBandBonus": 50
+  },
+  "C1-PRICE-R": {
+   "random": 190,
+   "minimumDistinctOpponents": 10,
+   "sameOpponent": 39,
+   "friend": 100,
+   "ai": 150,
+   "dailyQuests": 80,
+   "weeklyQuests": 370,
+   "aiGlobalPureMatchCoinsUpper": 900,
+   "welcomeCoins": 200,
+   "newUserFullBandBonus": 50
+  },
+  "C1-COMBO": {
+   "random": 190,
+   "minimumDistinctOpponents": 10,
+   "sameOpponent": 39,
+   "friend": 100,
+   "ai": 150,
+   "dailyQuests": 101,
+   "weeklyQuests": 370,
+   "aiGlobalPureMatchCoinsUpper": 900,
+   "welcomeCoins": 200,
+   "newUserFullBandBonus": 50
+  }
+ }
+}

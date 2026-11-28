@@ -18,6 +18,8 @@
 
 > **게임 리뷰**는 [제품 복기의 수치 기준과 데이터 경계](./AI-REVIEW.md)에서 시작한다. C2의 모델 선택, 첫 굴림·재굴림 운, 기보 연결 및 A5 계약은 [C2 게임 리뷰](./C2-GAME-REVIEW.md)에 있다.
 
+> **경제 v2 연구(C1, 2026-11-27, 초안·운영 미반영)** → [ECONOMY-V2-RESEARCH](../economy/ECONOMY-V2-RESEARCH.md)와 Codex 인수인계 [HANDOFF-C1-ECONOMY-V2](../economy/v2/HANDOFF-C1-ECONOMY-V2.md). 시뮬레이터 `src/economy/v2/`, 실행 `scripts/economy/v2/`. 정책은 미승인.
+>
 > **1인 플레이·프로필·컬렉션·시너지·한정판·상점 안내·오디오 믹스(2026-11-27)** → [COLLECTIONS-2026-11-27](./COLLECTIONS-2026-11-27.md), [STREAK-REVIEW-2026-11-27](./STREAK-REVIEW-2026-11-27.md), [오디오 믹스](../audio/MIX.md), D-074~D-078. 코드: 1인 플레이 `src/play/SoloGame.tsx`·`src/solo/`(기록·동기화), 오프라인 장착 `src/play/own-look.ts`, 프로필 `src/shell/ProfileSections.tsx`, 컬렉션 `src/economy/live/collections.ts`, 시너지 `src/play/board-synergy.ts`, 2.5D 효과 `src/dice3d/Dice25Fx.tsx`·`src/play/tray-attach.ts`, 안내 `src/ui/Coach.tsx`, 믹스 `src/sound.ts`(버스·`volumeCurve`)·`src/audio/bgm-render.ts`(`normalize`). **워커 배포 전**에는 1인 기록 계정 보관과 신규 11종 판매가 꺼져 있다(의도된 안전 동작).
 >
 > **모바일 UX·프로필·친구 추가·가이드(A4, 2026-11-27)** → [A4-MOBILE-PROFILE-FRIENDS](./A4-MOBILE-PROFILE-FRIENDS-2026-11-27.md), [서버 계약 후보](./A4-CONTRACT-CANDIDATES-2026-11-27.md), D-091~D-093. 코드: `src/social/`(친구 요청 공용 버튼 — A3가 재사용), `src/mobile-a4.css`, `src/play/multi-compact.css`, `src/ui/feature-guides.ts`. Worker·경제·카탈로그 변경 없음.
@@ -81,3 +83,5 @@
 ## 온라인 요트다이스 브랜드·경제 출시
 
 [제품 업데이트](./ONLINE-YACHT-PRODUCT.md)에서 릴리스 순서, 검증 현황, SEO 등록 절차를 확인한다. [뽑기 경제](../economy/ONLINE-YACHT-DRAW.md)에서 7,776개 전수 확률, 서버 계정 원장, 시즌 기간, 시뮬레이션과 롤백을 확인한다. 매우 어려움 기본은 v4-D, 시험 경로는 v5-R이다.
+
+C1 사용자 검토용 결과와 가격 중심 조건부 추천은 [경제 v2 보고서](../economy/ECONOMY-V2-RESEARCH.md)에서 확인한다. 정책 승인 이후의 실행 순서, 견적 호환과 롤백은 [C5 인수인계](../economy/v2/HANDOFF-C5-ECONOMY-V2.md)에 있다.
