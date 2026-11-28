@@ -1,5 +1,10 @@
 import { FRIEND_LIMITS, normalizeCode, type FriendLists, type Invite, type Peer } from "./friends";
 import { validateNickname } from "../../src/identity/nickname";
+import { DEVICE_ID, SOCIAL_LIMITS, type FriendStatus, type SentInvite, type SocialSettings } from "./social";
+
+const USER_ID = /^u_[A-Za-z0-9_-]{22}$/;
+/** Invite ids are server-made UUIDs; anything else is refused before any storage read (SEC-1). */
+export const INVITE_ID = /^[A-Za-z0-9-]{8,64}$/;
 
 /**
  * Friend routes (I/J, 2026-11-25). Members only (a valid session). Players are addressed by friend
@@ -13,7 +18,15 @@ import { validateNickname } from "../../src/identity/nickname";
  *   GET  /api/me/friends/profile?code=…    a friend's (or search result's) public profile
  *   GET  /api/me/inbox                     request count + invites (also "I am here" for friends)
  *   POST /api/me/invites/decline {id}
- * Room invites (send / accept) need the room and live in index.ts.
+ * SOC-1 (2026-11-28, docs/online/SOC-1-SOCIAL.md):
+ *   GET  /api/me/inbox?device=…            + `sent` (my invites and their state), heartbeat of this tab
+ *   POST /api/me/presence {device, state}  "online" | "offline" (tab closed: that tab only)
+ *   GET  /api/me/friends/relation?userId=…[&room=…]   relation to a recent opponent / room member
+ *   POST /api/me/friends/request {userId[, room]}      the same, by account id (never by nickname)
+ *   GET|POST /api/me/friends/settings      presence visibility, pins visibility
+ *   GET|PUT  /api/me/profile/pins {ids}    showcase achievements (earned ones only, ≤ 3, no duplicates)
+ *   POST /api/me/invites/cancel {id}       take back an invite I sent
+ * Room invites (send / accept) and direct challenges need the room and live in index.ts.
  */
 export interface FriendUser {
   /** Dispatch to this account's FriendStore (see UserStore.fr). */
@@ -23,6 +36,22 @@ export interface FriendUser {
   presence(viewer?: string): Promise<"playing" | "online" | "offline">;
   ping(): Promise<void>;
   publicProfile(): Promise<unknown>;
+  /** SOC-1: SocialStore operations of this account (settings, pins, sent invites). */
+  social?<T = unknown>(op: string, ...args: unknown[]): Promise<T>;
+  /** SOC-1: pins this viewer may see (visibility, blocks and earned state applied by the account itself). */
+  showcase?(viewer: string | null): Promise<string[]>;
+  /** SOC-1: achievements this account has earned (server economy state). */
+  earned?(): Promise<string[]>;
+  /** SOC-1: my server-verified results against that account. */
+  versus?(userId: string): Promise<{ games: number; wins: number; losses: number; draws: number }>;
+  /** SOC-1: did I play that account (a server-verified record names it as my opponent)? */
+  playedWith?(userId: string): Promise<boolean>;
+}
+/** SOC-1: presence in the global FriendIndex object (one call for a whole friend list). */
+export interface PresenceApi {
+  statuses(userIds: string[]): Promise<FriendStatus[]>;
+  beat(userId: string, device: string, state?: "online" | "offline"): Promise<void>;
+  setHidden(userId: string, hidden: boolean): Promise<void>;
 }
 export interface FriendIndexApi {
   /** `avoid`: retired codes of the account's deleted generations, never handed back. */
@@ -45,6 +74,10 @@ export type FriendDeps = {
   residue?: ResidueMode;
   /** Privacy-light operations counter (no ids). */
   metric?(key: string, n: number): Promise<void>;
+  /** SOC-1: central presence (absent: the older per-account fan-out). */
+  presence?: PresenceApi;
+  /** SOC-1: are both accounts seated in this room right now (in-match profile → friend request)? */
+  sharesRoom?(room: string, a: string, b: string): Promise<boolean>;
 };
 type Reply = (status: number, body: unknown) => Response;
 
@@ -59,6 +92,40 @@ export async function selfPeer(userId: string, d: FriendDeps): Promise<Peer> {
     code = (await u.fr<string | null>("setCode", code)) ?? code;
   }
   return { userId, code, nickname };
+}
+
+/**
+ * SOC-1: any existing account as a peer, registering its friend code if it never had one (accounts made
+ * before friend codes were issued at sign-in). Null for an account that does not exist (never made, or
+ * deleted) — nothing is written to the index for it.
+ */
+export async function peerOf(userId: string, d: FriendDeps): Promise<Peer | null> {
+  // Existence is the profile, not the nickname (an account may never have set one).
+  if (!(await d.user(userId).publicProfile().catch(() => null))) return null;
+  return selfPeer(userId, d);
+}
+
+/**
+ * Friends' statuses. With the central presence: ONE call for the whole list, then only friends who
+ * look online / playing are confirmed with their own account (they must still list me — a half-removed
+ * friendship shows nothing). Without it (older deployments, tests): the per-account fan-out.
+ */
+export async function friendStatuses(me: string, peers: { userId: string; code: string }[], d: FriendDeps): Promise<FriendStatus[]> {
+  if (!d.presence) return Promise.all(peers.map((p) => d.user(p.userId).presence(me).catch(() => "offline" as const)));
+  let raw: FriendStatus[];
+  try {
+    raw = await d.presence.statuses(peers.map((p) => p.userId));
+  } catch {
+    return peers.map(() => "unknown");
+  }
+  return Promise.all(
+    peers.map(async (p, i) => {
+      const s = raw[i] ?? "unknown";
+      if (s === "offline" || s === "unknown") return s;
+      const mutual = await d.user(p.userId).fr<boolean>("isFriend", me).catch(() => null);
+      return mutual === null ? "unknown" : mutual ? s : "offline";
+    }),
+  );
 }
 
 /**
@@ -77,24 +144,76 @@ export async function handleFriendRoute(request: Request, url: URL, me: { userId
   const path = url.pathname;
   const method = request.method;
   const fail = (status: number, code: string, message: string) => reply(status, { error: { code, message } });
-  if (!path.startsWith("/api/me/friends") && path !== "/api/me/inbox" && !path.startsWith("/api/me/invites")) return null;
+  if (!path.startsWith("/api/me/friends") && path !== "/api/me/inbox" && !path.startsWith("/api/me/invites") && path !== "/api/me/presence" && path !== "/api/me/profile/pins") return null;
   const user = d.user(me.userId);
 
   if (path === "/api/me/inbox" && method === "GET") {
     await user.ping();
+    const device = url.searchParams.get("device") ?? "";
+    // The heartbeat of this tab / device; a failure only makes friends see "unknown" for a while.
+    await d.presence?.beat(me.userId, DEVICE_ID.test(device) ? device : "legacy").catch(() => undefined);
     const box = await user.fr<{ requests: number; invites: number }>("inboxCount", d.now());
     const invites = await user.fr<Invite[]>("invites", d.now());
-    return reply(200, { requests: box.requests, invites });
+    const sent = user.social ? await user.social<SentInvite[]>("sent", d.now()) : undefined;
+    return reply(200, { requests: box.requests, invites, ...(sent ? { sent } : {}) });
+  }
+  if (path === "/api/me/presence" && method === "POST") {
+    const input = await readBody();
+    const device = typeof input.device === "string" && DEVICE_ID.test(input.device) ? input.device : null;
+    if (!device || (input.state !== "online" && input.state !== "offline")) return fail(400, "PRESENCE", "기기 정보를 확인해 주세요.");
+    if (await d.limited("presence:" + me.userId, 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
+    if (input.state === "online") await user.ping();
+    await d.presence?.beat(me.userId, device, input.state).catch(() => undefined);
+    return reply(200, { ok: true });
+  }
+  if (path === "/api/me/friends/settings") {
+    if (!user.social) return fail(404, "NOT_FOUND", "없는 주소입니다.");
+    if (method === "GET") return reply(200, { settings: await user.social<SocialSettings>("settings") });
+    if (method !== "POST") return fail(404, "NOT_FOUND", "없는 주소입니다.");
+    if (await d.limited("fsettings:" + me.userId, 10)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
+    const r = await user.social<{ ok: true; settings: SocialSettings; presenceChanged: boolean } | { ok: false; code: string; message: string }>("setSettings", await readBody(), d.now());
+    if (!r.ok) return fail(400, r.code, r.message);
+    if (r.presenceChanged) await d.presence?.setHidden(me.userId, r.settings.presence === "hidden").catch(() => undefined);
+    return reply(200, { settings: r.settings });
+  }
+  if (path === "/api/me/profile/pins") {
+    if (!user.social || !user.earned) return fail(404, "NOT_FOUND", "없는 주소입니다.");
+    if (method === "GET") {
+      const earned = await user.earned();
+      const settings = await user.social<SocialSettings>("settings");
+      return reply(200, { pins: await user.social<string[]>("pins", earned), visibility: settings.pinsVisibility, max: SOCIAL_LIMITS.maxPins });
+    }
+    if (method !== "PUT" && method !== "POST") return fail(404, "NOT_FOUND", "없는 주소입니다.");
+    if (await d.limited("pins:" + me.userId, 20)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
+    const input = await readBody();
+    const r = await user.social<{ ok: true; pins: string[] } | { ok: false; code: string; message: string }>("setPins", input.ids, await user.earned(), d.now());
+    if (!r.ok) return fail(400, r.code, r.message);
+    return reply(200, { pins: r.pins });
   }
   if (path === "/api/me/friends" && method === "GET") {
     const self = await selfPeer(me.userId, d);
     await residueCheck(me.userId, d);
     const lists = await user.fr<FriendLists>("lists");
-    // Status of friends only (fan-out to at most 200 small objects, only while the page is open); each
-    // answers only if it lists me as a friend too.
-    const ids = await Promise.all(lists.friends.map((f) => user.fr<string | null>("peerId", f.code)));
-    const status = await Promise.all(ids.map((id) => (id ? d.user(id).presence(me.userId).catch(() => "offline" as const) : "offline")));
-    return reply(200, { me: { code: self.code, nickname: self.nickname }, friends: lists.friends.map((f, i) => ({ ...f, status: status[i] })), incoming: lists.incoming, outgoing: lists.outgoing, blocked: lists.blocked });
+    // Status of friends only: one call for the ids (my own object), one call to the central presence,
+    // then a mutual-friendship check for the friends who look online only (SOC-1).
+    const peers = await user.fr<{ userId: string; code: string }[]>("friendPeers");
+    const byCode = new Map(peers.map((p) => [p.code, p]));
+    const ordered = lists.friends.map((f) => byCode.get(f.code) ?? null);
+    const known = ordered.filter((p): p is { userId: string; code: string } => !!p);
+    const st = await friendStatuses(me.userId, known, d);
+    const statusOf = new Map(known.map((p, i) => [p.code, st[i]]));
+    const settings = user.social ? await user.social<SocialSettings>("settings").catch(() => null) : null;
+    return reply(200, { me: { code: self.code, nickname: self.nickname, ...(settings ? { settings } : {}) }, friends: lists.friends.map((f) => ({ ...f, status: statusOf.get(f.code) ?? "offline" })), incoming: lists.incoming, outgoing: lists.outgoing, blocked: lists.blocked, ...(d.presence ? { presence: "v2" } : {}) });
+  }
+  if (path === "/api/me/friends/relation" && method === "GET") {
+    const target = url.searchParams.get("userId") ?? "";
+    const room = url.searchParams.get("room");
+    const r = await resolveKnown(me.userId, target, room, d);
+    if (!r.ok) return fail(r.status, r.code, r.message);
+    if (r.peer.userId === me.userId) return reply(200, { relation: "self", code: r.peer.code, nickname: r.peer.nickname });
+    // A player who blocks me reads exactly like "none" (the block is never revealed).
+    const relation = await user.fr<string>("relation", r.peer.userId);
+    return reply(200, { relation, code: r.peer.code, nickname: r.peer.nickname });
   }
   if (path === "/api/me/friends/profile" && method === "GET") {
     const code = normalizeCode(url.searchParams.get("code"));
@@ -103,13 +222,29 @@ export async function handleFriendRoute(request: Request, url: URL, me: { userId
     const profile = (await d.user(peer.userId).publicProfile()) as Record<string, unknown> | null;
     if (!profile) return fail(404, "NOT_FOUND", "프로필을 찾을 수 없어요.");
     const { userId: _hidden, ...open } = profile;
-    return reply(200, { ...open, code: peer.code });
+    const versus = me.userId !== peer.userId && user.versus ? await user.versus(peer.userId).catch(() => null) : null;
+    const pins = d.user(peer.userId).showcase ? await d.user(peer.userId).showcase!(me.userId).catch(() => []) : undefined;
+    const relation = me.userId === peer.userId ? "self" : await user.fr<string>("relation", peer.userId);
+    return reply(200, { ...open, code: peer.code, relation, ...(versus ? { versus } : {}), ...(pins ? { pins } : {}) });
   }
   if (method !== "POST") return fail(404, "NOT_FOUND", "없는 주소입니다.");
   const input = await readBody();
 
+  if (path === "/api/me/invites/decline" || path === "/api/me/invites/cancel") {
+    if (typeof input.id !== "string" || !INVITE_ID.test(input.id)) return fail(400, "INVITE_ID", "초대 정보가 올바르지 않아요.");
+    if (await d.limited("finv:" + me.userId, 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
+  }
   if (path === "/api/me/invites/decline") {
-    await user.fr("takeInvite", String(input.id ?? ""), d.now());
+    const taken = await user.fr<{ invite: Invite; fromId: string } | null>("takeInviteFrom", String(input.id ?? ""), d.now());
+    // The sender's screen shows "거절됨" (no reason, no time of reading).
+    if (taken) await d.user(taken.fromId).social?.("answerSent", taken.invite.id, "declined").catch(() => undefined);
+    return reply(200, { ok: true });
+  }
+  if (path === "/api/me/invites/cancel") {
+    if (!user.social) return fail(404, "NOT_FOUND", "없는 주소입니다.");
+    const id = String(input.id ?? "");
+    const r = await user.social<{ toId: string } | null>("cancelSent", id);
+    if (r?.toId) await d.user(r.toId).fr("dropInvite", id, me.userId).catch(() => undefined);
     return reply(200, { ok: true });
   }
   if (path === "/api/me/friends/search") {
@@ -136,6 +271,14 @@ export async function handleFriendRoute(request: Request, url: URL, me: { userId
     return reply(200, { results });
   }
 
+  // SOC-1: a request to a recent opponent / room member by account id. The server resolves the friend
+  // code itself (registering it if the account never had one); a nickname is never used to find anyone.
+  if (path === "/api/me/friends/request" && input.code === undefined && input.userId !== undefined) {
+    if (typeof input.userId !== "string" || (input.room !== undefined && typeof input.room !== "string")) return fail(400, "USER_ID", "계정 정보가 올바르지 않아요.");
+    const r = await resolveKnown(me.userId, String(input.userId), typeof input.room === "string" ? input.room : null, d);
+    if (!r.ok) return fail(r.status, r.code, r.message);
+    input.code = r.peer.code;
+  }
   const code = normalizeCode(input.code);
   if (!code) return fail(400, "CODE", "친구 코드가 올바르지 않아요.");
   // request / block address anyone by their current code (global index); the rest act on my own lists.
@@ -210,6 +353,57 @@ export async function handleFriendRoute(request: Request, url: URL, me: { userId
   return fail(404, "NOT_FOUND", "없는 주소입니다.");
 }
 
+/**
+ * An account id the caller is allowed to address: one of my server-verified opponents, or a player
+ * seated with me in a room right now (checked by the room). Anything else is "not found" — account ids
+ * can not be used to probe who exists. Returns the peer with its (possibly just registered) code.
+ */
+async function resolveKnown(meId: string, target: string, room: string | null, d: FriendDeps): Promise<{ ok: true; peer: Peer } | { ok: false; status: number; code: string; message: string }> {
+  const nf = { ok: false as const, status: 404, code: "NOT_FOUND", message: "사용자를 찾을 수 없어요." };
+  if (!USER_ID.test(target)) return { ok: false, status: 400, code: "USER_ID", message: "계정 정보가 올바르지 않아요." };
+  if (await d.limited("frel:" + meId, 30)) return { ok: false, status: 429, code: "RATE_LIMITED", message: "잠시 후 다시 시도해 주세요." };
+  if (target !== meId) {
+    const played = (await d.user(meId).playedWith?.(target).catch(() => false)) ?? false;
+    const seated = !played && room && d.sharesRoom ? await d.sharesRoom(room, meId, target).catch(() => false) : false;
+    if (!played && !seated) return nf;
+  }
+  const peer = await peerOf(target, d);
+  return peer ? { ok: true, peer } : nf;
+}
+
+/**
+ * Direct challenge from the friend list (SOC-1): make a 1:1 friend room with me seated, invite the friend,
+ * and remember the invite as mine. A pending challenge to the same friend is returned instead of a new
+ * room (double taps, a second tab). A friend who is visibly playing gets no invite ("BUSY").
+ */
+export type ChallengeRooms = {
+  /** Make a friend room seating me (the Worker's normal room creation and limits). */
+  create(): Promise<{ ok: true; code: string; playerId: string; token: string } | { ok: false; status: number; code: string; message: string }>;
+  /** Is the room still waiting with a free seat for this invite? */
+  open(room: string): Promise<boolean>;
+};
+export async function challenge(me: { userId: string }, rawCode: unknown, d: FriendDeps, rooms: ChallengeRooms, newId: () => string): Promise<{ status: number; body: unknown }> {
+  const fail = (status: number, code: string, message: string) => ({ status, body: { error: { code, message } } });
+  const user = d.user(me.userId);
+  if (!user.social) return fail(404, "NOT_FOUND", "없는 주소입니다.");
+  const code = normalizeCode(rawCode);
+  if (!code) return fail(400, "CODE", "친구 코드가 올바르지 않아요.");
+  const id = await user.fr<string | null>("peerId", code);
+  if (!id || !(await user.fr<boolean>("isFriend", id))) return fail(404, "NOT_FRIEND", "친구에게만 대전을 신청할 수 있어요.");
+  const now = d.now();
+  const pending = await user.social<SentInvite | null>("pendingChallenge", code, now);
+  if (pending && (await rooms.open(pending.room).catch(() => false))) return { status: 200, body: { status: "pending", invite: pending } };
+  if (await d.limited("challenge:" + me.userId, SOCIAL_LIMITS.challengesPerMinute)) return fail(429, "RATE_LIMITED", "대전 신청을 너무 많이 보냈어요. 잠시 후 다시 해 주세요.");
+  const [status] = await friendStatuses(me.userId, [{ userId: id, code }], d);
+  if (status === "playing") return fail(409, "BUSY", "친구가 지금 경기 중이에요. 경기가 끝난 뒤에 다시 신청해 주세요.");
+  const room = await rooms.create();
+  if (!room.ok) return fail(room.status, room.code, room.message);
+  const result = await sendInvites(me, [code], room.code, d, newId, "challenge");
+  if (result[code] !== "sent") return fail(409, "INVITE_FAILED", "대전 신청을 보내지 못했어요.");
+  const invite = await user.social<SentInvite | null>("pendingChallenge", code, now);
+  return { status: 201, body: { status: "sent", code: room.code, playerId: room.playerId, token: room.token, invite } };
+}
+
 /** At most this many candidates are confirmed (one call each) per check. */
 export const RESIDUE_CONFIRM_MAX = 50;
 /**
@@ -245,10 +439,11 @@ async function residueCheck(userId: string, d: FriendDeps) {
 }
 
 /** Room invite to friends (J): returns, per code, "sent" / "not-friend" / "recent". Blocks stay invisible ("sent"). */
-export async function sendInvites(me: { userId: string }, codes: string[], room: string, d: FriendDeps, newId: () => string): Promise<Record<string, string>> {
+export async function sendInvites(me: { userId: string }, codes: string[], room: string, d: FriendDeps, newId: () => string, kind: "room" | "challenge" = "room"): Promise<Record<string, string>> {
   const user = d.user(me.userId);
   const self = await selfPeer(me.userId, d);
   const out: Record<string, string> = {};
+  let names: Map<string, string> | undefined;
   for (const raw of codes.slice(0, 19)) {
     const code = normalizeCode(raw);
     if (!code) continue;
@@ -257,8 +452,15 @@ export async function sendInvites(me: { userId: string }, codes: string[], room:
       out[code] = "not-friend";
       continue;
     }
-    const got = await d.user(id).fr<string>("receiveInvite", self, room, newId(), d.now());
+    const inviteId = newId();
+    const now = d.now();
+    const got = await d.user(id).fr<string>("receiveInvite", self, room, inviteId, now);
     out[code] = got === "recent" ? "recent" : "sent";
+    // The sender's own view (SOC-1). A silent drop (they block me) looks pending, then expires — as before.
+    if (got !== "recent" && user.social) {
+      names ??= new Map((await user.fr<{ friends: { code: string; nickname: string }[] }>("lists")).friends.map((f) => [f.code, f.nickname]));
+      await user.social("recordSent", { id: inviteId, to: { code, nickname: names.get(code) ?? "" }, room, at: now, expires: now + FRIEND_LIMITS.inviteTtlMs, kind }, id);
+    }
   }
   return out;
 }

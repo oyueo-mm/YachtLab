@@ -5,11 +5,12 @@ import { fakeLogin, startFakeIdp, type FakeIdp } from "../helpers/fake-idp";
 import { apiCall, playMatchBetween } from "../helpers/member-look";
 
 /**
- * A4 friend requests from a real match (isolated local Worker + fake sign-in, two members). The Worker
- * cannot bind an account id to a friend code, so nothing may be guessed from nicknames or public numbers:
- * the profile and the recent-opponents list send NOTHING and say how to add the person by friend code.
+ * A4 friend requests from a real match (isolated local Worker + fake sign-in, two members). SOC-1: the
+ * Worker now binds an account id to its friend code ITSELF (only for a member seated with me / a server-
+ * verified opponent), so the "친구 추가" button appears — nothing is guessed from nicknames or public
+ * numbers, nothing is sent automatically, and one tap sends exactly one request to that account.
  * Also: switching accounts in the same tab shows only the new account's data, even when the previous
- * account's answer arrives late. The Worker friend API is used as is (nothing was changed there).
+ * account's answer arrives late.
  */
 const ORIGIN = "http://127.0.0.1:5173";
 let worker: LocalWorker;
@@ -37,7 +38,7 @@ async function openOpponentProfile(p: Page) {
 }
 const friendState = async (session: string) => (await apiCall(worker, session, "/api/me/friends")).body;
 
-test("경기 중 상대 프로필: 닉네임·전적으로 추정하지 않고 요청을 보내지 않으며 친구 코드로 추가하도록 안내한다", async ({ browser }, info) => {
+test("경기 중 상대 프로필: 서버가 계정-코드 대응을 확인한 뒤에만 친구 추가, 자동 전송 없음, 한 번 누르면 그 계정에만 한 건", async ({ browser }, info) => {
   test.skip(info.project.name === "mobile", "두 기기를 한 테스트에서 직접 만든다");
   test.setTimeout(180_000);
   const s1 = await fakeLogin(worker.url, idp, "a4-one", ORIGIN);
@@ -48,26 +49,25 @@ test("경기 중 상대 프로필: 닉네임·전적으로 추정하지 않고 �
   const [a, b] = [await device(browser, s1), await device(browser, s2)];
   for (const p of [a, b]) { await p.goto(entry()); await p.getByRole("button", { name: "빠른 대전 시작" }).click(); }
   for (const p of [a, b]) await expect(p.locator(".roll-button")).toBeVisible({ timeout: 20_000 });
-  for (const p of [a, b]) {
-    const dialog = await openOpponentProfile(p);
-    await expect(dialog.getByText(/친구 코드로 보낼 수 있어요/)).toBeVisible();
-    await expect(dialog.getByRole("button", { name: /친구 추가/ })).toHaveCount(0);
-    await expect(dialog.getByText(/이미 친구|요청을 보냈어요|차단/)).toHaveCount(0); // no state is invented either
-    if (process.env.A4_SHOTS && p === a) await dialog.screenshot({ path: `docs/ui/a4-mobile/${process.env.A4_SHOTS}-friend-manual-code.png` });
-    await dialog.getByRole("link", { name: "친구 화면 열기" }).click();
-    await expect(p).toHaveURL(/#friends$/);
-    await p.goBack();
-    await p.waitForTimeout(200);
-  }
-  // the server saw no request from either side
-  for (const s of [s1, s2]) {
-    const st = await friendState(s);
-    expect(st.outgoing).toHaveLength(0);
-    expect(st.incoming).toHaveLength(0);
-  }
+  const dialogA = await openOpponentProfile(a);
+  const add = dialogA.getByRole("button", { name: /친구 추가/ });
+  await expect(add).toBeVisible();
+  await expect(dialogA.getByText(/이미 친구|요청을 보냈어요|차단/)).toHaveCount(0); // no state is invented
+  // opening the profile sent nothing
+  for (const s of [s1, s2]) expect((await friendState(s)).outgoing).toHaveLength(0);
+  await add.dblclick();
+  await expect(dialogA.getByText(/친구 요청을 보냈어요/)).toBeVisible();
+  const aCode = (await friendState(s1)).me.code;
+  const incoming = (await friendState(s2)).incoming;
+  expect(incoming).toHaveLength(1); // a double tap is one request
+  expect(incoming[0].code).toBe(aCode);
+  expect((await friendState(s1)).outgoing).toHaveLength(1);
+  // B sees A asked first (from the server, not guessed)
+  const dialogB = await openOpponentProfile(b);
+  await expect(dialogB.getByText(/상대가 먼저 요청했어요/)).toBeVisible();
 });
 
-test("최근 대전 상대: 버튼 없이 친구 코드 안내만 보이고, 계정을 바꾸면 이전 계정의 목록·늦은 응답이 섞이지 않는다", async ({ browser }, info) => {
+test("최근 대전 상대: 서버가 확인한 상대에게만 친구 추가 버튼(자동 전송 없음), 계정을 바꾸면 이전 계정의 목록·늦은 응답이 섞이지 않는다", async ({ browser }, info) => {
   test.skip(info.project.name === "mobile", "두 기기를 한 테스트에서 직접 만든다");
   test.setTimeout(240_000);
   const s1 = await fakeLogin(worker.url, idp, "a4-three", ORIGIN);
@@ -88,8 +88,7 @@ test("최근 대전 상대: 버튼 없이 친구 코드 안내만 보이고, 계
   await a.waitForTimeout(3500); // A's slow answer has arrived by now
   await expect(list).toContainText("가"); // B's opponent
   await expect(list).not.toContainText("나"); // A's opponent never shows under B
-  await expect(list.getByText(/친구 코드로 보낼 수 있어요/)).toBeVisible();
-  await expect(list.getByRole("button", { name: /친구 추가/ })).toHaveCount(0);
+  await expect(list.getByRole("button", { name: /친구 추가/ })).toHaveCount(1);
   if (process.env.A4_SHOTS) await a.screenshot({ path: `docs/ui/a4-mobile/${process.env.A4_SHOTS}-friends-recent-opponents.png` });
   for (const s of [s1, s2]) expect((await friendState(s)).outgoing).toHaveLength(0); // nothing was sent
 });

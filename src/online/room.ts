@@ -145,6 +145,13 @@ export type RoomRecord = {
   ready?: Record<string, boolean>;
   /** Host chosen by transfer; when absent or gone, the earliest remaining player is host. */
   hostId?: string;
+  /**
+   * C3.1 (SOC-1): who belongs to the friend room, apart from who plays the current match. Absent on
+   * records written before C3.1: then every seated player is a member (players = members).
+   */
+  members?: Record<string, { name: string; joinedAt: number }>;
+  /** C3.1: members who watch the next match (lobby) / the current one (playing, finished). Never in a match roster. */
+  watch?: string[];
 };
 /** A seat given by the matchmaker (or the AI starter): name, verified account and its validated look. */
 export type SeatSpec = { name: string; identity?: { userId: string } | null; look?: PublicLook | null; ai?: boolean; token?: string };
@@ -369,6 +376,7 @@ export class OnlineRoom {
         credentials: { ...this.record.credentials, [playerId]: { tokenHash } },
         ...(identity ? { identities: { ...(this.record.identities ?? {}), [playerId]: { userId: identity.userId } } } : {}),
         looks: { ...(this.record.looks ?? {}), [playerId]: identity && look ? sanitizeLook(look) : GUEST_LOOK },
+        members: { ...this.memberMap(), [playerId]: { name, joinedAt: this.deps.now() } },
       });
       return { ok: true, playerId, token } as const;
     });
@@ -424,7 +432,7 @@ export class OnlineRoom {
     if (typeof token !== "string" || token.length < 20 || token.length > 128) return null;
     const hash = await hashToken(token);
     for (const [playerId, cred] of Object.entries(this.record.credentials))
-      if (sameHash(cred.tokenHash, hash)) return this.state.players.some((p) => p.playerId === playerId) ? playerId : null;
+      if (sameHash(cred.tokenHash, hash)) return this.state.players.some((p) => p.playerId === playerId) || this.isWatcher(playerId) ? playerId : null;
     return null;
   }
 
@@ -659,9 +667,11 @@ export class OnlineRoom {
       }
       conn.playerId = playerId;
       const since = Math.max(0, Math.min(msg.since ?? 0, this.state.log.length));
-      const view = viewFor(this.state, playerId, this.deps.now(), since);
+      const watcher = this.isWatcher(playerId);
+      // C3.1: a member watching this match gets the neutral (spectator) projection of the same match.
+      const view = viewFor(this.state, watcher ? null : playerId, this.deps.now(), since);
       conn.seenSeq = this.state.log.length;
-      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold(), rematch: this.rematchState(), series: this.seriesSummary(), spectate: this.spectateState(), members: this.members(), looks: this.looks(), kind: this.kind, ai: this.aiSeat(), lobby: this.lobbyState() });
+      conn.send({ t: "welcome", code: this.code, playerId, view, online: this.onlinePlayers(), hold: this.currentHold(), rematch: this.rematchState(), series: this.seriesSummary(), spectate: this.spectateFor(playerId), members: this.members(), looks: this.looks(), kind: this.kind, ai: this.aiSeat(), lobby: this.lobbyState(), ...(this.kind === "friend" ? { role: watcher ? "watcher" : "player" } : {}) });
       this.broadcastPresence();
       return;
     }
@@ -670,11 +680,20 @@ export class OnlineRoom {
       conn.send({ t: "error", code: "BAD_TOKEN", message: "먼저 인증해야 합니다." });
       return conn.close(4001, "not authenticated");
     }
+    // C3.1: a member watching the match reads it like a spectator; the host keeps the host's room controls.
+    if (this.isWatcher(playerId)) {
+      if (msg.t === "bye") return this.leaveAsWatcher(playerId);
+      if (msg.t === "spectate") return this.setSpectate(conn, playerId, msg.allow, msg.visibility);
+      if (msg.t === "return") return this.returnToLobby(conn, playerId);
+      if (msg.t === "hold") return;
+      return conn.send({ t: "error", code: "SPECTATOR", message: "이번 경기는 관전 중이에요. 경기가 끝나면 대기실에서 다시 참가할 수 있어요." });
+    }
     if (msg.t === "say") return this.say(conn, playerId, msg.id);
     if (msg.t === "rematch") return this.rematch(conn, playerId, msg.op);
     if (msg.t === "bye") return this.bye(playerId);
+    if (msg.t === "return") return this.returnToLobby(conn, playerId);
     if (msg.t === "spectate") return this.setSpectate(conn, playerId, msg.allow, msg.visibility);
-    if (msg.t === "ready" || msg.t === "settings" || msg.t === "host") return this.lobbyChange(conn, playerId, msg);
+    if (msg.t === "ready" || msg.t === "settings" || msg.t === "host" || msg.t === "intent") return this.lobbyChange(conn, playerId, msg);
     if (msg.t === "cmd" && msg.action.type === "start" && this.kind === "friend") return this.startFromLobby(conn, playerId, msg.id);
     if (msg.t === "hold") {
       // Shared presentation state: the dice actually kept still travel with the next `roll` command
@@ -719,7 +738,8 @@ export class OnlineRoom {
   private async afterLeave(playerId: string) {
     const { [playerId]: _gone, ...rest } = this.record.credentials;
     const { [playerId]: _r, ...ready } = this.record.ready ?? {};
-    this.record = { ...this.record, credentials: rest, ready, ...(this.record.hostId === playerId ? { hostId: undefined } : {}) };
+    const { [playerId]: _m, ...members } = this.memberMap();
+    this.record = { ...this.record, credentials: rest, ready, members, watch: (this.record.watch ?? []).filter((id) => id !== playerId), ...(this.record.hostId === playerId ? { hostId: undefined } : {}) };
     await this.deps.save(this.record);
     for (const c of [...this.connections]) if (c.playerId === playerId) c.close(4002, "left");
     if (!this.state.players.length) this.closeRoom();
@@ -734,14 +754,59 @@ export class OnlineRoom {
   /** The host: the transferred host if still in the room, else the earliest remaining player. */
   hostId(): string | null {
     const departed = new Set(this.record.departed ?? []);
-    const present = this.state.players.filter((p) => !departed.has(p.playerId));
+    // C3.1: the host may be watching the match (a member who is not in the roster).
+    const present = this.memberIds().filter((id) => !departed.has(id));
     const chosen = this.record.hostId;
-    if (chosen && present.some((p) => p.playerId === chosen)) return chosen;
-    return present[0]?.playerId ?? null;
+    if (chosen && present.includes(chosen)) return chosen;
+    return present[0] ?? null;
   }
+
+  /* ------------------------------------------------------- C3.1: members, roster, watchers ------------------------------------------------------- */
+
+  /** Room members (stored map, or — records from before C3.1 — the seated players). */
+  private memberMap(): NonNullable<RoomRecord["members"]> {
+    if (this.record.members) return this.record.members;
+    return Object.fromEntries(this.state.players.map((p) => [p.playerId, { name: p.name, joinedAt: 0 }]));
+  }
+  /** Member ids, oldest first (seat order for records without a members map). */
+  memberIds(): string[] {
+    const m = this.memberMap();
+    const order = new Map(this.state.players.map((p) => [p.playerId, p.seat]));
+    return Object.keys(m).sort((a, b) => m[a].joinedAt - m[b].joinedAt || (order.get(a) ?? 99) - (order.get(b) ?? 99));
+  }
+  /** A member who is not playing the current match (watching it from inside the room). */
+  isWatcher(playerId: string): boolean {
+    if (this.state.status === "lobby") return false;
+    return !!this.record.members?.[playerId] && !!this.record.credentials[playerId] && !this.state.players.some((p) => p.playerId === playerId);
+  }
+  /** Account ids of every signed-in member (players and watchers). */
+  memberAccounts(): Record<string, string> {
+    const ids = this.record.identities ?? {};
+    return Object.fromEntries(this.memberIds().filter((id) => ids[id] && this.record.credentials[id]).map((id) => [id, ids[id].userId]));
+  }
+  private intentOf(id: string): "ready" | "watch" | "idle" {
+    if ((this.record.watch ?? []).includes(id)) return "watch";
+    return this.record.ready?.[id] === true ? "ready" : "idle";
+  }
+  /** Members watching (lobby: chose to watch the next match; during / after a match: not in its roster). */
+  private watcherNames(): Record<string, string> {
+    const m = this.memberMap();
+    const ids = this.state.status === "lobby" ? (this.record.watch ?? []).filter((id) => m[id]) : this.memberIds().filter((id) => this.isWatcher(id));
+    return Object.fromEntries(ids.map((id) => [id, m[id].name]));
+  }
+  /** What this seat may see of the spectating state: a watching member gets no external key or id. */
+  private spectateFor(playerId: string | null): SpectateState {
+    const st = this.spectateState();
+    if (!playerId || !this.isWatcher(playerId)) return st;
+    const { key: _k, sid: _s, ...rest } = st;
+    return { ...rest, key: null };
+  }
+
   lobbyState(): LobbyState {
-    const ready = Object.fromEntries(this.state.players.map((p) => [p.playerId, this.record.ready?.[p.playerId] === true]));
-    return { hostId: this.hostId(), ready, settings: this.settings(), maxPlayers: this.state.seats };
+    const ready = Object.fromEntries(this.state.players.map((p) => [p.playerId, this.intentOf(p.playerId) === "ready"]));
+    if (this.kind !== "friend") return { hostId: this.hostId(), ready, settings: this.settings(), maxPlayers: this.state.seats };
+    const intent = Object.fromEntries(this.state.status === "lobby" ? this.state.players.map((p) => [p.playerId, this.intentOf(p.playerId)]) : []);
+    return { hostId: this.hostId(), ready, settings: this.settings(), maxPlayers: this.state.seats, intent, watchers: this.watcherNames(), minPlayers: 2 };
   }
   private broadcastLobby() {
     const lobby = this.lobbyState();
@@ -751,25 +816,30 @@ export class OnlineRoom {
   private lobbyAt = new Map<string, number>();
 
   /** Ready toggle (any player), match settings and host transfer (host only), in the lobby or after a match. */
-  private async lobbyChange(conn: RoomConnection, playerId: string, msg: Extract<ClientMessage, { t: "ready" | "settings" | "host" }>) {
+  private async lobbyChange(conn: RoomConnection, playerId: string, msg: Extract<ClientMessage, { t: "ready" | "settings" | "host" | "intent" }>) {
     const fail = (message: string) => conn.send({ t: "error", code: "LOBBY", message });
     if (this.kind !== "friend") return fail("이 방에서는 바꿀 수 없어요.");
     if (this.state.status === "playing") return fail("경기 중에는 바꿀 수 없어요.");
+    // C3.1: participate / watch is chosen in the waiting room only (after a match: return to it first).
+    if (msg.t === "intent" && this.state.status !== "lobby") return fail("대기실에서 참가 또는 관전을 고를 수 있어요.");
     const host = this.hostId();
-    if (msg.t !== "ready" && host !== playerId) return fail("방장만 바꿀 수 있어요.");
+    if (msg.t !== "ready" && msg.t !== "intent" && host !== playerId) return fail("방장만 바꿀 수 있어요.");
     const now = this.deps.now();
     if (now - (this.lobbyAt.get(playerId) ?? -Infinity) < 300) return fail("잠시 후 다시 눌러 주세요.");
     if (this.lobbyOps >= ROOM_LIMITS.lobbyOps) return fail("변경을 너무 많이 했어요. 잠시 후 다시 시도해 주세요.");
     let next: RoomRecord;
-    if (msg.t === "ready") {
-      if ((this.record.ready?.[playerId] === true) === msg.ready) return conn.send({ t: "lobby", lobby: this.lobbyState() });
-      next = { ...this.record, ready: { ...(this.record.ready ?? {}), [playerId]: msg.ready } };
+    if (msg.t === "ready" || msg.t === "intent") {
+      // `ready` (older pages) is `intent` ready / idle; it also clears a watch choice.
+      const want = msg.t === "intent" ? msg.value : msg.ready ? "ready" : "idle";
+      if (this.intentOf(playerId) === want) return conn.send({ t: "lobby", lobby: this.lobbyState() });
+      const watch = (this.record.watch ?? []).filter((id) => id !== playerId);
+      next = { ...this.record, ready: { ...(this.record.ready ?? {}), [playerId]: want === "ready" }, watch: want === "watch" ? [...watch, playerId] : watch };
     } else if (msg.t === "settings") {
       const settings = parseRoomSettings(msg);
       if (!settings) return fail(msg.mode === "simultaneous" ? "동시 진행은 라운드 제한 시간이 필요해요." : "지원하지 않는 제한 시간이에요.");
       next = { ...this.record, settings };
     } else {
-      if (!this.state.players.some((p) => p.playerId === msg.to) || (this.record.departed ?? []).includes(msg.to)) return fail("방에 있는 사람에게만 넘길 수 있어요.");
+      if (!this.memberIds().includes(msg.to) || (this.record.departed ?? []).includes(msg.to)) return fail("방에 있는 사람에게만 넘길 수 있어요.");
       next = { ...this.record, hostId: msg.to };
     }
     this.lobbyAt.set(playerId, now);
@@ -790,24 +860,30 @@ export class OnlineRoom {
     if (this.state.processedCommands.length && this.state.status === "playing") return conn.send({ t: "ack", id: commandId, ok: true, duplicate: true });
     if (this.state.status !== "lobby") return nack("WRONG_PHASE", "이미 경기가 시작되었어요.");
     if (this.hostId() !== playerId) return nack("NOT_HOST", "방장만 경기를 시작할 수 있어요.");
-    const players = this.state.players;
-    if (players.length < 2) return nack("NOT_ENOUGH_PLAYERS", "최소 2명이 필요해요.");
+    // C3.1: members who chose to watch are not in the roster and are not counted for ready / minimum.
+    const watching = new Set(this.record.watch ?? []);
+    const players = this.state.players.filter((p) => !watching.has(p.playerId));
+    if (players.length < 2) return nack("NOT_ENOUGH_PLAYERS", watching.size ? "참가하는 사람이 최소 2명이어야 해요. 관전을 고른 사람은 인원에 들어가지 않아요." : "최소 2명이 필요해요.");
     const notReady = players.filter((p) => p.playerId !== playerId && this.record.ready?.[p.playerId] !== true);
-    if (this.state.seats > 2 && notReady.length) return nack("NOT_READY", `아직 준비하지 않은 사람이 있어요: ${notReady.map((p) => p.name).join(", ")}`);
+    // A 1:1 room starts at once as before; with watchers in the room, the other player must be ready too.
+    if ((this.state.seats > 2 || watching.size) && notReady.length) return nack("NOT_READY", `아직 준비하지 않은 사람이 있어요: ${notReady.map((p) => p.name).join(", ")}`);
     // Larger matches cost more of the shared daily budget (about one unit per two players; the room
-    // creation already used one).
-    const extra = Math.ceil(players.length / 2) - 1;
-    const users = Object.values(this.members());
+    // creation already used one for the first match; a match started from the lobby again pays its own).
+    const extra = this.matchNumber > 1 ? Math.max(1, Math.ceil(players.length / 2)) : Math.ceil(players.length / 2) - 1;
+    const ids = this.record.identities ?? {};
+    const users = players.flatMap((p) => (ids[p.playerId] ? [ids[p.playerId].userId] : []));
     if (extra > 0 || users.length) {
       const block = (await this.deps.allowMatch?.(extra, this.matchNumber, users)) ?? null;
       if (block) return nack("MATCH_UNAVAILABLE", block);
     }
-    const ordered = [players.find((p) => p.playerId === playerId)!, ...players.filter((p) => p.playerId !== playerId).sort((a, b) => a.seat - b.seat)];
+    const host = players.find((p) => p.playerId === playerId);
+    const others = players.filter((p) => p.playerId !== playerId).sort((a, b) => a.seat - b.seat);
+    const ordered = host ? [host, ...others] : others;
     const started = this.buildMatch(ordered, `start-${commandId}`);
     const before = { state: this.state, record: this.record };
     this.state = started;
     try {
-      await this.saveRecord({ ...this.record, log: started.log, ready: {}, hold: null, hostId: playerId });
+      await this.saveRecord({ ...this.record, log: started.log, ready: {}, hold: null, hostId: playerId, members: this.memberMap(), watch: [...watching].filter((id) => this.memberMap()[id]) });
     } catch {
       this.state = before.state;
       this.record = before.record;
@@ -890,8 +966,7 @@ export class OnlineRoom {
   }
 
   private broadcastSpectate() {
-    const spectate = this.spectateState();
-    for (const c of this.connections) if (c.playerId) c.send({ t: "spectate", spectate });
+    for (const c of this.connections) if (c.playerId) c.send({ t: "spectate", spectate: this.spectateFor(c.playerId) });
   }
 
   /** Close spectator sockets that are no longer allowed (range narrowed, key replaced). */
@@ -1242,17 +1317,79 @@ export class OnlineRoom {
     if (this.state.status !== "finished") return;
     const departed = [...new Set([...(this.record.departed ?? []), playerId])];
     const { [playerId]: _gone, ...credentials } = this.record.credentials;
-    await this.saveRecord({ ...this.record, departed, credentials, rematch: null });
+    const { [playerId]: _m, ...members } = this.memberMap();
+    await this.saveRecord({ ...this.record, departed, credentials, rematch: null, ...(this.record.members ? { members } : {}) });
     for (const c of [...this.connections]) if (c.playerId === playerId) c.close(4002, "left");
-    if (this.state.players.every((p) => departed.includes(p.playerId))) return this.closeRoom();
+    // The room closes when nobody is left in it (watching members keep it open).
+    const watchersLeft = this.memberIds().some((id) => this.isWatcher(id));
+    if (this.state.players.every((p) => departed.includes(p.playerId)) && !watchersLeft) return this.closeRoom();
     this.broadcastRematch();
     this.broadcastLobby();
   }
 
+  /** C3.1: a watching member leaves the room for good (during or after the match). */
+  private async leaveAsWatcher(playerId: string) {
+    const { [playerId]: _gone, ...credentials } = this.record.credentials;
+    const { [playerId]: _m, ...members } = this.memberMap();
+    await this.saveRecord({ ...this.record, credentials, members, watch: (this.record.watch ?? []).filter((id) => id !== playerId), ...(this.record.hostId === playerId ? { hostId: undefined } : {}) });
+    for (const c of [...this.connections]) if (c.playerId === playerId) c.close(4002, "left");
+    const departed = new Set(this.record.departed ?? []);
+    if (!this.memberIds().some((id) => !departed.has(id))) return this.closeRoom();
+    this.broadcastLobby();
+    this.broadcastSpectate();
+  }
+
+  /**
+   * C3.1: after a match, the host brings every member (players and watchers) back to the waiting room,
+   * where each chooses again to play or watch the next match. Seat tokens and ids stay; the finished
+   * match's records were already queued. Rematch requests of older pages keep working as before.
+   */
+  private async returnToLobby(conn: RoomConnection, playerId: string) {
+    const fail = (message: string) => conn.send({ t: "error", code: "LOBBY", message });
+    if (this.kind !== "friend" || this.record.ai) return fail("이 방에서는 대기실로 돌아갈 수 없어요.");
+    if (this.state.status === "lobby") return conn.send({ t: "lobby", lobby: this.lobbyState() });
+    if (this.state.status !== "finished") return fail("경기가 끝난 뒤에 대기실로 돌아갈 수 있어요.");
+    if (this.hostId() !== playerId) return fail("방장만 대기실로 모을 수 있어요.");
+    const matchNo = (this.record.matchNo ?? 1) + 1;
+    if (matchNo > ROOM_LIMITS.maxMatches) return fail("이 방에서는 더 이상 경기를 할 수 없어요. 새 방을 만들어 주세요.");
+    if (this.lobbyOps >= ROOM_LIMITS.lobbyOps) return fail("변경을 너무 많이 했어요. 잠시 후 다시 시도해 주세요.");
+    const departed = new Set(this.record.departed ?? []);
+    const all = this.memberMap();
+    const stay = this.memberIds().filter((id) => !departed.has(id) && this.record.credentials[id]);
+    const now = this.deps.now();
+    let next = createOnlineMatch({ matchId: newMatchId(this.random), seats: this.state.seats, turnTimeoutMs: this.settings().timeoutMs }, now);
+    for (const [i, id] of stay.entries()) {
+      const joined = applyCommand(next, { commandId: `lobby-${matchNo}-join-${i}`, playerId: id, action: { type: "join", name: all[id].name } }, { now, dice: this.dice });
+      if (!joined.ok) return fail(joined.error.message);
+      next = joined.state;
+    }
+    const members = Object.fromEntries(stay.map((id) => [id, all[id]]));
+    const before = { state: this.state, record: this.record };
+    this.state = next;
+    try {
+      await this.saveRecord({ ...this.record, log: next.log, matchNo, members, watch: [], ready: {}, rematch: null, departed: [], hold: null });
+    } catch {
+      this.state = before.state;
+      this.record = before.record;
+      return fail("서버에서 저장하지 못했어요. 잠시 후 다시 시도해 주세요.");
+    }
+    this.lobbyOps++;
+    this.rematchBlocked = null;
+    this.armTimer();
+    for (const c of this.connections) if (c.playerId || c.spectator) this.sendView(c, 0);
+    const looks = this.looks();
+    for (const c of this.connections) if (c.playerId) c.send({ t: "members", members: this.members() });
+    for (const c of this.connections) if (c.playerId || c.spectator) c.send({ t: "looks", looks });
+    this.broadcastRematch();
+    this.broadcastLobby();
+    this.broadcastSpectate();
+  }
+
   private sendView(conn: RoomConnection, since: number) {
     if (!conn.playerId && !conn.spectator) return;
-    // Spectators get the neutral projection (viewer null): no legal moves, no command ids.
-    conn.send({ t: "view", view: viewFor(this.state, conn.playerId, this.deps.now(), since), hold: this.currentHold() });
+    // Spectators and watching members get the neutral projection (viewer null): no legal moves, no command ids.
+    const viewer = conn.playerId && !this.isWatcher(conn.playerId) ? conn.playerId : null;
+    conn.send({ t: "view", view: viewFor(this.state, viewer, this.deps.now(), since), hold: this.currentHold() });
     conn.seenSeq = this.state.log.length;
   }
 

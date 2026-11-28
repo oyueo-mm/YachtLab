@@ -38,6 +38,8 @@ export function LobbyPanel(p: {
   renderTag: (player: ViewPlayer) => React.ReactNode;
   disabled: boolean;
   onReady: (ready: boolean) => void;
+  /** C3.1: present only with a Worker that reports `lobby.intent` (participate / watch / undecided). */
+  onIntent?: (value: "ready" | "watch" | "idle") => void;
   onSettings: (mode: "turns" | "simultaneous", timeoutMs: number | null) => void;
   onTransfer: (to: string) => void;
   onStart: () => void;
@@ -47,10 +49,15 @@ export function LobbyPanel(p: {
   const isHost = hostId === p.me;
   const ready = lobby?.ready ?? {};
   const settings = lobby?.settings ?? { mode: "turns" as const, timeoutMs: null };
-  const others = p.players.filter((x) => x.playerId !== hostId);
+  const intent = lobby?.intent;
+  const watchMode = !!intent && !!p.onIntent;
+  const watching = (id: string) => intent?.[id] === "watch";
+  const roster = p.players.filter((x) => !watching(x.playerId));
+  const others = roster.filter((x) => x.playerId !== hostId);
   const allReady = others.every((x) => ready[x.playerId]);
-  const needReady = p.seats > 2;
-  const canStart = p.players.length >= 2 && (!needReady || allReady);
+  const needReady = p.seats > 2 || (watchMode && roster.length !== p.players.length);
+  const canStart = roster.length >= (lobby?.minPlayers ?? 2) && (!needReady || allReady);
+  const mine = intent?.[p.me] ?? "idle";
   const limits = settings.mode === "simultaneous" ? ROUND_LIMITS : TURN_LIMITS;
   return (
     <div className="lobby-panel">
@@ -68,9 +75,12 @@ export function LobbyPanel(p: {
               <span className="online-tag host">
                 <Crown size={12} /> 방장
               </span>
-            ) : needReady ? (
+            ) : watching(x.playerId) ? (
+              <span className="online-tag watch">관전</span>
+            ) : needReady || watchMode ? (
               <span className={"online-tag ready" + (ready[x.playerId] ? " on" : "")}>{ready[x.playerId] ? "준비 완료" : "준비 중"}</span>
             ) : null}
+            {x.playerId === hostId && watching(x.playerId) && <span className="online-tag watch">관전</span>}
             {isHost && x.playerId !== p.me && (
               <button type="button" className="text-button lobby-transfer" disabled={p.disabled} onClick={() => p.onTransfer(x.playerId)} aria-label={`${x.name} 님에게 방장 넘기기`}>
                 방장 넘기기
@@ -118,11 +128,24 @@ export function LobbyPanel(p: {
           {settings.mode === "simultaneous" ? "모두가 각자의 주사위로 같은 라운드를 동시에 해요. 시간 안에 기록하지 않으면 자동 기록되고, 3번 연속이면 기권 처리돼요." : "한 사람씩 차례대로 해요."}
         </p>
       </fieldset>
+      {watchMode && (
+        <div className="lobby-intent" role="group" aria-label="이번 경기 참가 방식">
+          {!isHost && needReady && (
+            <button type="button" className={mine === "ready" ? "primary" : "secondary"} aria-pressed={mine === "ready"} disabled={p.disabled} onClick={() => p.onIntent!(mine === "ready" ? "idle" : "ready")}>
+              <Check size={15} /> {mine === "ready" ? "준비 취소" : "준비 완료"}
+            </button>
+          )}
+          <button type="button" className={mine === "watch" ? "primary" : "secondary"} aria-pressed={mine === "watch"} disabled={p.disabled} onClick={() => p.onIntent!(mine === "watch" ? "idle" : "watch")} data-intent-watch>
+            {mine === "watch" ? "관전 취소" : "이번 경기 관전"}
+          </button>
+          <p className="lobby-note">관전을 고르면 참가 인원·준비 조건에서 빠지고, 점수·보상·전적이 기록되지 않아요. 참가자가 최소 {lobby?.minPlayers ?? 2}명이어야 시작해요.</p>
+        </div>
+      )}
       {isHost ? (
         <button type="button" className="primary online-start" disabled={!canStart || p.disabled} onClick={p.onStart}>
           <Play size={17} /> 게임 시작{needReady && !allReady ? " (모두 준비하면)" : ""}
         </button>
-      ) : needReady ? (
+      ) : watchMode && needReady ? null : needReady ? (
         <button type="button" className={ready[p.me] ? "secondary online-start" : "primary online-start"} disabled={p.disabled} onClick={() => p.onReady(!ready[p.me])} aria-pressed={!!ready[p.me]}>
           <Check size={17} /> {ready[p.me] ? "준비 취소" : "준비 완료"}
         </button>

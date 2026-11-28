@@ -4,6 +4,8 @@
 
 > **2026-11-28 제품 통합 출시**는 [RELEASE-2026-11-28](../operations/RELEASE-2026-11-28.md)과 D-099에서 시작한다(통합 범위, 호환성, 배포·롤백 순서, 출시 기록).
 
+> **SOC-1 친구·접속 상태·대전 신청·C3.1 대기실 관전·A6 카운트다운·대표 업적·SEC-1** → [SOC-1](../online/SOC-1-SOCIAL.md) (D-SOC1-1~6, 01 담당 API 계약 포함). 코드: `worker/src/social.ts`·`limits.ts`, `friends-api.ts`, `src/online/room.ts`(members/watch/return), `src/online/match-flow.ts`.
+>
 > **C3 전역 매칭과 관전**은 [C3 · A6 인수인계](../online/C3-BACKGROUND-MATCH.md)에서 시작한다. 친구 대전 관전 범위는 방장이 정하고, 링크와 공개 목록은 초대 코드가 아닌 관전 ID를 쓴다(D-094·D-095). C3.1 대기실 참가/관전 분리는 요구사항만 기록되어 있다. A6는 App의 `MatchController`와 관전·현황 계약을 사용한다. C0의 Worker 운영 배포 보류를 유지한다.
 
 

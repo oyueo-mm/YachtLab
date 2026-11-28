@@ -1,7 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Check, Clock, UserPlus, Ban, LoaderCircle, KeyRound } from "lucide-react";
 import { session } from "../identity/account-client";
-import { accountKey, loadRelation, peekRelation, sendFriendRequest, subscribeRelations, MANUAL_ADD_MESSAGE, type Resolved } from "./friend-relations";
+import { accountKey, liveApi, loadRelation, peekRelation, sendFriendRequest, subscribeRelations, MANUAL_ADD_MESSAGE, type Resolved } from "./friend-relations";
 import "./friend-request.css";
 
 /**
@@ -12,7 +12,7 @@ import "./friend-request.css";
  *   never   sends twice, sends to a friend / blocked / pending person, or sends without a signed-in account.
  * Guests and AI opponents have no account id: pass `userId` only for members.
  */
-export function FriendRequestButton({ server, userId, nickname, compact = false, onChange }: { server: string | null; userId?: string | null; nickname?: string; compact?: boolean; onChange?: (r: Resolved["relation"]) => void }) {
+export function FriendRequestButton({ server, userId, nickname, compact = false, onChange, room }: { server: string | null; userId?: string | null; nickname?: string; compact?: boolean; onChange?: (r: Resolved["relation"]) => void; /** SOC-1: the room both are seated in (in-match profile, before a record exists). */ room?: string | null }) {
   const signed = !!session();
   const account = useSyncExternalStore(subscribeRelations, accountKey, () => "");
   const shared = useSyncExternalStore(subscribeRelations, () => (server && userId ? peekRelation(server, userId) : null), () => null);
@@ -25,14 +25,14 @@ export function FriendRequestButton({ server, userId, nickname, compact = false,
     let alive = true;
     setRel(null);
     setMessage("");
-    loadRelation(server, userId)
+    loadRelation(server, userId, liveApi(server, room))
       .then((r) => alive && (setRel(r), onChange?.(r.relation)))
       .catch((e: Error) => alive && setMessage(e.message));
     return () => {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [server, userId, signed, account]);
+  }, [server, userId, signed, account, room]);
   if (!server || !userId) return null;
   const cls = "friend-req" + (compact ? " compact" : "");
   if (!signed) return <p className={cls + " note"}>로그인하면 친구로 추가할 수 있어요.</p>;
@@ -53,7 +53,7 @@ export function FriendRequestButton({ server, userId, nickname, compact = false,
     if (busy) return;
     setBusy(true);
     setMessage("");
-    const out = await sendFriendRequest(server, userId);
+    const out = await sendFriendRequest(server, userId, liveApi(server, room));
     setBusy(false);
     if (!out.ok) setMessage(out.message);
     else onChange?.(out.relation);

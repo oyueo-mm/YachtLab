@@ -1205,3 +1205,10 @@ dialog.modal.item-detail::backdrop { background: #251c1c88; }
 /* 2.5D fallback Lv.3 dice effects: over the dice row, never interactive. */
 .dice-fx-25, .board-themed .dice-row > .dice-fx-25 { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 .dice-row:has(> .dice-fx-25, > .board-fx-canvas) { position: relative; }
+
+/* SOC-1: presence privacy toggle (minimal; the global friend panel design belongs to 01). */
+.friend-setting { display: flex; align-items: center; gap: 8px; margin: 12px 0 4px; font-size: 14px; flex-wrap: wrap; }
+.friend-setting small { color: var(--muted, #666); }
+.lobby-intent { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.lobby-intent button[aria-pressed="true"] { outline: 2px solid currentColor; }
+.lobby-watchers { font-size: 13px; margin: 4px 0; }

@@ -644,6 +644,14 @@ export class OnlineConnection {
   ready(ready: boolean) {
     return this.sendNow({ t: "ready", ready });
   }
+  /** C3.1 (features.lobbyWatch): play the next match, watch it, or undecided. Waiting room only. */
+  intent(value: "ready" | "watch" | "idle") {
+    return this.sendNow({ t: "intent", value });
+  }
+  /** C3.1, host, after a match: bring every member back to the waiting room. */
+  returnToLobby() {
+    return this.sendNow({ t: "return" });
+  }
   /** Host: match settings (mode and time limit). */
   settings(mode: "turns" | "simultaneous", timeoutMs: number | null) {
     return this.sendNow({ t: "settings", mode, timeoutMs });

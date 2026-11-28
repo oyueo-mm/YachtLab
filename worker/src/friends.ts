@@ -76,7 +76,7 @@ export const ABSENT_ACCOUNT: Readonly<Record<string, unknown>> = {
   lists: { code: "", friends: [], incoming: [], outgoing: [], blocked: [] },
   canRequest: { ok: false, code: "NO_ACCOUNT", message: "계정을 찾을 수 없어요." },
   declineIncoming: false, incomingPeer: null, receiveRequest: "gone", receiveInvite: "silent", acceptedBy: false,
-  retiredCodes: [], residuePairs: [], invites: [], takeInvite: null, inboxCount: { requests: 0, invites: 0 },
+  retiredCodes: [], residuePairs: [], invites: [], takeInvite: null, takeInviteFrom: null, friendPeers: [], inboxCount: { requests: 0, invites: 0 },
 };
 
 export class FriendStore {
@@ -135,6 +135,10 @@ export class FriendStore {
     if (this.sql.exec("SELECT 1 FROM fr_in WHERE user_id = ?", userId).toArray().length) return "incoming";
     if (this.sql.exec("SELECT 1 FROM fr_out WHERE user_id = ? AND declined_at IS NULL", userId).toArray().length) return "outgoing";
     return "none";
+  }
+  /** (id, code) of every friend in ONE call (presence lookup; server-only, never returned to clients). */
+  friendPeers(): { userId: string; code: string }[] {
+    return this.sql.exec<{ user_id: string; code: string }>("SELECT user_id, code FROM fr_friends ORDER BY nickname").toArray().map((r) => ({ userId: r.user_id, code: r.code }));
   }
   friendIds(): string[] {
     return this.sql.exec<{ user_id: string }>("SELECT user_id FROM fr_friends").toArray().map((r) => r.user_id);
@@ -378,6 +382,16 @@ export class FriendStore {
     const inv = this.invites(now).find((i) => i.id === id) ?? null;
     this.sql.exec("DELETE FROM fr_invites WHERE id = ?", id);
     return inv;
+  }
+  /** Take an invite and learn who sent it (server-only: to tell the sender it was accepted / declined). */
+  takeInviteFrom(id: string, now: number): { invite: Invite; fromId: string } | null {
+    const r = this.sql.exec<{ from_id: string }>("SELECT from_id FROM fr_invites WHERE id = ?", id).toArray()[0];
+    const invite = this.takeInvite(id, now);
+    return invite && r ? { invite, fromId: r.from_id } : null;
+  }
+  /** The sender took the invite back (only that sender's row with that id). */
+  dropInvite(id: string, fromId: string) {
+    this.sql.exec("DELETE FROM fr_invites WHERE id = ? AND from_id = ?", id, fromId);
   }
   inboxCount(now: number) {
     return { requests: this.sql.exec<{ n: number }>("SELECT COUNT(*) AS n FROM fr_in").toArray()[0].n, invites: this.invites(now).length };
