@@ -29,8 +29,14 @@ export function useCoach(id: string, ready: boolean) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     if (!ready || seen()[id]) return;
-    const t = window.setTimeout(() => setOpen(true), 500);
-    return () => window.clearTimeout(t);
+    // A first-visit tour never starts on top of an open modal (e.g. an item detail): it would take the
+    // Escape meant for that dialog. It waits until no modal is open.
+    const t = window.setInterval(() => {
+      if (document.querySelector("dialog[open]")) return;
+      window.clearInterval(t);
+      setOpen(true);
+    }, 500);
+    return () => window.clearInterval(t);
   }, [id, ready]);
   const close = useCallback(() => {
     markCoachSeen(id);
