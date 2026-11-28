@@ -171,6 +171,16 @@ export class DiceTable {
   private camera = new THREE.PerspectiveCamera(24, 1, 0.1, 200);
   /** Rounded cube (bevel radius 0.085 edge, close to the physics chamfer 0.1). */
   private geometry: THREE.BufferGeometry = new RoundedBoxGeometry(1, 1, 1, 3, 0.085);
+  /** Geometry detail per material tier: 588 triangles (tiers 0–1) / 108 (flat tier, CPU-rasterised devices). */
+  private geometryTier = 0;
+  private setGeometryFor(tier: number) {
+    const want = tier >= 2 ? 1 : 0;
+    if (want === this.geometryTier) return;
+    this.geometryTier = want;
+    this.geometry.dispose();
+    this.geometry = new RoundedBoxGeometry(1, 1, 1, want ? 1 : 3, 0.085);
+    for (const m of this.meshes.values()) m.geometry = this.geometry;
+  }
   /** Six face materials of the current look (template); each die draws with its own clones (per-die glow). */
   private materials: THREE.MeshStandardMaterial[] = [];
   private dieMaterials = new Map<number, THREE.MeshStandardMaterial[]>();
@@ -409,6 +419,7 @@ export class DiceTable {
     const flat = this.matTier >= 2;
     const s = flat ? { ...lite, relief: 0, pipDepth: 0, env: 0 } : lite;
     this.rim.visible = !flat; // the back light is a second per-pixel light: off on the flat tier
+    this.setGeometryFor(this.matTier);
     this.spec = s;
     this.canvas.dataset.material = s.class; // diagnostics (tests, screenshots)
     this.canvas.dataset.physical = String(usePhysical);
