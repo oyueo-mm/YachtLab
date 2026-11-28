@@ -100,3 +100,38 @@ describe("SEC-1 2차 INT-3 · RETENTION 마스터 스위치", () => {
     expect(src).toMatch(/get retentionOn\(\) \{\s*return this\.economyOn && this\.env\.RETENTION === "on";/);
   });
 });
+
+import { CleanupQueue, EXT_CLEANUP_TABLE, INDEX_TARGET, runCleanup } from "../worker/src/account-cleanup";
+import { sqlite } from "./helpers/admin-fakes";
+
+describe("SEC-1 2차 INT-7 · 롤백에도 관리자·게시판 탈퇴 정리가 남는다", () => {
+  it("이전 버전(기본 대기열만 읽고 알 수 없는 대상을 계정으로 처리)이 돌아도 확장 대기열 작업은 그대로 남고, 롤포워드 뒤 실행된다", async () => {
+    const sql = sqlite();
+    const base = new CleanupQueue(sql), ext = new CleanupQueue(sql, EXT_CLEANUP_TABLE);
+    base.init(); ext.init();
+    base.enqueue(U, [INDEX_TARGET, uid("P")], "YL12345678", 0);
+    ext.enqueue(U, ["@admin", "@board"], "YL12345678", 0);
+    // the pre-INT-1 Worker: index → index, anything else → an account `fr("forget")` (neutral success)
+    const oldSeen: string[] = [];
+    await runCleanup(new CleanupQueue(sql), async (job) => void oldSeen.push(job.target), () => 0);
+    expect(oldSeen.sort()).toEqual([INDEX_TARGET, uid("P")].sort());
+    expect(oldSeen).not.toContain("@admin");
+    expect(ext.pending()).toBe(2);
+    // roll forward: the current Worker works through the extension queue
+    const sent: string[] = [];
+    expect(await runCleanup(ext, async (job) => void sent.push(job.target), () => 1)).toMatchObject({ done: 2, remaining: 0 });
+    expect(sent.sort()).toEqual(["@admin", "@board"]);
+  });
+  it("UserStore는 관리자·게시판 대상을 확장 대기열에만 넣고, 탈퇴 시 그 테이블을 보존하며, 경보·재시도·종료를 두 대기열 모두에 적용한다", () => {
+    const src = readFileSync("worker/src/index.ts", "utf8");
+    expect(src).toContain("this.extCleanup.enqueue(owner, [ADMIN_TARGET, BOARD_TARGET], plan.code, now)");
+    expect(src).not.toMatch(/this\.cleanup\.enqueue\([^)]*ADMIN_TARGET/);
+    expect(src).toContain('new Set(["tomb", "acct_cleanup", EXT_CLEANUP_TABLE, "fr_retired"])');
+    expect(src).toContain("this.extCleanup.nextAt()");
+    expect(src).toContain("this.extCleanup.requeue(epoch, now)");
+    expect(src).toContain("this.extCleanup.parked() === this.extCleanup.pending()");
+  });
+  it("대기열 테이블 이름은 소문자·밑줄만 허용(SQL 식별자 주입 불가)", () => {
+    expect(() => new CleanupQueue(sqlite(), 'x"; DROP TABLE tomb; --')).toThrow();
+  });
+});

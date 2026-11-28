@@ -18,7 +18,7 @@ const bucket = (c: number) => (c < 100 ? "0-99" : c < 500 ? "100-499" : c < 2000
 import { validateNickname } from "../../src/identity/nickname";
 import { ABSENT_ACCOUNT, FriendIndexStore, FriendStore, Presence, type FriendSql } from "./friends";
 import { INVITE_ID, challenge, handleFriendRoute, sendInvites, type FriendDeps, type FriendUser, type ResidueMode } from "./friends-api";
-import { CLEANUP_PARKED_CHECK_MS, CleanupQueue, INDEX_TARGET, runCleanup, type CleanupJob } from "./account-cleanup";
+import { CLEANUP_PARKED_CHECK_MS, CleanupQueue, EXT_CLEANUP_TABLE, INDEX_TARGET, runCleanup, type CleanupJob, type CleanupRun } from "./account-cleanup";
 /** ADMIN-1 / FEEDBACK-1 cleanup targets (account ids start with "u_", so these never collide). */
 const ADMIN_TARGET = "@admin";
 const BOARD_TARGET = "@board";
@@ -555,6 +555,8 @@ export class UserStore extends DurableObject<Env> implements UserApi {
   private retention: RetentionStore;
   private friends: FriendStore;
   private cleanup: CleanupQueue;
+  /** SEC-1 2차 INT-7: admin-index / board jobs in a table an older Worker never reads (rollback-safe). */
+  private extCleanup: CleanupQueue;
   private member: MemberOps;
   private dailyStore: DailyPlayStore;
   private presenceState = new Presence();
@@ -571,6 +573,7 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     this.retention = new RetentionStore(this.econSql(), this.grants);
     this.friends = new FriendStore(this.econSql() as unknown as FriendSql);
     this.cleanup = new CleanupQueue(ctx.storage.sql as unknown as Sql);
+    this.extCleanup = new CleanupQueue(ctx.storage.sql as unknown as Sql, EXT_CLEANUP_TABLE);
     ctx.blockConcurrencyWhile(async () => {
       this.store.init();
       this.econ.init();
@@ -578,6 +581,7 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       this.retention.init();
       this.friends.init();
       this.cleanup.init();
+      this.extCleanup.init();
       this.member.init();
       this.dailyStore.init();
     });
@@ -1130,7 +1134,7 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     const plan = owner ? this.friends.deletionPlan() : { code: null, peers: [] };
     const now = Date.now();
     const sql = this.ctx.storage.sql;
-    const keep = new Set(["tomb", "acct_cleanup", "fr_retired"]);
+    const keep = new Set(["tomb", "acct_cleanup", EXT_CLEANUP_TABLE, "fr_retired"]);
     this.ctx.storage.transactionSync(() => {
       const tables = sql.exec<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table'").toArray().map((r) => r.name);
       for (const t of tables) if (!keep.has(t) && !t.startsWith("_cf_") && !t.startsWith("sqlite_")) sql.exec(`DROP TABLE IF EXISTS "${t.replace(/"/g, '""')}"`);
@@ -1139,9 +1143,15 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       sql.exec("CREATE TABLE IF NOT EXISTS fr_retired (code TEXT PRIMARY KEY, at INTEGER NOT NULL)");
       if (plan.code) sql.exec("INSERT OR IGNORE INTO fr_retired (code, at) VALUES (?, ?)", plan.code, now);
       this.cleanup.init();
-      // ADMIN-1/FEEDBACK-1 (D-114): the admin index and the board are cleanup targets too — same durable,
-      // retried, generation-safe queue as the friend relations (they act only on data from before `now`).
-      if (owner) this.cleanup.enqueue(owner, [...(plan.code || plan.peers.length ? [INDEX_TARGET, ...plan.peers] : []), ADMIN_TARGET, BOARD_TARGET], plan.code, now);
+      this.extCleanup.init();
+      // ADMIN-1/FEEDBACK-1 (D-114): the admin index and the board are cleanup targets too — durable, retried,
+      // generation-safe (they act only on data from before `now`). SEC-1 2차 INT-7: they go to their own queue
+      // table, because the pre-INT-1 Worker (a rollback target) would treat "@admin"/"@board" as account ids,
+      // get a neutral answer from a non-existent account and mark the job done without doing it.
+      if (owner) {
+        if (plan.code || plan.peers.length) this.cleanup.enqueue(owner, [INDEX_TARGET, ...plan.peers], plan.code, now);
+        this.extCleanup.enqueue(owner, [ADMIN_TARGET, BOARD_TARGET], plan.code, now);
+      }
     });
     // Fresh, empty objects over the (re-created) empty tables; presence is forgotten too.
     this.store = new AccountStore(sql as unknown as Sql);
@@ -1174,7 +1184,9 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       }
       else await (this.env.USERS.get(this.env.USERS.idFromName(job.target)) as unknown as FriendUser).fr("forget", userId, job.code);
     };
-    const run = await runCleanup(this.cleanup, send, Date.now);
+    const runs: CleanupRun[] = [];
+    for (const q of [this.cleanup, this.extCleanup]) if (q.pending()) runs.push(await runCleanup(q, send, Date.now));
+    const run = runs.reduce((a, r) => ({ done: a.done + r.done, failed: a.failed + r.failed, gaveUp: a.gaveUp + r.gaveUp, remaining: a.remaining + r.remaining }), { done: 0, failed: 0, gaveUp: 0, remaining: 0 });
     if (run.failed || run.gaveUp) await this.cleanupReport({ retry: run.failed, gaveUp: run.gaveUp, remaining: run.remaining });
     return run;
   }
@@ -1192,11 +1204,13 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     const until = this.rejoinBlockedUntil();
     const expiry = this.store.exists() ? this.store.nextSessionExpiry() : null;
     // parked cleanup: look for an operator retry request weekly, until the deletion record ends
-    const parkedCheck = this.cleanup.parked() ? Date.now() + CLEANUP_PARKED_CHECK_MS : null;
+    const parkedCheck = this.cleanup.parked() + this.extCleanup.parked() ? Date.now() + CLEANUP_PARKED_CHECK_MS : null;
+    const nextRetry = [this.cleanup.nextAt(), this.extCleanup.nextAt()].filter((t): t is number => t !== null);
+    const retryAt = nextRetry.length ? Math.min(...nextRetry) : null;
     // a deletion record already past its end waits for the active retries (handled in the same alarm run
     // as the last one), so it never schedules on its own — otherwise the alarm would fire every second
-    const end = until === null ? null : until + 60_000 > Date.now() || this.cleanup.nextAt() === null ? until + 60_000 : null;
-    const times = [expiry === null ? null : expiry + 60_000, this.cleanup.nextAt(), parkedCheck, end].filter((t): t is number => t !== null);
+    const end = until === null ? null : until + 60_000 > Date.now() || retryAt === null ? until + 60_000 : null;
+    const times = [expiry === null ? null : expiry + 60_000, retryAt, parkedCheck, end].filter((t): t is number => t !== null);
     if (!times.length) return;
     const want = Math.max(Math.min(...times), Date.now() + 1000);
     const current = await this.ctx.storage.getAlarm();
@@ -1275,14 +1289,15 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     // Expired sessions / login codes go even if the account never signs in again (SEC-04).
     if (this.store.exists()) this.store.pruneSessions(now);
     // Deletion cleanup retries (SEC-03); parked jobs restart when the operator deploys a new retry epoch.
-    const requeued = this.cleanup.requeue(this.env.ACCOUNT_CLEANUP_RETRY_EPOCH ?? "", now);
+    const epoch = this.env.ACCOUNT_CLEANUP_RETRY_EPOCH ?? "";
+    const requeued = this.cleanup.requeue(epoch, now) + this.extCleanup.requeue(epoch, now);
     if (requeued) await this.cleanupReport({ requeued });
-    if (this.cleanup.pending()) await this.runCleanup();
+    if (this.cleanup.pending() || this.extCleanup.pending()) await this.runCleanup();
     // Forget the deletion timestamp once the re-join cooldown is over (and the cleanup has finished;
     // jobs still parked then are dropped — the peer-side residue check is the remaining path).
     const until = this.rejoinBlockedUntil();
-    if (until !== null && now >= until && this.cleanup.parked() === this.cleanup.pending()) {
-      const expired = this.cleanup.expireParked();
+    if (until !== null && now >= until && this.cleanup.parked() === this.cleanup.pending() && this.extCleanup.parked() === this.extCleanup.pending()) {
+      const expired = this.cleanup.expireParked() + this.extCleanup.expireParked();
       if (expired) await this.cleanupReport({ expired });
       if (!this.store.exists()) {
         await this.ctx.storage.deleteAll();
