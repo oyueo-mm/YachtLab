@@ -63,10 +63,15 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - name: Validate the Worker bundle without Cloudflare credentials
-        env:
-          WRANGLER_SEND_METRICS: "false"
-        run: npx --no-install wrangler deploy --dry-run --config worker/wrangler.toml --outdir "$RUNNER_TEMP/worker-dry-run"
+      # SEC-1-04: the bundle the deploy job releases is built here, without Cloudflare credentials.
+      - name: Build the Worker bundle and its manifest (no Cloudflare credentials)
+        run: node scripts/ci/worker-artifact.mjs prepare "$RUNNER_TEMP/worker-release" "$GITHUB_SHA"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: worker-release
+          path: ${{ runner.temp }}/worker-release
+          retention-days: 3
+          if-no-files-found: error
 
   # D-100: manual releases are the high-risk path (economy policy, Durable Object migrations, bindings, runtime vars,
   # recovery after a rollback or a stopped automatic release). They keep a separate operator approval in an
@@ -113,12 +118,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci
+      # Wrangler only: no install scripts and no build in the credentialed job (SEC-1-04).
+      - name: Install the deploy tool without install scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - uses: actions/download-artifact@v4
+        with:
+          name: worker-release
+          path: ${{ runner.temp }}/worker-release
+      - name: Verify the prepared bundle
+        id: bundle
+        run: |
+          node scripts/ci/worker-artifact.mjs verify "$RUNNER_TEMP/worker-release" "$GITHUB_SHA"
+          echo "sha256=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).bundle.sha256)' "$RUNNER_TEMP/worker-release/release.json")" >> "$GITHUB_OUTPUT"
       - name: Release and record the existing yachtlab-online Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.WORKER_PRODUCTION_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.WORKER_PRODUCTION_ACCOUNT_ID }}
           EXPECTED_WORKER_VERSION: ${{ inputs.active_worker_version }}
           PAGES_BUILD: ${{ inputs.pages_build }}
+          WORKER_BUNDLE: ${{ runner.temp }}/worker-release/bundle/index.js
+          WORKER_BUNDLE_SHA256: ${{ steps.bundle.outputs.sha256 }}
         run: node scripts/ci/deploy-online-worker.mjs

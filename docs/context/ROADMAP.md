@@ -1,5 +1,7 @@
 # 연구 로드맵 / 백로그 (실행 가능성 기준)
 
+> **SEC-1 CI 후속(D-102):** 실패 잠금 강화(SEC-1-03), 빌드·운영 토큰 분리(SEC-1-04), CI Low 3건 정리. 남은 운영자 조치: 구형 저장소 Cloudflare 시크릿 폐기(SEC-1-02). [SEC-1 CI 후속](../operations/SEC-1-CI-FOLLOWUP.md)
+
 > **CI-1.2 Worker 자동 배포(D-100):** main 파이프라인 성공 뒤 Worker 입력이 바뀐 경우만 자동 배포, 보호 입력·롤백·실패 시 정지 → 수동. [운영 문서](../operations/CI-1-2-WORKER-AUTO-DEPLOY.md)
 
 > **2026-11-28 제품 통합 출시(#134):** C3·A3·A5·A4·C4.2 통합, A3 온라인 계정 갱신·보상 알림 연결 완료. 후속: 온라인 결과 카드 `MatchResultPanel` 교체(관전·다인전 포함), C3.1 대기실 분리, C4.2 잔존 정리 7일 dry-run(별도 승인), #126 정책 공개. [출시 기록](../operations/RELEASE-2026-11-28.md)
