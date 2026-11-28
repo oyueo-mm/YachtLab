@@ -22,6 +22,8 @@
 > **온라인 요트다이스 제품 개편** → [브랜드, 메뉴, 검색 및 배포 인수인계](docs/context/ONLINE-YACHT-PRODUCT.md).
 >
 > **주사위 재질·움직임 반응·사운드·미리보기 인터페이스(FX-1, 2026-11-28)**: 재질 11종(렌더러와 충돌음 공용 표), 둥근 모서리·음각 눈·반사, Lv.2 움직임 반응 발광, 라운드로빈 충돌음, 보드 Lv.1 재질, 재질 단계(저사양), 상점·경기 공용 `FxPreview` → [FX1-DICE-BOARD-SOUND](docs/context/FX1-DICE-BOARD-SOUND-2026-11-28.md), [UI-2 연동](docs/context/FX1-PREVIEW-INTEGRATION.md) (FX1-D1~FX1-D4 (임시 번호, INT-1 통합 시 최종 번호 부여)).
+
+> **상점·뽑기·인벤토리 개편(UI-2, 2026-11-28): 캐러셀·사이드바·검색/필터·2열 상세·프리셋·컬렉션 진행도, FX-1 FxPreview 연동 계획** → [UI-2-SHOP-INVENTORY](docs/context/UI-2-SHOP-INVENTORY.md) (D-UI2-1~4).
 >
 > **콘텐츠 확장(2026-11-27): 1인 플레이·개인 기록, 게임 프로필, 테마 컬렉션 10종·신규 11종·시너지, 기간 한정, 상점·뽑기 안내, 오디오 믹스, 모바일** → [COLLECTIONS-2026-11-27](docs/context/COLLECTIONS-2026-11-27.md), [연승 검토](docs/context/STREAK-REVIEW-2026-11-27.md), [오디오 믹스](docs/audio/MIX.md) (D-074~D-078). 워커 수동 배포 전에는 1인 기록 계정 보관·신규 상품 판매가 대기 상태.
 >
