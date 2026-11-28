@@ -147,6 +147,8 @@ export class DiceTable {
   private motionOn = false;
   private energy = new Map<number, number>();
   private glowStep: ((now: number) => boolean) | null = null;
+  /** Highest motion-glow multiplier of the latest throw (diagnostics: data-glow-peak). */
+  private glowPeak = 1;
   private meshes = new Map<number, THREE.Mesh>();
   private blobs = new Map<number, THREE.Mesh>();
   private light: THREE.DirectionalLight;
@@ -364,6 +366,8 @@ export class DiceTable {
     const usePhysical = this.physical && (raw.clearcoat > 0 || raw.iridescence > 0 || raw.sheen > 0);
     const s = this.physical ? raw : liteSpec(raw);
     this.spec = s;
+    this.canvas.dataset.material = s.class; // diagnostics (tests, screenshots)
+    this.canvas.dataset.physical = String(usePhysical);
     const old = this.textures;
     this.textures = [];
     const keep = <T extends THREE.Texture>(t: T) => (this.textures.push(t), t);
@@ -447,6 +451,7 @@ export class DiceTable {
     const t = now / 1000;
     for (const [id, mats] of this.dieMaterials) {
       const k = this.motionOn ? motionGlow(this.spec.motion, this.energy.get(id) ?? 0, t + id * 0.37) : 1;
+      if (k > this.glowPeak) this.glowPeak = k;
       const level = this.ambientGlow * k;
       for (const m of mats) m.emissiveIntensity = level;
     }
@@ -762,6 +767,8 @@ export class DiceTable {
           if (c) emitFx({ type: "land", x: c.x, y: c.y, strength: landStrength.get(id) ?? 6, id });
         }
         this.drainFx();
+        this.canvas.dataset.glowPeak = this.glowPeak.toFixed(2);
+        this.glowPeak = 1;
         this.fadeGlow();
         this.adapt(this.frameTimes);
         reportThrowFrames(this.frameTimes);
