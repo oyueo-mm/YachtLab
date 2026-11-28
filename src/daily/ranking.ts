@@ -1,5 +1,5 @@
 /**
- * Daily ranking rules (LIVE-1, D-104). Pure functions shared by the board object and tests.
+ * Daily ranking rules (LIVE-1, D-105). Pure functions shared by the board object and tests.
  *
  *  - Only a member's FIRST official attempt of a date counts (practice / archive plays never do).
  *  - Order: higher score first. Equal scores share a rank (standard competition ranking 1, 1, 3);

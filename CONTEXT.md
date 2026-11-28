@@ -13,7 +13,7 @@
 
 ## 맥락 읽는 순서
 
-> **오늘의 요트·오늘의 전략 퍼즐·일일 랭킹(LIVE-1, 운영 비공개)** → [DAILY-LIVE-1](docs/context/DAILY-LIVE-1.md) (D-102~D-107).
+> **오늘의 요트·오늘의 전략 퍼즐·일일 랭킹(LIVE-1, 운영 비공개)** → [DAILY-LIVE-1](docs/context/DAILY-LIVE-1.md) (D-103~D-108).
 >
 > **온라인 요트다이스 제품 개편** → [브랜드, 메뉴, 검색 및 배포 인수인계](docs/context/ONLINE-YACHT-PRODUCT.md).
 >

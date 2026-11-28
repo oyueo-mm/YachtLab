@@ -1,6 +1,8 @@
 # 연구 로드맵 / 백로그 (실행 가능성 기준)
 
-> **LIVE-1 오늘의 요트·전략 퍼즐·일일 랭킹(담당 05)**: ✅ 구현·검증(브랜치 `claude/funny-hamilton-5aavn9`, 운영 비공개 `DAILY=off`). 남은 일: Worker 수동 배포(보호 입력), `DAILY_SECRET` 설정, 비공개 경로 1주 관찰, 01 로비 진입점 협의, 07 보상 계약, 퍼즐 은행 2027-02-22 이후 연장. [LIVE-1](./DAILY-LIVE-1.md) (D-102~D-107)
+> **SEC-1 CI 후속(D-102):** 실패 잠금 강화(SEC-1-03), 빌드·운영 토큰 분리(SEC-1-04), CI Low 3건 정리. 남은 운영자 조치: 구형 저장소 Cloudflare 시크릿 폐기(SEC-1-02). [SEC-1 CI 후속](../operations/SEC-1-CI-FOLLOWUP.md)
+
+> **LIVE-1 오늘의 요트·전략 퍼즐·일일 랭킹(담당 05)**: ✅ 구현·검증(브랜치 `claude/funny-hamilton-5aavn9`, 운영 비공개 `DAILY=off`). 남은 일: Worker 수동 배포(보호 입력), `DAILY_SECRET` 설정, 비공개 경로 1주 관찰, 01 로비 진입점 협의, 07 보상 계약, 퍼즐 은행 2027-02-22 이후 연장. [LIVE-1](./DAILY-LIVE-1.md) (D-103~D-108)
 
 > **CI-1.2 Worker 자동 배포(D-100):** main 파이프라인 성공 뒤 Worker 입력이 바뀐 경우만 자동 배포, 보호 입력·롤백·실패 시 정지 → 수동. [운영 문서](../operations/CI-1-2-WORKER-AUTO-DEPLOY.md)
 
