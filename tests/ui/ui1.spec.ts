@@ -8,6 +8,8 @@ import { startLocalWorker, type LocalWorker } from "../helpers/wrangler";
  * the floating quick-match popup, the share modal and the review key-scene cards.
  */
 const WIDTHS = [320, 360, 390, 430, 768, 1024, 1280, 1440, 1920] as const;
+/** Optional screenshots for the PR/docs: UI1_SHOTS=<dir>. */
+const shot = (page: Page, name: string) => (process.env.UI1_SHOTS ? page.screenshot({ path: `${process.env.UI1_SHOTS}/${name}.png` }) : Promise.resolve());
 const settle = (page: Page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 50)))));
 const noPageScroll = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
 
@@ -151,11 +153,12 @@ test("결과 공유 창은 화면 가운데(PC)·하단 시트(휴대폰)로 열
     expect(box.y).toBeGreaterThan(8);
   }
   await expect(share.getByRole("checkbox", { name: "닉네임 표시" })).not.toBeChecked();
+  await shot(page, `after-share-${info.project.name}`);
   await share.getByRole("button", { name: "결과 공유 닫기" }).click();
   await expect(share).toBeHidden();
 });
 
-test.describe("quick-match popup", () => {
+test.describe("online (local Worker): quick-match popup", () => {
   let worker: LocalWorker;
   test.beforeAll(async ({}, info) => {
     if (info.project.name === "mobile") return;
@@ -187,6 +190,7 @@ test.describe("quick-match popup", () => {
       expect(box.x + box.width).toBeGreaterThan(vp.width - 40);
       expect(box.y + box.height).toBeGreaterThan(vp.height - 120);
       await expect(popup.getByRole("timer", { name: "매칭 경과 시간" })).toHaveText(/0:0[1-9]/);
+      await shot(page, `after-match-popup-${kind}`);
       // drag far past the top-left corner: it stops at the edge
       const grip = popup.getByRole("button", { name: /빠른 대전 창 이동/ });
       const g = (await grip.boundingBox())!;
@@ -215,5 +219,89 @@ test.describe("quick-match popup", () => {
       await ctx.close();
     }
   });
+
 });
 
+// Friend-room results run on their own Worker with the multi-room settings used by multi-online.spec
+// (a 0 ms turn timeout, used above for quick match, drops a friend lobby's connection in this setup).
+test.describe("online (local Worker): A3 results for 3+ players and spectators", () => {
+  let worker: LocalWorker;
+  test.beforeAll(async ({}, info) => {
+    if (info.project.name === "mobile") return;
+    test.setTimeout(120_000);
+    worker = await startLocalWorker({ ALLOWED_ORIGINS: "http://127.0.0.1:5173", TURN_TIMEOUT_MS: "120000", CREATE_PER_MINUTE: "500", JOIN_PER_MINUTE: "500" });
+  });
+  test.afterAll(async () => { await worker?.stop(); });
+
+  test("3인 결과: 참가자는 순위표형(공동 순위·기권 사유), 관전자는 경기 전체 결과만 (보상·재대결·리뷰·공유 없음)", async ({ browser }, info) => {
+    test.skip(info.project.name === "mobile", "기기를 직접 만든다");
+    test.setTimeout(120_000);
+    const ctxs: import("@playwright/test").BrowserContext[] = [];
+    const open = async () => {
+      const ctx = await browser.newContext({ storageState: returningVisitorState(), viewport: { width: 1280, height: 900 }, baseURL: "http://127.0.0.1:5173/YachtLab/", reducedMotion: "reduce" });
+      ctxs.push(ctx);
+      return ctx.newPage();
+    };
+    const entry = (room?: string) => `?online-server=${encodeURIComponent(worker.url)}${room ? `&room=${room}` : ""}#online`;
+    try {
+      const host = await open();
+      await host.goto(entry());
+      await host.getByRole("tab", { name: "친구 대전" }).click();
+      await nick(host, "결과방장");
+      await host.getByLabel("최대 인원").selectOption("3");
+      await host.getByRole("button", { name: "방 만들기" }).click();
+      await expect(host.getByRole("heading", { name: "대기실" })).toBeVisible();
+      await expect(host.getByLabel("초대 코드", { exact: true })).toHaveText(/^[A-Z2-9]{6}$/);
+      const code = (await host.getByLabel("초대 코드", { exact: true }).textContent())!.trim();
+      const guests = [];
+      for (const name of ["결과둘", "결과셋"]) {
+        const g = await open();
+        await g.goto(entry(code));
+        await nick(g, name);
+        await g.getByRole("button", { name: "입장하기" }).click();
+        await g.getByRole("button", { name: "준비 완료" }).click();
+        guests.push(g);
+      }
+      await host.getByRole("button", { name: "관전 설정" }).click();
+      await host.getByLabel("관전 범위").selectOption("invite");
+      const link = await host.getByLabel("관전 링크").inputValue();
+      await host.locator("body").click({ position: { x: 5, y: 5 } });
+      await host.getByRole("button", { name: /게임 시작/ }).click();
+      const watcher = await open();
+      await watcher.goto(link);
+      await expect(watcher.getByRole("region", { name: "실시간 순위" })).toBeVisible();
+      // two players resign: the host wins the 3-player match
+      for (const g of guests) {
+        await g.getByRole("button", { name: "기권", exact: true }).click();
+        await g.getByRole("dialog").getByRole("button", { name: "기권", exact: true }).click();
+      }
+      const result = host.locator(".a3-result-dialog");
+      await expect(result).toBeVisible({ timeout: 15_000 });
+      await expect(result).toHaveAttribute("data-kind", "rank");
+      await expect(result.locator("h2")).toHaveText("1위");
+      const rows = result.getByRole("list", { name: "최종 순위" }).getByRole("listitem");
+      await expect(rows).toHaveCount(3);
+      await expect(rows.first()).toHaveClass(/you/);
+      await expect(result.locator(".a3-forfeit")).toHaveText(["기권", "기권"]);
+      await expect(result.getByRole("button", { name: /리뷰 기록 없음/ })).toBeDisabled();
+      await expect(result.getByRole("button", { name: "결과 공유" })).toHaveCount(0);
+      await expect(result.getByRole("button", { name: "나가기" })).toBeVisible();
+      await shot(host, "after-result-multi3-player");
+      expect(await result.textContent()).not.toMatch(/정확도|판단 손실|주사위 운/);
+      // spectator: whole-match result only
+      const seen = watcher.locator(".a3-result-dialog");
+      await expect(seen).toBeVisible({ timeout: 15_000 });
+      await expect(seen).toHaveAttribute("data-kind", "observer");
+      await expect(seen).toHaveAttribute("data-tone", "neutral");
+      await expect(seen.locator("h2")).toHaveText("결과방장 승리");
+      await expect(seen.getByRole("listitem")).toHaveCount(3);
+      await expect(seen.locator("li.you")).toHaveCount(0);
+      for (const name of [/한 번 더 플레이|재대결/, /리뷰/, /결과 공유/, /친구 추가/]) await expect(seen.getByRole("button", { name })).toHaveCount(0);
+      await expect(seen.getByText(/코인|보석|보상/)).toHaveCount(0);
+      await expect(seen.getByRole("button", { name: "관전 종료" })).toBeVisible();
+      await shot(watcher, "after-result-multi3-spectator");
+    } finally {
+      await Promise.all(ctxs.map((c) => c.close().catch(() => undefined)));
+    }
+  });
+});

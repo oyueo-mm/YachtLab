@@ -58,15 +58,19 @@ dialog.modal:not(.ui-sheet), dialog.match-result-dialog, dialog.a3-result-dialog
 }
 .social-dock .dock-emote { font-size: 25px; }
 
-/* ---- profile (UI-1): rows of equal-height cards, empty states centred instead of leaving ragged gaps ---- */
-.profile .profile-grid { align-items: stretch; gap: 14px; }
-.profile .profile-grid > :is(.profile-card, .solo-stats) { display: flex; flex-direction: column; }
+/* ---- profile (UI-1): even rows without stretched empty cards ----
+   Row 1: 전적 · 최근 경기 · 1인 기록 (same minimum height), row 2: 장착 중 across the grid (4 slots a row),
+   row 3: 수집 · 업적. Empty states are centred in their card. */
+.profile .profile-grid { gap: 14px; }
+.profile .profile-grid > :is(.profile-card, .solo-stats) { display: flex; flex-direction: column; min-height: 150px; }
 .profile .profile-grid > :is(.profile-card, .solo-stats) > :is(.profile-empty, .solo-empty, .econ-note):only-of-type { flex: 1 1 auto; display: grid; place-items: center; margin: 0; text-align: center; }
 @media (min-width: 900px) and (max-width: 1099px) {
   .profile .profile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (min-width: 1100px) {
   .profile .profile-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .profile .profile-grid > .profile-equipped { grid-column: 1 / -1; min-height: 0; }
+  .profile .profile-grid > .profile-equipped .profile-slots { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 /* ---- A3 result panel for online multi / spectators (UI-1) ---- */
@@ -77,7 +81,7 @@ dialog.modal:not(.ui-sheet), dialog.match-result-dialog, dialog.a3-result-dialog
 .a3-standings.many .a3-rank { min-width: 26px; height: 26px; font-size: 12px; }
 .a3-standings.many .a3-score { font-size: 16px; }
 .a3-standings li.forfeited { opacity: 0.72; }
-.a3-standings .a3-forfeit { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 6px; background: #f2efee; color: #6b6461; font-size: 11px; font-weight: 700; }
+.a3-standings .a3-forfeit { display: inline-block; align-self: flex-start; width: max-content; margin-left: 0; padding: 0 6px; border-radius: 6px; background: #f2efee; color: #6b6461; font-size: 11px; font-weight: 700; }
 .a3-standings .a3-forfeit[data-reason="timeout"] { background: #fff4e0; color: #8a5a00; }
 .a3-standings .a3-name b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .a3-result-dialog[data-kind="observer"] .a3-result-head h2 { font-size: clamp(22px, 5vw, 28px); }
