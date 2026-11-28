@@ -131,7 +131,7 @@
 
 - [ ] 이 PR 리뷰·CI(`npm ci`·`npm test`·`npm run build`·Playwright) 통과
 - [ ] **SEC-1(08) 2차 독립 보안 검증**([검증 목록](./SEC-1-AUDIT-2-CHECKLIST.md)) — 통과 전 쓰기 활성 금지
-- [ ] INT-1: DO 마이그레이션 태그(`v5-admin-feedback` 임시값, #142 `v5`와 충돌)와 최종 순서 확정, #140 RewardGrants 연결
+- [x] INT-1: DO 마이그레이션 태그 확정 — ADMIN-1 `v5`, LIVE-1 `v6`(이전 임시값 `v5-admin-feedback`)와 최종 순서 확정, #140 RewardGrants 연결
 - [ ] `ADMIN_REWARD_POLICY`(지급액 정책 버전) 승인 — 그 전에는 보상·코드·채택 보상 초안 거부
 - [ ] 운영자 Google 계정 2단계 인증 확인
 - [ ] 07/C5: 채택 보상·운영 보상·쿠폰 금액 정책, 안전 상한 확인

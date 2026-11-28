@@ -78,11 +78,10 @@ new_sqlite_classes = ["MatchHub"]
 tag = "v4"
 new_sqlite_classes = ["FriendIndex"]
 
-# ADMIN-1 / FEEDBACK-1. Tag is a placeholder unique to this PR: LIVE-1 (#142) also proposes "v5"
-# (DailyBoard). INT-1 assigns the final order and tag when integrating; migrations apply in file order
-# and an applied tag can never be renamed, so the final tag is fixed BEFORE the first production deploy.
+# ADMIN-1 / FEEDBACK-1 — final tag fixed by INT-1 (production has v1–v4). v6 is LIVE-1 (DailyBoard).
+# Migrations apply in file order and an applied tag can never be renamed or removed.
 [[migrations]]
-tag = "v5-admin-feedback"
+tag = "v5"
 new_sqlite_classes = ["AdminHub", "SuggestionBoard"]
 
 [vars]
