@@ -607,7 +607,13 @@ export async function handleEngagementRoute(request: Request, url: URL, b: Admin
       const profile = await user.me();
       if (!profile) return fail(401, "UNAUTHENTICATED", "로그인이 필요해요.");
       const r = await b.admin.op<{ ok: true; redemptionId: string; item: InboxItem } | { ok: false; code: string; message: string }>("redeem", me.userId, profile.createdAt, input.code, now);
-      if (!r.ok) return fail(400, r.code, r.message);
+      if (!r.ok) {
+        // SEC-1 2차 ECO-3: one answer for "no such code", "not started / ended", "not for this account" and
+        // "used up" (only this account's own earlier use is told apart); the real reason goes to a counter.
+        await b.count?.("code.refused." + r.code).catch(() => undefined);
+        if (r.code === "CODE_USED" || r.code === "INVALID_CODE" && /확인해/.test(r.message)) return fail(400, r.code, r.message);
+        return fail(400, "INVALID_CODE", "사용할 수 없는 코드예요.");
+      }
       const granted = await user.redeemGrant?.(r.item).catch(() => null);
       if (!granted) return fail(503, "RETRY", "보상을 지급하지 못했어요. 같은 코드로 다시 시도해 주세요(중복 지급되지 않아요).");
       if (!granted.ok) {

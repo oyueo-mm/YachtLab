@@ -153,3 +153,39 @@ describe("SEC-1 2차 · 기능이 꺼진 상태의 경로", () => {
     expect(calls.filter((c) => c === "redeem" || c === "code")).toEqual([]);
   });
 });
+
+describe("SEC-1 2차 ECO-2/ECO-3 · 교환 코드", () => {
+  const route = async (w: ReturnType<typeof world>, path: string, token: string, body: unknown) => {
+    const r = await handleAdminRoute(new Request("https://w.example" + path, { method: "POST", headers: { authorization: "Bearer " + token, "content-type": "application/json" }, body: JSON.stringify(body) }), new URL("https://w.example" + path), w.backends(), reply);
+    return (await r.json()) as Record<string, any>;
+  };
+  const eng = async (w: ReturnType<typeof world>, token: string, code: string) => {
+    const request = new Request("https://w.example/api/me/rewards/redeem", { method: "POST", headers: { authorization: "Bearer " + token, "content-type": "application/json" }, body: JSON.stringify({ code }) });
+    const r = (await handleEngagementRoute(request, new URL(request.url), w.backends(), reply))!;
+    return { status: r.status, body: (await r.json()) as Record<string, any> };
+  };
+  it("없는 코드·시작 전 코드·대상 외 코드·소진된 코드는 같은 응답(존재 여부를 알 수 없음), 본인 사용 이력만 구분", async () => {
+    const w = world({ ADMIN_ACCOUNTS: `${A}:owner,${B}:owner`, ADMIN_WRITES: "on", ADMIN_REWARD_POLICY: "policy-1" });
+    const a = (await w.adminLogin(w.account(A).session)).token as string;
+    const b = (await w.adminLogin(w.account(B).session)).token as string;
+    const make = async (body: Record<string, unknown>) => {
+      const c = await route(w, "/api/admin/codes", a, { title: "쿠폰", coins: 5, endsAt: w.clock() + 86_400_000 * 5, maxTotal: 10, ...body });
+      await route(w, `/api/admin/actions/${c.actionId}/approve`, b, { confirm: c.actionId });
+    };
+    await make({ code: "LATER2026", startsAt: w.clock() + 86_400_000 });
+    await make({ code: "OLDONLY26", joinedBefore: w.clock() - 86_400_000 * 365 });
+    await make({ code: "ONEUSE26", maxTotal: 1 });
+    const m = w.account(U), other = w.account(uid("O"));
+    expect((await eng(w, other.session, "ONEUSE26")).status).toBe(200); // used up by someone else
+    const answers = await Promise.all(["NOSUCH2026", "LATER2026", "OLDONLY26", "ONEUSE26"].map((c) => eng(w, m.session, c)));
+    expect(new Set(answers.map((x) => JSON.stringify([x.status, x.body.error.code, x.body.error.message]))).size).toBe(1);
+    expect(answers[0].body.error.code).toBe("INVALID_CODE");
+    // only my own earlier use is told apart
+    expect((await eng(w, other.session, "ONEUSE26")).body.error.code).toBe("CODE_USED");
+  });
+  it("Worker 라우터가 /api/me/rewards/redeem을 관리자 쿠폰 흐름으로 보낸다(보상 페이지 쿠폰 입력 하나)", () => {
+    const src = readFileSync("worker/src/index.ts", "utf8");
+    expect(src).toContain('(parts[2] === "rewards" && parts[3] === "redeem" && parts.length === 4)');
+    expect(src).toContain('redeem: this.grants.isEnabled("redeem-code")');
+  });
+});

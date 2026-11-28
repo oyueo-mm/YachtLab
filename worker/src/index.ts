@@ -870,7 +870,8 @@ export class UserStore extends DurableObject<Env> implements UserApi {
       status: this.retention.status(now),
       inbox: this.grants.inbox(now).map(publicGrant),
       history: this.grants.history(20).map(publicGrant),
-      redeem: false,
+      // SEC-1 2차 ECO-2: the reward page coupon form opens only when redeem-code grants may pay (owner approval)
+      redeem: this.grants.isEnabled("redeem-code"),
       wallet: this.econ.balance(),
       ...(changed ? { snapshot: this.econ.snapshot(userId, now) } : {}),
     };
@@ -1158,6 +1159,11 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     this.store.init();
     this.econ = new EconomyStore(this.econSql());
     this.econ.init();
+    // SEC-1 2차 ECO-1: the C5 stores too (their tables were dropped, and they hold the old EconomyStore)
+    this.grants = new RewardGrants(this.econSql(), this.econ);
+    this.grants.init();
+    this.retention = new RetentionStore(this.econSql(), this.grants);
+    this.retention.init();
     this.friends = new FriendStore(this.econSql() as unknown as FriendSql);
     this.friends.init();
     this.socialStore.reset();
@@ -1802,7 +1808,7 @@ export default {
         // The shared ADMIN_TOKEN path for daily routes stays removed.
         extensions: dailyAdminRoutes({ board: dailyBoard, now: dailyClock(env) }),
       });
-      if (parts[0] === "api" && (parts[1] === "notices" || parts[1] === "suggestions" || parts[1] === "reports" || (parts[1] === "me" && ["mailbox", "redeem", "sanctions", "appeals"].includes(parts[2] ?? "")))) {
+      if (parts[0] === "api" && (parts[1] === "notices" || parts[1] === "suggestions" || parts[1] === "reports" || (parts[1] === "me" && (["mailbox", "redeem", "sanctions", "appeals"].includes(parts[2] ?? "") || (parts[2] === "rewards" && parts[3] === "redeem" && parts.length === 4))))) {
         if (request.method !== "GET" && !allowed) return fail(403, "ORIGIN", "허용되지 않은 출처입니다.", null);
         const reply = (status: number, body: unknown) => json(status, body, allowed, parts[1] === "notices" && status === 200 ? "public, max-age=60" : "no-store");
         if (parts[1] === "notices" && !env.ADMIN) return reply(200, { notices: [] });

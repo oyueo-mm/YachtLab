@@ -126,8 +126,27 @@ describe("C5-CORE 보상 (wrangler dev)", () => {
     expect((await call(on, a.session, "/api/me/rewards")).body.status.weeklyStreak.best).toBe(0);
 
     expect((await call(on, a.session, "/api/me/rewards/claim", { txId: "nope-0001" })).status).toBe(404);
-    expect((await call(on, a.session, "/api/me/rewards/redeem", { code: "ABCD-1234" })).body.error.code).toBe("REDEEM_OFF");
+    // SEC-1 2차 ECO-2: the reward page coupon form reaches the admin code directory (one redeem flow);
+    // an unknown code is refused, and the coupon form stays closed while redeem-code grants are unapproved
+    const coupon = await call(on, a.session, "/api/me/rewards/redeem", { code: "ABCD-1234" });
+    expect([coupon.status, coupon.body.error.code]).toEqual([400, "INVALID_CODE"]);
+    expect((await call(on, a.session, "/api/me/rewards")).body.redeem).toBe(false);
     const verify = await fetch(on.url + "/api/admin/ledger/" + a.userId, { headers: { authorization: "Bearer " + ADMIN } });
     expect(await verify.json()).toMatchObject({ ok: true, grants: 1, problems: [] });
   }, 90_000);
+
+  it("SEC-1 2차 ECO-1: 탈퇴 뒤 같은 객체에서 재가입해도 보상 경로가 정상(테이블 재생성), 출석은 새 계정 기준", async () => {
+    const a = await login(on, "c5-eco1-rejoin");
+    expect((await call(on, a.session, "/api/me/rewards/attendance", {})).status).toBe(200);
+    expect((await call(on, a.session, "/api/me/delete", { confirm: "DELETE" })).status).toBe(200);
+    const again = await login(on, "c5-eco1-rejoin");
+    expect(again.userId).toBe(a.userId);
+    const view = await call(on, again.session, "/api/me/rewards");
+    expect(view.status).toBe(200);
+    expect(view.body.inbox).toEqual([]);
+    expect(view.body.history).toEqual([]);
+    const att = await call(on, again.session, "/api/me/rewards/attendance", {});
+    expect(att.status).toBe(200);
+    expect(att.body.granted).toEqual([expect.objectContaining({ source: "attendance" })]);
+  }, 60_000);
 });
