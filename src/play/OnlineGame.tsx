@@ -2,6 +2,9 @@ import { BrandMark } from "../ui/BrandLoading";
 import { OpponentProfile } from "../social/OpponentProfileDialog";
 import { BonusMoments } from "../bonus-moment";
 import { MatchRewardSummary } from "../shell/MatchRewards";
+import { useAccountRefreshAfterMatch } from "../match-result/account-refresh";
+import { ZeroScoreToast } from "../match-result/ZeroScoreToast";
+import { useZeroScoreNotice } from "../match-result/useZeroScore";
 import { MatchResult } from "../ui/MatchResult";
 import { ShareResultButton } from "../ui/ShareResult";
 import ReviewLauncher from "../review/ReviewLauncher";
@@ -436,6 +439,11 @@ export default function OnlineGame({ server, code, quickIntro = false, onEntered
   const myRank = view?.standings?.find((x) => x.playerId === me?.playerId)?.rank;
   const soundOutcome = !finished ? null : players.length > 2 ? (myRank === 1 ? (winners.length > 1 ? "winShared" : "win") : "lose") : outcome;
   const celebration = useGameSounds(players.length > 2 ? [players[meIndex]?.card ?? {}] : game.cards, finished, soundOutcome, syncKey);
+  // H-A3-1: after a seated player's match ends, re-read the account (wallet, quests, records) once the server
+  // receipt settles, so a rematch in the same room shows the server's balance without going home.
+  useAccountRefreshAfterMatch(server, view?.matchId ?? null, finished && !!me);
+  // A3 0-point notice: only my own seat in a 1:1 match; reconnect/resync catch-up is ignored (syncKey).
+  const [zeroNotice, clearZero] = useZeroScoreNotice(players.length === 2 ? game.cards : [], (seat) => (me && seat === meIndex ? {} : null), syncKey);
 
 
   if (!seat) return null;
@@ -684,6 +692,7 @@ export default function OnlineGame({ server, code, quickIntro = false, onEntered
             {...gesture}
           >
             <Celebrate value={celebration} />
+            <ZeroScoreToast notice={zeroNotice} onDone={clearZero} />
             <BonusMoments scope={view.matchId} players={players.map((x) => ({ id: x.playerId, name: x.name, card: x.card, mine: x.playerId === me?.playerId, look: looks[x.playerId] }))} />
             <BoardFx itemId={stage.look?.board} level={stage.look?.boardLv ?? 1} host={boardRef} />
             <SynergyFx dice={stage.look?.dice} board={stage.look?.board} level={Math.min(stage.look?.diceLv ?? 1, stage.look?.boardLv ?? 1)} host={boardRef} />

@@ -18,7 +18,8 @@ import { ActivityVisible } from "./shell/activity-visible";
 import OnlineGame from "./play/OnlineGame";
 import OnlineWatch from "./play/OnlineWatch";
 import Profile from "./shell/Profile";
-import MatchRewards, { type PendingReward } from "./shell/MatchRewards";
+import MatchRewards from "./shell/MatchRewards";
+import { addNotice, dropNotices, noticesFor, type PendingNotice } from "./match-result/reward-notices";
 import { completeSignIn, session } from "./identity/account-client";
 import { peekResume } from "./shell/login-resume";
 import { syncAccountNickname } from "./identity/display-name";
@@ -86,7 +87,8 @@ export default function App() {
   const nickname = useNickname();
   const [onlineCode, setOnlineCode] = useState<string | null>(roomFromUrl);
   const [quickIntro, setQuickIntro] = useState<string | null>(null);
-  const [pendingReward, setPendingReward] = useState<PendingReward | null>(null);
+  // H-A3-3: every finished online match keeps its home notice (deduplicated by matchId, per account).
+  const [pendingRewards, setPendingRewards] = useState<PendingNotice[]>([]);
   const [onlineNotice, setOnlineNotice] = useState("");
   const [watchTarget, setWatchTarget] = useState(watchFromUrl);
   const [profileNotice, setProfileNotice] = useState("");
@@ -336,11 +338,11 @@ export default function App() {
         <MatchPopup match={match} onAi={() => navigate("play-setup")} onRoom={(code) => enterRoom(code)} offerAfterMs={30_000} />
         {suspended && page !== "online-room" && <button type="button" className="secondary" onClick={restoreActivity}>이전 활동으로 돌아가기</button>}
         <InstallBanner active={page === "home"} />
-        {page === "home" && onlineServer && pendingReward && <MatchRewards
-          key={pendingReward.matchId}
+        {page === "home" && onlineServer && noticesFor(pendingRewards, session()).length > 0 && <MatchRewards
+          key={noticesFor(pendingRewards, session()).map((n) => n.matchId).join(",")}
           server={onlineServer}
-          pending={pendingReward}
-          consume={() => setPendingReward(null)}
+          pending={noticesFor(pendingRewards, session())}
+          consume={(ids) => setPendingRewards((list) => dropNotices(list, ids))}
         />}
         {page === "home" && <Lobby navigate={navigate} />}
         {page === "tutorial" && <Tutorial onExit={() => {
@@ -381,7 +383,7 @@ export default function App() {
             }}
             onFinished={(matchId) => {
               const account = session();
-              if (account) setPendingReward({ matchId, account });
+              if (account) setPendingRewards((list) => addNotice(list, { matchId, account, at: Date.now() }));
             }}
             onProgress={progress}
             onLeave={(message, destination) => {

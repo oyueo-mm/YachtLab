@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { AccountError, matchReview, serverRecords, session } from "../identity/account-client";
+import { useServerRecords } from "../match-result/account-refresh";
+import { AccountError, matchReview, session } from "../identity/account-client";
 import { localRecords } from "../identity/local";
 import { computeStats, type MatchRecord, type RecordMode } from "../identity/records";
 import ReviewLauncher from "../review/ReviewLauncher";
@@ -40,14 +41,8 @@ export default function MatchHistory({ server }: { server: string | null }) {
       window.removeEventListener("yachtlab-records", recordsChanged);
     };
   }, []);
-  useEffect(() => {
-    if (!owner || !server) return;
-    let current = true;
-    void serverRecords(server).then((records) => {
-      if (current) setRemote({ owner, records });
-    }).catch(() => {});
-    return () => { current = false; };
-  }, [owner, server]);
+  // H-A3-2: re-read on every finished match / account change; only the latest response for the current account applies.
+  useServerRecords(owner ? server : null, (account, records) => setRemote({ owner: account, records }));
   const signedIn = !!owner;
   const records = remote && remote.owner === owner ? remote.records : local;
   const recoveryRecords = useMemo(() => [...new Map([...records, ...local].map((record) => [record.recordId, record])).values()], [records, local]);

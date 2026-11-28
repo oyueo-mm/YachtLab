@@ -8,8 +8,8 @@ import { scoreCategory } from "./helpers";
  * A3 §7 재현: 같은 친구 방에서 회원 두 명이 재대결로 두 경기를 연속으로 끝낸다(격리된 로컬 Worker, 가짜 로그인,
  * 실제 경제 원장). 서버 사실(API)과 화면 표시를 따로 기록해 "서버 저장 지연"과 "클라이언트 갱신 누락"을 구분한다.
  *
- * 아래의 "현재 동작" 단언은 Hotfix H-A3-1~3 이전의 실제 동작을 고정한 것이다. Hotfix가 들어오면 이 단언을
- * 기대 동작으로 바꾼다(문서 A3-MATCH-RESULT §7).
+ * 릴리스 통합(2026-11-28)에서 H-A3-1~3이 연결되어, 이전의 "현재 동작" 단언을 기대 동작 회귀 테스트로 바꿨다
+ * (문서 A3-MATCH-RESULT §7–8): 방 안 상단 재화 = 서버 값(경기마다), 홈 알림은 여러 경기를 하나로 합쳐 보존.
  */
 let worker: LocalWorker;
 let idp: FakeIdp;
@@ -56,7 +56,7 @@ async function playTurn(pages: Page[]) {
 
 const shownCoins = async (p: Page) => Number(((await p.getByTestId("coins").first().textContent()) ?? "").replace(/[^0-9]/g, "") || NaN);
 
-test("재대결 두 경기: 서버는 즉시 저장, 방 안의 재화·퀘스트 표시와 홈 보상 알림은 갱신되지 않음(H-A3 재현)", async ({ browser }, testInfo) => {
+test("재대결 두 경기: 방 안 재화가 경기마다 서버 값으로 갱신되고 홈 보상 알림이 두 경기를 보존한다(H-A3 회귀)", async ({ browser }, testInfo) => {
   test.skip(testInfo.project.name === "mobile", "두 기기를 한 테스트에서 직접 만든다");
   test.setTimeout(300_000);
   const A = await member(browser, "a3-rematch-a", "가람");
@@ -107,24 +107,25 @@ test("재대결 두 경기: 서버는 즉시 저장, 방 안의 재화·퀘스�
     const gained = receipt.after.coins - receipt.before.coins;
     if (gained > 0) await expect(a.locator(".game-result")).toContainText(`+${gained}코인`);
 
-    // 3) 방 안 상단 재화: 경기 후 다시 조회하지 않음 (H-A3-1, 현재 동작)
-    await a.waitForTimeout(3000);
+    // 3) 방 안 상단 재화: receipt 확정 뒤 서버 값으로 갱신 (H-A3-1)
+    await expect.poll(() => shownCoins(a), { timeout: 10_000 }).toBe(serverCoins);
     const shown = await shownCoins(a);
     console.log(`[A3 rematch] game ${game}: server record after ≤${serverMs} ms, receipt +${gained}, quests ${JSON.stringify(receipt.quests)}, grants ${JSON.stringify(receipt.grants)}, server wallet ${serverCoins}, top bar ${shown}, server quest state ${JSON.stringify((await api(A.session, "/api/me/economy")).snapshot.state.daily)}`);
     observations.push(`game ${game}: server record after ≤${serverMs} ms, receipt +${gained} coins, server wallet ${serverCoins}, top bar ${shown}`);
-    // A3_HOTFIX=1: OnlineGame에 useAccountRefreshAfterMatch를 연결한 검증 실행(H-A3-1 적용 후 기대 동작).
-    if (process.env.A3_HOTFIX) await expect.poll(() => shownCoins(a), { timeout: 10_000 }).toBe(serverCoins);
-    else expect(shown, "현재 동작: 방에 머무는 동안 상단 재화는 경기 시작 전 값").toBe(start.coins);
   }
 
-  // 4) 홈으로(새로고침 없이 앱 안에서): 상단 재화는 갱신되고, 보상 알림은 마지막 경기 것만 (H-A3-3, 현재 동작)
+  // 4) 홈으로(새로고침 없이 앱 안에서): 상단 재화는 서버 값, 보상 알림은 두 경기를 하나의 알림으로 (H-A3-3)
   await a.getByRole("button", { name: "나가기" }).click();
   await a.evaluate(() => (location.hash = "#home"));
   const finalServer = (await api(A.session, "/api/me/economy")).snapshot.wallet.coins as number;
   await expect.poll(() => shownCoins(a), { timeout: 10_000 }).toBe(finalServer);
   const toasts = a.locator(".match-rewards");
   observations.push(`home: top bar ${await shownCoins(a)} (server ${finalServer}); reward notices ${await toasts.count()}`);
-  expect(await toasts.count(), "현재 동작: 홈 보상 알림은 한 경기분만").toBeLessThanOrEqual(1);
+  expect(await toasts.count(), "홈 보상 알림은 하나로 합쳐 표시").toBeLessThanOrEqual(1);
+  // 두 경기 모두 퀘스트가 진행되므로(온라인 경기 수 퀘스트) 합친 알림이 남는다. 결과 창에서 본 코인은 다시 표시하지 않는다.
+  await expect(toasts).toHaveCount(1, { timeout: 10_000 });
+  await expect(toasts).toHaveAttribute("aria-label", "최근 2경기 보상");
+  await expect(toasts.locator(".match-reward-wallet")).toHaveCount(0);
   // 5) 프로필(앱 안 이동, 새로 마운트): 서버 기록 두 경기가 보인다
   await a.evaluate(() => (location.hash = "#profile"));
   await expect(a.getByRole("region", { name: "대전 전적" }).locator(".profile-kpis div").first()).toContainText("2");
