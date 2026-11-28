@@ -1,4 +1,7 @@
 name: Deploy YachtLab Online Worker (manual)
+# CI-1.2 (D-100): the manual path for guarded releases (Worker config, Durable Object migrations, runtime vars,
+# economy policy), for the first release after a rollback or a stopped automatic run, and for any operator
+# release. Ordinary Worker changes are released by deploy-online-worker-auto.yml after the main pipeline.
 on:
   workflow_dispatch:
     inputs:
@@ -71,12 +74,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - name: Require operator enablement
+      - name: Emergency stop
         env:
           WORKER_DEPLOY_ENABLED: ${{ vars.WORKER_PRODUCTION_DEPLOY_ENABLED }}
         run: |
           test "$WORKER_DEPLOY_ENABLED" = true ||
-            { echo 'worker-production is disabled. Follow the release checklist.'; exit 1; }
+            { echo 'Worker releases are stopped (WORKER_PRODUCTION_DEPLOY_ENABLED is not true). Follow the runbook.'; exit 1; }
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}

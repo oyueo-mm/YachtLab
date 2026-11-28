@@ -1,0 +1,68 @@
+name: Deploy YachtLab Online Worker (automatic)
+# CI-1.2 (D-100): after a main push passes "Test and deploy YachtLab" (required tests + Pages deploy), release the
+# Worker only when Worker inputs changed. UI/docs-only commits skip without Cloudflare writes. Guarded changes
+# (Worker config, Durable Object migrations, runtime vars, economy policy), rollbacks and earlier failures stop
+# the automatic path until a manual release (deploy-online-worker.yml) succeeds.
+# WORKER_PRODUCTION_DEPLOY_ENABLED is the emergency stop: anything but "true" skips every automatic release and
+# blocks the manual workflow too.
+on:
+  workflow_run:
+    workflows: ["Test and deploy YachtLab"]
+    types: [completed]
+    branches: [main]
+
+permissions: {}
+concurrency:
+  # Shared with the manual workflow: never two Worker releases at once, and never cancel one in flight.
+  group: yachtlab-online-worker-deploy
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Only a push to main whose full pipeline (tests, build, browser, Pages deploy) succeeded.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    environment: worker-production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Emergency stop
+        id: switch
+        env:
+          WORKER_DEPLOY_ENABLED: ${{ vars.WORKER_PRODUCTION_DEPLOY_ENABLED }}
+        run: |
+          if [ "$WORKER_DEPLOY_ENABLED" = true ]; then echo "enabled=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "enabled=false" >> "$GITHUB_OUTPUT"
+          printf '### Automatic Worker release\n\n- Skipped: WORKER_PRODUCTION_DEPLOY_ENABLED is not true (emergency stop).\n' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@v4
+        if: steps.switch.outputs.enabled == 'true'
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        if: steps.switch.outputs.enabled == 'true'
+        with:
+          node-version: 24
+          cache: npm
+      - if: steps.switch.outputs.enabled == 'true'
+        run: npm ci
+      - name: Validate the Worker bundle without Cloudflare credentials
+        if: steps.switch.outputs.enabled == 'true'
+        env:
+          WRANGLER_SEND_METRICS: "false"
+        run: npx --no-install wrangler deploy --dry-run --config worker/wrangler.toml --outdir "$RUNNER_TEMP/worker-dry-run"
+      - name: Plan, release and record the yachtlab-online Worker
+        if: steps.switch.outputs.enabled == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.WORKER_PRODUCTION_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.WORKER_PRODUCTION_ACCOUNT_ID }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/ci/auto-deploy-online-worker.mjs
