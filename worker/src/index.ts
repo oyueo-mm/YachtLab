@@ -662,6 +662,19 @@ export class UserStore extends DurableObject<Env> implements UserApi {
     await this.dailyFlush();
     return isDailyDate(date) ? this.dailyStore.attempt(date, mode, this.dailyNow()) : null;
   }
+  /** SEC-1 2차 INT-5: GET /api/daily/today reads in one call (same answers as the separate RPCs). */
+  async dailyToday(date: string, puzzleIds: string[]) {
+    await this.dailyFlush();
+    const now = this.dailyNow();
+    const ok = isDailyDate(date);
+    return {
+      official: ok ? this.dailyStore.attempt(date, "official", now) : null,
+      practice: ok ? this.dailyStore.attempt(date, "practice", now) : null,
+      practiceLeft: await this.dailyPracticeLeft(date),
+      puzzleResults: this.dailyStore.puzzleResults(puzzleIds.slice(0, 10)),
+      visibility: this.dailyStore.visibility(),
+    };
+  }
   async dailyPracticeLeft(date: string) {
     const used = (this.ctx.storage.sql.exec<{ games: number }>("SELECT games FROM daily_practice WHERE date = ?", date).toArray()[0]?.games ?? 0);
     return Math.max(0, this.dailyLimits().practicePerDay - used);
@@ -1695,6 +1708,9 @@ const fail = (status: number, code: string, message: string, origin: string | nu
 const isolateHits = new Map<string, { window: number; count: number }>();
 /** PR118-02: last `/api/activity` answer in this isolate (memory only, no storage, no Cache API). */
 let isolateActivity: { at: number; value: unknown } | null = null;
+/** SEC-1 2차 INT-4: last public notices answer in this isolate (memory only), at most NOTICES_CACHE_MS old. */
+let isolateNotices: { at: number; value: unknown } | null = null;
+const NOTICES_CACHE_MS = 30_000;
 function isolateLimited(key: string, perMinute: number): boolean {
   const window = Math.floor(Date.now() / 60_000);
   const row = isolateHits.get(key);
@@ -1842,8 +1858,14 @@ export default {
       if (parts[0] === "api" && (parts[1] === "notices" || parts[1] === "suggestions" || parts[1] === "reports" || (parts[1] === "me" && (["mailbox", "redeem", "sanctions", "appeals"].includes(parts[2] ?? "") || (parts[2] === "rewards" && parts[3] === "redeem" && parts.length === 4))))) {
         if (request.method !== "GET" && !allowed) return fail(403, "ORIGIN", "허용되지 않은 출처입니다.", null);
         const reply = (status: number, body: unknown) => json(status, body, allowed, parts[1] === "notices" && status === 200 ? "public, max-age=60" : "no-store");
-        if (parts[1] === "notices" && !env.ADMIN) return reply(200, { notices: [] });
+        if (parts[1] === "notices" && (!env.ADMIN || env.NOTICES !== "on")) return reply(200, { notices: [] }); // INT-4: flag off → no admin index call
+        if (parts[1] === "notices" && request.method === "GET") {
+          // INT-4: a public, unauthenticated route — one admin index read per isolate per NOTICES_CACHE_MS, and a per-client limit
+          if (isolateLimited("notices:" + (await clientKey(request)), 30)) return fail(429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.", allowed);
+          if (isolateNotices && Date.now() - isolateNotices.at < NOTICES_CACHE_MS) return reply(200, isolateNotices.value);
+        }
         const routed = await handleEngagementRoute(request, url, { ...engagement(), client: await clientKey(request) }, reply);
+        if (routed && parts[1] === "notices" && routed.status === 200) isolateNotices = { at: Date.now(), value: await routed.clone().json() };
         if (routed) return routed;
       }
       // Operations metrics (administrator only: a Worker secret, never in the web bundle).

@@ -30,6 +30,7 @@ beforeAll(async () => {
     ADMIN_TOKEN: "t".repeat(40),
     ADMIN_TOKEN_ROUTES: "metrics",
     FEEDBACK_BOARD: "on",
+    NOTICES: "on",
   });
 }, 120_000);
 afterAll(async () => {
@@ -83,6 +84,8 @@ describe("admin console and engagement in the Workers runtime", () => {
     // notice → public list
     expect((await call(aa, "/api/admin/notices", { title: "점검 안내", body: "새벽 점검이 있어요", kind: "maintenance", important: true, status: "published" })).status).toBe(200);
     expect((await call(null, "/api/notices")).body.notices[0]).toMatchObject({ title: "점검 안내", important: true });
+    // SEC-1 2차 INT-4: the public notices answer is reused in the isolate (no admin index read per request)
+    for (let i = 0; i < 5; i++) expect((await call(null, "/api/notices")).body.notices[0]).toMatchObject({ title: "점검 안내" });
 
     // reward: draft (A) → approve (B) → alarm delivery. INT-1: the delivery is a C5 grant, and C5 does not approve
     // the operator source in production (APPROVED_SOURCES) — the approved campaign pays NOTHING: no mailbox

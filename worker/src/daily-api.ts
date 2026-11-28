@@ -41,7 +41,22 @@ export type DailyUserApi = {
   dailyAnswer(date: string, result: PuzzleResult): Promise<{ result: PuzzleResult; first: boolean }>;
   dailyLog(date: string): Promise<unknown>;
   dailyPracticeLeft(date: string): Promise<number>;
+  /** SEC-1 2차 INT-5: the five reads of GET /api/daily/today in one call (optional for test fakes). */
+  dailyToday?(date: string, puzzleIds: string[]): Promise<{ official: AttemptView | null; practice: AttemptView | null; practiceLeft: number; puzzleResults: PuzzleResult[]; visibility: Visibility }>;
 };
+/** INT-5: puzzle withdrawals change rarely; one board read per isolate per date per FLAGS_CACHE_MS. */
+const FLAGS_CACHE_MS = 30_000;
+const flagCache = new Map<string, { at: number; flags: Record<string, boolean> }>();
+async function cachedFlags(board: DailyBoardApi, date: string, now: number) {
+  const hit = flagCache.get(date);
+  if (hit && Math.abs(now - hit.at) < FLAGS_CACHE_MS) return hit.flags;
+  const flags = await board.puzzleFlags().catch(() => ({} as Record<string, boolean>));
+  if (flagCache.size > 8) flagCache.clear();
+  flagCache.set(date, { at: now, flags });
+  return flags;
+}
+/** Admin writes clear this isolate's copy at once (other isolates follow within FLAGS_CACHE_MS). */
+export const forgetDailyFlags = (date: string) => void flagCache.delete(date);
 export type DailyBoardApi = {
   page(offset: number, limit: number): Promise<{ total: number; entries: (BoardEntry & { rank: number })[] }>;
   entriesFor(ids: string[]): Promise<(BoardEntry & { rank: number })[]>;
@@ -129,11 +144,15 @@ export async function handleDailyRoute(request: Request, url: URL, deps: DailyDe
     if (deps.limited("daily-today:" + (await deps.clientKey()), 60)) return fail(deps, 429, "RATE_LIMITED", "잠시 후 다시 시도해 주세요.");
     const key = dayKeyFor(deps.secretFor(today), today);
     const me = await deps.me();
-    const flags = await deps.board(today).puzzleFlags().catch(() => ({} as Record<string, boolean>));
+    const flags = await cachedFlags(deps.board(today), today, Date.now());
     const puzzles = puzzlesOf(today).filter((p) => !flags[p.id]).map((p) => ({ id: p.id, level: p.level, kind: p.kind, title: p.title }));
     const base = { now, date: today, rules: DAILY_RULES, phase: dayPhase(today, now), closesAt: closesAt(today), nextDate: addDays(today, 1), commitment: commitmentOf(key), puzzles, epoch: DAILY_EPOCH };
     if (!me) return deps.reply(200, { ...base, me: null }, "private, max-age=30");
     const u = deps.user(me.userId);
+    if (u.dailyToday) {
+      const t = await u.dailyToday(today, puzzles.map((p) => p.id));
+      return deps.reply(200, { ...base, me: { official: t.official, practice: t.practice, practiceLeft: t.practiceLeft, puzzleResults: t.puzzleResults, visibility: t.visibility } }, "private, no-store");
+    }
     const [official, practice, practiceLeft, results, visibility] = await Promise.all([
       u.dailyAttempt(today, "official"), u.dailyAttempt(today, "practice"), u.dailyPracticeLeft(today), u.dailyPuzzleResults(puzzles.map((p) => p.id)), u.dailyVisibility(),
     ]);

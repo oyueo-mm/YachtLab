@@ -247,3 +247,18 @@ describe("SEC-1 2차 INT-6 · 재가입 제재 승계(장애 시 닫힘)", () =>
     expect(body).toMatch(/transactionSync\(\(\) => \{\s*this\.store\.ensureUser\(userId, provider, Date\.now\(\)\);\s*for \(const c of carried\) this\.member\.applySanction/);
   });
 });
+
+describe("SEC-1 2차 INT-4/INT-5 · 공개 경로 요청 비용", () => {
+  it("공지: NOTICES 꺼짐이면 관리자 허브를 부르지 않고, 켜짐이면 인스턴스 캐시·클라이언트 한도를 쓴다", () => {
+    const src = readFileSync("worker/src/index.ts", "utf8");
+    expect(src).toContain('(parts[1] === "notices" && (!env.ADMIN || env.NOTICES !== "on")) return reply(200, { notices: [] })');
+    expect(src).toContain('isolateLimited("notices:" + (await clientKey(request)), 30)');
+    expect(src).toContain("NOTICES_CACHE_MS");
+  });
+  it("오늘의 요트: 퍼즐 상태는 인스턴스 캐시, 회원 정보는 계정 호출 1번", () => {
+    const api = readFileSync("worker/src/daily-api.ts", "utf8");
+    expect(api).toContain("await cachedFlags(deps.board(today), today, Date.now())");
+    expect(api).toContain("await u.dailyToday(today, puzzles.map((p) => p.id))");
+    expect(readFileSync("worker/src/daily-admin.ts", "utf8")).toContain("forgetDailyFlags(date)");
+  });
+});

@@ -1,5 +1,5 @@
 import { isDailyDate } from "../../src/daily/calendar";
-import { dailyAdminReport, puzzlesOf, type DailyBoardApi } from "./daily-api";
+import { dailyAdminReport, forgetDailyFlags, puzzlesOf, type DailyBoardApi } from "./daily-api";
 
 /**
  * LIVE-1 operations routes in the ADMIN-1 `AdminExtensionRoute` shape (docs/admin/LIVE-1-ADMIN-CONTRACT.md,
@@ -56,6 +56,7 @@ export function dailyAdminRoutes(deps: DailyAdminDeps): DailyAdminRoute[] {
         if (body?.disabled !== undefined && typeof body.disabled !== "boolean") return bad("disabled must be true or false");
         const disabled = body?.disabled !== false;
         await deps.board(date).setPuzzleFlag(puzzleId, disabled);
+        forgetDailyFlags(date); // INT-5: this isolate's cached withdrawals follow at once
         return { status: 200, body: { date, puzzleId, disabled }, target: puzzleId, detail: { date, disabled } };
       },
     },
