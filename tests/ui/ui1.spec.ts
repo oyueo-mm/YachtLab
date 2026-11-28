@@ -306,19 +306,38 @@ test.describe("online (local Worker): A3 results for 3+ players and spectators",
   });
 });
 
-test("다른 트랙 기능 진입점은 경로와 서버 플래그가 모두 있을 때만 보인다 (이 빌드: 경로 없음 → 플래그가 켜져도 숨김)", async ({ page }, info) => {
+test("다른 트랙 기능 진입점은 경로와 서버 플래그가 모두 있을 때만 보인다 (INT-1 통합 빌드: 경로 있음, 회원 기능은 로그인까지 필요)", async ({ page }, info) => {
   test.skip(info.project.name === "mobile", "한 번만");
   const fake = "http://127.0.0.1:9";
-  await page.route(`${fake}/api/features`, (route) => route.fulfill({ headers: { "access-control-allow-origin": "*" }, json: { quickMatch: true, publicSpectate: true, signIn: true, daily: true, retention: true, mailbox: true, feedback: true, notices: false } }));
+  let flags: Record<string, boolean> = { quickMatch: true, publicSpectate: true, signIn: true, daily: false, retention: false, mailbox: false, feedback: false, notices: false };
+  await page.route(`${fake}/api/features`, (route) => route.fulfill({ headers: { "access-control-allow-origin": "*" }, json: flags }));
   await page.route(`${fake}/api/notices`, (route) => route.fulfill({ headers: { "access-control-allow-origin": "*" }, json: { notices: [{ id: "n1", title: "중요 공지", important: true }] } }));
-  const featuresSeen = page.waitForResponse(`${fake}/api/features`);
+  const menuEntries = async () => {
+    await page.getByRole("button", { name: "메뉴", exact: true }).click();
+    const menu = page.getByRole("dialog", { name: "메뉴" });
+    await expect(menu.getByRole("button", { name: "온라인 대전" })).toBeVisible();
+    const seen: string[] = [];
+    for (const name of ["오늘의 요트", "출석·보상", "알림함", "서비스 제안"]) if (await menu.getByRole("button", { name }).count()) seen.push(name);
+    await page.keyboard.press("Escape");
+    return seen;
+  };
+  // 1) the production state: every flag off → nothing from other tracks appears
+  let featuresSeen = page.waitForResponse(`${fake}/api/features`);
   await page.goto(`?online-server=${encodeURIComponent(fake)}#home`);
-  expect((await (await featuresSeen).json()).daily).toBe(true); // the flags really reached the page
+  await featuresSeen;
   await expect(page.locator(".lobby .mode-card")).toHaveCount(2);
   await expect(page.locator(".lobby-today")).toHaveCount(0);
-  await expect(page.locator(".ui1-notice")).toHaveCount(0); // notices flag off
-  await page.getByRole("button", { name: "메뉴", exact: true }).click();
-  const menu = page.getByRole("dialog", { name: "메뉴" });
-  for (const name of ["오늘의 요트", "출석·보상", "알림함", "서비스 제안"]) await expect(menu.getByRole("button", { name })).toHaveCount(0);
-  await expect(menu.getByRole("button", { name: "온라인 대전" })).toBeVisible();
+  await expect(page.locator(".ui1-notice")).toHaveCount(0);
+  expect(await menuEntries()).toEqual([]);
+  // 2) flags on, signed out: only the public entry (오늘의 요트); member entries need sign-in; notices still off
+  flags = { ...flags, daily: true, retention: true, mailbox: true, feedback: true };
+  featuresSeen = page.waitForResponse(`${fake}/api/features`);
+  await page.reload();
+  expect((await (await featuresSeen).json()).daily).toBe(true);
+  await expect(page.locator(".lobby .mode-card")).toHaveCount(2);
+  await expect(page.locator(".lobby-today")).toHaveCount(1);
+  await expect(page.locator(".lobby-today")).toContainText("오늘의 요트");
+  await expect(page.locator(".lobby-today")).not.toContainText("출석·보상");
+  await expect(page.locator(".ui1-notice")).toHaveCount(0);
+  expect(await menuEntries()).toEqual(["오늘의 요트"]);
 });
