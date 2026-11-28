@@ -1,0 +1,71 @@
+name: Verify Worker production credentials (read only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_worker_version:
+        description: Full UUID currently serving 100% of yachtlab-online traffic
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  verify-read-access:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    environment: worker-production
+    steps:
+      - name: Read the active Cloudflare Worker deployment
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.WORKER_PRODUCTION_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.WORKER_PRODUCTION_API_TOKEN }}
+          EXPECTED_VERSION: ${{ inputs.expected_worker_version }}
+        run: |
+          python3 - <<'PY'
+          import http.client
+          import json
+          import os
+          import re
+          import sys
+          import uuid
+
+          def stop(message):
+              print(message, file=sys.stderr)
+              sys.exit(1)
+
+          account = os.environ["CF_ACCOUNT_ID"]
+          token = os.environ["CF_API_TOKEN"]
+          if not re.fullmatch(r"[0-9a-fA-F]{32}", account) or not token:
+              stop("Missing or invalid Environment credentials.")
+          try:
+              expected = uuid.UUID(os.environ["EXPECTED_VERSION"])
+          except ValueError:
+              stop("Supply the active Worker version UUID.")
+
+          connection = http.client.HTTPSConnection("api.cloudflare.com", timeout=15)
+          path = f"/client/v4/accounts/{account}/workers/scripts/yachtlab-online/deployments?per_page=1"
+          try:
+              connection.request("GET", path, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})
+              response = connection.getresponse()
+              if response.status != 200:
+                  stop(f"Cloudflare deployment lookup returned HTTP {response.status}.")
+              payload = json.loads(response.read(256 * 1024 + 1))
+          except (OSError, ValueError, http.client.HTTPException):
+              stop("Cloudflare deployment lookup did not return valid JSON.")
+          finally:
+              connection.close()
+
+          try:
+              deployment = payload["result"]["deployments"][0]
+              versions = deployment["versions"]
+              if payload["success"] is not True or len(versions) != 1:
+                  stop("Expected one active Worker version.")
+              if versions[0]["percentage"] != 100 or uuid.UUID(versions[0]["version_id"]) != expected:
+                  stop("The active Worker version or traffic percentage differs from the supplied baseline.")
+          except (AttributeError, KeyError, IndexError, TypeError, ValueError):
+              stop("Cloudflare returned an unexpected deployment response.")
+
+          print("GET succeeded with the Environment credentials. The expected Worker version serves 100% of traffic.")
+          PY
