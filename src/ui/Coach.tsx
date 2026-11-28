@@ -91,6 +91,8 @@ export function Coach({ steps, open, onClose, label }: { steps: CoachStep[]; ope
   useEffect(() => {
     if (!open) return;
     const key = (e: KeyboardEvent) => {
+      // A modal opened after the tour (e.g. an item detail) sits on top: its keys are its own.
+      if (document.querySelector("dialog[open]")) return;
       if (e.key === "Escape") {
         e.preventDefault();
         onClose();
